@@ -22,6 +22,7 @@ docker compose up -d
 Note: for Soketi 1.x, the app manager driver should be `array` and the
 `SOKETI_DEFAULT_APP_*` values must be set. Using `local` or `redis` will crash
 the server.
+This compose file only runs Soketi (no Redis).
 
 3) WebSocket endpoint (local):
 

@@ -13,6 +13,17 @@ pnpm-debug.log*
 .env.*
 !.env.example
 
+# Secrets
+android/app/google-services.json
+ios/App/App/GoogleService-Info.plist
+android/upload-cert.pem
+push/*.p8
+push/*firebase-adminsdk*.json
+push/*.pem
+push/*.p12
+push/*.key
+push/*.crt
+
 dist/
 build/
 coverage/

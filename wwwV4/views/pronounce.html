@@ -1,0 +1,55 @@
+<ion-view>
+
+    <ion-nav-buttons side="right">
+        <button class="button button-icon button-clear ion-ios-search" ng-click="srchClick()"></button>
+        <button class="button button-icon button-clear icon-people" xmenu-toggle="right" ng-click="chatClick('upr')"></button>
+    </ion-nav-buttons>
+
+    
+    <ion-content class="padding translate">
+    
+        <article class="item-box56">
+
+            <ion-item class="i-header text35" style="margin-top:5px; margin-left:5px;">{{i18n[loc].text}}</ion-item>
+
+            <section ng-show="openItem2==$index">                
+                <div  style="position:relative; top:-16px;">
+                    <span class="text24">&nbsp;</span>   
+                    <div class="i-clear_check">     
+                        <textarea reset-field class="i--textarea margin-bottom" placeholder="{{i18n[loc].pron_input}} ..." rows="8" cols="10" ng-model="datos.frmText"></textarea>
+                        <div class="xicon-close-1"></div>
+                    </div>
+                </div>
+
+                <div class="buttonCenter">
+                    <button class="green i--button text13" ng-click="pronuncia(datos.frmText); $event.stopPropagation();" ng-disabled="checkText(datos.frmText)">{{i18n[loc].pron_title}}</button>
+                </div>
+
+                <div ng-if="errorValue">
+                    <div class="item-text-wrap assertive" style="padding-top:10px;">
+                        {{errorValue}}
+                    </div>                    
+                </div>
+
+            </section>
+        </article>
+    
+        <div ng-if="pronHist.length>0">
+            <div class="tpl-space-between" style="margin: 10px 0;">
+                <div class="text13">{{i18n[loc].pronhistory}}</div>
+                <button class="little darkblue i--button text16" ng_click="deleteClick()">{{i18n[loc].clean}}</button>
+            </div>
+
+            <ion-list class="item-box56">
+                <ion-item class="i--message" ng-repeat="item in pronHist track by $index" ng_click="itemClick($index)">
+                    <div>
+                        <span class="icon-play text20" style="padding-right:10px;"></span><span>{{item.text}}</span> 
+                    </div>                  
+                    <div class="i-icon icon ion-close-circled" ng_click="deleteItemClick($index); $event.stopPropagation();"></div>
+                </ion-item>
+            </ion-list>
+        </div>
+        
+    </ion-content>
+    
+</ion-view>

@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Speak App</title>
+  <meta name="description" content="Nueva version con onboarding y pestañas nativas.">
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+
+  <!-- Google Fonts (remoto) -->
+  <!-- 
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet"> 
+  -->
+  <!-- Ionic CSS and JS (remoto) -->
+  <!--
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@ionic/core@7.0.0/css/ionic.bundle.min.css">
+  <script type="module" src="https://cdn.jsdelivr.net/npm/@ionic/core@7.0.0/dist/ionic/ionic.esm.js"></script>
+  <script nomodule src="https://cdn.jsdelivr.net/npm/@ionic/core@7.0.0/dist/ionic/ionic.js"></script>
+  -->
+  <!-- Ionicons (remoto) -->
+  <!--
+  <script type="module" src="https://cdn.jsdelivr.net/npm/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+  <script nomodule src="https://cdn.jsdelivr.net/npm/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+  -->
+  
+  <!-- Ionic CSS y JS (local) -->
+  <link rel="stylesheet" href="vendor/ionic/css/ionic.bundle.css">
+  <script type="module"   src="vendor/ionic/ionic.esm.js"></script>
+  <script nomodule        src="vendor/ionic/ionic.js"></script>
+  <!-- Ionicons (local) -->
+  <script type="module"   src="vendor/ionicons/ionicons/ionicons.esm.js"></script>
+  <script nomodule        src="vendor/ionicons/ionicons/ionicons.js"></script>
+
+  <!-- Custom CSS (Incluye los fonts locales de Google en 3 sentencias @font-face) -->
+  <link rel="stylesheet" href="css/styles.css?v=9">
+  <!-- App JS -->
+  <script src="js/config.js?v=1"></script>
+  <script src="vendor/pusher/pusher.min.js"></script>
+  <script src="js/_r34lp0w3r_.js"></script>
+  <script src="js/init.js?v=1"></script>
+  <script type="module" src="js/app.js?v=9"></script>
+</head>
+<body>
+  <ion-app>
+    <ion-router use-hash="true">
+      <ion-route url="/" component="page-onboarding"></ion-route>
+      <ion-route url="/onboarding" component="page-onboarding"></ion-route>
+      <ion-route url="/tabs" component="tabs-page"></ion-route>
+      <ion-route url="/diagnostics" component="page-diagnostics"></ion-route>
+      <ion-route url="/login" component="page-login"></ion-route>
+      <ion-route-redirect from="/tabs/home" to="/tabs"></ion-route-redirect>
+      <ion-route-redirect from="/tabs/listas" to="/tabs"></ion-route-redirect>
+      <ion-route-redirect from="/tabs/speak" to="/tabs"></ion-route-redirect>
+      <ion-route-redirect from="/tabs/tu" to="/tabs"></ion-route-redirect>
+      <ion-route-redirect from="/tabs/premium" to="/tabs"></ion-route-redirect>
+    </ion-router>
+    <ion-router-outlet></ion-router-outlet>
+  </ion-app>
+</body>
+</html>

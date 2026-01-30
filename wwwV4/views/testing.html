@@ -1,0 +1,15 @@
+<ion-navbar *navbar>
+  <ion-title>
+    Ionic 2
+  </ion-title>
+</ion-navbar>
+
+<ion-content class="has-header">
+  <ion-card>
+    <ion-item>
+      <ion-label floating>Movie Name</ion-label>
+      <ion-input  type="text" (input)='search($event)' clearInput></ion-input>
+    </ion-item>
+  </ion-card>
+</ion-content>
+

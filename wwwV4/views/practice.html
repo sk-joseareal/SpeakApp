@@ -1,0 +1,90 @@
+
+
+
+
+<ion-view class="practice">
+    
+    <ion-nav-buttons side="right">
+        <button class="button button-icon button-clear ion-ios-search" ng-click="srchClick()"></button>
+        <button class="button button-icon button-clear icon-people" xmenu-toggle="right" ng-click="chatClick('upr')"></button>
+    </ion-nav-buttons>
+
+<!-- 
+    <ion-nav-title>{{i18n[loc].prac_title}}</ion-nav-title>
+-->    
+
+    <ion-content>   
+    
+        <ion-list>
+
+
+
+
+            <!-- href="#/app/grammar/{{course.id}}" -->
+            <ion-item style="padding:6px 8px 6px 8px !important;" ng-repeat="course in Courses" ng-click="goRoute('app.grammar',{courseId:{{course.id}}})" ng-if="course.typeCourse!=2">
+
+                <div class="item-box51">
+
+                    <div class="i-header" style="background:#49be48 !important;"> 
+   
+                    <div ng-if="genService.getCache()">
+                        <span ng-if="!checkItemCourse(course.id)" class="ion-ios-cloud-outline" style="position:absolute; right:16px; font-size:32px; color:white" ></span>
+                    </div>                        
+<!--
+                        <div ng-if="genService.getCache()">
+                        <span ng-if="!checkItemCourse(course.id)" class="ion-android-download" style="font-size:26px; padding-right:10px; color:white;" ng-click="descarga(course.id)"></span>
+                        <span ng-if="checkItemCourse(course.id)" class="ion-android-cloud-done" style="font-size:26px; padding-right:10px; color:white;" ng-click="descarga(course.id)"></span>                        
+                        </div>
+-->
+
+
+<!--                        <div class="i-icon" style="background-image: url('{{course.imageURL}}');"></div>  -->
+                        <div class="i-icon" style='background-image: url("assets/course{{course.id}}.png");'></div> 
+                        <div class="i-graph" cssUserLogin="{{userInfo.image}}" style="border:0px;">
+                            <div class="i-graphContent">
+                                <div class="i-message" style="background-image: url('{{cacheImage}}'); border:0px;"></div>
+<!--
+                                <div class="i-message" style="background-image: url('{{userInfo.image}}');"></div>
+-->
+                                <div class="i-slice" percent="{{course.complete}}" style="transform: rotate(0deg);">
+                                    <div class="i-sliceOut" style="transform: rotate(calc({{course.complete}}*360deg/100));"></div>
+                                </div>
+                                <div class="i-slice2" style="transform: rotate(180deg);">
+                                    <div class="i-sliceOut2" style="transform: rotate(calc(({{course.complete}} - 50)*360deg/100));"></div>
+                                </div>
+                            </div>
+                            <div class="i-value text1">{{course.complete}}%</div>
+                        </div>
+                    </div>                   
+                    <article class="i-content">
+                        <div ng-if="loc=='es'">
+                          <header class="i-title text2">{{course.name}}</header>
+                          <section class="i-text text3">{{i18n[loc].gram_cd}}.</section>
+                        </div>
+                        <div ng-if="loc!='es' && loc!='br'">
+                          <header class="i-title text2">{{course.name_en}}</header>
+                          <section class="i-text text3">{{i18n[loc].gram_cd}}.</section>
+                        </div>
+                        <div ng-if="loc=='br'">
+                          <header class="i-title text2">{{course.name_br}}</header>
+                          <section class="i-text text3">{{i18n[loc].gram_cd}}.</section>
+                        </div>
+                    </article>
+
+                </div>
+
+            </ion-item>
+
+
+
+
+
+
+
+ 
+
+        </ion-list>
+    
+    </ion-content>
+    
+</ion-view>

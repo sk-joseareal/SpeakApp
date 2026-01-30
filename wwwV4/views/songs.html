@@ -1,0 +1,59 @@
+<ion-view view-title="{{i18n[loc].song_title}}">
+    
+    <ion-nav-buttons side="right">
+        <button class="button button-icon button-clear icon-people" menu-toggle="right"></button>
+    </ion-nav-buttons>
+
+<!--
+    <ion-nav-title>{{i18n[loc].song_title}}</ion-nav-title>    
+-->
+    
+    <ion-content ng-class="(errorValue) ? 'wrongBackground' : ''" class="padding songs">
+
+        <div ng-if="errorValue" ng-include src="'views/error2.html'"></div>
+
+        <div ng-if="!errorValue">      
+
+        <article class="item-box56">
+            <ion-item class="i-header" ng-click="plusClick($index); $event.stopPropagation();">
+                <div class="text12"><span class="icon-search"></span>{{i18n[loc].songsearch}}</div>
+                <div class="i-icon" ng-class="{ 'ion-minus-circled' : openItem==$index  , 'ion-plus-circled' :openItem != $index   }" ng-click="plusClick($index); $event.stopPropagation();"></div>
+            </ion-item>
+            <section ng-show="openItem==$index">
+                <hr>
+                <label class="i--select icon-arrow-down text3">
+                    {{i18n[loc].artist}}:
+                    <select style="padding-left:10px;" class="text26" ng-options="filter.name for filter in artists" ng-model="filter" ng-change="selectFilter(filter.name)" ng-selected="{{filter.name==filter_human}}"></select>
+                </label>
+                <label class="i--select icon-arrow-down text3">
+                    {{i18n[loc].full_lesson}}:
+                    <select style="padding-left:10px;" class="text26" ng-options="filter.name for filter in lessons" ng-model="filter" ng-change="selectFilter(filter.name)"></select>
+                </label>
+            </section>
+        </article>
+
+        <div class="text11" style="margin: 10px 0;">{{filter_human}}</div>
+        
+        <h3 ng-if="test=='xxCargando ...'">{{test}}</h3>
+
+	    <ng-repeat ng-repeat="song in songs.songs" >
+
+            <ion-item class="item-box57" ng-class="{ 'item-thumbnail-left' : song.thumbnail }" ng-click="videoClick($index); $event.stopPropagation();">
+                <div class="i--info">
+                    <div class="i--icon-right icon-arrow-right"></div>
+                    <div class="i--info--img" style="background-image: url('{{song.thumbnail}}');" ng-if="true"></div>
+                    <div class="i--info--text">
+                        <div class="text2 underline_none">{{song.lesson_section}}</div>
+                        <div class="text3">{{song.title}}</div>
+                        <div class="text14 underline_none">{{song.artist}}</div>
+                    </div>
+                </div>
+    	    </ion-item>
+
+	    </ng-repeat>
+
+        </div>
+    </ion-content>
+
+
+</ion-view>

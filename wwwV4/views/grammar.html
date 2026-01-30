@@ -1,0 +1,136 @@
+
+<style>
+.miBadge
+{
+  margin-left: 7px;
+  width: 34px;
+  height: 20px;
+  background-color: #00a8ef;
+  border-top-left-radius: 20%;
+  border-top-right-radius: 20%;
+  border-bottom-right-radius: 20%;
+  border-bottom-left-radius: 20%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+}
+
+</style>
+
+
+<ion-view>
+
+    <ion-nav-buttons side="right">
+        <button class="button button-icon button-clear ion-ios-search" ng-click="srchClick()"></button>
+        <button class="button button-icon button-clear icon-people" xmenu-toggle="right" ng-click="chatClick('upr')"></button>
+    </ion-nav-buttons>
+
+<!--
+    <ion-nav-title>{{i18n[loc].gram_title}}</ion-nav-title>
+-->
+
+    <ion-content ng-class="(errorValue) ? 'wrongBackground' : ''" class="padding vocabulary gramatica">
+
+
+        <div ng-if="errorValue" ng-include src="'views/error.html'"></div>
+
+        <div ng-if="!errorValue">   
+
+        <div class="item-box56" ng-repeat="c in grammar.courses" ng-if="grammar.practicetests[c.id].length>0 && (courseId==0 || c.id==courseId)">
+            <div class="i-header" ng-click="plusClick($index); $event.stopPropagation();">
+                <div class="item-box62">
+
+                    <div ng-if="genService.getCache()">
+                    <span ng-if="!checkItem(c.id)" class="ion-ios-cloud-outline" style="position:fixed; margin-left:70px; font-size:32px; margin-top:-40px; color:{{c.background}}" ></span>
+                    </div>
+
+                    <div class="i--img" style="background-image: url('{{c.image}}');">
+                        <div class="i--img" style="background-image: url('{{c.image}}');"></div>
+                    </div>
+                    
+                    <div class="i--info text14">{{ loc=='es' ? c.name : c.name_en }} 
+
+<!--
+                    <span ng-if="genService.getCache()" ng-class=" checkItem(c.id) ? 'ion-android-cloud-done' : 'ion-android-download'" style="font-size:28px; padding-left:10px; color:#0084cb;" ng-click="offLine(c.id); $event.stopPropagation();"></span>
+-->                    
+                    </div>
+               
+                
+                </div>
+
+
+
+
+                <div ng-if="courseId==0" class="i-icon" ng-class="{ 'ion-minus-circled' : openItem==$index  , 'ion-plus-circled' :openItem != $index   }"></div>
+            </div>
+            
+            <div ng-show="courseId!=0 || openItem==$index">
+                <hr>                    <!--  c.id,$index  -->
+                <ion-item class="i--message" ng-click="goTest(item.lesson_id,item.id); $event.stopPropagation();" ng-repeat="item in grammar.practicetests[c.id] | orderBy: ['lesson_id','name'] ">
+                    <div class="flex-justify">
+
+<!--
+                        <div ng-if="userInfo">
+                            <i class="icon icon-pen" style="color:#666; font-size:12px;" ng-if="!item.result"></i>
+                            <i class="icon ion-checkmark-round" style="color:green; font-size:16px;" ng-if="item.result && item.result>=80"></i>
+                            <i class="icon ion-close-round" style="color:red; font-size:16px;" ng-if="item.result !=null && item.result<80"></i>
+                        </div>
+-->
+
+<img ng-if="icono(item)==0" src="assets/inputtext.svg" style="height:22px;" />
+<img ng-if="icono(item)==1" src="assets/multi2.svg"    style="height:22px;" />
+<img ng-if="icono(item)==2" src="assets/tap.svg"       style="height:22px;" />
+<img ng-if="icono(item)==3" src="assets/inputtext2.svg"       style="height:22px;" />
+
+<!--
+
+                        <i class="icon icon-pen" style="color:#666; font-size:12px;" ng-if="true"></i>
+-->
+
+
+
+
+                        <div>
+                            <div class="text14">{{item.name}}</div>
+<!--                            <div ng-if="loc=='es'" class="text3">{{item.name_es}}</div> -->
+                        </div>
+
+<!--
+<div ng-if="item.new" style="position: fixed; display:inline-block; width:100%; text-align:right; pointer-events: none; z-index: 100;">
+<img src="assets/new-tag.svg" style="height:22px; width:22px; z-index: 100; margin-top:2px; margin-right:60px;" />
+</div>
+-->
+
+                        <div ng-if="userInfo && item.result && item.result !=null && item.result<80" style="position: relative; display:inline-block; width:100%; text-align:right; pointer-events: none; z-index: 100;">
+                            <i class="icon ion-close-circled" style="position:absolute; top:-13px; right:0px; height:22px; width:22px; z-index: 100; margin-top:2px;color:red; font-size:23px;"></i>
+                        </div>
+
+                        <div ng-if="userInfo && item.result && item.result>=80" style="position: relative; display:inline-block; width:100%; text-align:right; pointer-events: none; z-index: 100;">
+                            <i class="icon ion-checkmark-circled" style="position:absolute; top:-13px; right:0px; height:22px; width:22px; z-index: 100; margin-top:2px;color:green; font-size:23px;"></i>
+                        </div>
+
+                        <div ng-if="item.new" style="position: relative; display:inline-block; width:100%; text-align:right; pointer-events: none; z-index: 100;">
+<!--
+                            <div class="miBadge text11">new</div> 
+-->
+
+                            <img src="assets/new-tag.png" style="position:absolute; top:-13px; right:-10px; height:22px; xwidth:22px; z-index: 100; margin-top:2px;" />
+                        </div>
+
+
+
+
+
+
+                    </div>
+                    <i class="icon ion-chevron-right i-icon" style="color:#ccc; font-size:16px; margin-top: -5px;"></i>
+                
+                </ion-item>
+            </div>
+        </div>
+
+        </div>
+    </ion-content>
+
+</ion-view>

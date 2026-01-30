@@ -1,0 +1,70 @@
+<ion-view>
+    
+    <ion-nav-buttons side="right">
+        <button class="button button-icon button-clear ion-ios-search" ng-click="srchClick()"></button>
+        <button class="button button-icon button-clear icon-people" xmenu-toggle="right" ng-click="chatClick('upr')"></button>
+    </ion-nav-buttons>
+
+<!--
+    <ion-nav-title>{{i18n[loc].tran_title}}</ion-nav-title>    
+-->
+ 
+    <ion-content class="padding translate">
+        
+        <article class="item-box56">
+
+            <ion-item class="i-header" ng-click="swapClick(); $event.stopPropagation();">
+                <div class="text35" style="margin-top:5px; margin-left:5px;">{{dirs[dir]}}</div>
+                <div class="i-icon icon-refresh" ng-click="swapClick(); $event.stopPropagation();"></div>
+            </ion-item>
+
+            <section ng-show="openItem2==$index">
+                <div  style="position:relative; top:-16px;">
+                    <span class="text24">&nbsp;</span>    
+                    <div class="i-clear_check">            
+                        <textarea reset-field class="i--textarea margin-bottom" placeholder="{{i18n[loc].type}} ..." rows="8" cols="10" ng-model="datos.frmText"></textarea>
+                        <div class="xicon-close-1"></div>
+                    </div>
+                </div>
+                <div class="buttonCenter">
+                    <button class="green i--button text13" ng-click="traduce(datos.frmText); $event.stopPropagation();" ng-disabled="checkText(datos.frmText)">{{i18n[loc].translate}}</button>
+                </div>
+                <div ng-if="errorValue">
+                    <div class="item-text-wrap assertive" style="border-radius: 10px; border-color:#e9eef7; background:#e9eef7; padding-top:10px; padding-bottom:5px; margin-top:10px;">
+<!--
+                        {{errorValue}}
+-->
+<div class="somethingwrong">
+    <img src="assets/somethingwrong.png" /> 
+    <p>
+    {{i18n[loc].err05}}<br/>{{i18n[loc].err06}}<br/>{{i18n[loc].err07}}
+    </p>
+</div>                     
+                    </div>                    
+                </div>
+                <div ng-if="!errorValue" style="margin-top:10px;">
+                    <div class="i--text-play-next text14" ng-click="play(); $event.stopPropagation();" ng-if="dir==0">{{result}}<span class="icon-play" ng-if="result"></span></div>
+                    <div class="i--text-play-next text14" ng-if="dir==1">{{result}}</span></div>
+                </div>
+
+            </section>
+        </article>
+        
+        <div ng-if="transHist.length>0">
+            <div class="tpl-space-between" ng-if="transHist.length>0" style="margin: 10px 0;">
+                <div class="text13">{{i18n[loc].history}}</div>
+                <button class="little darkblue i--button text16" ng_click="deleteClick()">{{i18n[loc].clean}}</button>
+            </div>
+
+            <ion-list class="item-box56">
+                <ion-item class="i--message" ng-repeat="item in transHist track by $index" ng_click="itemClick($index)">
+                    <div class="text12">{{item.text}}</div>
+                    <span class="text3">{{item.translation}}</span>
+                    <div class="i-icon icon ion-close-circled" ng_click="deleteItemClick($index); $event.stopPropagation();"></div>
+                </ion-item>
+            </ion-list>
+        </div>
+        
+    </ion-content>
+    
+</ion-view>

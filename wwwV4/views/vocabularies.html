@@ -1,0 +1,45 @@
+
+<style>
+.hidden { display: none; }
+</style>
+
+<ion-view>
+
+    <ion-nav-buttons side="right">
+        <button class="button button-icon button-clear ion-ios-search" ng-click="srchClick()"></button>
+        <button class="button button-icon button-clear icon-people" xmenu-toggle="right" ng-click="chatClick('upr')"></button>
+    </ion-nav-buttons>
+
+    <ion-content ng-class="(errorValue) ? 'wrongBackground' : ''" class="padding vocabulary">
+
+        <div ng-if="errorValue" ng-include src="'views/error.html'"></div>
+
+        <div ng-if="!errorValue">    
+
+        <ng-repeat ng-repeat="vocab in Vocabs" >
+
+            <ion-item class="item-box56">
+                <div class="i-header" ng-click="itemClick($index); $event.stopPropagation();">
+                    <div class="text12">{{vocab.name}}</div>
+                    <div class="i-icon" ng-class="{ 'ion-minus-circled' : openVocab==$index  , 'ion-plus-circled' :openVocab != $index   }"></div>
+                </div>
+
+                <div class="i-section" ng-show="openVocab==$index">
+                    <hr>
+                    <!-- href="#/app/vocabulary/{{vocabulary.vocab_id}}/{{vocabulary.id}}" -->                    
+                    <ion-item class="i--message" ng-repeat="vocabulary in vocab.vocabularies" ng-click="goRoute('app.vocabulary',{ vocabId: {{vocabulary.vocab_id}} , vocabularyId: {{vocabulary.id}} }); $event.stopPropagation();" >
+                        <div class="text14">{{vocabulary.name}}</div>
+                        <div ng-if="loc=='es'" class="text3">{{vocabulary.translation}}</div>
+                        <div class="i-icon icon ion-chevron-right icon-arrow-right"></div>
+                    </ion-item>
+                </div>
+
+            </ion-item>
+
+        </ng-repeat>
+
+        </div>
+    </ion-content>
+
+
+</ion-view>

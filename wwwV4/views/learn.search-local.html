@@ -1,0 +1,222 @@
+<style>
+.hidden { display: none; }
+.misubheader {top:88px !important;}
+.miitem .item-content {font-size:14px; padding:2px !important;}
+
+/* Para quitar la barra del ion-scroll */
+.scroll-view.scroll-y {
+    overflow-y: hidden;  /* default value is 'scroll' */
+}
+
+
+
+.pruebaanim.ng-hide-add { animation:0.5s pepe ease; }
+.pruebaanim.ng-hide-remove { animation:0.5s epep ease; }
+@-webkit-keyframes pepe { 0% { opacity: 1; } 100% { opacity: 0; } }
+@-webkit-keyframes epep { 0% { opacity: 0; } 100% { opacity: 1; } }
+@keyframes pepe { 0% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes epep { 0% { opacity: 0; } 100% { opacity: 1; } }
+
+
+
+#pepe a
+{
+    padding-top:10px !important;
+    padding-bottom:10px !important;
+    border-bottom: solid 2px lightgray !important;
+}
+
+
+
+</style>
+
+<ion-view>
+
+<ion-nav-title xng-click="titleClick()">
+    {{i18n[loc].lear_title}}
+</ion-nav-title>
+
+  
+    <ion-nav-buttons side="right">
+
+<!--
+        <div ng-if="genService.getCache()">
+            <button ng-class="{hidden: checkItem()}" ng-click="offLine()" class="button button-icon button-clear ion-android-download"></button> 
+            <button ng-class="{hidden: !checkItem()}" ng-click="offLine()" class="button button-icon button-clear ion-android-cloud-done"></button> 
+        </div>
+-->
+
+<!--
+        <button ng-show="debugMode" class="button button-icon button-clear icon-search" ng-click="titleClick()"></button>
+-->
+
+
+
+        <button class="button button-icon button-clear ion-ios-search" ng-click="titleClick()"></button>
+        <button class="button button-icon button-clear icon-people" menu-toggle="right" ng-click="flashClick(2)"></button>
+    </ion-nav-buttons>
+
+
+<!--
+    <ion-nav-title>{{i18n[loc].lear_title}}</ion-nav-title>
+-->
+   
+
+
+<!--
+style="background-color:#00629d;"
+-->
+
+
+<!-- Search fijo en header -->
+
+<div ng-show="srchOn" class="pruebaanim bar bar-subheader bar-positive item-input-inset" style="background-color:#00629d;"> 
+    <label class="item-input-wrapper" style=" margin-left:-2px; margin-right:-3px;"> <i class="icon ion-ios-search placeholder-icon"></i> 
+        <input id="inpSrch" type="search" placeholder="introduce el texto de la búsqueda" ng-model="srchTxt" ng-change="buscando(srchTxt)" style="padding-left:0px;"> 
+    </label> 
+    <button class="button button-clear icon ion-android-close" ng-show="srchTxt" ng-click="srchTxt='';srchResult=[];"></button> 
+</div>
+
+
+
+
+<!-- Search fijo en header: ng-class=" (srchOn) ? 'misubheader' : ''  "     --> 
+<!-- Search sigue al contenido: no -->
+
+    <ion-content ng-class=" (srchOn) ? 'misubheader' : ''  "  ng-class="(errorValue) ? 'wrongBackground' : ''" > 
+
+<!-- Search sigue al contenido
+<div ng-show="srchOn" class="bar-positive item-input-inset" style="background-color:#00629d;"> 
+    <label class="item-input-wrapper" style=" margin-left:-3px; margin-right:-3px;"> <i class="icon ion-ios-search placeholder-icon"></i> 
+        <input type="search" placeholder="introduce el texto de la búsqueda" size="35" ng-model="srchTxt" ng-change="buscando(srchTxt)" style="padding-left:0px;"> 
+    </label> 
+    <span class="icon ion-android-close" ng-show="srchTxt" ng-click="srchResult.length=0;srchTxt='';" style="color:white; font-size: 28px; padding-left: 12px"></span> 
+</div>
+-->
+
+
+
+
+
+
+
+
+
+
+
+
+<div ng-show="srchOn && srchResult.length>0" style="padding:10px; padding-top:0px;">
+
+    <ion-item id="pepe" class="i--message item" style="" ng-click="goTest(item.lesson_id,item.id); $event.stopPropagation();" ng-repeat="result in srchResult" href="{{result.url}}">
+        <div class="flex-justify">
+            <div>
+                <i class="icon ion-edit" style="color:#81B1CE; font-size:30px;"></i>
+            </div>
+            <div>
+                <div class="text14" style="color: #0062A8; font-size:12px;">{{result.cat}}</div>
+                <div class="text3" style="color: #7C7C7C; font-size:15px;">{{result.txt}}</div>                
+            </div>
+        </div>
+        <i class="icon ion-ios-arrow-thin-right i-icon" style="color:#C3CFD7; font-size:26px; margin-right: 15px; xmargin-top: -5px;"></i>   
+    </ion-item>
+
+</div>
+
+
+
+
+
+<!--
+<ion-scroll delegate-handle="scroller" on-scroll="checkScroll()" direction="y" xstyle="width: 100%; height: 100%">
+-->
+
+
+
+<!--    
+        Error antiguo (texto dentro de una caja)  
+        <div class="padding" ng-if="errorValue">
+            <div class="card item-box56 padding" >
+                <div class="item item-text-wrap assertive">
+                    {{errorValue}}
+                </div>
+            </div>    
+        </div>
+-->
+
+        <div ng-if="errorValue" ng-include src="'views/error.html'"></div>
+
+
+
+        <div ng-if="!errorValue">    
+
+       
+        <ion-list>
+
+
+
+           
+            <ion-item ng-repeat="course in Courses" href="#/app/course/{{course.id}}" ng-if="course.typeCourse!=2">
+
+                <div class="item-box51">
+
+                    <div class="i-header" style="background:{{course.background}};"> 
+   
+                    <div ng-if="genService.getCache()">
+                        <span ng-if="!checkItemCourse(course.id)" class="ion-ios-cloud-outline" style="position:absolute; right:16px; font-size:32px; color:white" ></span>
+                    </div>                        
+<!--
+                        <div ng-if="genService.getCache()">
+                        <span ng-if="!checkItemCourse(course.id)" class="ion-android-download" style="font-size:26px; padding-right:10px; color:white;" ng-click="descarga(course.id)"></span>
+                        <span ng-if="checkItemCourse(course.id)" class="ion-android-cloud-done" style="font-size:26px; padding-right:10px; color:white;" ng-click="descarga(course.id)"></span>                        
+                        </div>
+-->
+
+
+<!--                        <div class="i-icon" style="background-image: url('{{course.imageURL}}');"></div>  -->
+                        <div class="i-icon" style='background-image: url("assets/course{{course.id}}.png");'></div> 
+                        <div class="i-graph" cssUserLogin="{{userInfo.image}}">
+                            <div class="i-graphContent">
+                                <div class="i-message" style="background-image: url('{{cacheImage}}');"></div>
+<!--
+                                <div class="i-message" style="background-image: url('{{userInfo.image}}');"></div>
+-->
+                                <div class="i-slice" percent="{{course.complete}}" style="transform: rotate(0deg);">
+                                    <div class="i-sliceOut" style="transform: rotate(calc({{course.complete}}*360deg/100));"></div>
+                                </div>
+                                <div class="i-slice2" style="transform: rotate(180deg);">
+                                    <div class="i-sliceOut2" style="transform: rotate(calc(({{course.complete}} - 50)*360deg/100));"></div>
+                                </div>
+                            </div>
+                            <div class="i-value text1">{{course.complete}}%</div>
+                        </div>
+                    </div>                   
+                    <article class="i-content">
+                        <div ng-if="loc=='es'">
+                          <header class="i-title text2">{{course.name}}</header>
+                          <section class="i-text text3">{{course.app_desc}}</section>
+                        </div>
+                        <div ng-if="loc!='es' && loc!='br'">
+                          <header class="i-title text2">{{course.name_en}}</header>
+                          <section class="i-text text3">{{course.app_desc_en}}</section>
+                        </div>
+                        <div ng-if="loc=='br'">
+                          <header class="i-title text2">{{course.name_br}}</header>
+                          <section class="i-text text3">{{course.app_desc_br}}</section>
+                        </div>
+                    </article>
+
+                </div>
+
+            </ion-item>
+            
+        </ion-list>
+
+        </div>
+
+<!--
+</ion-scroll>        
+-->
+
+    </ion-content>
+    
+</ion-view>

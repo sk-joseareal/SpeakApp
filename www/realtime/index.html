@@ -1,0 +1,429 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Realtime Monitor</title>
+  <style>
+    :root {
+      color-scheme: light;
+    }
+    body {
+      margin: 0;
+      background: #f6f7fb;
+      font-family: "Helvetica Neue", Arial, sans-serif;
+      color: #1d2433;
+    }
+    .shell {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+    h1 {
+      margin: 0 0 16px;
+      font-size: 1.8rem;
+    }
+    h2 {
+      margin: 0 0 12px;
+      font-size: 1.1rem;
+      color: #222c3c;
+    }
+    .card {
+      background: #ffffff;
+      border-radius: 16px;
+      border: 1px solid #e0e4ec;
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+    }
+    .row {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin: 10px 0;
+      flex-wrap: wrap;
+    }
+    .row label {
+      width: 120px;
+      font-size: 0.9rem;
+      color: #5a6477;
+    }
+    input, textarea, select {
+      flex: 1;
+      min-width: 220px;
+      padding: 8px 10px;
+      border-radius: 10px;
+      border: 1px solid #d0d6e2;
+      font-size: 0.95rem;
+      background: #fff;
+    }
+    textarea {
+      min-height: 90px;
+      resize: vertical;
+    }
+    button {
+      padding: 8px 14px;
+      border-radius: 999px;
+      border: 1px solid #d0d6e2;
+      background: #0f172a;
+      color: #fff;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+    button.secondary {
+      background: #fff;
+      color: #0f172a;
+    }
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .status-pill {
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: #eef2ff;
+      color: #334155;
+      font-weight: 600;
+      font-size: 0.85rem;
+    }
+    .status-pill[data-state="connected"] {
+      background: #dcfce7;
+      color: #166534;
+    }
+    .status-pill[data-state="failed"],
+    .status-pill[data-state="disconnected"] {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+    .log {
+      background: #0b1020;
+      color: #d0f5d0;
+      padding: 12px;
+      border-radius: 12px;
+      height: 240px;
+      overflow: auto;
+      font-size: 0.85rem;
+      white-space: pre-wrap;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+    th, td {
+      text-align: left;
+      padding: 8px 6px;
+      border-bottom: 1px solid #edf0f6;
+    }
+    th {
+      color: #6b7280;
+      font-weight: 600;
+    }
+    .muted {
+      color: #6b7280;
+      font-size: 0.85rem;
+    }
+    @media (max-width: 640px) {
+      .row label {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <h1>Realtime Monitor</h1>
+
+    <section class="card">
+      <h2>Connection</h2>
+      <div class="row">
+        <label>App key</label>
+        <input id="app-key" value="dev-key-123456">
+      </div>
+      <div class="row">
+        <label>WS host</label>
+        <input id="ws-host" value="realtime.curso-ingles.com">
+      </div>
+      <div class="row">
+        <label>WSS port</label>
+        <input id="wss-port" type="number" value="443">
+      </div>
+      <div class="row">
+        <label>Force TLS</label>
+        <select id="force-tls">
+          <option value="true" selected>true</option>
+          <option value="false">false</option>
+        </select>
+      </div>
+      <div class="row">
+        <label>Auth endpoint</label>
+        <input id="auth-endpoint" value="https://realtime.curso-ingles.com/realtime/auth">
+      </div>
+      <div class="row">
+        <label>User id</label>
+        <input id="auth-user-id" placeholder="optional for presence">
+      </div>
+      <div class="row">
+        <label>User name</label>
+        <input id="auth-user-name" placeholder="optional for presence">
+      </div>
+      <div class="row">
+        <button id="connect">Connect</button>
+        <button id="disconnect" class="secondary">Disconnect</button>
+        <span id="conn-status" class="status-pill" data-state="disconnected">disconnected</span>
+      </div>
+      <div class="muted">Tip: use private-coach-USER_ID for the app channel.</div>
+    </section>
+
+    <section class="card">
+      <h2>Send / Subscribe</h2>
+      <div class="row">
+        <label>Channel</label>
+        <input id="channel" value="demo-public">
+      </div>
+      <div class="row">
+        <label>Event</label>
+        <input id="event" value="bot_message">
+      </div>
+      <div class="row">
+        <label>Message</label>
+        <textarea id="message" placeholder="Type a message..."></textarea>
+      </div>
+      <div class="row">
+        <button id="subscribe">Subscribe</button>
+        <button id="unsubscribe" class="secondary">Unsubscribe</button>
+        <button id="send">Send</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Channels</h2>
+      <div class="row">
+        <label>Prefix</label>
+        <input id="channel-prefix" value="private-coach-">
+      </div>
+      <div class="row">
+        <label>Monitor token</label>
+        <input id="monitor-token" type="password" placeholder="optional">
+      </div>
+      <div class="row">
+        <label>Channels endpoint</label>
+        <input id="channels-endpoint" value="https://realtime.curso-ingles.com/realtime/channels">
+      </div>
+      <div class="row">
+        <button id="refresh-channels">Refresh</button>
+        <span id="channels-status" class="muted"></span>
+      </div>
+      <div id="channels-output" class="muted">No data yet.</div>
+    </section>
+
+    <section class="card">
+      <h2>Log</h2>
+      <div id="log" class="log"></div>
+    </section>
+  </div>
+
+  <script src="/vendor/pusher/pusher.min.js"></script>
+  <script>
+    const el = (id) => document.getElementById(id);
+    const logEl = el('log');
+    const statusEl = el('conn-status');
+    const channelsOutput = el('channels-output');
+    const channelsStatus = el('channels-status');
+
+    const log = (line) => {
+      const ts = new Date().toISOString();
+      logEl.textContent += `[${ts}] ${line}\n`;
+      logEl.scrollTop = logEl.scrollHeight;
+    };
+
+    let pusher = null;
+    let channel = null;
+    let channelName = '';
+
+    const readConfig = () => ({
+      appKey: el('app-key').value.trim(),
+      wsHost: el('ws-host').value.trim(),
+      wssPort: parseInt(el('wss-port').value, 10) || 443,
+      forceTLS: el('force-tls').value === 'true',
+      authEndpoint: el('auth-endpoint').value.trim(),
+      userId: el('auth-user-id').value.trim(),
+      userName: el('auth-user-name').value.trim()
+    });
+
+    const updateStatus = (state) => {
+      statusEl.textContent = state;
+      statusEl.setAttribute('data-state', state);
+    };
+
+    const disconnect = () => {
+      if (channel && pusher) {
+        channel.unbind_all();
+        pusher.unsubscribe(channelName);
+      }
+      channel = null;
+      channelName = '';
+      if (pusher) {
+        pusher.disconnect();
+        pusher = null;
+      }
+      updateStatus('disconnected');
+    };
+
+    const connect = () => {
+      if (typeof window.Pusher !== 'function') {
+        log('Pusher is not available (check /vendor/pusher/pusher.min.js).');
+        return;
+      }
+      const cfg = readConfig();
+      if (!cfg.appKey) {
+        log('Missing app key.');
+        return;
+      }
+      disconnect();
+
+      const options = {
+        wsHost: cfg.wsHost,
+        wssPort: cfg.wssPort,
+        forceTLS: cfg.forceTLS,
+        enabledTransports: ['ws', 'wss'],
+        disableStats: true
+      };
+      if (cfg.authEndpoint) {
+        options.authEndpoint = cfg.authEndpoint;
+      }
+      if (cfg.userId || cfg.userName) {
+        const info = {};
+        if (cfg.userName) info.name = cfg.userName;
+        options.auth = {
+          params: {
+            user_id: cfg.userId || 'monitor',
+            user_info: JSON.stringify(info)
+          }
+        };
+      }
+
+      pusher = new window.Pusher(cfg.appKey, options);
+      pusher.connection.bind('state_change', (state) => {
+        updateStatus(state.current);
+        log(`state: ${state.current}`);
+      });
+      pusher.connection.bind('error', (err) => {
+        log(`conn error: ${JSON.stringify(err)}`);
+      });
+      log('connecting...');
+    };
+
+    const bindChannel = (ch) => {
+      ch.bind('pusher:subscription_succeeded', () => log('subscribed'));
+      ch.bind('pusher:subscription_error', (st) => log(`sub error: ${st}`));
+      ch.bind('chat_message', (data) => log(`chat_message: ${JSON.stringify(data)}`));
+      ch.bind('bot_message', (data) => log(`bot_message: ${JSON.stringify(data)}`));
+      ch.bind('user_message', (data) => log(`user_message: ${JSON.stringify(data)}`));
+    };
+
+    const subscribe = () => {
+      const name = el('channel').value.trim();
+      if (!name) return;
+      if (!pusher) connect();
+      if (!pusher) return;
+
+      if (channel) {
+        channel.unbind_all();
+        pusher.unsubscribe(channelName);
+      }
+      channelName = name;
+      channel = pusher.subscribe(name);
+      bindChannel(channel);
+      log(`subscribing: ${name}`);
+    };
+
+    const unsubscribe = () => {
+      if (!pusher || !channel) return;
+      channel.unbind_all();
+      pusher.unsubscribe(channelName);
+      log(`unsubscribed: ${channelName}`);
+      channel = null;
+      channelName = '';
+    };
+
+    const send = async () => {
+      const channelValue = el('channel').value.trim();
+      const eventValue = el('event').value.trim() || 'bot_message';
+      const text = el('message').value.trim();
+      if (!channelValue || !text) return;
+      const payload = {
+        channel: channelValue,
+        event: eventValue,
+        data: { text, role: 'bot' }
+      };
+      try {
+        const res = await fetch('https://realtime.curso-ingles.com/realtime/emit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        log(`emit status: ${res.status}`);
+      } catch (err) {
+        log(`emit error: ${err.message}`);
+      }
+    };
+
+    const refreshChannels = async () => {
+      const endpoint = el('channels-endpoint').value.trim();
+      if (!endpoint) return;
+      const prefix = el('channel-prefix').value.trim();
+      const token = el('monitor-token').value.trim();
+      const url = new URL(endpoint);
+      if (prefix) url.searchParams.set('filter_by_prefix', prefix);
+      url.searchParams.set('info', 'subscription_count');
+      if (token) url.searchParams.set('token', token);
+
+      channelsStatus.textContent = 'loading...';
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 8000);
+        const res = await fetch(url.toString(), { signal: controller.signal });
+        clearTimeout(timeout);
+        const data = await res.json();
+        channelsStatus.textContent = `status ${res.status}`;
+        renderChannels(data);
+      } catch (err) {
+        channelsStatus.textContent = err.name === 'AbortError' ? 'timeout' : 'error';
+        channelsOutput.textContent = err.message;
+      }
+    };
+
+    const renderChannels = (data) => {
+      if (!data || !data.channels) {
+        channelsOutput.textContent = 'No channels data.';
+        return;
+      }
+      const names = Object.keys(data.channels);
+      if (!names.length) {
+        channelsOutput.textContent = 'No active channels.';
+        return;
+      }
+      const rows = names
+        .sort()
+        .map((name) => {
+          const info = data.channels[name] || {};
+          const count = info.subscription_count !== undefined ? info.subscription_count : '-';
+          return `<tr><td>${name}</td><td>${count}</td></tr>`;
+        })
+        .join('');
+      channelsOutput.innerHTML =
+        `<table><thead><tr><th>Channel</th><th>Subs</th></tr></thead><tbody>${rows}</tbody></table>`;
+    };
+
+    el('connect').addEventListener('click', connect);
+    el('disconnect').addEventListener('click', disconnect);
+    el('subscribe').addEventListener('click', subscribe);
+    el('unsubscribe').addEventListener('click', unsubscribe);
+    el('send').addEventListener('click', send);
+    el('refresh-channels').addEventListener('click', refreshChannels);
+
+    connect();
+  </script>
+</body>
+</html>

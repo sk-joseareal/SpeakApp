@@ -1,0 +1,390 @@
+<style>
+    h2.desconectado {color:lightgray; font-style:italic;}
+    p.desconectado {color:lightgray; font-style:italic;}
+
+.ion-information-circled:before {
+font-size: 20px;
+float:left;
+padding-top: 2px;
+}    
+
+</style>
+
+<link href="lib/myfontastic/icons.css" rel="stylesheet">
+<ion-side-menus enable-menu-with-back-views="true">
+
+    <ion-side-menu-content xng-click="flashClick()">
+
+        <ion-nav-view name="menuContent">
+
+            <ion-nav-bar class="bar-stable">
+                <ion-nav-back-button></ion-nav-back-button>
+
+                <ion-nav-buttons side="left" style="background: red">
+                    <button class="button button-icon button-clear ion-navicon" menu-toggle="left" ng-click="flashClick(1)"></button>
+                </ion-nav-buttons>
+
+
+
+<!-- SEARCH (Descomentar SI hay búsqueda) -->
+<ion-nav-title id="titulo">
+<div id="srchDiv" ng-show="$root.srchOn" class="bar bar-header item-input-inset pruebaanim" ng-class="{'srchBox_iOS' : platform == 'ios'}"> 
+
+    <div class="item-input-wrapper" style=" margin-left:-2px; margin-right:-3px; height:26px;"  ng-class="{'srchWrap_iOS' : platform == 'ios'}"> 
+
+        <i class="icon ion-ios-search placeholder-icon"></i> 
+        <input autocapitalize="none" type="search" placeholder="... {{i18n[loc].search}}" ng-model="$root.srchTxt" ng-change="buscando($root.srchTxt.toLowerCase())" style="padding-left:0px;" ng-show="srchOn" focus-me="damefoco"> 
+
+    </div> 
+
+    <button class="button button-clear icon ion-android-close" ng-show="$root.srchTxt" ng-click="$root.srchTxt=''; srchClear();" ng-class="{'srchClear_iOS' : platform == 'ios'}"></button> 
+
+</div>
+<div id="titleDiv" ng-click="titleClick()" ng-show="!srchOn">
+    {{viewTitle}}
+</div>
+</ion-nav-title> 
+<!-- SEARCH -->
+
+<!-- SEARCH (Descomentar SI hay búsqueda) -->
+<div id="srchList" ng-show="srchOn && srchResult.length>0" class="flash" style="padding:10px; padding-top:0px; margin-top:40px; overflow: auto;" ng-class="{'srchList_iOS' : platform == 'ios'}" ng-click="srchClose()">
+    <ion-item style="background-color:white;" class="i--message rdn item" ng-repeat="result in srchResult" xhref="{{result.url}}" xng-click="srchClick()" ng-click="goURL(result.url)">
+        <div class="flex-justify">
+            <div>          
+                <i ng-if="result.asset=='c'" class="icon {{result.img}}" style="color:#81B1CE; font-size:30px;"></i>
+                <img ng-if="result.asset=='i'" ng-src="assets/{{result.img}}" style="height:30px; width:30px; z-index: 100; xmargin-top:-5px; xmargin-right:-5px;" />
+            </div>
+            <div>
+                <div class="text14" style="color: #0062A8; font-size:12px;">{{result.cat}}</div>
+                <div class="text3" style="color: #7C7C7C; font-size:15px;">{{result.txt}}</div>                
+            </div>
+        </div>
+        <i class="icon ion-ios-arrow-thin-right i-icon" style="color:#C3CFD7; font-size:26px; margin-right: 15px; xmargin-top: -5px;"></i>   
+    </ion-item>
+
+</div>
+<!-- SEARCH -->
+
+            </ion-nav-bar>
+
+             <div class="flash left right" ng-show="flash01 || flash02 || flash03" ng-click="flashClick(3)">
+             
+                 <div class="left icon-arrow-with-scribble" ng-show="flash01" xng-click="flashClick(3)">
+                     <span>{{i18n[loc].walk01}}</span>
+                     <i class="ion-navicon"></i>
+                 </div>
+
+                 <div class="right icon-curved-arrow" ng-show="flash02" xng-click="flashClick(3)">
+                     <span>{{i18n[loc].walk02}}</span>
+                     <i class="icon-people"></i>
+                 </div>
+
+                 <div class="right icon-curved-arrow" ng-show="flash03" xng-click="flashClick(3)">
+                     <span>{{i18n[loc].walk03}}</span>
+                     <i class="icon-people"></i>
+                 </div>             
+             
+             </div>
+
+        </ion-nav-view>
+
+
+    </ion-side-menu-content>
+
+    <ion-side-menu side="left">
+
+        <ion-content  has-bouncing="false">
+            
+            <a menu-close href="#/app/settings" class="item-box55" ng-if="userInfo">
+
+                <div ng-if="premium" style="position:fixed; margin-top:58px; margin-left:25px;z-index:100;">
+                    <div style="background:#16a6d8; border-radius: 50%; padding: 2px;">     
+                        <div style="background:#043c5d; border-radius: 50%; padding: 3px;">     
+                            <div style="background:#16a6d8; border-radius: 50%; padding: 6px 7px 0px 7px;">
+                                <img src="assets/corona.png" alt="" width="20px" height="20px"/>
+                            </div>
+                        </div>
+                    </div>
+                </div>       
+
+                <div class="i-header" style="padding: 10px 0 10px;">
+                    <div class="i-icon" style="background-image: url('{{cacheImage}}');"></div> <!-- userInfo.image -->
+                    <div class="i-graph">
+                        <div class="i-graphContent">
+                            <div class="i-message"></div>
+                            <div class="i-slice" percent="{{userInfo.current_course_progress}}" style="transform: rotate(0deg);">
+                                <div class="i-sliceOut" style="transform: rotate(calc({{userInfo.current_course_progress}}*360deg/100)); background:{{userInfo.current_course_background}};"></div>
+                            </div>
+                            <div class="i-slice2" style="transform: rotate(180deg);">
+                                <div class="i-sliceOut2" style="transform: rotate(calc(({{userInfo.current_course_progress}} - 50)*360deg/100)); background:{{userInfo.current_course_background}};"></div>
+                            </div>
+                        </div>
+                        <div class="i-value" style="color:{{userInfo.current_course_background}}">{{userInfo.current_course_progress}}%</div>
+                    </div>
+                </div>
+                <article>
+                    <header class="text7">{{userInfo.name}}</header>
+
+                    <section ng-if="loc=='es'" class="text8" style="color:{{userInfo.current_course_background}}">{{userInfo.current_course_name}}</section>               
+                    <section ng-if="loc=='br'" class="text8" style="color:{{userInfo.current_course_background}}">{{userInfo.current_course_name_br}}</section>               
+                    <section ng-if=" loc!='es' && loc!='br' " class="text8" style="color:{{userInfo.current_course_background}}">{{userInfo.current_course_name_en}}</section>  
+
+                </article>
+            </a>
+
+
+    <ion-list ng-if="!userInfo">
+        
+        <a menu-close href="#/app/settings" class="item-box55" style="padding-bottom: 0;">
+
+            <div ng-if="premium" style="position:fixed; margin-top:58px; margin-left:25px;z-index:100;">
+                <div style="background:#16a6d8; border-radius: 50%; padding: 2px;">     
+                    <div style="background:#043c5d; border-radius: 50%; padding: 3px;">     
+                        <div style="background:#16a6d8; border-radius: 50%; padding: 6px 7px 0px 7px;">
+                            <img src="assets/corona.png" alt="" width="20px" height="20px"/>
+                        </div>
+                    </div>
+                </div>
+            </div>   
+
+            <ion-item menu-close class="i-header" style="padding: 10px 0 10px;">
+                <img src="assets/login.png" alt="" width="125px" height="125px"/>
+            </ion-item>
+        </a>
+        <article class="item-regis">
+            <header class="text9">{{i18n[loc].noacc3}}</header>
+            <section>        
+                <a menu-close class="text9" href="#/app/settings">{{i18n[loc].noacc4}}</a> <!-- ng-click="registerPopup(); $event.stopPropagation();" -->
+            </section>
+        </article>
+
+    </ion-list>
+
+<!-- src="http://cdn.flaticon.com/png/256/33933.png" -->
+
+        <div ng-if="!premium && userInfo" style="text-align:center; padding-bottom:20px;">
+            <button class="green i--button text13" style="font-size:15px; padding:5px 12px 8px 12px; color:white;" ng-click="goPremium(); $event.stopPropagation();"><img src="assets/corona.png" style="height:20px; padding-right:5px; margin-bottom:-5px;"></img>{{i18n[loc].gopremium}}</button>
+        </div>
+
+        <div ng-if="!premium && !userInfo" style="text-align:center; padding-bottom:20px;">
+            <button class="green i--button text13" style="font-size:15px; padding:5px 12px 8px 12px; color:white;" ng-click="login('purchase'); $event.stopPropagation();"><img src="assets/corona.png" style="height:20px; padding-right:5px; margin-bottom:-5px;"></img>{{i18n[loc].gopremium}}</button>
+        </div>
+
+            <hr>
+            
+            <div class="item-box54">
+                <a menu-close href="#/app/learn" class="i-button">
+                    <img src="assets/img/book.png" alt=""/>
+                    <span>{{i18n[loc].learn}}</span>
+                </a>
+                <a menu-close href="#/app/practice" class="i-button">
+                    <img src="assets/img/pen.png" alt=""/>
+                    <span>{{i18n[loc].practice}}</span>
+                </a>
+                <a menu-close href="#/app/resources" class="i-button">
+                    <img src="assets/img/light.png" alt=""/>
+                    <span>{{i18n[loc].resources2}}</span>
+                </a>
+                <a menu-close class="i-button" ng-click="chatClick('menu')">
+                    <img src="assets/img/chat.png" alt=""/>
+                    <span>{{i18n[loc].chats}}</span>
+                    <span id="aquistoy" ng-if="mainBadge=0">{{mainBadge}}</span>
+                </a>
+            </div>
+        
+            <hr>
+        
+            <div class="tpl-buttons">
+                <a menu-close href="#/app/translate" class="item-button18 icon-refresh text19">{{i18n[loc].translate}}</a>
+                <a menu-close href="#/app/pronounce" class="item-button18 icon-chat text19">{{i18n[loc].say}}</a>
+                <a menu-close href="#/app/conjugate/" class="item-button18 icon-list text19">{{i18n[loc].conjugate}}</a>
+            </div>
+        
+<!--        
+            <div style="text-align:center;" class="elem-padding text9">{{i18n[loc].share}}</div>
+        
+            <div class="tpl-buttons" style="padding: 20px 12px 30px;">
+                <a class="item-button19 facebook icon-facebook text10">Facebook</a>
+                <a class="item-button19 twitter icon-twitter text10">Twitter</a>
+                <a class="item-button19 googleplus icon-googleplus text10">Google</a>
+            </div>
+-->
+
+            <div ng-if="premium" style="text-align:center; padding-bottom: 10px;">
+                <button class="i--button text13" style="background: #043c5d; font-size:15px; padding:5px 12px 8px 12px; color:white;" ng-click="purchasExplainModal.show(); $event.stopPropagation();"><img src="assets/corona.png" style="height:20px; padding-right:5px; margin-bottom:-5px;"></img>{{i18n[loc].usrpremium}}</button>
+            </div>
+
+        <div style="text-align:center; padding-bottom:20px;">
+
+
+            <button class="ion-information-circled green i--button text13" style="height:32px; background:#0084cc; font-size:15px; padding:4px 8px 8px 12px; color:white;" ng-click="sendMail(); $event.stopPropagation();">
+            <!--    <img src="assets/corona.png" style="height:20px; padding-right:5px; margin-bottom:-5px;"></img> -->
+            <span style="padding-left: 8px; padding-right:4px; ">{{i18n[loc].sendFeedback}}</span></button>
+        </div>
+
+
+        </ion-content>
+
+    </ion-side-menu>
+
+
+    <ion-side-menu class="menu_right" side="right" is-enabled="chatEnabled">
+
+        <ion-content>
+
+            <!--<ti-segmented-control on-select="rightTabClick($index)" style="width: 250px; display:inline-block;">
+                <ti-segmented-control-button class="button-positive" title="'Online'" selected></ti-segmented-control-button>
+                <ti-segmented-control-button class="button-positive" title="'Preguntas'" ></ti-segmented-control-button>
+                <ti-segmented-control-button class="button-positive" title="'Amigos'" ></ti-segmented-control-button>
+            </ti-segmented-control>
+           
+            <div ng-if="tabOption == 0">-->
+
+                <div class="padding" ng-if="inChat">
+
+                    <div ng-if="onLine(chatlist[currentChannel])>0" class="text9 marginl">
+                       <p class="text8">On line ({{onLine(chatlist[currentChannel])}})</p>
+                    </div>
+
+                    <div ng-if="onLine(chatlist[currentChannel])==0" style="padding-left:10px;">
+                        <p class="text8" ng-if="loc=='es'">No hay mas usuarios conectados.</p>
+                        <p class="text8" ng-if="loc!='es'">No other users connected.</p>
+                    </div>
+
+                    <div ng-if="onLine(chatlist[currentChannel])==-2" style="padding-left:10px;">
+                        <p class="text8" ng-if="loc=='es'">OffLine.</p>
+                        <p class="text8" ng-if="loc!='es'">OffLine.</p>
+                    </div>
+
+                    <div ng-if="onLine(chatlist[currentChannel])==-1" style="padding-left:10px;">
+                        <p class="text8" ng-if="loc=='es'">No estás logueado.</p>
+                        <p class="text8" ng-if="loc!='es'">Not logged in.</p>
+                    </div>                    
+
+                    <!-- Avatar del propio usuario -->
+                    <ion-item class="item-box66" ng-if="userInfo && isOnLine">
+
+                        <div ng-if="premium" style="position:fixed; margin-top:-8px; margin-left:-8px;z-index:100;">
+                            <img src="assets/corona.png" alt="" width="15px" height="15px"/>
+                        </div>
+
+                        <div class="i--graph">
+                            <div ng-if="userInfo" class="i-icon" style="background-image: url('{{cacheImage}}');" ng-click="showInfo(userInfo.id)"></div>
+                            <div class="i-graph">
+                                <div class="i-graphContent">
+                                    <div class="i-message" style="background-image: url('assets/course{{userInfo.current_course}}.png');"></div>
+
+                                    <div class="i-slice" percent="{{userInfo.current_course_progress}}" style="transform: rotate(0deg);">
+                                        <div class="i-sliceOut" style="transform: rotate(calc({{userInfo.current_course_progress}}*360deg/100)); background:{{userInfo.current_course_background}};"></div>
+                                    </div>
+                                    <div class="i-slice2" style="transform: rotate(180deg);">
+                                        <div class="i-sliceOut2" style="transform: rotate(calc(({{userInfo.current_course_progress}} - 50)*360deg/100)); background:{{userInfo.current_course_background}};"></div>
+                                    </div>
+
+<!--
+                                    <div class="i-slice" style="transform: rotate(0deg);">
+                                        <div class="i-sliceOut" style="transform: rotate(calc({{userInfo.current_course_progress}}*360deg/100)); background:{{userInfo.current_course_background}};"></div>
+                                    </div>
+-->
+
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="i--info" style="margin-left:30px;">
+                            <div class="text32">
+                                {{userInfo.name}}  
+                            </div>
+                            <div class="text33">
+                                &nbsp;
+                            </div>
+                        </div>
+
+                        <br>
+                    </ion-item>
+
+                    <!-- Lista de usuarios conectados -->
+                    <ion-item class="item-box66" ng-repeat="item in chatlist[currentChannel] | orderBy: ['-friend','-lastUpdated']" xxxng-if="isOnLine">
+
+                        <div ng-if="item.premium" style="position:fixed; margin-top:-8px; margin-left:-8px;z-index:100;">
+                            <img src="assets/corona.png" alt="" width="15px" height="15px"/>
+                        </div>
+                        
+                        <div class="i--graph">
+                            
+                            <div ng-if="userInfo" class="i-icon" style="background-image: url('{{ item.img }}');" ng-click="showInfo( item.id )"></div>
+                            <div ng-if="!userInfo" class="i-icon" style="background-image: url('{{ item.img }}');"></div>
+
+                            <div class="i-graph">
+                                <div class="i-graphContent">
+                                    <div class="i-message" style="background-image: url('{{ item.progress_image }}');"></div>
+                                    <div class="i-slice" style="transform: rotate(0deg);">
+                                        <div class="i-sliceOut" style="transform: rotate(calc({{ item.progress_value }}*360deg/100)); background:{{ item.progress_color }};"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="i--info" style="margin-left:30px;">
+                            <div class="text32"   ng-click="openPrivate(item.id); $event.stopPropagation();">{{ item.name }}  
+                                <span ng-if="item.friend"       class="ion-star text6"></span> 
+                                <span ng-if="item.ignored"      class="icon-stop text34"></span> 
+                                <span ng-if="item.ignoringMe"   class="icon-stop text33"></span>                              
+                                <div ng-if="item.badge>0"       class="i--badge text11">{{ item.badge }}</div>   
+                            </div>
+                            <div class="text33">
+                                {{ item.lastChat }}
+                            </div>
+                        </div>
+
+                        <div ng-if="userInfo"  class="i--icon icon-chat" ng-click="openPrivate(item.id); $event.stopPropagation();" ng-if="item.estado==0"></div>
+                        <div ng-if="!userInfo" class="i--icon icon-chat" ng-click="login('chat2'); $event.stopPropagation();" ng-if="item.estado==0"></div>
+
+                        <br>
+                    </ion-item>
+
+                </div>
+
+                <div class="padding" ng-if="!inChat">
+
+                    <div class="text9">Chats</div>     
+
+                    <p class="text9" ng-if="channels.length==0">No estás conectado a ningún chat.</p>
+
+                    <ion-list>
+                        <ion-item  ng-if="item.lastUser" class="item-box64" ng-repeat="item in channels | orderBy: ['type','-lastUpdated']" ng-click="goChat(item); $event.stopPropagation();">
+                            <div class="i--info">
+                                <div class="i--icon-right icon-arrow-right"></div>
+                                <div class="i--info--img" style="background-image: url('{{item.img}}');"></div>
+                                <div class="i--info--text">
+                                    <div class="text32" ng-class="{'desconectado' : item.state==0}">{{item.caption}}</div>
+                                    <div class="text33" ng-class="{'desconectado' : item.state==0}" ng-if="item.type==1">{{item.lastUser}}</div>
+                                    <div class="text33" ng-class="{'desconectado' : item.state==0}">{{item.lastChat}}</div>
+                                    <div class="i--time text19">{{UTCconv(item.lastUpdated)}}</div>
+                                    <div class="i--options">
+                                        <div ng-if="item.muted" class="i--mute icon-mute"></div>
+                                        <div ng-if="item.badge>0" class="i--badge text11">{{item.badge}}</div>
+                                    </div>
+
+                    <div ng-if="item.type==2" style="color:darkgreen;">
+                        {{isOnline(item)}}
+                    </div> 
+                                                          
+                                </div>
+                            </div>
+                            <!--    ng-click="openModal(item.name,$event)"     -->
+                            <!--
+                            <ion-option-button class="button-info" ng-click="showOptions($index)">Opciones</ion-option-button>
+                            -->
+                        </ion-item>
+
+                    </ion-list>
+                    
+                </div>
+
+
+        </ion-content>
+        
+    </ion-side-menu>
+    
+</ion-side-menus>

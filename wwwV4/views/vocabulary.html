@@ -1,0 +1,29 @@
+<ion-view>
+    
+    <ion-nav-buttons side="right">
+        <button class="button button-icon button-clear ion-ios-search" ng-click="srchClick()"></button>
+        <button class="button button-icon button-clear icon-people" xmenu-toggle="right" ng-click="chatClick('upr')"></button>
+    </ion-nav-buttons>
+
+    <ion-content class="vocabulary-inside padding" style="padding-top:10px; ">
+    
+        <div ng-if="loc=='es'" class="title-translate text17">{{vocabulary.translation}}</div>
+        
+        <ng-repeat ng-repeat="word in vocabulary.words" >
+
+            <ion-item class="item-box57" ng-class="{ 'item-thumbnail-left' : imgUrl($index) }"  ng-click="wordClick($index)">
+                <div class="i--info">
+                    <div class="i--info--img" style="background-image: url('{{imgUrl($index)}}');" ng-if="imgUrl($index)"></div>
+                    <div class="i--info--text-button">
+                        <div class="icon-play"></div>
+                        <div class="text12">{{word.name}}</div>
+                        <div ng-if="loc=='es'" class="text3">{{word.translation}}</div>
+                    </div>
+                </div> 
+    	    </ion-item>
+
+        </ng-repeat>
+
+    </ion-content>
+
+</ion-view>

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Colores claros para que la status bar no arranque en gris oscuro -->
+    <color name="colorPrimary">#f4f6fb</color>
+    <color name="colorPrimaryDark">#f4f6fb</color>
+    <color name="colorAccent">#4b5dff</color>
+</resources>

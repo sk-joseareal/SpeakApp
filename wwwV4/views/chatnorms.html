@@ -1,0 +1,71 @@
+
+
+<style>
+.textoX {font: 15px 'Open Sans', sans-serif; color:#818181;}
+div.textoX p {text-align: center;}
+div.textoX ul {list-style: initial; padding-left:20px;}
+div.textoX li {padding-bottom:5px;}
+</style>
+
+<ion-view>
+
+    <ion-nav-buttons side="right">
+      <button class="button button-icon button-clear ion-ios-search" ng-click="srchClick()"></button>
+      <button class="button button-icon button-clear icon-people" xmenu-toggle="right" ng-click="chatClick('upr')"></button>
+    </ion-nav-buttons>
+
+<!--
+    <ion-nav-title>Tour</ion-nav-title>
+-->
+  
+    <ion-content class="padding">
+
+		<div class="item-box59">
+
+<div ng-if="loc=='es'" align="left" style="text-align: justify; xpadding-left:10px; padding-right:10px;" class="textoX">
+  <p><strong>Normas básicas de comportamiento en el chat</strong></p>
+  <ul>
+    <li>Sé educado y respetuoso con los demás integrantes del chat.</li>
+    <li>No acosar, violentar, amenazar o causar molestias a cualquier otro usuario o a un tercero.</li>
+    <li>No enviar a través del chat ninguna información, datos, textos, enlaces, comunicados o cualquier otro material considerado ilegal, perjudicial, amenazador, abusivo, hostil, difamatorio, obsceno; racial o éticamente incorrecto.</li>
+    <li>Recuerda, el objetivo de este chat es practicar el idioma inglés. Para otras finalidades, por favor utiliza otros servicios disponibles en internet.</li>
+    <li>En el caso de que el uso del chat por un usuario sea inapropiado, puedes informar al administrador del chat. Revisaremos todas las peticiones.</li>
+    <li>Para cualquier duda, sugerencia o queja puedes ponerte en contacto a través del siguiente e-mail: <a href="#" ng-click="sendMail(); $event.stopPropagation();">{{i18n[loc].contact_mail}}</a></li>
+  </ul>
+</div>
+
+<div ng-if="loc=='br'" align="left" style="text-align: justify; xpadding-left:10px; padding-right:10px;" class="textoX">
+  <p><strong>Bate-papo: normas básicas de conduta</strong></p>
+  <ul>
+    <li>Seja educado e respeitoso com os outros usuários do bate-papo.</li>
+    <li>Não acosse, ataque, ameace nem constranja nenhum outro usuário ou terceiro.</li>
+    <li>Não envie pelo bate-papo nenhuma informação, dados, textos, links, comunicados para a mídia nem qualquer outro material considerado ilegal, prejudicial, ameaçador, abusivo, hostil, difamatório, caluniador, obsceno ou racialmente ou eticamente incorreto.</li>
+    <li>Lembre-se, a finalidade deste bate-papo é praticar inglês. Para outras finalidades, utilize outros serviços disponíveis na internet.</li>
+    <li>Caso o uso do bate-papo por outro usuário seja inapropriado, você pode informar o administrador do bate-papo. Revisaremos todas as solicitações.</li>
+    <li>Se tiver quaisquer perguntas, sugestões ou reclamações, entre em contato conosco através do e-mail: <a href="#" ng-click="sendMail(); $event.stopPropagation();">{{i18n[loc].contact_mail}}</a></li>
+</div>
+
+
+<div ng-if="loc!='es' && loc!='br'" align="left" style="text-align: justify; xpadding-left:10px; padding-right:10px;" class="textoX">
+  <p><strong>Chat: Basic rules of conduct</strong></p>
+  <ul>
+    <li>Be polite and respectful of other chat users.</li>
+    <li>Do not harass, assault, threaten or cause discomfort to any other user or any third party.</li>
+    <li>Do not send via chat any information, data, texts, links, press releases or any other material considered illegal, harmful, threatening, abusive, hostile, defamatory, libelous, obscene; racially or ethically wrong.</li>
+    <li>Remember, the purpose of this chat is to practice English. For other purposes, please use other services available on the internet.</li>
+    <li>In the event that the use of chat by a user is inappropriate, you can inform the chat administrator. We will review all requests.</li>
+    <li>For any questions, suggestions or complaints, you can contact us via the following e-mail: <a href="#" ng-click="sendMail(); $event.stopPropagation();">{{i18n[loc].contact_mail}}</a></li>
+  </ul>
+
+
+
+</div>
+
+		</div>
+
+    </ion-content>
+            
+</ion-view>
+
+
+

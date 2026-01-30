@@ -1,0 +1,82 @@
+
+<script id="my-popover.html" type="text/ng-template">  
+    <ion-popover-view style="height:110px"
+        <ion-content >
+          <div class="list">
+            <a class="item" ng-click="openPrivate()" target="_blank">
+              Abrir privado
+            </a>
+            <a class="item" ng-click="ignoreUser()" target="_blank">
+              Ignorar
+            </a>
+          </div>
+        </ion-content>
+      </ion-popover-view>
+</script>  
+
+<div id="elView">
+
+<ion-view view-title="{{channel}}">
+  
+  <ion-content class="content-stable" has-bouncing="false" ng-click="debugData()">
+
+    <div class="card" ng-if="!userInfo">
+      <div class="item item-text-wrap">
+         {{chatState}} 
+      </div>
+    </div>
+
+    <div class="card" ng-if="userInfo">
+      <div class="item item-text-wrap">
+        {{userInfo.name}} {{chatState}}
+      </div>
+    </div>
+
+    <div ng-repeat="message in messages">
+        <div ng-show="message.userId != userInfo.id">
+            <div class="row chat-bubble left">   
+                <div class="row">         
+                    <div class="col col-20">
+                      <img src="{{message.image}}" style="width:40px; border-radius:999px;">
+                    </div>     
+                    <div class="col">
+                      <h5 style="margin:0px;">{{message.userName}}</h5>
+                      <p>{{message.text}}</p>
+                    </div>
+                    <div class="col col-20" style="text-align:right;">
+                      <span>{{message.time}}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div ng-show="message.userId == userInfo.id">
+            <div class="row chat-bubble right">   
+                  <div class="row">         
+                    <div class="col col-20" style="text-align:left;">
+                      <span>{{message.time}}</span>
+                    </div>  
+                    <div class="col">
+                      <h5 style="margin:0px; color:white;">{{message.title}}</h5>
+                      <p ng-bind-html="message.text"></p>
+                    </div>
+                  </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="cf"></div>
+
+  </ion-content>
+
+	<ion-footer-bar keyboard-attach class="bar-stable item-input-inset">
+      <label class="item-input-wrapper">
+        <input id="chatInput" type="text" placeholder="Escribe el mensaje" on-return="sendMessage(); closeKeyboard()" ng-model="data.message" on-focus="inputUp()" on-blur="inputDown()" />
+      </label>
+      <button id="sendButton" class="button button-clear" ng-click="sendMessage()">Enviar</button>  
+  </ion-footer-bar>
+
+</ion-view>
+
+</div>
+

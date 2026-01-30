@@ -1,0 +1,159 @@
+<style>
+    .fakeinput
+    {
+         opacity: 0;
+         position: fixed;
+         left:50%;
+         top:50%;
+    }
+
+.premium {
+    position: absolute;
+    width: 44px;
+    top:85px;
+    left: calc(50% - 95px);
+    z-index:100;
+}
+</style>
+
+
+<ion-view>
+
+    <ion-nav-buttons side="right">
+        <button class="button button-icon button-clear ion-ios-search" ng-click="srchClick()"></button>
+        <button class="button button-icon button-clear icon-people" xmenu-toggle="right" ng-click="chatClick('upr')"></button>
+    </ion-nav-buttons>
+   
+<!--   
+    <ion-nav-title>{{i18n[loc].prof_title}}</ion-nav-title>
+-->
+ 
+    <ion-content class="padding">
+        <div class="item-box55" ng-if="userInfo" >
+<!--            
+        <a menu-close ng-click="changeAvatar()" class="item-box55" ng-if="userInfo">
+-->
+            <div ng-if="premium" class="premium">
+                <div style="background:#16a6d8; border-radius: 50%; padding: 2px;">     
+                    <div style="background:#387ef5; border-radius: 50%; padding: 3px;">     
+                        <div style="background:#16a6d8; border-radius: 50%; padding: 6px 7px 0px 7px;">
+                            <img src="assets/corona.png" alt="" width="20px" height="20px"/>
+                        </div>
+                    </div>
+                </div>
+            </div>  
+ 
+            <div class="i-header">
+
+                <div  class="i-icon" style="background-image: url('{{cacheImage}}');"> <!-- userInfo.image -->
+                    <div class="i-aux-icon icon-camera" style="text-align:center; position:relative; margin-right:50%; margin-bottom:50%;">
+                    <input ngf-select="onFileSelect($file, $invalidFiles)" id="uploadFile" name="uploadFile" type="file" accept="image/*" class="fakeinput"></input>                        
+                    </div>
+                </div>
+
+                <div class="i-graph">
+                    <div class="i-graphContent">
+                        <div class="i-message"></div>
+                        <div class="i-slice" style="transform: rotate(0deg);">
+                            <div class="i-sliceOut" style="transform: rotate(calc({{userInfo.current_course_progress}}*360deg/100)); background:{{userInfo.current_course_background}};"></div>
+                        </div>
+                    </div>
+                    <div class="i-value" style="color:{{userInfo.current_course_background}};">{{userInfo.current_course_progress}}%</div>
+                </div>
+            </div>
+            <article>      
+                <header class="text7">{{userInfo.name}}</header>
+
+                <section ng-if="loc=='es'" class="text8" style="color:{{userInfo.current_course_background}};">{{userInfo.current_course_name}}</section>
+                <section ng-if="loc=='br'" class="text8" style="color:{{userInfo.current_course_background}};">{{userInfo.current_course_name_br}}</section>
+                <section ng-if="loc!='es' && loc!='br'" class="text8" style="color:{{userInfo.current_course_background}};">{{userInfo.current_course_name_en}}</section>                
+
+            </article>
+<!--
+        </a>
+-->        
+
+<!--
+        <button ng-show="true" id="uploadFile" type="file" ngf-select="onFileSelect($file, $invalidFiles)" ngf-min-height="1" accept="image/*" >{{i18n[loc].selectimg}}</button>
+-->
+        </div>
+
+        <div class="item-box56">
+            <h4 class="text22">{{i18n[loc].yourdata}}</h4>
+
+            <div class="xi--label-list" style="position:relative; padding-bottom:10px;">
+                <span class="text24">{{i18n[loc].name}}</span>
+                <div class="i-clear_check">    
+                    <input reset-field class="i--input text23" type="text" placeholder="{{i18n[loc].type0+' '+i18n[loc].name}}" ng-model="datos.first_name">
+                    <div class="xicon-close-1"></div>
+                </div>
+            </div>
+            
+            <div class="xi--label-list" style="position:relative; padding-bottom:10px;">
+                <span class="text24">{{i18n[loc].surnames}}</span>
+                <div class="i-clear_check">
+                    <input reset-field class="i--input text23" type="text" placeholder="{{i18n[loc].type1+' '+i18n[loc].surnames}}" ng-model="datos.last_name">
+                    <div class="xicon-close-1"></div>
+                </div>
+            </label>
+            
+            <label class="i--label-list">
+                <span class="text24">{{i18n[loc].birthdate}}</span>
+                <input class="i--input text23" type="date" ng-model="datos.birthdate">
+            </label>
+            
+            <label class="i--label-list">
+                <span class="text24">{{i18n[loc].email}}</span>
+              <input disabled class="i--input text23" type="email"
+                placeholder="{{i18n[loc].type0+' '+i18n[loc].email}}" ng-model="datos.email">
+            </label>
+            
+            <div class="xi--label-list" style="position:relative; padding-bottom:10px; padding-top:10px; ">
+                <span class="text24">{{i18n[loc].password}}</span>
+                <div class="i-clear_check">
+                    <input reset-field class="i--input text23" type="password"
+                    placeholder="{{i18n[loc].type0+' '+i18n[loc].password}}"  name="password" ng-minlength="5" ng-maxlength="20" required ng-model="datos.password">
+                    <div class="xicon-close-1"></div>
+                </div>
+            </div>
+
+            <div class="xi--label-list" style="position:relative; padding-bottom:10px;">
+                <div class="i-clear_check">
+                    <input reset-field class="i--input text23" type="password"  placeholder="{{i18n[loc].repeat+' '+i18n[loc].password}}" name="confirm" ng-minlength="5" ng-maxlength="20" required ng-model="datos.confirmation">
+                    <div class="xicon-close-1"></div>
+                </div>
+            </div>
+            
+
+            <label class="i--label-list">
+                <span class="text24">{{i18n[loc].sex}}</span>
+                <div class="row" style="padding:0px;">
+                    <ion-checkbox ng-model="datos.man" style="margin-left: -16px; border:none; background:transparent;" ng-click="toggle1(0)">{{i18n[loc].male}}</ion-checkbox>
+                    <ion-checkbox ng-model="datos.woman" style="margin-left: -10px; border:none;" ng-click="toggle1(1)">{{i18n[loc].female}}</ion-checkbox>
+                </div>
+            </label>
+            <label class="i--label-list">
+                <span class="text24">{{i18n[loc].audioacc}}</span>
+                <div class="row" style="padding:0px;">
+                    <ion-checkbox ng-model="datos.usa" style="margin-left: -16px; border:none; background:transparent;" ng-click="toggle2(0)">{{i18n[loc].american}}</ion-checkbox>
+                    <ion-checkbox ng-model="datos.britain" style="margin-left: -10px; border:none;" ng-click="toggle2(1)">{{i18n[loc].british}}</ion-checkbox>
+                </div>
+            </label>
+            <hr>
+            <div class="text-center">
+                <button class="i--button blue" ng-click="updateProfile()" type="submit" ng-disabled="!isOnLine">{{i18n[loc].update}}</button>
+            </div>
+        </div>
+
+		<div class="list">
+
+
+        <div style="text-align: center; color:red; padding-top:8px;">
+          <p><i>{{error}}</i></p>        
+        </div>   
+             
+        </div>     
+
+    </ion-content>
+    
+</ion-view>

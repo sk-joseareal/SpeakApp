@@ -1,0 +1,134 @@
+<ion-modal-view>
+
+
+    <ion-content>
+
+        <form>
+
+            <div style="padding:20px;">
+           
+
+
+                <br>
+                <br>         
+                <br>
+
+
+                <div style="background:white; border-radius: 10px; padding:20px; margin-top:10px; box-shadow: 0 5px 0 0 #00598f;">
+
+                    <!-- Por algún motivo se borra el contenido del primer input al pulsar el botón de cerrar el pop-up, por eso está este repetido -->
+                    <div ng-show="false"> 
+                        <span style="color:black">Pausa entre frases:</span>
+                        <div>
+                            <input type="number" ng-model="data.pauseLen"/>
+                        </div>
+                    </div>
+
+                    <label for="singleSelect"> TTS: </label>
+                    <br>
+
+                    <select ng-if="loc!='es'" name="singleSelect" id="singleSelect" ng-model="data.ttsSource">
+                        <option value="0" default>Nativo</option>
+                        <option value="1"> GCloud TTS - en-GB-Standard-C - (Female) </option>
+
+<!--
+                         <option value="1"> Amazon Polly - Amy    - (en-GB)    </option>
+                         <option value="2"> Amazon Polly - Brian  - (en-GB)    </option>
+                         <option value="3"> Amazon Polly - Emma   - (en-GB)    </option>
+                         <option value="4"> Amazon Polly - Ivy    - (en-US)    </option>
+                         <option value="5"> Amazon Polly - Joanna - (en-US)    </option>
+                         <option value="6"> Amazon Polly - Joey   - (en-US)    </option>
+                         <option value="7"> Amazon Polly - Justin - (en-US)    </option>
+                         <option value="8"> Amazon Polly - Kendra - (en-US)    </option>
+                         <option value="9"> GCloud TTS - en-GB-Standard-A - (Female) </option>
+                        <option value="10"> GCloud TTS - en-GB-Standard-B - (Male)   </option>
+                        <option value="11"> GCloud TTS - en-GB-Standard-C - (Female) </option>
+                        <option value="12"> GCloud TTS - en-GB-Standard-D - (Male)   </option>
+                        <option value="13"> GCloud TTS - en-US-Standard-B - (Male)   </option>
+                        <option value="14"> GCloud TTS - en-US-Standard-C - (Female) </option>
+                        <option value="15"> GCloud TTS - en-US-Standard-D - (Male)   </option>
+                        <option value="16"> GCloud TTS - en-US-Standard-E - (Female) </option>
+                        <option value="17"> GCloud TTS - en-US-Wavenet-A - (Male)   </option>
+                        <option value="18"> GCloud TTS - en-US-Wavenet-B - (Male)   </option>
+                        <option value="19"> GCloud TTS - en-US-Wavenet-C - (Female) </option>
+                        <option value="20"> GCloud TTS - en-US-Wavenet-D - (Male)   </option>
+                        <option value="21"> GCloud TTS - en-US-Wavenet-E - (Female) </option>
+                        <option value="22"> GCloud TTS - en-US-Wavenet-F - (Male)   </option>
+-->
+                    </select>
+
+                    <select ng-if="loc=='es'" name="singleSelect" id="singleSelect" ng-model="data.ttsSource">
+                        <option value="0" default>Nativo</option>
+
+                         <option value="1"> Amazon Polly - Conchita - (es-ES) </option>
+                         <option value="2"> Amazon Polly - Enrique  - (es-ES) </option>
+                         <option value="3"> Amazon Polly - PEnelope - (es-US) </option>
+                         <option value="4"> Amazon Polly - Miguel   - (es-US) </option>
+                         <option value="5"> GCloud TTS - en-ES-Standard-A - (Female) </option>
+
+                    </select>
+
+
+                    <br>
+                    <br>
+                    <label for="select2" ng-disabled="data.ttsSource!=0"> Locale: </label>
+                    <br>
+                    
+
+                    <select ng-if="loc=='es'" name="select2" id="select2" ng-model="data.ttsLoc" ng-disabled="data.ttsSource!=0">
+                        <option value="es-ES">es-ES</option>
+                        <option value="es-US">es-US</option>                    
+                    </select>
+
+                    <select ng-if="loc!='es'" name="select2" id="select2" ng-model="data.ttsLoc" ng-disabled="data.ttsSource!=0">
+                        <option value="en-GB">en-GB</option>
+                        <option value="en-US">en-US</option>                    
+                    </select>
+
+
+                    <br>
+                    <br>
+                    <div>
+                        <span style="color:black">Speed:</span>
+                        <div>
+                            <input type="number" ng-model="data.ttsSpeed" ng-disabled="data.ttsSource!=0"/>
+                        </div>
+                    </div>
+
+
+                    <br>
+                    <div>
+                        <span style="color:black">Pausa entre frases:</span>
+                        <div>
+                            <input type="number" ng-model="data.pauseLen"/>
+                        </div>
+                    </div>
+
+
+
+                    <br>
+
+
+                    <div style="text-align: center;">
+                        <button class="green i--button text13" style="box-shadow: none;" ng-click="okSett(data.pauseLen); $event.stopPropagation();">OK</button>
+                        <button class="i--button text13" style="box-shadow: none;" ng-click="toggleMediaOrNormal(); $event.stopPropagation();">Media Test / Normal</button>
+                    </div>
+
+
+                </div>
+
+            </div>
+
+        </form>        
+
+    </ion-content>
+    
+    <button ng-if="loc=='es'" class="register-header icon-close-1" ng-click="closeSett(); $event.stopPropagation();">configuración</button>
+    <button ng-if="loc=='br'" class="register-header icon-close-1" ng-click="closeSett(); $event.stopPropagation();">Configuraçao</button>    
+    <button ng-if="loc!='es' && loc!='br'" class="register-header icon-close-1" ng-click="closeSett(); $event.stopPropagation();">Settings</button>
+
+</ion-modal-view>
+
+
+
+

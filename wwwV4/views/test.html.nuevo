@@ -1,0 +1,378 @@
+<style>
+  *{
+      -moz-box-sizing: border-box; -webkit-box-sizing: border-box; box-sizing: border-box;
+  }
+  [ng-drag]{
+      -moz-user-select: -moz-none;
+      -khtml-user-select: none;
+      -webkit-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+  }
+  [ng-drag]{
+  	padding:2px 8px 2px 8px;
+      margin: 4px;
+      border-radius: 4px;
+      background: lightgray;
+      text-align: center;
+      display: inline-block;
+      cursor: move;
+      font-size:14px;
+  }
+  [ng-drag].drag-over{
+      border:solid 1px red;
+  }
+  [ng-drag].dragging{
+      opacity: 0.5;
+  }
+
+  [ng-drop].drag-enter{
+      border:dotted 1px red !important;
+  }
+
+  [xng-drop] div{
+      position: relative;
+      z-index: 2;
+  }
+
+
+.numberCircle {
+  display:inline-block;
+  line-height:0px;
+
+  border-radius:50%;
+  border:2px solid;
+
+  font-size:32px;
+}
+
+.numberCircle span {
+  display:inline-block;
+
+  padding-top:50%;
+  padding-bottom:50%;
+
+  margin-left:8px;
+  margin-right:8px;
+}
+
+.peqIcon.redBall:before, .peqIcon.greenBall:before{
+    color: #7fb0ce;
+}
+
+.rojo {
+color: red !important;
+    font-weight: bold;
+    border: 2px solid #e38488 !important;
+}    
+.rojo .item-content{
+    background-color: transparent!important;
+} 
+.rojo .item-content:before{
+    background-color: #d16966 !important;
+    border-color: #d16966 !important;
+    content: 'z'!important;
+    color: #fff;
+    font-family: 'appci';
+    font-size: 5px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}  
+.rojo .item-content:after{
+    display: none!important;
+}
+
+.verde {
+/*  color:#9ddb9e !important; */
+color: green !important;
+background: white !important;
+
+  font-weight: bold;
+    border: 2px solid #d9f5dd !important;
+    background-color: #f4fff6 !important;
+}
+.verde .item-content{
+    background-color: transparent!important;
+}   
+.verde .item-content:before{
+    background-color: #9edda0 !important;
+    border-color: #9edda0 !important;
+    content: 'y'!important;
+    color: #fff;
+    font-family: 'appci';
+    font-size: 6px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}    
+.verde .item-content:after{
+    display: none!important;
+}
+
+
+.grayBall {
+  color:#ccc; 
+  font-size:26px;
+}
+.grayBall.peqIcon:before{
+    content: '';
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #ccc!important;
+    transform: translateY(3px);
+}
+.grayBall.grdIcon:before{
+    content: '';
+    width: 31px;
+    height: 31px;
+    border-radius: 50%;
+    background: #ccc!important;
+    transform: translateY(5px);
+}
+
+.greenBall {
+  color:#9ddb9e; 
+  font-size:26px;"
+}
+
+.redBall {
+  color:#d16966; 
+  font-size:26px;"
+}
+
+
+.here:before {
+    content:"";
+    position: absolute;
+    top: 0;
+    bottom: 50%;
+    left: 5%;
+    right: 0;
+    width:90%;
+    border-bottom: 2px dotted #ff0000;
+}
+
+.here {
+    margin: 10px auto;
+    position:relative;
+    text-align:center;
+}
+    
+.peq {
+  margin-left:2px; margin-right:2px; margin-top:3px;
+}
+.grd {
+  margin-left:2px; margin-right:2px; margin-top:3px;
+}
+.peqIcon {
+  font-size:26px;
+}
+.grdIcon{
+    font-size:36px;
+}
+.grdIcon:before{
+    transform: translateY(3px);
+}
+.blue2
+{
+  background: #2d7ac1;
+}
+</style>
+
+
+
+
+<ion-view view-title="{{i18n[loc].gram_title}}">
+
+  <ion-nav-buttons side="right">
+      <button class="button button-icon button-clear icon-people" menu-toggle="right"></button>
+  </ion-nav-buttons>
+
+<!--
+    <ion-nav-title>{{i18n[loc].gram_title}}</ion-nav-title>
+-->
+
+  <ion-content ng-class="(errorValue) ? 'wrongBackground' : ''" class="padding" has-bouncing="false">
+
+    <div ng-if="errorValue" ng-include src="'views/error.html'"></div>
+
+    <div ng-if="!errorValue" class="item-box58">    
+
+
+
+      <div class="i-header">
+          <div class="text36">{{testName}}</div>
+          <div ng-if="loc=='es'" class="text3">{{testName_es}}</div>                
+      </div>
+
+<!--
+<p>{{correct}}</p>            
+-->
+
+      <div style="text-align:center; padding-top:10px; min-height: 50px;">
+
+        <div class="XXhere" style="display:inline-block;">
+          <span ng-class="{ 'peq' : $index!=currentSlide, 'grd': $index==currentSlide }" ng-repeat="item in correctShow track by $index">
+            <span>
+              <i ng-class="{ 'peqIcon' : $index!=currentSlide, 'grdIcon': $index==currentSlide }" class="icon ion-checkmark-circled greenBall" ng-click="ballClick($index)" ng-if="item==1"></i>
+              <i ng-class="{ 'peqIcon' : $index!=currentSlide, 'grdIcon': $index==currentSlide }" class="icon ion-close-circled     redBall  " ng-click="ballClick($index)" ng-if="item==2"></i>
+              <i ng-class="{ 'peqIcon' : $index!=currentSlide, 'grdIcon': $index==currentSlide }" class="icon ion-minus-circled     grayBall " ng-click="ballClick($index)" ng-if="item==0"></i>
+            </span>
+          </span>
+        </div>
+
+      </div>
+
+<hr>
+<hr>
+
+
+  	        <ion-slide-box show-pager="false" class="i-content" on-slide-changed="slideHasChanged($index)" active-slide="currentSlide" pager-click="pagerClick(index)" ng-if="test!='Cargando ...'" style="padding-top:10px; padding-bottom: 12px;">
+                
+                <!-- Un slide para cada pregunta -->
+                <ion-slide ng-repeat="question in questions" ng-init="questionIndex = $index">
+
+
+
+
+                
+
+
+
+
+                    <!-- Botón resolver / continuar -->
+                    <div style="padding-top:10px; text-align:center;" ng-if="clicked[$index]==0 || (toggleName=='Continuar' || toggleName=='Next')">
+                        <span ng-disabled="correct[$index]==0" class="i--button-green text16" ng-click="toggle($index); $event.stopPropagation();" >{{toggleName}}</span>
+                        <span ng-disabled="true" class="i--button-green text16" ng-click="toggle($index); $event.stopPropagation();" >{{toggleName}}</span>
+                    </div>
+
+
+
+
+
+
+
+
+
+                </ion-slide>
+
+
+
+
+                <!-- Último slide, resultados -->
+                <ion-slide>
+
+                  <!-- Resultados -->
+                  <div class="item-test_result">
+                      <div class="i-col">
+                          <div class="i-title">{{i18n[loc].yourgrade}}:</div>
+                          <div class="i-note">{{percent}}<span>%</span></div>
+                      </div>
+                      <div class="i-col">
+                          <div class="i-title">{{i18n[loc].answers}}</div>
+                          <div class="i-results">
+                              <div class="i-col_result">
+                                  <div class="i-correct"><span>{{nok}}</span></div>
+                                  <div class="icon ion-checkmark-round"></div>
+                              </div>
+                              <div class="i-col_result">
+                                  <div class="i-wrong"><span>{{questions.length-nok}}</span></div>
+                                  <div class="icon ion-close-round"></div>
+                              </div>
+                          </div>
+                      </div>
+                  </div>
+
+
+                  <!-- Botón para loguearse si no lo está -->
+                  <div class="item-text_result" ng-if="!userInfo" style="margin-top: -20px;">
+                      <!-- <div class="i-title">{{scoreText}}</div> -->
+                      <button class="i--button blue2 text16" ng-click="goLesson(); $event.stopPropagation();" >{{i18n[loc].review}}</button>
+                      <div class="text3">{{i18n[loc].dologin}}</div>
+                      <button class="i--button-green text16" ng-click="login(); $event.stopPropagation();" >{{i18n[loc].login}}</button>
+                  </div>
+
+
+                  <!-- Mensaje de registro correcto de resultado -->
+                  <div ng-if="!errorValue2">
+
+                    <div ng-if="loc=='es' && resultSaved" style="text-align:center;">
+                      <p style="color:black;">
+                        ¡ Hemos registrado tu calificación con éxito en tu expediente !
+                      </p>
+                    </div>
+
+                    <div ng-if="loc=='br' && resultSaved" style="text-align:center;">
+                      <p style="color:black;">
+                        O registro de qualificação no seu expediente foi realizado com sucesso!
+                      </p>
+                    </div>                    
+
+                    <div ng-if="loc!='es' &&loc!='br' && resultSaved" style="text-align:center;">
+                      <p style="color:black;">
+                        We have successfully recorded your qualification in your profile !
+                      </p>
+                    </div>
+                  </div>
+
+                  <!-- Mensaje de error al registrar resultado -->
+                  <div ng-if="errorValue2">
+
+                    <div ng-if="loc=='es'" style="text-align:center;">
+                      <p style="color:red;">
+                        Error accediendo al servidor.
+                      </p>
+                    </div>
+
+                    <div ng-if="loc=='br'" style="text-align:center;">
+                      <p style="color:red;">
+                        Erro ao acessar o servidor.   
+                      </p>
+                    </div>
+
+                    <div ng-if="loc!='es' && loc!='br'" style="text-align:center;">
+                      <p style="color:red;">
+                        Error accessing server.
+                      </p>
+                    </div>
+
+                  </div>                  
+
+
+                  <!-- Botones Review lesson / Save result -->
+                  <div ng-if="userInfo">
+
+                    <div class="row">
+
+                      <div class="col" style="text-align:center;">
+                        <div>
+                          <button class="i--button blue2 text16" style="padding:8px 18px;" ng-click="goLesson(); $event.stopPropagation();" >{{i18n[loc].review}}</button>
+                        </div>
+                      </div>
+                      
+                      <div class="col" style="text-align:center;">
+                        <div> 
+                          <button ng-if="!resultSaved || !fromLesson" ng-disabled="resultSaved" ng-class=" (resultSaved) ? 'i--button lighgreen' : 'i--button-green' " class="text16" style="padding:8px 18px;" ng-click="sendResult(); $event.stopPropagation();" >{{i18n[loc].savetest}}</button>
+                          <button ng-if="resultSaved && fromLesson" class="i--button blue2 text16" style="padding:8px 18px;" ng-click="goUnit(); $event.stopPropagation();" >{{i18n[loc].continue2}}</button>
+                        </div>
+                      </div>
+
+                    </div>
+
+                  </div>
+
+                </ion-slide>
+
+            </ion-slide-box>
+            
+<hr>
+<hr>
+
+
+    </div>
+
+  </ion-content>
+
+</ion-view>

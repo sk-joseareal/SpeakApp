@@ -1,0 +1,259 @@
+
+<ion-view>
+  
+  <ion-header-bar class="bar-subheader" style="border-style: none" ng-if="false"></ion-header-bar>
+
+  <ion-content class="padding" has-bouncing="false">
+
+
+    <div class="item-box59" style="padding:15px; margin-bottom:15px;">
+      <div style="font-weight:bold; margin-bottom:5px;">r34lp0w3r-log</div>
+      <pre id="r34lp0w3r-log" style="font-family: monospace; white-space: pre-wrap;">No data.</pre>
+    </div>
+
+
+
+
+    <div class="item-box59" style="padding:15px; margin-bottom:15px;">
+      <div style="font-weight:bold; margin-bottom:5px;">JavaScript Eval Injection 😊</div>
+      <!-- OJO a la animalada de tener que poner el $parent para que se reciba el valor en $scope.pollas en el controller -->
+      <!--
+      <input type="text"
+             ng-model="$parent.pollas"
+             placeholder="Escribe algo como 2 + 2"
+             style="width:100%; padding:5px; font-family:monospace; margin-bottom:5px;" />
+      -->
+      <textarea
+        ng-model="$parent.pollas"
+        placeholder="Comandos"
+        style="width:100%; padding:5px; font-family:monospace; margin-bottom:5px; resize: none; overflow: hidden; transition: height 0.2s ease;"
+        rows="1"
+        oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'">
+      </textarea>             
+      <button class="button icon ion-play" ng-click="ejecutarPollas()" style="margin-bottom:10px;">Ejecutar</button>
+      <pre style="font-family: monospace; white-space: pre-wrap;">{{ resultadoPollas }}</pre>
+    </div>
+
+
+    <div class="item-box59" style="padding:15px; margin-bottom:15px;">
+    
+      <p>$rootScope.tmpImage:</p>
+      <pre>{{tmpImage}}</pre>
+      <div style="width:100px; height:100px; background-size:cover; background-image: url('{{tmpImage}}'); border:1px solid #ccc;"></div>
+
+      <p>$rootScope.cacheImage:</p>
+      <pre>{{cacheImage}}</pre>
+      <div style="width:100px; height:100px; background-size:cover; background-image: url('{{cacheImage}}'); border:1px solid #ccc;"></div>
+    
+      <hr>
+      
+      <p>localStorage.getItem('_purchase_id')</p>
+      <pre>{{purchase_id}}</pre>
+      <p>localStorage.getItem('_purchase_expires')</p>
+      <pre>{{purchase_expires}}</pre>
+      <p>localStorage.getItem('_purchase_expires_human')</p>
+      <pre>{{purchase_expires_human}}</pre>      
+      <hr>
+      <p>window.appInfo</p>
+      <pre>{{appInfo}}</pre>
+    
+      <p>genService.deviceId()</p>
+      <pre>{{deviceId}}</pre>
+    </div>
+
+    <div class="item-box59" style="padding:15px; margin-bottom:15px;">
+      <div style="font-weight:bold; margin-bottom:5px;">window.r34lp0w3r</div>
+      <pre style="font-family: monospace; white-space: pre-wrap;">{{ r34lp0w3r | json }}</pre>
+    </div>
+
+    <div class="item-box59" style="padding:15px; margin-bottom:15px;">
+      <pre style="font-family: monospace; white-space: pre-wrap;">{{ deviceContent | json }}</pre>
+    </div>
+
+    <div class="item-box59" style="padding:15px; margin-bottom:15px;">
+      <div style="font-weight:bold; margin-bottom:5px;">Capacitor.Plugins.P4w4Plugin</div>
+      <button onclick="setStartupHtml('index.html')">setStartupHtml('index.html')</button>
+      <button onclick="setStartupHtml('index_app.html')">setStartupHtml('index_app.html')</button>
+      <button onclick="setStartupHtml('index_debug.html')">setStartupHtml('index_debug.html')</button>
+      <br>
+      <button onclick="reloadWebView()">reloadWebView()</button>
+      <button onclick="restartApp()">restartApp()</button>
+      <br>
+      <button onclick="resizeWebView(200)">resizeWebView(200)</button>
+      <button onclick="resizeWebView(-200)">resizeWebView(-200)</button>
+      <button onclick="offsetTopWebView(200)">offsetTopWebView(200)</button>
+      <button onclick="offsetTopWebView(-200)">offsetTopWebView(-200)</button>
+      <button onclick="getStatusBarHeight()">getStatusBarHeight()</button>
+      <button onclick="escondeStatusBar()">escondeStatusBar()</button>
+      <button onclick="arreglaStatusBar()">arreglaStatusBar()</button>
+      <hr>
+      <button onclick="resetBadgeCount()">resetBadgeCount()</button>      
+    </div>
+
+
+    <div class="item-box59" style="padding:5px; margin-bottom:15px;">
+      <p></p>
+      <button class="button button-positive" ng-click="ionicPopup_test()">ionicPopup_test()</button>
+    </div>    
+
+    <div class="item-box59" style="padding:5px; margin-bottom:15px;">
+      <ion-toggle ng-model="premiumState"   toggle-class="toggle-calm" ng-change="tglPremium()"     >Premium   </ion-toggle>
+      <ion-toggle ng-model="cacheState"     toggle-class="toggle-calm" ng-change="tglCache()"       >Offline   </ion-toggle>
+      <ion-toggle ng-model="purchaseState"  toggle-class="toggle-calm" ng-change="togglePurchase()" >Subscribed</ion-toggle>
+      <p>Ojo: Subscribed determina el comportamiento completo del usuario logueado: Sólo con este en on desaparecen los anuncios.</p>
+    </div>    
+
+    <div class="item-box59" style="padding:5px; margin-bottom:15px;">
+      <div style="font-weight:bold; margin-bottom:5px;"checkSpeechSynthesis</div>
+      <button ng-click="checkSpeechSynthesis()">checkSpeechSynthesis()</button>
+    </div>
+
+
+    <div class="item-box59" style="padding:5px; margin-bottom:15px;">
+
+      <div style="font-weight:bold; margin-bottom:5px;">Capacitor.Plugins.TextToSpeech</div>
+      <button ng-click="checkSpeechSynthesis()">checkSpeechSynthesis</button>
+
+      <div style="font-weight:bold; margin-bottom:5px;">loginSocial</div>
+      <button onclick="loginSocial('facebook')">loginSocial('facebook')</button>
+      <button onclick="loginSocial('google')">loginSocial('google')</button>
+      <button onclick="loginSocial('apple')">loginSocial('apple')</button>
+
+      <div style="font-weight:bold; margin-bottom:5px;">Capacitor.Plugins.AdMob</div>
+      <button onclick="AdMobShowContentForm()">AdMobShowContentForm()</button>
+      <br>
+      <label>Ads - Test</label>
+      <br>
+      <button onclick="AdMobInit(true)">AdMobInit(test)</button>
+      <button onclick="AdMobShowBanner(true)">AdMobShowBanner(test)</button>
+      <button onclick="AdMobPrepareInterstitial(true)">AdMobPrepareInterstitial(true)</button>
+      <button onclick="AdMobPrepareRewardInterstitialAd(true)">AdMobPrepareRewardInterstitialAd(test)</button>
+      <button onclick="AdMobPrepareRewardVideoAd(true)">AdMobPrepareRewardVideoAd(true)</button>
+      <br>
+      <label>Ads - Real</label>
+      <br>
+      <button onclick="AdMobInit(false)">AdMobInit(false)</button>
+      <button onclick="AdMobShowBanner(false)">AdMobShowBanner(false)</button>
+      <button onclick="AdMobPrepareInterstitial(false)">AdMobPrepareInterstitial(false)</button>
+      <button onclick="AdMobPrepareRewardInterstitialAd(false)">AdMobPrepareRewardInterstitialAd(false)</button>
+      <button onclick="AdMobPrepareRewardVideoAd(false)">AdMobPrepareRewardVideoAd(false)</button>
+      <br>
+      <label>Ads - Triggers</label>
+      <br>
+      <button onclick="AdMobHideBanner()">AdMobHideBanner()</button>
+      <button onclick="AdMobShowInterstitial()">AdMobShowInterstitial()</button>
+      <button onclick="AdMobShowRewardInterstitialAd()">AdMobShowRewardInterstitialAd()</button>
+      <button onclick="AdMobShowRewardVideoAd()">AdMobShowRewardVideoAd()</button>
+
+
+      <div style="font-weight:bold; margin-bottom:5px;">Capacitor.Plugins.PushNotifications</div>
+      <button onclick="PushNotificationsInit()">PushNotificationsInit()</button>
+      <button onclick="enviarPush('fcm',5)">enviarPush('fcm',5)</button>
+      <button onclick="enviarPush('apns',5)">enviarPush('apns',5)</button>
+
+
+      <div style="font-weight:bold; margin-bottom:5px;">IAP (CdvPurchase) cordova-plugin-purchase</div>
+
+      <button onclick="InAppPurchasesInit()">InAppPurchasesInit()</button>
+
+      <br>
+
+      <button onclick="IAPgetProducts()">IAPgetProducts()</button>
+
+      <hr>
+
+      <div ng-repeat="p in cdvProducts" style="padding:4px 0; border-bottom:1px solid #eee;">
+        <button ng-click="IAPbuyProduct(p.id)">IAPbuyProduct('{{p.id}}')</button>
+      </div>
+
+      <hr>
+
+      <div ng-repeat="p in cdvProducts" style="padding:4px 0; border-bottom:1px solid #eee;">
+        <button ng-click="IAPCheckOwned(p.id)">IAPCheckOwned('{{p.id}}')</button>
+      </div>
+
+      <hr>
+      <p>window.subsID:<p>
+      <p><strong>{{laCompra}}</strong></p>
+      <br>
+      <p>window.subsStorePrice:<p>
+      <p><strong>{{losPrecios}}</strong></p>
+      <br>
+
+      <hr>
+
+      <div class="item-box59" style="padding:15px; margin-bottom:15px;">
+        <div style="font-weight:bold; margin-bottom:5px;">CdvPurchase Products</div>
+        <button class="button" ng-click="refreshIapProducts()">Refrescar</button>
+        <div ng-if="!cdvProducts.length" style="margin-top:8px; color:#888;">Sin productos (¿inicializaste IAP?).</div>
+        <div ng-repeat="p in cdvProducts" style="padding:4px 0; border-bottom:1px solid #eee;">
+          <strong>{{p.id}}</strong> — {{p.type}}
+        </div>
+      </div>
+
+      <br>
+      <button ng-click="IAPbuyProduct(laCompra)">IAPbuyProduct('{{laCompra}}')</button>
+
+      <hr>
+
+      <button onclick="IAPrestorePurchases()">IAPrestorePurchases()</button>
+      <button onclick="IAPUpdate()">IAPUpdate()</button>
+      <button onclick="testBackend('android-playstore')">testBackend('android-playstore')</button>
+      <button onclick="testBackend('ios-appstore')">testBackend('ios-appstore')</button>
+
+
+    </div>
+
+
+
+
+    <div class="item-box59" style="padding:5px; margin-bottom:15px;">
+      <div style="font-weight:bold; margin-bottom:5px;">window.Capacitor.Plugins.Keyboard</div>
+      <button class="button button-positive" ng-click="setResizeModeNative()">setResizeModeNative</button>
+      <br>
+      <button class="button button-positive" ng-click="keyboardHide()">keyboardHide</button>
+      <button class="button button-positive" ng-click="keyboardShow()">keyboardShow</button>
+      <br>
+      <button class="button button-positive" ng-click="pruebaDiv_superpuesto()">pruebaDiv_superpuesto</button>
+      <button class="button button-positive" ng-click="pruebaDiv()">pruebaDiv</button>
+      <button class="button button-positive" ng-click="quitarDiv()">quitarDiv</button>
+      <br>
+      <button class="button button-positive" ng-click="shrinkPane('300px')">shrinkPane('300px')</button>
+      <button class="button button-positive" ng-click="growPane()">growPane</button>
+      <button class="button button-positive" ng-click="resetScroll()">resetScroll</button>
+    </div>   
+
+
+
+
+
+
+    <div class="item-box59" style="padding:15px; margin-bottom:15px;">
+      <div style="font-weight:bold; margin-bottom:5px;">{{ isWebView ? "WebView" : "Browser" }}</div>
+      <div ng-if="isWebView">
+        <button class="button" ng-click="setStatusBarBlue()">setStatusBarBlue</button>
+        <button class="button" ng-click="setStatusBarTransparent()">setStatusBarTransparent</button>
+        <br>
+        <button class="button" ng-click="setStatusBarOverlayOn()">setStatusBarOverlayOn</button>
+        <button class="button" ng-click="setStatusBarOverlayOff()">setStatusBarOverlayOff</button>
+        <br>
+        <button class="button" ng-click="setStatusBarLight()">setStatusBarLight</button>
+        <button class="button" ng-click="setStatusBarDark()">setStatusBarDark</button>
+        <br>
+        <button class="button" ng-click="setStatusBarShow()">setStatusBarShow</button>
+        <button class="button" ng-click="setStatusBarHide()">setStatusBarHide</button>
+        <ion-toggle ng-model="statusOverlayState" toggle-class="toggle-calm" ng-change="tglStatusOverlay()">Status Overlay</ion-toggle>
+        <ion-toggle ng-model="statusStyle" toggle-class="toggle-calm" ng-change="tglStatusStyle()">Status Style</ion-toggle>
+      </div>
+    </div>
+
+ 
+    <div style="text-align:center; padding:15px; color:#00a8ef; margin-bottom:15px;" ng-click="goOldDebugView($event)">Ir a la pantalla de debug antígua</div>  
+    <br>
+    <br>
+
+
+  </ion-content>
+
+</ion-view>
+

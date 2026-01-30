@@ -1,0 +1,94 @@
+<ion-modal-view>
+
+<!--
+  <ion-header-bar style="background:#00629d; color:white;">
+    <h1 class="title">Login</h1>
+    <div class="buttons">
+      <button class="button button-clear" ng-click="closeLogin()">Cerrar</button>
+    </div>
+  </ion-header-bar>
+-->  
+    <ion-content>
+
+        <div class="item-login">
+           
+            <form ng-submit="doLogin()">
+
+                <br>
+                <br>         
+                <br>
+
+                <div>
+                    <span>{{i18n[loc].username}}</span>
+                    <div class="i-clear_check">
+                        <input reset-field type="email" ng-model="loginData.username"/>
+                        <div class="xicon-close-1"></div>
+                    </div>
+                </div>
+                <div>
+                    <span>{{i18n[loc].password}}</span>
+                    <div class="i-clear_check">
+                        <input type="password" ng-model="loginData.password"/>
+                        <div class="xicon-close-1"></div>
+                    </div>
+                </div>
+
+                <p style="margin-left:20px;" ng-if="error" class="error_text">{{error}}</p>
+
+                <p style="margin-left:20px;" ng-if="error_login" class="error_text">{{error_login}}</p>                
+
+                <button class="i--button lighgreen">{{i18n[loc].enter}}</button>
+                
+                <p class="normal_text">{{i18n[loc].noacc1}}: <a ng-click="registerPopup(); $event.stopPropagation();"> {{i18n[loc].noacc2}}</a></p>
+
+            </form>
+            
+            <hr>
+            
+            <div class="social_login">
+         
+                <p ng-show="showSocialLogin">{{i18n[loc].loginwith}}:</p>
+                
+                <div ng-show="showSocialLogin" class="social">
+                    <a class="item icon-facebook" onClick="loginSocial('facebook'); $event.stopPropagation();">Facebook</a>
+                    <a class="item" onClick="loginSocial('google'); $event.stopPropagation();"><img src="assets/googleplusshare.png" style="height:20px; padding-right:5px; margin-bottom:-5px;">Google</a>
+                </div>
+
+                <div ng-show="showSocialLogin" >
+                    <button style="xmargin-top:10px; background-color:black;" class="i--button" onClick="loginSocial('apple'); $event.stopPropagation();">
+                    <img src="assets/apple.png" style="height:20px; padding-right:4px; margin-bottom:-5px;">
+                    {{i18n[loc].logapple}}</button>
+                </div>
+
+                <a class="normal_text" ng-click="forgotPassPopup(); $event.stopPropagation();">{{i18n[loc].forgot}}</a>
+
+                <br>
+                <br>
+                <a class="normal_text" ng-click="goWebLegal(); $event.stopPropagation();">{{i18n[loc].legal}}</a>
+            </div>
+
+        </div>
+
+    </ion-content>
+    
+
+
+    <button ng-if="isOther" class="register-header icon-close-1" ng-click="closeLogin()">{{i18n[loc].login}}</button>
+
+    <div ng-if="isChat">
+        <button ng-if="loc=='es'" class="register-header icon-close-1" ng-click="closeLogin()">Para chatear debes identificarte</button>
+        <button ng-if="loc=='br'" class="register-header icon-close-1" ng-click="closeLogin()">Para conversar é necessário fazer login</button>    
+        <button ng-if="loc!='es' && loc!='br'" class="register-header icon-close-1" ng-click="closeLogin()">You must identify yourself to chat</button>
+    </div>
+
+    <div ng-if="isPurchase">
+        <button ng-if="loc=='es'" class="register-header icon-close-1" ng-click="closeLogin()">Identifícate para hacerte Premium</button>
+        <button ng-if="loc=='br'" class="register-header icon-close-1" ng-click="closeLogin()">Identifique-se para tornar-se Premium</button>    
+        <button ng-if="loc!='es' && loc!='br'" class="register-header icon-close-1" ng-click="closeLogin()">Identify yourself to become Premium</button>
+    </div>    
+
+</ion-modal-view>
+
+
+
+

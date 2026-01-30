@@ -1,0 +1,82 @@
+
+<ion-modal-view style="background: rgba(0,0,0,.7)">
+
+ 
+  <ion-content style="background: rgba(0,0,0,0); padding:0px;">
+
+
+
+    <div class="item-box59" style="margin-top:40px; margin-left:40px; margin-right:40px; padding:0;">
+
+        <div style="position:fixed; top:50px; left: 50%; transform: translate(-50%, 0); z-index:100;">
+          
+          <div style="background:white; border-radius: 50%; padding: 4px;">                
+          
+            <div style="background:#16a6d8; border-radius: 50%; padding: 10px 11px 2px 11px;">                
+              <img src="assets/corona.png" alt="" width="70px" height="70px"/>
+            </div>
+
+          </div>
+
+        </div> 
+
+        <div style="text-align:center; height:100px; background:#00629d; border-top-left-radius: 8px; border-top-right-radius: 8px  ">
+          
+          <h3 ng-if="loc=='es'" style="color:white; padding-top:15px;">¡Felicidades!</h3>
+          <h3 ng-if="loc=='br'" style="color:white; padding-top:15px;">Parabéns!</h3>
+          <h3 ng-if="loc!='es' && loc!='br'" style="color:white; padding-top:15px;">Congratulations!</h3>
+
+        </div>
+
+        <div style="text-align:center; padding-top:60px; padding-bottom:10px; background:#F8F8F8;">
+
+          <div ng-if="loc=='es'">
+            <h3 style="color:#00629d; font-size:20px; margin-bottom:0px;" ng-if="loc=='es'">¡Ya eres premium!</h3> 
+
+            <br>
+
+            <p>Ya puedes disfrutar <br>
+            del curso completo  <br> 
+            y sin publicidad, <br> 
+            aún sin conexión!</p>
+          </div>
+
+          <div ng-if="loc=='br'">
+            <h3 style="color:#00629d; font-size:20px; margin-bottom:0px;" ng-if="loc=='br'">Você já é Premium!</h3>    
+
+            <br>
+
+            <p>Você já pode desfrutar <br>
+            do curso completo<br> 
+            sem publicidade,<br> 
+            e, além disso, sem conexão!</p>
+          </div>
+
+          <div ng-if="loc!='es' && loc!='br'">
+            <h3 style="color:#00629d; font-size:20px; margin-bottom:0px;" ng-if="loc!='es' && loc!='br'">You're now a Premium User!</h3> 
+
+            <br>  
+
+            <p>You can now enjoy <br>
+             the complete course<br> 
+            without ads<br> 
+            and even offline!</p>
+          </div>
+
+
+        </div>
+
+        <div style="text-align:center; padding:20px;">
+            
+            <div class="buttonCenter">
+              <button class="white i--button text13" style="font-size:15px; padding:5px 12px 8px 12px; color:grey; border:1px solid darkgrey;" ng-click="closePurchaseThanks(); $event.stopPropagation();">{{i18n[loc].continue2}}</button>            
+            </div>
+
+            <br>
+
+        </div>
+
+    </div>        
+
+  </ion-content>
+</ion-modal-view>

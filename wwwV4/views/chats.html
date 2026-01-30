@@ -1,0 +1,116 @@
+
+<style>
+.btnAvatar {
+/* content: url('http://pre.curso-ingles.com/assets/logo_ci.png'); */
+content: url('{{channels[channelIdx].img}}');
+border-radius: 50%;
+width: 48px;
+/* si no pongo esto, hay iconos que aparecen elipticos, si pongo 48 tambien */
+height: 0px; 
+}
+
+.dsc0{
+    background:#fbfbfb !important;
+    padding-top:60px !important;
+}
+.dsc1{
+    background: aliceblue;
+}
+.dsc2{
+    color: lightblue;
+}
+.dsc3{
+    color: lightgrey !important;
+}
+
+.spinner svg {
+  width: 28px !important;
+  height: 28px !important;
+  stroke: #d40000;
+  fill: #1ca9eb; 
+}
+
+</style>
+
+<ion-view class="chat">
+    
+    <ion-nav-buttons side="right">
+        <button class="button button-icon button-clear ion-ios-search" ng-click="srchClick()"></button>
+        <button ng-if="channels[channelIdx].type==1" class="button button-icon button-clear icon-people" xmenu-toggle="right" ng-click="flashClick(2)"></button>
+
+        <button ng-if="channels[channelIdx].type!=1" class="button-clear" ng-click="userClick(user2_id)">
+            <i class="button button-icon btnAvatar"></i>            
+        </button>
+
+    </ion-nav-buttons>
+
+        <div class="card" style="margin-top:50px; text-align:center;" ng-if="!isOnLine || chatState!='connected' || channels[channelIdx].state!=1">
+
+            <div class="item" style="background-color:#fff9e5; color:#d40000;" ng-if="!isOnLine || chatState!='connected'">
+                {{txt4}}<ion-spinner icon="lines" style=" float:right; margin-top:-7px;"></ion-spinner>
+            </div>
+
+            <div ng-if="isOnLine && chatState=='connected'">
+
+                <div class="item" style="background-color:#fff9e5; color:#818181;" ng-if="onLine()">
+                    {{txt1}}
+                    <span style='margin-right:10px; display:inline-block;'>&nbsp;</span>            
+                    <button class="i--button" style="height:30px; padding-top:5px; background: #0082d0;" ng-click="reopen();" >{{txt2}}</button>
+                </div>
+
+                <div class="item" style="background-color:#fff9e5; color:#818181;" ng-if="!onLine()">
+                    {{txt3}}
+                </div>
+
+            </div>
+
+        </div>
+
+
+    <ion-content class="content" overflow-scroll="false" has-bouncing="true" delegate-handle="mainScroll" ng-class="{dsc0: (chatState!='connected' || channels[channelIdx].state!=1) }" ng-click="dbg()">
+
+        <div ng-repeat="message in messages[currentChannel] track by $index" ng-if="isOnLine">
+            <div class="item-box60" ng-show="message.userId != userInfo.id" ng-click="userClick2(message.userId)"  ng-class="{dsc1: channels[channelIdx].state!=1}">
+                <!-- {{message.image}} -->
+                <div class="text2" ng-class="{dsc2: channels[channelIdx].state!=1}">{{message.userName}}</div>
+                <div class="text3" ng-class="{dsc3: channels[channelIdx].state!=1}" style="white-space:pre-wrap;">{{message.text}}</div>
+                <div class="i-aux-info text27">{{UTCconv(message.time)}}</div>
+            </div>
+            
+            <div class="item-box61" ng-show="message.userId == userInfo.id" ng-class="{dsc1: channels[channelIdx].state!=1}">
+                <!-- {{message.image}} -->
+                <div class="text2" ng-class="{dsc2: channels[channelIdx].state!=1}">{{message.title}}</div>
+                <div class="text3" ng-class="{dsc3: channels[channelIdx].state!=1}" style="white-space:pre-wrap;" ng-bind-html="message.text"></div>
+                <div class="i-aux-info text27">{{UTCconv(message.time)}}</div>
+            </div>
+
+        </div>
+        
+        <div class="cf" style="height:5px;"></div>
+
+    </ion-content>
+
+    <ion-footer-bar keyboard-attach class="chat-footer-bar">
+
+
+        <div class="i--label">
+
+            <div class="i-clear_check">    
+                <input id="focusMe" auto-focus autocapitalize="none" type="text" placeholder="{{i18n[loc].type}} ..." ng-model="data.message" ng-if="userInfo" />
+                <div class="xicon-close-1"></div>
+            </div>
+
+            <div ng-if="!userInfo" ng-click="login('chat')">
+                <input readonly ng-click="login('chat')" xng-disabled="true" id="xfocusMe" xconstant-focus autocapitalize="none" type="text" placeholder="{{i18n[loc].type}}..." ng-model="data.message" ng-if="channels[channelIdx].state==1 && !userInfo" />
+            </div>
+
+        </div>
+
+        <button id="sendButton" ng-if="userInfo" style="width:75px; text-align:center;" class="i--button text9" ng-click="sendMessage()" ng-disabled="channels[channelIdx].state!=1">{{i18n[loc].send}}</button>
+
+        <button ng-if="!userInfo" style="width:75px; text-align:center;" class="i--button text9" ng-click="login('chat')" ng-disabled="channels[channelIdx].state!=1">{{i18n[loc].send}}</button>
+
+    </ion-footer-bar>
+
+</ion-view>
+

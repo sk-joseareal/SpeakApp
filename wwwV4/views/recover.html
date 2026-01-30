@@ -1,0 +1,115 @@
+
+
+
+<style>
+.item-register div.i-checkbox {
+  display: flex;
+  padding: 2px 10px;
+}
+.item-register div.i-checkbox input {
+  position: fixed;
+  top: 0;
+  left: -99px;
+}
+.item-register div.i-checkbox input:checked + span:before {
+  content: 'u';
+  font-family: 'appci';
+}
+.item-register div.i-checkbox span {
+  font: 400 15px 'Open Sans', sans-serif;
+  color: #00a8ef;
+  padding-left: 25px;
+  position: relative;
+}
+.item-register div.i-checkbox span:before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 3px;
+  width: 15px;
+  height: 15px;
+  background-color: #ffffff;
+  border-radius: 3px;
+}
+.item-register div.i-checkbox span a {
+  color: #00a8ef;
+  text-decoration: underline;
+}
+.item-register div.i-checkbox span a:hover {
+  text-decoration: none;
+}
+</style>
+
+
+
+
+
+
+
+
+
+
+<ion-modal-view>
+
+<!--
+  <ion-header-bar>
+    <h1 class="title">Registro</h1>
+    <div class="buttons">
+      <button class="button button-clear" ng-click="closeRegister()">Cerrar</button>
+    </div>
+  </ion-header-bar>
+-->
+
+    <ion-content>
+
+        <div class="item-register" style="display: block;">
+     
+            <form ng-submit="forgotPass()">
+
+                <br>
+                <br>
+                <br>
+
+                <div>
+                    <span>{{i18n[loc].email}}</span>
+                    <div class="i-clear_check">
+                        <input clearInput ng-model="recoverData.email" placeholder="{{i18n[loc].type0}} {{i18n[loc].email}}" type="email"/>
+                        <div class="xicon-close-1"></div>
+                    </div>
+                </div>
+
+                
+                <p class="error_text">{{error}}</p>
+
+                <p class="error_text">{{error_login}}</p>                
+                
+                <button class="i--button lighgreen">{{i18n[loc].recover}}</button>
+
+                <!--            
+                <label class="i-checkbox">
+                    <input type="checkbox" ng-model="registerData.acceptterms"/>
+                    <span>{{i18n[loc].accept1}}&nbsp;<a ng-click="closeRegister(); goLegal(); $event.stopPropagation();">{{i18n[loc].accept2}}</a></span>
+                </label>
+                -->
+
+                <!--
+                <div class="i-checkbox" style="display:hidden">
+                    
+                    <input type="checkbox" ng-model="registerData.acceptterms" /> 
+                    <span ng-click="registerData.acceptterms=!registerData.acceptterms;">
+                      {{i18n[loc].accept1}}sss&nbsp;<a ng-click="goWebLegal(); $event.stopPropagation();">{{i18n[loc].accept2}}</a>
+                      {{i18n[loc].accept3}}&nbsp;<a ng-click="goWebPolicy(); $event.stopPropagation();">{{i18n[loc].accept4}}</a>
+                    </span>
+                
+                </div>
+                -->
+
+            </form>
+
+        </div>
+
+    </ion-content>
+
+    <button class="register-header icon-close-1" ng-click="closeRecover()">{{i18n[loc].recover}}</button>
+    
+</ion-modal-view>

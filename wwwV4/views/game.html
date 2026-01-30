@@ -1,0 +1,79 @@
+
+<style>
+#loadImg{position:absolute;z-index:999;}
+#loadImg div{display:table-cell;width:950px;height:633px;background:#fff;text-align:center;vertical-align:middle;}
+</style>
+
+
+<ion-view view-title="{{game.title}}">
+    
+    <ion-content class="padding">
+
+		<!-- <div class="item-box56 extra-padding" ng-bind-html="embed3"></div> -->
+
+		<div id="gameContainer" class="item-box56" style="text-align:center; padding-left:0px; padding-right:0px; ">
+
+<!--
+			<div id="loadImg"><ion-spinner icon="spiral" style="display:table-cell;width:{{frameWidth}}px;height:320px;background:#fff;text-align:center;vertical-align:middle;"></ion-spinner></div>
+-->
+
+<!--
+			width="320" height="480" 
+"http://cdn.htmlgames.com/ChristmasWords/index.html" 
+-->
+
+
+<!-- 
+<iframe id="fg-frame-flag-quiz" width="480" height="857" data-aspect-ratio="0.56" src="" frameborder="0"></iframe>
+<script> 
+	(function(d, url, fgJS, firstJS)
+		{
+			fgJS = d.createElement('script');
+			firstJS=d.getElementsByTagName('script')[0];
+			fgJS.src=url;
+			fgJS.onload=function() 
+			{
+				var fg_frame=document.getElementById('fg-frame-flag-quiz');
+				var fg_url='https://play.famobi.com/flag-quiz/A-VH25S';
+				var mobileRedirect=false;
+				var mobileTablet=false;
+				famobi_embedFrame(fg_frame, fg_url, mobileRedirect, mobileTablet);
+			};
+			firstJS.parentNode.insertBefore(fgJS, firstJS);
+		}
+	)
+	(document, 'https://games.cdn.famobi.com/html5games/plugins/embed.js?v=2.1')
+</script>
+-->
+
+
+
+
+			<iframe 
+			id="gameFrame"
+			src="{{embed}}"
+			name="prueba" 
+
+			width="{{frameWidth}}" height="{{frameWidth*220/360}}" 
+
+			frameborder="0" 
+			scrolling="no" 
+			onload="document.getElementById('loadImg').style.display='none';" 
+			style="background-color:white; ">
+			</iframe>
+
+
+
+<!--	
+			width="{{frameWidth}}" height="320" 
+
+
+			<iframe src="http://cdn.wordgames.com/ext/0132/blobs_plops/v1.2/?bm.gameid=26106&bm.source=m.wordgames.com&utm_referrer=http%3A%2F%2Fm.wordgames.com%2F&utm_source=m.wordgames.com" name="prueba" width="{{frameWidth}}" height="320" frameborder="0" scrolling="no" onload="document.getElementById('loadImg').style.display='none';" ></iframe>
+-->
+
+		</div>
+        <!-- <div class="item-box56"><h1>{{game.title}}</h1></div> -->
+
+    </ion-content>
+    
+</ion-view>

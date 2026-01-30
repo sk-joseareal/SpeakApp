@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generator: Adobe Illustrator 21.0.2, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
+<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+	 viewBox="0 0 240 340" style="enable-background:new 0 0 240 340;" xml:space="preserve">
+<style type="text/css">
+	.st0{fill:#50412E;}
+	.st1{fill:#D80027;}
+	.st2{fill:#FFEACF;}
+	.st3{fill:#A2001D;}
+	.st4{fill:#FFFFFF;}
+	.st5{fill:#FF5023;}
+	.st6{fill:#FFD6A0;}
+</style>
+<path id="XMLID_982_" class="st0" d="M141,240h-21H99c-38.1,0-69,30.9-69,69v31h90h90v-31C210,270.9,179.1,240,141,240z"/>
+<path id="XMLID_983_" d="M120,240H99c-38.1,0-69,30.9-69,69v31h90V240z"/>
+<polygon id="XMLID_984_" class="st1" points="10,150 50,290 50,340 70,340 70,290 90,150 "/>
+<path id="XMLID_985_" class="st2" d="M150,240c0,16.6-13.4,30-30,30l0,0c-16.6,0-30-13.4-30-30v-30c0-16.6,13.4-30,30-30l0,0
+	c16.6,0,30,13.4,30,30V240z"/>
+<polygon id="XMLID_986_" class="st3" points="77.1,240 90,150 35.7,240 "/>
+<polygon id="XMLID_987_" class="st3" points="35.7,240 50,290 70,290 "/>
+<rect id="XMLID_988_" x="50" y="290" class="st4" width="20" height="20"/>
+<polygon id="XMLID_989_" class="st5" points="150,150 170,290 170,340 190,340 190,290 230,150 "/>
+<polygon id="XMLID_990_" class="st1" points="162.9,240 150,150 204.3,240 "/>
+<polygon id="XMLID_991_" class="st1" points="204.3,240 190,290 170,290 "/>
+<rect id="XMLID_992_" x="170" y="290" class="st4" width="20" height="20"/>
+<path id="XMLID_993_" class="st5" d="M120,0c-14.1,0-27.6,2.7-40,7.5C39,23.5,10,63.4,10,110v40h70h150v-40C230,49.2,180.8,0,120,0z
+	"/>
+<path id="XMLID_994_" class="st1" d="M80,7.5V150H10v-40C10,63.4,39,23.5,80,7.5z"/>
+<ellipse id="XMLID_995_" class="st2" cx="120" cy="135" rx="100" ry="105"/>
+<path id="XMLID_1001_" class="st6" d="M120,228c-22.5,0-44.1-4.4-64-12.3c17.3,15.2,39.6,24.3,64,24.3s46.6-9.1,64-24.3
+	C164.1,223.6,142.5,228,120,228z"/>
+<path id="XMLID_1002_" class="st5" d="M80,70c0,0,20,20,60,20c30,0,30,40,60,40h20v-30l-30-60l-60-20L80,30L70,50L80,70z"/>
+<path id="XMLID_1003_" class="st1" d="M40,130c10,0,36.2-33.3,40-60V10c0,0-40.5,45.8-50,60c-9,13.5-10,60-10,60S30,130,40,130z"/>
+<circle id="XMLID_1004_" class="st2" cx="20" cy="150" r="20"/>
+<circle id="XMLID_1005_" class="st2" cx="220" cy="150" r="20"/>
+</svg>

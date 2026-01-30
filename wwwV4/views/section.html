@@ -1,0 +1,630 @@
+
+<style>
+
+
+* {
+  -webkit-tap-highlight-color: rgba(0,0,0,0);
+  -webkit-tap-highlight-color: transparent;
+  outline: 0;
+/* -webkit-user-select: none; */
+}
+
+.onlyweb {
+  display:none;
+}
+
+.minpad {padding-left: 15px !important; padding-right: 15px !important;} /* Para los tag example que contienen 'play' */
+
+.dimmed {
+  position: relative;
+}
+
+.dimmed:before {
+  content: " ";
+  z-index: 10;
+  display: block;
+  position: absolute;
+  height: 100%;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.blur5 *{
+  -webkit-filter: blur(3px);filter:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' ><filter id='blur5'><feGaussianBlur in='SourceGraphic' stdDeviation='2' /></filter></svg>#blur5");
+  filter:blur(3px);
+}
+
+
+
+.float-buttons {
+  width:100px;
+  position: fixed;
+  top: 60px; /* Adjust to where you want it */
+  right: 10px; /* Adjust to where you want it */
+  background:transparent;
+  text-align: center;
+ }
+
+.float-buttons2 {
+  position: fixed;
+  top: 10px; /* Adjust to where you want it */
+  left: 10px; /* Adjust to where you want it */
+  background:transparent;
+  text-align: center;
+ }
+
+.float-div {
+  position: fixed;
+  top: 55px; /* Adjust to where you want it */
+  right: 5px; /* Adjust to where you want it */
+  background:transparent;
+  text-align: center;
+ }
+
+.float-button {
+  width:40px;
+  height:40px;
+  font-size:30px;
+  border:0px;
+  padding:0px;
+  background:transparent;
+  color: #00629d; 
+}  
+.float-button[disabled] {
+  color:#7f7f7f;
+}
+
+  /* Para los controles de locución automática */
+
+  #aCtrlTop {
+    width: 100%;
+    padding-left: 5px;
+    padding-right: 5px;
+  }
+
+  .ctrlAzul {
+    background-color: #0682ca;
+  }
+
+  .ctrAzul2 {
+    background-color: rgb(73, 187, 248);
+  }
+
+  .ctrlBlanco {
+    background-color: white;
+  }
+
+  .ctrlAzul p {
+    color: white;
+  }
+
+  .amarillo {
+    background: lightgreen;
+  }
+
+  .sinmargenes {
+    margin: 0px;
+  }
+
+  .borderred {
+    border-top: solid 1px lightgray;
+  }
+
+  .bordergreen {
+    border-top: dotted 1px green;
+  }
+
+  #ctrlTDlng {
+    width: 87px;
+  }
+
+  #ctrlTDacc {
+    width: 140px;
+  }
+
+
+  .ctrlBtn:hover {
+    background: rgb(73, 187, 248);
+    cursor: pointer;
+  }
+
+  .ctrlTDsep {
+    width: 1px;
+  }
+
+  .centrado {
+    text-align: center;
+  }
+
+  .ctrlIcono {
+    font-size: 24px;
+    vertical-align: top;
+    padding-top: 2px;
+  }
+
+  .ctrlTexto {
+    font-size: 13px;
+    padding-left: 2px;
+  }
+
+  .ctrlTextoUp {
+    font-size: 13px;
+    padding-left: 5px;
+    vertical-align: top;
+  }
+
+  .ctrPad10 {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  .ctrlBar {
+    background-color: #00629d;
+  }
+
+  /*  Panel flotante */
+
+  .reborde {
+    color: rgb(6, 130, 202);
+    text-shadow: -1px -1px 0 white, 1px -1px 0 white, -1px 1px 0 white, 1px 1px 0 white;               
+  }  
+
+  .ctrlPanItem:hover {
+    background: rgb(73, 187, 248); !important;
+  }
+
+  .ctrlPanItem {
+    background: #1E81C6 /* rgb(73, 187, 248); */
+  }
+
+</style>
+
+
+
+<ion-view>
+
+  <ion-nav-buttons side="right">
+    <button class="button button-icon button-clear ion-ios-search" ng-click="srchClick()"></button>
+    <button class="button button-icon button-clear icon-people" xmenu-toggle="right" ng-click="chatClick('upr')"></button>
+  </ion-nav-buttons>
+
+
+  <ion-content id="secciones" class="padding" has-bouncing="false" delegate-handle="miScroller">
+
+
+    <div ng-if="visible">
+
+	    <ion-slide-box on-slide-changed="slideHasChanged($index)" active-slide="currentSlide" pager-click="pagerClick(index)"  ng-if="Unit.name!='Cargando ...'">
+		    
+        <ion-slide ng-repeat="section in Unit.sections">
+
+          <div style="height:1px;">
+          </div>
+
+          <!-- Slide particular -->          
+          <div ng-if="$index===currentSlide" || false>
+
+            <!-- CABECERA (Lo del color del curso) -->
+            <div class="item-box65" style="background:{{course.background}};">
+
+              <div class="i--lesson" ng-if="conBola">
+                  {{Unit.order+1}}.{{$index+1}}
+                  <span ng-if="userInfo && section.complete==1" class="i-icon icon-tick" style="background-color:green;"></span>
+              </div>
+              <div class="i--lesson" style="background-image: url('assets/lesson{{Unit.id}}.png'); background-size:cover; background-position:center;" ng-if="!conBola">
+              </div>
+
+              <div ng-if="!lesson_loc_es" class="i-lesson text13">{{course.name_en}}</div>
+              <div ng-if="lesson_loc_es" class="i-lesson text13">{{course.name}}</div>                    
+
+              <div  class="i-title text11">{{section.name}}</div>
+              <!--
+              <div ng-if="!lesson_loc_es" class="text31">&nbsp;</div>
+              <div ng-if="lesson_loc_es" class="text31">{{section.name_translation}}</div>
+              -->
+              <div ng-if="section.keywords" class="text31">{{section.keywords}}</div>
+              <div ng-if="!section.keywords" class="text31">&nbsp;</div>
+
+              <!-- El botón para hacer toggle de EN / ES en el contenido -->
+              <div ng-if="hayFloat && (!autoSpeech || true) && ([0,1,2].includes(tabOption))" class="float-buttons2">
+                <div style="background:white; border-radius: 10px; opacity: 0.6;">
+                  <button class="float-button" ng-click="langClick()" ng-disabled="false">
+                     <i class="icon ion-earth" style="color:#00629d;"></i>
+                  </button>
+                </div>    
+                <span ng-if="lesson_loc_es" style="color:white;">ES</span>     
+                <span ng-if="!lesson_loc_es" style="color:white;">EN</span>     
+              </div>
+
+            </div>
+            <!-- CABECERA (Lo del color del curso)    #00629d    #0084cb -->
+
+
+            <!-- CONTENIDO (Lo blanco) -->
+            <div class="item-box56 seccion">
+
+              <!-- El selector de 'tab' -->
+              <ti-segmented-control on-select="tabClick($index)" style="width: 310px; display:inline-block;">
+                <div style="position: fixed; display:inline-block; width:50%; text-align:right; pointer-events: none; z-index: 100;">                    
+                    <img src="assets/corona.png" style="height:20px; z-index: 100; margin-top:1px; margin-right:12px;"></img>               
+                </div>
+                <ti-segmented-control-button style="border-top-left-radius: 50px; border-bottom-left-radius: 50px;" ng-class="{active : tabOption==0}" class="button-positive" ng-attr-title="i18n[loc].lesson"     ></ti-segmented-control-button>
+                <ti-segmented-control-button ng-class="{active : tabOption==1}" class="button-positive" ng-attr-title="i18n[loc].full_lesson"></ti-segmented-control-button>                        
+                <ti-segmented-control-button ng-class="{active : tabOption==2}" class="button-positive" ng-attr-title="i18n[loc].samples"    ></ti-segmented-control-button>
+                <ti-segmented-control-button ng-class="{active : tabOption==3}" class="button-positive" ng-attr-title="i18n[loc].resources"  ></ti-segmented-control-button>
+              </ti-segmented-control>
+
+
+
+              <!-- 'Tab' 0: Resumen lección -->
+              <!-- Entero -->
+              <div on-tap="contentClick($event)" ng-if="tabOption == 0 && (premium || reward)">      
+                  <span ng-if="lesson_loc_es" ng-bind-html="section.wikicompact | to_trusted"></span>
+                  <span id="s000" ng-if="!lesson_loc_es" ng-bind-html="section.wikicompact_en | to_trusted"></span>
+              </div>
+
+              <!-- Sólo la parte no premium -->
+              <div on-tap="contentClick($event)" ng-if="tabOption == 0 && (!premium && !reward)" style="position:relative;">
+
+                <span ng-if="lesson_loc_es" ng-bind-html="section.wikicompact_redacted | to_trusted" ></span>
+                <span id="s000" ng-if="!lesson_loc_es" ng-bind-html="section.wikicompact_redacted_en | to_trusted" ></span>
+                      
+
+                <div style="position:relative; min-height: 350px;">                      
+                  
+                <div>
+                  <span ng-if="lesson_loc_es" ng-bind-html="section.wikicompact_hidden | to_trusted"></span>
+                  <span ng-if="!lesson_loc_es" ng-bind-html="section.wikicompact_hidden_en | to_trusted"></span>
+                </div>
+
+                </div>
+         
+              </div>
+
+              <!-- 'Tab' 0: Resumen lección -->
+
+
+              <!-- 'Tab' 1: Contenido lección -->
+          
+              <div on-tap="contentClick($event)" ng-if="tabOption == 1 && (premium || reward)">
+                  <span ng-if="lesson_loc_es" ng-bind-html="section.wikifull | to_trusted"></span>
+                  <span id="s000" ng-if="!lesson_loc_es" ng-bind-html="section.wikifull_en | to_trusted"></span>   
+              </div>
+
+              <div ng-if="tabOption == 1 && (!premium && !reward)" style="position:relative; xtext-align:center;" xng-click="goPremiumOpts()">
+
+                <div class="blur5">
+                    <span ng-if="lesson_loc_es" ng-bind-html="section.wikifull | to_trusted"></span>
+                    <span id="s000" ng-if="!lesson_loc_es" ng-bind-html="section.wikifull_en | to_trusted"></span>   
+                </div>
+
+                <div style="xbackground:white; xpadding:20px; position:absolute; left: 50%; top:10px; color:rgb(0,98,157); transform: translateX(-50%); text-align: center;">
+              
+                  <img src="assets/nena.png" alt="" width="100px" height="100px"/>
+
+                  <div style="text-align:center;">  
+
+                    <p ng-if="loc=='es'" style="color:#808080;"><strong>Suscríbete y accede</strong> a todo el <strong>contenido Premium</strong> siempre que quieras!</p>
+                    <p ng-if="loc=='br'" style="color:#808080;"><strong>Assine e acesse</strong> todo o <strong>conteúdo Premium</strong> sempre que quiser!</p>
+                    <p ng-if="loc!='es' && loc!='br'" style="color:#808080;"><strong>Subscribe</strong> and have access to the <strong>Premium content</strong> whenever you want!</p>
+
+                    <div ng-if="!premium && userInfo" style="text-align:center;">
+                        <button ng-if="loc=='es'" class="green i--button text13" style="font-size:15px; padding:5px 12px 8px 12px; color:white;" ng-click="goPremium('fullLesson2'); $event.stopPropagation();"><img src="assets/corona.png" style="height:20px; padding-right:5px; margin-bottom:-5px;"></img>Saber más</button>
+                        <button ng-if="loc=='br'" class="green i--button text13" style="font-size:15px; padding:5px 12px 8px 12px; color:white;" ng-click="goPremium('fullLesson2'); $event.stopPropagation();"><img src="assets/corona.png" style="height:20px; padding-right:5px; margin-bottom:-5px;"></img>Saber mais</button>
+                        <button ng-if="loc!='es' && loc!='br'" class="green i--button text13" style="font-size:15px; padding:5px 12px 8px 12px; color:white;" ng-click="goPremium('fullLesson2'); $event.stopPropagation();"><img src="assets/corona.png" style="height:20px; padding-right:5px; margin-bottom:-5px;"></img>Learn more</button>
+                    </div>
+
+                    <div ng-if="!premium && !userInfo" style="text-align:center;">          
+                        <button ng-if="loc=='es'" class="green i--button text13" style="font-size:15px; padding:5px 12px 8px 12px; color:white;" ng-click="login('purchaseSection'); $event.stopPropagation();"><img src="assets/corona.png" style="height:20px; padding-right:5px; margin-bottom:-5px;"></img>Saber más</button>                        
+                        <button ng-if="loc=='br'" class="green i--button text13" style="font-size:15px; padding:5px 12px 8px 12px; color:white;" ng-click="login('purchaseSection'); $event.stopPropagation();"><img src="assets/corona.png" style="height:20px; padding-right:5px; margin-bottom:-5px;"></img>Saber mais</button>   
+                        <button ng-if="loc!='es' && loc!='br'" class="green i--button text13" style="font-size:15px; padding:5px 12px 8px 12px; color:white;" ng-click="login('purchaseSection'); $event.stopPropagation();"><img src="assets/corona.png" style="height:20px; padding-right:5px; margin-bottom:-5px;"></img>Learn more</button>                                   
+                    </div>
+
+                  </div>
+
+                </div>
+
+              </div>
+
+              <!-- 'Tab' 1: Contenido lección -->
+
+
+
+              <!-- 'Tab' 2: Ejemplos -->
+
+              <div on-tap="contentClick($event)" ng-if="tabOption == 2 && (premium || reward)">
+                  <span ng-if="lesson_loc_es" ng-bind-html="section.wikiexamples | to_trusted"></span>
+                  <span id="s000" ng-if="!lesson_loc_es" ng-bind-html="section.wikiexamples_en | to_trusted"></span>                    
+              </div>
+
+              <div ng-if="tabOption == 2 && (!premium && !reward)">
+                  <span ng-if="lesson_loc_es" ng-bind-html="section.wikiexamples | to_trusted"></span>
+                  <span id="s000" ng-if="!lesson_loc_es" ng-bind-html="section.wikiexamples_en | to_trusted"></span>                    
+              </div>
+                 
+              <!-- 'Tab' 2: Ejemplos -->
+
+
+
+              <!-- 'Tab' 3: Practicar -->
+
+              <div ng-if="tabOption == 3">
+                        
+                <div class="text14" ng-if="!section.resources[0]">{{i18n[loc].nores}}</div>
+
+                <ng-repeat class="list3" ng-repeat="idx in section.pairs">
+
+                  <a class="item-box63" ng-click="goRoute('app.test',{ unitId: {{section.lesson_id}} , testId: {{section.resources[idx].id}} })" ng-if="section.resources[idx].type==1">
+                    <ion-item ng-if="tg1">                                
+                      <!--                                    
+                      <img src="assets/res_test.png"/>
+                      -->                                                                   
+                      <img ng-if="section.resources[idx].icono==1" src="assets/multi2.svg" />
+                      <img ng-if="section.resources[idx].icono==2" src="assets/tap.svg" />
+                      <img ng-if="section.resources[idx].icono==3" src="assets/inputtext2.svg" />
+                      <div class="text9">{{short(section.resources[idx].name)}}
+                        <span class="i-check">
+                          <i class="icon ion-checkmark-round" ng-if="section.resources[idx].complete=='1'"> </i>
+                          <i class="icon ion-close-round" ng-if="section.resources[idx].complete=='2'"> </i>
+                          <img ng-if="section.resources[idx].new" src="assets/new-tag.png" style="height:22px; width:auto; z-index: 100; margin-top:-5px; margin-right:-15px;" />
+                        </span>
+                      </div>   
+                    </ion-item>
+                  </a>
+                            
+                  <a class="item-box63" ng-click="videoClick(section,idx)" ng-if="section.resources[idx].type==2">                            
+                      <ion-item ng-if="tg1">
+                          <img src="assets/res_song.png"/>
+                          <div class="text9">{{short(section.resources[idx].name)}}</div>   
+                      </ion-item>
+                  </a>
+                    
+	                <a class="item-box63" ng-click="videoLessonClick(section,idx)" ng-if="section.resources[idx].type==3">
+                    <ion-item ng-if="tg1">
+                      <img src="assets/res_videolesson.png"/>
+                      <div class="text9">{{short(section.resources[idx].title)}}</div>
+                    </ion-item>
+                  </a>
+
+                  <!--  href="#/app/test/{{section.lesson_id}}/{{section.resources[idx+1].id}}" -->             
+                  <a class="item-box63" ng-click="goRoute('app.test',{ unitId: {{section.lesson_id}} , testId: {{section.resources[idx+1].id}} })" ng-if="section.resources[idx+1].type==1">
+                    <!--                            
+                    <a class="item-box63" ng-click="testClick(section,idx+1)" ng-if="section.resources[idx+1].type==1">					
+                    -->					 	
+                    <ion-item ng-if="tg2">
+                      <!--                                    
+                      <img src="assets/res_test.png"/>
+                      -->
+                      <img ng-if="section.resources[idx+1].icono==1" src="assets/multi2.svg" />
+                      <img ng-if="section.resources[idx+1].icono==2" src="assets/tap.svg" />
+                      <img ng-if="section.resources[idx+1].icono==3" src="assets/inputtext2.svg" />
+                      <div class="text9">{{short(section.resources[idx+1].name)}}
+                        <span class="i-check">
+                          <i class="icon ion-checkmark-round" ng-if="section.resources[idx+1].complete=='1'"> </i>
+                          <i class="icon ion-close-round" ng-if="section.resources[idx+1].complete=='2'"> </i>
+                          <img ng-if="section.resources[idx+1].new" src="assets/new-tag.png" style="height:22px; width:auto; z-index: 100; margin-top:-5px; margin-right:-15px;" />
+                        </span>
+                      </div>                                    
+                    </ion-item>
+                  </a>
+                            
+					        <a class="item-box63" ng-click="videoClick(section,idx+1)" ng-if="section.resources[idx+1].type==2">
+                    <ion-item ng-if="tg2">
+	                    <img src="assets/res_song.png"/>
+                      <div class="text9">{{short(section.resources[idx+1].name)}}</div>  
+                    </ion-item>
+	                </a>
+
+                  <a class="item-box63" ng-click="videoLessonClick(section,idx+1)" ng-if="section.resources[idx+1].type==3">
+                    <ion-item ng-if="tg2">
+	                    <img src="assets/res_videolesson.png"/>
+                      <div class="text9">{{short(section.resources[idx+1].title)}}</div>    
+                    </ion-item>
+                  </a>
+                            
+                </ng-repeat>
+                        
+              </div>
+
+              <!-- 'Tab' 3: Practicar -->
+              
+            </div>
+
+            <br>
+            <br>
+            <br>
+
+          </div>
+          <!-- Slide particular -->
+
+        </ion-slide>
+      
+      </ion-slide-box>
+
+
+
+
+    </div>
+
+  </ion-content>
+
+
+
+  <ion-footer-bar ng-if="autoSpeech && steps>0 && (tabOption!=1 || premium)" class="ctrlBar" style="height:68px;">
+    <div id="aCtrlTop" class="content-main">
+      <table style="width:100%; height: 100%;">
+        <tr class="centrado ctrlAzul">
+  
+          <td ng-click="langClick()" class="ctrlBtn" style="width:80px; vertical-align:middle;">
+            <table style="width:100%;">
+              <tr>
+                <td style="vertical-align: middle; width:40px;">
+                  <div style="xbackground:gray; padding-left:8px;">
+                    <img src="assets/ctrlIcono1-trns.png" style="width:32px; xbackground:red;"></img>
+                  </div>
+                </td> 
+                <td style="vertical-align: middle; color:white; width:20px;">                 
+                  <div ng-if="!lesson_loc_es">ES</div>
+                  <div ng-if="lesson_loc_es">EN</div>
+                </td>
+                <td style="width:10px;"></td>
+              </tr>
+            </table>
+          </td>
+  
+          <td class="ctrlTDsep ctrlBlanco"></td>
+
+          <td  ng-if="lesson_loc_es">
+            <p></p>
+          </td>
+
+          <td ng-if="lesson_loc_es" style="vertical-align: middle; opacity: 0.3;">                    
+            <div style="height:100%; width:100%;">
+              <div style="padding-top:15px;">
+                <i class="icon ion-play ctrlIcono" style="color:white;"></i>
+              </div>
+            </div>                    
+          </td>
+
+          <td  ng-if="!lesson_loc_es" style="vertical-align: middle;">
+            
+            <div ng-if="!startedPlaying" ng-click="playPauseClick()" class="ctrlBtn" style="height:100%; width:100%;">
+              <div style="padding-top:15px;">
+                <i class="icon ion-play     ctrlIcono" style="color:white;"></i>
+                <!-- <span style="color:white; padding-left:5px; font-size:initial;">Escuchar esta lección</span> -->
+              </div>
+            </div>                
+
+            <div ng-if="startedPlaying" style="width:100%;">                                
+              <table style="margin-left: auto; margin-right:auto;">
+                <tr>
+                  <td>                
+                    <i ng-if="playing"  ng-click="playPauseClick()" class="icon ion-pause ctrlIcono ctrlBtn ctrPad10" style="display:inline-block; color:white;"></i>
+                    <i ng-if="!playing" ng-click="playPauseClick()" class="icon ion-play  ctrlIcono ctrlBtn ctrPad10" style="display:inline-block; color:white;"></i>
+                  </td>
+                  <td>
+                    <i ng-click="ResetClick()" class="icon ion-stop ctrlIcono ctrlBtn ctrPad10" style="display:inline-block; color:white;"></i>
+                  </td>
+                </tr>
+              </table>
+            </div>
+
+          </td>
+  
+          <td class="ctrlTDsep ctrAzul2"></td>
+
+          <td ng-if="lesson_loc_es" style="width:120px; vertical-align: middle;">
+          
+            <div style="opacity: 0.3;">
+          
+              <div style="display:inline-block; height:100%; vertical-align:middle;">
+                <img ng-if="ctrlAccent=='U'" id="ctrlFlag" src="assets/flag-usa-blue.png"
+                  style="width:28px; vertical-align:middle;">
+                <img ng-if="ctrlAccent!='U'" id="ctrlFlag" src="assets/flag-eng-blue.png"
+                  style="width:28px; vertical-align:middle;">
+              </div>
+          
+              <div style="display:inline-block; height:100%; width:4px;"></div>
+          
+              <div style="display:inline-block; height:100%; vertical-align:middle;">
+                <img ng-if="ctrlGender=='F'" id="ctrlPerson" src="assets/woman-am.svg" style="width:26px;">
+                <img ng-if="ctrlGender!='F'" id="ctrlPerson" src="assets/man-am.svg" style="width:26px;">
+              </div>
+          
+              <div style="display:inline-block; height:100%; width:4px; background:green;"></div>
+          
+              <div style="display:inline-block; height:100%; vertical-align:middle;">
+                <img src="assets/ctrlIcono4-trns.png" style="width:12px;">
+              </div>          
+            </div>          
+          </td>
+
+  
+          <td ng-if="!lesson_loc_es" ng-click="toggleCtrlPanel()" class="ctrlBtn" style="width:120px; vertical-align: middle;">
+
+            <div style="xbackground:gray;">
+
+              <div style="display:inline-block; height:100%; vertical-align:middle;">
+                <!-- ctrlIcono2.png / ctrlIcono2b.png -->
+                <!-- assets/flag-usa-blue.png assets/flag-eng-blue.png -->
+                <img ng-if="ctrlAccent=='U'" id="ctrlFlag" src="assets/flag-usa-blue.png" style="width:28px; xbackground:red; vertical-align:middle;">
+                <img ng-if="ctrlAccent!='U'" id="ctrlFlag" src="assets/flag-eng-blue.png" style="width:28px; xbackground:red; vertical-align:middle;">
+              </div>
+
+              <div style="display:inline-block; height:100%; width:4px; background:green;"></div>
+
+              <div style="display:inline-block; height:100%; vertical-align:middle;">
+                <!-- assets/ctrlIcono3-trns-blue.png ctrlIcono3b-trns-blue.png -->
+                <img ng-if="ctrlGender=='F'" id="ctrlPerson" src="assets/woman-am.svg" style="width:26px; xbackground:red;">
+                <img ng-if="ctrlGender!='F'" id="ctrlPerson" src="assets/man-am.svg" style="width:26px; xbackground:red;">
+              </div>
+
+              <div style="display:inline-block; height:100%; width:4px; background:green;"></div>
+
+              <div style="display:inline-block; height:100%; vertical-align:middle;">
+                <img src="assets/ctrlIcono4-trns.png" style="width:12px; xbackground:red;">              
+              </div>
+          
+            </div>
+
+          </td>
+
+          
+  
+        </tr>
+      </table>
+
+    </div>
+
+  </ion-footer-bar>
+
+
+
+  <div ng-show="showCtrlPanel" id="ctrlPanelContainer" style="width:120px; position: fixed; bottom: 68px; right: 11px;">
+
+    <div class="ctrlPanItem" style="text-align: center; padding-top:5px; padding-bottom:5px;" ng-click="ctrlPanelClick(0)">
+      <div style="display:inline-block; height:100%; vertical-align:middle;">
+        <img id="ctrlFlag" src="assets/flag-usa-blue.png" style="width:28px; vertical-align:middle;">
+      </div>
+      <div style="display:inline-block; height:100%; width:4px;"></div>
+      <div style="display:inline-block; height:100%; vertical-align:middle; padding-right:20px;">
+        <img id="ctrlPerson" src="assets/woman-am.svg" style="width:26px;">
+      </div>
+    </div>
+
+    <div class="ctrlPanItem" style="text-align: center; padding-top:5px; padding-bottom:5px;" ng-click="ctrlPanelClick(1)">
+      <div style="display:inline-block; height:100%; vertical-align:middle;">
+        <img id="ctrlFlag" src="assets/flag-usa-blue.png" style="width:28px;vertical-align:middle;">
+      </div>
+      <div style="display:inline-block; height:100%; width:4px;"></div>
+      <div style="display:inline-block; height:100%; vertical-align:middle; padding-right:20px;">
+        <img id="ctrlPerson" src="assets/man-am.svg" style="width:26px;">
+      </div>
+    </div>
+
+    <div class="ctrlPanItem" style="text-align: center; padding-top:5px; padding-bottom:5px;" ng-click="ctrlPanelClick(2)">
+      <div style="display:inline-block; height:100%; vertical-align:middle;">
+        <img id="ctrlFlag" src="assets/flag-eng-blue.png" style="width:28px; vertical-align:middle;">
+      </div>
+      <div style="display:inline-block; height:100%; width:4px;"></div>
+      <div style="display:inline-block; height:100%; vertical-align:middle; padding-right:20px;">
+        <img id="ctrlPerson" src="assets/woman-am.svg" style="width:26px;">
+      </div>
+    </div>
+
+    <div class="ctrlPanItem" style="text-align: center; padding-top:5px; padding-bottom:5px;" ng-click="ctrlPanelClick(3)">
+      <div style="display:inline-block; height:100%; vertical-align:middle;">
+        <img id="ctrlFlag" src="assets/flag-eng-blue.png" style="width:28px; vertical-align:middle;">
+      </div>
+      <div style="display:inline-block; height:100%; width:4px;"></div>
+      <div style="display:inline-block; height:100%; vertical-align:middle; padding-right:20px;">     
+        <img id="ctrlPerson" src="assets/man-am.svg" style="width:26px;">
+      </div>
+    </div>
+
+  </div>
+
+
+</ion-view>

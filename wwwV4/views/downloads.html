@@ -1,0 +1,49 @@
+<style>
+    .big_icon 
+    {
+        font-size:32px !important; 
+        right:16px !important;    
+    }
+</style>
+
+<ion-view class="practice">
+    
+    <ion-nav-buttons side="right">
+        <button class="button button-icon button-clear ion-ios-search" ng-click="srchClick()"></button>
+        <button class="button button-icon button-clear icon-people" xmenu-toggle="right" ng-click="chatClick('upr')"></button>
+    </ion-nav-buttons>
+
+    <ion-content>   
+                      
+        <div class="item-box56" ng-repeat="c in Courses" ng-if="c.typeCourse!=2" ng-click="goDoThings(c.id); $event.stopPropagation();" style="margin:10px !important;">
+            <div class="i-header" style="position:relative;">
+
+                <div class="item-box62 s-box62-title">
+                    <div class="i--graph2">
+                        <div class="i-default-img" style="background-image:url('assets/course{{c.id}}.png');"></div>
+                    </div>    
+                    <div ng-if="loc=='es'" class="i--info text14">
+                        <p>{{c.name}}</p>
+                    </div>
+                    <div ng-if="loc=='br'" class="i--info text14">
+                        <p>{{c.name_br}}</p>
+                    </div>
+                    <div ng-if="loc!='es' && loc!='br'" class="i--info text14" style="padding-right:50px;">
+                        <p>{{c.name_en}}</p>
+
+                        <p ng-if="loadingStatus['audios'][c.id][0]==1">Downloading element {{loadingStatus['audios'][c.id][1]}} of {{loadingStatus['audios'][c.id][2]}}. </p>
+                        <p ng-if="loadingStatus['audios'][c.id][0]==4">Removing element {{loadingStatus['audios'][c.id][1]}} of {{loadingStatus['audios'][c.id][2]}}. </p>
+
+                    </div>                        
+                </div>
+                
+                <div ng-if="loadingStatus['audios'][c.id][0]==0" class="i-icon big_icon ion-android-download"></div>
+                <div ng-if="loadingStatus['audios'][c.id][0]==2" class="i-icon big_icon ion-trash-b"></div>
+                <div style="position:absolute; top:20%; height:50%; right:10px; "><ion-spinner ng-if="loadingStatus['audios'][c.id][0]==1 || loadingStatus['audios'][c.id][0]==4" icon="bubbles"></ion-spinner></div>
+                
+            </div>
+        </div>
+
+    </ion-content>
+    
+</ion-view>

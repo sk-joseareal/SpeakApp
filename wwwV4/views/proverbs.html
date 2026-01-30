@@ -1,0 +1,65 @@
+
+<style>
+.hidden { display: none; }
+</style>
+
+<!-- 'desactivar' hover -->
+<style>
+.button-lista:hover {
+    background:#0084cb !important;
+}
+
+.button-lista.active:hover {
+    background:#00a8ef !important;
+}
+</style>
+
+<ion-view>
+
+    <ion-nav-buttons side="right"> 
+        <button class="button button-icon button-clear ion-ios-search" ng-click="srchClick()"></button>
+        <button class="button button-icon button-clear icon-people" xmenu-toggle="right" ng-click="chatClick('upr')"></button>
+    </ion-nav-buttons>
+    
+    <ion-content ng-class="(errorValue) ? 'wrongBackground' : ''" class="padding regular_verb">
+
+        <div ng-if="errorValue" ng-include src="'views/error.html'"></div>
+
+        <div ng-if="!errorValue">       
+        
+        <ion-scroll direction="x" delegate-handle="miScroller" class="scroller_menu wide-as-needed no-padding" >
+            <a class="button button-lista" ng-class="{active: $index==currentSlide}" ng-repeat="l in paginas" ng-click="listaClick($event,$index)" id="lstbtn{{$index}}">{{l[1]}}</a>
+        </ion-scroll>
+
+        <ion-slide-box show-pager="false" on-slide-changed="slideHasChanged($index)" active-slide="currentSlide" pager-click="pagerClick(index)" ng-if="test!='Cargando ...'">
+
+		    <ion-slide ng-repeat="l in paginas">
+
+                <div style="height:1px;">
+                </div>  
+
+                <div ng-if="$index===currentSlide">
+
+                    <h1 class="cssLostFixed">{{l[1]}}</h1>
+                    
+    				<ng-repeat class="list" ng-repeat="item in proverbs[l[0]]">
+                        <ion-item class="item-box56" ng-click="play(item.name)">
+                            <div class="i--play2 v2">
+                                <div class="icon-play text20">{{item.name}}</div>
+                                <div ng-if="loc=='es'" class="text3 translate">{{item.translation}}</div>
+                            </div>
+    				    </ion-item>
+                    </ng-repeat>
+                
+                </div>
+                
+            </ion-slide>
+
+        </ion-slide-box>
+
+        </div>
+    </ion-content>
+    
+</ion-view>
+
+

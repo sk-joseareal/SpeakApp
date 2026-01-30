@@ -1,0 +1,53 @@
+
+<ion-view class="chat chatlist">
+
+    <ion-nav-buttons side="right">
+        <button class="button button-icon button-clear ion-ios-search" ng-click="srchClick()"></button>
+    </ion-nav-buttons>
+
+    <ion-content class="padding content">
+
+<!--
+        <div class="card" ng-if="!userInfo" ng-click="dbg2(); $event.stopPropagation();">
+            <div class="item item-text-wrap">{{chatState}}</div>
+        </div>
+        
+        <div class="card" ng-if="userInfo" ng-click="dbg2(); $event.stopPropagation();">
+            <div class="item item-text-wrap">{{userInfo.name}} {{chatState}}</div>
+        </div>
+-->
+
+        <ion-list>
+                          
+            <!-- El ng-if hace que si el canal se ha creado por hacer favorito al usuario se muestre aunque no haya llegado a haber conversación -->                                                    
+            <ion-item ng-if="item.lastUser" class="item-box64" ng-repeat="item in channels | orderBy: ['type','-lastUpdated']" ng-click="goChat(item); $event.stopPropagation();">
+             
+                <div class="i--info">
+
+                    <div class="i--icon-right icon-arrow-right"></div>
+                    <div class="i--info--img" style="background-image: url('{{item.img}}');"></div>
+                    <div class="i--info--text" ng-class="{'desconectado' : item.state==0}">
+                    <div class="text14">{{item.caption}}</div>
+                    <div class="text3" ng-class="{'desconectado' : item.state==0}" ng-if="item.type==1">{{item.lastUser}}</div>
+                    <div class="text3" ng-class="{'desconectado' : item.state==0}">{{item.lastChat}}</div>
+                    <div class="i--time text19">{{UTCconv(item.lastUpdated)}}</div>
+                    <div class="i--options">
+                        <div class="i--mute icon-mute" ng-if="item.muted"></div>
+                        <div class="i--badge text11" ng-if="item.badge>0">{{item.badge}}</div>
+                    </div>
+                    <div ng-if="item.type==2" style="color:darkgreen;">
+                        {{isOnline(item)}}
+<!--                    </div>
+                    {{item.badge}}
+                    </div> -->
+                </div>
+                <!--    ng-click="openModal(item.name,$event)"     -->
+                <ion-option-button class="button-positive" ng-click="showOptions(item)">{{i18n[loc].options}}</ion-option-button>
+            </ion-item>
+
+        </ion-list>
+
+    </ion-content>
+    
+</ion-view>
+

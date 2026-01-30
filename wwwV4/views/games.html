@@ -1,0 +1,38 @@
+<ion-view view-title="{{i18n[loc].game_title}}">
+
+    <ion-nav-buttons side="right">
+        <button class="button button-icon button-clear icon-people" xmenu-toggle="right" ng-click="chatClick('upr')"></button>
+    </ion-nav-buttons>
+
+<!--
+    <ion-nav-title>{{i18n[loc].game_title}}</ion-nav-title>
+-->
+   
+    <ion-content ng-class="(errorValue) ? 'wrongBackground' : ''" class="padding games">
+
+        <div ng-if="errorValue" ng-include src="'views/error2.html'"></div>
+
+        <div ng-if="!errorValue">       
+
+        <ng-repeat ng-repeat="game in games">
+
+            <ion-item class="item-box57" ng-click="goGame($index)">
+                <div class="i--info">
+                    <div class="i--icon-right icon-arrow-right"></div>
+                    <div class="i--info--img" style="background-image: url('{{game.image}}');" ng-if="true"></div>
+                    <div class="i--info--text">
+                        <div class="text25 underline_none">{{game.title}}</div>
+                        
+                        <div ng-if="loc=='es'" class="text3">{{game.text}}</div>
+                        <div ng-if="loc!='es'" class="text3">{{game.text_en}}</div>
+
+                    </div>
+                </div>
+            </ion-item>
+
+	    </ng-repeat>
+
+        </div>
+    </ion-content>
+
+</ion-view>

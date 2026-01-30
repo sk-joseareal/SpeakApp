@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generator: Adobe Illustrator 21.0.2, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
+<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+	 viewBox="0 0 240 340" style="enable-background:new 0 0 240 340;" xml:space="preserve">
+<style type="text/css">
+	.st0{fill:#FFB9A7;}
+	.st1{fill:#50412E;}
+	.st2{fill:#786145;}
+	.st3{fill:#F285B9;}
+	.st4{fill:#FFEACF;}
+	.st5{fill:#FFD6A0;}
+</style>
+<path id="XMLID_1138_" class="st0" d="M141,240h-21H99c-38.1,0-69,30.9-69,69v31h90h90v-31C210,270.9,179.1,240,141,240z"/>
+<g id="XMLID_1139_">
+	<path id="XMLID_1140_" class="st1" d="M80,200h20v-40H55c-30.4,0-55,24.6-55,55c0,17.1,7.8,32.4,20.1,42.5
+		C21.4,225.5,47.7,200,80,200z"/>
+	<g id="XMLID_1141_">
+		<circle id="XMLID_100_" class="st0" cx="48" cy="180" r="30"/>
+	</g>
+</g>
+<g id="XMLID_1142_">
+	<path id="XMLID_1143_" class="st2" d="M185,160h-45v40h20c32.3,0,58.6,25.5,59.9,57.5c12.3-10.1,20.1-25.4,20.1-42.5
+		C240,184.6,215.4,160,185,160z"/>
+	<g id="XMLID_1144_">
+		<circle id="XMLID_96_" class="st0" cx="192" cy="180" r="30"/>
+	</g>
+</g>
+<g id="XMLID_1145_">
+	<path id="XMLID_1146_" class="st3" d="M120,240H99c-38.1,0-69,30.9-69,69v31h90V240z"/>
+</g>
+<g id="XMLID_1147_">
+	<path id="XMLID_1148_" class="st4" d="M150,240c0,16.6-13.4,30-30,30l0,0c-16.6,0-30-13.4-30-30v-30c0-16.6,13.4-30,30-30l0,0
+		c16.6,0,30,13.4,30,30V240z"/>
+</g>
+<g id="XMLID_1149_">
+	<ellipse id="XMLID_1150_" class="st4" cx="120" cy="135" rx="100" ry="105"/>
+</g>
+<path id="XMLID_1163_" class="st2" d="M120,0C70,0-10,40,10,150l10-20c20,0,80-20,100-70c20,50,80,70,100,70l10,20
+	C250,40,170,0,120,0z"/>
+<g id="XMLID_1164_">
+	<path id="XMLID_1165_" class="st5" d="M120,228c-22.5,0-44.1-4.4-64-12.3c17.3,15.2,39.6,24.3,64,24.3s46.6-9.1,64-24.3
+		C164.1,223.6,142.5,228,120,228z"/>
+</g>
+<g id="XMLID_1166_">
+	<path id="XMLID_1167_" class="st1" d="M120,0C70,0-10,40,10,150l10-20c20,0,80-20,100-70C120,30,120,20,120,0z"/>
+</g>
+<g id="XMLID_1168_">
+	<circle id="XMLID_1169_" class="st4" cx="20" cy="150" r="20"/>
+</g>
+<g id="XMLID_1170_">
+	<circle id="XMLID_1171_" class="st4" cx="220" cy="150" r="20"/>
+</g>
+</svg>

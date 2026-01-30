@@ -1,0 +1,799 @@
+<style>
+  *{
+      -moz-box-sizing: border-box; -webkit-box-sizing: border-box; box-sizing: border-box;
+  }
+  [ng-drag]{
+      -moz-user-select: -moz-none;
+      -khtml-user-select: none;
+      -webkit-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+  }
+  [ng-drag]{
+  	  padding:8px;
+      margin: 4px;
+      border-radius: 4px;
+      background: #e5f6fe;
+      text-align: center;
+      display: inline-block;
+      cursor: move;
+      font-size:15px;
+      border: 2px dotted #ddd;
+      color: #292929;
+      font-weight: normal;
+  }
+.ng-drag{
+    padding:8px;
+    margin: 4px;
+    border-radius: 4px;
+    background: #e5f6fe;
+    text-align: center;
+    display: inline-block;
+    cursor: move;
+    font-size:15px;
+    border: 2px dotted #ddd;
+    color: #292929;
+    font-weight: normal;
+}  
+  [ng-drag].drag-over{
+      border:solid 1px red;
+  }
+  [ng-drag].dragging{
+      opacity: 0.5;
+  }
+
+  [ng-drop].drag-enter{
+      border:dotted 1px red !important;
+  }
+
+  [xng-drop] div{
+      position: relative;
+      z-index: 2;
+  }
+
+.dragdrop {
+  background: #f6f6f6;
+  border: 2px dotted #ddd;
+}
+
+.numberCircle {
+  display:inline-block;
+  line-height:0px;
+
+  border-radius:50%;
+  border:2px solid;
+
+  font-size:32px;
+}
+
+.numberCircle span {
+  display:inline-block;
+
+  padding-top:50%;
+  padding-bottom:50%;
+
+  margin-left:8px;
+  margin-right:8px;
+}
+
+/*
+.peqIcon.redBall:before, .peqIcon.greenBall:before{
+    color: #7fb0ce;
+}
+*/
+.peqIcon.redBall:before {
+    /*color: #7fb0ce;*/
+}
+
+.peqIcon.greenBall:before{
+    color: #9ddb9e;
+}
+
+
+.rojo {
+    color: red !important;
+    font-weight: bold;
+    border: 2px solid #e38488 !important;
+}    
+.rojo .item-content{
+    background-color: transparent!important;
+} 
+.rojo .item-content:before{
+    background-color: #d16966 !important;
+    border-color: #d16966 !important;
+    content: 'z'!important;
+    color: #fff;
+    font-family: 'appci';
+    font-size: 5px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}  
+.rojo .item-content:after{
+    display: none!important;
+}
+
+.verde {
+/*  color:#9ddb9e !important; */
+color: green !important;
+background: white !important;
+
+  font-weight: bold;
+    border: 2px solid #d9f5dd !important;
+    background-color: #f4fff6 !important;
+}
+.verde .item-content{
+    background-color: transparent!important;
+}   
+.verde .item-content:before{
+    background-color: #9edda0 !important;
+    border-color: #9edda0 !important;
+    content: 'y'!important;
+    color: #fff;
+    font-family: 'appci';
+    font-size: 6px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}    
+.verde .item-content:after{
+    display: none!important;
+}
+
+
+.grayBall {
+  color:#ccc; 
+  font-size:26px;
+}
+.grayBall.peqIcon:before{
+    content: '';
+    width: 23px;
+    height: 23px;
+    border-radius: 50%;
+    background: #ccc!important;
+    transform: translateY(3px);
+}
+@media only screen and (max-width: 360px){
+  .grayBall.peqIcon:before{
+    width: 22px;
+    height: 22px;
+  }
+}
+
+.grayBall.grdIcon:before{
+    content: '';
+    width: 31px;
+    height: 31px;
+    border-radius: 50%;
+    background: #ccc!important;
+    transform: translateY(5px);
+}
+
+.greenBall {
+  color:#9ddb9e; 
+  font-size:26px;"
+}
+
+.redBall {
+  color:#d16966; 
+  font-size:26px;"
+}
+
+
+.here:before {
+    content:"";
+    position: absolute;
+    top: 0;
+    bottom: 50%;
+    left: 5%;
+    right: 0;
+    width:90%;
+    border-bottom: 2px dotted #ff0000;
+}
+
+.here {
+    margin: 10px auto;
+    position:relative;
+    text-align:center;
+}
+    
+.peq {
+  margin-left:2px; margin-right:2px; margin-top:3px;
+}
+.grd {
+  margin-left:2px; margin-right:2px; margin-top:3px;
+}
+.peqIcon {
+  font-size:26px;
+}
+.grdIcon{
+    font-size:36px;
+}
+.grdIcon:before{
+    transform: translateY(3px);
+}
+.blue2
+{
+  background: #2d7ac1;
+}
+
+.practice .examplebox .example {
+  color: #242424;
+  font-size: 16px;
+  font-weight: 600;
+  word-break: break-word;
+}
+
+.practice  .examplebox {
+    display: flow-root;
+}
+
+.practice  .item-box58 .i-header {
+    text-align: center;
+    padding-bottom: 0px;
+    border-bottom: none;
+}
+.practice  .text36 {
+    font: 600 22px 'Open Sans', sans-serif;
+    color: #00639c;
+}
+.practice  .correcttext {
+  color:#e38488;
+  font-size: 14px;
+}
+.practice  .correctanswer {
+  font-weight: bold;
+}
+
+input.youranswer {
+    margin-left: 5px;
+    margin-right: 5px;
+    padding: 10px 40px; 
+    width: auto;
+    border-radius: 8px;
+    background: #f6f6f6;
+    border: 2px solid #ddd;
+    text-align: center;
+    font-size: 16px;
+}
+.labelinput {
+  font-weight: 500;
+  font-size: 16px;
+}
+.no-click { pointer-events: none; color:gray; background:lightgray; }
+
+@keyframes myChange {
+  from {
+      height: 100px;
+  } to {
+      height: 0;
+  }
+}
+
+
+
+div.ng-change {
+  animation: 0.5s myChange;
+}
+
+
+</style>
+
+
+
+
+<ion-view class="practice">
+
+  <ion-nav-buttons side="right">
+      <button class="button button-icon button-clear ion-ios-search" ng-click="srchClick()"></button>
+      <button class="button button-icon button-clear icon-people" xmenu-toggle="right" ng-click="chatClick('upr')"></button>
+  </ion-nav-buttons>
+
+<!--
+    <ion-nav-title>{{i18n[loc].gram_title}}</ion-nav-title>
+-->
+
+  <ion-content  ng-class="(errorValue) ? 'wrongBackground' : ''" class="padding" has-bouncing="false">
+
+    <div ng-if="errorValue" ng-include src="'views/error.html'"></div>
+
+    <div ng-if="!errorValue" class="item-box58">    
+
+
+      <div class="i-header">
+          <div class="text36">{{testName}}</div>
+          <div ng-if="loc=='es'" class="text3">{{testName_es}}</div>                
+      </div>
+
+<!--
+<p>{{correct}}</p>            
+-->
+
+      <div style="text-align:center; padding-top:10px; min-height: 50px;">
+
+        <div class="XXhere" style="display:inline-block;">
+          <span ng-class="{ 'peq' : $index!=currentSlide, 'grd': $index==currentSlide }" ng-repeat="item in correctShow track by $index">
+            <span>
+              <i ng-class="{ 'peqIcon' : $index!=currentSlide, 'grdIcon': $index==currentSlide }" class="icon ion-checkmark-circled greenBall" ng-click="ballClick($index)" ng-if="item==1"></i>
+              <i ng-class="{ 'peqIcon' : $index!=currentSlide, 'grdIcon': $index==currentSlide }" class="icon ion-close-circled     redBall  " ng-click="ballClick($index)" ng-if="item==2"></i>
+              <i ng-class="{ 'peqIcon' : $index!=currentSlide, 'grdIcon': $index==currentSlide }" class="icon ion-minus-circled     grayBall " ng-click="ballClick($index)" ng-if="item==0"></i>
+            </span>
+          </span>
+        </div>
+
+      </div>
+
+
+
+
+  	        <ion-slide-box show-pager="false" class="i-content" on-slide-changed="slideHasChanged($index)" active-slide="currentSlide" pager-click="pagerClick(index)" ng-if="test!='Cargando ...'" style="padding-top:10px; padding-bottom: 12px;">
+                
+
+                <!-- Un slide para cada pregunta -->
+                <ion-slide ng-repeat="question in questions" ng-init="questionIndex = $index">
+
+
+                  <!-- ??? -->
+                  <div class="i--nav"></div>
+
+                  <!-- Enunciado (En español sin play) -->
+                  <span ng-if="question.question_type!=2 && !([4,5,7].includes(question.subtype))"> 
+                    <div  ng-if="loc=='es'" class="text-center text3 i--mbS">{{header_orig}}</div>
+
+                    <!-- Enunciado con 'play' (No español) -->
+                    <div  ng-if="loc!='es'" class="text-center text3 i--mbS" ng-click="sayHeader();$event.stopPropagation();">
+                      <!-- Altavoz -->
+                      <span style="padding-right:5px; color:#0084cb;" class="i-icon ion-volume-high"></span>
+                      <!-- Enunciado -->
+                      <span style="position: relative; top:-3px;">{{header_orig}}</span>
+                    </div>
+                  </span>
+
+<style>
+.minpad {padding-left:15px; padding-right:15px;}
+</style>
+
+<div ng-if="question.typeText=='LP'" class="examplebox ebwli" ng-click="sayText(question.text);$event.stopPropagation();">
+  <span class="example minpad"> 
+    <span style="color:#0084cb; padding-right: 5px;" class="i-icon ion-volume-high"></span>   
+    {{question.text}}
+  </span>
+</div>  
+
+<div ng-if="question.typeText=='L'" class="examplebox ebwli">
+  <span class="example minpad"> 
+    {{question.text}}
+  </span>
+</div>  
+
+<!--
+<div class="examplebox ebwri" ng-click="sayHeader();$event.stopPropagation();">
+  <span class="example minpad">
+    <span style="color:#0084cb; padding-right: 5px;" class="i-icon ion-volume-high"></span> 
+    {{question.text}}
+  </span>
+</div>
+-->
+
+<div ng-if="question.typeText=='CP'" class="examplebox" ng-click="sayHeader();$event.stopPropagation();">
+  <span class="example minpad">
+    <span style="color:#0084cb; padding-right: 5px;" class="i-icon ion-volume-high"></span> 
+    {{question.text}}  
+  </span>
+</div>
+
+<div ng-if="question.typeText=='C'" class="examplebox" ng-click="sayHeader();$event.stopPropagation();">
+  <span class="example minpad">
+    {{question.text}}  
+  </span>
+</div>
+
+<!-- DEBUG> 
+<p>
+{{testId}} {{question.id}} ({{question.question_type}}.{{question.subtype}})
+<br>
+{{question.answer_text}}
+<br>
+{{palabras[questionIndex]}}
+<br>
+{{dropped[questionIndex]}}
+<br>
+{{userAnswers}}
+<br>
+{{correct}}
+</p>
+<DEBUG-->
+
+                  <!-- Imágen -->
+                  <div ng-if="question.image_file_name" class="text-center"><img src="assets/{{question.image_file_name}}.png"/></div>
+
+
+
+                  <!-- Pregunta (Si es de tipo free text (1) con placeholders, no hace falta) -->
+<!--
+                  <div ng-if="question.question_type!=1 || question.placeholders==0" class="text-center text18">{{question.text}}</div>
+-->
+
+                  <!-- free text -->
+                  <span ng-if="question.question_type==1 && question.subtype!=4 && question.subtype!=5 && question.subtype!=7">
+                  <!-- <span ng-if="question.question_type==1"> -->
+
+                    <!-- sin placeholders -->                    
+                    <div ng-if="question.placeholders==0" class="i--answer-label" ng-if="question.question_type==1" style="padding-top:10px; margin-left:5px; margin-right:5px;">
+                      <div class="xitem item-input i-clear_check">
+                        <input autocapitalize="none" ng-class="{verde: (true && correctShow[$index]==1), rojo: (true && correctShow[$index]==2)}" type="text" placeholder="{{i18n[loc].yourans}} ..." ng-change="cambia($index)" ng-model="userAnswers[$index]" ng-disabled="editDisabled || correctShow[currentSlide]!=0">
+                        <div class="xicon-close-1"></div>
+
+                        <!-- Con 'play' en respuesta correcta -->
+                        <span ng-if="correctShow[$index]==1" style="padding-left:5px; font-size:x-large; color:#0084cb;" class="i-icon ion-volume-high" ng-click="sayAnswer($index); $event.stopPropagation();"></span>
+                        <!-- -->
+
+                      </div>
+                    </div>
+
+
+                    <!-- con placeholders -->                    
+                    <div ng-if="question.placeholders>0" style="display: table" class="text18">
+                      <span ng-repeat="phd in question.phData">
+                        <span ng-if="phd.text" class="labelinput">{{phd.text}}</span>
+                       
+
+<!--
+ng-if="!(editDisabled || correctShow[currentSlide]!=0)" esto no es necesario ponerlo en el input, si calculamos la formula del size + 3 los campos quedan ok
+-->
+                        
+                        <input style="display: table-cell; border:1px solid #ccc; padding-left: 5px; padding-right: 5px; margin-top:2px; margin-bottom:6px;" size="{{ questions[$parent.$index].phData[$index]['long'] + 3 }}" autocapitalize="none" ng-class="{verde: (correctShow[$parent.$index]>0 && userAnswersPhOk[$parent.$index][$index]==1), rojo: (correctShow[$parent.$index]>0 && userAnswersPhOk[$parent.$index][$index]==2)}" type="text" placeholder="" class="youranswer" ng-change="cambia($parent.$index)" ng-model="userAnswersPh[$parent.$index][$index]" ng-disabled="editDisabled || correctShow[currentSlide]!=0"/>    
+
+
+                      </span>
+                      <span class="labelinput">{{question.phData[question.placeholders-1].text2}}</span>
+                      <!-- Con 'play' en respuesta correcta -->
+                      <span ng-if="correctShow[$index]==1" style="padding-left:5px; font-size:x-large; color:#0084cb;" class="i-icon ion-volume-high" ng-click="sayAnswerPh($index); $event.stopPropagation();"></span>
+                      <!-- -->
+                    </div>
+
+                              
+                    <div ng-if="clicked[$index]==1" style="padding-top:10px;">   <!-- editDisabled -->
+                      <div ng-if="correct[$index]==2">
+                        <span class="correcttext">{{i18n[loc].correctans}}: <span class="correctanswer"> {{question.answer_text.split("|").join("/")}}</span></span>
+                        <div ng-if="loc=='es'" class="text3">{{question.explanation}}</div>
+                        <div ng-if="loc!='es'" class="text3">{{question.explanation_en}}</div>
+                      </div>
+                    </div>
+                                    
+                  </span>
+                  <!-- free text -->
+
+
+
+
+                  <!-- multiple option -->
+                  <span ng-if="question.question_type==2"> 
+                    <div class="i--answer-radio" ng-if="question.question_type==2">
+
+                      <!--
+                      ng-class="{rojo: checkOption(questionIndex,$index)==2, verde: checkOption(questionIndex,$index)==1}"
+                      -->
+
+
+
+<!--
+                      <ion-radio ng-class="{rojo: checkOption(questionIndex,$index)==2, verde: checkOption(questionIndex,$index)==1}" ng-repeat="option in question.options" ng-value="$index" ng-change="cambia2(questionIndex,$index)" ng-model="userAnswers[questionIndex]" name="radio{{questionIndex}}" ng-disabled="editDisabled || correctShow[currentSlide]!=0">
+
+
+                        <span ng-if="!editDisabled && !correctShow[currentSlide]!=0 && option.text!='True' && option.text!='False' && option.text.substr(0,1)!='-' " style="padding-right:5px;  color:#0084cb;" class="i-icon ion-volume-high" ng-click="sayHeader(); $event.stopPropagation();"></span>
+
+                        <span>{{option.text}}</span>
+                      
+                      </ion-radio>
+-->                      
+<div ng-repeat="option in question.options" style="position: relative;">
+                      <ion-radio ng-class="{rojo: checkOption(questionIndex,$index)==2, verde: checkOption(questionIndex,$index)==1}"  ng-value="$index" ng-change="cambia2(questionIndex,$index)" ng-model="userAnswers[questionIndex]" name="radio{{questionIndex}}" ng-disabled="editDisabled || correctShow[currentSlide]!=0">
+
+                        <span>{{option.text}}</span>                  
+                      
+                      </ion-radio>
+          
+    <button ng-if="option.text!='True' && option.text!='False'" class="button button-clear button-padding" ng-click="sayPlay(questionIndex,$index); $event.stopPropagation();" style="position: absolute; top: -3px; right: 2px; z-index: 9999999;">
+<!--            <i class="icon ion-help-circled"></i> -->
+        <i class="ion-volume-high" style="color:#0084cb;"></i>
+
+    </button>
+
+                      
+</div>
+
+
+
+                    </div>
+
+                    <div ng-if="(question.answer_text.indexOf(','))>-1" style="text-align:center;">
+                    {{multiText}}
+                    </div>    
+
+                    <div ng-if="clicked[$index]==1" style="padding-top:10px;">   <!-- editDisabled -->
+                      <div ng-if="correct[$index]==2">
+                        <div ng-if="loc=='es'" class="text3">{{question.explanation}}</div>
+                        <div ng-if="loc!='es'" class="text3">{{question.explanation_en}}</div>
+                      </div>
+                    </div>
+                  </span>
+
+<!--
+<p>{{correct.length}}</p>
+<p>{{editDisabled}}</p>
+<p>{{correct}}</p>
+<p>{{correctShow}}</p>
+<p>{{userAnswers}}</p>
+<hr>
+<p>{{userAnswersPh}}</p>
+<p>{{userAnswersPhOk}}</p>
+<hr>
+<p>{{clicked}}</p>
+-->
+
+                  <!-- multiple option -->          
+
+
+
+
+
+
+<!-- drag & drop -->
+                  <span ng-if="question.question_type==1 && (question.subtype==4 || question.subtype==5 || question.subtype==7)"> 
+
+
+                    <!-- con placeholders (copiado de tipo 1, pero en realidad solo habrá un placeholder) -->                    
+                    <div ng-if="question.placeholders>0" style="display: table" class="text18">
+                      <span ng-repeat="phd in question.phData">
+                        <span ng-if="phd.text">{{phd.text}}</span>
+                      <!-- drop zone (placeholder) -->
+                      <div ng-class="{verde: (correctShow[$parent.$index]>0 && userAnswersPhOk[$parent.$index][$index]==1), rojo: (correctShow[$parent.$index]>0 && userAnswersPhOk[$parent.$index][$index]==2)}" ng-drop="true" ng-drop-success="onDropComplete1(questionIndex,$data,$event)" style="display:table-cell; padding-right:10px; padding-left:10px; margin-right: 5px; margin-left:5px;" class="dragdrop">
+
+                          <div ng-repeat="palabra in dropped[questionIndex]" xng-drag="!editDisabled && correctShow[currentSlide]==0" xng-drag-data="palabra" xng-drag-success="onDragSuccess1(questionIndex,$data,$event)" xng-center-anchor="{{centerAnchor}}">
+                              
+                            <p style="padding-top: 5px; padding-right: 5px; padding-left: 5px; padding-bottom: 5px; margin-bottom: 0px; text-align:center; color:#292929;">
+                              {{hideAt(palabra)}}                        
+                            </p>
+
+                          </div>
+
+                          <p ng-if="dropped[questionIndex].length==0" style="padding-top: 5px; padding-right: 5px; padding-left: 5px; padding-bottom: 5px; margin-bottom: 0px; text-align:center; color:#c6c6c6;">Answer</p>
+
+                      </div>  
+
+<!--
+                        <input style="display: table-cell; border:1px solid #ccc; padding-left: 5px; padding-right: 5px; margin-top:2px; margin-bottom:2px;" size="11" autocapitalize="none" ng-class="{verde: (correctShow[$parent.$index]>0 && userAnswersPhOk[$parent.$index][$index]==1), rojo: (correctShow[$parent.$index]>0 && userAnswersPhOk[$parent.$index][$index]==2)}" type="text" placeholder="Your answer" ng-change="cambia($parent.$index)" ng-model="userAnswersPh[$parent.$index][$index]" ng-disabled="editDisabled || correctShow[currentSlide]!=0" ng-drop="true" ng-drop-success="onDropComplete1(questionIndex,$data,$event)">
+-->
+
+
+                      </span>
+                      <span>{{question.phData[question.placeholders-1].text2}}</span>
+                      <!-- Con 'play' en respuesta correcta -->
+                      <span ng-if="correctShow[$index]==1 || dropped[questionIndex]!=''" style="padding-left:5px; font-size:x-large; color:#0084cb;" class="i-icon ion-volume-high" ng-click="sayAnswerPh($index); $event.stopPropagation();"></span>                
+                      <!-- -->
+                    </div>
+
+
+                    <div  style="padding-top:10px; margin-left: 5px; margin-right:5px;" ng-disabled="editDisabled || correctShow[currentSlide]!=0">
+
+<!-- drop zone si no hay placeholder, si lo hay está arriba -->
+                      <div class="dragdrop" ng-if="question.placeholders==0" ng-class="{verde: (true && correctShow[$index]==1), rojo: (true && correctShow[$index]==2)}" ng-drop="true" ng-drop-success="onDropComplete1(questionIndex,$data,$event)" style="xbackground: rgba(255,255,0, 0.5); width: 100%; min-height: 62px; padding:5px;">
+
+                          <div ng-repeat="palabra in dropped[questionIndex]" xng-drag="!editDisabled && correctShow[currentSlide]==0" xng-drag-data="palabra" xng-drag-success="onDragSuccess1(questionIndex,$data,$event)" xng-center-anchor="{{centerAnchor}}" ng-click="pepe_up(questionIndex,palabra)" class="ng-drag" ng-class="{ 'no-click' : editDisabled || correctShow[currentSlide]!=0 }">
+                              {{hideAt(palabra)}}
+                          </div>
+    
+                          <p ng-if="dropped[questionIndex].length==0" style="padding-left:10px; padding-top:12px; color:#c6c6c6;">{{i18n[loc].droptext}} ...</p>
+
+                          <!-- 'play' -->                      
+                          <div ng-if="correctShow[$index]==1 || dropped[questionIndex]!=''" style="display: inline-block; yposition:absolute; margin-top: 8px;">
+                            <span style="padding-left:5px; font-size:x-large; color:#0084cb; xposition:absolute; margin-top:3px;" class="i-icon ion-volume-high" ng-click="sayAnswer($index); $event.stopPropagation();"></span>
+                          </div>
+
+                      </div> 
+ 
+
+
+
+
+
+ <!-- palabras de abajo >> -->
+                      <div ng-if="!editDisabled && correctShow[currentSlide]==0" ng-drag-start="startDrag($data,$event)" ng-drop="true" ng-drop-success="onDropComplete2(questionIndex,$data,$event)"  style="width: 100%; min-height: 62px; padding:5px;margin-top:20px;" ng-disabled="editDisabled || correctShow[currentSlide]!=0">
+
+<!-- Se añade la clase ng-drag y el ng-click al desconectar todos los 'ng' de drag / drop -->
+                          <div ng ng-repeat="palabra in palabras[questionIndex]" xng-drag="!editDisabled && correctShow[currentSlide]==0" xng-drag-data="palabra" xng-drag-success="onDragSuccess2(questionIndex,$data,$event)" xng-center-anchor="{{centerAnchor}}" ng-click="pepe_down(questionIndex,palabra)" class="ng-drag">
+                              {{hideAt(palabra)}}
+                          </div>
+
+                      </div>
+ <!-- << palabras de abajo -->
+
+
+
+
+                    </div>
+
+                    <div ng-if="clicked[$index]==1" style="padding-top:10px;">   <!-- editDisabled -->
+                      <div ng-if="correct[$index]==2">
+                        <span class="correcttext">{{i18n[loc].correctans}}: <span class="correctanswer">{{question.answer_text.split("|").join("/")}}</span></span>
+                        <div ng-if="loc=='es'" class="text3">{{question.explanation}}</div>
+                        <div ng-if="loc!='es'" class="text3">{{question.explanation_en}}</div>
+                      </div>
+                    </div>
+                         
+                  </span>           
+<!-- drag & drop -->
+  
+                  <br>
+
+
+                  <!-- Botón resolver / continuar -->
+                  <div style="padding-top:10px; text-align:center;" ng-if="clicked[$index]==0 || (toggleName=='Continuar' || toggleName=='Next')">
+                      <span ng-disabled="correct[$index]==0" class="i--button-green text16" ng-click="toggle($index); $event.stopPropagation();" >{{toggleName}}</span>
+                  </div>
+
+<!--
+<pre>
+[{{correct[$index]}}]
+[{{question.question_type}}].[{{question.subtype}}]
+[{{question.placeholders}}]
+[{{question.typeText}}]
+[{{palabras[$index]}}]
+[{{userAnswersPhOk[$index]}}]
+[{{questions[$index].phData}}]
+</pre>
+-->
+                </ion-slide>
+                <!-- Un slide para cada pregunta -->
+                
+
+
+
+
+                <!-- Último slide, resultados -->
+                <ion-slide>
+
+                  <!-- Resultados -->
+                  <div class="item-test_result">
+                      <div class="i-col">
+                          <div class="i-title">{{i18n[loc].yourgrade}}:</div>
+                          <div class="i-note">{{percent}}<span>%</span></div>
+                      </div>
+                      <div class="i-col">
+                          <div class="i-title">{{i18n[loc].answers}}</div>
+                          <div class="i-results">
+                              <div class="i-col_result">
+                                  <div class="i-correct"><span>{{nok}}</span></div>
+                                  <div class="icon ion-checkmark-round"></div>
+                              </div>
+                              <div class="i-col_result">
+                                  <div class="i-wrong"><span>{{questions.length-nok}}</span></div>
+                                  <div class="icon ion-close-round"></div>
+                              </div>
+                          </div>
+                      </div>
+                  </div>
+
+
+                  <!-- Botón para loguearse si no lo está -->
+                  <div class="item-text_result" ng-if="!userInfo" style="margin-top: -20px;">
+                      <!-- <div class="i-title">{{scoreText}}</div> -->
+                      <button class="i--button blue2 text16" ng-click="goLesson(); $event.stopPropagation();" >{{i18n[loc].review}}</button>
+                      <div class="text3">{{i18n[loc].dologin}}</div>
+                      <button class="i--button-green text16" ng-click="login(); $event.stopPropagation();" >{{i18n[loc].login}}</button>
+                  </div>
+
+
+                  <!-- Mensaje de registro correcto de resultado -->
+                  <div ng-if="!errorValue2">
+
+                    <div ng-if="loc=='es' && resultSaved" style="text-align:center;">
+                      <p style="color:black;">
+                        ¡ Hemos registrado tu calificación con éxito en tu expediente !
+                      </p>
+                    </div>
+
+                    <div ng-if="loc=='br' && resultSaved" style="text-align:center;">
+                      <p style="color:black;">
+                        O registro de qualificação no seu expediente foi realizado com sucesso!
+                      </p>
+                    </div>                    
+
+                    <div ng-if="loc!='es' &&loc!='br' && resultSaved" style="text-align:center;">
+                      <p style="color:black;">
+                        We have successfully recorded your qualification in your profile !
+                      </p>
+                    </div>
+                  </div>
+
+                  <!-- Mensaje de error al registrar resultado -->
+                  <div ng-if="errorValue2">
+
+                    <div ng-if="loc=='es'" style="text-align:center;">
+                      <p style="color:red;">
+                        Error accediendo al servidor.
+                      </p>
+                    </div>
+
+                    <div ng-if="loc=='br'" style="text-align:center;">
+                      <p style="color:red;">
+                        Erro ao acessar o servidor.   
+                      </p>
+                    </div>
+
+                    <div ng-if="loc!='es' && loc!='br'" style="text-align:center;">
+                      <p style="color:red;">
+                        Error accessing server.
+                      </p>
+                    </div>
+
+                  </div>                  
+
+                  <!-- Botones Review lesson / Save result -->
+                  <div ng-if="userInfo">
+
+                    <div class="row">
+
+                      <div class="col" style="text-align:center;">
+                        <div>
+                          <!-- Review lesson -->
+                          <button class="i--button blue2 text16"
+                                  style="padding:8px 18px;" ng-click="goLesson(); $event.stopPropagation();" >
+                                  {{i18n[loc].review}}
+                          </button>
+                        </div>
+                      </div>
+                      <div class="col" style="text-align:center;">
+                        <div> 
+                          <!-- Start over -->
+                          <button class="i--button blue2 text16" style="padding:8px 18px;" 
+                                  ng-click="doRestart(); $event.stopPropagation();" >
+                                  {{i18n[loc].restart}}
+                          </button>
+                        </div>
+                      </div>
+
+                    </div>
+
+                    <div class="row" style="padding-top:15px;">
+
+                      <div class="col" style="text-align:center;">                      
+                        <div>
+                          <!-- Save result -->
+                          <button ng-if="!resultSaved || !fromLesson"
+                                  ng-disabled="resultSaved"                                     
+                                  class="text16" style="padding:8px 18px;" 
+                                  ng-class=" (resultSaved) ? 'i--button lighgreen' : 'i--button-green' "
+                                  ng-click="sendResult(); $event.stopPropagation();" >
+                                  {{i18n[loc].savetest}}
+                          </button>
+                          <!-- Continue -->
+                          <button ng-if="resultSaved && fromLesson" 
+                                  class="i--button blue2 text16" 
+                                  style="padding:8px 18px;" 
+                                  ng-click="goUnit(); $event.stopPropagation();" >
+                                  {{i18n[loc].continue2}}
+                          </button>
+                        </div>
+                      </div>
+
+                    </div>
+
+
+                  </div>
+
+                </ion-slide>
+                <!-- Último slide, resultados -->
+
+
+            </ion-slide-box>
+            
+
+
+
+    </div>
+
+  </ion-content>
+
+</ion-view>

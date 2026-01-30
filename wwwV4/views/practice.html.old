@@ -1,0 +1,61 @@
+<ion-view class="practice" view-title="{{i18n[loc].prac_title}}"> 
+    
+    <ion-nav-buttons side="right">
+        <button class="button button-icon button-clear icon-people" menu-toggle="right"></button>
+    </ion-nav-buttons>
+
+<!-- 
+    <ion-nav-title>{{i18n[loc].prac_title}}</ion-nav-title>
+-->    
+
+    <ion-content>   
+    
+        <ion-list>
+
+            <ion-item href="#/app/grammar">
+
+                <div class="item-box53">
+                    <div class="i-header">
+                        <div class="i-icon" style="background-image: url('assets/img/gramatica.png');"></div>
+                    </div>
+                    <article class="i-content">
+                        <header class="i-title text4">{{i18n[loc].gram_title}}</header>
+                        <section class="i-text text3">{{i18n[loc].gram_desc}}</section>
+                    </article>
+                </div>
+
+            </ion-item>
+
+            <ion-item href="#/app/songs">
+
+                <div class="item-box53">
+                    <div class="i-header">
+                        <div class="i-icon" style="background-image: url('assets/img/canciones.png');"></div>
+                    </div>
+                    <article class="i-content">
+                        <header class="i-title text4">{{i18n[loc].song_title}}</header>
+                        <section class="i-text text3">{{i18n[loc].song_desc}}</section>
+                    </article>
+                </div>
+
+            </ion-item>
+
+            <ion-item href="#/app/games">
+
+                <div class="item-box53">
+                    <div class="i-header">
+                        <div class="i-icon" style="background-image: url('assets/img/juegos.png');"></div>
+                    </div>
+                    <article class="i-content">
+                        <header class="i-title text4">{{i18n[loc].game_title}}</header>
+                        <section class="i-text text3">{{i18n[loc].game_desc}}</section>
+                    </article>
+                </div>
+
+            </ion-item>
+
+        </ion-list>
+    
+    </ion-content>
+    
+</ion-view>

@@ -1,0 +1,570 @@
+#secciones h3 {
+  font: 16px 'Open Sans', sans-serif;
+  color: #0084cb;
+  font-weight: normal;
+  margin-top: 5px;
+}
+.examplebox {
+  display: flex;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.examplebox strong {
+  color: #0084cb;
+}
+.examplebox .example {
+  background-color: #e5f6ff;
+  border-radius: 5px;
+  font: 16px 'Open Sans', sans-serif;
+  color: #818181;
+  padding: 10px 15px;
+  width: auto;
+  display: block;
+  box-sizing: border-box;
+  border: 1px solid #deeeee;
+}
+.examplebox .example strong {
+  color: #0084cb;
+}
+.examplebox .example .underline {
+  text-decoration: underline;
+}
+.examplebox .translation {
+  background-color: #fff;
+  border-radius: 5px;
+  font: italic 16px 'Open Sans', sans-serif;
+  color: #818181;
+  padding: 10px 15px;
+  width: auto;
+  display: block;
+  box-sizing: border-box;
+}
+.translation {
+  background-color: #fff;
+  border-radius: 5px;
+  font: italic 16px 'Open Sans', sans-serif;
+  color: #818181;
+  padding: 10px 15px;
+  width: 100%;
+  display: block;
+  box-sizing: border-box;
+}
+p {
+  font: 16px 'Open Sans', sans-serif;
+  color: #818181;
+  line-height: 1.5em;
+}
+p ins {
+  text-decoration: underline;
+}
+.exampletable {
+  position: relative;
+  margin-bottom: 10px;
+}
+.exampletable .example strong {
+  color: #0084cb;
+}
+.exampletable tr {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+}
+.exampletable tr .tdplay {
+  position: absolute;
+  left: 15px;
+  top: 11px;
+}
+.exampletable tr .tdplay + td {
+  display: flex;
+  flex-wrap: wrap;
+}
+.exampletable tr .tdplay + td .example {
+  background-color: #e5f6ff;
+  border-radius: 5px;
+  font: 16px 'Open Sans', sans-serif;
+  color: #818181;
+  padding: 10px 15px;
+  padding-left: 40px;
+  box-sizing: border-box;
+}
+.exampletable tr .tdplay + td .example strong {
+  color: #0084cb;
+}
+.exampletable tr .tdplay + td .translation {
+  background-color: #fff;
+  border-radius: 5px;
+  font: italic 16px 'Open Sans', sans-serif;
+  color: #818181;
+  padding: 10px 15px;
+  box-sizing: border-box;
+  width: auto;
+}
+.exampletable tr .tdplay + td .translation:empty {
+  display: none;
+}
+.exampletable tr .tdplay:before {
+  content: 'x';
+  color: #0084cb;
+  margin-right: 10px;
+  font-family: 'appci';
+}
+.exampletable tr td .example {
+  background-color: #e5f6ff;
+  border-radius: 5px;
+  font: 16px 'Open Sans', sans-serif;
+  color: #818181;
+  padding: 10px 15px;
+  /*  padding-left: 40px; */
+  box-sizing: border-box;
+}
+.exampletable td {
+  display: flex;
+  flex-wrap: wrap;
+}
+.exampletable tr td .translation {
+  background-color: #fff;
+  border-radius: 5px;
+  font: italic 16px 'Open Sans', sans-serif;
+  color: #818181;
+  padding: 10px 15px;
+  box-sizing: border-box;
+  width: auto;
+}
+.exampletable tr td .translation:empty {
+  display: none;
+}
+/*
+.wrongexample{
+    background-color: #f0fff1;
+    border-radius: 5px;
+    font: 15px 'Open Sans', sans-serif;
+    color: #818181;
+    padding: 10px 15px;
+    width: 100%;
+    box-sizing: border-box;
+}
+.wrongexample:before{
+    content: 'y';
+    color: #49be48;
+    margin-right: 5px;
+    font-family: 'appci';
+    font-size: 9px;
+    margin-top: 2px;
+}*/
+.wrongexample {
+  background-color: #fff0f0;
+  border-radius: 5px;
+  font: 16px 'Open Sans', sans-serif;
+  color: #818181;
+  padding: 10px 15px;
+  margin-bottom: 10px;
+  /*width: 100%;*/
+  width: fit-content;
+  box-sizing: border-box;
+}
+.wrongexample:before {
+  content: 'z';
+  color: #cc5252;
+  margin-right: 5px;
+  font-family: 'appci';
+  font-size: 9px;
+  margin-top: 2px;
+}
+.exception {
+  background-color: #fff9e5;
+  border-radius: 5px;
+  font: 16px 'Open Sans', sans-serif;
+  color: #818181;
+  padding: 10px 15px;
+  width: 100%;
+  box-sizing: border-box;
+}
+.exception:before {
+  content: 'A';
+  color: #ffe691;
+  margin-right: 5px;
+  font-family: 'appci';
+}
+.box .examplebox {
+  width: calc(100% - 50px);
+  margin-left: 50px;
+}
+.note {
+  background-color: #fff;
+  border: 1px solid #7db3dd;
+  border-radius: 5px;
+  font: 16px 'Open Sans', sans-serif;
+  color: #818181;
+  padding: 10px 15px;
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+.note:before {
+  content: 'o';
+  color: #00629d;
+  margin-right: 5px;
+  font-family: 'appci';
+}
+.seccion .box {
+  background-color: #fff;
+  border: 1px solid #e6b500;
+  border-radius: 5px;
+  font: 16px 'Open Sans', sans-serif;
+  color: #818181;
+  padding: 10px 15px;
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+.box2 {
+  background-color: #fff;
+  border: 1px solid #7db3dd;
+  border-radius: 5px;
+  font: 16px 'Open Sans', sans-serif;
+  color: #818181;
+  padding: 10px 15px;
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+.borderpanel {
+  background-color: #fff;
+  border: 1px solid #7db3dd;
+  margin-top: 10px;
+  border-radius: 5px;
+  font: 16px 'Open Sans', sans-serif;
+  color: #818181;
+  padding: 10px 15px;
+  width: 100%;
+  display: block;
+  align-items: center;
+  box-sizing: border-box;
+  margin-bottom: 10px;
+}
+.borderpanel br {
+  display: none;
+}
+hr.hr_lesson {
+  margin-top: 20px;
+  margin-bottom: 20px;
+  /*border-top: 1px solid */
+  border-top: 3px dotted #6eb9e6;
+  height: 3px;
+  background-color: #fff;
+  /*border-bottom: 1px solid @color2;*/
+}
+.examplebox.ebwli {
+  background-repeat: no-repeat;
+  background-image: url(../assets/girl.svg);
+  background-position: left bottom;
+  background-size: 46px;
+}
+.examplebox.ebwli .example {
+  border-bottom-left-radius: 0;
+  margin: 15px 0 0 75px;
+}
+.examplebox.ebwli .example:before {
+  bottom: 0;
+  right: 100%;
+  left: auto;
+  top: auto;
+  border: 0;
+  border-right: 19px solid #e5f6ff;
+  border-top: 22px solid transparent;
+  z-index: 1;
+}
+.examplebox.ebwli .example:after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  right: 100%;
+  border-right: 22px solid #deeeee;
+  border-top: 25px solid transparent;
+}
+.examplebox.ebwri {
+  background-repeat: no-repeat;
+  background-image: url(../assets/boy.svg);
+  background-position: right bottom;
+  background-size: 46px;
+}
+.examplebox.ebwri .example {
+  border-bottom-right-radius: 0;
+  margin: 15px 75px 0 auto;
+}
+.examplebox.ebwri .example:before {
+  bottom: 0;
+  left: 100%;
+  right: auto;
+  top: auto;
+  border: 0;
+  border-left: 19px solid #e5f6ff;
+  border-top: 22px solid transparent;
+  z-index: 1;
+}
+.examplebox.ebwri .example:after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 100%;
+  border-left: 22px solid #deeeee;
+  border-top: 25px solid transparent;
+}
+.examplebox.ebwli1 {
+  background-repeat: no-repeat;
+  background-image: url(../assets/girl1.svg);
+  background-position: left bottom;
+  background-size: 46px;
+}
+.examplebox.ebwli1 .example {
+  border-bottom-left-radius: 0;
+  margin: 15px 0 0 75px;
+}
+.examplebox.ebwli1 .example:before {
+  bottom: 0;
+  right: 100%;
+  left: auto;
+  top: auto;
+  border: 0;
+  border-right: 19px solid #e5f6ff;
+  border-top: 22px solid transparent;
+  z-index: 1;
+}
+.examplebox.ebwli1 .example:after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  right: 100%;
+  border-right: 22px solid #deeeee;
+  border-top: 25px solid transparent;
+}
+.examplebox.ebwri1 {
+  background-repeat: no-repeat;
+  background-image: url(../assets/boy1.svg);
+  background-position: right bottom;
+  background-size: 46px;
+}
+.examplebox.ebwri1 .example {
+  border-bottom-right-radius: 0;
+  margin: 15px 75px 0 auto;
+}
+.examplebox.ebwri1 .example:before {
+  bottom: 0;
+  left: 100%;
+  right: auto;
+  top: auto;
+  border: 0;
+  border-left: 19px solid #e5f6ff;
+  border-top: 22px solid transparent;
+  z-index: 1;
+}
+.examplebox.ebwri1 .example:after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 100%;
+  border-left: 22px solid #deeeee;
+  border-top: 25px solid transparent;
+}
+.examplebox.ebwli2 {
+  background-repeat: no-repeat;
+  background-image: url(../assets/girl2.svg);
+  background-position: left bottom;
+  background-size: 46px;
+}
+.examplebox.ebwli2 .example {
+  border-bottom-left-radius: 0;
+  margin: 15px 0 0 75px;
+}
+.examplebox.ebwli2 .example:before {
+  bottom: 0;
+  right: 100%;
+  left: auto;
+  top: auto;
+  border: 0;
+  border-right: 19px solid #e5f6ff;
+  border-top: 22px solid transparent;
+  z-index: 1;
+}
+.examplebox.ebwli2 .example:after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  right: 100%;
+  border-right: 22px solid #deeeee;
+  border-top: 25px solid transparent;
+}
+.examplebox.ebwri2 {
+  background-repeat: no-repeat;
+  background-image: url(../assets/boy2.svg);
+  background-position: right  bottom;
+  background-size: 46px;
+}
+.examplebox.ebwri2 .example {
+  border-bottom-right-radius: 0;
+  margin: 15px 75px 0 auto;
+}
+.examplebox.ebwri2 .example:before {
+  bottom: 0;
+  left: 100%;
+  right: auto;
+  top: auto;
+  border: 0;
+  border-left: 19px solid #e5f6ff;
+  border-top: 22px solid transparent;
+  z-index: 1;
+}
+.examplebox.ebwri2 .example:after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 100%;
+  border-left: 22px solid #deeeee;
+  border-top: 25px solid transparent;
+}
+.examplebox.ebwli3 {
+  background-repeat: no-repeat;
+  background-image: url(../assets/boy3.svg);
+  background-position: left bottom;
+  background-size: 46px;
+}
+.examplebox.ebwli3 .example {
+  border-bottom-left-radius: 0;
+  margin: 15px 0 0 75px;
+}
+.examplebox.ebwli3 .example:before {
+  bottom: 0;
+  right: 100%;
+  left: auto;
+  top: auto;
+  border: 0;
+  border-right: 19px solid #e5f6ff;
+  border-top: 22px solid transparent;
+  z-index: 1;
+}
+.examplebox.ebwli3 .example:after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  right: 100%;
+  border-right: 22px solid #deeeee;
+  border-top: 25px solid transparent;
+}
+.examplebox.ebwri3 {
+  background-repeat: no-repeat;
+  background-image: url(../assets/girl3.svg);
+  background-position: right  bottom;
+  background-size: 46px;
+}
+.examplebox.ebwri3 .example {
+  border-bottom-right-radius: 0;
+  margin: 15px 75px 0 auto;
+}
+.examplebox.ebwri3 .example:before {
+  bottom: 0;
+  left: 100%;
+  right: auto;
+  top: auto;
+  border: 0;
+  border-left: 19px solid #e5f6ff;
+  border-top: 22px solid transparent;
+  z-index: 1;
+}
+.examplebox.ebwri3 .example:after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 100%;
+  border-left: 22px solid #deeeee;
+  border-top: 25px solid transparent;
+}
+.examplebox .example {
+  padding: 15px 30px 15px 30px;
+  margin: 5px 5px 5px 0px;
+  margin: auto;
+  margin-top: 10px;
+  margin-bottom: 18px;
+  width: auto;
+  position: relative;
+  border-radius: 5px;
+  clear: both;
+}
+.examplebox .example:before {
+  content: '';
+  position: absolute;
+  bottom: 15px;
+  top: 100%;
+  border-top: 25px solid #e5f6ff;
+  border-right: 25px solid transparent;
+}
+.examplebox .example .i-aux-info {
+  position: absolute;
+  bottom: 5px;
+  right: 5px;
+}
+.examplebox .example .text3 {
+  font-size: 16px;
+}
+.examplebox .example + .translation {
+  display: none;
+}
+table.info2 {
+  margin: auto;
+  margin-bottom: 15px;
+  /*border-collapse:collapse;*/
+  font: 16px 'Open Sans', sans-serif;
+  color: #666666;
+  width: auto;
+  border-radius: 23px 23px 23px 23px;
+  -moz-border-radius: 23px 23px 23px 23px;
+  -webkit-border-radius: 23px 23px 23px 23px;
+  background: #f7fcff;
+}
+table.info2 strong {
+  color: #0084cb;
+  /*font-weight: normal;*/
+}
+table.info2 th {
+  /*display: none;*/
+  padding: 0.7em 1em 0.7em 1.15em;
+  border: 1px solid #d9edf7;
+  font-weight: bold;
+}
+table.info2 td {
+  padding: 0.7em 1em 0.7em 1.15em;
+  border: 1px solid #d9edf7;
+}
+table.info2 .playmp3:before {
+  content: 'x';
+  color: #0084cb;
+  margin-right: 5px;
+  font-family: 'appci';
+}
+table.info2 .sub {
+  font-style: italic;
+  font-size: 13px;
+}
+/* soluciona ejemplo despues de waring que aparece mal, linea 156 lessons.css */
+.box .examplebox {
+  margin-left: 0px;
+}
+/* solo hay que incluirlo en lecciones */
+.seccion h2,
+.seccion .h2 {
+  color: #0084cb;
+  font: 18px 'Open Sans', sans-serif;
+  border-bottom: solid 2px #4fa1cd;
+  margin: 10px 0px 10px 0px;
+  display: inline-block;
+}
+.borderpanel .playmp3:before {
+  content: 'x';
+  color: #0084cb;
+  margin-left: 5px;
+  font-family: 'appci';
+  line-height: 30x;
+}

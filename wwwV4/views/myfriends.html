@@ -1,0 +1,915 @@
+
+  <style>  
+    .gris {background:lightgrey;}
+    .rojo {background: rgb(242, 38, 38); color:white;}
+    .verde {background: rgb(42, 154, 42); color:white;}
+    .naranja {background: rgb(249, 171, 28); color:white;}
+    .fakeinput 
+    {
+         opacity: 0;
+         position: absolute;
+         right:0;
+         top:0;
+    }
+    .green {
+      color:green;
+    }
+    .grey {
+      color:lightgrey;
+    }
+    .red {
+      color:#BE0000;
+    }
+    *{
+        -moz-box-sizing: border-box; -webkit-box-sizing: border-box; box-sizing: border-box;
+    }
+    [ng-drag]{
+        -moz-user-select: -moz-none;
+        -khtml-user-select: none;
+        -webkit-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+    }
+    [ng-drag]{
+        width: 100px;
+        height: 90px;
+        background: rgba(255,0,0, 0.5);
+        color:white;
+        text-align: center;
+        padding-top:40px;
+        display: inline-block;
+        margin-left:5px;
+        margin-top:5px;
+        margin-top:5px;
+        margin-bottom:5px;
+        cursor: move;
+    }
+    ul.draggable-objects:after{
+        display: block;
+        content:"";
+        clear:both;
+    }
+    .draggable-objects li{
+        float:left;
+        display: block;
+        width: 120px;
+        height: 100px;
+    }
+    [ng-drag].drag-over{
+        border:solid 1px red;
+    }
+    [ng-drag].dragging{
+        opacity: 0.5;
+    }
+
+    [ng-drop].drag-enter{
+        border:dotted 1px red;
+    }
+
+    [xng-drop] div{
+        position: relative;
+        z-index: 2;
+    }
+  </style>
+
+
+
+<style>
+.wide-as-needed {
+  overflow: scroll;
+  white-space: nowrap;
+  text-align:center;
+}
+
+.no-padding {
+  padding:0px !important;
+}
+
+.button.button-lista {
+  border-radius: 0px !important;
+  margin-right:-1px !important;
+  margin-left:-1px !important;
+
+  border-color: transparent;
+  color:gray;
+}
+.button.button-lista:hover {
+  color: #000000;
+  text-decoration: none; 
+}
+.button.button-lista.active, .button.button-lista.activated {
+  background-color:white; 
+  color:black;
+  xfont-size: 15px;
+}
+</style>
+
+
+
+<ion-view>
+  
+    <ion-header-bar class="bar-subheader" style="border-style: none" ng-if="false">
+      <ion-scroll direction="x" delegate-handle="miScroller" class="wide-as-needed no-padding" >
+        <a class="button button-lista" ng-class="{active: $index==selItem}" ng-repeat="item in items" ng-click="itemClick($event,$index)">{{item}}</a>
+      </ion-scroll>
+    </ion-header-bar>
+
+
+
+
+
+  <ion-content class="padding" has-bouncing="false">
+
+    <div ng-if="false" style="padding-left:10px; padding-right:10px;background:lightyellow">
+
+        <ng-repeat ng-repeat="idx in section.pairs">
+
+        <div class="row" style="text-align: center;">
+
+          <div class="col col-50" ng-if="section.resources[idx]" style="background: lightblue; border:solid 1px;">
+
+<!-- -->
+            <div ng-if="tg1 && section.resources[idx].type==1" class="card sinmargen120" style="background:orange">
+              <a href="#/app/test/{{section.lesson_id}}/{{section.resources[idx].id}}" style="text-decoration: none;">
+            
+                <div class="card sinmargen item" style="background:lightgray;" ng-if="false">
+                  <ion-item style="padding-top:10px; padding-bottom: 10px; padding-left:5px; padding-right:5px;">
+                    <img src="assets/res_test.png" style="width:100px; background:red"/>
+                    <p>{{section.resources[idx].name}}</p>    
+                  </ion-item>
+                </div>
+
+              </a>    
+            </div>
+
+            <div ng-if="tg1 && section.resources[idx].type==2" class="card sinmargen120" style="background:orange">
+              <a ng-click="videoClick(section,idx)" style="text-decoration: none;">
+
+                <div class="card sinmargen item" style="background:lightgray;" ng-if="false">
+                  <ion-item style="padding-top:10px; padding-bottom: 10px; padding-left:5px; padding-right:5px;">
+                    <img src="assets/res_song.png" style="width:100px; background:red"/>
+                    <p>{{section.resources[idx].name}}</p>    
+                  </ion-item>
+                </div>
+
+              </a>    
+            </div>
+
+            <div ng-if="tg1 && section.resources[idx].type==3" class="card sinmargen120" style="background:orange">
+              <a ng-click="videoLessonClick(section,idx)" style="text-decoration: none;">
+
+                <div class="card sinmargen item" style="background:lightgray;" ng-if="false">
+                  <ion-item style="padding-top:10px; padding-bottom: 10px; padding-left:5px; padding-right:5px;">
+                    <img src="assets/res_videolesson.png" style="width:100px; background:red"/>
+                    <p>{{section.resources[idx].title}}</p>    
+                  </ion-item>
+                </div>
+
+              </a>    
+            </div>          
+
+          </div>
+          
+          <div class="col col-50" ng-if="section.resources[idx+1]"  style="background: lightgreen; border:solid 1px;">
+
+<!-- -->
+            <div ng-if="tg2 && section.resources[idx+1].type==1" class="card sinmargen120" style="background:orange">
+            <a href="#/app/test/{{section.lesson_id}}/{{section.resources[idx+1].id}}" style="text-decoration: none;">          
+              
+              <div class="card sinmargen item" style="background:lightgray;" ng-if="false">
+                  <ion-item style="padding-top:10px; padding-bottom: 10px; padding-left:5px; padding-right:5px; xbackground:lightblue">
+                    <img src="assets/res_test.png" style="width:100px; background: red"/>
+                    <p>{{section.resources[idx+1].name}}</p>    
+                  </ion-item>
+                </div>
+
+            </a>    
+            </div>
+
+            <div ng-if="tg2 && section.resources[idx+1].type==2" class="card sinmargen120" style="background:orange">
+            <a ng-click="videoClick(section,idx+1)" style="text-decoration: none;">
+
+              <div class="card sinmargen item" style="background:lightgray;" ng-if="false">
+                  <ion-item style="padding-top:10px; padding-bottom: 10px; padding-left:5px; padding-right:5px; xbackground:lightyellow">
+                    <img src="assets/res_song.png" style="width:100px; background: red"/>
+                    <p>{{section.resources[idx+1].name}}</p>    
+                  </ion-item>
+                </div>
+
+            </a>    
+            </div>
+
+            <div ng-if="tg2 && section.resources[idx+1].type==3" class="card sinmargen120" style="background:orange">
+            <a ng-click="videoLessonClick(section,idx+1)" style="text-decoration: none;">
+
+              <div class="card sinmargen item" style="background:lightgray;" ng-if="false">
+                  <ion-item style="padding-top:10px; padding-bottom: 10px; padding-left:5px; padding-right:5px;xbackground: lightgray">
+                    <img src="assets/res_videolesson.png" style="width:100px; background: red"/>
+                    <p>{{section.resources[idx+1].title}}</p>    
+                  </ion-item>
+                </div>
+
+            </a>    
+            </div>
+
+          </div>
+
+        </div>
+
+        </ng-repeat>
+
+        <button class="button" ng-click="switch1()">Switch1</button>
+        <button class="button" ng-click="switch2()">Switch2</button>
+
+    </div>
+
+
+
+
+<div class="item-box59" style="padding:5px;">
+
+  <span style="text-align:center;">
+    <p ng-click="goTo2()">{{deviceId}}</p>
+  </span>
+
+  <hr>
+  <span style="text-align:center;">
+    <p>pltfrm [{{pltfrm}}] vrsn [{{vrsn}}] iosrecent [{{iosrecent}}]</p>
+  </span>
+  <hr>
+
+
+  <span style="text-align:center;">
+  <h3 style="color:darkgreen;" ng-if="isOnLine">Online</h3>
+  <h3 style="color:darkred;" ng-if="!isOnLine">OffLine</h3>
+  </span>
+
+
+  <hr>
+  <span style="text-align:center;">
+    <p>Espacio libre: {{freeSpace}}</p>
+  </span>
+  <hr>
+  <b>ID del dispositivo:</b> '{{uuid}}'
+  <br>
+  <b>ID de Firebase:</b> '{{PUSH_regid}}'
+  <br>
+
+  <div style="text-align:center">
+    <div style="padding:10px;">
+      <input autocapitalize="none" style="width: 100%" placeholder="{{i18n[loc].type}} ..." ng-model="datos.pushTxt"></input>
+    </div>
+    <p>{{pushCmdResult}}</p>      
+    <button class="button" ng-click="pushRegister()">Registrar para test de push</button>
+    <!--        <button class="button" ng-click="pushSend()">Push send</button>   -->
+    <br><br>
+  </div>
+
+  <hr>
+
+  <div style="text-align:center">
+    <br>
+    <button class="button" ng-click="pusherMembers()">pusherMembers()</button>
+    <br>
+  </div>
+
+  <hr>
+
+  <div style="text-align:center">
+
+    <p>src: {{src}}</p>
+    <p>file: {{file}}</p>
+    <p>dst (cordova.file.dataDirectory + file): {{dst}}</p>
+
+    <p>result = $cordovaFileTransfer.download(src, dst, {}, true)</p>
+
+    <hr>
+    <p><b>testImage_internal</b></p>
+    <p>result.toInternalURL()</p>
+    <p>[{{testImage_internal}}]</p>
+    <div ng-if="( !esiOS() )" style="text-align:center" class="i--graph">
+      <div class="i-icon" style="height:100px; width:100px; background-image: url('{{testImage_internal}}'); border: 1px solid lightgrey;"></div>
+    </div>
+    <p>loadImageFromFile(testImage_internal</p>
+    <img id="testImage" src="/assets/no-avatar.gif" style="width:100px;height:100px; background-color:grey"/>
+
+    <hr>
+    <p><b>testImage_WkWV</b></p>
+    <p>WkWebView.convertFilePath(result.nativeURL)</p>
+    <p>[{{testImage_WkWV}}]</p>
+    <div ng-if="( esiOS() )" style="text-align:center" class="i--graph">
+      <div class="i-icon" style="height:100px; width:100px; background-image: url('{{testImage_WkWV}}'); border: 1px solid lightgrey;"></div>
+    </div>
+
+    <hr> 
+    <button class="button" ng-click="imgTest_S3()">Image from S3</button>
+    <button class="button" ng-click="imgTest_fs()">Image from fs</button>
+
+  </div>
+
+  <hr>
+
+  <div style="text-align: center;">
+    <button class="button" ng-click="play_test()">Play test</button>  
+    <button class="button" ng-click="mp3_test_remoto()">Remote media test</button>
+    <button class="button" ng-click="mp3_test_local()">Local media test</button>
+    <button class="button" ng-click="mailtest()">Mail Test</button>
+    <br>
+    <button class="button" ng-click="sbHide()">StatusBar Hide</button>
+    <button class="button" ng-click="sbShow()">StatusBar Show</button>
+    <button class="button" ng-click="ovWVOn()">StatusBar Overlay On</button>
+    <button class="button" ng-click="ovWVOff()">StatusBar Overlay Off</button>
+  </div>
+
+  <hr>  
+  
+  <ion-toggle ng-model="premiumState"   toggle-class="toggle-calm" ng-change="tglPremium()"     >Premium      </ion-toggle>  
+  <ion-toggle ng-model="cacheState"     toggle-class="toggle-calm" ng-change="tglCache()"       >Offline      </ion-toggle>  
+  <ion-toggle ng-if="cacheState" ng-model="checkUpdates"   toggle-class="toggle-calm" ng-change="tglCheckUpdates()">Check Updates</ion-toggle>  
+  <ion-toggle ng-model="purchaseState"  toggle-class="toggle-calm" ng-change="togglePurchase()">Subscribed    </ion-toggle>  
+
+  <ion-toggle ng-model="debugMode"      toggle-class="toggle-calm" ng-change="toggleDbg()"      >Debug        </ion-toggle>  
+  <ion-toggle ng-model="debugModePurch" toggle-class="toggle-calm" ng-change="toggleDbgPurch()" >Debug Purchases / Ticker</ion-toggle>  
+
+  <ion-toggle ng-model="autoSpeech"     toggle-class="toggle-calm" ng-change="toggleAutoSpeech()">Locución automática    </ion-toggle>  
+
+  <ion-toggle ng-model="prodev"         toggle-class="toggle-calm" ng-change="toggleProDev()"   >PRO / DEV    </ion-toggle>  
+
+
+<style>
+.peq {
+  padding:5px; font-size:small;
+}
+.icn {
+  font-size: x-large;
+}
+.spinner svg {
+  width: 20px;
+  height: 20px;
+  stroke: #444;
+  fill: #444;
+  float:right;
+  margin-right: 10px;
+}
+</style>
+
+
+
+<span ng-if="cacheState">
+<p>$rootScope.loadingContent: <strong>{{loadingContent}}</strong></p>
+<p>$rootScope.allCached: <strong>{{allCached}}</strong></p>
+<p>$rootScope.loadingItem: <strong>{{loadingItem}}</strong></p>
+</span>
+
+
+<div ng-if="cacheState">
+    <div class="row" style="xpadding-left:10px; xpadding-right:20px;">
+      <div class="col" style="padding-top:10px;">   
+        <h4 ng-click="tst()">Secciones</h4>
+      </div>
+      <div class="col col-30" style="text-align:right;">
+        <button class="button button-light" ng_click="full(true)" ng-disabled="allCached && !checkUpdates">
+          
+          <span ng-if="!allCached">
+            <span ng-if="loadingContent">
+              Descargando ...
+            </span>
+            <span ng-if="!loadingContent">
+              Descargar          
+            </span>
+          </span>
+          <span ng-if="allCached">
+            <span ng-if="loadingContent">
+              Actualizando ...
+            </span>
+            <span ng-if="!loadingContent" >
+              Actualizar        
+            </span>
+          </span>
+
+        </button>
+      </div>
+    </div>
+
+    <ion-item  class="item-icon-right peq">     
+      {{courseName(4)}} - {{i18n[loc].learn}}
+      <i ng-if="loadingItem['__course4']==0" style="font-size: x-large;" class="icon" ng-class=" checkItem('__course4') ? 'ion-android-cloud-done green' : 'ion-android-cloud grey' "></i>
+
+      <ion-spinner ng-if="loadingItem['__course4']==1" icon="bubbles"></ion-spinner>  
+      <i ng-if="loadingItem['__course4']==2" style="font-size: x-large;" class="icon ion-android-cloud red" ></i>       
+    
+    </ion-item>  
+    
+    <ion-item  class="item-icon-right peq">     
+      {{courseName(5)}} - {{i18n[loc].learn}}
+      <i ng-if="loadingItem['__course5']==0" style="font-size: x-large;" class="icon" ng-class=" checkItem('__course5') ? 'ion-android-cloud-done green' : 'ion-android-cloud grey' "></i>
+      <ion-spinner ng-if="loadingItem['__course5']==1" icon="bubbles"></ion-spinner>   
+      <i ng-if="loadingItem['__course5']==2" style="font-size: x-large;" class="icon ion-android-cloud red" ></i>       
+    </ion-item>
+
+    <ion-item  class="item-icon-right peq">     
+      {{courseName(6)}} - {{i18n[loc].learn}}
+      <i ng-if="loadingItem['__course6']==0" style="font-size: x-large" class="icon" ng-class=" checkItem('__course6') ? 'ion-android-cloud-done green' : 'ion-android-cloud grey' "></i>
+      <ion-spinner ng-if="loadingItem['__course6']==1" icon="bubbles"></ion-spinner>  
+      <i ng-if="loadingItem['__course6']==2" style="font-size: x-large;" class="icon ion-android-cloud red" ></i>          
+    </ion-item>        
+
+    <ion-item  class="item-icon-right peq">     
+      {{courseName(10)}} - {{i18n[loc].learn}}
+      <i ng-if="loadingItem['__course10']==0" style="font-size: x-large;" class="icon" ng-class=" checkItem('__course10') ? 'ion-android-cloud-done green' : 'ion-android-cloud grey' "></i>
+      <ion-spinner ng-if="loadingItem['__course10']==1" icon="bubbles"></ion-spinner>      
+      <i ng-if="loadingItem['__course10']==2" style="font-size: x-large;" class="icon ion-android-cloud red" ></i>      
+    </ion-item>        
+
+    <ion-item  class="item-icon-right peq">     
+      {{courseName(10000)}} - {{i18n[loc].learn}}
+      <i ng-if="loadingItem['__course10000']==0" style="font-size: x-large;" class="icon" ng-class=" checkItem('__course10000') ? 'ion-android-cloud-done green' : 'ion-android-cloud grey' "></i>
+      <ion-spinner ng-if="loadingItem['__course10000']==1" icon="bubbles"></ion-spinner>  
+      <i ng-if="loadingItem['__course10000']==2" style="font-size: x-large;" class="icon ion-android-cloud red" ></i>         
+    </ion-item>        
+
+
+    <ion-item  class="item-icon-right peq">     
+      {{courseName(4)}} - {{i18n[loc].practice}}
+      <i ng-if="loadingItem['__tests4']==0" style="font-size: x-large;" class="icon" ng-class=" checkItem('__tests4') ? 'ion-android-cloud-done green' : 'ion-android-cloud grey' "></i>      
+      <ion-spinner ng-if="loadingItem['__tests4']==1" icon="bubbles"></ion-spinner>   
+      <i ng-if="loadingItem['__tests4']==2" style="font-size: x-large;" class="icon ion-android-cloud red" ></i>         
+    </ion-item>  
+    <ion-item  class="item-icon-right peq">     
+      {{courseName(5)}} - {{i18n[loc].practice}}
+      <i ng-if="loadingItem['__tests5']==0" style="font-size: x-large;" class="icon" ng-class=" checkItem('__tests5') ? 'ion-android-cloud-done green' : 'ion-android-cloud grey' "></i>
+      <ion-spinner ng-if="loadingItem['__tests5']==1" icon="bubbles"></ion-spinner>    
+      <i ng-if="loadingItem['__tests5']==2" style="font-size: x-large;" class="icon ion-android-cloud red" ></i>        
+    </ion-item>
+
+    <ion-item  class="item-icon-right peq">     
+      {{courseName(6)}} - {{i18n[loc].practice}}
+      <i ng-if="loadingItem['__tests6']==0" style="font-size: x-large;" class="icon" ng-class=" checkItem('__tests6') ? 'ion-android-cloud-done green' : 'ion-android-cloud grey' "></i>
+      <ion-spinner ng-if="loadingItem['__tests6']==1" icon="bubbles"></ion-spinner>  
+      <i ng-if="loadingItem['__tests6']==2" style="font-size: x-large;" class="icon ion-android-cloud red" ></i>     
+    </ion-item>     
+
+
+    <ion-item  class="item-icon-right peq">           
+      {{courseName(10)}} - {{i18n[loc].practice}}
+      <i ng-if="loadingItem['__tests10']==0" style="font-size: x-large;" class="icon" ng-class=" checkItem('__tests10') ? 'ion-android-cloud-done green' : 'ion-android-cloud grey' "></i>
+      <ion-spinner ng-if="loadingItem['__tests10']==1" icon="bubbles"></ion-spinner>     
+      <i ng-if="loadingItem['__tests10']==2" style="font-size: x-large;" class="icon ion-android-cloud red" ></i>       
+    </ion-item>     
+
+    <ion-item  class="item-icon-right peq">    
+      {{courseName(10000)}} - {{i18n[loc].practice}}
+      <i ng-if="loadingItem['__tests10000']==0" style="font-size: x-large;" class="icon" ng-class=" checkItem('__tests10000') ? 'ion-android-cloud-done green' : 'ion-android-cloud grey' "></i>
+      <ion-spinner ng-if="loadingItem['__tests10000']==1" icon="bubbles"></ion-spinner>       
+      <i ng-if="loadingItem['__tests10000']==2" style="font-size: x-large;" class="icon ion-android-cloud red" ></i>           
+    </ion-item>  
+
+
+
+    <ion-item  class="item-icon-right peq">     
+    {{i18n[loc].voca_title}}
+    <i ng-if="loadingItem['__vocabularies']==0" style="font-size: x-large;" class="icon" ng-class=" checkItem('__vocabularies') ? 'ion-android-cloud-done green' : 'ion-android-cloud grey' "></i>
+    <ion-spinner ng-if="loadingItem['__vocabularies']==1" icon="bubbles"></ion-spinner> 
+    <i ng-if="loadingItem['__vocabularies']==2" style="font-size: x-large;" class="icon ion-android-cloud red" ></i>   
+    <div ng-if="dwnCnt>0">
+      Descargando imágen {{dwnCnt}} de {{dwnTot}}.
+    </div>    
+    </ion-item>  
+
+    <ion-item  class="item-icon-right peq">     
+    {{i18n[loc].expr_title}}
+    <i ng-if="loadingItem['__expressions']==0" style="font-size: x-large;" class="icon" ng-class=" checkItem('__expressions') ? 'ion-android-cloud-done green' : 'ion-android-cloud grey' "></i>
+    <ion-spinner ng-if="loadingItem['__expressions']==1" icon="bubbles"></ion-spinner>
+    <i ng-if="loadingItem['__expressions']==2" style="font-size: x-large;" class="icon ion-android-cloud red" ></i>       
+    </ion-item>  
+
+    <ion-item  class="item-icon-right peq">     
+    {{i18n[loc].prov_title}}
+    <i ng-if="loadingItem['__proverbs']==0" style="font-size: x-large;" class="icon" ng-class=" checkItem('__proverbs') ? 'ion-android-cloud-done green' : 'ion-android-cloud grey' "></i>
+    <ion-spinner ng-if="loadingItem['__proverbs']==1" icon="bubbles"></ion-spinner>  
+    <i ng-if="loadingItem['__proverbs']==2" style="font-size: x-large;" class="icon ion-android-cloud red" ></i>      
+    </ion-item>        
+
+    <ion-item  class="item-icon-right peq">     
+    {{i18n[loc].quot_title}}
+    <i ng-if="loadingItem['__quotes']==0" style="font-size: x-large;" class="icon" ng-class=" checkItem('__quotes') ? 'ion-android-cloud-done green' : 'ion-android-cloud grey' "></i>
+    <ion-spinner ng-if="loadingItem['__quotes']==1" icon="bubbles"></ion-spinner>  
+    <i ng-if="loadingItem['__quotes']==2" style="font-size: x-large;" class="icon ion-android-cloud red" ></i>         
+    </ion-item>  
+
+    <ion-item  class="item-icon-right peq">     
+    {{i18n[loc].regv_title}}
+    <i ng-if="loadingItem['__regverbs']==0" style="font-size: x-large;" class="icon" ng-class=" checkItem('__regverbs') ? 'ion-android-cloud-done green' : 'ion-android-cloud grey' "></i>
+    <ion-spinner ng-if="loadingItem['__regverbs']==1" icon="bubbles"></ion-spinner>  
+    <i ng-if="loadingItem['__regverbs']==2" style="font-size: x-large;" class="icon ion-android-cloud red" ></i>      
+    </ion-item>  
+
+    <ion-item  class="item-icon-right peq">     
+    {{i18n[loc].irrv_title}}
+    <i ng-if="loadingItem['__irregverbs']==0" style="font-size: x-large;" class="icon" ng-class=" checkItem('__irregverbs') ? 'ion-android-cloud-done green' : 'ion-android-cloud grey' "></i>
+    <ion-spinner ng-if="loadingItem['__irregverbs']==1" icon="bubbles"></ion-spinner>
+    <i ng-if="loadingItem['__irregverbs']==2" style="font-size: x-large;" class="icon ion-android-cloud red" ></i>      
+    </ion-item>  
+
+    <ion-item  class="item-icon-right peq">     
+    {{i18n[loc].phrv_title}}
+    <i ng-if="loadingItem['__phrasverbs']==0" style="font-size: x-large;" class="icon" ng-class=" checkItem('__phrasverbs') ? 'ion-android-cloud-done green' : 'ion-android-cloud grey' "></i>
+    <ion-spinner ng-if="loadingItem['__phrasverbs']==1" icon="bubbles"></ion-spinner>
+    <i ng-if="loadingItem['__phrasverbs']==2" style="font-size: x-large;" class="icon ion-android-cloud red" ></i>       
+    </ion-item>  
+
+    <ion-item  class="item-icon-right peq">     
+    {{i18n[loc].conj_title}}
+    <i ng-if="loadingItem['__conjugations']==0" style="font-size: x-large;" class="icon" ng-class=" checkItem('__conjugations') ? 'ion-android-cloud-done green' : 'ion-android-cloud grey' "></i>
+    <ion-spinner ng-if="loadingItem['__conjugations']==1" icon="bubbles"></ion-spinner>    
+    <i ng-if="loadingItem['__conjugations']==2" style="font-size: x-large;" class="icon ion-android-cloud red" ></i>        
+    </ion-item>  
+
+    <ion-item  class="item-icon-right peq">     
+    {{i18n[loc].chea_title}}
+    <i ng-if="loadingItem['__course10002']==0" style="font-size: x-large;" class="icon" ng-class=" checkItem('__course10002') ? 'ion-android-cloud-done green' : 'ion-android-cloud grey' "></i>
+    <ion-spinner ng-if="loadingItem['__course10002']==1" icon="bubbles"></ion-spinner>
+    <i ng-if="loadingItem['__course10002']==2" style="font-size: x-large;" class="icon ion-android-cloud red" ></i>       
+    </ion-item>      
+
+<!-- -->
+
+    <div class="row" style="xpadding-left:10px; xpadding-right:20px;">
+      
+      <div class="col" style="padding-top:10px;">   
+      </div>
+
+      <div class="col col-80" style="text-align:right;">
+      
+        <button class="button button-light" ng_click="downloadAudios4(true)" ng-disabled="loadingContent4 || removingContent4">
+          <span ng-if="loadingContent4">Descargando ...</span>
+          <span ng-if="!loadingContent4 && checkItem('__course4')">Descargar</span>
+        </button>
+
+        <button class="button button-light" ng_click="downloadAudios4(false)" ng-disabled="loadingContent4 || removingContent4 || !checkItem('__audio4')">
+          <span ng-if="removingContent4">Eliminando ...</span>
+          <span ng-if="!removingContent4">Eliminar</span>
+        </button>
+
+      </div>
+
+    </div>
+
+    <ion-item  class="item-icon-right peq">     
+      
+      {{courseName(4)}} - Hi-Res Audio
+      
+      <i ng-if="loadingItem2['__audio4']==0" style="font-size: x-large;" class="icon" ng-class=" checkItem('__audio4') ? 'ion-android-cloud-done green' : 'ion-android-cloud grey' "></i>
+      <i ng-if="loadingItem2['__audio4']==2" style="font-size: x-large;" class="icon ion-android-cloud red" ></i>    
+
+      <ion-spinner ng-if="loadingItem2['__audio4']==1" icon="bubbles"></ion-spinner>  
+
+      <div ng-if="dwnCnt4!=dwnTot4">
+      {{downRem}} audio {{dwnCnt4 + 1}} de {{dwnTot4}}.
+      </div>
+
+    </ion-item>  
+
+<!-- -->
+
+    <div class="row" style="xpadding-left:10px; xpadding-right:20px;">
+
+      <div class="col" style="padding-top:10px;">   
+      </div>      
+      
+      <div class="col col-80" style="text-align:right;">
+      
+        <button class="button button-light" ng_click="downloadAudios5(true)" ng-disabled="loadingContent5 || removingContent5">
+          <span ng-if="loadingContent5">Descargando ...</span>
+          <span ng-if="!loadingContent5 && checkItem('__course5')">Descargar</span>
+        </button>
+
+        <button class="button button-light" ng_click="downloadAudios5(false)" ng-disabled="loadingContent5 || removingContent5 || !checkItem('__audio5')">
+          <span ng-if="removingContent5">Eliminando ...</span>
+          <span ng-if="!removingContent5">Eliminar</span>
+        </button>
+
+      </div>
+
+    </div>    
+
+    <ion-item  class="item-icon-right peq">     
+
+      {{courseName(5)}} - Hi-Res Audio
+
+      <i ng-if="loadingItem2['__audio5']==0" style="font-size: x-large;" class="icon" ng-class=" checkItem('__audio5') ? 'ion-android-cloud-done green' : 'ion-android-cloud grey' "></i>
+      <i ng-if="loadingItem2['__audio5']==2" style="font-size: x-large;" class="icon ion-android-cloud red" ></i>           
+
+      <ion-spinner ng-if="loadingItem2['__audio5']==1" icon="bubbles"></ion-spinner>  
+      
+      <div ng-if="dwnCnt5!=dwnTot5">
+      {{downRem}} audio {{dwnCnt5}} de {{dwnTot5}}.
+      </div>           
+    
+    </ion-item>  
+
+<!-- -->
+
+    <div class="row" style="xpadding-left:10px; xpadding-right:20px;">
+
+      <div class="col" style="padding-top:10px;">   
+      </div>      
+      
+      <div class="col col-80" style="text-align:right;">
+      
+        <button class="button button-light" ng_click="downloadAudios6(true)" ng-disabled="loadingContent6 || removingContent6">
+          <span ng-if="loadingContent6">Descargando ...</span>
+          <span ng-if="!loadingContent6 && checkItem('__course6')">Descargar</span>
+        </button>
+
+        <button class="button button-light" ng_click="downloadAudios6(false)" ng-disabled="loadingContent6 || removingContent6 || !checkItem('__audio6')">
+          <span ng-if="removingContent6">Eliminando ...</span>
+          <span ng-if="!removingContent6">Eliminar</span>
+        </button>
+
+      </div>
+
+    </div>        
+
+    <ion-item  class="item-icon-right peq">     
+
+      {{courseName(6)}} - Hi-Res Audio
+
+      <i ng-if="loadingItem2['__audio6']==0" style="font-size: x-large;" class="icon" ng-class=" checkItem('__audio6') ? 'ion-android-cloud-done green' : 'ion-android-cloud grey' "></i>
+      <i ng-if="loadingItem2['__audio6']==2" style="font-size: x-large;" class="icon ion-android-cloud red" ></i>           
+
+      <ion-spinner ng-if="loadingItem2['__audio6']==1" icon="bubbles"></ion-spinner>  
+      
+      <div ng-if="dwnCnt6!=dwnTot6">
+      {{downRem}} audio {{dwnCnt6}} de {{dwnTot6}}.
+      </div> 
+
+    </ion-item>  
+
+<!-- -->
+
+    <div class="row" style="xpadding-left:10px; xpadding-right:20px;">
+
+      <div class="col" style="padding-top:10px;">   
+      </div>      
+      
+      <div class="col col-80" style="text-align:right;">
+      
+        <button class="button button-light" ng_click="downloadAudios7(true)" ng-disabled="loadingContent7 || removingContent7">
+          <span ng-if="loadingContent7">Descargando ...</span>
+          <span ng-if="!loadingContent7 && checkItem('__course10') && checkItem('__course10000')">Descargar</span>
+        </button>
+
+        <button class="button button-light" ng_click="downloadAudios7(false)" ng-disabled="loadingContent7 || removingContent7 || !checkItem('__audio7')">
+          <span ng-if="removingContent7">Eliminando ...</span>
+          <span ng-if="!removingContent7">Eliminar</span>
+        </button>
+
+      </div>
+
+    </div>        
+
+    <ion-item  class="item-icon-right peq">     
+
+      Resto - Hi-Res Audio
+
+      <i ng-if="loadingItem2['__audio7']==0" style="font-size: x-large;" class="icon" ng-class=" checkItem('__audio7') ? 'ion-android-cloud-done green' : 'ion-android-cloud grey' "></i>
+      <i ng-if="loadingItem2['__audio7']==2" style="font-size: x-large;" class="icon ion-android-cloud red" ></i>           
+
+      <ion-spinner ng-if="loadingItem2['__audio7']==1" icon="bubbles"></ion-spinner>  
+      
+      <div ng-if="dwnCnt7!=dwnTot7">
+      {{downRem}} audio {{dwnCnt7}} de {{dwnTot7}}.
+      </div> 
+
+    </ion-item>
+
+<!-- -->
+
+</div>
+
+
+
+  <div ng-if="cacheItems.length>0 || cacheItems2.length>0">
+    <div ng-if="cacheItems.length>0" class="row">
+      <div class="col" style="padding-top:10px;">   
+        <h4>Caché secciones</h4>
+        <h3 style="margin-top:-10px; margin-bottom:0px;">{{totSize.toLocaleString()}} bytes</h3>
+      </div>
+      <div class="col col-30" style="text-align:right;">
+        <button class="button button-light" ng_click="deleteAllCacheClick()">
+          Eliminar todo
+        </button>
+      </div>
+    </div>
+    <div class="row">
+    <div class="col">
+
+    <ion-list>
+      <ion-item style="padding-left:34px; padding-top:0px; padding-bottom:10px;" class="item-button-right" ng-repeat="item in cacheItems track by $index" ng-click="cacheItemClick($index)">     
+        {{item.name}}
+        <br>
+        <i>{{item.size.toLocaleString()}} bytes</i>
+        <br>
+        <i>{{item.updated_human}}</i>        
+        <br>
+        <i>{{item.updated}}</i>
+          <div style="padding-left:14px; padding-top:0px;" class="buttons">
+              <button class="button button-clear" ng_click="deleteCacheItemClick(item.name); $event.stopPropagation();">
+                  <i class="icon ion-close-circled"></i>
+              </button>
+          </div>
+      </ion-item>
+    </ion-list>
+
+
+    <div class="col" style="padding-top:10px;">   
+      <h4>Caché persistencia</h4>
+      <h3 style="margin-top:-10px; margin-bottom:0px;">{{totSize2.toLocaleString()}} bytes</h3>
+    </div>
+
+
+    <ion-list>
+      <ion-item style="padding-left:34px; padding-top:0px; padding-bottom:10px;" class="item-button-right" ng-repeat="item in cacheItems2 track by $index" ng-click="chache2click($index)">     
+        {{item.name}}
+        <br>
+        <i>{{item.size.toLocaleString()}} bytes</i>      
+          <div style="padding-left:14px; padding-top:0px;" class="buttons">
+              <button class="button button-clear" ng_click="deleteCacheItemClick2(item.name); $event.stopPropagation();">
+                  <i class="icon ion-close-circled"></i>
+              </button>
+          </div>
+      </ion-item>
+    </ion-list>  
+
+    </div>
+    </div>
+  </div>
+
+
+
+  <div>
+
+    <hr>
+
+
+<ion-list>
+  <ion-item style="padding-left:10px; padding-right:10px; overflow: initial; padding-top:0px; padding-bottom:10px;" class="item-button-right" ng-repeat="(key, price) in subsStorePrice" >
+    {{key}}
+    <br>
+    <i>{{price}}</i>
+  </ion-item>
+</ion-list>
+
+    <hr>
+
+    <div style="text-align:center; width:250px; margin:0px auto;" >
+  <!--    <p class="item item-energized" style="padding:0; margin-bottom:10px;" >{{purchaseStatus}}</p> -->
+
+      <p >ID subscripción: <b ng-if="subsPrice">{{subsID}}</b><b ng-if="!subsID">Desconocido</b></p>
+
+      <p >Precio subscripción: <b ng-if="subsPrice">{{subsPrice}}</b><b ng-if="!subsPrice">Desconocido</b></p>
+
+      <p >Precio original: <b ng-if="subsPriceOrig">{{subsPriceOrig}}</b><b ng-if="!subsPriceOrig">Desconocido</b></p>
+
+      <p>Expiración compra</p>
+      <div ng-if="loc=='es'">
+        <p ng-if="!purchaseExpires" class="item" style="padding:0; margin-bottom:10px;" ng-class="{ 'item-balanced' : purchaseStatus, 'item-energized' : !purchaseStatus }">Desconocida</p>
+        <p ng-if="purchaseExpires" class="item" style="padding:0; margin-bottom:10px;" ng-class="{ 'item-balanced' : purchaseStatus, 'item-energized' : !purchaseStatus }">Expira el {{purchaseExpires}}</p>
+      </div>
+
+      <div ng-if="loc!='es'">
+        <p ng-if="!purchaseExpires" class="item" style="padding:0; margin-bottom:10px;" ng-class="{ 'item-balanced' : purchaseStatus, 'item-energized' : !purchaseStatus }">Unknown</p>
+        <p ng-if="purchaseExpires" class="item" style="padding:0; margin-bottom:10px;" ng-class="{ 'item-balanced' : purchaseStatus, 'item-energized' : !purchaseStatus }">Expires on {{purchaseExpires}}</p>
+      </div>
+
+      <p>Referrer</p>
+      <p ng-if="!install_referrer" class="item" style="padding:0; margin-bottom:10px;" ng-class="{ 'item-balanced' : install_referrer, 'item-energized' : !install_referrer }">Desconocido</p>
+      <p ng-if="install_referrer" class="item" style="padding:0; margin-bottom:10px;" ng-class="{ 'item-balanced' : install_referrer, 'item-energized' : !install_referrer }">{{install_referrer}}
+
+
+    </div>
+  </div>
+
+
+
+<hr>
+
+    <div style="text-align:center; position:relative;">
+      <img src="assets/changeAvatar1.png" alt="" width="64px" height="64px"/>
+      <input ngf-select="onFileSelect($file, $invalidFiles)" id="uploadFile" name="uploadFile" type="file" accept="image/*" class="fakeinput"></input>
+    </div>
+    <span>Pulsar en la imágen para probar el acceso a la biblioteca de fotos.</span>
+    
+<hr>
+
+  <div style="text-align:center">
+    <button class="button" ng-click="doBack()">Compras: llamar a backend</button>
+    <button class="button" ng-click="doRestore()">Compras: restaurar</button>    
+    <button class="button" ng-click="doBuy()">Compras: efectuar</button>
+  </div>
+
+<hr>
+
+  <div style="text-align:center">
+    <button class="button" ng-click="doRate()"                            >Rate     </button>
+    <button class="button" ng-click="doSync()" ng-disabled="!checkPend()" >Sync     </button>
+    <button class="button" ng-click="cacheTest()"                         >cacheTest</button>      
+    <button class="button" ng-click="doCrash()"                           >Crash    </button>
+    <button class="button" ng-click="doToast()"                           >Toast    </button>    
+  </div>  
+
+
+  <div style="text-align:center">
+ 
+    <div style="border: 1px solid lightgray; padding:10px; border-radius: 6px; margin-bottom:5px;">
+        <textarea style="width: 100%" reset-field xclass="i--textarea margin-bottom" placeholder="{{i18n[loc].type}} ..." rows="8"  ng-model="datos.frmText"></textarea>
+    </div>
+    <br>
+    <button class="button" ng-click="grabaT2s(datos.frmText)">Grabar</button>      
+    <button class="button" ng-click="cargaT2s()">Cargar</button>        
+    <br>
+    <button class="button" ng-click="reproduceT2s(datos.frmText)">> Nativo por defecto</button>
+    <br>
+    <button class="button" ng-click="reproduceNativo(datos.frmText)">> Nativo</button>
+    <br>
+    <select ng-model="datos.frmQueVoz" ng-change="setQueVoz()">
+      <option value="usf">USA Female</option>
+      <option value="usm">USA Male</option>
+      <option value="gbf">GB Female</option>
+      <option value="gbm">GB Male</option>
+    </select>
+    <br>
+    <button class="button" ng-click="reproduceNormal(datos.frmText)">> SpeechSynthesis</button>
+    <br>
+    <select ng-model="datos.frmVoz" ng-options="item for item in voces"></select>
+  </div>
+
+  <hr>
+  <div style="text-align:center">
+    <button class="button" ng-click="loginFirebase()">Login Firebase</button>
+  </div>
+  <hr>
+
+  <div style="text-align:center; padding-top: 4px; padding-bottom:10px;">
+    <button class="button" ng-click="tst0()" style="font-size:12px; padding:2px;">    
+        <p>Pantalla <br> Comprar <br> <span style="font-size:10px; color:black;">purchase.html</span></p>
+    </button>  
+    <button class="button" ng-click="tst1()" style="font-size:12px; padding:2px;">
+    <p>Compra <br> efectuada <br> <span style="font-size:10px; color:black;">purchase_thx.html</span></p></button>
+    <button class="button" ng-click="tst2()" style="font-size:12px; padding:2px;"><p>Explicación <br> premium <br> <span style="font-size:10px;  color:black;">purchase_exp.html</span></p></button>
+    <br>
+    <button class="button" ng-click="tst3()" style="font-size:12px; padding:2px;"><p>Pantalla <br> error <br> <span style="font-size:10px; color:black;">error.html</span></p></button>    
+    <button class="button" ng-click="tst4()" style="font-size:12px; padding:2px;"><p>Pantalla <br> RGPD <br> <span style="font-size:10px; color:black;">RGPD.html</span></p></button>    
+  </div>
+
+<!--
+  <button class="button" ng-click="tst4()" style="font-size:12px; padding:2px;">Referrer</button>      
+-->
+
+
+<hr>
+<div style="text-align: center;">
+  <button class="button" ng-click="SpotLightAdd()">SpotLight Add</button>
+  <button class="button" ng-click="SpotLightRemove()">SpotLight Remove</button>
+  <button class="button" ng-click="SpotLightUpdate()">SpotLight Update</button>  
+  <br><br>
+</div>
+
+<hr>
+<div style="text-align: center;">
+  <button class="button" ng-click="echoTest()">Plugin de prueba</button>
+</div>
+
+<hr>
+<div style="text-align: center;">
+  $rootScope.isOnLine: <b>{{isOnLine}}</b>
+  <br>
+  <button class="button" ng-click="checkOnLine()">isOnLine ?</button>
+  <br><br>
+</div>
+
+
+
+</div>
+
+
+<label class="item item-input item-divider" style="background:transparent; margin-top:10px; border-color:#00a8ef;">
+    <div class="row" style="padding:0px;">
+      <span style="padding-top:14px; margin-right:10px; color:#00a8ef;">{{i18n[loc].lang}}:</span>      
+      <ion-checkbox ng-model="datos.loces" style="border:none; color:white; background:transparent;" ng-click="langToggle(0)">es</ion-checkbox>
+      <ion-checkbox ng-model="datos.locen" style="border:none; color:white; background:transparent;" ng-click="langToggle(1)">en</ion-checkbox>              
+      <ion-checkbox ng-model="datos.locbr" style="border:none; color:white; background:transparent;" ng-click="langToggle(2)">br</ion-checkbox>   
+    </div>
+</label>
+
+
+
+
+  </ion-content>
+
+
+
+
+
+</ion-view>

@@ -1,0 +1,128 @@
+
+<style>
+#corregir .big {font-size:42px;}
+#corregir p {font:inherit; color:white};
+</style>
+
+
+
+<ion-view hide-nav-bar="{{!userInfo}}">
+
+
+<ion-nav-buttons side="left">
+</ion-nav-buttons>
+
+<!--
+    <ion-nav-buttons side="right">
+        <button class="button button-icon button-clear icon-people" menu-toggle="right"></button>
+    </ion-nav-buttons>
+-->
+
+
+
+<!--
+    <ion-nav-title>Tour</ion-nav-title>
+-->
+  
+    <ion-content class="tour_bg" has-bouncing="false"> 
+<!-- show-pager="false" on-slide-changed="slideHasChanged($index)" active-slide="currentSlide" pager-click="pagerClick(index)" ng-if="test!='Cargando ...'" -->
+
+<div id="corregir">
+
+        <ion-slide-box active-slide="cSlide" xon-slide-changed="slideHasChanged($index)" pager-click="pagerClick(index)">
+
+                <ion-slide>
+                    <div class="item-tour mislide" style="background-image: url('assets/tour4.jpg');">
+                        
+                        <div ng-if="loc=='es'">                          
+                          <p style="font:inherit; color:white;">¡Bienvenido a tu <strong>curso</strong> para aprender
+                          <strong>ingl&eacute;s gratis</strong>!</strong></p>
+                          <!-- <i>Elige ahora una opción <span class="icon-double-down"></span></i> -->
+                        </div>
+
+                        <div ng-if="loc=='br'">                          
+                          <p style="font:inherit; color:white;">Bem-vindo ao seu <strong>curso</strong> para aprender <strong>inglês grátis</strong>!</strong></p>
+                        </div>
+
+                        <div ng-if="loc!='es' && loc!='br'">
+                          <p style="font:inherit; color:white;">Welcome to your <strong>course</strong> for learning <strong>English for free</strong>!</p>
+                          <!-- <i>Now choose an option <span class="icon-double-down"></span></i> -->
+                        </div>
+                    
+                    </div>
+                </ion-slide>
+
+                <ion-slide>
+                    <div class="item-tour mislide" style="background-image: url('assets/tour1.jpg');">
+                        
+                        <div ng-if="loc=='es'">
+                          <p style="font:inherit; color:white;">Pulsa el botón <strong>Acceder </strong> para <strong>chatear</strong> con otros usuarios y registrar tus <strong>avances</strong> en el curso.</p>
+                          <!-- <i>Desliza para saber más <span class="icon-double-right"></span></i> -->
+                        </div>
+
+                        <div ng-if="loc=='br'">
+                          <p style="font:inherit; color:white;">Pressione o botão <strong>Login </strong> para <strong>bater papo</strong> com outros usuários e registrar seus <strong>progressos</strong> no curso.</p>
+                        </div>
+
+                        <div ng-if="loc!='es' && loc!='br'">
+                          <p style="font:inherit; color:white;">Press the <strong>Access</strong> button to <strong>chat</strong> with other users and register your <strong>progress</strong> in the course.</p>
+                          <!-- <i>Swipe to learn more <span class="icon-double-right"></span></i> -->
+                        </div>
+
+                    </div>
+                </ion-slide>
+
+                <ion-slide>
+                    <div class="item-tour mislide" style="background-image: url('assets/tour2.jpg');">
+                        
+                        <div ng-if="loc=='es'">                    
+                          <p style="font:inherit; color:white;">O pulsa <strong>Inicio</strong> para <strong>explorar de forma libre</strong> cientos de lecciones y ejercicios además de múltiples recursos para <strong>practicar inglés</strong>!</p>  
+                          <!-- <i>Desliza para saber más <span class="icon-double-right"></span></i> -->
+                        </div>
+
+                        <div ng-if="loc=='br'">                    
+                          <p style="font:inherit; color:white;">Ou prima <strong>Início</strong> para <strong>explorar libremente</strong> lições e exercícios e múltiplos recursos para <strong>praticar Inglês</strong>!</p>  
+                        </div>
+
+                        <div ng-if="loc!='es' && loc!='br'">
+                          <p style="font:inherit; color:white;">Or press the <strong>Start</strong> button to <strong>freely explore</strong> hundreds of lessons and exercises as well as multiple resources for <strong>practicing English</strong>.</p>                          
+                          <!-- <i>Swipe to learn more <span class="icon-double-right"></span></i> -->
+                        </div>                        
+                    
+                    </div>
+                </ion-slide>
+
+<!--                
+                <ion-slide>
+                    <div class="item-tour mislide" style="background-image: url('assets/tour3.jpg');">
+                        <div ng-if="loc=='es'">                    
+                          <p style="font:inherit; color:white;">O pulsa <strong>empezar</strong> para <strong>explorar de forma libre</strong> cientos de lecciones y ejercicios además de múltiples recursos para <strong>practicar inglés</strong>!</p>
+                        </div>
+                        <div ng-if="loc!='es'">
+                          <p style="font:inherit; color:white;">Or press the "Start" button to freely explore hundreds of lessons and exercises as well as multiple resources for practicing English.</p>                        
+                        </div>
+                    </div>
+                </ion-slide>
+-->                
+
+                
+        </ion-slide-box>
+
+</div>        
+
+    </ion-content>
+        
+    <div class="tour-buttons" ng-if="!userInfo">
+        <a class="i--button lighgreen text21" ng-click="login('app.learn'); $event.stopPropagation();">{{i18n[loc].login}}</a>
+        <a class="i--button borderWhite text21" ng-click="goLearn()" href="">{{i18n[loc].start}}</a>
+    </div>
+           
+    <div class="tour-buttons" ng-if="userInfo">
+        <a class="i--button borderWhite text21" ng-click="goLearn()" href="">{{i18n[loc].start}}</a>
+    </div>
+
+
+</ion-view>
+
+
+

@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="es">
+
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>WebView Transparente + Texto Rojo</title>
+
+    <style>
+
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      /* La solución principal al rebote en iOS */
+      overscroll-behavior-x: none;
+      overscroll-behavior-y: none;       
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      background: transparent;
+      color: #ff0000;
+      font-family: sans-serif;
+      border: 4px solid red;
+      box-sizing: border-box;
+      padding-top: 40px;
+      margin: 0;
+    }
+
+    h1, .desc {
+      color: #ff0000;
+      text-align: center;
+    }
+    button {
+      font-size: 1em;
+      padding: 0.5em 1em;
+      margin: 0.2em 0.1em;
+      font-family: monospace;
+    }    
+
+    #main-zone {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    #test-zone {
+      flex: 1;
+      min-height: 80px;
+      max-height: 100%;
+      overflow-y: auto;
+
+      border: 2px dashed #00629D;
+      margin: 16px auto 0 auto;
+      padding: 10px;
+      width: 90%;
+      background: rgba(0,98,157);
+      color: white;
+      font-family: monospace;
+      -webkit-overflow-scrolling: touch; /* Mejora la fluidez del scroll en iOS antiguos */
+    }
+
+    /* se ajusta al contenido y no ocupa espacio flexible */
+    #r34lp0w3r-log {
+      color: #ff0000;
+      text-align: left;
+      max-height: 200px;
+      max-width: 100%;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      background: rgba(0,0,0,0.05);
+      border-radius: 4px;
+      padding: 12px;
+      font-size: 13px;
+      margin: 8px auto;
+      flex: 0 0 auto; /* 🔧 importante */
+      margin-bottom:20px;
+    }
+
+    </style>
+
+  </head>
+
+  <body>
+
+    <h1>WebView Transparente</h1>
+    <div class="desc">
+      El <b>borde rojo</b> indica el límite real del WebView.<br>
+      El <b>texto en rojo</b> debe destacar sobre cualquier fondo.<br>
+    </div>
+    
+    <div id="main-zone">
+
+      <!-- ZONA DE PRUEBAS / BOTONES -->
+      <div id="test-zone">
+
+
+        <hr>
+        <label>loginSocial</label>
+        <br>        
+        <button onclick="loginSocial('facebook')">loginSocial('facebook')</button>
+        <button onclick="loginSocial('google')">loginSocial('google')</button>
+        <button onclick="loginSocial('apple')">loginSocial('apple')</button>
+
+
+        <hr>
+        <label>Capacitor.Plugins.AdMob</label>
+        <br>
+        <button onclick="AdMobShowContentForm()">AdMobShowContentForm()</button>
+        <br>
+        <label>Ads - Test</label>
+        <br>
+        <button onclick="AdMobInit(true)">AdMobInit(test)</button>
+        <button onclick="AdMobShowBanner(true)">AdMobShowBanner(test)</button>
+        <button onclick="AdMobPrepareInterstitial(true)">AdMobPrepareInterstitial(true)</button>
+        <button onclick="AdMobPrepareRewardInterstitialAd(true)">AdMobPrepareRewardInterstitialAd(test)</button>
+        <button onclick="AdMobPrepareRewardVideoAd(true)">AdMobPrepareRewardVideoAd(true)</button>
+        <br>
+        <label>Ads - Real</label>
+        <br>
+        <button onclick="AdMobInit(false)">AdMobInit(false)</button>
+        <button onclick="AdMobShowBanner(false)">AdMobShowBanner(false)</button>
+        <button onclick="AdMobPrepareInterstitial(false)">AdMobPrepareInterstitial(false)</button>
+        <button onclick="AdMobPrepareRewardInterstitialAd(false)">AdMobPrepareRewardInterstitialAd(false)</button>
+        <button onclick="AdMobPrepareRewardVideoAd(false)">AdMobPrepareRewardVideoAd(false)</button>
+        <br>
+        <label>Ads - Triggers</label>
+        <br>
+        <button onclick="AdMobHideBanner()">AdMobHideBanner()</button>
+        <button onclick="AdMobShowInterstitial()">AdMobShowInterstitial()</button>
+        <button onclick="AdMobShowRewardInterstitialAd()">AdMobShowRewardInterstitialAd()</button>
+        <button onclick="AdMobShowRewardVideoAd()">AdMobShowRewardVideoAd()</button>
+
+
+        <hr>
+        <label>Capacitor.Plugins.PushNotifications</label>
+        <br>
+        <button onclick="PushNotificationsInit()">PushNotificationsInit()</button>
+        <button onclick="enviarPush('fcm',5)">enviarPush('fcm',5)</button>
+        <button onclick="enviarPush('apns',5)">enviarPush('apns',5)</button>
+
+
+        <hr>
+        <label>IAP (CdvPurchase) cordova-plugin-purchase</label>
+        <br>     
+        <button onclick="IAPgetProducts()">IAPgetProducts()</button>
+        <button onclick="IAPbuyProduct('premium_month')">IAPbuyProduct('premium_month')</button>
+        <button onclick="IAPbuyProduct('premium_anual')">IAPbuyProduct('premium_anual')</button>
+        <button onclick="IAPcheckOwned('premium_month')">IAPcheckOwned('premium_month')</button>
+        <button onclick="IAPcheckOwned('premium_anual')">IAPcheckOwned('premium_anual')</button>
+        <button onclick="IAPrestorePurchases()">IAPrestorePurchases()</button>
+        <button onclick="IAPUpdate()">IAPUpdate()</button>
+        <button onclick="testBackend('android-playstore')">testBackend('android-playstore')</button>
+        <button onclick="testBackend('ios-appstore')">testBackend('ios-appstore')</button>
+
+
+        <hr>
+        <label>Capacitor.Plugins.StatusBar</label>
+        <br>
+        <button onclick="setStatusBarBlue()">setStatusBarBlue()</button>
+        <button onclick="setStatusBarTransparent()">setStatusBarTransparent()</button>
+        <br>
+        <button onclick="setStatusBarOverlayOn()">setStatusBarOverlayOn()</button>
+        <button onclick="setStatusBarOverlayOff()">setStatusBarOverlayOff()</button>
+        <br>             
+        <button onclick="setStatusBarLight()">setStatusBarLight()</button>
+        <button onclick="setStatusBarDark()">setStatusBarDark()</button>
+        <br>
+        <button onclick="setStatusBarShow()">setStatusBarShow()</button>
+        <button onclick="setStatusBarHide()">setStatusBarHide()</button>
+
+
+        <hr>
+        <label>Capacitor.Plugins.P4w4Plugin</label>
+        <br>       
+        <button onclick="setStartupHtml('index_app.html')">setStartupHtml('index_app.html')</button>
+        <button onclick="setStartupHtml('index_debug.html')">setStartupHtml('index_debug.html')</button>
+        <button onclick="setStartupHtml('index.html')">setStartupHtml('index.html')</button>
+        <button onclick="reloadWebView()">reloadWebView()</button>
+        <button onclick="restartApp()">restartApp()</button>
+        <br>
+        <button onclick="resizeWebView(200)">resizeWebView(200)</button>
+        <button onclick="resizeWebView(-200)">resizeWebView(-200)</button>
+        <button onclick="offsetTopWebView(200)">offsetTopWebView(200)</button>
+        <button onclick="offsetTopWebView(-200)">offsetTopWebView(-200)</button>
+        <button onclick="getStatusBarHeight()">getStatusBarHeight()</button>
+        <button onclick="escondeStatusBar()">escondeStatusBar()</button>
+        <button onclick="arreglaStatusBar()">arreglaStatusBar()</button>
+
+
+        <hr>
+        <label>R34lp0wer_eval()</label>
+        <br>
+        <label for="r34lp0w3r-input">r34lp0w3r-input</label>
+        <br>
+        <textarea id="r34lp0w3r-input" rows="4" style="width: 95%; font-family: monospace;"></textarea>
+        <br>
+        <button onclick="doR34lp0wer_eval()">r34lp0w3r_eval(r34lp0w3r-input)</button>
+        <div id="r34lp0w3r-output" style="white-space: pre-wrap; background: #00000010; margin-top: 8px; padding: 8px;"></div>
+
+
+        <br>
+      </div>
+
+      <!-- Aquí sale el log -->
+      <div id="r34lp0w3r-log"></div>
+
+    </div>
+
+    <!-- 006.001 r34lp0w3r_capacitor -->       
+    <script src="capacitor/r34lp0w3r_capacitor.js"></script>
+
+  </body>
+
+</html>

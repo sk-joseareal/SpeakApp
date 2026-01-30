@@ -1,0 +1,97 @@
+
+<style>
+.hidden { display: none; }
+</style>
+
+<!-- 'desactivar' hover -->
+<style>
+.button-lista:hover {
+    background:#0084cb !important;
+}
+
+.button-lista.active:hover {
+    background:#00a8ef !important;
+}
+</style>
+
+
+<ion-view>
+
+    <ion-nav-buttons side="right">
+        <button class="button button-icon button-clear ion-ios-search" ng-click="srchClick()"></button>
+        <button class="button button-icon button-clear icon-people" xmenu-toggle="right" ng-click="chatClick('upr')"></button>
+    </ion-nav-buttons>
+    
+    <ion-content ng-class="(errorValue) ? 'wrongBackground' : ''" class="padding regular_verb">
+
+        <div ng-if="errorValue" ng-include src="'views/error.html'"></div>
+
+        <div ng-if="!errorValue">     
+    
+        <h3 ng-if="test=='xxCargando ...'">{{test}}</h3>
+
+        <ion-scroll direction="x" delegate-handle="miScroller" class="scroller_menu wide-as-needed no-padding" >
+            <a class="button button-lista" ng-class="{active: $index==currentSlide}" ng-repeat="l in paginas" ng-click="listaClick($event,$index)" id="lstbtn{{$index}}">{{l[1]}}</a>
+        </ion-scroll>
+       
+        <ion-slide-box show-pager="false" on-slide-changed="slideHasChanged($index)" active-slide="currentSlide" pager-click="pagerClick(index)" ng-if="test!='Cargando ...'">
+
+	        <ion-slide ng-repeat="l in paginas">
+	      	    <!-- <h1>{{l[1]}}</h1> -->
+
+                <div style="height:1px;">
+                </div>  
+
+                <div ng-if="$index===currentSlide">                
+	      	    
+                    <ng-repeat class="list" ng-repeat="(x,item) in phrasverbs[l[0]]" >
+
+                        <ion-item class="item-box56" ng-click="wordClick(item.name)">
+                            <header class="i-header header-button">
+                                <div class="i--play3">
+                                    <div class="icon-play"></div>
+                                    <div class="text14">to {{item.name}}</div>
+    <!--                                
+                                    <div class="text3">Traduccion</div>
+    -->                                
+                                </div>
+                                <div class="i-icon" ng-class="{ 'ion-minus-circled' : openItem==$index  , 'ion-plus-circled' :openItem != $index   }" ng-click="plusClick($index); $event.stopPropagation();"></div>
+                            </header>
+                            <section class="text15" ng-show="openItem==$index">
+                                <hr>
+
+                                <ion-item class="item item-borderless" ng-click="wordClick(item.examples[y].example); $event.stopPropagation();" ng-repeat="(y,example) in item.examples" style="padding:10px;">	
+
+                                    <div class="text14">{{x+1}}.{{y+1}}&nbsp;{{example.definition_en}}</div>
+                                    <div ng-if="loc=='es'" class="text3"><span class="opacityOFF text14">{{x+1}}.{{y+1}}&nbsp;</span>{{example.definition}}</div>
+                                    <div class="i--text-level2 i--play2 icon-play">
+                                        <div class="text14">{{example.example}}</div>
+                                        <div ng-if="loc=='es'" class="text3">{{example.example_translation}}</div>
+                                    </div>
+                                    <div class="i--text-level2" ng-if="example.syntax && example.syntax && example.syntax!=''">
+                                        <div class="text20">{{i18n[loc].syntax}}: <span class="text3">{{example.syntax}}</span></div>
+                                    </div>
+                                    <div ng-if="loc=='es' && example.notes && example.notes!=''" class="i--text-level2">
+                                        <div class="text20">Notas de uso: <span class="text3">{{example.notes}}</span></div>
+                                    </div>
+                                    
+                                    <hr class="v2">
+
+                                </ion-item> 
+
+                            </section>
+
+                        </ion-item>
+
+                    </ng-repeat>
+
+                </div>
+
+            </ion-slide>
+
+        </ion-slide-box>
+
+        </div>
+    </ion-content>
+
+</ion-view>

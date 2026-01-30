@@ -1,0 +1,45 @@
+<ion-view>
+    
+    <ion-nav-buttons side="right">
+        <button class="button button-icon button-clear ion-ios-search" ng-click="srchClick()"></button>
+        <button class="button button-icon button-clear icon-people" menu-toggle="right" ng-click="flashClick(2)"></button>
+    </ion-nav-buttons>
+
+    <ion-content class="padding song">
+
+        <div class="item-box56 extra-padding">
+           <iframe width="100%" height="215" src="{{videoURL(videolesson.video_id)}}" frameborder="0" allowfullscreen></iframe>
+        </div>
+
+
+        <div class="item-box56 song-info">
+            <div class="text14">{{videolesson.title}}</div>
+            <div class="text25 underline_none">{{videolesson.lesson_section}}</div>
+        </div>
+
+<!--
+    <video controls="controls" preload="metadata" autoplay="autoplay" webkit-playsinline="webkit-playsinline" class="videoPlayer"><source src="{{song.video_url}}" type="video/mp4"/></video>
+
+
+    https://www.youtube.com/v/WzhW20hLp6M?version=3&amp;hl=uk_UA&amp;rel=0
+
+
+    https://www.youtube.com/watch?v=DGVNuSYDbvo
+-->
+
+<!--
+
+                <object width="100%" height="150">
+                    <param name="movie" value="https://www.youtube.com/v/WzhW20hLp6M?version=3&amp;hl=uk_UA&amp;rel=0"></param>
+                    <param name="allowFullScreen" value="true"></param
+                    <param name="allowscriptaccess" value="always"></param>
+                    <embed src="https://www.youtube.com/v/DGVNuSYDbvo" type="application/x-shockwave-flash" width="100%" height="300px;" allowscriptaccess="always" allowfullscreen="true"></embed>
+                </object>
+-->
+
+    </ion-content>
+
+
+</ion-view>
+
+

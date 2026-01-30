@@ -1,0 +1,131 @@
+
+<style>
+.miLista {
+  font: 16px 'Open Sans', sans-serif;
+  margin: 0 0 1em 0;
+  padding: 0 0 0 1em; /* make space for li's :before */
+  list-style: none;
+}
+.miItem {
+  position: relative;
+  padding-left: 0.4em; /* text distance to icon */
+}
+.miItem:before {
+  content: url('assets/img/check-mark.png');
+  position: absolute;
+  left: -1em;
+  top: 0em;
+}
+.enfasis {
+  /*color:#00629d;*/
+  color:#4d4d4d;
+  font-weight:bold;
+}
+</style>
+
+<ion-modal-view style="background: rgba(0,0,0,.7);">
+
+
+  <ion-content class="no-scroll no-bounce" style="background: rgba(0,0,0,0); padding:0px;">
+
+    <div class="item-box59" style="margin-top:40px; margin-left:40px; margin-right:40px; padding:0; box-shadow: initial !important;">
+
+
+
+        <div style=" margin-top:50px; margin-left: 50%; transform: translate(-90px, 0); position: absolute;">
+          <img src="assets/nena.png" width="100px" height="100px"/>
+        </div>
+
+
+<!--
+        <div style="position:fixed; top:50px; left: 50%; transform: translate(-50%, 0); z-index:100;">      
+          <img src="assets/nena.png" alt="" width="100px" height="100px"/>
+        </div> 
+-->
+
+
+        <div style="text-align:center; height:100px; background:#00629d; border-top-left-radius: 8px; border-top-right-radius: 8px;">
+
+<h3 ng-if="loc=='es'" style="color:white; padding-top:15px;">Lecciones Premium</h3>
+<h3 ng-if="loc=='br'" style="color:white; padding-top:15px;">Lições premium</h3>
+<h3 ng-if="loc!='es' && loc!='br'" style="color:white; padding-top:15px;">Premium Lessons</h3>
+
+<!--
+          <h3 ng-if="loc=='es'" style="color:white; padding-top:15px;">¡Hazte Premium!</h3>
+          <h3 ng-if="loc=='br'" style="color:white; padding-top:15px;">Vire Premium!</h3>
+          <h3 ng-if="loc!='es' && loc!='br'" style="color:white; padding-top:15px;">Become a Premium User!</h3>
+-->        
+        </div>
+
+        <div style="text-align:center; padding-top:60px; padding-bottom:10px; padding-left:10px; padding-right: 10px; background:#white;">
+          <p ng-if="loc=='es'" style="color:#808080;"><strong>Suscríbete y accede</strong> a todo el <strong>contenido Premium</strong> siempre que quieras!</p>
+          <p ng-if="loc=='br'" style="color:#808080;"><strong>Assine e acesse</strong> todo o <strong>conteúdo Premium</strong> sempre que quiser!</p>
+          <p ng-if="loc!='es' && loc!='br'" style="color:#808080;"><strong>Subscribe</strong> and <strong>have access to the Premium content</strong> whenever you want!</p>
+
+          <div ng-if="!premium && userInfo" style="text-align:center;">
+              <button ng-if="loc=='es'" class="green i--button text13" style="font-size:15px; padding:5px 12px 8px 12px; color:white;" ng-click="goPremium('fullLesson2'); $event.stopPropagation();"><img src="assets/corona.png" style="height:20px; padding-right:5px; margin-bottom:-5px;"></img>Saber más</button>
+              <button ng-if="loc=='br'" class="green i--button text13" style="font-size:15px; padding:5px 12px 8px 12px; color:white;" ng-click="goPremium('fullLesson2'); $event.stopPropagation();"><img src="assets/corona.png" style="height:20px; padding-right:5px; margin-bottom:-5px;"></img>Saber mais</button>
+              <button ng-if="loc!='es' && loc!='br'" class="green i--button text13" style="font-size:15px; padding:5px 12px 8px 12px; color:white;" ng-click="goPremium('fullLesson2'); $event.stopPropagation();"><img src="assets/corona.png" style="height:20px; padding-right:5px; margin-bottom:-5px;"></img>Learn more</button>
+          </div>
+
+          <div ng-if="!premium && !userInfo" style="text-align:center;">          
+              <button ng-if="loc=='es'" class="green i--button text13" style="font-size:15px; padding:5px 12px 8px 12px; color:white;" ng-click="login('purchaseSection'); $event.stopPropagation();"><img src="assets/corona.png" style="height:20px; padding-right:5px; margin-bottom:-5px;"></img>Saber más</button>                        
+              <button ng-if="loc=='br'" class="green i--button text13" style="font-size:15px; padding:5px 12px 8px 12px; color:white;" ng-click="login('purchaseSection'); $event.stopPropagation();"><img src="assets/corona.png" style="height:20px; padding-right:5px; margin-bottom:-5px;"></img>Saber mais</button>   
+              <button ng-if="loc!='es' && loc!='br'" class="green i--button text13" style="font-size:15px; padding:5px 12px 8px 12px; color:white;" ng-click="login('purchaseSection'); $event.stopPropagation();"><img src="assets/corona.png" style="height:20px; padding-right:5px; margin-bottom:-5px;"></img>Learn more</button>                                   
+          </div>
+
+        </div>
+
+
+
+
+
+
+        <div style="text-align:center; xpadding-top:20px; xpadding-bottom: 25px;">
+
+
+
+            <div style="padding-top:15px; background-color:#f8f8f8; border-bottom-right-radius:5px; xopacity:0.7; border-bottom-left-radius:5px;">
+
+
+                        <div ng-if="!premium && RewardedReady" style="text-align:center; padding-left: 10px; padding-right: 10px;">
+
+<p ng-if="loc=='es'" style="color:#808080;">O bien <strong>mira este video</strong> de nuestros sponsors y desbloquea el <strong>acceso a esta lección</strong> una vez!</p>
+<p ng-if="loc=='br'" style="color:#808080;">Ou <strong>assista a este vídeo</strong> de nossos patrocinadores e desbloqueie o <strong>acesso a esta lição</strong> uma vez!</p>
+<p ng-if="loc!='es' && loc!='br'" style="color:#808080;">Or <strong>watch this video</strong> from our sponsors and get one time <strong>access to this lesson!</strong></p>
+
+<button ng-if="loc=='es'" class="gris i--button text13" style="font-size:15px; padding:5px 12px 8px 12px; color:white; background:#00629;" ng-click="seeVideo(); $event.stopPropagation();"><img src="assets/play-circle-outline.svg" style="height:20px; padding-right:5px; margin-bottom:-5px;"></img>Ver video</button>
+<button ng-if="loc=='br'" class="gris i--button text13" style="font-size:15px; padding:5px 12px 8px 12px; color:white; background:#00629;" ng-click="seeVideo(); $event.stopPropagation();"><img src="assets/play-circle-outline.svg" style="height:20px; padding-right:5px; margin-bottom:-5px;"></img>Ver vídeo</button>
+<button ng-if="loc!='es' && loc!='br'" class="gris i--button text13" style="font-size:15px; padding:5px 12px 8px 12px; color:white; background:#00629;" ng-click="seeVideo(); $event.stopPropagation();"><img src="assets/play-circle-outline.svg" style="height:20px; padding-right:5px; margin-bottom:-5px;"></img>Watch video</button>
+
+                        </div>
+
+
+<div style="background-image: url('assets/Elementos-gris-40.png'); background-size:cover; height:130px; margin-top:30px;"></div>
+
+
+
+
+          </div>
+        </div>
+
+
+
+
+    </div>
+        <br> 
+        <div style="text-align: center;">
+            <div ng-if="isOnLine">       
+              <a ng-if="loc=='es'" href="#" ng-click="closePremiumOpts(); $event.stopPropagation();" class="text19" style="color:white; font-size:15px; text-decoration:underline;">No, gracias</a>
+              <a ng-if="loc=='br'" href="#" ng-click="closePremiumOpts(); $event.stopPropagation();" class="text19" style="color:white; font-size:15px; text-decoration:underline;">Não, obrigado</a>
+              <a ng-if="loc!='es' && loc!='br'" href="#" ng-click="closePremiumOpts(); $event.stopPropagation();" class="text19" style="color:white; font-size:15px; text-decoration:underline;">Not now, thanks</a>
+            </div>
+            <div ng-if="!isOnLine">
+              <a ng-if="loc=='es'" href="#" ng-click="closePremiumOpts(); $event.stopPropagation();" class="text19" style="color:white; font-size:15px; text-decoration:underline;">Cerrar</a>
+              <a ng-if="loc=='br'" href="#" ng-click="closePremiumOpts(); $event.stopPropagation();" class="text19" style="color:white; font-size:15px; text-decoration:underline;">Fechar</a>
+              <a ng-if="loc!='es' && loc!='br'" href="#" ng-click="closePremiumOpts(); $event.stopPropagation();" class="text19" style="color:white; font-size:15px; text-decoration:underline;">Close</a>
+            </div>
+        </div>
+
+  </ion-content>
+</ion-modal-view>

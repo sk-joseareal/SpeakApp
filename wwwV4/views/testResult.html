@@ -1,0 +1,82 @@
+<ion-modal-view>
+
+<!--
+  <ion-header-bar>
+    <h1 class="title">Resultado</h1>
+    <div class="buttons">
+      <button class="button button-clear" ng-click="closeResult()">Cerrar</button>
+    </div>
+  </ion-header-bar>
+-->
+
+  <ion-content style="padding-top:60px;">
+
+<div class="item-box58">
+
+    <div class="i-header">
+        <div class="text2">{{testName}}</div> 
+    </div>
+
+    <p>percent: {{percent}}
+    <p>OK: {{nok}}</p>
+    <p>No OK: {{questions.length-nok}}</p>
+
+    <div class="i-footer">
+
+        <div style="text-align:center;">
+            <button class="i--button-green text16" ng-click="sendResult(); closeResult()" ng-if="userInfo" >Registrar resultado</button>
+        </div>
+        
+        <div style="text-align:center;">
+            <button class="i--button-green text16" ng-click="closeResult()" >Cerrar</button>
+        </div>
+
+    </div>
+
+</div>
+
+    
+<!--
+    <form ng-submit="doLogin()">
+      <div class="list" >
+        <label class="item item-input">
+          <span class="input-label">Usuario</span>
+          <input type="email" ng-model="loginData.username" style="margin-right:20px;">
+        </label>
+        <label class="item item-input">
+          <span class="input-label">Contraseña</span>
+          <input type="password" ng-model="loginData.password" style="margin-right:20px;">
+        </label>
+        <div style="text-align: center; color:red; padding-top:10px;">
+          <p><i>{{error}}</i></p>        
+        </div>
+        
+        <label class="item button button-block" style="padding-left:40px; padding-right:40px;">
+          <button class="button button-block xbutton-positive" style="color:white; background:#81b900; border-radius: 50px;" >Entrar</button>
+        </label>
+      </div>
+    </form>
+
+      <div style="padding-left:40px; padding-right:40px;">
+
+        <a class="item button button-block" ng-click="facebookSignIn(); $event.stopPropagation();" style="color:white; background:#09609c; border-radius: 50px;">
+          <img src="assets/facebookshare.png" style="margin-bottom:-2px; margin-right: 1px;">
+          Inicia con Facebook
+        </a>
+
+        <a class="item button button-block" style="color:white; background:#ce3636; border-radius: 50px;" ng-click="googleSignIn(); $event.stopPropagation();" >
+          <img src="assets/googleplusshare.png" style="margin-bottom:-4px; margin-right: 5px;" >
+          Inicia con Google +
+        </a>
+          
+      </div>
+
+
+        <div style="padding-left:40px; padding-right:40px;">
+          <button class="button button-block" ng-click="forgotPass(); $event.stopPropagation();" ng-if="false">¿Has olvidado tu contraseña?</button>
+          <button class="button button-block" style="font-size:small;" ng-click="registerPopup(); $event.stopPropagation();" >¿No tienes cuenta?: Registrate gratis</button>
+        </div>
+-->
+
+  </ion-content>
+</ion-modal-view>

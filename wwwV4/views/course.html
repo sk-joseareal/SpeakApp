@@ -1,0 +1,200 @@
+<style>
+.hidden { display: none; }
+</style>
+
+<style>
+/* when hiding the picture */
+
+/*.ng-hide-add         { animation:0.5s lightSpeedOut ease; }
+*/
+.ng-hide-add { animation:0.5s pepe ease; }
+
+/* when showing the picture */
+.ng-hide-remove { animation:0.5s epep ease; }
+
+
+@-webkit-keyframes pepe {
+    0% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+    }
+}
+
+@-webkit-keyframes epep {
+    0% {
+        opacity: 0;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+
+@keyframes pepe {
+    0% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+    }
+}
+
+@keyframes epep {
+    0% {
+        opacity: 0;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+
+
+
+
+
+</style>
+
+
+
+<ion-view>
+
+    <ion-nav-buttons side="right">
+        <button class="button button-icon button-clear ion-ios-search" ng-click="srchClick()"></button>
+        <button class="button button-icon button-clear icon-people" xmenu-toggle="right" ng-click="chatClick('upr')"></button>
+    </ion-nav-buttons>
+    
+<!--    
+    <ion-nav-title>{{titulo()}}</ion-nav-title>
+-->
+
+
+    <ion-content ng-class="(errorValue) ? 'wrongBackground' : ''" padding="true" delegate-handle="miScroller">
+
+        <div ng-if="errorValue" ng-include src="'views/error.html'"></div>
+
+        <div ng-if="!errorValue">     
+
+
+        <div class="item-box52" id="divU0" style="background:{{course.background}};">
+
+<!--    
+<div ng-if="genService.getCache()">
+    <span ng-if="!checkItem()" class="ion-android-download" style="font-size:26px; padding-right:10px; color:white;" ng-click="offLine()"></span>
+    <span ng-if="checkItem()" class="ion-android-cloud-done" style="font-size:26px; padding-right:10px; color:white;" ng-click="offLine()"></span>
+</div>
+-->
+            <div class="i-icon" style='background-image: url("assets/course{{course.id}}.png")'></div> <!-- 'http://buscountrabajo.es/wp-content/uploads/2015/03/test-361512_640.jpg' -->
+            <div class="i-graph" cssUserLogin="{{userInfo.image}}">
+                <div class="i-graphContent">
+                    <div class="i-message" style="background-image: url('{{cacheImage}}');"></div> <!-- userInfo.image -->
+                    <div class="i-slice" percent="{{course.complete}}" style="transform: rotate(0deg);">
+                        <div class="i-sliceOut" style="transform: rotate(calc({{course.complete}}*360deg/100));"></div>
+                    </div>
+                    <div class="i-slice2" style="transform: rotate(180deg);">
+                        <div class="i-sliceOut2" style="transform: rotate(calc(({{course.complete}} - 50)*360deg/100));"></div>
+                    </div>
+                </div>
+                <div class="i-value text1">{{course.complete}}%</div>
+            </div>
+        </div>
+        
+	    <div class="list" ng-repeat="unit in Units" ng-init="uIndex = $index">
+
+            <div class="item-box56 v2" id="{{'divU'+($index+1)}}">
+                <div class="i-header" ng-click="plusClick($index); $event.stopPropagation();">
+                    <div class="i-header--content">
+                        <div class="i--graph">
+                            <div class="i-graphContent">                                                                                 
+                                <div class="i-message" style="background-image: url('assets/lesson{{unit.id}}.png'); background-color:{{course.background}}"></div>
+                                <div class="i-slice" percent="{{(unit.donepractice+unit.donelearn)*100/(unit.sections.length+unit.tests.length)}}" cssUserLogin="{{cacheImage}}" style="transform: rotate(0deg);"> <!-- userInfo.image -->
+                                    <div class="i-sliceOut" style="transform: rotate(calc({{(unit.donepractice+unit.donelearn)*100/(unit.sections.length+unit.tests.length)}}*360deg/100)); background:{{course.background}};"></div>
+                                </div>
+                                <div class="i-slice2" cssUserLogin="{{cacheImage}}" style="transform: rotate(180deg);"> <!-- userInfo.image -->
+                                    <div class="i-sliceOut2" style="transform: rotate(calc(({{(unit.donepractice+unit.donelearn)*100/(unit.sections.length+unit.tests.length)}} - 50)*360deg/100)); background:{{course.background}};"></div>
+                                </div>                                
+                            </div>
+                        </div>   
+                                          
+                        <div class="text--learn-title">{{$index+1}}.&nbsp;{{unit.name}}</div> 
+                        <div ng-if="loc=='es'" class="text--learn-title" style="color:gray;">{{unit.name_translation}}</div> 
+<p ng-if="debug" >Unit {{unit.id}}, sections: [{{unit.donelearn}}/{{unit.sections.length}}], tests:[{{unit.donepractice}}/{{unit.tests.length}}]</p>  
+				        <!-- <span ng-if="userInfo">{{unit.donelearn}}/{{unit.donepractice}}</span> -->
+                    </div>
+                    <div class="i-icon" ng-class="{ 'ion-chevron-up' : openItem==$index  , 'ion-chevron-down' :openItem != $index   }"></div>
+                </div>
+
+                <div class="i-section" ng-show="openItem==$index">
+                    <hr>
+  		            
+                    <!-- href="#/app/section/{{section.lesson_id}}/{{section.id}}" -->
+                    <ion-item    style="height:50px; position:relative;"     class="i--message v2" ng-click="goRoute('app.section',{ unitId: {{section.lesson_id}} , lessonId: {{section.id}} })" ng-repeat="section in unit.sections">
+                        
+                        <div   style="position:relative; margin-left:10px; float:left; "     class="i--logo">
+                            <div class="i--lesson" style="width:35px; height:35px; font-size:14px"> <!-- {{uIndex+1}}.{{$index+1}} -->
+                                {{uIndex+1}}.{{$index+1}}
+                                <div ng-if="userInfo">
+                                    <span ng-if="section.complete==1 && section.ntests==section.complete_tests" class="i-icon icon-tick" style="background-color:green;  width:15px; height:15px; font-size: 10px; right:-10px; color:white;"></span>
+                                    <span ng-if="(section.complete==1 || section.complete_tests!=0) && !(section.complete==1 && section.ntests==section.complete_tests)" class="i-icon icon-tick" style="background-color:#FFA700; width:15px; height:15px; font-size: 10px; color:white; right:-10px;"></span>
+                                    <span ng-if="section.complete!=1 && section.complete_tests==0" class="i-icon icon-tick" style="background-color:lightgray; width:15px; height:15px; font-size: 10px; color:white;  right:-10px;"></span>
+
+                                </div>
+                            </div>
+                        </div>
+
+                        <div   style="position:relative; margin-left:60px;"     class="i--info" style="width: 100%;">
+                            <span ng-if="section.complete==1"></span>
+                            <div class="text2">{{section.name}}</div>
+<!--
+                            <div ng-if="loc=='es'" class="text3">{{section.name_translation}}</div>
+-->
+                            <div ng-if="section.keywords && section.new"  style="overflow: auto; white-space: normal; width:80%;" class="text3">{{section.keywords}}</div>
+                            <div ng-if="section.keywords && !section.new" style="overflow: auto; white-space: normal; width:95%;" class="text3">{{section.keywords}}</div>
+
+                            <div ng-if="!section.keywords" class="text3">&nbsp;</div>
+
+                        </div>
+
+                        <div   style="position:absolute; right:10px; top:50%;"     ng-if="section.new" style="position: absolute; right: 0px; display:inline-block; width:100%; text-align:right; pointer-events: none; z-index: 100;">
+                            <img src="assets/new-tag.svg" style="position:absolute; right:10px; top:-15px;    height:24px; z-index: 100; margin-top:2px; xmargin-right:70px;" />
+                        </div> 
+
+                        <div class="i-icon icon-arrow-right"></div>
+  	      	        </ion-item>
+
+                    <hr>
+
+                    <!-- href="#/app/test/{{test.lesson_id}}/{{test.id}}" -->                    
+  	      	        <ion-item    style="height:50px; position: relative; "    class="i--message" ng-click="goRoute('app.test',{ unitId: {{test.lesson_id}} , testId: {{test.id}} })" ng-repeat="test in unit.tests" ng-if="!test.lesson_section_id">
+
+                        <div   style="position: relative; margin-left:10px; float:left;"    class="i--logo">
+                            <div style="" class="i--lesson icon-pen" style="width:35px; height:35px;">
+                                <span ng-if="test.complete==0" class="i-icon icon-tick"  style="background-color:lightgray; width:15px; height:15px; font-size:10px; color:white; right:-6px;"></span>
+                                <span ng-if="test.complete==1" class="i-icon icon-tick"  style="background-color:green;     width:15px; height:15px; font-size:10px; color:white; right:-6px;"></span>
+                                <span ng-if="test.complete==2" class="i-icon icon-close" style="background-color:red;       width:15px; height:15px; font-size:10px; color:white; right:-6px;"></span>
+                            </div>
+                        </div>
+                        <div   style="position: relative; margin-left:60px; top:10px"    class="i--info">
+                            <div class="text2">{{test.name}}</div>
+                            <div ng-if="loc=='es'" class="text3">{{test.name_translation}}</div>
+                        </div>
+                        <div   style="position:absolute; right:10px; top:50%;"    ng-if="test.new" style="position:relative; display:inline-block; width:100%; text-align:right; pointer-events: none; z-index: 100;">
+                            <img src="assets/new-tag.svg" style="position:absolute; right:10px; top:-15px;    height:24px; z-index: 100; margin-top:2px; xmargin-right:70px;" />
+                        </div>                         
+                        <div class="i-icon icon-arrow-right"></div>
+  	      	        </ion-item>
+
+                </div>
+
+            </div>
+           
+        </div>
+
+        </div>
+    </ion-content>
+
+
+
+</ion-view>

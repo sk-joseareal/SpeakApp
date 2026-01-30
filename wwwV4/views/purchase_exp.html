@@ -1,0 +1,138 @@
+
+<style>
+.miLista {
+  font: 16px 'Open Sans', sans-serif;
+  margin: 0 0 1em 0;
+  padding: 0 0 0 1em; /* make space for li's :before */
+  list-style: none;
+}
+.miItem {
+  position: relative;
+  padding-left: 0.4em; /* text distance to icon */
+}
+.miItem:before {
+  content: url('assets/img/check-mark.png');
+  position: absolute;
+  left: -1em;
+  top: 0em;
+}
+.enfasis {
+  color:#4d4d4d; 
+  font-weight:bold;
+}
+</style>
+
+<ion-modal-view style="background: rgba(0,0,0,.7)">
+
+ 
+  <ion-content style="background: rgba(0,0,0,0); padding:0px;">
+
+
+    <div class="item-box59" style="margin-top:40px; margin-left:40px; margin-right:40px; padding:0;">
+
+        <div style="position:fixed; top:50px; left: 50%; transform: translate(-50%, 0); z-index:100;">
+
+          <div style="background:white; border-radius: 50%; padding: 4px;">                
+
+            <div style="background:#16a6d8; border-radius: 50%; padding: 10px 11px 2px 11px;"> 
+              <img src="assets/corona.png" alt="" width="70px" height="70px"/>
+            </div>
+
+          </div>
+
+        </div> 
+
+        <div style="text-align:center; height:100px; background:#00629d; border-top-left-radius: 8px; border-top-right-radius: 8px  ">
+
+          <h3 ng-if="loc=='es'" style="color:white; padding-top:15px;">¡Felicidades!</h3>
+          <h3 ng-if="loc=='br'" style="color:white; padding-top:15px;">Parabéns!</h3>
+          <h3 ng-if="loc!='es' && loc!='br'" style="color:white; padding-top:15px;">Congratulations!</h3>
+        
+        </div>
+
+        <div style="text-align:center; padding-top:60px; padding-bottom:10px; background:#F8F8F8;">
+
+          <h3 style="color:#00629d; font-size:20px; margin-bottom:0px;" ng-if="loc=='es'"> Ahora estás utilizando la <br> app como usuario <br> <b>Premium</b> </h3>    
+          <h3 style="color:#00629d; font-size:20px; margin-bottom:0px;" ng-if="loc=='br'"> Agora você está usando o <br> app como usuário  <br> <b>Premium</b> </h3>    
+          <h3 style="color:#00629d; font-size:20px; margin-bottom:0px;" ng-if="loc!='es' && loc!='br'"> You are now using <br> the app as a <br> <b>Premium user</b> </h3>    
+
+<br>
+          <div style="text-align:left; display:inline-block;">
+            <ul class="miLista">
+
+              <li class="miItem" ng-if="loc=='es'"">
+              ¡Contenido <span class="enfasis">completo</span>!
+              </li>              
+              <li class="miItem" ng-if="loc=='br'"">
+              Sem <span class="enfasis">anúncios</span>!
+              </li>                     
+              <li class="miItem" ng-if="loc!='es' && loc!='br'"">
+              <span class="enfasis">Full content</span> access!
+              </li> 
+
+              <li class="miItem" ng-if="loc=='es'">
+              ¡Audio <span class="enfasis">alta calidad</span>!
+              </li>
+              <li class="miItem" ng-if="loc=='br'">
+              Sem <span class="enfasis">conexão de Internet</span>!
+              </li>
+              <li class="miItem" ng-if="loc!='es' && loc!='br'">
+              <span class="enfasis">High quality</span> voiceover!
+              </li>
+
+              <li class="miItem" ng-if="loc=='es'">
+              ¡<span class="enfasis">Chat </span> para estudiantes!
+              </li>
+              <li class="miItem" ng-if="loc=='br'">
+              Com <span class="enfasis">conteúdo Premium</span>!
+              </li>
+              <li class="miItem" ng-if="loc!='es' && loc!='br'">
+              Student <span class="enfasis">chatroom</span>!
+              </li>
+
+              <li class="miItem" ng-if="loc=='es'">
+              ¡Sin <span class="enfasis">anuncios</span>!</li>
+              <li class="miItem" ng-if="loc=='br'">
+              Com <span class="enfasis">áudios de alta qualidade</span>!</li>
+              <li class="miItem" ng-if="loc!='es' && loc!='br'">
+              No more <span class="enfasis">ads</span>!</li>
+
+              <li class="miItem" ng-if="loc=='es'">
+              ¡Disponible <span class="enfasis">sin Internet</span>!
+              </li>
+              <li class="miItem" ng-if="loc=='br'">
+              Com <span class="enfasis">Chat</span>!
+              </li>
+              <li class="miItem" ng-if="loc!='es' && loc!='br'">
+              Learn <span class="enfasis">without Internet</span>!
+              </li>
+
+            </ul>
+          </div>
+<br>
+<br>
+
+
+        <p ng-if="purchaseExpires && loc=='es'" style="color:#00629d;">Hasta {{purchaseExpires}}</p>
+        <p ng-if="purchaseExpires && loc=='br'" style="color:#00629d;">Até o {{purchaseExpires}}</p>
+        <p ng-if="purchaseExpires && loc!='es' && loc!='br'" style="color:#00629d;">Until {{purchaseExpires}}</p>
+
+
+
+
+        </div>
+
+        <div style="text-align:center; padding:20px;">
+            
+            <div class="buttonCenter">
+              <button class="white  i--button text13" style="font-size:15px; padding:5px 12px 8px 12px; color:grey; border:1px solid darkgrey;" ng-click="closePurchaseExplain(); $event.stopPropagation();">{{i18n[loc].continue2}}</button>            
+            </div>
+
+            <br>
+
+        </div>
+
+    </div>        
+
+  </ion-content>
+</ion-modal-view>

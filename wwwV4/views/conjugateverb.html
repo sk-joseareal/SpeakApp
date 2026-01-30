@@ -1,0 +1,127 @@
+<style>
+.hidden { display: none; }
+</style>
+
+<style>
+.blue2
+{
+  background: #2d7ac1;
+}
+</style>
+
+<ion-view>
+
+    <ion-nav-buttons side="right">
+        <button class="button button-icon button-clear ion-ios-search" ng-click="srchClick()"></button>
+        <button class="button button-icon button-clear icon-people" xmenu-toggle="right" ng-click="chatClick('upr')"></button>
+    </ion-nav-buttons>
+
+    <ion-content class="padding">
+
+        <article class="item-box56" ng-if="filter">
+
+            <header class="i-header" ng-click="plusClick2($index); $event.stopPropagation();">
+                <div class="text35" style="margin-top:5px; margin-left:5px;"><span class="icon-search"></span>{{i18n[loc].verbconj}}</div>
+                <div class="i-icon" ng-class="{ 'ion-minus-circled' : openItem2  , 'ion-plus-circled' : !openItem2 }" ng-click="plusClick2(); $event.stopPropagation();"></div>
+            </header>
+
+            <section ng-show="openItem2">
+
+            <div class="xi--label-list" style="position:relative;">
+                <span class="text24">&nbsp;</span>
+                <div class="i-clear_check">     
+                    <input reset-field autocapitalize="none" class="i--input margin-bottom text3" placeholder="{{i18n[loc].verb}}" type="text" ng-model="frmVerb" ng-change="frmVerb=frmVerb.toLowerCase();" />
+                    <div class="xicon-close-1"></div>
+                </div>
+            </div>
+
+            <label class="i--select icon-arrow-down text3">
+                {{i18n[loc].tense}}:
+                <select style="padding-left:10px;" class="text26" ng-options="txt[tense][locIdx] for tense in tenses" ng-init="frmTense = tenses[1]" ng-model="frmTense" ng-change="selectFilter(tense)"></select>
+            </label>
+            <hr>
+            <div class="buttonCenter">
+                <button class="green i--button text13" ng-click="conjuga(frmVerb,frmTense); $event.stopPropagation();" ng-disabled="checkVerb(frmVerb)">{{i18n[loc].conjugate}}</button>
+            </div>
+
+            </section>
+        </article>
+
+
+
+        <div class="padding" ng-if="errorValue">
+            <div class="card item-box56 padding">
+                <div class="item item-text-wrap assertive">
+                    {{errorValue}}
+                </div>
+            </div>
+        </div>
+
+
+
+
+        <div ng-if="!errorValue">        
+            <div class="text11" style="margin: 20px;" ng-if="test=='Cargando ...'">{{i18n[loc].loading}} ...</div>
+            
+            <div ng-if="notFound" class="text11" style="margin: 20px; font-size:16px; text-align:center;">
+                {{i18n[loc].notfound}}
+            </div>        
+
+            <div class="text11" style="margin: 20px;" ng-if="test!='Cargando ...' && found">{{i18n[loc].verb}}: <span class="text9">{{verb}}</span></h3></div>
+
+            <ng-repeat class="list" ng-repeat="tense in conjugation.tenses" ng-if="filterTense=='' || tense==filterTense">
+
+                <ion-item class="item-box56">
+                    <header class="i-header" ng-click="plusClick($index); $event.stopPropagation();">
+                        <div>
+                            <div class="text35">{{txt[tense][0]}}</div>
+                            <div ng-if="loc=='es'" class="text3">{{txt[tense][1]}}</div>                    
+                        </div>
+                        <div class="i-icon" ng-class="{ 'ion-minus-circled' : openItem==$index , 'ion-plus-circled' :openItem != $index }"></div>
+                    </header>
+                    <section ng-show="openItem==$index">
+                        <hr>
+                        <ti-segmented-control on-select="tabClick($index); $event.stopPropagation();" style="width: 300px; display:inline-block;">
+                            <ti-segmented-control-button class="button-positive" title="'Affirmative'" selected style="font-size:small;"></ti-segmented-control-button>
+                            <ti-segmented-control-button class="button-positive" title="'Negative'" style="font-size:small;"></ti-segmented-control-button>
+                            <ti-segmented-control-button class="button-positive" title="'Interrogative'" style="font-size:small;"></ti-segmented-control-button>
+                        </ti-segmented-control>
+                        <div class="text15" ng-show="openItem==$index">
+                            <div ng-if="tabOption == 0">
+                                <ion-item class="i--play icon-play" ng-click="wordClick(conjugation[tense]['I']['Affirmative']); $event.stopPropagation();">{{conjugation[tense]["I"]["Affirmative"]}}</ion-item>
+                                <ion-item class="i--play icon-play" ng-click="wordClick(conjugation[tense]['You']['Affirmative']); $event.stopPropagation();">{{conjugation[tense]["You"]["Affirmative"]}}</ion-item>
+                                <ion-item class="i--play icon-play" ng-click="wordClick(conjugation[tense]['hesheit']['Affirmative']); $event.stopPropagation();">{{conjugation[tense]["hesheit"]["Affirmative"]}}</ion-item>
+                                <ion-item class="i--play icon-play" ng-click="wordClick(conjugation[tense]['We']['Affirmative']); $event.stopPropagation();">{{conjugation[tense]["We"]["Affirmative"]}}</ion-item>
+                                <ion-item class="i--play icon-play" ng-click="wordClick(conjugation[tense]['You2']['Affirmative']); $event.stopPropagation();">{{conjugation[tense]["You2"]["Affirmative"]}}</ion-item>
+                                <ion-item class="i--play icon-play" ng-click="wordClick(conjugation[tense]['They']['Affirmative']); $event.stopPropagation();">{{conjugation[tense]["They"]["Affirmative"]}}</ion-item>
+                            </div>
+                            <div ng-if="tabOption == 1">
+                                <ion-item class="i--play icon-play" ng-click="wordClick(conjugation[tense]['I']['Negative']); $event.stopPropagation();">{{conjugation[tense]["I"]["Negative"]}}</ion-item>
+                                <ion-item class="i--play icon-play" ng-click="wordClick(conjugation[tense]['You']['Negative']); $event.stopPropagation();">{{conjugation[tense]["You"]["Negative"]}}</ion-item>
+                                <ion-item class="i--play icon-play" ng-click="wordClick(conjugation[tense]['hesheit']['Negative']); $event.stopPropagation();">{{conjugation[tense]["hesheit"]["Negative"]}}</ion-item>
+                                <ion-item class="i--play icon-play" ng-click="wordClick(conjugation[tense]['We']['Negative']); $event.stopPropagation();">{{conjugation[tense]["We"]["Negative"]}}</ion-item>
+                                <ion-item class="i--play icon-play" ng-click="wordClick(conjugation[tense]['You2']['Negative']); $event.stopPropagation();">{{conjugation[tense]["You2"]["Negative"]}}</ion-item>
+                                <ion-item class="i--play icon-play" ng-click="wordClick(conjugation[tense]['They']['Negative']); $event.stopPropagation();">{{conjugation[tense]["They"]["Negative"]}}</ion-item>
+                            </div>
+                            <div ng-if="tabOption == 2">
+                                <ion-item class="i--play icon-play" ng-click="wordClick(conjugation[tense]['I']['Interrogative']); $event.stopPropagation();">{{conjugation[tense]["I"]["Interrogative"]}}</ion-item>
+                                <ion-item class="i--play icon-play" ng-click="wordClick(conjugation[tense]['You']['Interrogative']); $event.stopPropagation();">{{conjugation[tense]["You"]["Interrogative"]}}</ion-item>
+                                <ion-item class="i--play icon-play" ng-click="wordClick(conjugation[tense]['hesheit']['Interrogative']); $event.stopPropagation();">{{conjugation[tense]["hesheit"]["Interrogative"]}}</ion-item>
+                                <ion-item class="i--play icon-play" ng-click="wordClick(conjugation[tense]['We']['Interrogative']); $event.stopPropagation();">{{conjugation[tense]["We"]["Interrogative"]}}</ion-item>
+                                <ion-item class="i--play icon-play" ng-click="wordClick(conjugation[tense]['You2']['Interrogative']); $event.stopPropagation();">{{conjugation[tense]["You2"]["Interrogative"]}}</ion-item>
+                                <ion-item class="i--play icon-play" ng-click="wordClick(conjugation[tense]['They']['Interrogative']); $event.stopPropagation();">{{conjugation[tense]["They"]["Interrogative"]}}</ion-item>
+                            </div>
+                            <hr>
+                            <div class="buttonCenter">
+                                <button class="i--button blue2 text13" ng-click="goRelated(tense); $event.stopPropagation();">{{i18n[loc].review}}</button>
+                            </div>
+                    </section>
+
+                </ion-item>
+
+            </ng-repeat>
+        </div>
+
+    </ion-content>
+
+</ion-view>

@@ -1,0 +1,276 @@
+
+<style>
+.miLista {
+  font: 16px 'Open Sans', sans-serif;
+  margin: 0 0 1em 0;
+  padding: 0 0 0 1em; /* make space for li's :before */
+  list-style: none;
+}
+.miItem {
+  position: relative;
+  padding-left: 0.4em; /* text distance to icon */
+}
+.miItem:before {
+  content: url('assets/img/check-mark.png');
+  position: absolute;
+  left: -1em;
+  top: 0em;
+}
+.enfasis {
+  /*color:#00629d;*/
+  color:#4d4d4d;
+  font-weight:bold;
+}
+</style>
+
+<ion-modal-view style="background: rgba(0,0,0,.7);">
+
+
+<!-- descuento --> 
+<div ng-if="subsDiscount && subsDiscount!=0" style="z-index:100; padding-top:8px; text-align:center; position:fixed; background:#49be48; width:80px; height: 80px; border-bottom-right-radius: 100%;" >
+  
+  <b><p style="margin-left:-16px; margin-top:-5px; margin-bottom:-5px; font-size:24px; color:white;">{{subsDiscount}}%</p></b>
+
+  <p ng-if="loc=='es'" style="margin-left:-15px; margin-bottom:0px; font-size:12px; color:white;">descuento</p>
+  <p ng-if="loc=='br'" style="margin-left:-15px; margin-bottom:0px; font-size:12px; color:white;">desconto</p>
+  <p ng-if="loc!='es' && loc!='br'" style="margin-left:-15px; margin-bottom:0px; font-size:12px; color:white;">discount</p>
+
+</div>
+<!-- descuento -->
+
+
+
+  <ion-content style="background: rgba(0,0,0,0); padding:0px;">
+
+    <div class="item-box59" style="margin-top:60px; margin-left:40px; margin-right:40px; padding:0; box-shadow: initial !important;">
+
+
+        <div style=" margin-top:50px; margin-left: 50%; transform: translate(-90px, 0); position: absolute;">
+          <img src="assets/nena.png" width="100px" height="100px"/>
+        </div>
+
+<!--      
+
+        <div style="position:fixed; top:50px; left: 50%; transform: translate(-50%, 0); z-index:100;">      
+          <img src="assets/nena.png" alt="" width="100px" height="100px"/>
+        </div> 
+-->
+
+
+        <div style="text-align:center; height:100px; background:#00629d; border-top-left-radius: 8px; border-top-right-radius: 8px;">
+
+          <h3 ng-if="loc=='es'" style="color:white; padding-top:15px;">¡Hazte Premium!</h3>
+          <h3 ng-if="loc=='br'" style="color:white; padding-top:15px;">Vire Premium!</h3>
+          <h3 ng-if="loc!='es' && loc!='br'" style="color:white; padding-top:15px;">Become a Premium User!</h3>
+        
+        </div>
+
+        <div style="text-align:center; padding-top:60px; padding-bottom:10px; background:#F8F8F8;">
+
+          <h3 style="color:#00629d; font-size:20px; margin-bottom:0px;" ng-if="loc=='es'">Disfruta aún más de la app</h3>  
+
+          <h3 style="color:#00629d; font-size:20px; margin-bottom:0px;" ng-if="loc=='br'">Disfrute ainda mais do app</h3> 
+
+          <h3 style="color:#00629d; font-size:20px; margin-bottom:0px;" ng-if="loc!='es' && loc!='br'">Enjoy the app even more</h3>    
+
+<!--
+          <div ng-bind-html="purchaseModalTxt"></div>
+-->
+
+<br>
+          <div style="text-align:left; display:inline-block;">
+            <ul class="miLista">
+
+              <li class="miItem" ng-if="loc=='es'"">
+              ¡Contenido <span class="enfasis">completo</span>!
+              </li>              
+              <li class="miItem" ng-if="loc=='br'"">
+              Sem <span class="enfasis">anúncios</span>!
+              </li>                     
+              <li class="miItem" ng-if="loc!='es' && loc!='br'"">
+              <span class="enfasis">Full content</span> access!
+              </li> 
+
+              <li class="miItem" ng-if="loc=='es'">
+              ¡Audio <span class="enfasis">alta calidad</span>!
+              </li>
+              <li class="miItem" ng-if="loc=='br'">
+              Sem <span class="enfasis">conexão de Internet</span>!
+              </li>
+              <li class="miItem" ng-if="loc!='es' && loc!='br'">
+              <span class="enfasis">High quality</span> voiceover!
+              </li>
+
+              <li class="miItem" ng-if="loc=='es'">
+              ¡<span class="enfasis">Chat </span> para estudiantes!
+              </li>
+              <li class="miItem" ng-if="loc=='br'">
+              Com <span class="enfasis">conteúdo Premium</span>!
+              </li>
+              <li class="miItem" ng-if="loc!='es' && loc!='br'">
+              Student <span class="enfasis">chatroom</span>!
+              </li>
+
+              <li class="miItem" ng-if="loc=='es'">
+              ¡Sin <span class="enfasis">anuncios</span>!</li>
+              <li class="miItem" ng-if="loc=='br'">
+              Com <span class="enfasis">áudios de alta qualidade</span>!</li>
+              <li class="miItem" ng-if="loc!='es' && loc!='br'">
+              No more <span class="enfasis">ads</span>!</li>
+
+              <li class="miItem" ng-if="loc=='es'">
+              ¡Disponible <span class="enfasis">sin Internet</span>!
+              </li>
+              <li class="miItem" ng-if="loc=='br'">
+              Com <span class="enfasis">Chat</span>!
+              </li>
+              <li class="miItem" ng-if="loc!='es' && loc!='br'">
+              Learn <span class="enfasis">without Internet</span>!
+              </li>
+
+            </ul>
+          </div>
+
+          <!-- precio original -->
+          <div ng-if="isOnLine && subsDiscount!=0">
+            <br>
+            <br>
+            <p ng-if="subsPriceOrig && loc=='es'" style="color:#818181; font-size:18px;"><b>{{subsPeriodTxt[loc]}} por: <span style="text-decoration: line-through;">{{subsPriceOrig}}</span></b></p>
+            <p ng-if="subsPriceOrig && loc=='br'" style="color:#818181; font-size:18px;"><b>{{subsPeriodTxt[loc]}} por: <span style="text-decoration: line-through;">{{subsPriceOrig}}</span></b></p>
+            <p ng-if="subsPriceOrig && loc!='es' && loc!='br'" style="color:#818181; font-size:18px;"><b>{{subsPeriodTxt[loc]}} for: <span style="text-decoration: line-through;">{{subsPriceOrig}}</span> </b></p>   
+          </div>
+          <!-- precio original -->
+
+
+        </div>
+
+
+
+        <div style="text-align:center; padding-top:20px; padding-bottom: 25px;">
+
+            <!-- botón comprar -->
+            <div class="buttonCenter">
+
+                <div ng-if="isOnLine">
+                  <div>
+
+                    <button ng-if="!subsPrice" class="green i--button text13" style="font-size:18px; padding:5px 30px 8px 30px; color:white;" ng-click="doBuy(); closePurchase2(); $event.stopPropagation();">
+                      <b>{{i18n[loc].gopremium}}</b>
+                    </button>
+                    
+                    <button ng-if="subsPrice" class="green i--button text13" style="font-size:18px; padding:5px 30px 8px 30px; color:white;" ng-click="doBuy(); closePurchase2(); $event.stopPropagation();">
+                      <b ng-if=" true || subsDiscount!=0">
+                      {{subsOfferTxt[loc]}}
+                      </b>
+                      <br ng-if="true || subsDiscount!=0">
+                      <b>                        
+                      {{i18n[loc].buy2}} {{subsPrice}}!
+                      </b>
+                    </button>
+                  </div>
+
+                </div>
+
+            </div>
+            <!-- botón comprar -->
+
+
+            <div ng-if="isOnLine">
+
+            <span ng-if="pltfrm=='ios'">
+            <br>
+              <a href="#" ng-click="closePurchase2(); doRestore(); $event.stopPropagation();" class="text19" style="font-size:15px; text-decoration:underline;">{{i18n[loc].subs}}</a>
+            <br>
+            </span>
+
+            <br>            
+              <a ng-if="loc=='es'" href="#" ng-click="closePurchase2(); $event.stopPropagation();" class="text19" style="font-size:15px; text-decoration:underline;">No, gracias</a>
+              <a ng-if="loc=='br'" href="#" ng-click="closePurchase2(); $event.stopPropagation();" class="text19" style="font-size:15px; text-decoration:underline;">Não, obrigado</a>
+              <a ng-if="loc!='es' && loc!='br'" href="#" ng-click="closePurchase2(); $event.stopPropagation();" class="text19" style="font-size:15px; text-decoration:underline;">Not now, thanks</a>
+
+            </div>
+            <div ng-if="!isOnLine">
+              <a ng-if="loc=='es'" href="#" ng-click="closePurchase2(); $event.stopPropagation();" class="text19" style="font-size:15px; text-decoration:underline;">Cerrar</a>
+              <a ng-if="loc=='br'" href="#" ng-click="closePurchase2(); $event.stopPropagation();" class="text19" style="font-size:15px; text-decoration:underline;">Fechar</a>
+              <a ng-if="loc!='es' && loc!='br'" href="#" ng-click="closePurchase2(); $event.stopPropagation();" class="text19" style="font-size:15px; text-decoration:underline;">Close</a>
+            </div>
+
+
+
+        </div>
+
+    </div>
+ 
+<!--
+    
+    <div ng-if="isOnLine && !is_ios" style="text-align: center; padding:5px;">
+       
+      <p ng-if="loc=='es'" style="color:white;">Renovación automática. Puedes cancelarla <br> en cualquier momento en la Store. <br> 
+   
+      <a href="#" style="color:white; text-decoration:underline;" ng-click="doRestore(); closePurchase(); $event.stopPropagation();">Recuperar compra</a>
+
+      </p>
+      <p ng-if="loc=='br'" style="color:white;">Renovação automática. Você pode cancelá-la <br> a qualquer momento na Store. <br>
+
+      <a href="#" style="color:white; text-decoration:underline;" ng-click="doRestore(); closePurchase(); $event.stopPropagation();">Recuperar compra</a>
+  
+      </p>
+      <p ng-if="loc!='es' && loc!='br'" style="color:white;">Automatic renewal. You can cancel anytime <br>through the Store. 
+
+      <a href="#" style="color:white; text-decoration:underline;" ng-click="doRestore(); closePurchase(); $event.stopPropagation();">Restore purchase</a>
+   
+      </p>
+
+
+    </div>
+
+    <div ng-if="isOnLine && is_ios" style="text-align: center; padding:5px;">
+       
+      <p ng-if="loc=='es'" style="color:white;; font-size: 12px; text-align:justify; padding-left:10px; padding-right:10px; ">Renovación automática. 
+La duración de la subscripción será {{subsPeriodTxt[loc]}}. 
+Durante ese periodo podrás disfrutar de la app sin anuncios, usarla sin conexión a Internet y con contenido Premium.
+La subscripción se cobrará en la cuenta de iTunes en el momento de la confirmación de la compra, y se renovará automáticamente (con la duración especificada) a menos de que la auto renovación se desactive al menos 24 horas antes del fin del periodo en curso. La susbscripción en curso no podrá ser cancelada durante el periodo activo, sin embargo, el usuario podrá gestionar su subscripción y/o desactivar su renovación automática accediendo a la configuración de su cuenta de iTunes después de la compra.
+&nbsp;
+    
+      <a href="#" style="color:white; text-decoration:underline;" ng-click="doRestore(); closePurchase(); $event.stopPropagation();">Recuperar compra</a>
+
+<a href="https://www.curso-ingles.com/var/politica-de-privacidad" target="_blank" style="color:white; text-decoration: underline;">Política de Privacidad</a>  
+&nbsp;
+<a href="https://www.curso-ingles.com/var/datos-legales" target="_blank" style="color:white; text-decoration: underline;">Condiciones de uso</a>  
+      </p">
+      <p ng-if="loc=='br'" style="color:white;color:white;; font-size: 12px; text-align:justify; padding-left:10px; padding-right:10px; ">Renovação automática. 
+A duração da subscrição sera {{subsPeriodTxt[loc]}}.
+Durante este período você apreciará o aplicativo sem anúncios, você poderá usá-lo offline e acessar o conteúdo Premium.
+A assinatura será cobrada na conta do iTunes no momento da confirmação da compra e será renovada automaticamente (com a duração especificada) a menos que a renovação automática seja desativada pelo menos 24 horas antes do final do período atual.
+A inscrição em andamento não pode ser cancelada durante o período ativo, no entanto, o usuário pode gerenciar sua assinatura e / ou desativar sua renovação automática acessando a configuração de sua conta iTunes após a compra.
+&nbsp;
+
+      <a href="#" style="color:white; text-decoration:underline;" ng-click="doRestore(); closePurchase(); $event.stopPropagation();">Recuperar compra</a>
+     
+<a href="https://www.curso-ingles.com/en/support/privacy-policy" target="_blank" style="color:white; text-decoration: underline;">Política de Privacidade</a> 
+&nbsp;
+<a href="https://www.curso-ingles.com/en/support/legal-data" target="_blank" style="color:white; text-decoration: underline;">Termos de uso</a>      
+
+      </p>
+     
+      <p ng-if="loc!='es' && loc!='br'" style="color:white; font-size: 12px; text-align:justify; padding-left:10px; padding-right:10px; ">Automatic renewal. 
+The duration of the subscription will be {{subsPeriodTxt[loc]}}. 
+During this period you will enjoy the app without ads, you will be able to use it offline, and access Premium content.
+      Your subscription will be charged to your iTunes account at confirmation of purchase and will automatically renew (at the indicated duration) unless auto-renew is turned off at least 24 hours before the end of the current period.
+      Current subscription may not be cancelled during the active subscription period; however, you can manage your subscription and/or turn off auto-renewal by visiting your iTunes Account Settings after purchase.
+      &nbsp;
+
+      <a href="#" style="color:white; text-decoration:underline;" ng-click="doRestore(); closePurchase(); $event.stopPropagation();">Restore purchase</a>
+     
+<a href="https://www.curso-ingles.com/en/support/privacy-policy" target="_blank" style="color:white; text-decoration: underline;">Privacy Policy</a>
+&nbsp;   
+<a href="https://www.curso-ingles.com/en/support/legal-data" target="_blank" style="color:white; text-decoration: underline;">Terms of use</a>  
+      </p>
+ 
+
+    </div>
+-->
+
+
+  </ion-content>
+</ion-modal-view>

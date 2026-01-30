@@ -1,0 +1,444 @@
+
+<style>
+.item-login form div span {
+  padding: 0 15px;
+  color: #fff;
+  font: 600 14px 'Open Sans', sans-serif;
+}
+.item-login form div input:not([type="checkbox"]) {
+  border-radius: 999px; 
+  padding: 0 15px;
+  background-color: #e9e9e9;
+  width: 100%;
+  display: inline-block;
+  margin-bottom: 15px; 
+}
+.itemcombo {
+    border-radius: 100px;    
+}
+.item-box56 .i--select {
+    background-color: #FFFFFF;
+    padding: 5px 10px;
+    margin-bottom: 5px;
+}
+.item-box56 .i--select:before {
+    right: 10px;
+    color: #000000;       
+
+}
+.item-box56 select {
+    font-family: 'Open Sans', sans-serif;
+    color: #000000;
+}
+.premium {
+    position: absolute;
+    width: 44px;
+    top:85px;
+    left: calc(50% - 95px);
+    z-index:100;
+}
+</style>
+
+
+<ion-view>
+
+    <ion-nav-buttons side="right">
+        <button class="button button-icon button-clear ion-ios-gear-outline" ng-if="userInfo && user.id!=userInfo.id" ng-click="doclick()"></button>        
+        <button class="button button-icon button-clear icon-people" xmenu-toggle="right" ng-click="chatClick('upr')" ng-if="(userInfo && user.id==userInfo.id)"></button>
+    </ion-nav-buttons>
+
+    <ion-content class="padding">
+
+        <div ng-if="user.id!=-1 && preparado">
+            <a href="#/app/profile" class="item-box55" ng-if="user.id==userInfo.id">
+
+                <div ng-if="premium" class="premium"> <!-- style="position:fixed; margin-top:64px; margin-left:75px;z-index:100;"> -->
+                    <div style="background:#16a6d8; border-radius: 50%; padding: 2px;">     
+                        <div style="background:#387ef5; border-radius: 50%; padding: 3px;">     
+                            <div style="background:#16a6d8; border-radius: 50%; padding: 6px 7px 0px 7px;">
+                                <img src="assets/corona.png" alt="" width="20px" height="20px"/>
+                            </div>
+                        </div>
+                    </div>
+                </div>  
+
+                <div class="i-header">
+                    <div class="i-icon" style="background-image: url('{{cacheImage}}');"></div> <!-- userInfo.image -->
+                    <div class="i-graph">
+                        <div class="i-graphContent">
+                            <div class="i-message"></div>
+                            <div class="i-slice" percent="{{userInfo.current_course_progress}}" style="transform: rotate(0deg);">
+                                <div class="i-sliceOut" style="transform: rotate(calc({{userInfo.current_course_progress}}*360deg/100)); background:{{userInfo.current_course_background}};"></div>
+                            </div>
+                            <div class="i-slice2" style="transform: rotate(180deg);">
+                                <div class="i-sliceOut2" style="transform: rotate(calc(({{userInfo.current_course_progress}} - 50)*360deg/100)); background:{{userInfo.current_course_background}};"></div>
+                            </div>
+                        </div>
+                        <div class="i-value" style="color:{{userInfo.current_course_background}};">{{userInfo.current_course_progress}}%</div>
+                    </div>
+                </div>
+                <article>
+                    <header class="text7">{{userInfo.name}}</header>                     
+                    <section ng-if="loc=='es'" class="text8" style="color:{{userInfo.current_course_background}};">{{userInfo.current_course_name}}</section>
+                    <section ng-if="loc=='br'" class="text8" style="color:{{userInfo.current_course_background}};">{{userInfo.current_course_name_br}}</section>
+                    <section ng-if=" loc!='es' && loc!='br' " class="text8" style="color:{{userInfo.current_course_background}};">{{userInfo.current_course_name_en}}</section>
+                </article>
+            </a>  
+
+            <a class="item-box55" ng-if="user.id!=userInfo.id">  
+
+                <div ng-if="user.premium" style="position:fixed; margin-top:64px; margin-left:75px;z-index:100;">
+                    <div style="background:#16a6d8; border-radius: 50%; padding: 2px;">     
+                        <div style="background:#387ef5; border-radius: 50%; padding: 3px;">     
+                            <div style="background:#16a6d8; border-radius: 50%; padding: 6px 7px 0px 7px;">
+                                <img src="assets/corona.png" alt="" width="20px" height="20px"/>
+                            </div>
+                        </div>
+                    </div>
+                </div>              
+               
+                <div class="i-header" ng-click="doclick()">             
+                    <div class="i-icon" style="background-image: url('{{user.image}}');"></div>
+                    <div class="i-graph">
+                        <div class="i-graphContent">
+                            <div class="i-message"></div>
+                            <div class="i-slice" percent="{{user.current_course_progress}}" style="transform: rotate(0deg);">
+                                <div class="i-sliceOut" style="transform: rotate(calc({{user.current_course_progress}}*360deg/100)); background:{{user.current_course_background}};"></div>
+                            </div>
+                            <div class="i-slice2" style="transform: rotate(180deg);">
+                                <div class="i-sliceOut2" style="transform: rotate(calc(({{user.current_course_progress}} - 50)*360deg/100)); background:{{user.current_course_background}};"></div>
+                            </div>                        
+                        </div>
+                        <div class="i-value" style="color:{{user.current_course_background}};">{{user.current_course_progress}}%</div>
+                    </div>
+                </div>
+                <article>           
+                    <header class="text7">{{user.name}}</header>                                    
+                    <span class="icon ion-star" style="color:#FFDF00;" ng-if="user.friend"></span>&nbsp;<span class="icon icon-stop" style="color:#ff2800; font-size:16px;" ng-if="user.ignored"></span>&nbsp;<span class="icon ion-close-circled" style="color:gray" ng-if="user.ignoringMe"></span>
+                    <section ng-if="loc=='es'" class="text8" style="color:{{user.current_course_background}};">{{user.current_course_name}}</section>
+                    <section ng-if="loc=='br'" class="text8" style="color:{{user.current_course_background}};">{{user.current_course_name_br}}</section>
+                    <section ng-if="loc!='es' && loc!='br'" class="text8" style="color:{{user.current_course_background}};">{{user.current_course_name_en}}</section>
+                </article>
+            </a>
+            
+            <div class="item-box59">           
+                                <!--  on-select="tabClick($index); $event.stopPropagation();" -->
+                <ti-segmented-control style="width: 300px; display:inline-block;">
+                    <ti-segmented-control-button ng-click="tabClick(0)" class="button-positive" ng-class="{active : tabOption==0}" ng-attr-title="i18n[loc].progress" style="font-size:small;"></ti-segmented-control-button>
+                    <ti-segmented-control-button ng-click="tabClick(1)" class="button-positive" ng-class="{active : tabOption==1}" ng-attr-title="i18n[loc].activity" style="font-size:small;"></ti-segmented-control-button>
+                    <ti-segmented-control-button ng-click="tabClick(2)" class="button-positive" ng-class="{active : tabOption==2}" ng-attr-title="i18n[loc].record"   style="font-size:small;"></ti-segmented-control-button>
+                </ti-segmented-control>
+                
+
+                <div class="item item-text-wrap assertive" ng-if="errorValue" style="border-radius: 10px; border-color:#e9eef7; background:#e9eef7;">  
+
+                <div class="somethingwrong">
+                    <img src="assets/somethingwrong.png" /> 
+                    <p>
+                    {{i18n[loc].err05}}<br/>{{i18n[loc].err06}}<br/>{{i18n[loc].err07}}
+                    </p>
+                </div>
+
+                </div>
+
+                <div ng-if="!errorValue">
+
+                    <div ng-if="tabOption == 0">
+                        <div class="text29">{{i18n[loc].courses}}</div>
+
+                        <div class="item-box62" ng-repeat="course in Courses" ng-click="courseClick(course.id)" ng-if="course.id<=10000">
+                            <div class="i--img" style="background-color:{{course.background}};background-image:url('assets/course{{course.id}}.png');"></div>
+                            <div class="i--info">
+
+                            <div ng-if="user.id==userInfo.id">
+                                <div ng-if="loc=='es'" class="text28">{{course.name}}&nbsp;-&nbsp;{{course.complete}}%</div>
+                                <div ng-if="loc=='br'" class="text28">{{course.name_br}}&nbsp;-&nbsp;{{course.complete}}%</div>
+                                <div ng-if="loc!='es' && loc!='br'" class="text28">{{course.name_en}}&nbsp;-&nbsp;{{course.complete}}%</div>                                
+                                <div class="i--progress-bar">
+                                    <div class="i--bar" style="background-color:{{course.background}};width:{{course.complete}}%;"></div>
+                                </div>
+
+                            </div>
+
+                            <div ng-if="user.id!=userInfo.id">
+                                <div ng-if="loc=='es'" class="text28">{{course.name}}&nbsp;-&nbsp;{{progress.courses[$index].progress}}%</div>
+                                <div ng-if="loc=='br'" class="text28">{{course.name_br}}&nbsp;-&nbsp;{{progress.courses[$index].progress}}%</div>
+                                <div ng-if="loc!='es' && loc!='br'" class="text28">{{course.name_en}}&nbsp;-&nbsp;{{progress.courses[$index].progress}}%</div>
+                                <div class="i--progress-bar">
+                                    <div class="i--bar" style="background-color:{{course.background}};width:{{progress.courses[$index].progress}}%;"></div>
+                                </div>
+                            </div>
+
+                            </div>
+                        </div>
+
+                    </div>
+
+
+                    <div ng-if="tabOption == 1">
+                        <div class="text14" ng-if "!grouped">{{i18n[loc].nodata}}</div>
+                        <div class="item-box62 v2" ng-repeat="dia in grouped" ng-init="diaIndex = $index">
+                            <div class="i--title">{{humanDate(dia.date)}}</div>
+                            <div class="i--full" ng-repeat="activity in dia.activities">
+                                <div class="i--img text21" style="background-color:{{activity.color}};background-image:url('{{activity.image2}}');" ng-if="activity.type==0"></div>
+                                <div class="i--img text21" style="background-color:{{activity.color}};background-image:url('{{activity.image}}');" ng-if="activity.type==1"></div>
+                                <div class="i--img text21" style="background-color:{{activity.color}};" ng-if="activity.type==2">
+                                    <span ng-if="activity.type==2">{{activity.numeric_value}}%</span>
+                                </div>
+                                <div class="i--info">
+                                    <div ng-if="loc=='es'" class="text28">{{activity.text}}</div>
+                                    <div ng-if="loc=='br'" class="text28">{{activity.text_br}}</div> 
+                                    <div ng-if="loc!='es' && loc!='br'" class="text28">{{activity.text_en}}</div>
+
+                                    <div class="text30" ng-if="activity.type==2" ng-click="goTest(diaIndex,$index); $event.stopPropagation();">{{activity.test_name}}</div>
+
+                                    <div ng-if="loc=='es'" class="text30" ng-if="activity.type==1" ng-click="goCourse(diaIndex,$index); $event.stopPropagation();">{{activity.course_name}}</div>
+                                    <div ng-if="loc=='br'" class="text30" ng-if="activity.type==1" ng-click="goCourse(diaIndex,$index); $event.stopPropagation();">{{activity.course_name_br}}</div>
+                                    <div ng-if="loc!='es' && loc!='br'" class="text30" ng-if="activity.type==1" ng-click="goCourse(diaIndex,$index); $event.stopPropagation();">{{activity.course_name_en}}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+
+                    <div ng-if="tabOption == 2" style="padding-left:10px; padding-right:10px;">
+                        <div class="text29">{{i18n[loc].courses}}</div>  
+                        <div class="text14" ng-if "!record">{{i18n[loc].nodata}}</div>
+                        <div class="item-box56" ng-repeat="c in record" ng-init="cIndex = $index">
+                            <div class="i-header">
+                                <div class="item-box62 s-box62-title">
+                                    <div class="i--graph2">                                
+                                        <div class="i-default-img" style="background-image:url('assets/course{{c.id}}.png');"></div>
+                                        <div class="i-graph">
+                                            <div class="i-graphContent">
+
+                                                <div ng-if="user.id==userInfo.id">
+
+                                                    <div class="i-message text21">{{c.complete}}<span>%</span></div>
+                                                    <div class="i-slice" percent="{{c.complete}}" style="transform: rotate(0deg);">
+                                                        <div class="i-sliceOut" style="transform: rotate(calc({{c.complete}}*360deg/100));background-color: orange;"></div>
+                                                    </div>
+                                                    <div class="i-slice2" style="transform: rotate(180deg);">
+                                                        <div class="i-sliceOut2" style="transform: rotate(calc(({{c.complete}} - 50)*360deg/100));background-color: orange;"></div>
+                                                    </div>
+
+                                                </div>
+
+                                                <div ng-if="user.id!=userInfo.id">
+
+                                                    <div class="i-message text21">{{progress.courses[$index].progress}}<span>%</span></div>
+                                                    <div class="i-slice" percent="{{progress.courses[$index].progress}}" style="transform: rotate(0deg);">
+                                                        <div class="i-sliceOut" style="transform: rotate(calc({{progress.courses[$index].progress}}*360deg/100));background-color: orange;"></div>
+                                                    </div>
+                                                    <div class="i-slice2" style="transform: rotate(180deg);">
+                                                        <div class="i-sliceOut2" style="transform: rotate(calc(({{progress.courses[$index].progress}} - 50)*360deg/100));background-color: orange;"></div>
+                                                    </div>
+
+                                                </div>
+
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div ng-if="loc=='es'" class="i--info text14">{{c.name}}</div>
+                                    <div ng-if="loc=='br'" class="i--info text14">{{c.name_br}}</div>
+                                    <div ng-if="loc!='es' && loc!='br'" class="i--info text14">{{c.name_en}}</div>
+                                
+                                </div>
+                                <div class="i-icon" ng-class="{ 'ion-minus-circled' : openItem==$index  , 'ion-plus-circled' :openItem != $index   }" ng-click="plusClick($index); $event.stopPropagation();"></div>
+                            </div>
+                            <div class="i-section" ng-show="openItem==$index"> 
+                                <div ng-repeat="lesson in c.lessons" ng-init="lIndex = $index">
+
+                                    <div ng-if="loc=='es'" class="text2">{{lesson.name}} ({{lesson.name_translation}})</div>
+                                    <div ng-if="loc!='es'" class="text2">{{lesson.name_en}}</div>
+
+                                    <ion-item class="item-box62" ng-click="goTest2(cIndex,lIndex,$index); $event.stopPropagation();" ng-repeat="test in lesson.tests">
+                                                                                      <!-- #00629d -->
+                                        <div class="i--img text21" style="background-color:{{getColor(test.result)}};">
+                                            <div ng-if="test.result=='A' || test.result=='B'">{{test.nResult}}%</div>
+                                            <div ng-if="test.result!='A' && test.result!='B'">{{test.nResult}}%</div>
+                                        </div>
+                                        <div class="i--info">
+                                            <div class="text2">{{test.name}}</div>
+                                            <div ng-if="loc=='es'" class="text3">{{test.name_es}}</div>
+                                        </div>
+
+                                    </ion-item>
+                                </div>
+                                <hr>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+            
+            </div>
+
+
+        </div>
+
+
+       
+        <div class="item-login" ng-if="user.id==-1">
+           
+            <form ng-submit="doLogin()">
+                
+                <div ng-if="!debug">                                    
+                    <div>
+                        <span>{{i18n[loc].username}}</span>
+                        <div class="i-clear_check">
+                            <input reset-field type="email" ng-model="loginData.username"/>
+                            <div class="xicon-close-1"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <span>{{i18n[loc].password}}</span>
+                        <div class="i-clear_check">
+                            <input type="password" ng-model="loginData.password"/>
+                            <div class="xicon-close-1"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-bottom:0px;" ng-if="debug">
+                    <label>
+                        <span>typeUser</span>
+                        <input type="number" ng-model="loginData.typeUser"/>
+                    </label>
+                    <label>
+                        <span>social_id</span>
+                        <input type="text" ng-model="loginData.social_id"/>
+                    </label>                
+                </div>
+
+                <p style="margin-left:20px;" ng-if="error" class="error_text">{{error}}</p>
+
+                <p style="margin-left:20px;" ng-if="error_login" class="error_text">{{error_login}}</p>
+
+                <button style="margin-top:10px;" class="i--button lighgreen">{{i18n[loc].enter}}</button>
+                
+                <p class="normal_text">{{i18n[loc].noacc1}}: <a ng-click="registerPopup(); $event.stopPropagation();"> {{i18n[loc].noacc2}}</a></p>
+
+            </form>
+        
+            <hr ng-show="showSocialLogin">       
+            
+            <div class="social_login">
+
+                <p ng-show="showSocialLogin">{{i18n[loc].loginwith}}:</p>
+                
+                <div ng-show="showSocialLogin" class="social">
+                    <a class="item icon-facebook" onClick="event.stopPropagation(); loginSocial('facebook');">Facebook</a>
+<!--                        
+                    <a class="item icon-facebook" onClick="loginSocial('facebook'); $event.stopPropagation();">Facebook</a>
+-->                    
+                    <a class="item" onClick="event.stopPropagation(); loginSocial('google');"><img src="assets/googleplusshare.png" style="height:20px; padding-right:5px; margin-bottom:-5px;">Google</a>
+                </div>
+
+                <div ng-show="showSocialLogin" >
+                    <button style="xmargin-top:10px; background-color:black;" class="i--button" onClick="event.stopPropagation(); loginSocial('apple');">
+                    <img src="assets/apple.png" style="height:20px; padding-right:4px; margin-bottom:-5px;">
+                    {{i18n[loc].logapple}}</button>
+                </div>
+
+                <br>
+
+                <a class="normal_text" ng-click="forgotPassPopup(); $event.stopPropagation();">{{i18n[loc].forgot}}</a>
+
+                <br><br>
+
+                <a class="normal_text" ng-click="goWebLegal(); $event.stopPropagation();">{{i18n[loc].legal}}</a>
+
+                <br><br>
+
+                <a class="normal_text" href="#" ng-click="sendMail(); $event.preventDefault(); $event.stopPropagation();">{{i18n[loc].contact}}</a>
+
+                <span ng-if="!premium">
+                    <br>
+                    <br>
+                    <a class="normal_text" href="#" ng-click="persAds(); $event.stopPropagation();">{{i18n[loc].persAds}}</a>
+                </span>              
+
+            </div>     
+
+
+            <div style="text-align:center; padding-top:10px; color:#00a8ef;" ng-click="dbg($event)">
+            V {{version}}
+            {{env}}
+            </div> 
+
+        </div>
+
+
+        <div ng-if="user.id==userInfo.id">
+
+          <div class="itemcombo item-box56" style=" padding:8px; margin-top:10px; box-shadow: 0 5px 0 0 #00598f;">
+            <label class="i--select icon-arrow-down text3" style="color:black;">
+                {{i18n[loc].lang}}:
+                <select ng-if="loc=='es'" style="padding-left:10px;" class="text26"  ng-model="datamodel" ng-change="selectLang(datamodel)">
+                  <option ng-repeat="dataitem in data" ng-selected ="{{dataitem == datamodel}}" >{{dataitem}}</option>
+                </select>
+                <select ng-if="loc=='br'" style="padding-left:10px;" class="text26"  ng-model="datamodel" ng-change="selectLang(datamodel)">
+                  <option ng-repeat="dataitem in data" ng-selected ="{{dataitem == datamodel}}" >{{dataitem}}</option>
+                </select>
+                <select ng-if="loc!='es' && loc!='br'" style="padding-left:10px;" class="text26"  ng-model="datamodel" ng-change="selectLang(datamodel)">
+                  <option ng-repeat="dataitem in data" ng-selected ="{{dataitem == datamodel}}" >{{dataitem}}</option>
+                </select>
+            </label>
+
+        </div>
+
+
+        <div ng-if="false && user.id==userInfo.id">
+
+            <label class="item item-input item-divider" style="background:transparent; margin-top:10px; border-color:#00a8ef;">
+                <div class="row" style="padding:0px;">
+                    <span style="padding-top:14px; margin-right:10px; color:#00a8ef;">{{i18n[loc].lang}}:</span>
+                    <ion-checkbox ng-model="datos.loces" style="border:none; color:white; background:transparent;" ng-click="langToggle(0)">{{i18n[loc].es}}</ion-checkbox>
+                    <ion-checkbox ng-model="datos.locen" style="border:none; color:white; background:transparent;" ng-click="langToggle(1)">{{i18n[loc].en}}</ion-checkbox>    
+                    <ion-checkbox ng-model="datos.locbr" style="border:none; color:white; background:transparent;" ng-click="langToggle(2)">{{i18n[loc].br}}</ion-checkbox>
+                </div>
+            </label>
+
+        </div>
+
+
+        <div ng-if="user.id==userInfo.id">
+
+            <ion-list class="list2">          
+          
+                <ion-item ng-if="premium && autoSpeech" class="i--button white i--icon icon-arrow-right text21" ng-click="goDownloads()" ng-if="premium">{{i18n[loc].downloads}}</ion-item>
+
+                <button class="i--button white i--icon icon-arrow-right text21" ng-click="sendMail(); $event.preventDefault(); $event.stopPropagation();" style="padding:16px; width: 100%; text-align: left;">{{i18n[loc].contact}}</button>                
+               
+                <ion-item class="i--button white i--icon icon-arrow-right text21" ng-click="goCredits()" >{{i18n[loc].credits}}</ion-item>       
+                <ion-item class="i--button white i--icon icon-arrow-right text21" ng-click="goChatNorms()" >{{i18n[loc].chatnorms}}</ion-item>           
+                <ion-item class="i--button white i--icon icon-arrow-right text21" ng-click="goTour()">{{i18n[loc].help}}</ion-item>       
+
+                <ion-item ng-if="!premium" class="i--button white i--icon icon-arrow-right text21" ng-click="persAds()">{{i18n[loc].persAds}}</ion-item>       
+
+                <ion-item ng-if="!purchaseStatus && restoreBtn" class="i--button lightblue i--icon icon-arrow-right text21" ng-click="doRestore()" style="background:lightblue; color:black;">{{i18n[loc].subs}}</ion-item>
+
+                <ion-item ng-if="purchaseStatus" class="i--button lightblue i--icon xicon-arrow-right text21" style="background:lightblue; color:green;">{{i18n[loc].subs2}}&nbsp;{{purchaseExpires}}</ion-item>
+                            
+                <ion-item class="i--button lighred i--icon icon-close text21" ng-click="logout()" ng-if="currentUser">{{i18n[loc].exit}}</ion-item>
+
+            </ion-list> 
+
+            <div style="text-align:center; padding-top:10px; color:#00a8ef; padding-bottom:10px;" ng-click="dbg($event)">
+                <br>
+                V {{version}}&nbsp;&nbsp;
+                <a style="text-decoration: underline; color: #fff; font: 15px 'Open Sans', sans-serif; text-align: center; padding-bottom:10px;" ng-click="goWebLegal(); $event.stopPropagation();">{{i18n[loc].legal}}</a>   
+                <br>
+                {{env}}   
+                <br><br><br>
+            </div>  
+
+        </div>
+
+
+    </ion-content>
+            
+</ion-view>

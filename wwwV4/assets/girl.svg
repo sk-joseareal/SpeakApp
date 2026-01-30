@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generator: Adobe Illustrator 16.0.0, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+	 width="240px" height="340px" viewBox="0 0 240 340" enable-background="new 0 0 240 340" xml:space="preserve">
+<g>
+	<defs>
+		<rect id="SVGID_1_" width="240" height="340"/>
+	</defs>
+	<clipPath id="SVGID_2_">
+		<use xlink:href="#SVGID_1_"  overflow="visible"/>
+	</clipPath>
+	<path clip-path="url(#SVGID_2_)" fill="#FFDA44" d="M160,7.503C147.602,2.661,134.112,0,120,0C59.249,0,10,49.249,10,110v40h150h70
+		v-40C230,63.361,200.973,23.505,160,7.503"/>
+	<path clip-path="url(#SVGID_2_)" fill="#FF9811" d="M160,150V7.503C147.602,2.661,134.112,0,120,0C59.249,0,10,49.249,10,110v40
+		H160z"/>
+	<rect x="10" y="160" clip-path="url(#SVGID_2_)" fill="#FF9811" width="110" height="120"/>
+	<rect x="120" y="160" clip-path="url(#SVGID_2_)" fill="#FFDA44" width="110" height="120"/>
+	<path clip-path="url(#SVGID_2_)" fill="#7C84E8" d="M141,240h-21H99c-38.107,0-69,30.893-69,69v31h90h90v-31
+		C210,270.893,179.107,240,141,240"/>
+	<path clip-path="url(#SVGID_2_)" fill="#933EC5" d="M120,240H99c-38.107,0-69,30.893-69,69v31h90V240z"/>
+	<path clip-path="url(#SVGID_2_)" fill="#FFEACF" d="M150,240c0,16.568-13.432,30-30,30c-16.568,0-30-13.432-30-30v-30
+		c0-16.568,13.432-30,30-30c16.568,0,30,13.432,30,30V240z"/>
+	<path clip-path="url(#SVGID_2_)" fill="#FFEACF" d="M120,30c55.228,0,100,47.01,100,105s-44.772,105-100,105
+		c-55.228,0-100-47.01-100-105S64.772,30,120,30"/>
+	<path clip-path="url(#SVGID_2_)" fill="#FFD6A0" d="M120,228c-22.528,0-44.084-4.358-63.96-12.294
+		C73.376,230.872,95.67,240,120,240s46.624-9.128,63.959-24.294C164.083,223.642,142.528,228,120,228"/>
+	<path clip-path="url(#SVGID_2_)" fill="#FFEACF" d="M20,130c11.046,0,20,8.954,20,20s-8.954,20-20,20s-20-8.954-20-20
+		S8.954,130,20,130"/>
+	<path clip-path="url(#SVGID_2_)" fill="#FFEACF" d="M220,130c11.046,0,20,8.954,20,20s-8.954,20-20,20s-20-8.954-20-20
+		S208.954,130,220,130"/>
+	<path clip-path="url(#SVGID_2_)" fill="#FFDA44" d="M220,130c0,0-60-20-60-80l-10-20c0,0,50.54,25.811,60,40
+		C230,100,220,130,220,130"/>
+	<path clip-path="url(#SVGID_2_)" fill="#FF9811" d="M20,130c0,0,120-10,140-80V20l-71.5-2.5L31,51.5l-16,41L20,130z"/>
+	<path clip-path="url(#SVGID_2_)" fill="#933EC5" d="M120,40c30.31,0,58.197,8.379,80.306,22.425C182.081,36.681,152.896,20,120,20
+		c-32.896,0-62.081,16.681-80.306,42.425C61.803,48.379,89.69,40,120,40"/>
+</g>
+</svg>

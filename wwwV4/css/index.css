@@ -1,0 +1,3910 @@
+
+
+
+.iconoverde {
+  color:green;
+}
+
+/* Quitarle el titulo al popup */
+.popupsintitulo .popup-head {
+  display: none;
+}
+
+/* item resaltado en el contenido de las lecciones */
+.marcado{
+  background:#deffdb !important;
+}
+
+/* item resaltado en el contenido de las lecciones, mientras se está pronunciando */
+.marcado2{
+  background:#90ee90 !important;
+}
+
+/* al pulsar los items de resources que se oscurezcan */
+.item-box53.activated {
+  -webkit-filter: contrast(50%);
+  contrast(50%); }
+.item-content.activated {
+  -webkit-filter: contrast(50%);
+  contrast(50%); }
+.activated {
+  -webkit-filter: contrast(50%);
+  contrast(50%); }
+
+/* Color de fondo generico */
+.pane {
+  background-color: #00619f !important;
+}
+
+/* El botón que activa los Rewarded Videos */
+.i--button.gris {
+  background-color: #d53c3e;
+}
+
+
+
+
+/* Animación para el pop-up del contenido de las lecciones */
+.slide-in-left {
+  -webkit-transform: translate3d(100%, 0, 0);
+  transform: translate3d(100%, 0, 0); }
+
+.slide-in-left.ng-enter, .slide-in-left > .ng-enter {
+  -webkit-transition: all cubic-bezier(0.1, 0.7, 0.1, 1) 400ms;
+  transition: all cubic-bezier(0.1, 0.7, 0.1, 1) 400ms; }
+
+.slide-in-left.ng-enter-active, .slide-in-left > .ng-enter-active {
+  -webkit-transform: translate3d(0, 0, 0);
+  transform: translate3d(0, 0, 0); }
+
+.slide-in-left.ng-leave, .slide-in-left > .ng-leave {
+  -webkit-transition: all ease-in-out 250ms;
+  transition: all ease-in-out 250ms; 
+  -webkit-transform: translate3d(-100%, 0, 0);
+  transform: translate3d(-100%, 0, 0); }
+
+
+/* Para las búsquedas */
+
+::-moz-placeholder {
+  font-style: italic;
+}
+
+::-ms-input-placeholder {
+  font-style: italic;
+}
+
+::-webkit-input-placeholder {
+  font-style: italic;
+}
+
+#srchList a
+{
+    padding-top:10px !important;
+    padding-bottom:10px !important;
+    border-bottom: solid 2px #f0f0f0 !important;
+}
+
+.rdn.item:first-child
+{
+    border-top-left-radius: 5px;
+    border-top-right-radius: 5px;
+}
+.rdn.item:last-child
+{
+    border-bottom-left-radius: 5px;
+    border-bottom-right-radius: 5px;
+}
+
+::-webkit-scrollbar { 
+display: none; 
+}
+
+.pruebaanim.ng-hide-add { animation:0.5s pepe ease; }
+.pruebaanim.ng-hide-remove { animation:0.5s epep ease; }
+@-webkit-keyframes pepe { 0% { opacity: 1; } 100% { opacity: 0; } }
+@-webkit-keyframes epep { 0% { opacity: 0; } 100% { opacity: 1; } }
+@keyframes pepe { 0% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes epep { 0% { opacity: 0; } 100% { opacity: 1; } }
+
+.srchBox_iOS {
+    margin-top:-10px !important;
+    padding-top: 0px !important;
+    height:55px !important;
+    xbackground:lightgreen !important;
+}
+
+
+.srchWrap_iOS {
+    height:36px !important;
+    margin-top:-15px !important;
+    xbackground:red !important;
+}
+
+.srchClear_iOS {
+    margin-left:5px !important;
+    margin-top:20px !important;
+}
+
+
+
+/* Fondo azul global de todos los paneles */
+
+.pane {
+  background-color: #00619f !important;
+}
+
+
+
+
+
+.toolbar-content {
+  position: absolute;  // take a flexbox item out of the flow
+  width: 100%;         // take all the space, including that of the buttons on the left and right side
+  z-index: -1;         // go under the buttons
+}
+
+.toolbar-title {
+background: yellow !important;
+  text-align: center;  // now center the title
+}
+
+
+
+ion-navbar {
+    .toolbar-title {
+        margin-top: 18px; // Margin top from the StatusBar
+        margin-right: 22px; // Maybe you don't need this, depending how your layout looks like
+    }
+
+    // Here is how you can center your title
+    &.toolbar {
+        padding-left: 6px;
+        padding-top: 25px;
+        padding-bottom: 10px;
+    }
+}
+
+.toolbar-title {
+color:yellow !important;
+}
+
+.toolbar-md ion-title {
+  position: absolute;
+  top: 0;
+  left: 0;
+
+  padding: 0;  
+
+  width: 100%;
+  height: 100%;
+
+  pointer-events: none;
+}
+
+
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+@font-face {
+  font-family: 'museo_sans500';
+  src: url('fonts/MuseoSans_500-webfont.eot');
+  src: url('fonts/MuseoSans_500-webfont.eot?#iefix') format('embedded-opentype'), url('fonts/MuseoSans_500-webfont.woff2') format('woff2'), url('fonts/MuseoSans_500-webfont.woff') format('woff'), url('fonts/MuseoSans_500-webfont.ttf') format('truetype'), url('fonts/MuseoSans_500-webfont.svg#museo_sans500') format('svg');
+  font-weight: normal;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Open Sans';
+  src: url('fonts/OpenSans-Regular.ttf');
+}
+@font-face {
+  font-family: 'Open Sans';
+  src: url('fonts/OpenSans-Bold.ttf');
+  font-weight: bold;
+}
+@font-face {
+  font-family: 'Open Sans';
+  src: url('fonts/OpenSans-Italic.ttf');
+  font-style: italic;
+}
+@font-face {
+  font-family: 'Open Sans';
+  font-style: normal;
+  font-weight: 400;
+  src: local('Open Sans'), local('OpenSans'), url('fonts/OpenSans.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Open Sans';
+  font-style: normal;
+  font-weight: 600;
+  src: local('Open Sans Semibold'), local('OpenSans-Semibold'), url('fonts/OpenSans-Semibold.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Indie Flower';
+  font-style: normal;
+  font-weight: 400;
+  src: local('Indie Flower'), local('IndieFlower'), url('fonts/IndieFlower.ttf') format('truetype');
+}
+* {
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+  /* make transparent link selection, adjust last value opacity 0 to 1.0 */
+}
+body {
+  -webkit-touch-callout: none;
+  /* prevent callout to copy image, etc when tap to hold */
+  -webkit-text-size-adjust: none;
+  /* prevent webkit from resizing text to fit */
+  -webkit-user-select: none;
+  /* prevent copy paste, to allow, change 'none' to 'text' */
+  /*
+    background-color:#E4E4E4;
+    background-image:linear-gradient(top, #A7A7A7 0%, #E4E4E4 51%);
+    background-image:-webkit-linear-gradient(top, #A7A7A7 0%, #E4E4E4 51%);
+    background-image:-ms-linear-gradient(top, #A7A7A7 0%, #E4E4E4 51%);
+    background-image:-webkit-gradient(
+        linear,
+        left top,
+        left bottom,
+        color-stop(0, #A7A7A7),
+        color-stop(0.51, #E4E4E4)
+    );
+    background-attachment:fixed;
+*/
+  /*
+    font-family:'HelveticaNeue-Light', 'HelveticaNeue', Helvetica, Arial, sans-serif;
+*/
+  font-family: 'Open Sans';
+  font-size: 12px;
+/*  height: 100%; */
+height: 100vh;
+  margin: 0px;
+  padding: 0px;
+  /*
+    text-transform:uppercase;
+*/
+  width: 100%;
+}
+/* Portrait layout (default) */
+.appx {
+  background: url(../img/logo.png) no-repeat center top;
+  /* 170px x 200px */
+  position: absolute;
+  /* position in the center of the screen */
+  left: 50%;
+  top: 50%;
+  height: 50px;
+  /* text area height */
+  width: 225px;
+  /* text area width */
+  text-align: center;
+  padding: 180px 0px 0px 0px;
+  /* image height is 200px (bottom 20px are overlapped with text) */
+  margin: -115px 0px 0px -112px;
+  /* offset vertical: half of image height and text area height */
+  /* offset horizontal: half of text area width */
+}
+/* Landscape layout (with min-width) */
+@media screen and (min-aspect-ratio: 1/1) and (min-width: 400px) {
+  .appx {
+    background-position: left center;
+    padding: 75px 0px 75px 170px;
+    /* padding-top + padding-bottom + text area = image height */
+    margin: -90px 0px 0px -198px;
+    /* offset vertical: half of image height */
+    /* offset horizontal: half of image width and text area width */
+  }
+}
+h1 {
+  font-size: 24px;
+  font-weight: normal;
+  margin: 0px;
+  overflow: visible;
+  padding: 0px;
+  text-align: center;
+}
+.event {
+  border-radius: 4px;
+  -webkit-border-radius: 4px;
+  color: #FFFFFF;
+  font-size: 12px;
+  margin: 0px 30px;
+  padding: 2px 0px;
+}
+.event.listening {
+  background-color: #333333;
+  display: block;
+}
+.event.received {
+  background-color: #4B946A;
+  display: none;
+}
+@keyframes fade {
+  from {
+    opacity: 1.0;
+  }
+  50% {
+    opacity: 0.4;
+  }
+  to {
+    opacity: 1.0;
+  }
+}
+@-webkit-keyframes fade {
+  from {
+    opacity: 1.0;
+  }
+  50% {
+    opacity: 0.4;
+  }
+  to {
+    opacity: 1.0;
+  }
+}
+.blink {
+  animation: fade 3000ms infinite;
+  -webkit-animation: fade 3000ms infinite;
+}
+/*@import url(https://fonts.googleapis.com/css?family=Open+Sans:400,600);
+@import url('https://fonts.googleapis.com/css?family=Indie+Flower');*/
+.text1 {
+  font: 400 13px 'Open Sans', sans-serif;
+  color: #fff;
+}
+.text2 {
+  font: 400 15px 'Open Sans', sans-serif;
+  color: #00629d;
+}
+.text3 {
+  font: 15px 'Open Sans', sans-serif;
+  color: #666;
+}
+.text4 {
+  font: 400 15px 'Open Sans', sans-serif;
+  color: #49be48;
+}
+.text5 {
+  font: 400 15px 'Open Sans', sans-serif;
+  color: #dd660d;
+}
+.text6 {
+  font: 400 15px 'Open Sans', sans-serif;
+  color: #dd9200;
+}
+.text7 {
+  font: 400 20px 'Open Sans', sans-serif;
+  color: #fff;
+  text-transform: uppercase;
+}
+.text8 {
+  font: 18px 'Open Sans', sans-serif;
+  color: #00a8ef;
+}
+.text9 {
+  font: 400 15px 'Open Sans', sans-serif;
+  color: #3fc8fc;
+}
+.text10 {
+  font: 10px 'Open Sans', sans-serif;
+  color: #fff;
+}
+.text11 {
+  font: 14px 'Open Sans', sans-serif;
+  color: #fff;
+}
+.text12 {
+  font: 400 15px 'Open Sans', sans-serif;
+  color: #000;
+}
+.text13 {
+  font: 18px 'Open Sans', sans-serif;
+  color: #fff;
+}
+.text14 {
+  font: 400 14px 'Open Sans', sans-serif;
+  color: #000;
+}
+.text15 {
+  font: 18px 'Open Sans', sans-serif;
+  color: #000;
+}
+.text16 {
+  font: 14px 'Open Sans', sans-serif;
+  color: #fff;
+}
+.text17 {
+  font: 15px 'Open Sans', sans-serif;
+  color: #d1efff;
+}
+.text18 {
+  font: 400 16px 'Open Sans', sans-serif;
+  color: #000;
+}
+.text19 {
+  font: 400 13px 'Open Sans', sans-serif;
+  color: #00a8ef;
+}
+.text20 {
+  font: 17px 'Open Sans', sans-serif;
+  color: #000;
+}
+.text21 {
+  font: 400 15px 'Open Sans', sans-serif;
+  color: #fff;
+}
+.text22 {
+  font: 400 18px 'Open Sans', sans-serif;
+  color: #00629d;
+}
+.text23 {
+  font: 16px 'Open Sans', sans-serif;
+  color: #888 !important;
+}
+.text24 {
+  font: 17px 'Open Sans', sans-serif;
+  color: #444;
+}
+.text25 {
+  font: 14px 'Open Sans', sans-serif;
+  color: #49be48;
+  text-decoration: underline;
+}
+.text26 {
+  font: 12px 'Open Sans', sans-serif;
+  color: #000;
+}
+.text27 {
+  font: 10px 'Open Sans', sans-serif;
+  color: #bbb;
+}
+.text28 {
+  font: 400 15px/22px 'Open Sans', sans-serif;
+  color: #000;
+}
+.text29 {
+  font: 18px 'Open Sans', sans-serif;
+  color: #00629d;
+}
+.text30 {
+  font: 400 15px/22px 'Open Sans', sans-serif;
+  color: #00629d;
+}
+.text31 {
+  font: 14px 'Open Sans', sans-serif;
+  color: #fff;
+}
+.text32 {
+  font: 700 16px 'Open Sans', sans-serif;
+  color: #fff;
+}
+.text33 {
+  font: 12px 'Open Sans', sans-serif;
+  color: #ccc;
+}
+.text34 {
+  font: 12px 'Open Sans', sans-serif;
+  color: #c1391a;
+}
+.text35 {
+  font: 600 15px 'Open Sans', sans-serif;
+  color: #0084cb;
+}
+.text36 {
+  font: 600 17px 'Open Sans', sans-serif;
+  color: #0084cb;
+}
+.text--menu {
+  font: 20px/43px 'Open Sans', sans-serif;
+  color: #fff;
+}
+.text--learn-title {
+  font: 400 15px 'Open Sans', sans-serif;
+  color: #00629d;
+  text-align: center;
+}
+.error_text {
+  color: #ff5d5d;
+}
+/* AM */
+.opacityOFF {
+  opacity: 0;
+}
+.flex-justify {
+  display: flex;
+  align-items: center;
+}
+.flex-justify > div:nth-child(2) {
+  margin-left: 10px;
+}
+.scroller_menu {
+  margin: 0 -10px;
+}
+.scroller_menu .button {
+  min-height: 35px;
+  min-width: 40px;
+}
+.scroller_menu .button.button-lista {
+  color: #fff;
+  background-color: #0084cb;
+  border: 0;
+  border-right: 3px solid #0a4d85;
+  text-transform: uppercase;
+  line-height: 35px;
+}
+.scroller_menu .button.button-lista:last-of-type {
+  border: 0;
+}
+.scroller_menu .button.button-lista.active,
+.scroller_menu .button.button-lista.activated,
+.scroller_menu .button.button-lista:hover {
+  color: #fff;
+  background-color: #00a8ef;
+}
+.underline_none {
+  text-decoration: none;
+}
+.wide-as-needed {
+  overflow: scroll;
+  white-space: nowrap;
+  text-align: center;
+}
+.no-padding {
+  padding: 0px !important;
+}
+.button.button-lista {
+  border-radius: 0px !important;
+  margin-right: -1px !important;
+  margin-left: -1px !important;
+  border-color: transparent;
+  color: gray;
+}
+.button.button-lista:hover {
+  color: #000000;
+  text-decoration: none;
+}
+.button.button-lista.active,
+.button.button-lista.activated {
+  background-color: white;
+  color: black;
+  xfont-size: 15px;
+}
+a {
+  text-decoration: none;
+}
+.padding .item-box55 .i-header .i-icon {
+  background-color: #0a4d85;
+  border: 6px solid #00629d;
+  box-shadow: 0 0 0 2px #00a8ef;
+}
+.padding .item-box55 .i-header .i-graph {
+  border: 9px solid #00629d;
+  box-shadow: 0 0 0 1px #00a8ef;
+}
+.padding .item-box55 .i-header .i-graph .i-graphContent {
+  background-color: #0a4d85;
+}
+.padding .item-box55 .i-header .i-graph .i-graphContent .i-message {
+  background-color: #00629d;
+  border: 5px solid #00629d;
+}
+.padding .item-box55 .i-header .i-graph .i-graphContent .i-slice .i-sliceOut {
+  background-color: #fff;
+}
+.nav-bar-block .bar-header {
+  background-color: #00629d;
+  border: 0;
+}
+.nav-bar-block .bar-header .title {
+  font: 20px/43px 'Open Sans', sans-serif;
+  color: #fff;
+  text-align: center;
+}
+.bar-stable .button.button-clear {
+  color: #fff;
+}
+.bar-stable .button.button-clear.icon-people:before {
+  font-size: 26px;
+}
+.buttons .button-bar .button:fist-child {
+  border-top-left-radius: 50px!important;
+  border-bottom-left-radius: 50px!important;
+}
+.buttons .button-bar .button:last-child {
+  border-top-right-radius: 50px;
+  border-bottom-right-radius: 50px;
+}
+#secciones .slider-pager {
+  top: 125px;
+}
+#secciones .slider-pager .slider-pager-page {
+  opacity: 1!important;
+}
+#secciones .slider-pager .slider-pager-page .ion-record {
+  color: transparent;
+  border: 1px solid #fff;
+  border-radius: 50%;
+  width: 10px;
+  height: 10px;
+  display: block;
+  opacity: 1;
+}
+#secciones .slider-pager .slider-pager-page.active .ion-record {
+  background-color: #fff;
+}
+.scroll-content {
+  background-color: #00629d;
+}
+.menu .scroll-content {
+  background-color: #043c5d;
+}
+.menu hr {
+  border-color: #0076a3;
+  margin: 0 20px;
+}
+.menu .elem-padding {
+  padding: 0 20px;
+}
+.menu .item-box64 .i--info {
+  flex-wrap: nowrap;
+}
+.menu .item-box64 .i--info .i--info--img {
+  border-color: #00a8ef;
+  width: 50px;
+  height: 50px;
+  flex: none;
+}
+.menu .item-box64 .i--info .i--info--text {
+  width: auto;
+}
+.menu .item-box64 .i--icon-right {
+  font-size: 11px;
+  color: #00a8ef;
+}
+.menu .item-box64 .item-content {
+  border-bottom: 1px dotted #00a8ef;
+}
+.friends .item-box53 .i-header {
+  background-color: #ff8a33;
+}
+.friends .item-box53 .i-content .i-title:after {
+  background-color: #ff8a33;
+}
+.practice .item-box53 .i-header {
+  background-color: #49be48;
+}
+.practice .item-box53 .i-content .i-title:after {
+  background-color: #49be48;
+}
+.resources .item-box53 {
+  margin-bottom: 10px;
+}
+.resources .item-box53 .i-header {
+  background-color: #ffc12a;
+}
+.resources .item-box53 .i-content {
+  padding: 10px;
+}
+.resources .item-box53 .i-content .i-title:after {
+  background-color: #ffc12a;
+}
+.vocabulary .item-box56 {
+  margin-bottom: 10px;
+}
+.vocabulary .item-box56 .i--message {
+  padding: 0 20px 0 10px;
+}
+.vocabulary .item-box56 .i--message a {
+  padding: 0 40px 0 0;
+}
+.vocabulary .item-box56 .i--message .i-icon {
+  font-size: 11px;
+}
+.vocabulary .text14 {
+  font: normal 15px 'Open Sans', sans-serif;
+  /*color: #00629d;*/
+}
+.vocabulary .text12 {
+  font: normal 15px 'Open Sans', sans-serif;
+}
+.vocabulary-inside {
+  padding-top: 0;
+}
+.vocabulary-inside .title-translate {
+  margin-bottom: 15px;
+  text-align: center;
+}
+.vocabulary-inside .item-box57 {
+  margin-bottom: 10px;
+}
+.translate .item-box56 .i-header .i-icon {
+  top: 0px;
+  transform: none;
+  font-size: 30px;
+  color: #fff;
+  background-color: #00629d;
+  border-radius: 50%;
+  padding: 6px;
+  font-size: 17px;
+  display: flex;
+}
+.songs .title-translate,
+.games .title-translate {
+  margin-bottom: 15px;
+  text-align: center;
+}
+.songs .item-box56 .i-header,
+.games .item-box56 .i-header {
+  padding-bottom: 0;
+}
+.songs .item-box57,
+.games .item-box57 {
+  margin-bottom: 10px;
+}
+.songs .item-box57 .i--info,
+.games .item-box57 .i--info {
+  align-items: stretch;
+}
+.regular_verb {
+  padding-top: 0;
+}
+.regular_verb .slider {
+  margin-top: 15px;
+}
+.regular_verb .scroll h1 {
+  margin-bottom: 15px;
+}
+.chat .content {
+  background-color: #eee;
+  background-image: url(../assets/bg_chat.jpg);
+  background-size: contain;
+}
+.chat .chat-footer-bar {
+  background-color: #00629d;
+  padding: 10px;
+  position: absolute;
+  bottom: 0;
+  height: auto;
+}
+.chat .chat-footer-bar .i--label {
+  border: 1px solid #00a8ef;
+  border-radius: 4px;
+  width: 100%;
+  overflow: hidden;
+}
+.chat .chat-footer-bar .i--label input {
+  padding: 7px 10px;
+  background-color: #043c5d;
+  width: 100%;
+  font: 400 15px 'Open Sans', sans-serif;
+  color: #3fc8fc;
+  color: #fff;
+}
+.chat .chat-footer-bar .i--label input::-webkit-input-placeholder {
+  color: #fff;
+}
+.chat .chat-footer-bar .i--label input:-moz-placeholder {
+  color: #fff;
+}
+.chat .chat-footer-bar .i--label input::-moz-placeholder {
+  color: #fff;
+}
+.chat .chat-footer-bar .i--label input:-ms-input-placeholder {
+  color: #fff;
+}
+.chat .chat-footer-bar .i--button {
+  border: 0;
+  background-color: transparent;
+  font: 400 15px 'Open Sans', sans-serif;
+  color: #3fc8fc;
+}
+.chatlist .content {
+  background-image: none;
+  background-color: #f8f8f8!important;
+}
+.chatlist .text14 {
+  font: 600 15px 'Open Sans', sans-serif;
+  color: #00629d;
+}
+.menu_right {
+  padding: 10px;
+}
+.menu_right .marginb {
+  margin-bottom: 20px;
+}
+.menu_right .marginl {
+  margin-left: 10px;
+}
+.menu_right hr {
+  margin: 20px 10px;
+}
+.menu_right .buttons {
+  width: 100%!important;
+  margin-bottom: 20px;
+  padding: 10px 10px 0;
+}
+.menu_right .buttons .button-bar .button {
+  max-height: none;
+  padding: 5px;
+}
+.menu_right .buttons .button-bar .button:first-child {
+  border-top-left-radius: 50px;
+  border-bottom-left-radius: 50px;
+}
+.menu_right .buttons .button-bar .button:last-child {
+  border-top-right-radius: 50px;
+  border-bottom-right-radius: 50px;
+  border-color: #00629d;
+}
+.menu_right .buttons .button-bar .button.active {
+  background-color: #00629d;
+}
+.menu_right .item-box62 {
+  padding: 10px!important;
+}
+.song .item-box56 {
+  margin-bottom: 20px;
+  position: relative;
+}
+.song .song-info > div {
+  margin-bottom: 5px;
+}
+.song .song-info .i--button {
+  margin-top: 5px;
+  padding: 7px 15px;
+}
+.gramatica .item-box56 .i--message:after {
+  display: none;
+}
+.gramatica .item {
+  border-bottom: solid 1px;
+  border-color: #eee;
+  padding-bottom: 10px !important;
+}
+.gramatica .text14 {
+  font-size: 14px;
+}
+.list {
+  margin: 0;
+}
+.list .item {
+  border: 0;
+  background-color: transparent;
+}
+.list .item:nth-child(1) .item-box51 .i-header {
+  background-color: #ffc12a;
+}
+.list .item:nth-child(1) .item-box51 .i-header .i-graph {
+  border-color: #ffc12a;
+}
+.list .item:nth-child(1) .item-box51 .i-header .i-graph .i-graphContent {
+  background-color: #dd9200;
+}
+.list .item:nth-child(1) .item-box51 .i-header .i-graph .i-graphContent .i-message {
+  border-color: #ffc12a;
+}
+.list .item:nth-child(1) .item-box51 .i-content .i-title:after {
+  background-color: #ffc12a;
+}
+.list .item:nth-child(2) .item-box51 .i-header {
+  background-color: #ff8a33;
+}
+.list .item:nth-child(2) .item-box51 .i-header .i-graph {
+  border-color: #ff8a33;
+}
+.list .item:nth-child(2) .item-box51 .i-header .i-graph .i-graphContent {
+  background-color: #dd660d;
+}
+.list .item:nth-child(2) .item-box51 .i-header .i-graph .i-graphContent .i-message {
+  border-color: #ff8a33;
+}
+.list .item:nth-child(2) .item-box51 .i-content .i-title:after {
+  background-color: #ff8a33;
+}
+.list .item:nth-child(3) .item-box51 .i-header {
+  background-color: #fa6745;
+}
+.list .item:nth-child(3) .item-box51 .i-header .i-graph {
+  border-color: #fa6745;
+}
+.list .item:nth-child(3) .item-box51 .i-header .i-graph .i-graphContent {
+  background-color: #c1391a;
+}
+.list .item:nth-child(3) .item-box51 .i-header .i-graph .i-graphContent .i-message {
+  border-color: #fa6745;
+}
+.list .item:nth-child(3) .item-box51 .i-content .i-title:after {
+  background-color: #fa6745;
+}
+.list .item:nth-child(4) .item-box51 .i-header {
+  background-color: #f5a865 !important;
+}
+.list .item:nth-child(4) .item-box51 .i-header .i-graph {
+  border-color: #f5a865;
+}
+.list .item:nth-child(4) .item-box51 .i-header .i-graph .i-graphContent {
+  background-color: #dc7d2a;
+}
+.list .item:nth-child(4) .item-box51 .i-header .i-graph .i-graphContent .i-message {
+  border-color: #f5a865;
+}
+.list .item:nth-child(4) .item-box51 .i-content .i-title:after {
+  background-color: #f5a865;
+}
+.list .item:nth-child(5) .item-box51 .i-header {
+  background-color: #94cccf;
+}
+.list .item:nth-child(5) .item-box51 .i-header .i-graph {
+  border-color: #94cccf;
+}
+.list .item:nth-child(5) .item-box51 .i-header .i-graph .i-graphContent {
+  background-color: #24949a;
+}
+.list .item:nth-child(5) .item-box51 .i-header .i-graph .i-graphContent .i-message {
+  border-color: #94cccf;
+}
+.list .item:nth-child(5) .item-box51 .i-content .i-title:after {
+  background-color: #94cccf;
+}
+.list .item:nth-child(6) .item-box51 .i-header {
+  background-color: #23bdfa;
+}
+.list .item:nth-child(6) .item-box51 .i-header .i-graph {
+  border-color: #23bdfa;
+}
+.list .item:nth-child(6) .item-box51 .i-header .i-graph .i-graphContent {
+  background-color: #1495c8;
+}
+.list .item:nth-child(6) .item-box51 .i-header .i-graph .i-graphContent .i-message {
+  border-color: #23bdfa;
+}
+.list .item:nth-child(6) .item-box51 .i-content .i-title:after {
+  background-color: #23bdfa;
+}
+.list .item .item-content {
+  padding: 5px 10px;
+  background-color: transparent!important;
+}
+.list .item-box56 {
+  margin-bottom: 6px;
+}
+.list2 .i--button {
+  margin-top: 10px;
+}
+.list3 {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+.list3 .item-box63 {
+  width: calc(50% - 10px);
+  margin-bottom: 20px;
+}
+.item-button18 {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  border-radius: 50%;
+  border: 1px solid #0076a3;
+  color: #3fc8fc;
+  width: 70px;
+  height: 70px;
+}
+.item-button18.text19 {
+  font-size: 14px;
+}
+.item-button18:before {
+  font-size: 26px;
+  color: #3fc8fc;
+}
+.item-button19 {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 31.5%;
+  background-color: #888;
+  padding: 9px 5px;
+  border-radius: 50px;
+  color: #fff;
+  font-size: 12px;
+}
+.item-button19.facebook {
+  background-color: #285ca7;
+}
+.item-button19.twitter {
+  background-color: #1eb3d3;
+}
+.item-button19.googleplus {
+  background-color: #e25d3e;
+}
+.item-button19:before {
+  margin-right: 2px;
+  font-size: 10px;
+}
+.item-box51 {
+  border-radius: 6px;
+  box-shadow: 0 5px 0 0 #00598f;
+  overflow: hidden;
+}
+.item-box51 .i-header {
+  background-color: #eee;
+  padding: 10px;
+  display: flex;
+  justify-content: center;
+  position: relative;
+}
+.item-box51 .i-header .i-icon {
+  width: 60px;
+  height: 60px;
+  background-color: #fff;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-size: cover;
+  background-position: center;
+}
+.item-box51 .i-header .i-graph {
+  position: absolute;
+  top: 50%;
+  left: calc(50% + 45px);
+  transform: translate(-50%, -50%);
+  border: 5px solid #eee;
+  border-radius: 50%;
+}
+.item-box51 .i-header .i-graph .i-graphContent {
+  width: 40px;
+  height: 40px;
+  background-color: #888;
+  border-radius: 50%;
+  position: relative;
+}
+.item-box51 .i-header .i-graph .i-graphContent .i-message {
+  position: absolute;
+  width: 33px;
+  height: 33px;
+  background-color: #eee;
+  border-radius: 50%;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+  border: 3px solid #eee;
+  background-size: cover;
+  background-position: center;
+  white-space: normal;
+}
+.item-box51 .i-header .i-graph .i-graphContent .i-slice {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  left: 0;
+  border-radius: 50%;
+  clip: rect(0, 40px, 40px, 20px);
+}
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='51'] .i-sliceOut,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='52'] .i-sliceOut,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='53'] .i-sliceOut,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='54'] .i-sliceOut,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='55'] .i-sliceOut,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='56'] .i-sliceOut,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='57'] .i-sliceOut,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='58'] .i-sliceOut,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='59'] .i-sliceOut,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='60'] .i-sliceOut,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='61'] .i-sliceOut,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='62'] .i-sliceOut,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='63'] .i-sliceOut,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='64'] .i-sliceOut,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='65'] .i-sliceOut,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='66'] .i-sliceOut,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='67'] .i-sliceOut,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='68'] .i-sliceOut,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='69'] .i-sliceOut,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='70'] .i-sliceOut,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='71'] .i-sliceOut,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='72'] .i-sliceOut,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='73'] .i-sliceOut,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='74'] .i-sliceOut,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='75'] .i-sliceOut,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='76'] .i-sliceOut,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='77'] .i-sliceOut,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='78'] .i-sliceOut,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='79'] .i-sliceOut,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='80'] .i-sliceOut,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='81'] .i-sliceOut,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='82'] .i-sliceOut,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='83'] .i-sliceOut,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='84'] .i-sliceOut,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='85'] .i-sliceOut,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='86'] .i-sliceOut,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='87'] .i-sliceOut,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='88'] .i-sliceOut,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='89'] .i-sliceOut,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='90'] .i-sliceOut,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='91'] .i-sliceOut,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='92'] .i-sliceOut,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='93'] .i-sliceOut,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='94'] .i-sliceOut,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='95'] .i-sliceOut,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='96'] .i-sliceOut,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='97'] .i-sliceOut,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='98'] .i-sliceOut,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='99'] .i-sliceOut,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='100'] .i-sliceOut {
+  transform: rotate(calc(50*360deg/100)) !important;
+}
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='51'] + .i-slice2,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='52'] + .i-slice2,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='53'] + .i-slice2,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='54'] + .i-slice2,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='55'] + .i-slice2,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='56'] + .i-slice2,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='57'] + .i-slice2,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='58'] + .i-slice2,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='59'] + .i-slice2,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='60'] + .i-slice2,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='61'] + .i-slice2,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='62'] + .i-slice2,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='63'] + .i-slice2,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='64'] + .i-slice2,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='65'] + .i-slice2,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='66'] + .i-slice2,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='67'] + .i-slice2,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='68'] + .i-slice2,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='69'] + .i-slice2,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='70'] + .i-slice2,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='71'] + .i-slice2,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='72'] + .i-slice2,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='73'] + .i-slice2,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='74'] + .i-slice2,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='75'] + .i-slice2,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='76'] + .i-slice2,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='77'] + .i-slice2,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='78'] + .i-slice2,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='79'] + .i-slice2,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='80'] + .i-slice2,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='81'] + .i-slice2,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='82'] + .i-slice2,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='83'] + .i-slice2,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='84'] + .i-slice2,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='85'] + .i-slice2,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='86'] + .i-slice2,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='87'] + .i-slice2,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='88'] + .i-slice2,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='89'] + .i-slice2,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='90'] + .i-slice2,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='91'] + .i-slice2,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='92'] + .i-slice2,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='93'] + .i-slice2,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='94'] + .i-slice2,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='95'] + .i-slice2,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='96'] + .i-slice2,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='97'] + .i-slice2,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='98'] + .i-slice2,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='99'] + .i-slice2,
+.item-box51 .i-header .i-graph .i-graphContent .i-slice[percent^='100'] + .i-slice2 {
+  display: block;
+}
+.item-box51 .i-header .i-graph .i-graphContent .i-slice .i-sliceOut {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  left: 0;
+  border-radius: 50%;
+  background-color: #fff;
+  clip: rect(0, 20px, 40px, 0);
+}
+.item-box51 .i-header .i-graph .i-graphContent .i-slice2 {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  left: 0;
+  border-radius: 50%;
+  clip: rect(0, 40px, 40px, 20px);
+  display: none;
+}
+.item-box51 .i-header .i-graph .i-graphContent .i-slice2 .i-sliceOut2 {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  left: 0;
+  border-radius: 50%;
+  background-color: #fff;
+  clip: rect(0, 20px, 40px, 0);
+}
+.item-box51 .i-header .i-graph .i-value {
+  position: absolute;
+  left: calc(100% + 5px);
+  top: 50%;
+  transform: translateY(-50%);
+}
+.item-box51 .i-content {
+  text-align: center;
+  padding: 10px 20px;
+  background-color: #fff;
+}
+.item-box51 .i-content .i-title {
+  padding-bottom: 5px;
+  position: relative;
+}
+.item-box51 .i-content .i-title:after {
+  content: '';
+  width: 30px;
+  height: 2px;
+  border-radius: 2px;
+  background-color: #eee;
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translate(-50%, 50%);
+}
+.item-box51 .i-content .i-text {
+  padding-top: 5px;
+  white-space: normal;
+}
+.item-box52 {
+  border-radius: 10px;
+  box-shadow: 0 5px 0 0 #00598f;
+  overflow: hidden;
+  background-color: #ffc12a;
+  padding: 20px;
+  display: flex;
+  justify-content: center;
+  position: relative;
+  margin-bottom: 10px;
+}
+.item-box52 .i-icon {
+  width: 60px;
+  height: 60px;
+  background-color: #fff;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-size: cover;
+  background-position: center;
+}
+.item-box52 .i-graph {
+  position: absolute;
+  top: 50%;
+  left: calc(50% + 45px);
+  transform: translate(-50%, -50%);
+  border: 3px solid #ffc12a;
+  border-radius: 50%;
+}
+.item-box52 .i-graph .i-graphContent {
+  width: 40px;
+  height: 40px;
+  background-color: #dd9200;
+  border-radius: 50%;
+  position: relative;
+}
+.item-box52 .i-graph .i-graphContent .i-message {
+  position: absolute;
+  width: 35px;
+  height: 35px;
+  background-color: #ffc12a;
+  border-radius: 50%;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+  border: 3px solid #ffc12a;
+  background-size: cover;
+  background-position: center;
+}
+.item-box52 .i-graph .i-graphContent .i-slice {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  left: 0;
+  border-radius: 50%;
+  clip: rect(0, 40px, 40px, 20px);
+}
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='51'] .i-sliceOut,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='52'] .i-sliceOut,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='53'] .i-sliceOut,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='54'] .i-sliceOut,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='55'] .i-sliceOut,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='56'] .i-sliceOut,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='57'] .i-sliceOut,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='58'] .i-sliceOut,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='59'] .i-sliceOut,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='60'] .i-sliceOut,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='61'] .i-sliceOut,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='62'] .i-sliceOut,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='63'] .i-sliceOut,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='64'] .i-sliceOut,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='65'] .i-sliceOut,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='66'] .i-sliceOut,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='67'] .i-sliceOut,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='68'] .i-sliceOut,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='69'] .i-sliceOut,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='70'] .i-sliceOut,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='71'] .i-sliceOut,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='72'] .i-sliceOut,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='73'] .i-sliceOut,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='74'] .i-sliceOut,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='75'] .i-sliceOut,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='76'] .i-sliceOut,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='77'] .i-sliceOut,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='78'] .i-sliceOut,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='79'] .i-sliceOut,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='80'] .i-sliceOut,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='81'] .i-sliceOut,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='82'] .i-sliceOut,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='83'] .i-sliceOut,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='84'] .i-sliceOut,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='85'] .i-sliceOut,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='86'] .i-sliceOut,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='87'] .i-sliceOut,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='88'] .i-sliceOut,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='89'] .i-sliceOut,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='90'] .i-sliceOut,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='91'] .i-sliceOut,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='92'] .i-sliceOut,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='93'] .i-sliceOut,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='94'] .i-sliceOut,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='95'] .i-sliceOut,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='96'] .i-sliceOut,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='97'] .i-sliceOut,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='98'] .i-sliceOut,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='99'] .i-sliceOut,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='100'] .i-sliceOut {
+  transform: rotate(calc(50*360deg/100)) !important;
+}
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='51'] + .i-slice2,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='52'] + .i-slice2,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='53'] + .i-slice2,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='54'] + .i-slice2,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='55'] + .i-slice2,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='56'] + .i-slice2,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='57'] + .i-slice2,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='58'] + .i-slice2,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='59'] + .i-slice2,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='60'] + .i-slice2,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='61'] + .i-slice2,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='62'] + .i-slice2,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='63'] + .i-slice2,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='64'] + .i-slice2,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='65'] + .i-slice2,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='66'] + .i-slice2,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='67'] + .i-slice2,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='68'] + .i-slice2,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='69'] + .i-slice2,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='70'] + .i-slice2,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='71'] + .i-slice2,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='72'] + .i-slice2,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='73'] + .i-slice2,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='74'] + .i-slice2,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='75'] + .i-slice2,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='76'] + .i-slice2,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='77'] + .i-slice2,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='78'] + .i-slice2,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='79'] + .i-slice2,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='80'] + .i-slice2,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='81'] + .i-slice2,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='82'] + .i-slice2,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='83'] + .i-slice2,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='84'] + .i-slice2,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='85'] + .i-slice2,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='86'] + .i-slice2,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='87'] + .i-slice2,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='88'] + .i-slice2,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='89'] + .i-slice2,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='90'] + .i-slice2,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='91'] + .i-slice2,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='92'] + .i-slice2,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='93'] + .i-slice2,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='94'] + .i-slice2,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='95'] + .i-slice2,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='96'] + .i-slice2,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='97'] + .i-slice2,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='98'] + .i-slice2,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='99'] + .i-slice2,
+.item-box52 .i-graph .i-graphContent .i-slice[percent^='100'] + .i-slice2 {
+  display: block;
+}
+.item-box52 .i-graph .i-graphContent .i-slice .i-sliceOut {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  left: 0;
+  border-radius: 50%;
+  background-color: #fff;
+  clip: rect(0, 20px, 40px, 0);
+}
+.item-box52 .i-graph .i-graphContent .i-slice2 {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  left: 0;
+  border-radius: 50%;
+  clip: rect(0, 40px, 40px, 20px);
+  display: none;
+}
+.item-box52 .i-graph .i-graphContent .i-slice2 .i-sliceOut2 {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  left: 0;
+  border-radius: 50%;
+  background-color: #fff;
+  clip: rect(0, 20px, 40px, 0);
+}
+.item-box52 .i-graph .i-value {
+  position: absolute;
+  left: calc(100% + 5px);
+  top: 50%;
+  transform: translateY(-50%);
+}
+.item-box53 {
+  border-radius: 6px;
+  box-shadow: 0 5px 0 0 #00598f;
+  overflow: hidden;
+  background-color: #fff;
+}
+.item-box53 .i-header {
+  background-color: #58ba6d;
+  padding: 10px;
+  display: flex;
+  justify-content: center;
+  position: relative;
+}
+.item-box53 .i-header .i-icon {
+  width: 60px;
+  height: 60px;
+  background-color: #fff;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-size: cover;
+  background-position: center;
+}
+.item-box53 .i-content {
+  background-color: #fff;
+  text-align: center;
+  padding: 10px 20px;
+  white-space: normal;
+}
+.item-box53 .i-content .i-title {
+  padding-bottom: 5px;
+  position: relative;
+}
+.item-box53 .i-content .i-title:after {
+  content: '';
+  width: 30px;
+  height: 2px;
+  border-radius: 2px;
+  background-color: #58ba6d;
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translate(-50%, 50%);
+}
+.item-box53 .i-content .i-text {
+  padding-top: 5px;
+}
+.item-box54 {
+  height: 275px;
+  position: relative;
+}
+.item-box54:before {
+  content: '';
+  position: absolute;
+  top: 50px;
+  left: 50px;
+  bottom: 50px;
+  right: 50px;
+  border-radius: 50%;
+  border: 2px solid #00a8ef;
+}
+.item-box54 .i-button {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  background-color: transparent;
+  margin: 20px;
+  background-color: #043c5d;
+  font: 400 15px 'Open Sans', sans-serif;
+}
+.item-box54 .i-button:nth-child(1) {
+  top: 0;
+  left: 0;
+  border-color: #00a8ef;
+  color: #00a8ef;
+}
+.item-box54 .i-button:nth-child(2) {
+  top: 0;
+  right: 0;
+  border-color: #58ba6d;
+  color: #58ba6d;
+}
+.item-box54 .i-button:nth-child(3) {
+  bottom: 0;
+  left: 0;
+  border-color: #fccb2d;
+  color: #fccb2d;
+}
+.item-box54 .i-button:nth-child(4) {
+  bottom: 0;
+  right: 0;
+  border-color: #f77e1e;
+  color: #f77e1e;
+}
+.item-box54 .i-button img {
+  max-width: 35px;
+  max-height: 35px;
+  margin-bottom: 3px;
+}
+.item-box54 #aquistoy {
+  position: absolute;
+  top: 0px;
+  right: 0px;
+  background-color: #00a8ef;
+  border: 2px solid #00a8ef;
+  color: #fff;
+  border-radius: 50%;
+  min-width: 25px;
+  padding: 0 2px;
+  line-height: 25px;
+  height: 25px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.item-box55 {
+  padding: 20px;
+  text-align: center;
+  display: block;
+}
+.item-box55 .i-header {
+  padding: 20px 0 10px;
+  display: flex;
+  justify-content: center;
+  position: relative;
+}
+.item-box55 .i-header .i-icon {
+  width: 140px;
+  height: 140px;
+  background-color: #0a4d85;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-size: cover;
+  background-position: center;
+  border: 6px solid #043c5d;
+  box-shadow: 0 0 0 2px #00a8ef;
+  position: relative;
+}
+.item-box55 .i-header .i-icon .i-aux-icon {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background-color: rgba(2, 78, 123, 0.6);
+  z-index: 333;
+  width: 70px;
+  height: 70px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 33px;
+}
+.item-box55 .i-header .i-graph {
+  position: absolute;
+  top: 50%;
+  left: calc(50% + 80px);
+  transform: translate(-50%, -50%);
+  border: 9px solid #043c5d;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px #00a8ef;
+}
+.item-box55 .i-header .i-graph .i-graphContent {
+  width: 50px;
+  height: 50px;
+  background-color: #0a4d85;
+  border-radius: 50%;
+  position: relative;
+}
+.item-box55 .i-header .i-graph .i-graphContent .i-message {
+  position: absolute;
+  width: 42px;
+  height: 42px;
+  background-color: #043c5d;
+  border-radius: 50%;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+  border: 5px solid #043c5d;
+  background-size: cover;
+  background-position: center;
+}
+.item-box55 .i-header .i-graph .i-graphContent .i-slice {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  left: 0;
+  border-radius: 50%;
+  clip: rect(0, 50px, 50px, 25px);
+}
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='51'] .i-sliceOut,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='52'] .i-sliceOut,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='53'] .i-sliceOut,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='54'] .i-sliceOut,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='55'] .i-sliceOut,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='56'] .i-sliceOut,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='57'] .i-sliceOut,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='58'] .i-sliceOut,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='59'] .i-sliceOut,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='60'] .i-sliceOut,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='61'] .i-sliceOut,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='62'] .i-sliceOut,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='63'] .i-sliceOut,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='64'] .i-sliceOut,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='65'] .i-sliceOut,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='66'] .i-sliceOut,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='67'] .i-sliceOut,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='68'] .i-sliceOut,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='69'] .i-sliceOut,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='70'] .i-sliceOut,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='71'] .i-sliceOut,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='72'] .i-sliceOut,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='73'] .i-sliceOut,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='74'] .i-sliceOut,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='75'] .i-sliceOut,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='76'] .i-sliceOut,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='77'] .i-sliceOut,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='78'] .i-sliceOut,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='79'] .i-sliceOut,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='80'] .i-sliceOut,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='81'] .i-sliceOut,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='82'] .i-sliceOut,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='83'] .i-sliceOut,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='84'] .i-sliceOut,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='85'] .i-sliceOut,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='86'] .i-sliceOut,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='87'] .i-sliceOut,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='88'] .i-sliceOut,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='89'] .i-sliceOut,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='90'] .i-sliceOut,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='91'] .i-sliceOut,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='92'] .i-sliceOut,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='93'] .i-sliceOut,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='94'] .i-sliceOut,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='95'] .i-sliceOut,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='96'] .i-sliceOut,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='97'] .i-sliceOut,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='98'] .i-sliceOut,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='99'] .i-sliceOut,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='100'] .i-sliceOut {
+  transform: rotate(calc(50*360deg/100)) !important;
+}
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='51'] + .i-slice2,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='52'] + .i-slice2,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='53'] + .i-slice2,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='54'] + .i-slice2,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='55'] + .i-slice2,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='56'] + .i-slice2,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='57'] + .i-slice2,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='58'] + .i-slice2,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='59'] + .i-slice2,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='60'] + .i-slice2,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='61'] + .i-slice2,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='62'] + .i-slice2,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='63'] + .i-slice2,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='64'] + .i-slice2,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='65'] + .i-slice2,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='66'] + .i-slice2,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='67'] + .i-slice2,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='68'] + .i-slice2,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='69'] + .i-slice2,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='70'] + .i-slice2,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='71'] + .i-slice2,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='72'] + .i-slice2,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='73'] + .i-slice2,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='74'] + .i-slice2,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='75'] + .i-slice2,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='76'] + .i-slice2,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='77'] + .i-slice2,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='78'] + .i-slice2,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='79'] + .i-slice2,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='80'] + .i-slice2,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='81'] + .i-slice2,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='82'] + .i-slice2,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='83'] + .i-slice2,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='84'] + .i-slice2,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='85'] + .i-slice2,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='86'] + .i-slice2,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='87'] + .i-slice2,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='88'] + .i-slice2,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='89'] + .i-slice2,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='90'] + .i-slice2,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='91'] + .i-slice2,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='92'] + .i-slice2,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='93'] + .i-slice2,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='94'] + .i-slice2,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='95'] + .i-slice2,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='96'] + .i-slice2,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='97'] + .i-slice2,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='98'] + .i-slice2,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='99'] + .i-slice2,
+.item-box55 .i-header .i-graph .i-graphContent .i-slice[percent^='100'] + .i-slice2 {
+  display: block;
+}
+.item-box55 .i-header .i-graph .i-graphContent .i-slice .i-sliceOut {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  left: 0;
+  border-radius: 50%;
+  background-color: #fff;
+  clip: rect(0, 25px, 50px, 0);
+}
+.item-box55 .i-header .i-graph .i-graphContent .i-slice2 {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  left: 0;
+  border-radius: 50%;
+  clip: rect(0, 50px, 50px, 25px);
+  display: none;
+}
+.item-box55 .i-header .i-graph .i-graphContent .i-slice2 .i-sliceOut2 {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  left: 0;
+  border-radius: 50%;
+  background-color: #fff;
+  clip: rect(0, 25px, 50px, 0);
+}
+.item-box55 .i-header .i-graph .i-value {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 11px);
+  transform: translateX(-50%);
+}
+.item-box56 {
+  padding: 10px;
+  background-color: #fff !important;
+  border-radius: 10px;
+  box-shadow: 0 5px 0 0 #00598f;
+  display: block;
+  margin-left: 1px;
+  margin-right: 1px;
+}
+.item-box56.extra-padding {
+  padding: 25px;
+}
+.item-box56 .i-header {
+  padding-right: 40px;
+  padding-left: 0;
+  padding-top: 0;
+  position: relative;
+  cursor: pointer;
+  border: 0;
+  background-color: transparent;
+}
+.item-box56 .i-header span[class^='icon-'] {
+  vertical-align: middle;
+  margin-right: 3px;
+}
+.item-box56 .i-header.header-button {
+  position: relative;
+  padding-right: 145px;
+  white-space: normal;
+}
+.item-box56 .i-header.header-button .i--button {
+  position: absolute;
+  top: 50%;
+  right: 40px;
+  transform: translateY(-50%);
+  padding: 5px 15px;
+}
+.item-box56 .i-header .i-icon {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  transform: translateY(-50%);
+  font-size: 22px;
+  color: #0084cb;
+}
+.item-box56 hr {
+  margin: 10px 0;
+  background-color: #eee;
+  border: 0;
+  height: 1px;
+}
+.item-box56 hr .v2 {
+  border: 1px dotted #eee;
+  background-color: transparent;
+  margin-bottom: 0;
+}
+.item-box56 .margin-bottom {
+  margin-bottom: 15px;
+}
+.item-box56 .buttonCenter {
+  text-align: center;
+}
+.item-box56 .i--text-level2 {
+  margin-left: 30px;
+  margin-top: 10px;
+}
+.item-box56 .i--text-level2.i--play2 {
+  padding-left: 30px;
+  justify-content: flex-start;
+  white-space: normal;
+  position: relative;
+}
+.item-box56 .i--text-level2.i--play2:before {
+  position: absolute;
+  top: 0;
+  left: 0;
+  color: #00629d;
+  font-size: 22px;
+}
+.item-box56 .i--input {
+  background-color: #e9e9e9;
+  width: 100%;
+  padding: 7px 15px;
+  border-radius: 100px;
+  color: #4d4d4d;
+}
+.item-box56 .i--input::-webkit-input-placeholder {
+  color: #4d4d4d;
+}
+.item-box56 .i--input:-moz-placeholder {
+  color: #4d4d4d;
+}
+.item-box56 .i--input::-moz-placeholder {
+  color: #4d4d4d;
+}
+.item-box56 .i--input:-ms-input-placeholder {
+  color: #4d4d4d;
+}
+.item-box56 .i--textarea {
+  background-color: #e9e9e9;
+  width: 100%;
+  padding: 15px;
+  border-radius: 10px;
+  color: #4d4d4d;
+}
+.item-box56 .i--textarea::-webkit-input-placeholder {
+  color: #4d4d4d;
+}
+.item-box56 .i--textarea:-moz-placeholder {
+  color: #4d4d4d;
+}
+.item-box56 .i--textarea::-moz-placeholder {
+  color: #4d4d4d;
+}
+.item-box56 .i--textarea:-ms-input-placeholder {
+  color: #4d4d4d;
+}
+.item-box56 .i--select {
+  background-color: #eee;
+  width: 100%;
+  padding: 7px 15px;
+  border-radius: 100px;
+  display: flex;
+  margin-bottom: 15px;
+  position: relative;
+}
+.item-box56 .i--select:before {
+  position: absolute;
+  top: 50%;
+  right: 20px;
+  font-size: 11px;
+  transform: translateY(-50%);
+}
+.item-box56 .i--select select {
+  background-color: transparent;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  border: 0;
+}
+.item-box56 .i--text-play-next [class^='icon-'] {
+  font-size: 20px;
+  vertical-align: middle;
+  margin-left: 8px;
+  color: #00629d;
+}
+.item-box56 .i--play {
+  padding: 8px 11px;
+  margin-bottom: 5px;
+  border-radius: 5px;
+  display: table;
+}
+.item-box56 .i--play .i--play--icon {
+  margin-right: 15px;
+}
+.item-box56 .i--play:before {
+  font-size: 18px;
+  margin-right: 15px;
+  color: #0a4d85;
+  vertical-align: sub;
+}
+.item-box56 .i--play2 {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  padding-bottom: 0;
+  padding-left: 0;
+  padding-right: 0;
+}
+.item-box56 .i--play2.v2 {
+  display: block;
+  white-space: normal;
+}
+.item-box56 .i--play2.v2 .translate {
+  margin-left: 30px;
+}
+.item-box56 .i--play2 [class^='icon-'] {
+  display: flex;
+  align-items: center;
+}
+.item-box56 .i--play2 [class^='icon-']:before {
+  margin-right: 10px;
+  margin-left: 4px;
+  font-size: 16px;
+  color: #00629d;
+}
+.item-box56 .i--play3 {
+  padding-left: 30px;
+  position: relative;
+}
+.item-box56 .i--play3 [class^='icon-'] {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  transform: translateY(-50%);
+  display: flex;
+}
+.item-box56 .i--play3 [class^='icon-']:before {
+  font-size: 22px;
+  color: #00629d;
+}
+.item-box56 .i--message {
+  margin: 10px 0 10px;
+  padding: 0 40px 0 0;
+  position: relative;
+  overflow: visible;
+}
+.item-box56 .i--message:first-child {
+  margin-top: 0;
+}
+.item-box56 .i--message:last-child {
+  margin-bottom: 0;
+  border: 0;
+}
+.item-box56 .i--message:last-child:after {
+  display: none;
+}
+.item-box56 .i--message:after {
+  content: '';
+  position: absolute;
+  bottom: -6px;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background-color: #eee;
+}
+.item-box56 .i--message .icon-play {
+  color: #0a4d85;
+  vertical-align: sub;
+}
+.item-box56 .i--graph {
+  border: 5px solid #fff;
+  border-radius: 50%;
+}
+.item-box56 .i--graph .i-graphContent {
+  width: 60px;
+  height: 60px;
+  background-color: #eee;
+  border-radius: 50%;
+  position: relative;
+}
+.item-box56 .i--graph .i-graphContent .i-message {
+  position: absolute;
+  width: 50px;
+  height: 50px;
+  background-color: #ffc12a;
+  border-radius: 50%;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+  border: 2px solid #fff;
+  background-size: cover;
+  background-position: center;
+}
+.item-box56 .i--graph .i-graphContent .i-slice {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  left: 0;
+  border-radius: 50%;
+  clip: rect(0, 60px, 60px, 30px);
+}
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='51'] .i-sliceOut,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='52'] .i-sliceOut,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='53'] .i-sliceOut,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='54'] .i-sliceOut,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='55'] .i-sliceOut,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='56'] .i-sliceOut,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='57'] .i-sliceOut,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='58'] .i-sliceOut,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='59'] .i-sliceOut,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='60'] .i-sliceOut,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='61'] .i-sliceOut,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='62'] .i-sliceOut,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='63'] .i-sliceOut,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='64'] .i-sliceOut,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='65'] .i-sliceOut,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='66'] .i-sliceOut,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='67'] .i-sliceOut,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='68'] .i-sliceOut,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='69'] .i-sliceOut,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='70'] .i-sliceOut,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='71'] .i-sliceOut,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='72'] .i-sliceOut,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='73'] .i-sliceOut,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='74'] .i-sliceOut,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='75'] .i-sliceOut,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='76'] .i-sliceOut,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='77'] .i-sliceOut,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='78'] .i-sliceOut,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='79'] .i-sliceOut,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='80'] .i-sliceOut,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='81'] .i-sliceOut,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='82'] .i-sliceOut,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='83'] .i-sliceOut,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='84'] .i-sliceOut,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='85'] .i-sliceOut,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='86'] .i-sliceOut,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='87'] .i-sliceOut,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='88'] .i-sliceOut,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='89'] .i-sliceOut,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='90'] .i-sliceOut,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='91'] .i-sliceOut,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='92'] .i-sliceOut,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='93'] .i-sliceOut,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='94'] .i-sliceOut,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='95'] .i-sliceOut,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='96'] .i-sliceOut,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='97'] .i-sliceOut,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='98'] .i-sliceOut,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='99'] .i-sliceOut,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='100'] .i-sliceOut {
+  transform: rotate(calc(50*360deg/100)) !important;
+}
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='51'] + .i-slice2,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='52'] + .i-slice2,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='53'] + .i-slice2,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='54'] + .i-slice2,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='55'] + .i-slice2,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='56'] + .i-slice2,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='57'] + .i-slice2,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='58'] + .i-slice2,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='59'] + .i-slice2,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='60'] + .i-slice2,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='61'] + .i-slice2,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='62'] + .i-slice2,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='63'] + .i-slice2,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='64'] + .i-slice2,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='65'] + .i-slice2,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='66'] + .i-slice2,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='67'] + .i-slice2,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='68'] + .i-slice2,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='69'] + .i-slice2,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='70'] + .i-slice2,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='71'] + .i-slice2,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='72'] + .i-slice2,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='73'] + .i-slice2,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='74'] + .i-slice2,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='75'] + .i-slice2,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='76'] + .i-slice2,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='77'] + .i-slice2,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='78'] + .i-slice2,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='79'] + .i-slice2,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='80'] + .i-slice2,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='81'] + .i-slice2,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='82'] + .i-slice2,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='83'] + .i-slice2,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='84'] + .i-slice2,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='85'] + .i-slice2,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='86'] + .i-slice2,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='87'] + .i-slice2,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='88'] + .i-slice2,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='89'] + .i-slice2,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='90'] + .i-slice2,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='91'] + .i-slice2,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='92'] + .i-slice2,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='93'] + .i-slice2,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='94'] + .i-slice2,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='95'] + .i-slice2,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='96'] + .i-slice2,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='97'] + .i-slice2,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='98'] + .i-slice2,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='99'] + .i-slice2,
+.item-box56 .i--graph .i-graphContent .i-slice[percent^='100'] + .i-slice2 {
+  display: block;
+}
+.item-box56 .i--graph .i-graphContent .i-slice .i-sliceOut {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  left: 0;
+  border-radius: 50%;
+  background-color: #ffc12a;
+  clip: rect(0, 30px, 60px, 0);
+}
+.item-box56 .i--graph .i-graphContent .i-slice2 {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  left: 0;
+  border-radius: 50%;
+  clip: rect(0, 60px, 60px, 30px);
+  display: none;
+}
+.item-box56 .i--graph .i-graphContent .i-slice2 .i-sliceOut2 {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  left: 0;
+  border-radius: 50%;
+  background-color: #ffc12a;
+  clip: rect(0, 30px, 60px, 0);
+}
+.item-box56 .i--label-list {
+  display: block;
+  margin-top: 12px;
+  padding: 0;
+  border: 0;
+}
+.item-box56 .i--label-list > span {
+  display: block;
+  margin-bottom: 4px;
+}
+.item-box56 .buttons {
+  width: 100%!important;
+  margin-bottom: 20px;
+}
+.item-box56 .buttons .button-bar .button {
+  max-height: none;
+  padding: 5px;
+}
+.item-box56 .buttons .button-bar .button:first-child {
+  border-top-left-radius: 50px;
+  border-bottom-left-radius: 50px;
+}
+.item-box56 .buttons .button-bar .button:last-child {
+  border-top-right-radius: 50px;
+  border-bottom-right-radius: 50px;
+  border-color: #00629d;
+}
+.item-box56 .buttons .button-bar .button.active {
+  background-color: #00629d;
+}
+.item-box56 .test .item-content {
+  border-top: 1px solid #eee;
+  padding-top: 10px;
+}
+.item-box56.v2 .i-header {
+  padding: 0 40px;
+}
+.item-box56.v2 .i-header .i-header--content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.item-box56.v2 .i-header .i-icon {
+  font-size: 15px;
+}
+.item-box56.v2 .i-section .i--message {
+  padding-right: 0;
+}
+.item-box56.v2 .i-section .i--message:after {
+  display: none;
+}
+.item-box56.v2 .i-section .i--message .i-icon {
+  font-size: 13px;
+  color: #ddd;
+}
+.item-box56.v2 .i-section .i--message .item-content {
+  display: flex;
+  align-items: center;
+}
+.item-box56.v2 .i-section .i--message .item-content .i--lesson {
+  width: 35px;
+  height: 35px;
+  font-size: 14px;
+}
+.item-box56.v2 .i-section .i--message .item-content .i--lesson[class^="icon-"] {
+  font-size: 19px;
+}
+.item-box56.v2 .i-section .i--message .item-content .i--lesson .i-icon {
+  right: -10px;
+  width: 15px;
+  height: 15px;
+  color: #fff;
+  font-size: 9px!important;
+  background-color: #ddd;
+}
+.item-box56.v2 .i-section .i--message .item-content .i--lesson .i-icon.complete {
+  background-color: #49be48;
+}
+.item-box56.v2 .i-section .i--message .item-content .i--lesson .i-icon.error {
+  background-color: #fa6745;
+}
+.item-box56.v2 .i-section .i--message .item-content .i--info {
+  margin-left: 15px;
+}
+.item-box57 {
+  padding: 10px;
+  background-color: #fff !important;
+  border-radius: 10px;
+  box-shadow: 0 5px 0 0 #00598f;
+  display: block;
+  position: relative;
+}
+.item-box57 .i--icon-right {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  font-size: 13px;
+  transform: translateY(-50%);
+}
+.item-box57 .i--info {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  position: relative;
+}
+.item-box57 .i--info .i--info--img {
+  border-radius: 10px;
+  border: 1px solid #eee;
+  background-size: cover;
+  background-position: center;
+  width: 60px;
+  height: 60px;
+  margin-right: 10px;
+}
+.item-box57 .i--info .i--info--text {
+  display: flex;
+  flex-wrap: wrap;
+  flex-direction: column;
+  justify-content: space-between;
+  width: calc(100% - 135px);
+  white-space: initial;
+}
+.item-box57 .i--info .i--info--text .text25 {
+  color: #222;
+}
+.item-box57 .i--info .i--info--text-button {
+  padding-left: 20px;
+  position: relative;
+}
+.item-box57 .i--info .i--info--text-button .i--info--icon {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+.item-box57 .i--info [class^='icon-'] {
+  position: absolute;
+  top: 4px;
+  left: 0;
+  font-size: 15px;
+  color: #00629d;
+}
+.item-box58 {
+  padding: 20px;
+  background-color: #fff !important;
+  border-radius: 10px;
+  box-shadow: 0 5px 0 0 #00598f;
+  display: block;
+}
+.item-box58 .i-header {
+  text-align: center;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #00629d;
+}
+.item-box58 .i-content {
+  padding-top: 50px;
+}
+.item-box58 .i-content .i-footer {
+  margin-top: 20px;
+  display: flex;
+  justify-content: space-between;
+}
+.item-box58 .i--mbS {
+  margin-bottom: 10px;
+}
+.item-box58 .i--mtL {
+  margin-top: 70px;
+}
+.item-box58 .i--answer-radio {
+  margin: 30px 0 0;
+}
+.item-box58 .i--answer-radio .item-radio {
+  border-radius: 50px;
+  border: 2px solid #eee;
+  margin: 2px 2px 12px;
+}
+.item-box58 .i--answer-radio .item-radio input:checked + .radio-content .item-content {
+  background-color: transparent;
+}
+.item-box58 .i--answer-radio .item-radio input:checked + .radio-content .item-content:after {
+  display: block;
+}
+.item-box58 .i--answer-radio .item-radio .item-content {
+  padding: 7px 0 7px 38px;
+  position: relative;
+  white-space: normal;
+  margin-right: 30px;
+}
+.item-box58 .i--answer-radio .item-radio .item-content:before {
+  content: '';
+  width: 15px;
+  height: 15px;
+  border: 1px solid #888;
+  background-color: #eee;
+  border-radius: 50%;
+  position: absolute;
+  top: 50%;
+  left: 12px;
+  transform: translateY(-50%);
+}
+.item-box58 .i--answer-radio .item-radio .item-content:after {
+  content: '';
+  width: 8px;
+  height: 8px;
+  background-color: #00629d;
+  border-radius: 50%;
+  position: absolute;
+  top: 50%;
+  left: 16px;
+  transform: translateY(-50%);
+  display: none;
+}
+.item-box58 .i--answer-radio .item-radio .radio-icon {
+  display: none;
+}
+.item-box58 .i--button-green {
+  border-radius: 50px;
+  border: 0;
+  padding: 13px 50px;
+  background-color: #49be48;
+}
+.item-box58 .i--button-green[disabled="disabled"] {
+  background-color: #0a4d85;
+}
+.item-box59 {
+  padding: 20px;
+  background-color: #fff !important;
+  border-radius: 10px;
+  box-shadow: 0 5px 0 0 #00598f;
+  display: block;
+}
+.item-box59 .item-box62 {
+  margin: 15px 0;
+}
+.item-box59 .item-box56 {
+  padding: 0;
+  box-shadow: none;
+}
+.item-box59 .buttons {
+  width: 100%!important;
+  margin-bottom: 20px;
+}
+.item-box59 .buttons .button-bar .button {
+  max-height: none;
+  padding: 5px;
+}
+.item-box59 .buttons .button-bar .button:first-child {
+  border-top-left-radius: 50px;
+  border-bottom-left-radius: 50px;
+}
+.item-box59 .buttons .button-bar .button:last-child {
+  border-top-right-radius: 50px;
+  border-bottom-right-radius: 50px;
+  border-color: #00629d;
+}
+.item-box59 .buttons .button-bar .button.active {
+  background-color: #00629d;
+}
+.item-box60 {
+  background-color: #fff;
+  padding: 15px 15px 20px;
+  margin: 10px 20px;
+  width: 80%;
+  position: relative;
+  border-radius: 5px;
+  box-shadow: 0 3px 0 0 #ddd;
+  clear: both;
+}
+.item-box60:before,
+.item-box60:after {
+  content: '';
+  position: absolute;
+  bottom: 15px;
+  right: 100%;
+  border-right: 10px solid #fff;
+  border-top: 8px solid transparent;
+  border-bottom: 8px solid transparent;
+}
+.item-box60:before {
+  border-right: 10px solid #ddd;
+  bottom: 11px;
+}
+.item-box60 .i-aux-info {
+  position: absolute;
+  bottom: 5px;
+  right: 5px;
+}
+.item-box60 .text3 {
+  font-size: 15px;
+}
+.item-box62 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+.item-box62.item {
+  border: 0;
+  padding: 0;
+}
+.item-box62 .item-content {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  border-bottom: 1px dotted #00a8ef;
+  padding: 10px 0!important;
+  position: relative;
+  width: 100%;
+}
+.item-box62 .item-content .i--info {
+  width: calc(100% - 100px);
+  white-space: normal;
+  margin-left: 25px;
+}
+.item-box62 .item-content .text3 {
+  font-size: 14px;
+}
+.item-box62 .item-content .i--icon {
+  position: absolute;
+  right: 0px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #00a8ef;
+  font-size: 13px;
+}
+.item-box62.v2 {
+  border-bottom: 2px solid #eee;
+  padding-bottom: 15px;
+}
+.item-box62 .i--img {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.item-box62 .i--info {
+  width: calc(100% - 70px);
+  white-space: normal;
+}
+.item-box62 .i--full {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 15px 0 0;
+}
+.item-box62 .i--progress-bar {
+  border-radius: 50px;
+  background-color: #eee;
+  width: 100%;
+  height: 22px;
+  position: relative;
+  overflow: hidden;
+}
+.item-box62 .i--progress-bar .i--bar {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+}
+.item-box62 .i--title {
+  background-color: #eee;
+  padding: 5px 10px;
+  border-radius: 50px;
+  color: #777;
+}
+.item-box62.s-box62-title .i--info {
+  width: calc(100% - 85px);
+}
+.item-box63 .item {
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.item-box63 .item img {
+  width: 50%;
+  margin-bottom: 10px;
+}
+.item-box63 .i-check {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+}
+.item-box63 .i-check .icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  font-size: 10px;
+  color: #fff;
+  border-radius: 50%;
+}
+.item-box63 .i-check .icon:before {
+  vertical-align: middle;
+}
+.item-box63 .i-check .icon.ion-checkmark-round {
+  background-color: #49be48;
+}
+.item-box63 .i-check .icon.ion-close-round {
+  background-color: #d43c3c;
+}
+.item-box64 {
+  display: block;
+  position: relative;
+}
+.item-box64 .i--icon-right {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  font-size: 13px;
+  transform: translateY(-50%);
+  color: #ccc;
+}
+.item-box64 .i--info {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  position: relative;
+  padding-right: 60px;
+}
+.item-box64 .i--info .i--info--img {
+  border-radius: 50%;
+  border: 1px solid #eee;
+  background-size: cover;
+  background-position: center;
+  width: 65px;
+  height: 65px;
+  margin-right: 10px;
+}
+.item-box64 .i--info .i--info--text {
+  display: flex;
+  flex-wrap: wrap;
+  flex-direction: column;
+  justify-content: space-between;
+  width: calc(100% - 135px);
+  white-space: initial;
+}
+.item-box64 .i--info .i--info--text .i--time {
+  position: absolute;
+  top: 5px;
+  right: 15px;
+}
+.item-box64 .i--info .i--info--text .i--options {
+  position: absolute;
+  bottom: 5px;
+  right: 15px;
+  display: flex;
+}
+.item-box64 .i--info .i--info--text .i--options .i--mute {
+  font-size: 15px;
+  color: #888;
+}
+.item-box64 .i--info .i--info--text .i--options .i--badge {
+  margin-left: 7px;
+  width: 17px;
+  height: 17px;
+  background-color: #00a8ef;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+}
+.item-box64 .i--info .i--info--text-button {
+  padding-left: 40px;
+  position: relative;
+}
+.item-box64 .i--info .i--info--text-button .i--info--icon {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+.item-box64 .i--info [class^='icon-'] {
+  position: absolute;
+  top: 4px;
+  left: 9px;
+  font-size: 22px;
+}
+.item-box64 .item-content {
+  border-bottom: 1px solid #ccc;
+  padding: 10px 0!important;
+}
+.item-box65 {
+  border-radius: 10px;
+  box-shadow: 0 5px 0 0 #00598f;
+  overflow: hidden;
+  background-color: #ffc12a;
+  padding: 10px 10px 40px;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  text-align: center;
+}
+.item-box65 .i-lesson {
+  font-size: 12px;
+}
+.item-box65 .i-title {
+  line-height: 20px;
+  font-weight: bold;
+}
+.item-box66 {
+  justify-content: space-between;
+  display: flex;
+  flex-wrap: wrap;
+  border-bottom: 1px dotted #00a8ef!important;
+  padding: 10px 0!important;
+  position: relative;
+  margin: 0 10px;
+  padding-right: 28px!important;
+}
+.item-box66 .item-content {
+  background-color: transparent;
+  display: flex;
+  flex-wrap: wrap;
+  padding: 0!important;
+  position: relative;
+  width: 100%;
+}
+.item-box66 .item-content .i--info {
+  width: calc(100% - 100px);
+  white-space: normal;
+  margin-left: 30px;
+}
+.item-box66 .item-content .text3 {
+  font-size: 14px;
+}
+.item-box66 .item-content .i--icon {
+  position: absolute;
+  right: 0px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #00a8ef;
+}
+.item-box66 .i--info {
+  width: calc(100% - 70px);
+  white-space: normal;
+  margin-left: 10px;
+}
+.item-box66 .i--info .i-badget > div {
+  display: flex;
+  align-items: center;
+  margin-top: 5px;
+}
+.item-box66 .i--info .i-badget > div .i-icon {
+  color: #00a8ef;
+  margin-right: 7px;
+}
+.item-box66 .i--info .i-badget > div .i-icon:before {
+  display: flex;
+}
+.item-box66 .text3 {
+  font-size: 14px;
+}
+.item-box66 .i--icon {
+  position: absolute;
+  right: 0px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #00a8ef;
+  font-size: 22px;
+}
+.item-box66.item {
+  border: 0;
+  padding: 0;
+  background-color: transparent;
+}
+.item-box66.v2 {
+  border-bottom: 2px solid #eee;
+  padding-bottom: 15px;
+}
+.item-box66 .i--img {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.item-box66 .i--full {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 15px 0 0;
+}
+.item-box66 .i--progress-bar {
+  border-radius: 50px;
+  background-color: #eee;
+  width: 100%;
+  height: 22px;
+  position: relative;
+  overflow: hidden;
+}
+.item-box66 .i--progress-bar .i--bar {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+}
+.item-box66 .i--title {
+  background-color: #eee;
+  padding: 5px 10px;
+  border-radius: 50px;
+  color: #777;
+}
+.item-box66.s-box66-title .i--info {
+  width: calc(100% - 85px);
+}
+.item-box66 .i--graph .i-graph .i-graphContent .i-slice {
+  clip: rect(0, 26px, 26px, 13px);
+}
+.item-box66 .i--graph .i-graph .i-graphContent .i-slice .i-sliceOut {
+  clip: rect(0, 13px, 26px, 0);
+}
+.item-box58 .XXhere {
+  position: relative;
+}
+.item-box58 .XXhere:before {
+  content: '';
+  position: absolute;
+  bottom: 15px;
+  height: 1px;
+  left: 5px;
+  right: 5px;
+  background: #ccc;
+}
+.item-box58 .XXhere > * {
+  position: relative;
+}
+.item-box58 .XXhere > * .grdIcon:before,
+.item-box58 .XXhere > * .peqIcon:before {
+  background-color: #fff;
+}
+.item-box61 {
+  background-color: #c7eaff;
+  padding: 15px 15px 20px;
+  margin: 10px 20px;
+  width: 80%;
+  position: relative;
+  border-radius: 5px;
+  box-shadow: 0 3px 0 0 #ddd;
+  float: right;
+  clear: both;
+}
+.item-box61:before,
+.item-box61:after {
+  content: '';
+  position: absolute;
+  bottom: 15px;
+  left: 100%;
+  border-left: 10px solid #c7eaff;
+  border-top: 8px solid transparent;
+  border-bottom: 8px solid transparent;
+}
+.item-box61:before {
+  border-left: 10px solid #ddd;
+  bottom: 11px;
+}
+.item-box61 .i-aux-info {
+  position: absolute;
+  bottom: 5px;
+  right: 5px;
+  color: #86b9d8;
+}
+.item-box61 .text3 {
+  color: #00629d;
+  font-size: 15px;
+}
+.item-register {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  padding: 30px 60px;
+}
+.item-register form > div span {
+  padding: 0 15px;
+  color: #fff;
+  font: 600 14px 'Open Sans', sans-serif;
+}
+.item-register form > div input:not([type="checkbox"]) {
+  border-radius: 999px;
+  padding: 0 15px;
+  background-color: #e9e9e9;
+  width: 100%;
+  display: inline-block;
+  margin-bottom: 15px;
+}
+.item-register form > div.i-checkbox {
+  display: flex;
+  padding: 2px 10px;
+}
+.item-register form > div.i-checkbox input {
+  position: fixed;
+  top: 0;
+  left: -99px;
+}
+.item-register form > div.i-checkbox input:checked + span:before {
+  content: 'u';
+  font-family: 'appci';
+}
+.item-register form > div.i-checkbox span {
+  font: 400 15px 'Open Sans', sans-serif;
+  color: #00a8ef;
+  padding-left: 25px;
+  position: relative;
+}
+.item-register form > div.i-checkbox span:before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 3px;
+  width: 15px;
+  height: 15px;
+  background-color: #fff;
+  border-radius: 3px;
+}
+.item-register form > div.i-checkbox span a {
+  color: #00a8ef;
+  text-decoration: underline;
+}
+.item-register form > div.i-checkbox span a:hover {
+  text-decoration: none;
+}
+.item-register form .i--button {
+  width: 100%;
+  font: 600 16px #fff;
+  box-shadow: 0 5px 0 0 #00598f;
+  margin-bottom: 15px;
+}
+.item-register .scroll {
+  height: auto;
+}
+.item-login {
+  min-height: calc(100vh - 43px);
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  /*justify-content: space-around;*/
+  background: #00629d;
+  padding: 30px 50px;
+  box-sizing: border-box;
+}
+.item-login hr {
+  width: 100%;
+  border: 0;
+  border-bottom: 2px solid #055687;
+}
+.item-login .normal_text {
+  color: #fff;
+  font: 15px 'Open Sans', sans-serif;
+  text-align: center;
+}
+.item-login .normal_text a {
+  color: #fff;
+  font: 15px 'Open Sans', sans-serif;
+  text-decoration: underline;
+  display: inline-block;
+}
+.item-login .normal_text a:hover {
+  text-decoration: none;
+}
+.item-login form {
+  min-height: 66%;
+}
+.item-login form > div span {
+  padding: 0 15px;
+  color: #fff;
+  font: 600 14px 'Open Sans', sans-serif;
+}
+.item-login form > div input:not([type="checkbox"]) {
+  border-radius: 999px;
+  padding: 0 15px;
+  background-color: #e9e9e9;
+  width: 100%;
+  display: inline-block;
+  margin-bottom: 15px;
+}
+.item-login form > div.i-checkbox {
+  display: flex;
+  padding: 2px 10px;
+}
+.item-login form > div.i-checkbox input {
+  position: fixed;
+  top: 0;
+  left: -99px;
+}
+.item-login form > div.i-checkbox input:checked + span:before {
+  content: 'u';
+  font-family: 'appci';
+}
+.item-login form > div.i-checkbox span {
+  font: 400 15px 'Open Sans', sans-serif;
+  color: #00a8ef;
+  padding-left: 25px;
+  position: relative;
+}
+.item-login form > div.i-checkbox span:before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 3px;
+  width: 15px;
+  height: 15px;
+  background-color: #fff;
+  border-radius: 3px;
+}
+.item-login form > div.i-checkbox span a {
+  color: #00a8ef;
+  text-decoration: underline;
+}
+.item-login form > div.i-checkbox span a:hover {
+  text-decoration: none;
+}
+.item-login form .i--button {
+  width: 100%;
+  font: 600 16px 'Open Sans', sans-serif;
+  box-shadow: 0 5px 0 0 #00598f;
+  margin-bottom: 15px;
+  padding: 11px 20px;
+}
+.item-login form .i--button.lighgreen {
+  background-color: #60d14e;
+}
+.item-login .social_login {
+  text-align: center;
+  /*width: 100%;*/
+  min-height: 33%;
+}
+.item-login .social_login .social {
+  display: flex;
+  justify-content: space-between;
+  margin: 10px 0 15px;
+}
+.item-login .social_login .social .item {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: calc(50% - 1px);
+  border: 0;
+  box-shadow: 0 5px 0 0 #00598f;
+  font: 600 15px 'Open Sans', sans-serif;
+  color: #fff;
+  text-decoration: none;
+  padding: 12px;
+}
+.item-login .social_login .social .item:before {
+  margin-right: 10px;
+}
+.item-login .social_login .social .item:first-of-type {
+  border-top-left-radius: 99px;
+  border-bottom-left-radius: 99px;
+  background-color: #188cd9;
+}
+.item-login .social_login .social .item:last-of-type {
+  border-top-right-radius: 99px;
+  border-bottom-right-radius: 99px;
+  background-color: #e54c4c;
+}
+.item-login .social_login p {
+  color: #fefefe;
+  font: 600 14px 'Open Sans', sans-serif;
+}
+.item-login .social_login a {
+  text-decoration: underline;
+}
+.item-login .social_login a:hover {
+  text-decoration: none;
+}
+.item-tour {
+  min-height: calc(100vh - 175px);
+  text-align: center;
+}
+.item-regis {
+  text-align: center;
+  padding: 0 20px 20px 20px;
+}
+.item-regis header,
+.item-regis section {
+  font-size: 19px;
+}
+.item-regis a {
+  font-size: 19px;
+  text-decoration: underline;
+}
+.item-regis a:hover {
+  text-decoration: none;
+}
+.item-test_result {
+  display: flex;
+  margin-bottom: 30px;
+  margin-top: 30px;
+}
+.item-test_result .i-col {
+  width: 50%;
+  padding: 0 10px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+.item-test_result .i-col:first-of-type {
+  box-sizing: border-box;
+  border-right: 1px solid #e3e3e3;
+}
+.item-test_result .i-col .i-title {
+  font: 15px 'Open Sans', sans-serif;
+  color: #666666;
+  margin-bottom: 30px;
+  padding: 0;
+}
+.item-test_result .i-col .i-note {
+  font: 700 60px/30px 'Open Sans', sans-serif;
+  color: #818181;
+  margin-top: 30px;
+  margin-bottom: 15px;
+}
+.item-test_result .i-col .i-note span {
+  font-size: 27px;
+}
+.item-test_result .i-col .i-results {
+  display: flex;
+}
+.item-test_result .i-col .i-results .ion-checkmark-round {
+  color: #49be48;
+  font-weight: 700;
+}
+.item-test_result .i-col .i-results .ion-close-round {
+  color: #d43c3c;
+  font-weight: 700;
+}
+.item-test_result .i-col .i-results .i-col_result {
+  width: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+}
+.item-test_result .i-col .i-results .i-col_result .i-correct {
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  background-color: #49be48;
+  position: relative;
+  font: 27px 'Open Sans', sans-serif;
+  color: #fff;
+}
+.item-test_result .i-col .i-results .i-col_result .i-correct span {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+.item-test_result .i-col .i-results .i-col_result .i-wrong {
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  background-color: #d43c3c;
+  position: relative;
+  font: 27px 'Open Sans', sans-serif;
+  color: #fff;
+}
+.item-test_result .i-col .i-results .i-col_result .i-wrong span {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+.item-text_result {
+  text-align: center;
+  margin-top: 40px;
+}
+.item-text_result .i-title {
+  font: 700 15px 'Open Sans', sans-serif;
+  color: #49be48;
+  text-transform: uppercase;
+}
+.item-text_result button {
+  margin: 30px 0;
+}
+.register-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  border: 0;
+  border-bottom: 2px solid #00598f;
+  font: 17px/43px 'Open Sans', sans-serif;
+  color: #fff;
+  text-align: center;
+  background-color: transparent;
+  width: 100%;
+}
+.register-header:before {
+  position: absolute;
+  top: 50%;
+  right: 15px;
+  transform: translateY(-50%);
+}
+.i--answer-label .item-input {
+  padding: 0;
+  border: 0;
+}
+.i--answer-label .item-input input {
+  border: 1px solid #ddd;
+  padding: 20px 15px;
+  opacity: 1;
+}
+.i--button {
+  padding: 10px 20px;
+  border-radius: 100px;
+  color: #fff;
+  border: 0;
+}
+.i--button.i--icon {
+  padding: 15px 40px 15px 20px;
+  position: relative;
+  box-shadow: 0 5px 0 0 #00598f;
+}
+.i--button.i--icon:before {
+  position: absolute;
+  top: 50%;
+  right: 20px;
+  transform: translateY(-50%);
+  font-size: 12px;
+}
+.i--button[disabled="disabled"] {
+  opacity: .7;
+}
+.i--button.blue {
+  background-color: #0a4d85;
+}
+.i--button.lighblue {
+  background-color: #00a8ef;
+}
+.i--button.white {
+  background-color: #fff;
+  color: #000;
+}
+.i--button.grey {
+  background-color: #eee;
+}
+.i--button.darkblue {
+  background-color: #025283;
+}
+.i--button.lighgreen {
+  background-color: #76d866;
+}
+.i--button.green {
+  background-color: #49be48;
+}
+.i--button.lighred {
+  background-color: #e54c4c;
+}
+.i--button.little {
+  padding: 5px 10px;
+}
+.i--message {
+  padding-right: 20px 40px 20px 20px;
+  position: relative;
+  border: 0;
+  background-color: transparent;
+}
+.i--message .i-icon {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  transform: translateY(-50%);
+  font-size: 26px;
+  color: #0a4d85;
+  cursor: pointer;
+}
+.i--graph {
+  position: relative;
+}
+.i--graph .i-icon {
+  width: 40px;
+  height: 40px;
+  background-color: #fff;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-size: cover;
+  background-position: center;
+}
+.i--graph .i-graph {
+  position: absolute;
+  top: 4px;
+  left: 32px;
+  border: 5px solid #043c5d;
+  border-radius: 50%;
+}
+.i--graph .i-graph .i-graphContent {
+  width: 26px;
+  height: 26px;
+  background-color: #888;
+  border-radius: 50%;
+  position: relative;
+}
+.i--graph .i-graph .i-graphContent .i-message {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  background-color: #043c5d;
+  border-radius: 50%;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+  border: 2px solid #043c5d;
+  background-size: cover;
+  background-position: center;
+  white-space: normal;
+}
+.i--graph .i-graph .i-graphContent .i-slice {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  left: 0;
+  border-radius: 50%;
+  clip: rect(0, 40px, 40px, 20px);
+}
+.i--graph .i-graph .i-graphContent .i-slice .i-sliceOut {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  left: 0;
+  border-radius: 50%;
+  background-color: #fff;
+  clip: rect(0, 20px, 40px, 0);
+}
+.i--graph .i-graph .i-value {
+  position: absolute;
+  left: calc(100% + 10px);
+  top: 50%;
+  transform: translateY(-50%);
+}
+.i--graph2 {
+  position: relative;
+}
+.i--graph2 .i-default-img {
+  width: 55px;
+  height: 55px;
+  background-color: #fff;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-size: cover;
+  background-position: center;
+}
+.i--graph2 .i-graph {
+  position: absolute;
+  top: 8px;
+  left: 40px;
+  border: 4px solid #fff;
+  border-radius: 50%;
+}
+.i--graph2 .i-graph .i-graphContent {
+  width: 32px;
+  height: 32px;
+  background-color: #888;
+  border-radius: 50%;
+  position: relative;
+}
+.i--graph2 .i-graph .i-graphContent .i-message {
+  position: absolute;
+  width: 26px;
+  height: 26px;
+  background-color: #fff;
+  border-radius: 50%;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+  border: 4px solid #fff;
+  background-size: cover;
+  background-position: center;
+  white-space: normal;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  font-size: 13px;
+  color: #000;
+}
+.i--graph2 .i-graph .i-graphContent .i-message span {
+  font-size: 7px;
+  line-height: 13px;
+}
+.i--graph2 .i-graph .i-graphContent .i-slice {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  left: 0;
+  border-radius: 50%;
+  clip: rect(0, 32px, 32px, 16px);
+}
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='51'] .i-sliceOut,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='52'] .i-sliceOut,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='53'] .i-sliceOut,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='54'] .i-sliceOut,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='55'] .i-sliceOut,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='56'] .i-sliceOut,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='57'] .i-sliceOut,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='58'] .i-sliceOut,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='59'] .i-sliceOut,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='60'] .i-sliceOut,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='61'] .i-sliceOut,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='62'] .i-sliceOut,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='63'] .i-sliceOut,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='64'] .i-sliceOut,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='65'] .i-sliceOut,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='66'] .i-sliceOut,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='67'] .i-sliceOut,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='68'] .i-sliceOut,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='69'] .i-sliceOut,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='70'] .i-sliceOut,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='71'] .i-sliceOut,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='72'] .i-sliceOut,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='73'] .i-sliceOut,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='74'] .i-sliceOut,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='75'] .i-sliceOut,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='76'] .i-sliceOut,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='77'] .i-sliceOut,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='78'] .i-sliceOut,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='79'] .i-sliceOut,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='80'] .i-sliceOut,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='81'] .i-sliceOut,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='82'] .i-sliceOut,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='83'] .i-sliceOut,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='84'] .i-sliceOut,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='85'] .i-sliceOut,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='86'] .i-sliceOut,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='87'] .i-sliceOut,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='88'] .i-sliceOut,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='89'] .i-sliceOut,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='90'] .i-sliceOut,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='91'] .i-sliceOut,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='92'] .i-sliceOut,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='93'] .i-sliceOut,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='94'] .i-sliceOut,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='95'] .i-sliceOut,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='96'] .i-sliceOut,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='97'] .i-sliceOut,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='98'] .i-sliceOut,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='99'] .i-sliceOut,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='100'] .i-sliceOut {
+  transform: rotate(calc(50*360deg/100)) !important;
+}
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='51'] + .i-slice2,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='52'] + .i-slice2,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='53'] + .i-slice2,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='54'] + .i-slice2,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='55'] + .i-slice2,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='56'] + .i-slice2,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='57'] + .i-slice2,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='58'] + .i-slice2,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='59'] + .i-slice2,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='60'] + .i-slice2,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='61'] + .i-slice2,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='62'] + .i-slice2,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='63'] + .i-slice2,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='64'] + .i-slice2,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='65'] + .i-slice2,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='66'] + .i-slice2,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='67'] + .i-slice2,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='68'] + .i-slice2,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='69'] + .i-slice2,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='70'] + .i-slice2,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='71'] + .i-slice2,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='72'] + .i-slice2,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='73'] + .i-slice2,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='74'] + .i-slice2,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='75'] + .i-slice2,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='76'] + .i-slice2,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='77'] + .i-slice2,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='78'] + .i-slice2,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='79'] + .i-slice2,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='80'] + .i-slice2,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='81'] + .i-slice2,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='82'] + .i-slice2,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='83'] + .i-slice2,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='84'] + .i-slice2,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='85'] + .i-slice2,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='86'] + .i-slice2,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='87'] + .i-slice2,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='88'] + .i-slice2,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='89'] + .i-slice2,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='90'] + .i-slice2,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='91'] + .i-slice2,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='92'] + .i-slice2,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='93'] + .i-slice2,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='94'] + .i-slice2,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='95'] + .i-slice2,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='96'] + .i-slice2,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='97'] + .i-slice2,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='98'] + .i-slice2,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='99'] + .i-slice2,
+.i--graph2 .i-graph .i-graphContent .i-slice[percent^='100'] + .i-slice2 {
+  display: block;
+}
+.i--graph2 .i-graph .i-graphContent .i-slice .i-sliceOut {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  left: 0;
+  border-radius: 50%;
+  background-color: #fff;
+  clip: rect(0, 16px, 32px, 0);
+}
+.i--graph2 .i-graph .i-graphContent .i-slice2 {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  left: 0;
+  border-radius: 50%;
+  clip: rect(0, 32px, 32px, 16px);
+  display: none;
+}
+.i--graph2 .i-graph .i-graphContent .i-slice2 .i-sliceOut2 {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  left: 0;
+  border-radius: 50%;
+  background-color: #fff;
+  clip: rect(0, 16px, 32px, 0);
+}
+.i--graph2 .i-graph .i-value {
+  position: absolute;
+  left: calc(100% + 10px);
+  top: 50%;
+  transform: translateY(-50%);
+}
+.i--lesson {
+  background-color: #00629d;
+  color: #fff;
+  position: relative;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 16px;
+}
+.i--lesson .i-icon {
+  position: absolute;
+  top: 50%;
+  right: -15px;
+  transform: translateY(-50%);
+  background-color: #ddd;
+  border-radius: 50%;
+  font-size: 10px;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.i--button-green {
+  border-radius: 50px;
+  border: 0;
+  padding: 13px 50px;
+  background-color: #49be48 !important;
+}
+.i--button-green[disabled="disabled"] {
+  opacity: .7;
+}
+.tour_bg {
+  /* altura de la pantalla menos 110 */
+}
+.tour_bg .slider-pager {
+  bottom: 80px;
+}
+.tour_bg .slider {
+  height: calc(100vh - 70px);
+}
+.tour_bg .scroll .mislide {
+  background-size: 101%;
+  background-position: center top;
+  background-repeat: no-repeat;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  align-items: center;
+  font: 400 15px 'Open Sans', sans-serif;
+  color: #fff;
+  font-size: 26px;
+  line-height: 34px;
+  text-align: center;
+  font-family: 'museo_sans500';
+  padding: 0 20px 70px;
+  padding-bottom: 0px;
+}
+.tour_bg .scroll .mislide .big {
+  font-size: 42px;
+}
+.tour_bg .scroll .mislide i {
+  font-style: italic;
+  font-size: 17px;
+}
+.tour_bg .scroll .mislide [class^="icon"] {
+  font-size: 11px;
+  margin-left: 7px;
+}
+.tour_bg .scroll .slider-pager {
+  top: auto;
+}
+.tour_bg .scroll .slider-pager .slider-pager-page {
+  color: #fff;
+}
+.tour_bg .scroll .slider-pager .slider-pager-page.active {
+  transform: scale(1.5);
+}
+.tour-buttons {
+  position: absolute;
+  bottom: 20px;
+  left: 50px;
+  right: 50px;
+  display: flex;
+  flex-direction: column;
+}
+.tour-buttons .i--button {
+  text-align: center;
+  font-weight: 700;
+  border-bottom: 3px solid #00588f;
+}
+.tour-buttons .i--button.borderWhite {
+  margin-top: 15px;
+  border: 2px solid #fff;
+}
+.tpl-buttons {
+  display: flex;
+  justify-content: space-between;
+  padding: 30px 20px;
+}
+.tpl-col-2 {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  padding: 10px;
+}
+.tpl-col-2 > * {
+  width: calc(50% - 5px);
+}
+.tpl-space-between {
+  display: flex;
+  justify-content: space-between;
+}
+.checkbox input:before,
+.checkbox .checkbox-icon:before {
+  border: 0;
+  background-color: #eee !important;
+}
+.checkbox input:after,
+.checkbox-icon:after {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 10px;
+  height: 10px;
+  background-color: #666;
+  border-radius: 50%;
+}
+.item-checkbox {
+  padding-left: 50px;
+}
+.platform-ios.platform-cordova:not(.fullscreen) .bar-header:not(.bar-subheader) > * {
+  margin: 0;
+}
+.platform-ios.platform-cordova:not(.fullscreen) .bar-header:not(.bar-subheader) {
+  height: 44px;
+}
+.platform-ios.platform-cordova:not(.fullscreen) .has-header,
+.platform-ios.platform-cordova:not(.fullscreen) .bar-subheader {
+  top: 44px;
+}
+.item-thumbnail-left,
+.item-thumbnail-left .item-content {
+  min-height: 80px;
+}
+[cssUserLogin=""] {
+  display: none;
+}
+.cssLostFixed {
+  position: fixed;
+  top: 0;
+  right: 200%;
+}
+.cssHeight0 {
+  height: 0px;
+  overflow: hidden;
+}
+.flash {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  z-index: 100;
+  color: #fff;
+}
+.flash .right,
+.flash .left {
+  display: none;
+}
+.flash .right span,
+.flash .left span {
+  font: 27px/34px 'Indie Flower', cursive;
+}
+.flash.right .right {
+  display: block;
+}
+.flash.right .right:before {
+  position: absolute;
+  top: 50px;
+  font-size: 55px;
+  right: 15px;
+}
+.flash.right .right span {
+  position: absolute;
+  top: 50px;
+  right: 80px;
+  left: 10px;
+  text-align: right;
+}
+.flash.right .right i {
+  display: flex;
+  position: absolute;
+  top: 10px;
+  right: 11px;
+  font-size: 25px;
+}
+.flash.right ~ .bar-stable .nav-bar-block:last-of-type {
+  z-index: 101;
+}
+.flash.right ~ .bar-stable .nav-bar-block:last-of-type .buttons-left {
+  opacity: .5;
+}
+.flash.right ~ .bar-stable .nav-bar-block:last-of-type .title {
+  opacity: .5;
+}
+.flash.right ~ .bar-stable .nav-bar-block:last-of-type .buttons-right {
+  opacity: 1!important;
+}
+.flash.left .left {
+  display: block;
+}
+.flash.left .left:before {
+  position: absolute;
+  top: 36px;
+  font-size: 55px;
+  left: 31px;
+}
+.flash.left .left span {
+  position: absolute;
+  top: 90px;
+  left: 54px;
+  text-align: left;
+  width: 45%;
+}
+.flash.left .left i {
+  display: flex;
+  position: absolute;
+  top: 6px;
+  left: 10px;
+  font-size: 32px;
+}
+.flash.left ~ .bar-stable .nav-bar-block:last-of-type {
+  z-index: 101;
+}
+.flash.left ~ .bar-stable .nav-bar-block:last-of-type .buttons-right {
+  opacity: .5;
+}
+.flash.left ~ .bar-stable .nav-bar-block:last-of-type .title {
+  opacity: .5;
+}
+.flash.left ~ .bar-stable .nav-bar-block:last-of-type .buttons-left {
+  opacity: 1!important;
+}
+input.reset-field {
+  padding-right: 20px;
+}
+.reset-field-icon {
+  position: absolute;
+  right: 14px;
+  top: 32px;
+  margin: 0px;
+  color: #bbb;
+  font-size: 18px;
+}
+/* para la pantalla de error */
+.wrongBackground {
+  background-color: #ebeef7;
+}
+/*
+.somethingwrong {
+        text-align: center;
+}
+    .somethingwrong img {
+        margin-top: 55;
+        width: 25%;
+    }
+    .somethingwrong .some {
+        margin-top:  40%;
+    }
+    .somethingwrong p span {
+        font-weight: bold;
+        font-size: 120%;
+        font-style: normal;
+    }
+    .somethingwrong p  {
+        color: #a0a6be;
+        font-style: italic;
+    }
+*/
+.somethingwrong {
+  text-align: center;
+}
+.somethingwrong img {
+  margin-top: 55;
+  width: 25%;
+}
+.somethingwrong .some {
+  margin-top: 40%;
+}
+.somethingwrong p {
+  color: #a0a6be;
+  font-style: italic;
+}
+.somethingwrong p span {
+  font-weight: bold;
+  font-size: 120%;
+  font-style: normal;
+}
+.i-clear_check {
+  position: relative;
+  /* esto soluciona el problema del recuadro blanco de fondo con los selects en iOS y el teclado */
+  /* Animación 'scale-in' para los popups */
+}
+.i-clear_check .icon-close-1 {
+  position: absolute;
+  top: 13px;
+  font-size: 10px;
+  right: 10px;
+  display: none;
+  cursor: pointer;
+}
+.i-clear_check input:focus + div {
+  display: flex;
+}
+.i-clear_check textarea:focus + div {
+  display: flex;
+}
+.i-clear_check ion-view {
+  background: #00629d !important;
+}
+.i-clear_check .scale-in {
+  -webkit-transform: scale(0);
+  transform: scale(0);
+  opacity: 0;
+}
+.i-clear_check .scale-in.ng-enter,
+.i-clear_check .scale-in > .ng-enter {
+  -webkit-transition: all cubic-bezier(0.1, 0.7, 0.1, 1) 400ms;
+  transition: all cubic-bezier(0.1, 0.7, 0.1, 1) 400ms;
+}
+.i-clear_check .scale-in.ng-enter-active,
+.i-clear_check .scale-in > .ng-enter-active {
+  -webkit-transform: scale(1);
+  transform: scale(1);
+  opacity: 1;
+}
+.i-clear_check .scale-in.ng-leave,
+.i-clear_check .scale-in > .ng-leave {
+  -webkit-transition: all ease-in-out 250ms;
+  transition: all ease-in-out 250ms;
+}
+@media only screen and (max-width: 360px) {
+  .button {
+    font-size: 15px!important;
+  }
+}
+
+
+/* Para el spinner */
+.loading-container .loading { background-color: transparent; }
+.loading-container .spinner svg { width: 58px; height: 58px; stroke: #1ca9eb; fill: #1ca9eb; }

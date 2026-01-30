@@ -1,0 +1,38 @@
+<ion-view view-title="{{i18n[loc].lear_title}}">
+  
+    <ion-nav-buttons side="right">
+        <button class="button button-icon button-clear icon-people" menu-toggle="right" ng-click="flashClick(2)"></button>
+    </ion-nav-buttons>
+
+<!--
+    <ion-nav-title>{{i18n[loc].lear_title}}</ion-nav-title>
+-->
+   
+    <ion-content>
+    
+        <div class="card" ng-if="!Courses">
+            <div class="item item-text-wrap assertive">
+              Error accediendo al servidor.
+            </div>
+        </div>
+
+        <pre>
+        ***
+        {{Courses.length}}
+        ***
+        </pre>
+       
+        <ion-list>
+           
+            <ion-item ng-repeat="course in Courses" href="#/app/course/{{course.id}}" ng-if="course.typeCourse!=2">
+
+                <pre>#/app/course/{{course.id}}</pre>
+
+            </ion-item>
+            
+        </ion-list>
+
+    </ion-content>
+    
+</ion-view>
+

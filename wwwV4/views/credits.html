@@ -1,0 +1,76 @@
+
+<ion-view>
+
+    <ion-nav-buttons side="right">
+        <button class="button button-icon button-clear ion-ios-search" ng-click="srchClick()"></button>
+        <button class="button button-icon button-clear icon-people" xmenu-toggle="right" ng-click="chatClick('upr')"></button>
+    </ion-nav-buttons>
+
+  
+    <ion-content class="padding">
+
+		<div class="item-box59">
+
+<div ng-if="loc=='es'" align="left" style="text-align: justify; padding-left:10px; padding-right:10px;">
+  <p>  
+    <strong>Curso Inglés</strong> es una aplicaci&oacute;n que tiene como objetivo ayudar a sus usuarios con materiales y herramientas gratuitas para aprender y practicar el idioma ingl&eacute;s.
+  </p>
+  <p>A continuaci&oacute;n puedes encontrar los datos legales de esta app y de la empresa que la mantiene:
+  </p>
+  <p>
+    SOK Internet S.L.<br>
+    Calle Galileu, 303-305 , 4ª planta<br>
+    08028 Barcelona (España)<br>
+    NIF: B65558405
+  </p>
+  <p>Contacto:<br>
+    <a href="#" ng-click="sendMail(); $event.stopPropagation();">{{i18n[loc].contact_mail}}</a>
+  </p>
+</div>
+
+<div ng-if="loc=='br'" align="left" style="text-align: justify; padding-left:10px; padding-right:10px;">
+  <p>  
+    <strong>Curso Inglês</strong> é um aplicativo cujo objetivo é ajudar os usuários fornecendo materiais e recursos para aprender e praticar o inglês grátis. 
+  </p>
+  <p>Abaixo, você pode encontrar as informações legais sobre este aplicativo e  a empresa que o mantém: 
+  </p>
+  <p>
+    SOK Internet S.L.<br>
+    Calle Galileu, 303-305 , 4ª planta<br>
+    08028 Barcelona (España)<br>
+    NIF: B65558405
+  </p>
+  <p>Contato:<br>
+    <a href="#" ng-click="sendMail(); $event.stopPropagation();">{{i18n[loc].contact_mail}}</a>
+  </p>
+</div>
+
+
+<div ng-if="loc!='es' && loc!='br'" align="left" style="text-align: justify; padding-left:10px; padding-right:10px;">
+  <p>  
+    <strong>English Course<strong> is an app whose objective is to help our users by providing materials and resources to learn and practice English for free. 
+  </p>
+  <p>                                                   
+    Below you can find the legal information of this app and the company which maintains it: 
+  </p>
+  <p>
+    SOK Internet S.L.<br>
+    Calle Galileu, 303-305 , 4ª floor<br>
+    08028 Barcelona (España)<br>
+    NIF: B65558405
+  </p>
+  <p>Contact:<br>
+    <a href="#" ng-click="sendMail(); $event.stopPropagation();">{{i18n[loc].contact_mail}}</a>
+  </p>
+</div>
+
+		</div>
+
+
+
+    </ion-content>
+            
+</ion-view>
+
+
+

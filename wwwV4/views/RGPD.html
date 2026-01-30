@@ -1,0 +1,89 @@
+
+<ion-modal-view style="background: rgba(0,0,0,.7)">
+
+  <ion-content style="background: rgba(0,0,0,0); padding:0px;">
+
+    <div class="item-box59" style="margin-top:60px; margin-left:40px; margin-right:40px; padding:0; box-shadow: initial !important;">
+
+
+
+        <div style=" margin-top:50px; margin-left: 50%; transform: translate(-90px, 0); position: absolute;">
+          <img src="assets/nena.png" width="100px" height="100px"/>
+        </div>
+
+<!--
+        <div style="position:fixed; top:50px; left: 50%; transform: translate(-50%, 0); z-index:100;">      
+          <img src="assets/nena.png" alt="" width="100px" height="100px"/>
+        </div> 
+-->
+
+
+
+        <div style="text-align:center; height:100px; background:#00629d; border-top-left-radius: 8px; border-top-right-radius: 8px  ">
+          
+          <h3 ng-if="loc=='es'" style="color:white; padding-top:15px;">Anuncios Personalizados</h3>
+          <h3 ng-if="loc=='br'" style="color:white; padding-top:15px;">Anúncios personalizados</h3>
+          <h3 ng-if="loc!='es' && loc!='br'" style="color:white; padding-top:15px;">Personalized ads</h3>
+
+        </div>
+
+        <div style="text-align:center; padding-top:60px; padding-bottom:10px; background:#F8F8F8;">
+
+          <div ng-if="loc=='es'">
+            <h3 style=" padding-left:10px; padding-right:10px; color:#00629d; font-size:20px; margin-bottom:0px;">¿Podemos continuar usando tus datos para personalizar los anuncios que te mostramos?</h3> 
+
+            <br>
+
+            <div style="padding-left:25px;padding-right:25px; text-align: justify;">
+              <p>English Course muestra anuncios de terceros para poder mantener la versión gratuita de la app.
+              <br>
+              Nuestros partners recogerán información para mostrarte anuncios personalizados y relevantes.</p>
+            </div>
+
+          </div>
+
+          <div ng-if="loc!='es' && loc!='br'">
+
+            <h3 style=" padding-left:10px; padding-right:10px; color:#00629d; font-size:20px; margin-bottom:0px;">Can we continue to use your data to tailor ads for you?</h3>    
+
+            <br>
+
+            <div style="padding-left:25px;padding-right:25px; text-align: justify;">
+              <p>English Course shows third party ads in order to provide the free version of the app.</p>
+              <p>Our partners will collect data to show you personalized and relevant ads.</p>
+            </div>
+
+          </div>
+
+          <div ng-if="loc=='br'">
+
+            <h3 style=" padding-left:10px; padding-right:10px; color:#00629d; font-size:20px; margin-bottom:0px;">Podemos continuar usando seus dados para adaptar anúncios para você?</h3> 
+
+            <br>  
+
+            <div style="padding-left:25px;padding-right:25px; text-align: justify;">
+              <p>English Course mostra anúncios de terceiros para fornecer a versão gratuita do aplicativo.</p>
+              <p>Nossos parceiros coletarão dados para mostrar anúncios personalizados e relevantes.</p>
+            </div>
+
+          </div>
+
+  <ion-toggle ng-model="personalAds" toggle-class="toggle-calm" ng-change="tglPersonal(personalAds)" style="font-size:14px; border:none; width:90%; border-radius:50px; margin-left:5%;" >{{i18n[loc].personalAds}}</ion-toggle> 
+
+      
+        </div>
+
+        <div style="text-align:center; padding:20px;">
+            
+            <div class="buttonCenter">
+              <button class="white i--button text13" style="font-size:15px; padding:5px 12px 8px 12px; color:grey; border:1px solid darkgrey;" ng-click="closeRGPDModal(); $event.stopPropagation();">{{i18n[loc].continue2}}</button>            
+            </div>
+
+            <br>
+
+        </div>
+
+    </div>        
+
+  </ion-content>
+</ion-modal-view>

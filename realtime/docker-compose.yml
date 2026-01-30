@@ -1,0 +1,28 @@
+version: "3.8"
+
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+
+  soketi:
+    image: quay.io/soketi/soketi:1.6-16-alpine
+    env_file:
+      - .env
+    environment:
+      SOKETI_DB_REDIS_HOST: redis
+      SOKETI_DB_REDIS_PORT: 6379
+      SOKETI_METRICS_ENABLED: ${SOKETI_METRICS_ENABLED:-1}
+      SOKETI_DEBUG: ${SOKETI_DEBUG:-1}
+      SOKETI_PORT: ${SOKETI_PORT:-6001}
+    ports:
+      - "${SOKETI_PORT:-6001}:6001"
+      - "9601:9601"
+    depends_on:
+      - redis
+
+volumes:
+  redis-data:

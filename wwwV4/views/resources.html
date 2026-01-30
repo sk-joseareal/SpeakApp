@@ -1,0 +1,220 @@
+
+<style>
+.nube {
+    position:absolute; 
+    right:16px; 
+    font-size:32px; 
+    color:white;
+}
+</style>
+
+
+<ion-view class="resources">
+
+    <ion-nav-buttons side="right">
+        <button class="button button-icon button-clear ion-ios-search" ng-click="srchClick()"></button>        
+        <button class="button button-icon button-clear icon-people" xmenu-toggle="right" ng-click="chatClick('upr')"></button>
+    </ion-nav-buttons>
+
+    <ion-content>
+
+        <div class="tpl-col-2">
+
+            <div class="item-box53" ng-click="go('app.vocabularies')">
+                <div class="i-header">
+
+                    <div ng-if="genService.getCache()">
+                        <span ng-if="!checkItem('vocabularies')" class="ion-ios-cloud-outline nube"></span>
+                    </div>
+
+<!--
+                    <div ng-if="genService.getCache()">
+                    <span ng-if="!checkItem('vocabularies')" class="ion-android-download" style="font-size:26px; padding-right:10px; color:white;" ng-click="descarga('vocabularies'); $event.stopPropagation();"></span>
+                    <span ng-if="checkItem('vocabularies')" class="ion-android-cloud-done" style="font-size:26px; padding-right:10px; color:white;" ng-click="descarga('vocabularies'); $event.stopPropagation();"></span>                        
+                    </div>
+-->
+                    <div class="i-icon" style="background-image: url('assets/img/vocabulario.png');"></div>
+                </div>
+                <article class="i-content">
+                    <header class="i-title text6">{{i18n[loc].voca_title}}</header>
+                    <section class="i-text text3">{{i18n[loc].voca_sub}}</section>
+                </article>
+            </div>
+
+            <div class="item-box53" ng-click="go('app.expressions')">
+                <div class="i-header">
+
+                    <div ng-if="genService.getCache()">
+                    <span ng-if="!checkItem('expressions')" class="ion-ios-cloud-outline nube"></span>
+                    </div>
+<!--
+                    <div ng-if="genService.getCache()">
+                    <span ng-if="!checkItem('expressions')" class="ion-android-download" style="font-size:26px; padding-right:10px; color:white;" ng-click="descarga('expressions'); $event.stopPropagation();"></span>
+                    <span ng-if="checkItem('expressions')" class="ion-android-cloud-done" style="font-size:26px; padding-right:10px; color:white;" ng-click="descarga('expressions'); $event.stopPropagation();"></span>                        
+                    </div>
+-->
+                    <div class="i-icon" style="background-image: url('assets/img/expresiones.png');"></div>
+                </div>
+                <article class="i-content">
+                    <header class="i-title text6">{{i18n[loc].expr_title}}</header>
+                    <section class="i-text text3">{{i18n[loc].expr_sub}}</section>
+                </article>
+            </div>
+            <div class="item-box53" ng-click="go('app.proverbs')">
+                <div class="i-header">
+
+                    <div ng-if="genService.getCache()">
+                    <span ng-if="!checkItem('proverbs')" class="ion-ios-cloud-outline nube"></span>
+                    </div>
+<!--
+                    <div ng-if="genService.getCache()">
+                    <span ng-if="!checkItem('proverbs')" class="ion-android-download" style="font-size:26px; padding-right:10px; color:white;" ng-click="descarga('proverbs'); $event.stopPropagation();"></span>
+                    <span ng-if="checkItem('proverbs')" class="ion-android-cloud-done" style="font-size:26px; padding-right:10px; color:white;" ng-click="descarga('proverbs'); $event.stopPropagation();"></span>                        
+                    </div>
+-->
+                    <div class="i-icon" style="background-image: url('assets/img/refranes.png');"></div>
+                </div>
+                <article class="i-content">
+                    <header class="i-title text6">{{i18n[loc].prov_title}}</header>
+                    <section class="i-text text3">{{i18n[loc].prov_sub}}</section>
+                </article>
+            </div>
+            <div class="item-box53" ng-click="go('app.quotes')">
+                <div class="i-header">
+
+                    <div ng-if="genService.getCache()">
+                    <span ng-if="!checkItem('quotes')" class="ion-ios-cloud-outline nube"></span>
+                    </div>
+<!-- 
+                    <div ng-if="genService.getCache()">
+                    <span ng-if="!checkItem('quotes')" class="ion-android-download" style="font-size:26px; padding-right:10px; color:white;" ng-click="descarga('quotes'); $event.stopPropagation();"></span>
+                    <span ng-if="checkItem('quotes')" class="ion-android-cloud-done" style="font-size:26px; padding-right:10px; color:white;" ng-click="descarga('quotes'); $event.stopPropagation();"></span>                        
+                    </div>
+-->
+                    <div class="i-icon" style="background-image: url('assets/img/citas.png');"></div>
+                </div>
+                <article class="i-content">
+                    <header class="i-title text6">{{i18n[loc].quot_title}}</header>
+                    <section class="i-text text3">{{i18n[loc].quot_sub}}</section>
+                </article>
+            </div>
+            <div class="item-box53" ng-click="go('app.regverbs')">
+                <div class="i-header">
+
+                    <div ng-if="genService.getCache()">
+                    <span ng-if="!checkItem('regverbs')" class="ion-ios-cloud-outline nube"></span>
+                    </div>
+<!-- 
+                    <div ng-if="genService.getCache()">
+                    <span ng-if="!checkItem('regverbs')" class="ion-android-download" style="font-size:26px; padding-right:10px; color:white;" ng-click="descarga('regverbs'); $event.stopPropagation();"></span>
+                    <span ng-if="checkItem('regverbs')" class="ion-android-cloud-done" style="font-size:26px; padding-right:10px; color:white;" ng-click="descarga('regverbs'); $event.stopPropagation();"></span>                        
+                    </div>
+-->
+                    <div class="i-icon" style="background-image: url('assets/img/verbos_regulares.png');"></div>
+                </div>
+                <article class="i-content">
+                    <header class="i-title text6">{{i18n[loc].regv_title}}</header>
+                    <section class="i-text text3">{{i18n[loc].regv_sub}}</section>
+                </article>
+            </div>
+            <div class="item-box53" ng-click="go('app.irregverbs')">
+                <div class="i-header">
+
+                    <div ng-if="genService.getCache()">
+                    <span ng-if="!checkItem('irregverbs')" class="ion-ios-cloud-outline nube"></span>
+                    </div>
+<!-- 
+                    <div ng-if="genService.getCache()">
+                    <span ng-if="!checkItem('irregverbs')" class="ion-android-download" style="font-size:26px; padding-right:10px; color:white;" ng-click="descarga('irregverbs'); $event.stopPropagation();"></span>
+                    <span ng-if="checkItem('irregverbs')" class="ion-android-cloud-done" style="font-size:26px; padding-right:10px; color:white;" ng-click="descarga('irregverbs'); $event.stopPropagation();"></span>                        
+                    </div>
+-->
+                    <div class="i-icon" style="background-image: url('assets/img/verbos_irregulares.png');"></div>
+                </div>
+                <article class="i-content">
+                    <header class="i-title text6">{{i18n[loc].irrv_title}}</header>
+                    <section class="i-text text3">{{i18n[loc].irrv_sub}}</section>
+                </article>
+            </div>
+            <div class="item-box53" ng-click="go('app.phrasverbs')">
+                <div class="i-header">
+
+                    <div ng-if="genService.getCache()">
+                    <span ng-if="!checkItem('phrasverbs')" class="ion-ios-cloud-outline nube"></span>
+                    </div>
+<!-- 
+                    <div ng-if="genService.getCache()">
+                    <span ng-if="!checkItem('phrasverbs')" class="ion-android-download" style="font-size:26px; padding-right:10px; color:white;" ng-click="descarga('phrasverbs'); $event.stopPropagation();"></span>
+                    <span ng-if="checkItem('phrasverbs')" class="ion-android-cloud-done" style="font-size:26px; padding-right:10px; color:white;" ng-click="descarga('phrasverbs'); $event.stopPropagation();"></span>                        
+                    </div>
+-->
+                    <div class="i-icon" style="background-image: url('assets/img/frases.png');"></div>
+                </div>
+                <article class="i-content">
+                    <header class="i-title text6">{{i18n[loc].phrv_title}}</header>
+                    <section class="i-text text3">{{i18n[loc].phrv_sub}}</section>
+                </article>
+            </div>
+            <div class="item-box53" ng-click="go('app.conjugateverb')">
+                <div class="i-header">
+
+                    <div ng-if="genService.getCache()">
+                    <span ng-if="!checkItem('conjugations')" class="ion-ios-cloud-outline nube"></span>
+                    </div>
+<!--                    
+                    <div ng-if="genService.getCache()">
+                    <span ng-if="!checkItem('conjugations')" class="ion-android-download" style="font-size:26px; padding-right:10px; color:white;" ng-click="descarga('conjugations'); $event.stopPropagation();"></span>
+                    <span ng-if="checkItem('conjugations')" class="ion-android-cloud-done" style="font-size:26px; padding-right:10px; color:white;" ng-click="descarga('conjugations'); $event.stopPropagation();"></span>                        
+                    </div>
+-->
+                    <div class="i-icon" style="background-image: url('assets/img/conjugador.png');"></div>
+                </div>
+                <article class="i-content">
+                    <header class="i-title text6">{{i18n[loc].conj_title}}</header>
+                    <section class="i-text text3">{{i18n[loc].conj_sub}}</section>
+                </article>
+            </div>
+            <div class="item-box53" ng-click="go('/app.course',10002)">
+                <div class="i-header">
+
+                    <div ng-if="genService.getCache()">
+                    <span ng-if="!checkItem('course10002')" class="ion-ios-cloud-outline nube"></span>
+                    </div>
+<!--                    
+                    <div ng-if="genService.getCache()">
+                    <span ng-if="!checkItem('course10002')" class="ion-android-download" style="font-size:26px; padding-right:10px; color:white;" ng-click="descarga('course10002'); $event.stopPropagation();"></span>
+                    <span ng-if="checkItem('course10002')" class="ion-android-cloud-done" style="font-size:26px; padding-right:10px; color:white;" ng-click="descarga('course10002'); $event.stopPropagation();"></span>                        
+                    </div>
+-->
+                    <div class="i-icon" style="background-image: url('assets/img/cheat.png');"></div>
+                </div>
+                <article class="i-content">
+                    <header class="i-title text6">{{i18n[loc].chea_title}}</header>
+                    <section class="i-text text3">{{i18n[loc].chea_sub}}</section>
+                </article>
+            </div>
+            <div class="item-box53" ng-click="go('/app.course',10000)">
+                <div class="i-header">
+
+                    <div ng-if="genService.getCache()">
+                    <span ng-if="!checkItem('course10000')" class="ion-ios-cloud-outline nube"></span>
+                    </div>
+<!--                    
+                    <div ng-if="genService.getCache()">
+                    <span ng-if="!checkItem('course10000')" class="ion-android-download" style="font-size:26px; padding-right:10px; color:white;" ng-click="descarga('course10000'); $event.stopPropagation();"></span>
+                    <span ng-if="checkItem('course10000')" class="ion-android-cloud-done" style="font-size:26px; padding-right:10px; color:white;" ng-click="descarga('course10000'); $event.stopPropagation();"></span>                        
+                    </div>
+-->
+                    <div class="i-icon" style="background-image: url('assets/img/extranjero.png');"></div>
+                </div>
+                <article class="i-content">
+                    <header class="i-title text6">{{i18n[loc].fore_title}}</header>
+                    <section class="i-text text3">{{i18n[loc].fore_sub}}</section>
+                </article>
+            </div>
+            
+        </div>
+        
+    </ion-content>
+    
+</ion-view>

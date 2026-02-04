@@ -5,6 +5,118 @@ const initState = {
   voicesGB: []
 };
 
+window.r34lp0w3r = window.r34lp0w3r || {};
+window.r34lp0w3r.speakFeedback = window.r34lp0w3r.speakFeedback || {
+  toneScale: [
+    { min: 80, tone: 'good' },
+    { min: 60, tone: 'okay' },
+    { min: 0, tone: 'bad' }
+  ],
+  labelScale: [
+    { min: 85, label: 'You sound like a native' },
+    { min: 70, label: 'Good! Continue practicing' },
+    { min: 60, label: 'Almost Correct!' },
+    { min: 0, label: 'Keep practicing' }
+  ]
+};
+
+window.r34lp0w3r.speakSummaryTitles = window.r34lp0w3r.speakSummaryTitles || {
+  good: ['Muy bien! aprendiste {{session}}', 'Excelente! completaste {{session}}'],
+  okay: ['Buen trabajo! sigue practicando {{session}}', 'Vas bien! repasa {{session}}'],
+  bad: ['No pasa nada, practica {{session}}', 'Sigue intentandolo con {{session}}']
+};
+
+const SPEAK_WORDS_KEY = 'appv5:speak-word-scores';
+const SPEAK_PHRASE_KEY = 'appv5:speak-phrase-scores';
+const SPEAK_REWARDS_KEY = 'appv5:speak-session-rewards';
+
+const readSpeakStore = (key) => {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch (err) {
+    console.error('[speak] error leyendo store', key, err);
+    return {};
+  }
+};
+
+const writeSpeakStore = (key, value) => {
+  try {
+    localStorage.setItem(key, JSON.stringify(value || {}));
+  } catch (err) {
+    console.error('[speak] error guardando store', key, err);
+  }
+};
+
+const loadSpeakStore = (key, fallback) => {
+  const stored = readSpeakStore(key);
+  if (stored && Object.keys(stored).length) return stored;
+  return fallback || {};
+};
+
+window.r34lp0w3r.speakWordScores = loadSpeakStore(
+  SPEAK_WORDS_KEY,
+  window.r34lp0w3r.speakWordScores || {}
+);
+window.r34lp0w3r.speakPhraseScores = loadSpeakStore(
+  SPEAK_PHRASE_KEY,
+  window.r34lp0w3r.speakPhraseScores || {}
+);
+window.r34lp0w3r.speakSessionRewards = loadSpeakStore(
+  SPEAK_REWARDS_KEY,
+  window.r34lp0w3r.speakSessionRewards || {}
+);
+
+window.persistSpeakStores = () => {
+  writeSpeakStore(SPEAK_WORDS_KEY, window.r34lp0w3r.speakWordScores || {});
+  writeSpeakStore(SPEAK_PHRASE_KEY, window.r34lp0w3r.speakPhraseScores || {});
+  writeSpeakStore(SPEAK_REWARDS_KEY, window.r34lp0w3r.speakSessionRewards || {});
+};
+
+window.notifySpeakStoresChange = () => {
+  window.dispatchEvent(new CustomEvent('app:speak-stores-change'));
+};
+
+window.resetSpeakStores = () => {
+  window.r34lp0w3r.speakWordScores = {};
+  window.r34lp0w3r.speakPhraseScores = {};
+  window.r34lp0w3r.speakSessionRewards = {};
+  window.persistSpeakStores();
+  window.notifySpeakStoresChange();
+};
+
+const SPEAK_DEBUG_KEY = 'appv5:speak-debug';
+
+const readSpeakDebug = () => {
+  try {
+    return localStorage.getItem(SPEAK_DEBUG_KEY) === '1';
+  } catch (err) {
+    return false;
+  }
+};
+
+const writeSpeakDebug = (enabled) => {
+  try {
+    if (enabled) {
+      localStorage.setItem(SPEAK_DEBUG_KEY, '1');
+    } else {
+      localStorage.removeItem(SPEAK_DEBUG_KEY);
+    }
+  } catch (err) {
+    // no-op
+  }
+};
+
+window.r34lp0w3r.speakDebug = readSpeakDebug();
+window.setSpeakDebug = (enabled) => {
+  const next = !!enabled;
+  window.r34lp0w3r.speakDebug = next;
+  writeSpeakDebug(next);
+  window.dispatchEvent(new CustomEvent('app:speak-debug', { detail: next }));
+};
+
 // Debug: surface JSON.parse failures to identify endpoints that return HTML
 (() => {
   const origJson = Response.prototype.json;

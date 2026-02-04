@@ -3,18 +3,23 @@ class PagePremium extends HTMLElement {
     this.classList.add('ion-page');
     this.innerHTML = `
       <ion-header translucent="true">
-        <ion-toolbar>
-          <ion-title>Premium</ion-title>
-          <div class="premium-user" slot="end">
-            <div class="premium-user-info" id="premium-user-info" hidden>
-              <img class="premium-user-avatar" id="premium-user-avatar" alt="Avatar">
-              <span class="premium-user-name" id="premium-user-name"></span>
+        <ion-toolbar class="secret-title">
+          <div class="app-header-actions" slot="end">
+            <div class="app-user-info" id="premium-user-info" hidden>
+              <img class="app-user-avatar" id="premium-user-avatar" alt="Avatar">
+              <span class="app-user-name" id="premium-user-name"></span>
             </div>
-            <ion-button fill="clear" size="small" id="premium-logout-btn" hidden>Logout</ion-button>
+            <div class="reward-badges" id="premium-reward-badges"></div>
+            <ion-button fill="clear" size="small" class="app-notify-btn">
+              <ion-icon slot="icon-only" name="notifications-outline"></ion-icon>
+            </ion-button>
+            <ion-button fill="clear" size="small" class="app-logout-btn" id="premium-logout-btn" hidden>
+              <ion-icon slot="icon-only" name="log-out-outline"></ion-icon>
+            </ion-button>
           </div>
         </ion-toolbar>
       </ion-header>
-      <ion-content fullscreen>
+      <ion-content fullscreen class="secret-content">
         <div class="page-shell">
           <div class="card premium-chat-card">
             <div class="pill">Chatbot (beta)</div>
@@ -69,6 +74,7 @@ class PagePremium extends HTMLElement {
     const userInfoEl = this.querySelector('#premium-user-info');
     const userAvatarEl = this.querySelector('#premium-user-avatar');
     const userNameEl = this.querySelector('#premium-user-name');
+    const rewardsEl = this.querySelector('#premium-reward-badges');
     const logoutBtn = this.querySelector('#premium-logout-btn');
     const recordBtn = this.querySelector('#premium-record-btn');
     const previewBtn = this.querySelector('#premium-preview-btn');
@@ -812,6 +818,34 @@ class PagePremium extends HTMLElement {
       }
     };
 
+    const updateHeaderRewards = () => {
+      if (!rewardsEl) return;
+      const rewards =
+        window.r34lp0w3r && window.r34lp0w3r.speakSessionRewards
+          ? window.r34lp0w3r.speakSessionRewards
+          : {};
+      const totals = {};
+      Object.values(rewards).forEach((entry) => {
+        if (!entry || typeof entry.rewardQty !== 'number') return;
+        const icon = entry.rewardIcon || 'diamond';
+        totals[icon] = (totals[icon] || 0) + entry.rewardQty;
+      });
+      const entries = Object.entries(totals).filter(([, qty]) => qty > 0);
+      if (!entries.length) {
+        rewardsEl.innerHTML = '';
+        rewardsEl.hidden = true;
+        return;
+      }
+      rewardsEl.hidden = false;
+      rewardsEl.innerHTML = entries
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(
+          ([icon, qty]) =>
+            `<div class="training-badge reward-badge"><ion-icon name="${icon}"></ion-icon><span>${qty}</span></div>`
+        )
+        .join('');
+    };
+
     const updateAccessState = (user) => {
       if (accessLoadingTimer) {
         clearTimeout(accessLoadingTimer);
@@ -911,12 +945,19 @@ class PagePremium extends HTMLElement {
       window.dispatchEvent(new CustomEvent('app:user-change', { detail: null }));
     });
 
+    const initialUser = window.user;
+    const initialLoggedIn =
+      initialUser && initialUser.id !== undefined && initialUser.id !== null;
+    updateUserHeader(initialUser, Boolean(initialLoggedIn));
+    updateHeaderRewards();
     showLoadingState();
     accessLoadingTimer = setTimeout(() => {
       updateAccessState(window.user);
     }, 180);
     this._userHandler = (event) => updateAccessState(event.detail);
     window.addEventListener('app:user-change', this._userHandler);
+    this._rewardsHandler = () => updateHeaderRewards();
+    window.addEventListener('app:speak-stores-change', this._rewardsHandler);
 
     this._cleanupPremiumChat = () => {
       resetChatSession({ keepIntro: false, setDefaultHint: false });
@@ -934,6 +975,9 @@ class PagePremium extends HTMLElement {
     }
     if (this._userHandler) {
       window.removeEventListener('app:user-change', this._userHandler);
+    }
+    if (this._rewardsHandler) {
+      window.removeEventListener('app:speak-stores-change', this._rewardsHandler);
     }
   }
 }

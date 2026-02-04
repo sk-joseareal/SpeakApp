@@ -1,0 +1,455 @@
+{
+  "routes": [
+    {
+      "id": "sound",
+      "title": "Sound Journey",
+      "note": "Resultado: pronunciaci\u00f3n correcta y o\u00eddo entrenado.",
+      "moduleIds": ["module-1", "module-2", "module-3"]
+    },
+    {
+      "id": "rhythm",
+      "title": "Rhythm Journey",
+      "note": "Resultado: ritmo natural y fluidez.",
+      "moduleIds": ["module-1", "module-2", "module-3"]
+    },
+    {
+      "id": "word",
+      "title": "Word Journey",
+      "note": "Resultado: pensar en palabras, no letras.",
+      "moduleIds": ["module-1", "module-2", "module-3"]
+    },
+    {
+      "id": "sentence",
+      "title": "Sentence Journey",
+      "note": "Resultado: frases fluidas y naturales.",
+      "moduleIds": ["module-1", "module-2", "module-3"]
+    }
+  ],
+  "modules": [
+    {
+      "id": "module-1",
+      "title": "Training 1",
+      "subtitle": "Sonidos clave",
+      "sessionIds": ["session-p", "session-b", "session-w", "session-f", "session-v"]
+    },
+    {
+      "id": "module-2",
+      "title": "Training 2",
+      "subtitle": "Vocales",
+      "sessionIds": ["session-a", "session-e", "session-i", "session-o", "session-u"]
+    },
+    {
+      "id": "module-3",
+      "title": "Training 3",
+      "subtitle": "Consonantes",
+      "sessionIds": ["session-t", "session-s", "session-r", "session-l", "session-k"]
+    }
+  ],
+  "sessions": [
+    {
+      "id": "session-p",
+      "title": "El sonido P de PEN",
+      "progress": { "done": 0, "total": 10 },
+      "status": { "score": 40, "label": "Repeat", "tone": "warn" },
+      "speak": {
+        "focus": "p",
+        "sound": {
+          "title": "THE WAY",
+          "hint": "Este sonido se hace redondeando con los labios y haciendo una U con la boca pequena.",
+          "phonetic": "/P/ \u2192 pen",
+          "expected": "pen"
+        },
+        "spelling": {
+          "title": "THE SPELLING",
+          "hint": "Estas son palabras donde puedes encontrar este sonido.",
+          "words": ["PEN", "PAPER", "PHONE", "HAPPY", "STOP", "PINK"],
+          "expected": "pen"
+        },
+        "sentence": {
+          "title": "WHOLE SENTENCE",
+          "hint": "Ahora pronuncia la frase entera.",
+          "sentence": "The pink pen is on the paper.",
+          "expected": "The pink pen is on the paper."
+        }
+      }
+    },
+    {
+      "id": "session-b",
+      "title": "El sonido B de baby",
+      "progress": { "done": 5, "total": 10 },
+      "status": { "score": null, "label": "", "tone": "neutral" },
+      "speak": {
+        "focus": "b",
+        "sound": {
+          "title": "THE WAY",
+          "hint": "Este sonido se hace redondeando con los labios y haciendo una U con la boca pequena.",
+          "phonetic": "/B/ \u2192 ba-by",
+          "expected": "baby"
+        },
+        "spelling": {
+          "title": "THE SPELLING",
+          "hint": "Estas son palabras donde puedes encontrar este sonido.",
+          "words": ["BABY", "BOOK", "BLUE", "ABOUT", "TABLE", "BIRD"],
+          "expected": "baby"
+        },
+        "sentence": {
+          "title": "WHOLE SENTENCE",
+          "hint": "Ahora pronuncia la frase entera.",
+          "sentence": "The baby has a blue book.",
+          "expected": "The baby has a blue book."
+        }
+      }
+    },
+    {
+      "id": "session-w",
+      "title": "El sonido W de water",
+      "progress": { "done": 5, "total": 10 },
+      "status": { "score": null, "label": "", "tone": "neutral" },
+      "speak": {
+        "focus": "w",
+        "sound": {
+          "title": "THE WAY",
+          "hint": "Este sonido se hace redondeando con los labios y haciendo una U con la boca pequena.",
+          "phonetic": "/W/ \u2192 wa-ter",
+          "expected": "water"
+        },
+        "spelling": {
+          "title": "THE SPELLING",
+          "hint": "Estas son palabras donde puedes encontrar este sonido.",
+          "words": ["WATER", "WHITE", "WORLD", "ONCE", "WAY", "QUEEN"],
+          "expected": "water"
+        },
+        "sentence": {
+          "title": "WHOLE SENTENCE",
+          "hint": "Ahora pronuncia la frase entera.",
+          "sentence": "Once, the queen found water and a new way in the white world.",
+          "expected": "Once, the queen found water and a new way in the white world."
+        }
+      }
+    },
+    {
+      "id": "session-f",
+      "title": "El sonido F de famous",
+      "progress": { "done": 5, "total": 10 },
+      "status": { "score": null, "label": "", "tone": "neutral" },
+      "speak": {
+        "focus": "f",
+        "sound": {
+          "title": "THE WAY",
+          "hint": "Este sonido se hace redondeando con los labios y haciendo una U con la boca pequena.",
+          "phonetic": "/F/ \u2192 fa-mous",
+          "expected": "famous"
+        },
+        "spelling": {
+          "title": "THE SPELLING",
+          "hint": "Estas son palabras donde puedes encontrar este sonido.",
+          "words": ["FAMOUS", "FOOD", "FRIEND", "OFTEN", "SOFT", "HALF"],
+          "expected": "famous"
+        },
+        "sentence": {
+          "title": "WHOLE SENTENCE",
+          "hint": "Ahora pronuncia la frase entera.",
+          "sentence": "My friend is famous for her food.",
+          "expected": "My friend is famous for her food."
+        }
+      }
+    },
+    {
+      "id": "session-v",
+      "title": "El sonido V de vampire",
+      "progress": { "done": 8, "total": 10 },
+      "status": { "score": 80, "label": "Good", "tone": "good" },
+      "speak": {
+        "focus": "v",
+        "sound": {
+          "title": "THE WAY",
+          "hint": "Este sonido se hace redondeando con los labios y haciendo una U con la boca pequena.",
+          "phonetic": "/V/ \u2192 vam-pire",
+          "expected": "vampire"
+        },
+        "spelling": {
+          "title": "THE SPELLING",
+          "hint": "Estas son palabras donde puedes encontrar este sonido.",
+          "words": ["VAMPIRE", "VOICE", "MOVE", "LOVE", "VERY", "GIVE"],
+          "expected": "vampire"
+        },
+        "sentence": {
+          "title": "WHOLE SENTENCE",
+          "hint": "Ahora pronuncia la frase entera.",
+          "sentence": "The vampire has a very loud voice.",
+          "expected": "The vampire has a very loud voice."
+        }
+      }
+    },
+    {
+      "id": "session-a",
+      "title": "El sonido A de APPLE",
+      "progress": { "done": 0, "total": 10 },
+      "status": { "score": null, "label": "", "tone": "neutral" },
+      "speak": {
+        "focus": "a",
+        "sound": {
+          "title": "THE WAY",
+          "hint": "Este sonido se hace con la boca abierta y relajada.",
+          "phonetic": "/A/ \u2192 a-pple",
+          "expected": "apple"
+        },
+        "spelling": {
+          "title": "THE SPELLING",
+          "hint": "Estas son palabras donde puedes encontrar este sonido.",
+          "words": ["APPLE", "CAT", "HAPPY", "SAND", "DANCE", "MAP"],
+          "expected": "apple"
+        },
+        "sentence": {
+          "title": "WHOLE SENTENCE",
+          "hint": "Ahora pronuncia la frase entera.",
+          "sentence": "An apple and a cat sit on a mat.",
+          "expected": "An apple and a cat sit on a mat."
+        }
+      }
+    },
+    {
+      "id": "session-e",
+      "title": "El sonido E de EGG",
+      "progress": { "done": 0, "total": 10 },
+      "status": { "score": null, "label": "", "tone": "neutral" },
+      "speak": {
+        "focus": "e",
+        "sound": {
+          "title": "THE WAY",
+          "hint": "Este sonido se hace con la boca abierta y relajada.",
+          "phonetic": "/E/ \u2192 e-gg",
+          "expected": "egg"
+        },
+        "spelling": {
+          "title": "THE SPELLING",
+          "hint": "Estas son palabras donde puedes encontrar este sonido.",
+          "words": ["EGG", "RED", "BED", "TELL", "NEXT", "HELP"],
+          "expected": "egg"
+        },
+        "sentence": {
+          "title": "WHOLE SENTENCE",
+          "hint": "Ahora pronuncia la frase entera.",
+          "sentence": "The red hen left the nest.",
+          "expected": "The red hen left the nest."
+        }
+      }
+    },
+    {
+      "id": "session-i",
+      "title": "El sonido I de ICE",
+      "progress": { "done": 0, "total": 10 },
+      "status": { "score": null, "label": "", "tone": "neutral" },
+      "speak": {
+        "focus": "i",
+        "sound": {
+          "title": "THE WAY",
+          "hint": "Este sonido se hace con la boca abierta y relajada.",
+          "phonetic": "/I/ \u2192 i-ce",
+          "expected": "ice"
+        },
+        "spelling": {
+          "title": "THE SPELLING",
+          "hint": "Estas son palabras donde puedes encontrar este sonido.",
+          "words": ["ICE", "TIME", "FIVE", "LION", "LIGHT", "RIDE"],
+          "expected": "ice"
+        },
+        "sentence": {
+          "title": "WHOLE SENTENCE",
+          "hint": "Ahora pronuncia la frase entera.",
+          "sentence": "The white light is bright at night.",
+          "expected": "The white light is bright at night."
+        }
+      }
+    },
+    {
+      "id": "session-o",
+      "title": "El sonido O de ORANGE",
+      "progress": { "done": 0, "total": 10 },
+      "status": { "score": null, "label": "", "tone": "neutral" },
+      "speak": {
+        "focus": "o",
+        "sound": {
+          "title": "THE WAY",
+          "hint": "Este sonido se hace con la boca abierta y relajada.",
+          "phonetic": "/O/ \u2192 o-range",
+          "expected": "orange"
+        },
+        "spelling": {
+          "title": "THE SPELLING",
+          "hint": "Estas son palabras donde puedes encontrar este sonido.",
+          "words": ["ORANGE", "OPEN", "GO", "HOME", "ROSE", "SNOW"],
+          "expected": "orange"
+        },
+        "sentence": {
+          "title": "WHOLE SENTENCE",
+          "hint": "Ahora pronuncia la frase entera.",
+          "sentence": "The orange rose is at home.",
+          "expected": "The orange rose is at home."
+        }
+      }
+    },
+    {
+      "id": "session-u",
+      "title": "El sonido U de UMBRELLA",
+      "progress": { "done": 0, "total": 10 },
+      "status": { "score": null, "label": "", "tone": "neutral" },
+      "speak": {
+        "focus": "u",
+        "sound": {
+          "title": "THE WAY",
+          "hint": "Este sonido se hace con la boca abierta y relajada.",
+          "phonetic": "/U/ \u2192 um-brella",
+          "expected": "umbrella"
+        },
+        "spelling": {
+          "title": "THE SPELLING",
+          "hint": "Estas son palabras donde puedes encontrar este sonido.",
+          "words": ["UMBRELLA", "SUN", "CUP", "BUS", "RUN", "CLOUD"],
+          "expected": "umbrella"
+        },
+        "sentence": {
+          "title": "WHOLE SENTENCE",
+          "hint": "Ahora pronuncia la frase entera.",
+          "sentence": "The sun is up above the bus.",
+          "expected": "The sun is up above the bus."
+        }
+      }
+    },
+    {
+      "id": "session-t",
+      "title": "El sonido T de TIME",
+      "progress": { "done": 0, "total": 10 },
+      "status": { "score": null, "label": "", "tone": "neutral" },
+      "speak": {
+        "focus": "t",
+        "sound": {
+          "title": "THE WAY",
+          "hint": "Este sonido se hace con la boca abierta y relajada.",
+          "phonetic": "/T/ \u2192 ti-me",
+          "expected": "time"
+        },
+        "spelling": {
+          "title": "THE SPELLING",
+          "hint": "Estas son palabras donde puedes encontrar este sonido.",
+          "words": ["TIME", "TELL", "TEAM", "TAKE", "TOP", "TICKET"],
+          "expected": "time"
+        },
+        "sentence": {
+          "title": "WHOLE SENTENCE",
+          "hint": "Ahora pronuncia la frase entera.",
+          "sentence": "Take the ticket to the train.",
+          "expected": "Take the ticket to the train."
+        }
+      }
+    },
+    {
+      "id": "session-s",
+      "title": "El sonido S de SUN",
+      "progress": { "done": 0, "total": 10 },
+      "status": { "score": null, "label": "", "tone": "neutral" },
+      "speak": {
+        "focus": "s",
+        "sound": {
+          "title": "THE WAY",
+          "hint": "Este sonido se hace con la boca abierta y relajada.",
+          "phonetic": "/S/ \u2192 su-n",
+          "expected": "sun"
+        },
+        "spelling": {
+          "title": "THE SPELLING",
+          "hint": "Estas son palabras donde puedes encontrar este sonido.",
+          "words": ["SUN", "SING", "SEA", "SISTER", "SOUND", "SILVER"],
+          "expected": "sun"
+        },
+        "sentence": {
+          "title": "WHOLE SENTENCE",
+          "hint": "Ahora pronuncia la frase entera.",
+          "sentence": "The sun shines over the sea.",
+          "expected": "The sun shines over the sea."
+        }
+      }
+    },
+    {
+      "id": "session-r",
+      "title": "El sonido R de RABBIT",
+      "progress": { "done": 0, "total": 10 },
+      "status": { "score": null, "label": "", "tone": "neutral" },
+      "speak": {
+        "focus": "r",
+        "sound": {
+          "title": "THE WAY",
+          "hint": "Este sonido se hace con la boca abierta y relajada.",
+          "phonetic": "/R/ \u2192 ra-bbit",
+          "expected": "rabbit"
+        },
+        "spelling": {
+          "title": "THE SPELLING",
+          "hint": "Estas son palabras donde puedes encontrar este sonido.",
+          "words": ["RABBIT", "RIVER", "ROAD", "READ", "ROUND", "BRIGHT"],
+          "expected": "rabbit"
+        },
+        "sentence": {
+          "title": "WHOLE SENTENCE",
+          "hint": "Ahora pronuncia la frase entera.",
+          "sentence": "The rabbit ran down the road.",
+          "expected": "The rabbit ran down the road."
+        }
+      }
+    },
+    {
+      "id": "session-l",
+      "title": "El sonido L de LION",
+      "progress": { "done": 0, "total": 10 },
+      "status": { "score": null, "label": "", "tone": "neutral" },
+      "speak": {
+        "focus": "l",
+        "sound": {
+          "title": "THE WAY",
+          "hint": "Este sonido se hace con la boca abierta y relajada.",
+          "phonetic": "/L/ \u2192 li-on",
+          "expected": "lion"
+        },
+        "spelling": {
+          "title": "THE SPELLING",
+          "hint": "Estas son palabras donde puedes encontrar este sonido.",
+          "words": ["LION", "LAMP", "LITTLE", "LIGHT", "PLAY", "CLOUD"],
+          "expected": "lion"
+        },
+        "sentence": {
+          "title": "WHOLE SENTENCE",
+          "hint": "Ahora pronuncia la frase entera.",
+          "sentence": "The little lion plays near the lamp.",
+          "expected": "The little lion plays near the lamp."
+        }
+      }
+    },
+    {
+      "id": "session-k",
+      "title": "El sonido K de KITE",
+      "progress": { "done": 0, "total": 10 },
+      "status": { "score": null, "label": "", "tone": "neutral" },
+      "speak": {
+        "focus": "k",
+        "sound": {
+          "title": "THE WAY",
+          "hint": "Este sonido se hace con la boca abierta y relajada.",
+          "phonetic": "/K/ \u2192 ki-te",
+          "expected": "kite"
+        },
+        "spelling": {
+          "title": "THE SPELLING",
+          "hint": "Estas son palabras donde puedes encontrar este sonido.",
+          "words": ["KITE", "KING", "KEEP", "KIND", "KNOCK", "SKY"],
+          "expected": "kite"
+        },
+        "sentence": {
+          "title": "WHOLE SENTENCE",
+          "hint": "Ahora pronuncia la frase entera.",
+          "sentence": "The king keeps a kite in the sky.",
+          "expected": "The king keeps a kite in the sky."
+        }
+      }
+    }
+  ]
+}

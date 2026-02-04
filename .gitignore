@@ -54,3 +54,6 @@ ios/**/.DS_Store
 
 *.keystore
 *.jks
+
+# Symlink de referencia
+talk/

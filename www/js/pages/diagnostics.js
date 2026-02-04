@@ -25,6 +25,13 @@ class PageDiagnostics extends HTMLElement {
       <ion-content fullscreen>
         <div class="page-shell">
           <div class="card placeholder-card">
+            <div class="diag-debug-toggle">
+              <div class="diag-debug-text">
+                <div class="diag-debug-title">Modo debug</div>
+                <div class="diag-debug-sub">Muestra esperado y transcrito en Speak</div>
+              </div>
+              <ion-toggle id="diag-debug-toggle"></ion-toggle>
+            </div>
             <div id="diag-user" style="display:none; margin-bottom:12px;">
               <div class="pill">Usuario</div>
               <p>ID: <strong id="diag-user-id"></strong></p>
@@ -82,6 +89,25 @@ class PageDiagnostics extends HTMLElement {
               <ion-button size="small" fill="outline" id="var-goweblegal">Legal web</ion-button>
             </div>
 
+            <h4 style="margin-top:16px;">Speak stores</h4>
+            <div class="diag-actions">
+              <ion-button size="small" fill="outline" id="diag-speak-refresh">Refrescar</ion-button>
+              <ion-button size="small" fill="outline" id="diag-speak-seed">Init demo</ion-button>
+              <ion-button size="small" fill="outline" id="diag-speak-reset">Limpiar</ion-button>
+            </div>
+            <div class="diag-speak-block">
+              <div class="pill">Words</div>
+              <pre class="diag-json" id="diag-speak-words"></pre>
+            </div>
+            <div class="diag-speak-block">
+              <div class="pill">Phrase</div>
+              <pre class="diag-json" id="diag-speak-phrase"></pre>
+            </div>
+            <div class="diag-speak-block">
+              <div class="pill">Rewards</div>
+              <pre class="diag-json" id="diag-speak-rewards"></pre>
+            </div>
+
             <h4 style="margin-top:16px;">Login</h4>
             <div class="diag-actions">
               <ion-button size="small" fill="outline" id="diag-login">Abrir login</ion-button>
@@ -113,6 +139,34 @@ class PageDiagnostics extends HTMLElement {
 
     resolveVersionsAsync(plugins, this);
 
+    const debugToggle = this.querySelector('#diag-debug-toggle');
+    if (debugToggle) {
+      const applyDebug = (enabled) => {
+        if (typeof window.setSpeakDebug === 'function') {
+          window.setSpeakDebug(enabled);
+          return;
+        }
+        window.r34lp0w3r = window.r34lp0w3r || {};
+        window.r34lp0w3r.speakDebug = !!enabled;
+        try {
+          if (enabled) {
+            localStorage.setItem('appv5:speak-debug', '1');
+          } else {
+            localStorage.removeItem('appv5:speak-debug');
+          }
+        } catch (err) {
+          console.error('[diag] error guardando debug', err);
+        }
+        window.dispatchEvent(new CustomEvent('app:speak-debug', { detail: !!enabled }));
+      };
+
+      debugToggle.checked = !!(window.r34lp0w3r && window.r34lp0w3r.speakDebug);
+      debugToggle.addEventListener('ionChange', (event) => {
+        const checked = event && event.detail ? event.detail.checked : debugToggle.checked;
+        applyDebug(checked);
+      });
+    }
+
     const updateUserPanel = (user) => {
       const panel = this.querySelector('#diag-user');
       if (!panel) return;
@@ -142,6 +196,69 @@ class PageDiagnostics extends HTMLElement {
     this._userHandler = (event) => updateUserPanel(event.detail);
     window.addEventListener('app:user-change', this._userHandler);
 
+    const wordsEl = this.querySelector('#diag-speak-words');
+    const phraseEl = this.querySelector('#diag-speak-phrase');
+    const rewardsEl = this.querySelector('#diag-speak-rewards');
+
+    const formatJson = (value) => {
+      try {
+        return JSON.stringify(value || {}, null, 2);
+      } catch (err) {
+        return '{}';
+      }
+    };
+
+    const updateSpeakPanels = () => {
+      const words = window.r34lp0w3r && window.r34lp0w3r.speakWordScores ? window.r34lp0w3r.speakWordScores : {};
+      const phrase = window.r34lp0w3r && window.r34lp0w3r.speakPhraseScores ? window.r34lp0w3r.speakPhraseScores : {};
+      const rewards = window.r34lp0w3r && window.r34lp0w3r.speakSessionRewards ? window.r34lp0w3r.speakSessionRewards : {};
+      if (wordsEl) wordsEl.textContent = formatJson(words);
+      if (phraseEl) phraseEl.textContent = formatJson(phrase);
+      if (rewardsEl) rewardsEl.textContent = formatJson(rewards);
+    };
+
+    const seedSpeakStores = () => {
+      window.r34lp0w3r = window.r34lp0w3r || {};
+      window.r34lp0w3r.speakWordScores = {
+        'session-p': {
+          PEN: { percent: 72, transcript: 'pen' },
+          PAPER: { percent: 82, transcript: 'paper' }
+        }
+      };
+      window.r34lp0w3r.speakPhraseScores = {
+        'session-p': { percent: 68, transcript: 'The pink pen is on the paper.' }
+      };
+      window.r34lp0w3r.speakSessionRewards = {
+        'session-p': { rewardQty: 2, rewardLabel: 'diamonds', rewardIcon: 'diamond' }
+      };
+      if (typeof window.persistSpeakStores === 'function') {
+        window.persistSpeakStores();
+      }
+      if (typeof window.notifySpeakStoresChange === 'function') {
+        window.notifySpeakStoresChange();
+      }
+      updateSpeakPanels();
+    };
+
+    const resetSpeakStores = () => {
+      if (typeof window.resetSpeakStores === 'function') {
+        window.resetSpeakStores();
+      } else {
+        window.r34lp0w3r = window.r34lp0w3r || {};
+        window.r34lp0w3r.speakWordScores = {};
+        window.r34lp0w3r.speakPhraseScores = {};
+        window.r34lp0w3r.speakSessionRewards = {};
+        if (typeof window.persistSpeakStores === 'function') {
+          window.persistSpeakStores();
+        }
+        window.dispatchEvent(new CustomEvent('app:speak-stores-change'));
+      }
+      updateSpeakPanels();
+    };
+
+    this._speakStoresHandler = updateSpeakPanels;
+    window.addEventListener('app:speak-stores-change', this._speakStoresHandler);
+    updateSpeakPanels();
 
     this.querySelector('#diag-back')?.addEventListener('click', () => {
       ensureInitialHash();
@@ -238,12 +355,26 @@ class PageDiagnostics extends HTMLElement {
       }
     });
 
+    this.querySelector('#diag-speak-refresh')?.addEventListener('click', () => {
+      updateSpeakPanels();
+    });
+    this.querySelector('#diag-speak-seed')?.addEventListener('click', () => {
+      seedSpeakStores();
+    });
+    this.querySelector('#diag-speak-reset')?.addEventListener('click', () => {
+      resetSpeakStores();
+    });
+
   }
 
   disconnectedCallback() {
     if (this._userHandler) {
       window.removeEventListener('app:user-change', this._userHandler);
       this._userHandler = null;
+    }
+    if (this._speakStoresHandler) {
+      window.removeEventListener('app:speak-stores-change', this._speakStoresHandler);
+      this._speakStoresHandler = null;
     }
   }
 }

@@ -44,4 +44,26 @@
   if (window.realtimeConfig.channelPrefix === undefined) {
     window.realtimeConfig.channelPrefix = 'coach';
   }
+
+  window.speakSummaryConfig = window.speakSummaryConfig || {};
+  if (!window.speakSummaryConfig.range) {
+    window.speakSummaryConfig.range = { min: 55, max: 98 };
+  }
+  if (!window.speakSummaryConfig.phrases) {
+    window.speakSummaryConfig.phrases = {
+      good: ['You sound like a native', 'Great job!'],
+      okay: ['Almost correct!', 'Keep practicing'],
+      bad: ['Keep practicing', 'Try again']
+    };
+  }
+  if (!window.speakSummaryConfig.rewards) {
+    window.speakSummaryConfig.rewards = [
+      { icon: 'diamond', label: 'diamonds', min: 1, max: 3 },
+      { icon: 'trophy', label: 'trophies', min: 1, max: 1 },
+      { icon: 'ribbon', label: 'ribbons', min: 1, max: 2 }
+    ];
+  }
+  if (!window.speakSummaryConfig.labelPrefix) {
+    window.speakSummaryConfig.labelPrefix = 'YOU WIN';
+  }
 })();

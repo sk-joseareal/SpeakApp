@@ -432,6 +432,26 @@ class PageSpeak extends HTMLElement {
       return Math.round((wordsPercent + phrasePercent) / 2);
     };
 
+    const getToneMaxValues = () => {
+      const { toneScale } = getFeedbackConfig();
+      const normalized = normalizeScale(toneScale, 'tone');
+      if (!normalized.length) {
+        return { good: 100, okay: 79, bad: 59 };
+      }
+      const maxByTone = {};
+      normalized.forEach((entry, idx) => {
+        const prev = normalized[idx - 1];
+        let max = idx === 0 ? 100 : prev.min - 1;
+        if (typeof max !== 'number' || Number.isNaN(max)) max = entry.min;
+        max = Math.max(entry.min, max);
+        maxByTone[entry.tone] = Math.max(0, Math.min(100, Math.round(max)));
+      });
+      if (maxByTone.good === undefined) maxByTone.good = 100;
+      if (maxByTone.okay === undefined) maxByTone.okay = Math.max(0, maxByTone.good - 1);
+      if (maxByTone.bad === undefined) maxByTone.bad = Math.max(0, maxByTone.okay - 1);
+      return maxByTone;
+    };
+
     const renderDebugBox = (key) => {
       if (!isSpeakDebugEnabled()) return '';
       const expected = getExpectedText(key);
@@ -442,6 +462,8 @@ class PageSpeak extends HTMLElement {
       const wordsPercent = getWordsPhasePercent();
       const phrasePercent = getPhrasePhasePercent();
       const sessionPercent = getSessionPercent();
+      const toneMax = getToneMaxValues();
+      const showTonePicker = key !== 'sound';
       return `
         <div class="speak-debug">
           <div class="speak-debug-row">
@@ -452,6 +474,36 @@ class PageSpeak extends HTMLElement {
             <span class="speak-debug-label">Transcrito</span>
             <span class="speak-debug-value">${escapeHtml(transcriptText)}</span>
           </div>
+          ${
+            showTonePicker
+              ? `<div class="speak-debug-row">
+            <span class="speak-debug-label">Forzar</span>
+            <div class="speak-debug-tones">
+              <button
+                class="speak-debug-tone tone-bad"
+                type="button"
+                data-tone="bad"
+                aria-label="Forzar rojo ${toneMax.bad}%"
+                title="Rojo ${toneMax.bad}%"
+              ></button>
+              <button
+                class="speak-debug-tone tone-okay"
+                type="button"
+                data-tone="okay"
+                aria-label="Forzar amarillo ${toneMax.okay}%"
+                title="Amarillo ${toneMax.okay}%"
+              ></button>
+              <button
+                class="speak-debug-tone tone-good"
+                type="button"
+                data-tone="good"
+                aria-label="Forzar verde ${toneMax.good}%"
+                title="Verde ${toneMax.good}%"
+              ></button>
+            </div>
+          </div>`
+              : ''
+          }
           <div class="speak-debug-row">
             <span class="speak-debug-label">Words %</span>
             <span class="speak-debug-value">${wordsPercent}%</span>
@@ -1194,6 +1246,38 @@ class PageSpeak extends HTMLElement {
           selectedWord = word;
           syncSpellingStateFromStore(word);
           playTts(word);
+          renderStep();
+        });
+      });
+
+      const toneButtons = Array.from(stepRoot.querySelectorAll('.speak-debug-tone'));
+      toneButtons.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const tone = btn.dataset.tone;
+          if (!tone) return;
+          const toneMax = getToneMaxValues();
+          const percent = toneMax[tone];
+          if (typeof percent !== 'number') return;
+          const key = getStepKey();
+          if (key === 'spelling') {
+            const word =
+              selectedWord ||
+              (spellingStep && Array.isArray(spellingStep.words) ? spellingStep.words[0] : '');
+            if (!word) return;
+            setStoredWordResult(currentSessionId, word, {
+              percent,
+              transcript: stepState.spelling ? stepState.spelling.transcript : ''
+            });
+            syncSpellingStateFromStore(word);
+          } else if (key === 'sentence') {
+            setStoredPhraseResult(currentSessionId, {
+              percent,
+              transcript: stepState.sentence ? stepState.sentence.transcript : ''
+            });
+            syncSentenceStateFromStore();
+          } else if (key === 'sound') {
+            stepState.sound.percent = percent;
+          }
           renderStep();
         });
       });

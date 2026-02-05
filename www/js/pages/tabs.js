@@ -22,7 +22,7 @@ class TabsPage extends HTMLElement {
         <ion-tab-bar slot="bottom" class="app-tab-bar">
           <ion-tab-button tab="home">
             <ion-icon name="home-outline"></ion-icon>
-            <ion-label>Inicio</ion-label>
+            <ion-label>Home</ion-label>
           </ion-tab-button>
           <ion-tab-button tab="listas">
             <ion-icon name="list-outline"></ion-icon>
@@ -34,11 +34,11 @@ class TabsPage extends HTMLElement {
           </ion-tab-button>
           <ion-tab-button tab="tu">
             <ion-icon name="person-circle-outline"></ion-icon>
-            <ion-label>Tu</ion-label>
+            <ion-label>You</ion-label>
           </ion-tab-button>
           <ion-tab-button tab="premium">
-            <ion-icon name="sparkles-outline"></ion-icon>
-            <ion-label>Premium</ion-label>
+            <img class="tab-mascot-icon" src="assets/mascot/mascot-cat.png" alt="">
+            <ion-label>Talk</ion-label>
           </ion-tab-button>
         </ion-tab-bar>
       </ion-tabs>

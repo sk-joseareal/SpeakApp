@@ -9,6 +9,7 @@ import './pages/premium.js';
 import './pages/tabs.js';
 import './pages/diagnostics.js';
 import './pages/login.js';
+import './pages/notifications.js';
 
 const routerReady = customElements.whenDefined('ion-router').then(() => document.querySelector('ion-router'));
 
@@ -41,6 +42,7 @@ routerReady.then((router) => {
   });
 
   setupSecretDiagnostics(router);
+  setupNotificationsModal();
 });
 
 function setupSecretDiagnostics(router) {
@@ -85,4 +87,46 @@ function setupSecretDiagnostics(router) {
   };
 
   document.addEventListener('click', handler);
+}
+
+function setupNotificationsModal() {
+  let modal = null;
+  document.body.classList.add('has-unread-notify');
+
+  const openNotificationsModal = async () => {
+    document.body.classList.remove('has-unread-notify');
+    if (!modal) {
+      modal = document.createElement('ion-modal');
+      modal.classList.add('notifications-modal');
+      modal.component = 'page-notifications';
+      modal.backdropDismiss = true;
+      modal.keepContentsMounted = true;
+      const presentingEl = document.querySelector('ion-router-outlet');
+      if (presentingEl) {
+        modal.presentingElement = presentingEl;
+      }
+      document.body.appendChild(modal);
+    }
+
+    if (modal.presented || modal.isOpen) {
+      return;
+    }
+    if (document.activeElement && typeof document.activeElement.blur === 'function') {
+      document.activeElement.blur();
+    }
+    await modal.present();
+  };
+
+  window.openNotificationsModal = openNotificationsModal;
+
+  document.addEventListener('click', (event) => {
+    const path = event.composedPath ? event.composedPath() : [event.target];
+    const hasNotifyBtn = path.some(
+      (el) => el && el.classList && el.classList.contains('app-notify-btn')
+    );
+    if (!hasNotifyBtn) return;
+    openNotificationsModal().catch((err) => {
+      console.error('[notifications] error abriendo modal', err);
+    });
+  });
 }

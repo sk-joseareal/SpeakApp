@@ -4,53 +4,198 @@
       "id": "sound",
       "title": "Sound Journey",
       "note": "Resultado: pronunciaci\u00f3n correcta y o\u00eddo entrenado.",
-      "moduleIds": ["module-1", "module-2", "module-3"]
+      "moduleIds": [
+        "module-1",
+        "module-2",
+        "module-3"
+      ]
+    },
+    {
+      "id": "conversation",
+      "title": "Intro to Conversation",
+      "note": "Result: speaking confidently in real situations.",
+      "moduleIds": [
+        "module-greetings",
+        "module-food"
+      ]
     },
     {
       "id": "rhythm",
       "title": "Rhythm Journey",
       "note": "Resultado: ritmo natural y fluidez.",
-      "moduleIds": ["module-1", "module-2", "module-3"]
+      "moduleIds": [
+        "module-1",
+        "module-2",
+        "module-3"
+      ]
     },
     {
       "id": "word",
       "title": "Word Journey",
       "note": "Resultado: pensar en palabras, no letras.",
-      "moduleIds": ["module-1", "module-2", "module-3"]
+      "moduleIds": [
+        "module-1",
+        "module-2",
+        "module-3"
+      ]
     },
     {
       "id": "sentence",
       "title": "Sentence Journey",
       "note": "Resultado: frases fluidas y naturales.",
-      "moduleIds": ["module-1", "module-2", "module-3"]
+      "moduleIds": [
+        "module-1",
+        "module-2",
+        "module-3"
+      ]
     }
   ],
   "modules": [
     {
+      "id": "module-greetings",
+      "title": "Greetings",
+      "subtitle": "Meeting people",
+      "sessionIds": [
+        "session-meeting-friend"
+      ]
+    },
+    {
+      "id": "module-food",
+      "title": "Ordering Food",
+      "subtitle": "At the cafe",
+      "sessionIds": [
+        "session-coffee-shop"
+      ]
+    },
+    {
       "id": "module-1",
       "title": "Training 1",
       "subtitle": "Sonidos clave",
-      "sessionIds": ["session-p", "session-b", "session-w", "session-f", "session-v"]
+      "sessionIds": [
+        "session-p",
+        "session-b",
+        "session-w",
+        "session-f",
+        "session-v"
+      ]
     },
     {
       "id": "module-2",
       "title": "Training 2",
       "subtitle": "Vocales",
-      "sessionIds": ["session-a", "session-e", "session-i", "session-o", "session-u"]
+      "sessionIds": [
+        "session-a",
+        "session-e",
+        "session-i",
+        "session-o",
+        "session-u"
+      ]
     },
     {
       "id": "module-3",
       "title": "Training 3",
       "subtitle": "Consonantes",
-      "sessionIds": ["session-t", "session-s", "session-r", "session-l", "session-k"]
+      "sessionIds": [
+        "session-t",
+        "session-s",
+        "session-r",
+        "session-l",
+        "session-k"
+      ]
     }
   ],
   "sessions": [
     {
+      "id": "session-meeting-friend",
+      "title": "Meeting a new friend",
+      "progress": {
+        "done": 0,
+        "total": 10
+      },
+      "status": {
+        "score": null,
+        "label": "",
+        "tone": "neutral"
+      },
+      "speak": {
+        "focus": "Hello!",
+        "sound": {
+          "title": "GREETING",
+          "hint": "Start with a friendly greeting.",
+          "phonetic": "Hello! / Hi!",
+          "expected": "Hello"
+        },
+        "spelling": {
+          "title": "POLITE QUESTION",
+          "hint": "Ask how they are.",
+          "words": [
+            "HOW",
+            "ARE",
+            "YOU",
+            "DOING",
+            "TODAY"
+          ],
+          "expected": "How are you?"
+        },
+        "sentence": {
+          "title": "RESPONSE",
+          "hint": "Answer and ask back.",
+          "sentence": "I'm great, thanks! And you?",
+          "expected": "I'm great, thanks! And you?"
+        }
+      }
+    },
+    {
+      "id": "session-coffee-shop",
+      "title": "At the Coffee Shop",
+      "progress": {
+        "done": 0,
+        "total": 10
+      },
+      "status": {
+        "score": null,
+        "label": "",
+        "tone": "neutral"
+      },
+      "speak": {
+        "focus": "Coffee",
+        "sound": {
+          "title": "ORDERING",
+          "hint": "Politely ask for what you want.",
+          "phonetic": "I'd like a...",
+          "expected": "I'd like a coffee"
+        },
+        "spelling": {
+          "title": "SIZE",
+          "hint": "Specify the size.",
+          "words": [
+            "SMALL",
+            "MEDIUM",
+            "LARGE",
+            "PLEASE"
+          ],
+          "expected": "A large one, please"
+        },
+        "sentence": {
+          "title": "PAYING",
+          "hint": "Ask for the price.",
+          "sentence": "How much is that?",
+          "expected": "How much is that?"
+        }
+      }
+    },
+    {
       "id": "session-p",
       "title": "El sonido P de PEN",
-      "progress": { "done": 0, "total": 10 },
-      "status": { "score": 40, "label": "Repeat", "tone": "warn" },
+      "progress": {
+        "done": 0,
+        "total": 10
+      },
+      "status": {
+        "score": 40,
+        "label": "Repeat",
+        "tone": "warn"
+      },
       "speak": {
         "focus": "p",
         "sound": {
@@ -62,7 +207,14 @@
         "spelling": {
           "title": "THE SPELLING",
           "hint": "Estas son palabras donde puedes encontrar este sonido.",
-          "words": ["PEN", "PAPER", "PHONE", "HAPPY", "STOP", "PINK"],
+          "words": [
+            "PEN",
+            "PAPER",
+            "PHONE",
+            "HAPPY",
+            "STOP",
+            "PINK"
+          ],
           "expected": "pen"
         },
         "sentence": {
@@ -76,8 +228,15 @@
     {
       "id": "session-b",
       "title": "El sonido B de baby",
-      "progress": { "done": 5, "total": 10 },
-      "status": { "score": null, "label": "", "tone": "neutral" },
+      "progress": {
+        "done": 5,
+        "total": 10
+      },
+      "status": {
+        "score": null,
+        "label": "",
+        "tone": "neutral"
+      },
       "speak": {
         "focus": "b",
         "sound": {
@@ -89,7 +248,14 @@
         "spelling": {
           "title": "THE SPELLING",
           "hint": "Estas son palabras donde puedes encontrar este sonido.",
-          "words": ["BABY", "BOOK", "BLUE", "ABOUT", "TABLE", "BIRD"],
+          "words": [
+            "BABY",
+            "BOOK",
+            "BLUE",
+            "ABOUT",
+            "TABLE",
+            "BIRD"
+          ],
           "expected": "baby"
         },
         "sentence": {
@@ -103,8 +269,15 @@
     {
       "id": "session-w",
       "title": "El sonido W de water",
-      "progress": { "done": 5, "total": 10 },
-      "status": { "score": null, "label": "", "tone": "neutral" },
+      "progress": {
+        "done": 5,
+        "total": 10
+      },
+      "status": {
+        "score": null,
+        "label": "",
+        "tone": "neutral"
+      },
       "speak": {
         "focus": "w",
         "sound": {
@@ -116,7 +289,14 @@
         "spelling": {
           "title": "THE SPELLING",
           "hint": "Estas son palabras donde puedes encontrar este sonido.",
-          "words": ["WATER", "WHITE", "WORLD", "ONCE", "WAY", "QUEEN"],
+          "words": [
+            "WATER",
+            "WHITE",
+            "WORLD",
+            "ONCE",
+            "WAY",
+            "QUEEN"
+          ],
           "expected": "water"
         },
         "sentence": {
@@ -130,8 +310,15 @@
     {
       "id": "session-f",
       "title": "El sonido F de famous",
-      "progress": { "done": 5, "total": 10 },
-      "status": { "score": null, "label": "", "tone": "neutral" },
+      "progress": {
+        "done": 5,
+        "total": 10
+      },
+      "status": {
+        "score": null,
+        "label": "",
+        "tone": "neutral"
+      },
       "speak": {
         "focus": "f",
         "sound": {
@@ -143,7 +330,14 @@
         "spelling": {
           "title": "THE SPELLING",
           "hint": "Estas son palabras donde puedes encontrar este sonido.",
-          "words": ["FAMOUS", "FOOD", "FRIEND", "OFTEN", "SOFT", "HALF"],
+          "words": [
+            "FAMOUS",
+            "FOOD",
+            "FRIEND",
+            "OFTEN",
+            "SOFT",
+            "HALF"
+          ],
           "expected": "famous"
         },
         "sentence": {
@@ -157,8 +351,15 @@
     {
       "id": "session-v",
       "title": "El sonido V de vampire",
-      "progress": { "done": 8, "total": 10 },
-      "status": { "score": 80, "label": "Good", "tone": "good" },
+      "progress": {
+        "done": 8,
+        "total": 10
+      },
+      "status": {
+        "score": 80,
+        "label": "Good",
+        "tone": "good"
+      },
       "speak": {
         "focus": "v",
         "sound": {
@@ -170,7 +371,14 @@
         "spelling": {
           "title": "THE SPELLING",
           "hint": "Estas son palabras donde puedes encontrar este sonido.",
-          "words": ["VAMPIRE", "VOICE", "MOVE", "LOVE", "VERY", "GIVE"],
+          "words": [
+            "VAMPIRE",
+            "VOICE",
+            "MOVE",
+            "LOVE",
+            "VERY",
+            "GIVE"
+          ],
           "expected": "vampire"
         },
         "sentence": {
@@ -184,8 +392,15 @@
     {
       "id": "session-a",
       "title": "El sonido A de APPLE",
-      "progress": { "done": 0, "total": 10 },
-      "status": { "score": null, "label": "", "tone": "neutral" },
+      "progress": {
+        "done": 0,
+        "total": 10
+      },
+      "status": {
+        "score": null,
+        "label": "",
+        "tone": "neutral"
+      },
       "speak": {
         "focus": "a",
         "sound": {
@@ -197,7 +412,14 @@
         "spelling": {
           "title": "THE SPELLING",
           "hint": "Estas son palabras donde puedes encontrar este sonido.",
-          "words": ["APPLE", "CAT", "HAPPY", "SAND", "DANCE", "MAP"],
+          "words": [
+            "APPLE",
+            "CAT",
+            "HAPPY",
+            "SAND",
+            "DANCE",
+            "MAP"
+          ],
           "expected": "apple"
         },
         "sentence": {
@@ -211,8 +433,15 @@
     {
       "id": "session-e",
       "title": "El sonido E de EGG",
-      "progress": { "done": 0, "total": 10 },
-      "status": { "score": null, "label": "", "tone": "neutral" },
+      "progress": {
+        "done": 0,
+        "total": 10
+      },
+      "status": {
+        "score": null,
+        "label": "",
+        "tone": "neutral"
+      },
       "speak": {
         "focus": "e",
         "sound": {
@@ -224,7 +453,14 @@
         "spelling": {
           "title": "THE SPELLING",
           "hint": "Estas son palabras donde puedes encontrar este sonido.",
-          "words": ["EGG", "RED", "BED", "TELL", "NEXT", "HELP"],
+          "words": [
+            "EGG",
+            "RED",
+            "BED",
+            "TELL",
+            "NEXT",
+            "HELP"
+          ],
           "expected": "egg"
         },
         "sentence": {
@@ -238,8 +474,15 @@
     {
       "id": "session-i",
       "title": "El sonido I de ICE",
-      "progress": { "done": 0, "total": 10 },
-      "status": { "score": null, "label": "", "tone": "neutral" },
+      "progress": {
+        "done": 0,
+        "total": 10
+      },
+      "status": {
+        "score": null,
+        "label": "",
+        "tone": "neutral"
+      },
       "speak": {
         "focus": "i",
         "sound": {
@@ -251,7 +494,14 @@
         "spelling": {
           "title": "THE SPELLING",
           "hint": "Estas son palabras donde puedes encontrar este sonido.",
-          "words": ["ICE", "TIME", "FIVE", "LION", "LIGHT", "RIDE"],
+          "words": [
+            "ICE",
+            "TIME",
+            "FIVE",
+            "LION",
+            "LIGHT",
+            "RIDE"
+          ],
           "expected": "ice"
         },
         "sentence": {
@@ -265,8 +515,15 @@
     {
       "id": "session-o",
       "title": "El sonido O de ORANGE",
-      "progress": { "done": 0, "total": 10 },
-      "status": { "score": null, "label": "", "tone": "neutral" },
+      "progress": {
+        "done": 0,
+        "total": 10
+      },
+      "status": {
+        "score": null,
+        "label": "",
+        "tone": "neutral"
+      },
       "speak": {
         "focus": "o",
         "sound": {
@@ -278,7 +535,14 @@
         "spelling": {
           "title": "THE SPELLING",
           "hint": "Estas son palabras donde puedes encontrar este sonido.",
-          "words": ["ORANGE", "OPEN", "GO", "HOME", "ROSE", "SNOW"],
+          "words": [
+            "ORANGE",
+            "OPEN",
+            "GO",
+            "HOME",
+            "ROSE",
+            "SNOW"
+          ],
           "expected": "orange"
         },
         "sentence": {
@@ -292,8 +556,15 @@
     {
       "id": "session-u",
       "title": "El sonido U de UMBRELLA",
-      "progress": { "done": 0, "total": 10 },
-      "status": { "score": null, "label": "", "tone": "neutral" },
+      "progress": {
+        "done": 0,
+        "total": 10
+      },
+      "status": {
+        "score": null,
+        "label": "",
+        "tone": "neutral"
+      },
       "speak": {
         "focus": "u",
         "sound": {
@@ -305,7 +576,14 @@
         "spelling": {
           "title": "THE SPELLING",
           "hint": "Estas son palabras donde puedes encontrar este sonido.",
-          "words": ["UMBRELLA", "SUN", "CUP", "BUS", "RUN", "CLOUD"],
+          "words": [
+            "UMBRELLA",
+            "SUN",
+            "CUP",
+            "BUS",
+            "RUN",
+            "CLOUD"
+          ],
           "expected": "umbrella"
         },
         "sentence": {
@@ -319,8 +597,15 @@
     {
       "id": "session-t",
       "title": "El sonido T de TIME",
-      "progress": { "done": 0, "total": 10 },
-      "status": { "score": null, "label": "", "tone": "neutral" },
+      "progress": {
+        "done": 0,
+        "total": 10
+      },
+      "status": {
+        "score": null,
+        "label": "",
+        "tone": "neutral"
+      },
       "speak": {
         "focus": "t",
         "sound": {
@@ -332,7 +617,14 @@
         "spelling": {
           "title": "THE SPELLING",
           "hint": "Estas son palabras donde puedes encontrar este sonido.",
-          "words": ["TIME", "TELL", "TEAM", "TAKE", "TOP", "TICKET"],
+          "words": [
+            "TIME",
+            "TELL",
+            "TEAM",
+            "TAKE",
+            "TOP",
+            "TICKET"
+          ],
           "expected": "time"
         },
         "sentence": {
@@ -346,8 +638,15 @@
     {
       "id": "session-s",
       "title": "El sonido S de SUN",
-      "progress": { "done": 0, "total": 10 },
-      "status": { "score": null, "label": "", "tone": "neutral" },
+      "progress": {
+        "done": 0,
+        "total": 10
+      },
+      "status": {
+        "score": null,
+        "label": "",
+        "tone": "neutral"
+      },
       "speak": {
         "focus": "s",
         "sound": {
@@ -359,7 +658,14 @@
         "spelling": {
           "title": "THE SPELLING",
           "hint": "Estas son palabras donde puedes encontrar este sonido.",
-          "words": ["SUN", "SING", "SEA", "SISTER", "SOUND", "SILVER"],
+          "words": [
+            "SUN",
+            "SING",
+            "SEA",
+            "SISTER",
+            "SOUND",
+            "SILVER"
+          ],
           "expected": "sun"
         },
         "sentence": {
@@ -373,8 +679,15 @@
     {
       "id": "session-r",
       "title": "El sonido R de RABBIT",
-      "progress": { "done": 0, "total": 10 },
-      "status": { "score": null, "label": "", "tone": "neutral" },
+      "progress": {
+        "done": 0,
+        "total": 10
+      },
+      "status": {
+        "score": null,
+        "label": "",
+        "tone": "neutral"
+      },
       "speak": {
         "focus": "r",
         "sound": {
@@ -386,7 +699,14 @@
         "spelling": {
           "title": "THE SPELLING",
           "hint": "Estas son palabras donde puedes encontrar este sonido.",
-          "words": ["RABBIT", "RIVER", "ROAD", "READ", "ROUND", "BRIGHT"],
+          "words": [
+            "RABBIT",
+            "RIVER",
+            "ROAD",
+            "READ",
+            "ROUND",
+            "BRIGHT"
+          ],
           "expected": "rabbit"
         },
         "sentence": {
@@ -400,8 +720,15 @@
     {
       "id": "session-l",
       "title": "El sonido L de LION",
-      "progress": { "done": 0, "total": 10 },
-      "status": { "score": null, "label": "", "tone": "neutral" },
+      "progress": {
+        "done": 0,
+        "total": 10
+      },
+      "status": {
+        "score": null,
+        "label": "",
+        "tone": "neutral"
+      },
       "speak": {
         "focus": "l",
         "sound": {
@@ -413,7 +740,14 @@
         "spelling": {
           "title": "THE SPELLING",
           "hint": "Estas son palabras donde puedes encontrar este sonido.",
-          "words": ["LION", "LAMP", "LITTLE", "LIGHT", "PLAY", "CLOUD"],
+          "words": [
+            "LION",
+            "LAMP",
+            "LITTLE",
+            "LIGHT",
+            "PLAY",
+            "CLOUD"
+          ],
           "expected": "lion"
         },
         "sentence": {
@@ -427,8 +761,15 @@
     {
       "id": "session-k",
       "title": "El sonido K de KITE",
-      "progress": { "done": 0, "total": 10 },
-      "status": { "score": null, "label": "", "tone": "neutral" },
+      "progress": {
+        "done": 0,
+        "total": 10
+      },
+      "status": {
+        "score": null,
+        "label": "",
+        "tone": "neutral"
+      },
       "speak": {
         "focus": "k",
         "sound": {
@@ -440,7 +781,14 @@
         "spelling": {
           "title": "THE SPELLING",
           "hint": "Estas son palabras donde puedes encontrar este sonido.",
-          "words": ["KITE", "KING", "KEEP", "KIND", "KNOCK", "SKY"],
+          "words": [
+            "KITE",
+            "KING",
+            "KEEP",
+            "KIND",
+            "KNOCK",
+            "SKY"
+          ],
           "expected": "kite"
         },
         "sentence": {

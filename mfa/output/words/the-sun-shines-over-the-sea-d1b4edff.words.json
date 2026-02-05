@@ -1,0 +1,32 @@
+[
+  {
+    "start": 0,
+    "end": 0.08,
+    "word": "the"
+  },
+  {
+    "start": 0.08,
+    "end": 0.33,
+    "word": "sun"
+  },
+  {
+    "start": 0.33,
+    "end": 0.74,
+    "word": "shines"
+  },
+  {
+    "start": 0.74,
+    "end": 0.99,
+    "word": "over"
+  },
+  {
+    "start": 0.99,
+    "end": 1.11,
+    "word": "the"
+  },
+  {
+    "start": 1.11,
+    "end": 1.5,
+    "word": "sea"
+  }
+]

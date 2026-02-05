@@ -28,7 +28,8 @@ class PageDiagnostics extends HTMLElement {
             <div class="diag-debug-toggle">
               <div class="diag-debug-text">
                 <div class="diag-debug-title">Modo debug</div>
-                <div class="diag-debug-sub">Muestra esperado y transcrito en Speak</div>
+                <div class="diag-debug-sub">Muestra caja con esperado / transcrito / porcentaje y overrrides en Speak.</div>
+                <div class="diag-debug-sub">Permite acceder a cualquier ruta.</div>
               </div>
               <ion-toggle id="diag-debug-toggle"></ion-toggle>
             </div>

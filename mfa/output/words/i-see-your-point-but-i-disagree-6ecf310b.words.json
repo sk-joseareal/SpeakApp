@@ -1,0 +1,37 @@
+[
+  {
+    "start": 0.03,
+    "end": 0.12,
+    "word": "i"
+  },
+  {
+    "start": 0.12,
+    "end": 0.36,
+    "word": "see"
+  },
+  {
+    "start": 0.36,
+    "end": 0.53,
+    "word": "your"
+  },
+  {
+    "start": 0.53,
+    "end": 0.98,
+    "word": "point"
+  },
+  {
+    "start": 1.18,
+    "end": 1.32,
+    "word": "but"
+  },
+  {
+    "start": 1.32,
+    "end": 1.46,
+    "word": "i"
+  },
+  {
+    "start": 1.46,
+    "end": 2.1,
+    "word": "disagree"
+  }
+]

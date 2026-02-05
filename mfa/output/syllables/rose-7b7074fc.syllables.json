@@ -1,0 +1,21 @@
+[
+  {
+    "word": "rose",
+    "start": 0,
+    "end": 0.42,
+    "syllables": [
+      {
+        "text": "ro",
+        "start": 0,
+        "end": 0.21,
+        "index": 0
+      },
+      {
+        "text": "se",
+        "start": 0.21,
+        "end": 0.42,
+        "index": 1
+      }
+    ]
+  }
+]

@@ -1,0 +1,17 @@
+[
+  {
+    "start": 0.03,
+    "end": 0.22,
+    "word": "see"
+  },
+  {
+    "start": 0.22,
+    "end": 0.42,
+    "word": "you"
+  },
+  {
+    "start": 0.42,
+    "end": 0.79,
+    "word": "later"
+  }
+]

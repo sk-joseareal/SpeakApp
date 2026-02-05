@@ -1,0 +1,21 @@
+[
+  {
+    "word": "love",
+    "start": 0,
+    "end": 0.32,
+    "syllables": [
+      {
+        "text": "lo",
+        "start": 0,
+        "end": 0.16,
+        "index": 0
+      },
+      {
+        "text": "ve",
+        "start": 0.16,
+        "end": 0.32,
+        "index": 1
+      }
+    ]
+  }
+]

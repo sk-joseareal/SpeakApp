@@ -1,0 +1,17 @@
+[
+  {
+    "start": 0,
+    "end": 0.08,
+    "word": "the"
+  },
+  {
+    "start": 0.08,
+    "end": 0.3,
+    "word": "bill"
+  },
+  {
+    "start": 0.3,
+    "end": 0.82,
+    "word": "please"
+  }
+]

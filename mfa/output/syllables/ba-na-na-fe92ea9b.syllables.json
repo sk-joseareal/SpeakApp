@@ -1,0 +1,41 @@
+[
+  {
+    "word": "ba",
+    "start": 0,
+    "end": 0.17,
+    "syllables": [
+      {
+        "text": "ba",
+        "start": 0,
+        "end": 0.17,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "na",
+    "start": 0.17,
+    "end": 0.35,
+    "syllables": [
+      {
+        "text": "na",
+        "start": 0.17,
+        "end": 0.35,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "na",
+    "start": 0.35,
+    "end": 0.73,
+    "syllables": [
+      {
+        "text": "na",
+        "start": 0.35,
+        "end": 0.73,
+        "index": 0
+      }
+    ]
+  }
+]

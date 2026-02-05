@@ -1,0 +1,54 @@
+[
+  {
+    "word": "is",
+    "start": 0.4,
+    "end": 0.53,
+    "syllables": [
+      {
+        "text": "is",
+        "start": 0.4,
+        "end": 0.53,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "this",
+    "start": 0.53,
+    "end": 0.7,
+    "syllables": [
+      {
+        "text": "this",
+        "start": 0.53,
+        "end": 0.7,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "book",
+    "start": 0.7,
+    "end": 0.97,
+    "syllables": [
+      {
+        "text": "book",
+        "start": 0.7,
+        "end": 0.97,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "yours",
+    "start": 0.97,
+    "end": 1.52,
+    "syllables": [
+      {
+        "text": "yours",
+        "start": 0.97,
+        "end": 1.52,
+        "index": 0
+      }
+    ]
+  }
+]

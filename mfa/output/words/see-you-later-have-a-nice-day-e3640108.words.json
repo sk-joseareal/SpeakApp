@@ -1,0 +1,37 @@
+[
+  {
+    "start": 0.03,
+    "end": 0.23,
+    "word": "see"
+  },
+  {
+    "start": 0.23,
+    "end": 0.42,
+    "word": "you"
+  },
+  {
+    "start": 0.42,
+    "end": 0.79,
+    "word": "later"
+  },
+  {
+    "start": 0.99,
+    "end": 1.21,
+    "word": "have"
+  },
+  {
+    "start": 1.21,
+    "end": 1.27,
+    "word": "a"
+  },
+  {
+    "start": 1.27,
+    "end": 1.6,
+    "word": "nice"
+  },
+  {
+    "start": 1.6,
+    "end": 1.97,
+    "word": "day"
+  }
+]

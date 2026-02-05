@@ -1,0 +1,17 @@
+[
+  {
+    "start": 0,
+    "end": 0.1,
+    "word": "will"
+  },
+  {
+    "start": 0.1,
+    "end": 0.28,
+    "word": "not"
+  },
+  {
+    "start": 0.28,
+    "end": 0.56,
+    "word": "you"
+  }
+]

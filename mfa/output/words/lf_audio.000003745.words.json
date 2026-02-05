@@ -1,0 +1,47 @@
+[
+  {
+    "start": 0.28,
+    "end": 0.38,
+    "word": "the"
+  },
+  {
+    "start": 0.38,
+    "end": 0.71,
+    "word": "dog"
+  },
+  {
+    "start": 0.71,
+    "end": 1.02,
+    "word": "doesn't"
+  },
+  {
+    "start": 1.02,
+    "end": 1.24,
+    "word": "like"
+  },
+  {
+    "start": 1.24,
+    "end": 1.35,
+    "word": "to"
+  },
+  {
+    "start": 1.35,
+    "end": 1.52,
+    "word": "be"
+  },
+  {
+    "start": 1.52,
+    "end": 1.66,
+    "word": "on"
+  },
+  {
+    "start": 1.66,
+    "end": 1.84,
+    "word": "its"
+  },
+  {
+    "start": 1.84,
+    "end": 2.27,
+    "word": "own"
+  }
+]

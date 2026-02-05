@@ -1,0 +1,80 @@
+[
+  {
+    "word": "the",
+    "start": 0,
+    "end": 0.09,
+    "syllables": [
+      {
+        "text": "the",
+        "start": 0,
+        "end": 0.09,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "red",
+    "start": 0.09,
+    "end": 0.3,
+    "syllables": [
+      {
+        "text": "red",
+        "start": 0.09,
+        "end": 0.3,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "hen",
+    "start": 0.3,
+    "end": 0.52,
+    "syllables": [
+      {
+        "text": "hen",
+        "start": 0.3,
+        "end": 0.52,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "left",
+    "start": 0.52,
+    "end": 0.77,
+    "syllables": [
+      {
+        "text": "left",
+        "start": 0.52,
+        "end": 0.77,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "the",
+    "start": 0.77,
+    "end": 0.86,
+    "syllables": [
+      {
+        "text": "the",
+        "start": 0.77,
+        "end": 0.86,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "nest",
+    "start": 0.86,
+    "end": 1.31,
+    "syllables": [
+      {
+        "text": "nest",
+        "start": 0.86,
+        "end": 1.31,
+        "index": 0
+      }
+    ]
+  }
+]

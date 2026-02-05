@@ -1,0 +1,21 @@
+[
+  {
+    "word": "medium",
+    "start": 0,
+    "end": 0.5,
+    "syllables": [
+      {
+        "text": "me",
+        "start": 0,
+        "end": 0.167,
+        "index": 0
+      },
+      {
+        "text": "dium",
+        "start": 0.167,
+        "end": 0.5,
+        "index": 1
+      }
+    ]
+  }
+]

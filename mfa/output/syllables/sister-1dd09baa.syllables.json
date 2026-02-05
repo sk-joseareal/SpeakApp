@@ -1,0 +1,21 @@
+[
+  {
+    "word": "sister",
+    "start": 0.03,
+    "end": 0.53,
+    "syllables": [
+      {
+        "text": "sis",
+        "start": 0.03,
+        "end": 0.28,
+        "index": 0
+      },
+      {
+        "text": "ter",
+        "start": 0.28,
+        "end": 0.53,
+        "index": 1
+      }
+    ]
+  }
+]

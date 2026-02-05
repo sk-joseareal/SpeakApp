@@ -1,0 +1,22 @@
+[
+  {
+    "start": 0.57,
+    "end": 0.96,
+    "word": "these"
+  },
+  {
+    "start": 0.96,
+    "end": 1.09,
+    "word": "are"
+  },
+  {
+    "start": 1.09,
+    "end": 1.23,
+    "word": "their"
+  },
+  {
+    "start": 1.23,
+    "end": 1.84,
+    "word": "books"
+  }
+]

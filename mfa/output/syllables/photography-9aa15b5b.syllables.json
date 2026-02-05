@@ -1,0 +1,33 @@
+[
+  {
+    "word": "photography",
+    "start": 0,
+    "end": 0.84,
+    "syllables": [
+      {
+        "text": "pho",
+        "start": 0,
+        "end": 0.229,
+        "index": 0
+      },
+      {
+        "text": "tog",
+        "start": 0.229,
+        "end": 0.458,
+        "index": 1
+      },
+      {
+        "text": "rap",
+        "start": 0.458,
+        "end": 0.687,
+        "index": 2
+      },
+      {
+        "text": "hy",
+        "start": 0.687,
+        "end": 0.84,
+        "index": 3
+      }
+    ]
+  }
+]

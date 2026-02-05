@@ -1,0 +1,28 @@
+[
+  {
+    "word": "see",
+    "start": 0.03,
+    "end": 0.25,
+    "syllables": [
+      {
+        "text": "see",
+        "start": 0.03,
+        "end": 0.25,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "it",
+    "start": 0.25,
+    "end": 0.44,
+    "syllables": [
+      {
+        "text": "it",
+        "start": 0.25,
+        "end": 0.44,
+        "index": 0
+      }
+    ]
+  }
+]

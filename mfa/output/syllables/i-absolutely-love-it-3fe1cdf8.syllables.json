@@ -1,0 +1,84 @@
+[
+  {
+    "word": "i",
+    "start": 0,
+    "end": 0.18,
+    "syllables": [
+      {
+        "text": "i",
+        "start": 0,
+        "end": 0.18,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "absolutely",
+    "start": 0.18,
+    "end": 0.82,
+    "syllables": [
+      {
+        "text": "ab",
+        "start": 0.18,
+        "end": 0.308,
+        "index": 0
+      },
+      {
+        "text": "so",
+        "start": 0.308,
+        "end": 0.436,
+        "index": 1
+      },
+      {
+        "text": "lu",
+        "start": 0.436,
+        "end": 0.564,
+        "index": 2
+      },
+      {
+        "text": "te",
+        "start": 0.564,
+        "end": 0.692,
+        "index": 3
+      },
+      {
+        "text": "ly",
+        "start": 0.692,
+        "end": 0.82,
+        "index": 4
+      }
+    ]
+  },
+  {
+    "word": "love",
+    "start": 0.82,
+    "end": 1.05,
+    "syllables": [
+      {
+        "text": "lo",
+        "start": 0.82,
+        "end": 0.935,
+        "index": 0
+      },
+      {
+        "text": "ve",
+        "start": 0.935,
+        "end": 1.05,
+        "index": 1
+      }
+    ]
+  },
+  {
+    "word": "it",
+    "start": 1.05,
+    "end": 1.25,
+    "syllables": [
+      {
+        "text": "it",
+        "start": 1.05,
+        "end": 1.25,
+        "index": 0
+      }
+    ]
+  }
+]

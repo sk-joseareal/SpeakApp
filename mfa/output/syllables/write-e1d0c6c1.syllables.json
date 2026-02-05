@@ -1,0 +1,21 @@
+[
+  {
+    "word": "write",
+    "start": 0,
+    "end": 0.37,
+    "syllables": [
+      {
+        "text": "wri",
+        "start": 0,
+        "end": 0.222,
+        "index": 0
+      },
+      {
+        "text": "te",
+        "start": 0.222,
+        "end": 0.37,
+        "index": 1
+      }
+    ]
+  }
+]

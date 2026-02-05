@@ -1,0 +1,21 @@
+[
+  {
+    "word": "gotta",
+    "start": 0,
+    "end": 0.35,
+    "syllables": [
+      {
+        "text": "got",
+        "start": 0,
+        "end": 0.21,
+        "index": 0
+      },
+      {
+        "text": "ta",
+        "start": 0.21,
+        "end": 0.35,
+        "index": 1
+      }
+    ]
+  }
+]

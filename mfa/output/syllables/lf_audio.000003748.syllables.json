@@ -1,0 +1,66 @@
+[
+  {
+    "word": "these",
+    "start": 0.57,
+    "end": 0.96,
+    "syllables": [
+      {
+        "text": "the",
+        "start": 0.57,
+        "end": 0.804,
+        "index": 0
+      },
+      {
+        "text": "se",
+        "start": 0.804,
+        "end": 0.96,
+        "index": 1
+      }
+    ]
+  },
+  {
+    "word": "are",
+    "start": 0.96,
+    "end": 1.09,
+    "syllables": [
+      {
+        "text": "a",
+        "start": 0.96,
+        "end": 1.003,
+        "index": 0
+      },
+      {
+        "text": "re",
+        "start": 1.003,
+        "end": 1.09,
+        "index": 1
+      }
+    ]
+  },
+  {
+    "word": "their",
+    "start": 1.09,
+    "end": 1.23,
+    "syllables": [
+      {
+        "text": "their",
+        "start": 1.09,
+        "end": 1.23,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "books",
+    "start": 1.23,
+    "end": 1.84,
+    "syllables": [
+      {
+        "text": "books",
+        "start": 1.23,
+        "end": 1.84,
+        "index": 0
+      }
+    ]
+  }
+]

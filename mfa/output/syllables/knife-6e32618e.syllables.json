@@ -1,0 +1,21 @@
+[
+  {
+    "word": "knife",
+    "start": 0,
+    "end": 0.38,
+    "syllables": [
+      {
+        "text": "kni",
+        "start": 0,
+        "end": 0.228,
+        "index": 0
+      },
+      {
+        "text": "fe",
+        "start": 0.228,
+        "end": 0.38,
+        "index": 1
+      }
+    ]
+  }
+]

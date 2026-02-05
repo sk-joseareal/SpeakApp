@@ -1,0 +1,21 @@
+[
+  {
+    "word": "once",
+    "start": 0,
+    "end": 0.48,
+    "syllables": [
+      {
+        "text": "on",
+        "start": 0,
+        "end": 0.24,
+        "index": 0
+      },
+      {
+        "text": "ce",
+        "start": 0.24,
+        "end": 0.48,
+        "index": 1
+      }
+    ]
+  }
+]

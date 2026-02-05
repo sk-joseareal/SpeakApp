@@ -1,0 +1,32 @@
+[
+  {
+    "start": 0,
+    "end": 0.1,
+    "word": "i"
+  },
+  {
+    "start": 0.1,
+    "end": 0.3,
+    "word": "have"
+  },
+  {
+    "start": 0.3,
+    "end": 0.62,
+    "word": "five"
+  },
+  {
+    "start": 0.62,
+    "end": 0.91,
+    "word": "years"
+  },
+  {
+    "start": 0.91,
+    "end": 1.03,
+    "word": "of"
+  },
+  {
+    "start": 1.03,
+    "end": 1.82,
+    "word": "experience"
+  }
+]

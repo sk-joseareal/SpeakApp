@@ -1,0 +1,27 @@
+[
+  {
+    "word": "banana",
+    "start": 0,
+    "end": 0.47,
+    "syllables": [
+      {
+        "text": "ba",
+        "start": 0,
+        "end": 0.157,
+        "index": 0
+      },
+      {
+        "text": "na",
+        "start": 0.157,
+        "end": 0.313,
+        "index": 1
+      },
+      {
+        "text": "na",
+        "start": 0.313,
+        "end": 0.47,
+        "index": 2
+      }
+    ]
+  }
+]

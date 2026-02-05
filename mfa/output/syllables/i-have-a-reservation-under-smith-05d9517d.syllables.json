@@ -1,0 +1,110 @@
+[
+  {
+    "word": "i",
+    "start": 0.03,
+    "end": 0.09,
+    "syllables": [
+      {
+        "text": "i",
+        "start": 0.03,
+        "end": 0.09,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "have",
+    "start": 0.09,
+    "end": 0.3,
+    "syllables": [
+      {
+        "text": "ha",
+        "start": 0.09,
+        "end": 0.195,
+        "index": 0
+      },
+      {
+        "text": "ve",
+        "start": 0.195,
+        "end": 0.3,
+        "index": 1
+      }
+    ]
+  },
+  {
+    "word": "a",
+    "start": 0.3,
+    "end": 0.35,
+    "syllables": [
+      {
+        "text": "a",
+        "start": 0.3,
+        "end": 0.35,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "reservation",
+    "start": 0.35,
+    "end": 1.04,
+    "syllables": [
+      {
+        "text": "re",
+        "start": 0.35,
+        "end": 0.475,
+        "index": 0
+      },
+      {
+        "text": "ser",
+        "start": 0.475,
+        "end": 0.664,
+        "index": 1
+      },
+      {
+        "text": "va",
+        "start": 0.664,
+        "end": 0.789,
+        "index": 2
+      },
+      {
+        "text": "tion",
+        "start": 0.789,
+        "end": 1.04,
+        "index": 3
+      }
+    ]
+  },
+  {
+    "word": "under",
+    "start": 1.04,
+    "end": 1.28,
+    "syllables": [
+      {
+        "text": "un",
+        "start": 1.04,
+        "end": 1.136,
+        "index": 0
+      },
+      {
+        "text": "der",
+        "start": 1.136,
+        "end": 1.28,
+        "index": 1
+      }
+    ]
+  },
+  {
+    "word": "smith",
+    "start": 1.28,
+    "end": 1.65,
+    "syllables": [
+      {
+        "text": "smith",
+        "start": 1.28,
+        "end": 1.65,
+        "index": 0
+      }
+    ]
+  }
+]

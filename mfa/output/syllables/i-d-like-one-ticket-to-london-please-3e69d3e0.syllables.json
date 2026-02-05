@@ -1,0 +1,136 @@
+[
+  {
+    "word": "i",
+    "start": 0,
+    "end": 0.06,
+    "syllables": [
+      {
+        "text": "i",
+        "start": 0,
+        "end": 0.06,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "would",
+    "start": 0.06,
+    "end": 0.17,
+    "syllables": [
+      {
+        "text": "would",
+        "start": 0.06,
+        "end": 0.17,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "like",
+    "start": 0.17,
+    "end": 0.42,
+    "syllables": [
+      {
+        "text": "li",
+        "start": 0.17,
+        "end": 0.295,
+        "index": 0
+      },
+      {
+        "text": "ke",
+        "start": 0.295,
+        "end": 0.42,
+        "index": 1
+      }
+    ]
+  },
+  {
+    "word": "one",
+    "start": 0.42,
+    "end": 0.62,
+    "syllables": [
+      {
+        "text": "o",
+        "start": 0.42,
+        "end": 0.487,
+        "index": 0
+      },
+      {
+        "text": "ne",
+        "start": 0.487,
+        "end": 0.62,
+        "index": 1
+      }
+    ]
+  },
+  {
+    "word": "ticket",
+    "start": 0.62,
+    "end": 0.98,
+    "syllables": [
+      {
+        "text": "tic",
+        "start": 0.62,
+        "end": 0.8,
+        "index": 0
+      },
+      {
+        "text": "ket",
+        "start": 0.8,
+        "end": 0.98,
+        "index": 1
+      }
+    ]
+  },
+  {
+    "word": "to",
+    "start": 0.98,
+    "end": 1.1,
+    "syllables": [
+      {
+        "text": "to",
+        "start": 0.98,
+        "end": 1.1,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "london",
+    "start": 1.1,
+    "end": 1.55,
+    "syllables": [
+      {
+        "text": "lon",
+        "start": 1.1,
+        "end": 1.325,
+        "index": 0
+      },
+      {
+        "text": "don",
+        "start": 1.325,
+        "end": 1.55,
+        "index": 1
+      }
+    ]
+  },
+  {
+    "word": "please",
+    "start": 1.78,
+    "end": 2.22,
+    "syllables": [
+      {
+        "text": "plea",
+        "start": 1.78,
+        "end": 2.073,
+        "index": 0
+      },
+      {
+        "text": "se",
+        "start": 2.073,
+        "end": 2.22,
+        "index": 1
+      }
+    ]
+  }
+]

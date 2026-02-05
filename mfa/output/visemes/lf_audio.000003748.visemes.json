@@ -1,0 +1,57 @@
+[
+  {
+    "start": 0.57,
+    "end": 0.65,
+    "viseme": "TH"
+  },
+  {
+    "start": 0.65,
+    "end": 0.88,
+    "viseme": "I"
+  },
+  {
+    "start": 0.88,
+    "end": 0.96,
+    "viseme": "NEUTRAL"
+  },
+  {
+    "start": 0.96,
+    "end": 1.03,
+    "viseme": "A"
+  },
+  {
+    "start": 1.03,
+    "end": 1.09,
+    "viseme": "NEUTRAL"
+  },
+  {
+    "start": 1.09,
+    "end": 1.13,
+    "viseme": "TH"
+  },
+  {
+    "start": 1.13,
+    "end": 1.19,
+    "viseme": "E"
+  },
+  {
+    "start": 1.19,
+    "end": 1.23,
+    "viseme": "NEUTRAL"
+  },
+  {
+    "start": 1.23,
+    "end": 1.32,
+    "viseme": "M"
+  },
+  {
+    "start": 1.32,
+    "end": 1.47,
+    "viseme": "U"
+  },
+  {
+    "start": 1.47,
+    "end": 1.84,
+    "viseme": "NEUTRAL"
+  }
+]

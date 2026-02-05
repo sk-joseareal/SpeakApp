@@ -1,0 +1,21 @@
+[
+  {
+    "word": "move",
+    "start": 0,
+    "end": 0.33,
+    "syllables": [
+      {
+        "text": "mo",
+        "start": 0,
+        "end": 0.165,
+        "index": 0
+      },
+      {
+        "text": "ve",
+        "start": 0.165,
+        "end": 0.33,
+        "index": 1
+      }
+    ]
+  }
+]

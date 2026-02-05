@@ -1,0 +1,21 @@
+[
+  {
+    "word": "total",
+    "start": 0.04,
+    "end": 0.42,
+    "syllables": [
+      {
+        "text": "to",
+        "start": 0.04,
+        "end": 0.192,
+        "index": 0
+      },
+      {
+        "text": "tal",
+        "start": 0.192,
+        "end": 0.42,
+        "index": 1
+      }
+    ]
+  }
+]

@@ -1,0 +1,32 @@
+[
+  {
+    "start": 0,
+    "end": 0.08,
+    "word": "the"
+  },
+  {
+    "start": 0.08,
+    "end": 0.32,
+    "word": "fool"
+  },
+  {
+    "start": 0.32,
+    "end": 0.46,
+    "word": "is"
+  },
+  {
+    "start": 0.46,
+    "end": 0.7,
+    "word": "full"
+  },
+  {
+    "start": 0.7,
+    "end": 0.79,
+    "word": "of"
+  },
+  {
+    "start": 0.79,
+    "end": 1.19,
+    "word": "food"
+  }
+]

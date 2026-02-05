@@ -1,0 +1,47 @@
+[
+  {
+    "word": "the",
+    "start": 0,
+    "end": 0.08,
+    "syllables": [
+      {
+        "text": "the",
+        "start": 0,
+        "end": 0.08,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "bill",
+    "start": 0.08,
+    "end": 0.3,
+    "syllables": [
+      {
+        "text": "bill",
+        "start": 0.08,
+        "end": 0.3,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "please",
+    "start": 0.3,
+    "end": 0.82,
+    "syllables": [
+      {
+        "text": "plea",
+        "start": 0.3,
+        "end": 0.647,
+        "index": 0
+      },
+      {
+        "text": "se",
+        "start": 0.647,
+        "end": 0.82,
+        "index": 1
+      }
+    ]
+  }
+]

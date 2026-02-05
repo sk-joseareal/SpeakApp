@@ -1,0 +1,28 @@
+[
+  {
+    "word": "this",
+    "start": 0,
+    "end": 0.21,
+    "syllables": [
+      {
+        "text": "this",
+        "start": 0,
+        "end": 0.21,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "is",
+    "start": 0.21,
+    "end": 0.55,
+    "syllables": [
+      {
+        "text": "is",
+        "start": 0.21,
+        "end": 0.55,
+        "index": 0
+      }
+    ]
+  }
+]

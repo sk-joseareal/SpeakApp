@@ -1,0 +1,47 @@
+[
+  {
+    "word": "you",
+    "start": 0,
+    "end": 0.1,
+    "syllables": [
+      {
+        "text": "you",
+        "start": 0,
+        "end": 0.1,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "are",
+    "start": 0.1,
+    "end": 0.16,
+    "syllables": [
+      {
+        "text": "a",
+        "start": 0.1,
+        "end": 0.12,
+        "index": 0
+      },
+      {
+        "text": "re",
+        "start": 0.12,
+        "end": 0.16,
+        "index": 1
+      }
+    ]
+  },
+  {
+    "word": "wrong",
+    "start": 0.16,
+    "end": 0.53,
+    "syllables": [
+      {
+        "text": "wrong",
+        "start": 0.16,
+        "end": 0.53,
+        "index": 0
+      }
+    ]
+  }
+]

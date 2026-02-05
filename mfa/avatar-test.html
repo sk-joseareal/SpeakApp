@@ -1,0 +1,546 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>MFA Avatar Test</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&display=swap"
+    rel="stylesheet"
+  >
+  <style>
+    :root {
+      --bg: radial-gradient(circle at top, #eef2ff 0%, #f8fafc 50%, #e2e8f0 100%);
+      --card: #ffffff;
+      --border: #e2e8f0;
+      --text: #0f172a;
+      --muted: #64748b;
+      --accent: #2563eb;
+      --accent-dark: #1e40af;
+      --highlight: #fde047;
+      --shadow: 0 20px 45px rgba(15, 23, 42, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Space Grotesk", "Helvetica Neue", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .shell {
+      width: min(1100px, 100%);
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: 20px;
+      box-shadow: var(--shadow);
+      padding: 24px;
+      display: grid;
+      grid-template-columns: minmax(260px, 360px) minmax(0, 1fr);
+      gap: 24px;
+      align-items: center;
+    }
+
+    @media (max-width: 840px) {
+      .card {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    h1 {
+      margin: 0 0 6px;
+      font-size: 22px;
+      letter-spacing: -0.02em;
+    }
+
+    .subtitle {
+      margin: 0 0 18px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .avatar {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      background: #f8fafc;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      display: grid;
+      place-items: center;
+    }
+
+    .avatar-head {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .avatar-mouth {
+      position: absolute;
+      width: 90px;
+      left: 53%;
+      top: 72%;
+      transform: translate(-50%, -50%);
+      transform-origin: center center;
+      pointer-events: none;
+    }
+
+    .mouth-layer {
+      opacity: 0;
+      transition: opacity 0.04s linear;
+    }
+
+    .mouth-layer-active {
+      opacity: 1;
+    }
+
+    .avatar-mouth.viseme-o,
+    .avatar-mouth.viseme-u {
+      transform: translate(-50%, -50%) scale(0.85);
+    }
+
+    .right {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    #sentence-text {
+      min-height: 56px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: #f8fafc;
+      font-size: 18px;
+      line-height: 1.4;
+    }
+
+    .word {
+      display: inline-flex;
+      align-items: center;
+      margin-right: 6px;
+      font-weight: 500;
+    }
+
+    .syllable {
+      padding: 0 2px;
+      border-radius: 6px;
+      transition: background-color 0.08s ease-out, color 0.08s ease-out;
+    }
+
+    .syllable.current {
+      background: var(--highlight);
+      color: #1e293b;
+    }
+
+    .syllable-sep {
+      color: var(--muted);
+      padding: 0 1px;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: minmax(180px, 1fr) minmax(160px, 1fr) auto;
+      gap: 12px;
+      align-items: end;
+    }
+
+    @media (max-width: 720px) {
+      .controls {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    label {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    select,
+    input[type="range"] {
+      width: 100%;
+    }
+
+    select {
+      padding: 10px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: #f8fafc;
+      font-size: 14px;
+    }
+
+    .play-button {
+      border: none;
+      border-radius: 999px;
+      background: var(--accent);
+      color: #ffffff;
+      font-weight: 600;
+      padding: 11px 18px;
+      cursor: pointer;
+      box-shadow: 0 12px 24px rgba(37, 99, 235, 0.3);
+      transition: background-color 0.12s ease-out, transform 0.12s ease-out;
+      display: inline-flex;
+      gap: 6px;
+      align-items: center;
+      justify-content: center;
+      white-space: nowrap;
+    }
+
+    .play-button:hover {
+      background: var(--accent-dark);
+      transform: translateY(-1px);
+    }
+
+    .play-button:disabled {
+      opacity: 0.6;
+      cursor: default;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .status {
+      font-size: 12px;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <div class="card">
+      <div>
+        <h1>MFA Avatar Test</h1>
+        <p class="subtitle">Audio + visemes + syllables from mfa/output.</p>
+        <div class="avatar">
+          <img class="avatar-head" src="./img/avatar-head.png" alt="Avatar head">
+          <img
+            id="mouth-a"
+            class="avatar-mouth mouth-layer mouth-layer-active viseme-neutral"
+            src="./img/mouth-neutral.png"
+            alt="Mouth layer A"
+          >
+          <img
+            id="mouth-b"
+            class="avatar-mouth mouth-layer viseme-neutral"
+            src="./img/mouth-neutral.png"
+            alt="Mouth layer B"
+          >
+        </div>
+      </div>
+      <div class="right">
+        <div id="sentence-text">Loading items...</div>
+        <div class="controls">
+          <div>
+            <label for="item-select">Item</label>
+            <select id="item-select">
+              <option value="">Loading...</option>
+            </select>
+          </div>
+          <div>
+            <label for="speed-range">Speed</label>
+            <input type="range" id="speed-range" min="0.6" max="1.4" step="0.05" value="1">
+            <div class="status" id="speed-label">1.00x</div>
+          </div>
+          <button id="play-button" class="play-button" disabled>
+            <span>Play</span>
+          </button>
+        </div>
+        <div class="status" id="status-text"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const OUTPUT_BASE = "./output";
+    const ITEMS_URL = `${OUTPUT_BASE}/items.json`;
+    const AUDIO_BASE = `${OUTPUT_BASE}/audio`;
+    const VISEME_BASE = `${OUTPUT_BASE}/visemes`;
+    const WORDS_BASE = `${OUTPUT_BASE}/words`;
+    const SYLLABLES_BASE = `${OUTPUT_BASE}/syllables`;
+
+    const AV_SYNC_DELAY = 0.06;
+    const MOUTH_MAP = {
+      "NEUTRAL": "./img/mouth-neutral.png",
+      "A": "./img/mouth-a.png",
+      "E": "./img/mouth-e.png",
+      "I": "./img/mouth-e.png",
+      "O": "./img/mouth-o.png",
+      "U": "./img/mouth-o.png",
+      "M": "./img/mouth-m.png",
+      "F": "./img/mouth-f.png",
+      "TH": "./img/mouth-th.png"
+    };
+
+    const mouthA = document.getElementById("mouth-a");
+    const mouthB = document.getElementById("mouth-b");
+    const sentenceEl = document.getElementById("sentence-text");
+    const selectEl = document.getElementById("item-select");
+    const playButton = document.getElementById("play-button");
+    const statusEl = document.getElementById("status-text");
+    const speedRange = document.getElementById("speed-range");
+    const speedLabel = document.getElementById("speed-label");
+
+    const audio = new Audio();
+    let items = [];
+    let visemes = [];
+    let syllableTimeline = [];
+    let activeMouth = mouthA;
+    let inactiveMouth = mouthB;
+    let lastVisemeKey = "NEUTRAL";
+    let currentViseme = 0;
+    let currentSyllable = 0;
+    let activeSyllableIndex = -1;
+    let animating = false;
+    let currentSpeed = 1.0;
+
+    document.addEventListener("DOMContentLoaded", init);
+
+    async function init() {
+      await loadItems();
+      selectEl.addEventListener("change", handleSelectChange);
+      playButton.addEventListener("click", handlePlay);
+      speedRange.addEventListener("input", handleSpeed);
+      handleSpeed();
+    }
+
+    async function loadItems() {
+      try {
+        const res = await fetch(ITEMS_URL);
+        if (!res.ok) throw new Error("items.json not found");
+        const data = await res.json();
+        items = Array.isArray(data.items) ? data.items : [];
+        if (!items.length) throw new Error("items list empty");
+        renderSelect();
+        playButton.disabled = false;
+        statusEl.textContent = "Ready.";
+      } catch (err) {
+        statusEl.textContent = "Error loading items.json. Run the pipeline first.";
+        console.error(err);
+      }
+    }
+
+    function renderSelect() {
+      selectEl.innerHTML = "";
+      items.forEach((item, idx) => {
+        const opt = document.createElement("option");
+        opt.value = item.id;
+        opt.textContent = `${item.text} (${item.id})`;
+        if (idx === 0) opt.selected = true;
+        selectEl.appendChild(opt);
+      });
+      const first = items[0];
+      if (first) {
+        sentenceEl.textContent = first.text;
+      }
+    }
+
+    function handleSelectChange() {
+      const item = getSelectedItem();
+      if (item) sentenceEl.textContent = item.text;
+    }
+
+    function handleSpeed() {
+      currentSpeed = parseFloat(speedRange.value) || 1;
+      speedLabel.textContent = currentSpeed.toFixed(2) + "x";
+      audio.playbackRate = currentSpeed;
+    }
+
+    function handlePlay() {
+      const item = getSelectedItem();
+      if (!item) return;
+      playItem(item);
+    }
+
+    function getSelectedItem() {
+      const id = selectEl.value;
+      return items.find((item) => item.id === id) || null;
+    }
+
+    async function playItem(item) {
+      try {
+        statusEl.textContent = "Loading assets...";
+        const [visemesData, syllablesData] = await Promise.all([
+          fetchJson(`${VISEME_BASE}/${item.id}.visemes.json`),
+          loadSyllables(item.id)
+        ]);
+        visemes = Array.isArray(visemesData) ? visemesData : [];
+
+        renderSyllables(syllablesData, item.text);
+
+        currentViseme = 0;
+        currentSyllable = 0;
+        activeSyllableIndex = -1;
+        animating = true;
+        lastVisemeKey = "NEUTRAL";
+        setMouthViseme("NEUTRAL");
+        audio.src = `${AUDIO_BASE}/${item.id}.wav`;
+        audio.currentTime = 0;
+        audio.playbackRate = currentSpeed;
+
+        audio.onended = () => {
+          animating = false;
+          setMouthViseme("NEUTRAL");
+          highlightSyllable(-1);
+        };
+
+        await audio.play();
+        statusEl.textContent = "Playing.";
+        requestAnimationFrame(update);
+      } catch (err) {
+        statusEl.textContent = "Missing assets for this item.";
+        console.error(err);
+      }
+    }
+
+    async function fetchJson(url) {
+      const res = await fetch(url);
+      if (!res.ok) {
+        throw new Error(`Failed to load ${url}`);
+      }
+      return res.json();
+    }
+
+    async function loadSyllables(id) {
+      try {
+        return await fetchJson(`${SYLLABLES_BASE}/${id}.syllables.json`);
+      } catch (err) {
+        const words = await fetchJson(`${WORDS_BASE}/${id}.words.json`);
+        return (Array.isArray(words) ? words : []).map((word) => ({
+          word: word.word,
+          start: word.start,
+          end: word.end,
+          syllables: [
+            {
+              text: word.word,
+              start: word.start,
+              end: word.end,
+              index: 0
+            }
+          ]
+        }));
+      }
+    }
+
+    function renderSyllables(data, fallbackText) {
+      sentenceEl.innerHTML = "";
+      syllableTimeline = [];
+      if (!Array.isArray(data) || !data.length) {
+        sentenceEl.textContent = fallbackText || "";
+        return;
+      }
+
+      data.forEach((wordEntry) => {
+        const wordSpan = document.createElement("span");
+        wordSpan.className = "word";
+        const syllables = Array.isArray(wordEntry.syllables) && wordEntry.syllables.length
+          ? wordEntry.syllables
+          : [
+              {
+                text: wordEntry.word,
+                start: wordEntry.start,
+                end: wordEntry.end,
+                index: 0
+              }
+            ];
+
+        syllables.forEach((syllable, idx) => {
+          const sylSpan = document.createElement("span");
+          sylSpan.className = "syllable";
+          sylSpan.textContent = syllable.text;
+          wordSpan.appendChild(sylSpan);
+          syllableTimeline.push({
+            start: syllable.start,
+            end: syllable.end,
+            el: sylSpan
+          });
+          if (idx < syllables.length - 1) {
+            const sep = document.createElement("span");
+            sep.className = "syllable-sep";
+            sep.textContent = "-";
+            wordSpan.appendChild(sep);
+          }
+        });
+
+        sentenceEl.appendChild(wordSpan);
+        sentenceEl.appendChild(document.createTextNode(" "));
+      });
+    }
+
+    function setMouthViseme(visemeKeyRaw) {
+      const visemeKey = (visemeKeyRaw || "NEUTRAL").toUpperCase();
+      if (visemeKey === lastVisemeKey) return;
+      const imgPath = MOUTH_MAP[visemeKey] || MOUTH_MAP["NEUTRAL"];
+
+      const next = inactiveMouth;
+      const prev = activeMouth;
+      if (!next.src.endsWith(imgPath)) {
+        next.src = imgPath;
+      }
+      next.className = `avatar-mouth mouth-layer mouth-layer-active viseme-${visemeKey.toLowerCase()}`;
+      prev.className = `avatar-mouth mouth-layer viseme-${lastVisemeKey.toLowerCase()}`;
+
+      activeMouth = next;
+      inactiveMouth = prev;
+      lastVisemeKey = visemeKey;
+    }
+
+    function highlightSyllable(index) {
+      if (activeSyllableIndex === index) return;
+      if (activeSyllableIndex >= 0 && syllableTimeline[activeSyllableIndex]) {
+        syllableTimeline[activeSyllableIndex].el.classList.remove("current");
+      }
+      if (index >= 0 && syllableTimeline[index]) {
+        syllableTimeline[index].el.classList.add("current");
+      }
+      activeSyllableIndex = index;
+    }
+
+    function update() {
+      if (!animating || audio.paused || audio.ended) {
+        animating = false;
+        return;
+      }
+      const t = Math.max(0, audio.currentTime - AV_SYNC_DELAY);
+
+      if (visemes.length > 0) {
+        while (currentViseme < visemes.length - 1 && t > visemes[currentViseme].end) {
+          currentViseme++;
+        }
+        const v = visemes[currentViseme];
+        if (v && v.viseme && t >= v.start) {
+          setMouthViseme(v.viseme);
+        }
+      }
+
+      if (syllableTimeline.length > 0) {
+        while (currentSyllable < syllableTimeline.length - 1 && t > syllableTimeline[currentSyllable].end) {
+          currentSyllable++;
+        }
+        const s = syllableTimeline[currentSyllable];
+        const newIndex = s && t >= s.start && t <= s.end ? currentSyllable : -1;
+        highlightSyllable(newIndex);
+      }
+
+      requestAnimationFrame(update);
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,92 @@
+[
+  {
+    "word": "do",
+    "start": 0,
+    "end": 0.06,
+    "syllables": [
+      {
+        "text": "do",
+        "start": 0,
+        "end": 0.06,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "not",
+    "start": 0.06,
+    "end": 0.22,
+    "syllables": [
+      {
+        "text": "not",
+        "start": 0.06,
+        "end": 0.22,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "write",
+    "start": 0.22,
+    "end": 0.47,
+    "syllables": [
+      {
+        "text": "wri",
+        "start": 0.22,
+        "end": 0.37,
+        "index": 0
+      },
+      {
+        "text": "te",
+        "start": 0.37,
+        "end": 0.47,
+        "index": 1
+      }
+    ]
+  },
+  {
+    "word": "the",
+    "start": 0.47,
+    "end": 0.58,
+    "syllables": [
+      {
+        "text": "the",
+        "start": 0.47,
+        "end": 0.58,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "wrong",
+    "start": 0.58,
+    "end": 0.86,
+    "syllables": [
+      {
+        "text": "wrong",
+        "start": 0.58,
+        "end": 0.86,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "answer",
+    "start": 0.86,
+    "end": 1.32,
+    "syllables": [
+      {
+        "text": "ans",
+        "start": 0.86,
+        "end": 1.09,
+        "index": 0
+      },
+      {
+        "text": "wer",
+        "start": 1.09,
+        "end": 1.32,
+        "index": 1
+      }
+    ]
+  }
+]

@@ -1,0 +1,41 @@
+[
+  {
+    "word": "do",
+    "start": 0,
+    "end": 0.06,
+    "syllables": [
+      {
+        "text": "do",
+        "start": 0,
+        "end": 0.06,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "not",
+    "start": 0.06,
+    "end": 0.28,
+    "syllables": [
+      {
+        "text": "not",
+        "start": 0.06,
+        "end": 0.28,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "you",
+    "start": 0.28,
+    "end": 0.56,
+    "syllables": [
+      {
+        "text": "you",
+        "start": 0.28,
+        "end": 0.56,
+        "index": 0
+      }
+    ]
+  }
+]

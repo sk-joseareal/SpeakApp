@@ -1,0 +1,28 @@
+[
+  {
+    "word": "i",
+    "start": 0.03,
+    "end": 0.12,
+    "syllables": [
+      {
+        "text": "i",
+        "start": 0.03,
+        "end": 0.12,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "see",
+    "start": 0.12,
+    "end": 0.54,
+    "syllables": [
+      {
+        "text": "see",
+        "start": 0.12,
+        "end": 0.54,
+        "index": 0
+      }
+    ]
+  }
+]

@@ -1,0 +1,22 @@
+[
+  {
+    "start": 0,
+    "end": 0.24,
+    "word": "pho"
+  },
+  {
+    "start": 0.24,
+    "end": 0.38,
+    "word": "to"
+  },
+  {
+    "start": 0.38,
+    "end": 0.64,
+    "word": "gra"
+  },
+  {
+    "start": 0.73,
+    "end": 0.9,
+    "word": "<unk>"
+  }
+]

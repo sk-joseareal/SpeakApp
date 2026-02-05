@@ -1,0 +1,54 @@
+[
+  {
+    "word": "three",
+    "start": 0.03,
+    "end": 0.27,
+    "syllables": [
+      {
+        "text": "three",
+        "start": 0.03,
+        "end": 0.27,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "trees",
+    "start": 0.27,
+    "end": 0.61,
+    "syllables": [
+      {
+        "text": "trees",
+        "start": 0.27,
+        "end": 0.61,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "fell",
+    "start": 0.61,
+    "end": 0.83,
+    "syllables": [
+      {
+        "text": "fell",
+        "start": 0.61,
+        "end": 0.83,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "down",
+    "start": 0.83,
+    "end": 1.22,
+    "syllables": [
+      {
+        "text": "down",
+        "start": 0.83,
+        "end": 1.22,
+        "index": 0
+      }
+    ]
+  }
+]

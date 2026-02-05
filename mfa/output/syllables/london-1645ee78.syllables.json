@@ -1,0 +1,21 @@
+[
+  {
+    "word": "london",
+    "start": 0,
+    "end": 0.44,
+    "syllables": [
+      {
+        "text": "lon",
+        "start": 0,
+        "end": 0.22,
+        "index": 0
+      },
+      {
+        "text": "don",
+        "start": 0.22,
+        "end": 0.44,
+        "index": 1
+      }
+    ]
+  }
+]

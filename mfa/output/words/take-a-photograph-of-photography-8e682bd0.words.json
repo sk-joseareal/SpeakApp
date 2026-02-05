@@ -1,0 +1,27 @@
+[
+  {
+    "start": 0,
+    "end": 0.26,
+    "word": "take"
+  },
+  {
+    "start": 0.26,
+    "end": 0.31,
+    "word": "a"
+  },
+  {
+    "start": 0.31,
+    "end": 0.95,
+    "word": "photograph"
+  },
+  {
+    "start": 0.95,
+    "end": 1.05,
+    "word": "of"
+  },
+  {
+    "start": 1.05,
+    "end": 1.91,
+    "word": "photography"
+  }
+]

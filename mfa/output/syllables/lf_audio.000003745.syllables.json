@@ -1,0 +1,125 @@
+[
+  {
+    "word": "the",
+    "start": 0.28,
+    "end": 0.38,
+    "syllables": [
+      {
+        "text": "the",
+        "start": 0.28,
+        "end": 0.38,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "dog",
+    "start": 0.38,
+    "end": 0.71,
+    "syllables": [
+      {
+        "text": "dog",
+        "start": 0.38,
+        "end": 0.71,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "doesn't",
+    "start": 0.71,
+    "end": 1.02,
+    "syllables": [
+      {
+        "text": "doesnt",
+        "start": 0.71,
+        "end": 1.02,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "like",
+    "start": 1.02,
+    "end": 1.24,
+    "syllables": [
+      {
+        "text": "li",
+        "start": 1.02,
+        "end": 1.13,
+        "index": 0
+      },
+      {
+        "text": "ke",
+        "start": 1.13,
+        "end": 1.24,
+        "index": 1
+      }
+    ]
+  },
+  {
+    "word": "to",
+    "start": 1.24,
+    "end": 1.35,
+    "syllables": [
+      {
+        "text": "to",
+        "start": 1.24,
+        "end": 1.35,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "be",
+    "start": 1.35,
+    "end": 1.52,
+    "syllables": [
+      {
+        "text": "be",
+        "start": 1.35,
+        "end": 1.52,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "on",
+    "start": 1.52,
+    "end": 1.66,
+    "syllables": [
+      {
+        "text": "on",
+        "start": 1.52,
+        "end": 1.66,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "its",
+    "start": 1.66,
+    "end": 1.84,
+    "syllables": [
+      {
+        "text": "its",
+        "start": 1.66,
+        "end": 1.84,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "own",
+    "start": 1.84,
+    "end": 2.27,
+    "syllables": [
+      {
+        "text": "own",
+        "start": 1.84,
+        "end": 2.27,
+        "index": 0
+      }
+    ]
+  }
+]

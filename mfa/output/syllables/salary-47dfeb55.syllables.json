@@ -1,0 +1,27 @@
+[
+  {
+    "word": "salary",
+    "start": 0.03,
+    "end": 0.62,
+    "syllables": [
+      {
+        "text": "sa",
+        "start": 0.03,
+        "end": 0.227,
+        "index": 0
+      },
+      {
+        "text": "la",
+        "start": 0.227,
+        "end": 0.423,
+        "index": 1
+      },
+      {
+        "text": "ry",
+        "start": 0.423,
+        "end": 0.62,
+        "index": 2
+      }
+    ]
+  }
+]

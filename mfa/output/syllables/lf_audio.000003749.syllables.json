@@ -1,0 +1,60 @@
+[
+  {
+    "word": "this",
+    "start": 0.36,
+    "end": 0.65,
+    "syllables": [
+      {
+        "text": "this",
+        "start": 0.36,
+        "end": 0.65,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "book",
+    "start": 0.65,
+    "end": 1.08,
+    "syllables": [
+      {
+        "text": "book",
+        "start": 0.65,
+        "end": 1.08,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "is",
+    "start": 1.22,
+    "end": 1.43,
+    "syllables": [
+      {
+        "text": "is",
+        "start": 1.22,
+        "end": 1.43,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "mine",
+    "start": 1.43,
+    "end": 1.92,
+    "syllables": [
+      {
+        "text": "mi",
+        "start": 1.43,
+        "end": 1.675,
+        "index": 0
+      },
+      {
+        "text": "ne",
+        "start": 1.675,
+        "end": 1.92,
+        "index": 1
+      }
+    ]
+  }
+]

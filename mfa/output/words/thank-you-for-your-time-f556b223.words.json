@@ -1,0 +1,27 @@
+[
+  {
+    "start": 0.07,
+    "end": 0.32,
+    "word": "thank"
+  },
+  {
+    "start": 0.32,
+    "end": 0.43,
+    "word": "you"
+  },
+  {
+    "start": 0.43,
+    "end": 0.57,
+    "word": "for"
+  },
+  {
+    "start": 0.57,
+    "end": 0.74,
+    "word": "your"
+  },
+  {
+    "start": 0.74,
+    "end": 1.23,
+    "word": "time"
+  }
+]

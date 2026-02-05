@@ -1,0 +1,27 @@
+[
+  {
+    "word": "vampire",
+    "start": 0,
+    "end": 0.73,
+    "syllables": [
+      {
+        "text": "vam",
+        "start": 0,
+        "end": 0.313,
+        "index": 0
+      },
+      {
+        "text": "pi",
+        "start": 0.313,
+        "end": 0.521,
+        "index": 1
+      },
+      {
+        "text": "re",
+        "start": 0.521,
+        "end": 0.73,
+        "index": 2
+      }
+    ]
+  }
+]

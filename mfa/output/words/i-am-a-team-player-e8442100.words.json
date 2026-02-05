@@ -1,0 +1,27 @@
+[
+  {
+    "start": 0,
+    "end": 0.13,
+    "word": "i"
+  },
+  {
+    "start": 0.13,
+    "end": 0.28,
+    "word": "am"
+  },
+  {
+    "start": 0.28,
+    "end": 0.36,
+    "word": "a"
+  },
+  {
+    "start": 0.36,
+    "end": 0.63,
+    "word": "team"
+  },
+  {
+    "start": 0.63,
+    "end": 1.04,
+    "word": "player"
+  }
+]

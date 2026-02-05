@@ -1,0 +1,17 @@
+[
+  {
+    "start": 0,
+    "end": 0.11,
+    "viseme": "F"
+  },
+  {
+    "start": 0.11,
+    "end": 0.17,
+    "viseme": "U"
+  },
+  {
+    "start": 0.17,
+    "end": 0.38,
+    "viseme": "NEUTRAL"
+  }
+]

@@ -1,0 +1,32 @@
+[
+  {
+    "start": 0,
+    "end": 0.15,
+    "word": "the"
+  },
+  {
+    "start": 0.15,
+    "end": 0.52,
+    "word": "orange"
+  },
+  {
+    "start": 0.52,
+    "end": 0.75,
+    "word": "rose"
+  },
+  {
+    "start": 0.75,
+    "end": 0.9,
+    "word": "is"
+  },
+  {
+    "start": 0.9,
+    "end": 1.01,
+    "word": "at"
+  },
+  {
+    "start": 1.01,
+    "end": 1.39,
+    "word": "home"
+  }
+]

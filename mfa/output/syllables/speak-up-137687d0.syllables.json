@@ -1,0 +1,28 @@
+[
+  {
+    "word": "speak",
+    "start": 0,
+    "end": 0.35,
+    "syllables": [
+      {
+        "text": "speak",
+        "start": 0,
+        "end": 0.35,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "up",
+    "start": 0.35,
+    "end": 0.57,
+    "syllables": [
+      {
+        "text": "up",
+        "start": 0.35,
+        "end": 0.57,
+        "index": 0
+      }
+    ]
+  }
+]

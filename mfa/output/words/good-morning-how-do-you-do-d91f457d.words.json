@@ -1,0 +1,32 @@
+[
+  {
+    "start": 0,
+    "end": 0.18,
+    "word": "good"
+  },
+  {
+    "start": 0.18,
+    "end": 0.61,
+    "word": "morning"
+  },
+  {
+    "start": 0.81,
+    "end": 1.02,
+    "word": "how"
+  },
+  {
+    "start": 1.02,
+    "end": 1.18,
+    "word": "do"
+  },
+  {
+    "start": 1.18,
+    "end": 1.38,
+    "word": "you"
+  },
+  {
+    "start": 1.38,
+    "end": 1.73,
+    "word": "do"
+  }
+]

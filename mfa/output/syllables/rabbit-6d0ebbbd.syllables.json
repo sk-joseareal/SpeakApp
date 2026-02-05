@@ -1,0 +1,21 @@
+[
+  {
+    "word": "rabbit",
+    "start": 0,
+    "end": 0.46,
+    "syllables": [
+      {
+        "text": "rab",
+        "start": 0,
+        "end": 0.23,
+        "index": 0
+      },
+      {
+        "text": "bit",
+        "start": 0.23,
+        "end": 0.46,
+        "index": 1
+      }
+    ]
+  }
+]

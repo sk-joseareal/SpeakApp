@@ -1,0 +1,42 @@
+[
+  {
+    "start": 0,
+    "end": 0.08,
+    "word": "the"
+  },
+  {
+    "start": 0.08,
+    "end": 0.35,
+    "word": "king"
+  },
+  {
+    "start": 0.35,
+    "end": 0.68,
+    "word": "keeps"
+  },
+  {
+    "start": 0.68,
+    "end": 0.75,
+    "word": "a"
+  },
+  {
+    "start": 0.75,
+    "end": 1.06,
+    "word": "kite"
+  },
+  {
+    "start": 1.06,
+    "end": 1.17,
+    "word": "in"
+  },
+  {
+    "start": 1.17,
+    "end": 1.26,
+    "word": "the"
+  },
+  {
+    "start": 1.26,
+    "end": 1.77,
+    "word": "sky"
+  }
+]

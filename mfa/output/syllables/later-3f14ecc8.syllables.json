@@ -1,0 +1,21 @@
+[
+  {
+    "word": "later",
+    "start": 0,
+    "end": 0.38,
+    "syllables": [
+      {
+        "text": "la",
+        "start": 0,
+        "end": 0.152,
+        "index": 0
+      },
+      {
+        "text": "ter",
+        "start": 0.152,
+        "end": 0.38,
+        "index": 1
+      }
+    ]
+  }
+]

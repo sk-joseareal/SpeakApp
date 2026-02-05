@@ -1,0 +1,21 @@
+[
+  {
+    "word": "please",
+    "start": 0.03,
+    "end": 0.46,
+    "syllables": [
+      {
+        "text": "plea",
+        "start": 0.03,
+        "end": 0.317,
+        "index": 0
+      },
+      {
+        "text": "se",
+        "start": 0.317,
+        "end": 0.46,
+        "index": 1
+      }
+    ]
+  }
+]

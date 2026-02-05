@@ -1,0 +1,27 @@
+[
+  {
+    "word": "culture",
+    "start": 0,
+    "end": 0.48,
+    "syllables": [
+      {
+        "text": "cul",
+        "start": 0,
+        "end": 0.206,
+        "index": 0
+      },
+      {
+        "text": "tu",
+        "start": 0.206,
+        "end": 0.343,
+        "index": 1
+      },
+      {
+        "text": "re",
+        "start": 0.343,
+        "end": 0.48,
+        "index": 2
+      }
+    ]
+  }
+]

@@ -1,0 +1,32 @@
+[
+  {
+    "start": 0,
+    "end": 0.13,
+    "word": "they"
+  },
+  {
+    "start": 0.13,
+    "end": 0.34,
+    "word": "went"
+  },
+  {
+    "start": 0.34,
+    "end": 0.5,
+    "word": "there"
+  },
+  {
+    "start": 0.5,
+    "end": 0.64,
+    "word": "for"
+  },
+  {
+    "start": 0.64,
+    "end": 0.75,
+    "word": "the"
+  },
+  {
+    "start": 0.75,
+    "end": 1.12,
+    "word": "day"
+  }
+]

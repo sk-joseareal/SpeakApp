@@ -1,0 +1,27 @@
+[
+  {
+    "start": 0,
+    "end": 0.09,
+    "word": "i"
+  },
+  {
+    "start": 0.09,
+    "end": 0.19,
+    "word": "would"
+  },
+  {
+    "start": 0.19,
+    "end": 0.41,
+    "word": "like"
+  },
+  {
+    "start": 0.41,
+    "end": 0.53,
+    "word": "to"
+  },
+  {
+    "start": 0.53,
+    "end": 0.85,
+    "word": "book"
+  }
+]

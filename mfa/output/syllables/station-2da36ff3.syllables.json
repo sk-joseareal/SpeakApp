@@ -1,0 +1,21 @@
+[
+  {
+    "word": "station",
+    "start": 0,
+    "end": 0.62,
+    "syllables": [
+      {
+        "text": "sta",
+        "start": 0,
+        "end": 0.266,
+        "index": 0
+      },
+      {
+        "text": "tion",
+        "start": 0.266,
+        "end": 0.62,
+        "index": 1
+      }
+    ]
+  }
+]

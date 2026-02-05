@@ -1,0 +1,21 @@
+[
+  {
+    "word": "about",
+    "start": 0,
+    "end": 0.42,
+    "syllables": [
+      {
+        "text": "a",
+        "start": 0,
+        "end": 0.084,
+        "index": 0
+      },
+      {
+        "text": "bout",
+        "start": 0.084,
+        "end": 0.42,
+        "index": 1
+      }
+    ]
+  }
+]

@@ -1,0 +1,80 @@
+[
+  {
+    "word": "what",
+    "start": 0,
+    "end": 0.19,
+    "syllables": [
+      {
+        "text": "what",
+        "start": 0,
+        "end": 0.19,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "do",
+    "start": 0.19,
+    "end": 0.34,
+    "syllables": [
+      {
+        "text": "do",
+        "start": 0.19,
+        "end": 0.34,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "you",
+    "start": 0.34,
+    "end": 0.55,
+    "syllables": [
+      {
+        "text": "you",
+        "start": 0.34,
+        "end": 0.55,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "want",
+    "start": 0.55,
+    "end": 0.82,
+    "syllables": [
+      {
+        "text": "want",
+        "start": 0.55,
+        "end": 0.82,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "to",
+    "start": 0.82,
+    "end": 0.93,
+    "syllables": [
+      {
+        "text": "to",
+        "start": 0.82,
+        "end": 0.93,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "do",
+    "start": 0.93,
+    "end": 1.28,
+    "syllables": [
+      {
+        "text": "do",
+        "start": 0.93,
+        "end": 1.28,
+        "index": 0
+      }
+    ]
+  }
+]

@@ -1,0 +1,92 @@
+[
+  {
+    "word": "take",
+    "start": 0,
+    "end": 0.25,
+    "syllables": [
+      {
+        "text": "ta",
+        "start": 0,
+        "end": 0.125,
+        "index": 0
+      },
+      {
+        "text": "ke",
+        "start": 0.125,
+        "end": 0.25,
+        "index": 1
+      }
+    ]
+  },
+  {
+    "word": "the",
+    "start": 0.25,
+    "end": 0.35,
+    "syllables": [
+      {
+        "text": "the",
+        "start": 0.25,
+        "end": 0.35,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "ticket",
+    "start": 0.35,
+    "end": 0.74,
+    "syllables": [
+      {
+        "text": "tic",
+        "start": 0.35,
+        "end": 0.545,
+        "index": 0
+      },
+      {
+        "text": "ket",
+        "start": 0.545,
+        "end": 0.74,
+        "index": 1
+      }
+    ]
+  },
+  {
+    "word": "to",
+    "start": 0.74,
+    "end": 0.84,
+    "syllables": [
+      {
+        "text": "to",
+        "start": 0.74,
+        "end": 0.84,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "the",
+    "start": 0.84,
+    "end": 0.96,
+    "syllables": [
+      {
+        "text": "the",
+        "start": 0.84,
+        "end": 0.96,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "train",
+    "start": 0.96,
+    "end": 1.41,
+    "syllables": [
+      {
+        "text": "train",
+        "start": 0.96,
+        "end": 1.41,
+        "index": 0
+      }
+    ]
+  }
+]

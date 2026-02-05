@@ -1,0 +1,21 @@
+[
+  {
+    "word": "receipt",
+    "start": 0,
+    "end": 0.55,
+    "syllables": [
+      {
+        "text": "re",
+        "start": 0,
+        "end": 0.157,
+        "index": 0
+      },
+      {
+        "text": "ceipt",
+        "start": 0.157,
+        "end": 0.55,
+        "index": 1
+      }
+    ]
+  }
+]

@@ -1,0 +1,54 @@
+[
+  {
+    "word": "i",
+    "start": 0.03,
+    "end": 0.12,
+    "syllables": [
+      {
+        "text": "i",
+        "start": 0.03,
+        "end": 0.12,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "see",
+    "start": 0.12,
+    "end": 0.36,
+    "syllables": [
+      {
+        "text": "see",
+        "start": 0.12,
+        "end": 0.36,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "your",
+    "start": 0.36,
+    "end": 0.53,
+    "syllables": [
+      {
+        "text": "your",
+        "start": 0.36,
+        "end": 0.53,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "point",
+    "start": 0.53,
+    "end": 0.98,
+    "syllables": [
+      {
+        "text": "point",
+        "start": 0.53,
+        "end": 0.98,
+        "index": 0
+      }
+    ]
+  }
+]

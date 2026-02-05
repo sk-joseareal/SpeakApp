@@ -1,0 +1,28 @@
+[
+  {
+    "word": "ta",
+    "start": 0.03,
+    "end": 0.17,
+    "syllables": [
+      {
+        "text": "ta",
+        "start": 0.03,
+        "end": 0.17,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "ble",
+    "start": 0.17,
+    "end": 0.58,
+    "syllables": [
+      {
+        "text": "ble",
+        "start": 0.17,
+        "end": 0.58,
+        "index": 0
+      }
+    ]
+  }
+]

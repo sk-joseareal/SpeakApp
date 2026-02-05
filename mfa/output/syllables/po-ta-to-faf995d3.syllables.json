@@ -1,0 +1,41 @@
+[
+  {
+    "word": "po",
+    "start": 0,
+    "end": 0.17,
+    "syllables": [
+      {
+        "text": "po",
+        "start": 0,
+        "end": 0.17,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "ta",
+    "start": 0.17,
+    "end": 0.42,
+    "syllables": [
+      {
+        "text": "ta",
+        "start": 0.17,
+        "end": 0.42,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "to",
+    "start": 0.45,
+    "end": 0.79,
+    "syllables": [
+      {
+        "text": "to",
+        "start": 0.45,
+        "end": 0.79,
+        "index": 0
+      }
+    ]
+  }
+]

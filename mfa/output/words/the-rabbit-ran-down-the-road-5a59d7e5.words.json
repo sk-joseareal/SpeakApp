@@ -1,0 +1,32 @@
+[
+  {
+    "start": 0,
+    "end": 0.09,
+    "word": "the"
+  },
+  {
+    "start": 0.09,
+    "end": 0.45,
+    "word": "rabbit"
+  },
+  {
+    "start": 0.45,
+    "end": 0.71,
+    "word": "ran"
+  },
+  {
+    "start": 0.71,
+    "end": 0.95,
+    "word": "down"
+  },
+  {
+    "start": 0.95,
+    "end": 1.05,
+    "word": "the"
+  },
+  {
+    "start": 1.05,
+    "end": 1.39,
+    "word": "road"
+  }
+]

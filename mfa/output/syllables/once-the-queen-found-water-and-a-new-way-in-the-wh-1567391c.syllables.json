@@ -1,0 +1,189 @@
+[
+  {
+    "word": "once",
+    "start": 0,
+    "end": 0.5,
+    "syllables": [
+      {
+        "text": "on",
+        "start": 0,
+        "end": 0.25,
+        "index": 0
+      },
+      {
+        "text": "ce",
+        "start": 0.25,
+        "end": 0.5,
+        "index": 1
+      }
+    ]
+  },
+  {
+    "word": "the",
+    "start": 0.69,
+    "end": 0.78,
+    "syllables": [
+      {
+        "text": "the",
+        "start": 0.69,
+        "end": 0.78,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "queen",
+    "start": 0.78,
+    "end": 1.11,
+    "syllables": [
+      {
+        "text": "queen",
+        "start": 0.78,
+        "end": 1.11,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "found",
+    "start": 1.11,
+    "end": 1.46,
+    "syllables": [
+      {
+        "text": "found",
+        "start": 1.11,
+        "end": 1.46,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "water",
+    "start": 1.46,
+    "end": 1.76,
+    "syllables": [
+      {
+        "text": "wa",
+        "start": 1.46,
+        "end": 1.58,
+        "index": 0
+      },
+      {
+        "text": "ter",
+        "start": 1.58,
+        "end": 1.76,
+        "index": 1
+      }
+    ]
+  },
+  {
+    "word": "and",
+    "start": 1.76,
+    "end": 1.93,
+    "syllables": [
+      {
+        "text": "and",
+        "start": 1.76,
+        "end": 1.93,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "a",
+    "start": 1.93,
+    "end": 1.98,
+    "syllables": [
+      {
+        "text": "a",
+        "start": 1.93,
+        "end": 1.98,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "new",
+    "start": 1.98,
+    "end": 2.18,
+    "syllables": [
+      {
+        "text": "new",
+        "start": 1.98,
+        "end": 2.18,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "way",
+    "start": 2.18,
+    "end": 2.39,
+    "syllables": [
+      {
+        "text": "way",
+        "start": 2.18,
+        "end": 2.39,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "in",
+    "start": 2.39,
+    "end": 2.49,
+    "syllables": [
+      {
+        "text": "in",
+        "start": 2.39,
+        "end": 2.49,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "the",
+    "start": 2.49,
+    "end": 2.59,
+    "syllables": [
+      {
+        "text": "the",
+        "start": 2.49,
+        "end": 2.59,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "white",
+    "start": 2.59,
+    "end": 2.86,
+    "syllables": [
+      {
+        "text": "whi",
+        "start": 2.59,
+        "end": 2.752,
+        "index": 0
+      },
+      {
+        "text": "te",
+        "start": 2.752,
+        "end": 2.86,
+        "index": 1
+      }
+    ]
+  },
+  {
+    "word": "world",
+    "start": 2.86,
+    "end": 3.24,
+    "syllables": [
+      {
+        "text": "world",
+        "start": 2.86,
+        "end": 3.24,
+        "index": 0
+      }
+    ]
+  }
+]

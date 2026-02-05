@@ -1,0 +1,22 @@
+[
+  {
+    "start": 0.4,
+    "end": 0.53,
+    "word": "is"
+  },
+  {
+    "start": 0.53,
+    "end": 0.7,
+    "word": "this"
+  },
+  {
+    "start": 0.7,
+    "end": 0.97,
+    "word": "book"
+  },
+  {
+    "start": 0.97,
+    "end": 1.52,
+    "word": "yours"
+  }
+]

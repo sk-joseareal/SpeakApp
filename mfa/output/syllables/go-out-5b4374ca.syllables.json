@@ -1,0 +1,28 @@
+[
+  {
+    "word": "go",
+    "start": 0,
+    "end": 0.21,
+    "syllables": [
+      {
+        "text": "go",
+        "start": 0,
+        "end": 0.21,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "out",
+    "start": 0.21,
+    "end": 0.51,
+    "syllables": [
+      {
+        "text": "out",
+        "start": 0.21,
+        "end": 0.51,
+        "index": 0
+      }
+    ]
+  }
+]

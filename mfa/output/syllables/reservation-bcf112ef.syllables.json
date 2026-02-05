@@ -1,0 +1,33 @@
+[
+  {
+    "word": "reservation",
+    "start": 0,
+    "end": 0.8,
+    "syllables": [
+      {
+        "text": "re",
+        "start": 0,
+        "end": 0.145,
+        "index": 0
+      },
+      {
+        "text": "ser",
+        "start": 0.145,
+        "end": 0.364,
+        "index": 1
+      },
+      {
+        "text": "va",
+        "start": 0.364,
+        "end": 0.509,
+        "index": 2
+      },
+      {
+        "text": "tion",
+        "start": 0.509,
+        "end": 0.8,
+        "index": 3
+      }
+    ]
+  }
+]

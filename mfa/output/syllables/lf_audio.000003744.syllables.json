@@ -1,0 +1,54 @@
+[
+  {
+    "word": "this",
+    "start": 0.48,
+    "end": 0.73,
+    "syllables": [
+      {
+        "text": "this",
+        "start": 0.48,
+        "end": 0.73,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "is",
+    "start": 0.73,
+    "end": 0.85,
+    "syllables": [
+      {
+        "text": "is",
+        "start": 0.73,
+        "end": 0.85,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "her",
+    "start": 0.85,
+    "end": 1,
+    "syllables": [
+      {
+        "text": "her",
+        "start": 0.85,
+        "end": 1,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "dress",
+    "start": 1,
+    "end": 1.6,
+    "syllables": [
+      {
+        "text": "dress",
+        "start": 1,
+        "end": 1.6,
+        "index": 0
+      }
+    ]
+  }
+]

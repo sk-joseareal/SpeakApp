@@ -1,0 +1,66 @@
+[
+  {
+    "word": "these",
+    "start": 0.45,
+    "end": 0.78,
+    "syllables": [
+      {
+        "text": "the",
+        "start": 0.45,
+        "end": 0.648,
+        "index": 0
+      },
+      {
+        "text": "se",
+        "start": 0.648,
+        "end": 0.78,
+        "index": 1
+      }
+    ]
+  },
+  {
+    "word": "are",
+    "start": 0.78,
+    "end": 0.91,
+    "syllables": [
+      {
+        "text": "a",
+        "start": 0.78,
+        "end": 0.823,
+        "index": 0
+      },
+      {
+        "text": "re",
+        "start": 0.823,
+        "end": 0.91,
+        "index": 1
+      }
+    ]
+  },
+  {
+    "word": "your",
+    "start": 0.91,
+    "end": 1.08,
+    "syllables": [
+      {
+        "text": "your",
+        "start": 0.91,
+        "end": 1.08,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "seats",
+    "start": 1.08,
+    "end": 1.74,
+    "syllables": [
+      {
+        "text": "seats",
+        "start": 1.08,
+        "end": 1.74,
+        "index": 0
+      }
+    ]
+  }
+]

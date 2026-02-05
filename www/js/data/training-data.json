@@ -16,37 +16,38 @@
       "note": "Result: speaking confidently in real situations.",
       "moduleIds": [
         "module-greetings",
-        "module-food"
+        "module-food",
+        "module-travel"
+      ]
+    },
+    {
+      "id": "difficult_sounds",
+      "title": "Difficult Sounds",
+      "note": "Master minimal pairs: Ship vs Sheep.",
+      "moduleIds": [
+        "module-vowels",
+        "module-consonants",
+        "module-silent"
       ]
     },
     {
       "id": "rhythm",
-      "title": "Rhythm Journey",
+      "title": "Rythm Flow",
       "note": "Resultado: ritmo natural y fluidez.",
       "moduleIds": [
-        "module-1",
-        "module-2",
-        "module-3"
+        "module-word-stress",
+        "module-linking",
+        "module-sentence-stress"
       ]
     },
     {
-      "id": "word",
-      "title": "Word Journey",
-      "note": "Resultado: pensar en palabras, no letras.",
+      "id": "professional",
+      "title": "Professional English",
+      "note": "Business communication skills.",
       "moduleIds": [
-        "module-1",
-        "module-2",
-        "module-3"
-      ]
-    },
-    {
-      "id": "sentence",
-      "title": "Sentence Journey",
-      "note": "Resultado: frases fluidas y naturales.",
-      "moduleIds": [
-        "module-1",
-        "module-2",
-        "module-3"
+        "module-interview",
+        "module-meetings",
+        "module-biz-calls"
       ]
     }
   ],
@@ -56,7 +57,9 @@
       "title": "Greetings",
       "subtitle": "Meeting people",
       "sessionIds": [
-        "session-meeting-friend"
+        "session-meeting-friend",
+        "session-formal-informal",
+        "session-goodbyes"
       ]
     },
     {
@@ -64,7 +67,9 @@
       "title": "Ordering Food",
       "subtitle": "At the cafe",
       "sessionIds": [
-        "session-coffee-shop"
+        "session-coffee-shop",
+        "session-booking-table",
+        "session-asking-bill"
       ]
     },
     {
@@ -101,6 +106,106 @@
         "session-r",
         "session-l",
         "session-k"
+      ]
+    },
+    {
+      "id": "module-vowels",
+      "title": "Short vs Long Vowels",
+      "subtitle": "Vowel Sounds",
+      "sessionIds": [
+        "session-ship-sheep",
+        "session-full-fool",
+        "session-pen-pan"
+      ]
+    },
+    {
+      "id": "module-consonants",
+      "title": "Consonant Clusters",
+      "subtitle": "Tricky Consonants",
+      "sessionIds": [
+        "session-tree-three",
+        "session-day-they",
+        "session-sea-she"
+      ]
+    },
+    {
+      "id": "module-travel",
+      "title": "Travel Essentials",
+      "subtitle": "On the go",
+      "sessionIds": [
+        "session-hotel-checkin",
+        "session-asking-directions",
+        "session-buying-tickets"
+      ]
+    },
+    {
+      "id": "module-silent",
+      "title": "Silent Letters",
+      "subtitle": "Hidden Sounds",
+      "sessionIds": [
+        "session-silent-k",
+        "session-silent-w",
+        "session-silent-l"
+      ]
+    },
+    {
+      "id": "module-word-stress",
+      "title": "Word Stress",
+      "subtitle": "Rhythm Basics",
+      "sessionIds": [
+        "session-stress-2",
+        "session-stress-3",
+        "session-stress-shift"
+      ]
+    },
+    {
+      "id": "module-linking",
+      "title": "Linking Sounds",
+      "subtitle": "Natural Flow",
+      "sessionIds": [
+        "session-link-cv",
+        "session-link-vv",
+        "session-link-ty"
+      ]
+    },
+    {
+      "id": "module-sentence-stress",
+      "title": "Sentence Stress",
+      "subtitle": "Music of English",
+      "sessionIds": [
+        "session-schwa",
+        "session-focus-words",
+        "session-natural-flow"
+      ]
+    },
+    {
+      "id": "module-interview",
+      "title": "Job Interview",
+      "subtitle": "Career Skills",
+      "sessionIds": [
+        "session-strengths",
+        "session-experience",
+        "session-why-us"
+      ]
+    },
+    {
+      "id": "module-meetings",
+      "title": "Business Meetings",
+      "subtitle": "Collaboration",
+      "sessionIds": [
+        "session-meeting-open",
+        "session-agreeing",
+        "session-polite-disagreement"
+      ]
+    },
+    {
+      "id": "module-biz-calls",
+      "title": "Business Calls",
+      "subtitle": "Telephoning",
+      "sessionIds": [
+        "session-call-intro",
+        "session-clarifying",
+        "session-call-closing"
       ]
     }
   ],
@@ -796,6 +901,1310 @@
           "hint": "Ahora pronuncia la frase entera.",
           "sentence": "The king keeps a kite in the sky.",
           "expected": "The king keeps a kite in the sky."
+        }
+      }
+    },
+    {
+      "id": "session-ship-sheep",
+      "title": "Ship vs Sheep",
+      "progress": {
+        "done": 0,
+        "total": 10
+      },
+      "status": {
+        "score": null,
+        "label": "",
+        "tone": "neutral"
+      },
+      "speak": {
+        "focus": "i vs i:",
+        "sound": {
+          "title": "THE SOUND",
+          "hint": "Distinguish between short /I/ and long /i:/.",
+          "phonetic": "Ship / Sheep",
+          "expected": "Sheep"
+        },
+        "spelling": {
+          "title": "MINIMAL PAIRS",
+          "hint": "Listen to the difference.",
+          "words": [
+            "SHIP",
+            "SHEEP",
+            "FIT",
+            "FEET",
+            "SIT",
+            "SEAT"
+          ],
+          "expected": "Sheep"
+        },
+        "sentence": {
+          "title": "PRACTICE SENTENCE",
+          "hint": "Say the full sentence.",
+          "sentence": "The sheep is on the ship.",
+          "expected": "The sheep is on the ship."
+        }
+      }
+    },
+    {
+      "id": "session-tree-three",
+      "title": "Tree vs Three",
+      "progress": {
+        "done": 0,
+        "total": 10
+      },
+      "status": {
+        "score": null,
+        "label": "",
+        "tone": "neutral"
+      },
+      "speak": {
+        "focus": "t vs th",
+        "sound": {
+          "title": "THE SOUND",
+          "hint": "Place tongue between teeth for TH.",
+          "phonetic": "Tree / Three",
+          "expected": "Three"
+        },
+        "spelling": {
+          "title": "MINIMAL PAIRS",
+          "hint": "Listen to the difference.",
+          "words": [
+            "TREE",
+            "THREE",
+            "TANK",
+            "THANK",
+            "TIN",
+            "THIN"
+          ],
+          "expected": "Three"
+        },
+        "sentence": {
+          "title": "PRACTICE SENTENCE",
+          "hint": "Say the full sentence.",
+          "sentence": "Three trees fell down.",
+          "expected": "Three trees fell down."
+        }
+      }
+    },
+    {
+      "id": "session-formal-informal",
+      "title": "Formal vs Informal",
+      "progress": {
+        "done": 0,
+        "total": 10
+      },
+      "status": {
+        "score": null,
+        "label": "",
+        "tone": "neutral"
+      },
+      "speak": {
+        "focus": "Tone",
+        "sound": {
+          "title": "GREETING",
+          "hint": "Formal setting.",
+          "phonetic": "Good morning",
+          "expected": "Good morning"
+        },
+        "spelling": {
+          "title": "OPTIONS",
+          "hint": "Choose the formal one.",
+          "words": [
+            "HI",
+            "HEY",
+            "HELLO",
+            "GOOD MORNING"
+          ],
+          "expected": "Good morning"
+        },
+        "sentence": {
+          "title": "CONVERSATION",
+          "hint": "Ask politely.",
+          "sentence": "Good morning, how do you do?",
+          "expected": "Good morning, how do you do?"
+        }
+      }
+    },
+    {
+      "id": "session-goodbyes",
+      "title": "Saying Goodbye",
+      "progress": {
+        "done": 0,
+        "total": 10
+      },
+      "status": {
+        "score": null,
+        "label": "",
+        "tone": "neutral"
+      },
+      "speak": {
+        "focus": "Bye",
+        "sound": {
+          "title": "FAREWELL",
+          "hint": "Casual parting.",
+          "phonetic": "See you!",
+          "expected": "See you"
+        },
+        "spelling": {
+          "title": "OPTIONS",
+          "hint": "Complete the phrase.",
+          "words": [
+            "LATER",
+            "SOON",
+            "TOMORROW"
+          ],
+          "expected": "See you later"
+        },
+        "sentence": {
+          "title": "CONVERSATION",
+          "hint": "Be friendly.",
+          "sentence": "See you later, have a nice day!",
+          "expected": "See you later, have a nice day!"
+        }
+      }
+    },
+    {
+      "id": "session-booking-table",
+      "title": "Booking a Table",
+      "progress": {
+        "done": 0,
+        "total": 10
+      },
+      "status": {
+        "score": null,
+        "label": "",
+        "tone": "neutral"
+      },
+      "speak": {
+        "focus": "Booking",
+        "sound": {
+          "title": "REQUEST",
+          "hint": "I would like...",
+          "phonetic": "I'd like to book",
+          "expected": "I'd like to book"
+        },
+        "spelling": {
+          "title": "DETAILS",
+          "hint": "Number of people.",
+          "words": [
+            "ONE",
+            "TWO",
+            "THREE",
+            "FOUR"
+          ],
+          "expected": "Table for two"
+        },
+        "sentence": {
+          "title": "FULL REQUEST",
+          "hint": "Time and people.",
+          "sentence": "I'd like a table for two at eight.",
+          "expected": "I'd like a table for two at eight."
+        }
+      }
+    },
+    {
+      "id": "session-asking-bill",
+      "title": "Asking for the Bill",
+      "progress": {
+        "done": 0,
+        "total": 10
+      },
+      "status": {
+        "score": null,
+        "label": "",
+        "tone": "neutral"
+      },
+      "speak": {
+        "focus": "Bill",
+        "sound": {
+          "title": "REQUEST",
+          "hint": "Polite request.",
+          "phonetic": "The bill, please",
+          "expected": "The bill please"
+        },
+        "spelling": {
+          "title": "VARIATIONS",
+          "hint": "Another word for bill.",
+          "words": [
+            "CHECK",
+            "RECEIPT",
+            "TOTAL"
+          ],
+          "expected": "The check"
+        },
+        "sentence": {
+          "title": "FULL REQUEST",
+          "hint": "Ask politely.",
+          "sentence": "Could we have the bill, please?",
+          "expected": "Could we have the bill, please?"
+        }
+      }
+    },
+    {
+      "id": "session-hotel-checkin",
+      "title": "Hotel Check-in",
+      "progress": {
+        "done": 0,
+        "total": 10
+      },
+      "status": {
+        "score": null,
+        "label": "",
+        "tone": "neutral"
+      },
+      "speak": {
+        "focus": "Check-in",
+        "sound": {
+          "title": "ARRIVAL",
+          "hint": "State your intent.",
+          "phonetic": "Check in",
+          "expected": "Check in"
+        },
+        "spelling": {
+          "title": "DETAILS",
+          "hint": "Your name.",
+          "words": [
+            "NAME",
+            "RESERVATION",
+            "BOOKING"
+          ],
+          "expected": "Reservation"
+        },
+        "sentence": {
+          "title": "FULL PHRASE",
+          "hint": "Give your name.",
+          "sentence": "I have a reservation under Smith.",
+          "expected": "I have a reservation under Smith."
+        }
+      }
+    },
+    {
+      "id": "session-asking-directions",
+      "title": "Asking Directions",
+      "progress": {
+        "done": 0,
+        "total": 10
+      },
+      "status": {
+        "score": null,
+        "label": "",
+        "tone": "neutral"
+      },
+      "speak": {
+        "focus": "Where",
+        "sound": {
+          "title": "QUESTION",
+          "hint": "Start politely.",
+          "phonetic": "Excuse me",
+          "expected": "Excuse me"
+        },
+        "spelling": {
+          "title": "DESTINATION",
+          "hint": "Where are you going?",
+          "words": [
+            "STATION",
+            "BANK",
+            "HOTEL"
+          ],
+          "expected": "Station"
+        },
+        "sentence": {
+          "title": "FULL QUESTION",
+          "hint": "Ask for location.",
+          "sentence": "Excuse me, where is the train station?",
+          "expected": "Excuse me, where is the train station?"
+        }
+      }
+    },
+    {
+      "id": "session-buying-tickets",
+      "title": "Buying Tickets",
+      "progress": {
+        "done": 0,
+        "total": 10
+      },
+      "status": {
+        "score": null,
+        "label": "",
+        "tone": "neutral"
+      },
+      "speak": {
+        "focus": "Ticket",
+        "sound": {
+          "title": "REQUEST",
+          "hint": "I want...",
+          "phonetic": "One ticket",
+          "expected": "One ticket"
+        },
+        "spelling": {
+          "title": "DESTINATION",
+          "hint": "Place.",
+          "words": [
+            "LONDON",
+            "PARIS",
+            "NEW YORK"
+          ],
+          "expected": "London"
+        },
+        "sentence": {
+          "title": "FULL REQUEST",
+          "hint": "Be polite.",
+          "sentence": "I'd like one ticket to London, please.",
+          "expected": "I'd like one ticket to London, please."
+        }
+      }
+    },
+    {
+      "id": "session-full-fool",
+      "title": "Full vs Fool",
+      "progress": {
+        "done": 0,
+        "total": 10
+      },
+      "status": {
+        "score": null,
+        "label": "",
+        "tone": "neutral"
+      },
+      "speak": {
+        "focus": "u vs u:",
+        "sound": {
+          "title": "THE SOUND",
+          "hint": "Short vs Long U.",
+          "phonetic": "Full / Fool",
+          "expected": "Fool"
+        },
+        "spelling": {
+          "title": "MINIMAL PAIRS",
+          "hint": "Listen.",
+          "words": [
+            "PULL",
+            "POOL",
+            "FULL",
+            "FOOL"
+          ],
+          "expected": "Pool"
+        },
+        "sentence": {
+          "title": "SENTENCE",
+          "hint": "Mix them.",
+          "sentence": "The fool is full of food.",
+          "expected": "The fool is full of food."
+        }
+      }
+    },
+    {
+      "id": "session-pen-pan",
+      "title": "Pen vs Pan",
+      "progress": {
+        "done": 0,
+        "total": 10
+      },
+      "status": {
+        "score": null,
+        "label": "",
+        "tone": "neutral"
+      },
+      "speak": {
+        "focus": "e vs æ",
+        "sound": {
+          "title": "THE SOUND",
+          "hint": "Mouth width.",
+          "phonetic": "Pen / Pan",
+          "expected": "Pan"
+        },
+        "spelling": {
+          "title": "MINIMAL PAIRS",
+          "hint": "Listen.",
+          "words": [
+            "MEN",
+            "MAN",
+            "PEN",
+            "PAN"
+          ],
+          "expected": "Man"
+        },
+        "sentence": {
+          "title": "SENTENCE",
+          "hint": "Mix them.",
+          "sentence": "The man has a pen in the pan.",
+          "expected": "The man has a pen in the pan."
+        }
+      }
+    },
+    {
+      "id": "session-day-they",
+      "title": "Day vs They",
+      "progress": {
+        "done": 0,
+        "total": 10
+      },
+      "status": {
+        "score": null,
+        "label": "",
+        "tone": "neutral"
+      },
+      "speak": {
+        "focus": "d vs ð",
+        "sound": {
+          "title": "THE SOUND",
+          "hint": "Tongue position.",
+          "phonetic": "Day / They",
+          "expected": "They"
+        },
+        "spelling": {
+          "title": "MINIMAL PAIRS",
+          "hint": "Listen.",
+          "words": [
+            "DARE",
+            "THERE",
+            "DAY",
+            "THEY"
+          ],
+          "expected": "There"
+        },
+        "sentence": {
+          "title": "SENTENCE",
+          "hint": "Mix them.",
+          "sentence": "They went there for the day.",
+          "expected": "They went there for the day."
+        }
+      }
+    },
+    {
+      "id": "session-sea-she",
+      "title": "Sea vs She",
+      "progress": {
+        "done": 0,
+        "total": 10
+      },
+      "status": {
+        "score": null,
+        "label": "",
+        "tone": "neutral"
+      },
+      "speak": {
+        "focus": "s vs ʃ",
+        "sound": {
+          "title": "THE SOUND",
+          "hint": "Hiss vs Hush.",
+          "phonetic": "Sea / She",
+          "expected": "She"
+        },
+        "spelling": {
+          "title": "MINIMAL PAIRS",
+          "hint": "Listen.",
+          "words": [
+            "SUE",
+            "SHOE",
+            "SEA",
+            "SHE"
+          ],
+          "expected": "Shoe"
+        },
+        "sentence": {
+          "title": "SENTENCE",
+          "hint": "Tongue twister.",
+          "sentence": "She sells sea shells.",
+          "expected": "She sells sea shells."
+        }
+      }
+    },
+    {
+      "id": "session-silent-k",
+      "title": "Silent K",
+      "progress": {
+        "done": 0,
+        "total": 10
+      },
+      "status": {
+        "score": null,
+        "label": "",
+        "tone": "neutral"
+      },
+      "speak": {
+        "focus": "Silent K",
+        "sound": {
+          "title": "THE SOUND",
+          "hint": "Don't pronounce K.",
+          "phonetic": "Knife",
+          "expected": "Knife"
+        },
+        "spelling": {
+          "title": "WORDS",
+          "hint": "Silent K.",
+          "words": [
+            "KNEE",
+            "KNOW",
+            "KNOCK"
+          ],
+          "expected": "Knee"
+        },
+        "sentence": {
+          "title": "SENTENCE",
+          "hint": "Context.",
+          "sentence": "I know how to use a knife.",
+          "expected": "I know how to use a knife."
+        }
+      }
+    },
+    {
+      "id": "session-silent-w",
+      "title": "Silent W",
+      "progress": {
+        "done": 0,
+        "total": 10
+      },
+      "status": {
+        "score": null,
+        "label": "",
+        "tone": "neutral"
+      },
+      "speak": {
+        "focus": "Silent W",
+        "sound": {
+          "title": "THE SOUND",
+          "hint": "Don't pronounce W.",
+          "phonetic": "Write",
+          "expected": "Write"
+        },
+        "spelling": {
+          "title": "WORDS",
+          "hint": "Silent W.",
+          "words": [
+            "WRONG",
+            "WRIST",
+            "WRAP"
+          ],
+          "expected": "Wrong"
+        },
+        "sentence": {
+          "title": "SENTENCE",
+          "hint": "Context.",
+          "sentence": "Don't write the wrong answer.",
+          "expected": "Don't write the wrong answer."
+        }
+      }
+    },
+    {
+      "id": "session-silent-l",
+      "title": "Silent L",
+      "progress": {
+        "done": 0,
+        "total": 10
+      },
+      "status": {
+        "score": null,
+        "label": "",
+        "tone": "neutral"
+      },
+      "speak": {
+        "focus": "Silent L",
+        "sound": {
+          "title": "THE SOUND",
+          "hint": "Don't pronounce L.",
+          "phonetic": "Walk",
+          "expected": "Walk"
+        },
+        "spelling": {
+          "title": "WORDS",
+          "hint": "Silent L.",
+          "words": [
+            "TALK",
+            "HALF",
+            "CALM"
+          ],
+          "expected": "Talk"
+        },
+        "sentence": {
+          "title": "SENTENCE",
+          "hint": "Context.",
+          "sentence": "We can walk and talk.",
+          "expected": "We can walk and talk."
+        }
+      }
+    },
+    {
+      "id": "session-stress-2",
+      "title": "Two Syllables",
+      "progress": {
+        "done": 0,
+        "total": 10
+      },
+      "status": {
+        "score": null,
+        "label": "",
+        "tone": "neutral"
+      },
+      "speak": {
+        "focus": "Stress",
+        "sound": {
+          "title": "RHYTHM",
+          "hint": "Strong-Weak.",
+          "phonetic": "WA-ter",
+          "expected": "Water"
+        },
+        "spelling": {
+          "title": "PATTERN",
+          "hint": "Listen to the beat.",
+          "words": [
+            "WA-TER",
+            "O-PEN",
+            "TA-BLE"
+          ],
+          "expected": "Water"
+        },
+        "sentence": {
+          "title": "PHRASE",
+          "hint": "Stress the first.",
+          "sentence": "Water the flowers.",
+          "expected": "Water the flowers."
+        }
+      }
+    },
+    {
+      "id": "session-stress-3",
+      "title": "Three Syllables",
+      "progress": {
+        "done": 0,
+        "total": 10
+      },
+      "status": {
+        "score": null,
+        "label": "",
+        "tone": "neutral"
+      },
+      "speak": {
+        "focus": "Stress",
+        "sound": {
+          "title": "RHYTHM",
+          "hint": "Strong middle.",
+          "phonetic": "to-MO-rrow",
+          "expected": "Tomorrow"
+        },
+        "spelling": {
+          "title": "PATTERN",
+          "hint": "Listen.",
+          "words": [
+            "TO-MA-TO",
+            "PO-TA-TO",
+            "BA-NA-NA"
+          ],
+          "expected": "Banana"
+        },
+        "sentence": {
+          "title": "PHRASE",
+          "hint": "Rhythm.",
+          "sentence": "See you tomorrow.",
+          "expected": "See you tomorrow."
+        }
+      }
+    },
+    {
+      "id": "session-stress-shift",
+      "title": "Shifting Stress",
+      "progress": {
+        "done": 0,
+        "total": 10
+      },
+      "status": {
+        "score": null,
+        "label": "",
+        "tone": "neutral"
+      },
+      "speak": {
+        "focus": "Shift",
+        "sound": {
+          "title": "COMPARE",
+          "hint": "Noun vs Verb.",
+          "phonetic": "PHO-to-graph",
+          "expected": "Photograph"
+        },
+        "spelling": {
+          "title": "CHANGE",
+          "hint": "Stress moves.",
+          "words": [
+            "PHO-TO-GRAPH",
+            "PHO-TO-GRA-PHY",
+            "PHO-TO-GRA-PHIC"
+          ],
+          "expected": "Photography"
+        },
+        "sentence": {
+          "title": "SENTENCE",
+          "hint": "Feel the shift.",
+          "sentence": "Take a photograph of photography.",
+          "expected": "Take a photograph of photography."
+        }
+      }
+    },
+    {
+      "id": "session-link-cv",
+      "title": "Consonant to Vowel",
+      "progress": {
+        "done": 0,
+        "total": 10
+      },
+      "status": {
+        "score": null,
+        "label": "",
+        "tone": "neutral"
+      },
+      "speak": {
+        "focus": "Link",
+        "sound": {
+          "title": "CONNECT",
+          "hint": "Don't stop.",
+          "phonetic": "Turn_on",
+          "expected": "Turn on"
+        },
+        "spelling": {
+          "title": "FLOW",
+          "hint": "Sounds like one word.",
+          "words": [
+            "TURN_ON",
+            "GET_UP",
+            "LOOK_AT"
+          ],
+          "expected": "Get up"
+        },
+        "sentence": {
+          "title": "SENTENCE",
+          "hint": "Flow.",
+          "sentence": "Turn on the light.",
+          "expected": "Turn on the light."
+        }
+      }
+    },
+    {
+      "id": "session-link-vv",
+      "title": "Vowel to Vowel",
+      "progress": {
+        "done": 0,
+        "total": 10
+      },
+      "status": {
+        "score": null,
+        "label": "",
+        "tone": "neutral"
+      },
+      "speak": {
+        "focus": "Glide",
+        "sound": {
+          "title": "CONNECT",
+          "hint": "Add a W sound.",
+          "phonetic": "Go_w_out",
+          "expected": "Go out"
+        },
+        "spelling": {
+          "title": "FLOW",
+          "hint": "Smooth.",
+          "words": [
+            "GO_OUT",
+            "DO_IT",
+            "SEE_IT"
+          ],
+          "expected": "Do it"
+        },
+        "sentence": {
+          "title": "SENTENCE",
+          "hint": "Smoothly.",
+          "sentence": "Go out and do it.",
+          "expected": "Go out and do it."
+        }
+      }
+    },
+    {
+      "id": "session-link-ty",
+      "title": "Y Fusion",
+      "progress": {
+        "done": 0,
+        "total": 10
+      },
+      "status": {
+        "score": null,
+        "label": "",
+        "tone": "neutral"
+      },
+      "speak": {
+        "focus": "Fusion",
+        "sound": {
+          "title": "CONNECT",
+          "hint": "T+Y = CH.",
+          "phonetic": "Meet_ch_you",
+          "expected": "Meet you"
+        },
+        "spelling": {
+          "title": "FLOW",
+          "hint": "Combine sounds.",
+          "words": [
+            "NICE TO MEET YOU",
+            "DON'T YOU",
+            "WON'T YOU"
+          ],
+          "expected": "Don't you"
+        },
+        "sentence": {
+          "title": "SENTENCE",
+          "hint": "Informal flow.",
+          "sentence": "Nice to meet you.",
+          "expected": "Nice to meet you."
+        }
+      }
+    },
+    {
+      "id": "session-schwa",
+      "title": "The Schwa",
+      "progress": {
+        "done": 0,
+        "total": 10
+      },
+      "status": {
+        "score": null,
+        "label": "",
+        "tone": "neutral"
+      },
+      "speak": {
+        "focus": "Weak",
+        "sound": {
+          "title": "REDUCE",
+          "hint": "Make it short.",
+          "phonetic": "Fish-n-chips",
+          "expected": "Fish and chips"
+        },
+        "spelling": {
+          "title": "RHYTHM",
+          "hint": "Shorten 'and'.",
+          "words": [
+            "ROCK N ROLL",
+            "SALT N PEPPER",
+            "BLACK N WHITE"
+          ],
+          "expected": "Rock and roll"
+        },
+        "sentence": {
+          "title": "SENTENCE",
+          "hint": "Fast 'and'.",
+          "sentence": "I'd like fish and chips.",
+          "expected": "I'd like fish and chips."
+        }
+      }
+    },
+    {
+      "id": "session-focus-words",
+      "title": "Focus Words",
+      "progress": {
+        "done": 0,
+        "total": 10
+      },
+      "status": {
+        "score": null,
+        "label": "",
+        "tone": "neutral"
+      },
+      "speak": {
+        "focus": "Focus",
+        "sound": {
+          "title": "EMPHASIS",
+          "hint": "Stress the meaning.",
+          "phonetic": "I LOVE it",
+          "expected": "I love it"
+        },
+        "spelling": {
+          "title": "CHANGE",
+          "hint": "Change meaning.",
+          "words": [
+            "I love IT",
+            "I LOVE it",
+            "SHE loves it"
+          ],
+          "expected": "I love it"
+        },
+        "sentence": {
+          "title": "SENTENCE",
+          "hint": "Emphasize emotion.",
+          "sentence": "I absolutely love it.",
+          "expected": "I absolutely love it."
+        }
+      }
+    },
+    {
+      "id": "session-natural-flow",
+      "title": "Natural Flow",
+      "progress": {
+        "done": 0,
+        "total": 10
+      },
+      "status": {
+        "score": null,
+        "label": "",
+        "tone": "neutral"
+      },
+      "speak": {
+        "focus": "Flow",
+        "sound": {
+          "title": "REDUCE",
+          "hint": "Informal.",
+          "phonetic": "Whaddaya-wannado",
+          "expected": "What do you want to do"
+        },
+        "spelling": {
+          "title": "CASUAL",
+          "hint": "Common reductions.",
+          "words": [
+            "GONNA",
+            "WANNA",
+            "GOTTA"
+          ],
+          "expected": "Wanna"
+        },
+        "sentence": {
+          "title": "SENTENCE",
+          "hint": "Fast speech.",
+          "sentence": "What do you want to do?",
+          "expected": "What do you want to do?"
+        }
+      }
+    },
+    {
+      "id": "session-strengths",
+      "title": "Strengths",
+      "progress": {
+        "done": 0,
+        "total": 10
+      },
+      "status": {
+        "score": null,
+        "label": "",
+        "tone": "neutral"
+      },
+      "speak": {
+        "focus": "Skills",
+        "sound": {
+          "title": "KEYWORD",
+          "hint": "Positive trait.",
+          "phonetic": "Team player",
+          "expected": "Team player"
+        },
+        "spelling": {
+          "title": "VOCAB",
+          "hint": "Select best fit.",
+          "words": [
+            "LAZY",
+            "TEAM PLAYER",
+            "SOLO"
+          ],
+          "expected": "Team player"
+        },
+        "sentence": {
+          "title": "INTERVIEW",
+          "hint": "Sell yourself.",
+          "sentence": "I am a team player.",
+          "expected": "I am a team player."
+        }
+      }
+    },
+    {
+      "id": "session-experience",
+      "title": "Experience",
+      "progress": {
+        "done": 0,
+        "total": 10
+      },
+      "status": {
+        "score": null,
+        "label": "",
+        "tone": "neutral"
+      },
+      "speak": {
+        "focus": "History",
+        "sound": {
+          "title": "FACTS",
+          "hint": "State clearly.",
+          "phonetic": "Five years",
+          "expected": "Five years"
+        },
+        "spelling": {
+          "title": "DETAILS",
+          "hint": "How long?",
+          "words": [
+            "ONE",
+            "FIVE",
+            "TEN"
+          ],
+          "expected": "Five years"
+        },
+        "sentence": {
+          "title": "INTERVIEW",
+          "hint": "Your background.",
+          "sentence": "I have five years of experience.",
+          "expected": "I have five years of experience."
+        }
+      }
+    },
+    {
+      "id": "session-why-us",
+      "title": "Why Us?",
+      "progress": {
+        "done": 0,
+        "total": 10
+      },
+      "status": {
+        "score": null,
+        "label": "",
+        "tone": "neutral"
+      },
+      "speak": {
+        "focus": "Fit",
+        "sound": {
+          "title": "REASON",
+          "hint": "The cause.",
+          "phonetic": "Culture",
+          "expected": "Culture"
+        },
+        "spelling": {
+          "title": "KEYWORD",
+          "hint": "Why them?",
+          "words": [
+            "SALARY",
+            "CULTURE",
+            "LOCATION"
+          ],
+          "expected": "Culture"
+        },
+        "sentence": {
+          "title": "INTERVIEW",
+          "hint": "Flattery.",
+          "sentence": "I admire the company culture.",
+          "expected": "I admire the company culture."
+        }
+      }
+    },
+    {
+      "id": "session-meeting-open",
+      "title": "Opening a Meeting",
+      "progress": {
+        "done": 0,
+        "total": 10
+      },
+      "status": {
+        "score": null,
+        "label": "",
+        "tone": "neutral"
+      },
+      "speak": {
+        "focus": "Start",
+        "sound": {
+          "title": "LEAD",
+          "hint": "Take charge.",
+          "phonetic": "Get started",
+          "expected": "Get started"
+        },
+        "spelling": {
+          "title": "PHRASE",
+          "hint": "Begin.",
+          "words": [
+            "BEGIN",
+            "START",
+            "WAIT"
+          ],
+          "expected": "Shall we"
+        },
+        "sentence": {
+          "title": "MEETING",
+          "hint": "Polite start.",
+          "sentence": "Shall we get started?",
+          "expected": "Shall we get started?"
+        }
+      }
+    },
+    {
+      "id": "session-agreeing",
+      "title": "Agreeing",
+      "progress": {
+        "done": 0,
+        "total": 10
+      },
+      "status": {
+        "score": null,
+        "label": "",
+        "tone": "neutral"
+      },
+      "speak": {
+        "focus": "Yes",
+        "sound": {
+          "title": "AGREE",
+          "hint": "Strong yes.",
+          "phonetic": "Totally",
+          "expected": "Totally"
+        },
+        "spelling": {
+          "title": "DEGREE",
+          "hint": "How much?",
+          "words": [
+            "PARTLY",
+            "TOTALLY",
+            "NOT"
+          ],
+          "expected": "Totally"
+        },
+        "sentence": {
+          "title": "MEETING",
+          "hint": "Support.",
+          "sentence": "I totally agree with you.",
+          "expected": "I totally agree with you."
+        }
+      }
+    },
+    {
+      "id": "session-polite-disagreement",
+      "title": "Civil Disagreement",
+      "progress": {
+        "done": 0,
+        "total": 10
+      },
+      "status": {
+        "score": null,
+        "label": "",
+        "tone": "neutral"
+      },
+      "speak": {
+        "focus": "But...",
+        "sound": {
+          "title": "SOFTEN",
+          "hint": "Don't be rude.",
+          "phonetic": "I see your point",
+          "expected": "I see your point"
+        },
+        "spelling": {
+          "title": "PHRASE",
+          "hint": "Acknowledge.",
+          "words": [
+            "YOU'RE WRONG",
+            "I SEE",
+            "NO WAY"
+          ],
+          "expected": "I see"
+        },
+        "sentence": {
+          "title": "MEETING",
+          "hint": "Pivot.",
+          "sentence": "I see your point, but I disagree.",
+          "expected": "I see your point, but I disagree."
+        }
+      }
+    },
+    {
+      "id": "session-call-intro",
+      "title": "Call Introduction",
+      "progress": {
+        "done": 0,
+        "total": 10
+      },
+      "status": {
+        "score": null,
+        "label": "",
+        "tone": "neutral"
+      },
+      "speak": {
+        "focus": "Hello",
+        "sound": {
+          "title": "INTRO",
+          "hint": "Identify yourself.",
+          "phonetic": "This is...",
+          "expected": "This is"
+        },
+        "spelling": {
+          "title": "NAME",
+          "hint": "Say name.",
+          "words": [
+            "THIS IS",
+            "I AM",
+            "IT IS"
+          ],
+          "expected": "This is"
+        },
+        "sentence": {
+          "title": "CALL",
+          "hint": "Standard intro.",
+          "sentence": "Hello, this is John speaking.",
+          "expected": "Hello, this is John speaking."
+        }
+      }
+    },
+    {
+      "id": "session-clarifying",
+      "title": "Clarifying",
+      "progress": {
+        "done": 0,
+        "total": 10
+      },
+      "status": {
+        "score": null,
+        "label": "",
+        "tone": "neutral"
+      },
+      "speak": {
+        "focus": "Repeat",
+        "sound": {
+          "title": "ISSUE",
+          "hint": "Volume.",
+          "phonetic": "Speak up",
+          "expected": "Speak up"
+        },
+        "spelling": {
+          "title": "POLITE",
+          "hint": "Request.",
+          "words": [
+            "COULD YOU",
+            "HEY YOU",
+            "SAY WHAT"
+          ],
+          "expected": "Could you"
+        },
+        "sentence": {
+          "title": "CALL",
+          "hint": "Bad line.",
+          "sentence": "Could you speak up, please?",
+          "expected": "Could you speak up, please?"
+        }
+      }
+    },
+    {
+      "id": "session-call-closing",
+      "title": "Call Closing",
+      "progress": {
+        "done": 0,
+        "total": 10
+      },
+      "status": {
+        "score": null,
+        "label": "",
+        "tone": "neutral"
+      },
+      "speak": {
+        "focus": "End",
+        "sound": {
+          "title": "THANKS",
+          "hint": "Gratitude.",
+          "phonetic": "Your time",
+          "expected": "Your time"
+        },
+        "spelling": {
+          "title": "POLITE",
+          "hint": "Wrap up.",
+          "words": [
+            "BYE",
+            "THANKS",
+            "LATER"
+          ],
+          "expected": "Thank you"
+        },
+        "sentence": {
+          "title": "CALL",
+          "hint": "Professional exit.",
+          "sentence": "Thank you for your time.",
+          "expected": "Thank you for your time."
         }
       }
     }

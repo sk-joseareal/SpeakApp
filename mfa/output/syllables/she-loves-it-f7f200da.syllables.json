@@ -1,0 +1,47 @@
+[
+  {
+    "word": "she",
+    "start": 0.03,
+    "end": 0.19,
+    "syllables": [
+      {
+        "text": "she",
+        "start": 0.03,
+        "end": 0.19,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "loves",
+    "start": 0.19,
+    "end": 0.47,
+    "syllables": [
+      {
+        "text": "lo",
+        "start": 0.19,
+        "end": 0.302,
+        "index": 0
+      },
+      {
+        "text": "ves",
+        "start": 0.302,
+        "end": 0.47,
+        "index": 1
+      }
+    ]
+  },
+  {
+    "word": "it",
+    "start": 0.47,
+    "end": 0.68,
+    "syllables": [
+      {
+        "text": "it",
+        "start": 0.47,
+        "end": 0.68,
+        "index": 0
+      }
+    ]
+  }
+]

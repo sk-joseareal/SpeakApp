@@ -1,0 +1,131 @@
+[
+  {
+    "word": "i",
+    "start": 0,
+    "end": 0.06,
+    "syllables": [
+      {
+        "text": "i",
+        "start": 0,
+        "end": 0.06,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "would",
+    "start": 0.06,
+    "end": 0.17,
+    "syllables": [
+      {
+        "text": "would",
+        "start": 0.06,
+        "end": 0.17,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "like",
+    "start": 0.17,
+    "end": 0.4,
+    "syllables": [
+      {
+        "text": "li",
+        "start": 0.17,
+        "end": 0.285,
+        "index": 0
+      },
+      {
+        "text": "ke",
+        "start": 0.285,
+        "end": 0.4,
+        "index": 1
+      }
+    ]
+  },
+  {
+    "word": "a",
+    "start": 0.4,
+    "end": 0.46,
+    "syllables": [
+      {
+        "text": "a",
+        "start": 0.4,
+        "end": 0.46,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "table",
+    "start": 0.46,
+    "end": 0.85,
+    "syllables": [
+      {
+        "text": "tab",
+        "start": 0.46,
+        "end": 0.694,
+        "index": 0
+      },
+      {
+        "text": "le",
+        "start": 0.694,
+        "end": 0.85,
+        "index": 1
+      }
+    ]
+  },
+  {
+    "word": "for",
+    "start": 0.85,
+    "end": 1.01,
+    "syllables": [
+      {
+        "text": "for",
+        "start": 0.85,
+        "end": 1.01,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "two",
+    "start": 1.01,
+    "end": 1.28,
+    "syllables": [
+      {
+        "text": "two",
+        "start": 1.01,
+        "end": 1.28,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "at",
+    "start": 1.28,
+    "end": 1.37,
+    "syllables": [
+      {
+        "text": "at",
+        "start": 1.28,
+        "end": 1.37,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "eight",
+    "start": 1.37,
+    "end": 1.67,
+    "syllables": [
+      {
+        "text": "eight",
+        "start": 1.37,
+        "end": 1.67,
+        "index": 0
+      }
+    ]
+  }
+]

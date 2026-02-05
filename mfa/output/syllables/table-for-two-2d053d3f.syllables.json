@@ -1,0 +1,47 @@
+[
+  {
+    "word": "table",
+    "start": 0,
+    "end": 0.34,
+    "syllables": [
+      {
+        "text": "tab",
+        "start": 0,
+        "end": 0.204,
+        "index": 0
+      },
+      {
+        "text": "le",
+        "start": 0.204,
+        "end": 0.34,
+        "index": 1
+      }
+    ]
+  },
+  {
+    "word": "for",
+    "start": 0.34,
+    "end": 0.5,
+    "syllables": [
+      {
+        "text": "for",
+        "start": 0.34,
+        "end": 0.5,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "two",
+    "start": 0.5,
+    "end": 0.88,
+    "syllables": [
+      {
+        "text": "two",
+        "start": 0.5,
+        "end": 0.88,
+        "index": 0
+      }
+    ]
+  }
+]

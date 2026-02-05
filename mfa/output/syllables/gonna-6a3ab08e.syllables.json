@@ -1,0 +1,21 @@
+[
+  {
+    "word": "gonna",
+    "start": 0,
+    "end": 0.32,
+    "syllables": [
+      {
+        "text": "gon",
+        "start": 0,
+        "end": 0.192,
+        "index": 0
+      },
+      {
+        "text": "na",
+        "start": 0.192,
+        "end": 0.32,
+        "index": 1
+      }
+    ]
+  }
+]

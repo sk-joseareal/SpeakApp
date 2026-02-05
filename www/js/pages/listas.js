@@ -83,6 +83,8 @@ class PageListas extends HTMLElement {
     window.addEventListener('app:user-change', this._userHandler);
     this._storesHandler = () => this.render();
     window.addEventListener('app:speak-stores-change', this._storesHandler);
+    this._debugHandler = () => this.render();
+    window.addEventListener('app:speak-debug', this._debugHandler);
     this.render();
   }
 
@@ -95,6 +97,9 @@ class PageListas extends HTMLElement {
     }
     if (this._storesHandler) {
       window.removeEventListener('app:speak-stores-change', this._storesHandler);
+    }
+    if (this._debugHandler) {
+      window.removeEventListener('app:speak-debug', this._debugHandler);
     }
   }
 
@@ -265,7 +270,9 @@ class PageListas extends HTMLElement {
     if (!route || !module || !session) return;
 
     const routeProgressList = routes.map((routeItem) => getRoutePercent(routeItem));
+    const isDebug = Boolean(window.r34lp0w3r && window.r34lp0w3r.speakDebug);
     const routeUnlockList = routes.map((_, idx) => {
+      if (isDebug) return true;
       if (idx === 0) return true;
       const prev = routeProgressList[idx - 1];
       return prev && prev.tone === 'good';

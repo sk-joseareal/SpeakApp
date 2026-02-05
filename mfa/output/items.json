@@ -1,0 +1,3214 @@
+{
+  "generatedAt": "2026-02-05T12:52:51.161Z",
+  "items": [
+    {
+      "id": "a-large-one-please-8b8b6ece",
+      "text": "A large one, please",
+      "normalized": "a large one, please",
+      "tts": "A large one, please",
+      "align": "a large one please",
+      "sources": [
+        "session-coffee-shop.spelling.expected"
+      ]
+    },
+    {
+      "id": "about-5780daf6",
+      "text": "ABOUT",
+      "normalized": "about",
+      "tts": "about",
+      "align": "about",
+      "sources": [
+        "session-b.spelling.words"
+      ]
+    },
+    {
+      "id": "an-apple-and-a-cat-sit-on-a-mat-ab6bb0ab",
+      "text": "An apple and a cat sit on a mat.",
+      "normalized": "an apple and a cat sit on a mat",
+      "tts": "An apple and a cat sit on a mat.",
+      "align": "an apple and a cat sit on a mat",
+      "sources": [
+        "session-a.sentence.sentence",
+        "session-a.sentence.expected"
+      ]
+    },
+    {
+      "id": "apple-d0be2dc4",
+      "text": "apple",
+      "normalized": "apple",
+      "tts": "apple",
+      "align": "apple",
+      "sources": [
+        "session-a.sound.expected",
+        "session-a.spelling.words",
+        "session-a.spelling.expected"
+      ]
+    },
+    {
+      "id": "are-5f9e5802",
+      "text": "ARE",
+      "normalized": "are",
+      "tts": "are",
+      "align": "are",
+      "sources": [
+        "session-meeting-friend.spelling.words"
+      ]
+    },
+    {
+      "id": "ba-na-na-fe92ea9b",
+      "text": "BA-NA-NA",
+      "normalized": "ba-na-na",
+      "tts": "ba-na-na",
+      "align": "ba na na",
+      "sources": [
+        "session-stress-3.spelling.words"
+      ]
+    },
+    {
+      "id": "baby-6cf34755",
+      "text": "baby",
+      "normalized": "baby",
+      "tts": "baby",
+      "align": "baby",
+      "sources": [
+        "session-b.sound.expected",
+        "session-b.spelling.words",
+        "session-b.spelling.expected"
+      ]
+    },
+    {
+      "id": "banana-250e77f1",
+      "text": "Banana",
+      "normalized": "banana",
+      "tts": "Banana",
+      "align": "banana",
+      "sources": [
+        "session-stress-3.spelling.expected"
+      ]
+    },
+    {
+      "id": "bank-bdd240c8",
+      "text": "BANK",
+      "normalized": "bank",
+      "tts": "bank",
+      "align": "bank",
+      "sources": [
+        "session-asking-directions.spelling.words"
+      ]
+    },
+    {
+      "id": "bed-fefe2393",
+      "text": "BED",
+      "normalized": "bed",
+      "tts": "bed",
+      "align": "bed",
+      "sources": [
+        "session-e.spelling.words"
+      ]
+    },
+    {
+      "id": "begin-8cbd0a74",
+      "text": "BEGIN",
+      "normalized": "begin",
+      "tts": "begin",
+      "align": "begin",
+      "sources": [
+        "session-meeting-open.spelling.words"
+      ]
+    },
+    {
+      "id": "bird-cd92815b",
+      "text": "BIRD",
+      "normalized": "bird",
+      "tts": "bird",
+      "align": "bird",
+      "sources": [
+        "session-b.spelling.words"
+      ]
+    },
+    {
+      "id": "black-n-white-8a21483f",
+      "text": "BLACK N WHITE",
+      "normalized": "black n white",
+      "tts": "black n white",
+      "align": "black n white",
+      "sources": [
+        "session-schwa.spelling.words"
+      ]
+    },
+    {
+      "id": "blue-4c9a82ce",
+      "text": "BLUE",
+      "normalized": "blue",
+      "tts": "blue",
+      "align": "blue",
+      "sources": [
+        "session-b.spelling.words"
+      ]
+    },
+    {
+      "id": "book-e7e694c5",
+      "text": "BOOK",
+      "normalized": "book",
+      "tts": "book",
+      "align": "book",
+      "sources": [
+        "session-b.spelling.words"
+      ]
+    },
+    {
+      "id": "booking-2065075f",
+      "text": "BOOKING",
+      "normalized": "booking",
+      "tts": "booking",
+      "align": "booking",
+      "sources": [
+        "session-hotel-checkin.spelling.words"
+      ]
+    },
+    {
+      "id": "bright-0570b92f",
+      "text": "BRIGHT",
+      "normalized": "bright",
+      "tts": "bright",
+      "align": "bright",
+      "sources": [
+        "session-r.spelling.words"
+      ]
+    },
+    {
+      "id": "bus-32c70ceb",
+      "text": "BUS",
+      "normalized": "bus",
+      "tts": "bus",
+      "align": "bus",
+      "sources": [
+        "session-u.spelling.words"
+      ]
+    },
+    {
+      "id": "bye-78c9a53e",
+      "text": "BYE",
+      "normalized": "bye",
+      "tts": "bye",
+      "align": "bye",
+      "sources": [
+        "session-call-closing.spelling.words"
+      ]
+    },
+    {
+      "id": "calm-2ec3d0c7",
+      "text": "CALM",
+      "normalized": "calm",
+      "tts": "calm",
+      "align": "calm",
+      "sources": [
+        "session-silent-l.spelling.words"
+      ]
+    },
+    {
+      "id": "cat-9d989e8d",
+      "text": "CAT",
+      "normalized": "cat",
+      "tts": "cat",
+      "align": "cat",
+      "sources": [
+        "session-a.spelling.words"
+      ]
+    },
+    {
+      "id": "check-d56d9853",
+      "text": "CHECK",
+      "normalized": "check",
+      "tts": "check",
+      "align": "check",
+      "sources": [
+        "session-asking-bill.spelling.words"
+      ]
+    },
+    {
+      "id": "check-in-a0ba606b",
+      "text": "Check in",
+      "normalized": "check in",
+      "tts": "Check in",
+      "align": "check in",
+      "sources": [
+        "session-hotel-checkin.sound.expected"
+      ]
+    },
+    {
+      "id": "cloud-000e793d",
+      "text": "CLOUD",
+      "normalized": "cloud",
+      "tts": "cloud",
+      "align": "cloud",
+      "sources": [
+        "session-u.spelling.words",
+        "session-l.spelling.words"
+      ]
+    },
+    {
+      "id": "could-we-have-the-bill-please-4bbde802",
+      "text": "Could we have the bill, please?",
+      "normalized": "could we have the bill, please",
+      "tts": "Could we have the bill, please?",
+      "align": "could we have the bill please",
+      "sources": [
+        "session-asking-bill.sentence.sentence",
+        "session-asking-bill.sentence.expected"
+      ]
+    },
+    {
+      "id": "could-you-4a835a53",
+      "text": "COULD YOU",
+      "normalized": "could you",
+      "tts": "could you",
+      "align": "could you",
+      "sources": [
+        "session-clarifying.spelling.words",
+        "session-clarifying.spelling.expected"
+      ]
+    },
+    {
+      "id": "could-you-speak-up-please-ba50ffdf",
+      "text": "Could you speak up, please?",
+      "normalized": "could you speak up, please",
+      "tts": "Could you speak up, please?",
+      "align": "could you speak up please",
+      "sources": [
+        "session-clarifying.sentence.sentence",
+        "session-clarifying.sentence.expected"
+      ]
+    },
+    {
+      "id": "culture-8f2e7cd7",
+      "text": "Culture",
+      "normalized": "culture",
+      "tts": "Culture",
+      "align": "culture",
+      "sources": [
+        "session-why-us.sound.expected",
+        "session-why-us.spelling.words",
+        "session-why-us.spelling.expected"
+      ]
+    },
+    {
+      "id": "cup-ad00c690",
+      "text": "CUP",
+      "normalized": "cup",
+      "tts": "cup",
+      "align": "cup",
+      "sources": [
+        "session-u.spelling.words"
+      ]
+    },
+    {
+      "id": "dance-74b518ed",
+      "text": "DANCE",
+      "normalized": "dance",
+      "tts": "dance",
+      "align": "dance",
+      "sources": [
+        "session-a.spelling.words"
+      ]
+    },
+    {
+      "id": "dare-3993d7b6",
+      "text": "DARE",
+      "normalized": "dare",
+      "tts": "dare",
+      "align": "dare",
+      "sources": [
+        "session-day-they.spelling.words"
+      ]
+    },
+    {
+      "id": "day-a2620cbc",
+      "text": "DAY",
+      "normalized": "day",
+      "tts": "day",
+      "align": "day",
+      "sources": [
+        "session-day-they.spelling.words"
+      ]
+    },
+    {
+      "id": "do-it-29ac722b",
+      "text": "DO_IT",
+      "normalized": "do_it",
+      "tts": "do_it",
+      "align": "do it",
+      "sources": [
+        "session-link-vv.spelling.words"
+      ]
+    },
+    {
+      "id": "do-it-994fa1b2",
+      "text": "Do it",
+      "normalized": "do it",
+      "tts": "Do it",
+      "align": "do it",
+      "sources": [
+        "session-link-vv.spelling.expected"
+      ]
+    },
+    {
+      "id": "doing-f15fd675",
+      "text": "DOING",
+      "normalized": "doing",
+      "tts": "doing",
+      "align": "doing",
+      "sources": [
+        "session-meeting-friend.spelling.words"
+      ]
+    },
+    {
+      "id": "don-t-write-the-wrong-answer-8fbe05da",
+      "text": "Don't write the wrong answer.",
+      "normalized": "don't write the wrong answer",
+      "tts": "Don't write the wrong answer.",
+      "align": "do not write the wrong answer",
+      "sources": [
+        "session-silent-w.sentence.sentence",
+        "session-silent-w.sentence.expected"
+      ]
+    },
+    {
+      "id": "don-t-you-b9117689",
+      "text": "DON'T YOU",
+      "normalized": "don't you",
+      "tts": "don't you",
+      "align": "do not you",
+      "sources": [
+        "session-link-ty.spelling.words",
+        "session-link-ty.spelling.expected"
+      ]
+    },
+    {
+      "id": "egg-4fa6024f",
+      "text": "egg",
+      "normalized": "egg",
+      "tts": "egg",
+      "align": "egg",
+      "sources": [
+        "session-e.sound.expected",
+        "session-e.spelling.words",
+        "session-e.spelling.expected"
+      ]
+    },
+    {
+      "id": "excuse-me-25018d83",
+      "text": "Excuse me",
+      "normalized": "excuse me",
+      "tts": "Excuse me",
+      "align": "excuse me",
+      "sources": [
+        "session-asking-directions.sound.expected"
+      ]
+    },
+    {
+      "id": "excuse-me-where-is-the-train-station-2834258b",
+      "text": "Excuse me, where is the train station?",
+      "normalized": "excuse me, where is the train station",
+      "tts": "Excuse me, where is the train station?",
+      "align": "excuse me where is the train station",
+      "sources": [
+        "session-asking-directions.sentence.sentence",
+        "session-asking-directions.sentence.expected"
+      ]
+    },
+    {
+      "id": "famous-d923de9f",
+      "text": "famous",
+      "normalized": "famous",
+      "tts": "famous",
+      "align": "famous",
+      "sources": [
+        "session-f.sound.expected",
+        "session-f.spelling.words",
+        "session-f.spelling.expected"
+      ]
+    },
+    {
+      "id": "feet-67c0fcca",
+      "text": "FEET",
+      "normalized": "feet",
+      "tts": "feet",
+      "align": "feet",
+      "sources": [
+        "session-ship-sheep.spelling.words"
+      ]
+    },
+    {
+      "id": "fish-and-chips-831721f3",
+      "text": "Fish and chips",
+      "normalized": "fish and chips",
+      "tts": "Fish and chips",
+      "align": "fish and chips",
+      "sources": [
+        "session-schwa.sound.expected"
+      ]
+    },
+    {
+      "id": "fit-9c20b9ba",
+      "text": "FIT",
+      "normalized": "fit",
+      "tts": "fit",
+      "align": "fit",
+      "sources": [
+        "session-ship-sheep.spelling.words"
+      ]
+    },
+    {
+      "id": "five-4db2c1df",
+      "text": "FIVE",
+      "normalized": "five",
+      "tts": "five",
+      "align": "five",
+      "sources": [
+        "session-i.spelling.words",
+        "session-experience.spelling.words"
+      ]
+    },
+    {
+      "id": "five-years-5f856f56",
+      "text": "Five years",
+      "normalized": "five years",
+      "tts": "Five years",
+      "align": "five years",
+      "sources": [
+        "session-experience.sound.expected",
+        "session-experience.spelling.expected"
+      ]
+    },
+    {
+      "id": "food-39ccb32d",
+      "text": "FOOD",
+      "normalized": "food",
+      "tts": "food",
+      "align": "food",
+      "sources": [
+        "session-f.spelling.words"
+      ]
+    },
+    {
+      "id": "fool-33655e63",
+      "text": "Fool",
+      "normalized": "fool",
+      "tts": "Fool",
+      "align": "fool",
+      "sources": [
+        "session-full-fool.sound.expected",
+        "session-full-fool.spelling.words"
+      ]
+    },
+    {
+      "id": "four-9f8f7eec",
+      "text": "FOUR",
+      "normalized": "four",
+      "tts": "four",
+      "align": "four",
+      "sources": [
+        "session-booking-table.spelling.words"
+      ]
+    },
+    {
+      "id": "friend-e69867ca",
+      "text": "FRIEND",
+      "normalized": "friend",
+      "tts": "friend",
+      "align": "friend",
+      "sources": [
+        "session-f.spelling.words"
+      ]
+    },
+    {
+      "id": "full-52e6d8ab",
+      "text": "FULL",
+      "normalized": "full",
+      "tts": "full",
+      "align": "full",
+      "sources": [
+        "session-full-fool.spelling.words"
+      ]
+    },
+    {
+      "id": "get-started-4f47eb33",
+      "text": "Get started",
+      "normalized": "get started",
+      "tts": "Get started",
+      "align": "get started",
+      "sources": [
+        "session-meeting-open.sound.expected"
+      ]
+    },
+    {
+      "id": "get-up-3f2d515e",
+      "text": "Get up",
+      "normalized": "get up",
+      "tts": "Get up",
+      "align": "get up",
+      "sources": [
+        "session-link-cv.spelling.expected"
+      ]
+    },
+    {
+      "id": "get-up-e53cea58",
+      "text": "GET_UP",
+      "normalized": "get_up",
+      "tts": "get_up",
+      "align": "get up",
+      "sources": [
+        "session-link-cv.spelling.words"
+      ]
+    },
+    {
+      "id": "give-fa9f22e6",
+      "text": "GIVE",
+      "normalized": "give",
+      "tts": "give",
+      "align": "give",
+      "sources": [
+        "session-v.spelling.words"
+      ]
+    },
+    {
+      "id": "go-1ec558a6",
+      "text": "GO",
+      "normalized": "go",
+      "tts": "go",
+      "align": "go",
+      "sources": [
+        "session-o.spelling.words"
+      ]
+    },
+    {
+      "id": "go-out-52f7f7cc",
+      "text": "Go out",
+      "normalized": "go out",
+      "tts": "Go out",
+      "align": "go out",
+      "sources": [
+        "session-link-vv.sound.expected"
+      ]
+    },
+    {
+      "id": "go-out-5b4374ca",
+      "text": "GO_OUT",
+      "normalized": "go_out",
+      "tts": "go_out",
+      "align": "go out",
+      "sources": [
+        "session-link-vv.spelling.words"
+      ]
+    },
+    {
+      "id": "go-out-and-do-it-53821688",
+      "text": "Go out and do it.",
+      "normalized": "go out and do it",
+      "tts": "Go out and do it.",
+      "align": "go out and do it",
+      "sources": [
+        "session-link-vv.sentence.sentence",
+        "session-link-vv.sentence.expected"
+      ]
+    },
+    {
+      "id": "gonna-6a3ab08e",
+      "text": "GONNA",
+      "normalized": "gonna",
+      "tts": "gonna",
+      "align": "gonna",
+      "sources": [
+        "session-natural-flow.spelling.words"
+      ]
+    },
+    {
+      "id": "good-morning-a8cbec72",
+      "text": "Good morning",
+      "normalized": "good morning",
+      "tts": "Good morning",
+      "align": "good morning",
+      "sources": [
+        "session-formal-informal.sound.expected",
+        "session-formal-informal.spelling.words",
+        "session-formal-informal.spelling.expected"
+      ]
+    },
+    {
+      "id": "good-morning-how-do-you-do-d91f457d",
+      "text": "Good morning, how do you do?",
+      "normalized": "good morning, how do you do",
+      "tts": "Good morning, how do you do?",
+      "align": "good morning how do you do",
+      "sources": [
+        "session-formal-informal.sentence.sentence",
+        "session-formal-informal.sentence.expected"
+      ]
+    },
+    {
+      "id": "gotta-4b17286a",
+      "text": "GOTTA",
+      "normalized": "gotta",
+      "tts": "gotta",
+      "align": "gotta",
+      "sources": [
+        "session-natural-flow.spelling.words"
+      ]
+    },
+    {
+      "id": "half-6dbdd59a",
+      "text": "HALF",
+      "normalized": "half",
+      "tts": "half",
+      "align": "half",
+      "sources": [
+        "session-f.spelling.words",
+        "session-silent-l.spelling.words"
+      ]
+    },
+    {
+      "id": "happy-3978d009",
+      "text": "HAPPY",
+      "normalized": "happy",
+      "tts": "happy",
+      "align": "happy",
+      "sources": [
+        "session-p.spelling.words",
+        "session-a.spelling.words"
+      ]
+    },
+    {
+      "id": "hello-aaf4c61d",
+      "text": "Hello",
+      "normalized": "hello",
+      "tts": "Hello",
+      "align": "hello",
+      "sources": [
+        "session-meeting-friend.sound.expected",
+        "session-formal-informal.spelling.words"
+      ]
+    },
+    {
+      "id": "hello-this-is-john-speaking-02a2d8ba",
+      "text": "Hello, this is John speaking.",
+      "normalized": "hello, this is john speaking",
+      "tts": "Hello, this is John speaking.",
+      "align": "hello this is john speaking",
+      "sources": [
+        "session-call-intro.sentence.sentence",
+        "session-call-intro.sentence.expected"
+      ]
+    },
+    {
+      "id": "help-92005ecf",
+      "text": "HELP",
+      "normalized": "help",
+      "tts": "help",
+      "align": "help",
+      "sources": [
+        "session-e.spelling.words"
+      ]
+    },
+    {
+      "id": "hey-7f550a9f",
+      "text": "HEY",
+      "normalized": "hey",
+      "tts": "hey",
+      "align": "hey",
+      "sources": [
+        "session-formal-informal.spelling.words"
+      ]
+    },
+    {
+      "id": "hey-you-59818cf1",
+      "text": "HEY YOU",
+      "normalized": "hey you",
+      "tts": "hey you",
+      "align": "hey you",
+      "sources": [
+        "session-clarifying.spelling.words"
+      ]
+    },
+    {
+      "id": "hi-c22b5f91",
+      "text": "HI",
+      "normalized": "hi",
+      "tts": "hi",
+      "align": "hi",
+      "sources": [
+        "session-formal-informal.spelling.words"
+      ]
+    },
+    {
+      "id": "home-e83249bd",
+      "text": "HOME",
+      "normalized": "home",
+      "tts": "home",
+      "align": "home",
+      "sources": [
+        "session-o.spelling.words"
+      ]
+    },
+    {
+      "id": "hotel-14e83355",
+      "text": "HOTEL",
+      "normalized": "hotel",
+      "tts": "hotel",
+      "align": "hotel",
+      "sources": [
+        "session-asking-directions.spelling.words"
+      ]
+    },
+    {
+      "id": "how-0b064373",
+      "text": "HOW",
+      "normalized": "how",
+      "tts": "how",
+      "align": "how",
+      "sources": [
+        "session-meeting-friend.spelling.words"
+      ]
+    },
+    {
+      "id": "how-are-you-4bfe46a7",
+      "text": "How are you?",
+      "normalized": "how are you",
+      "tts": "How are you?",
+      "align": "how are you",
+      "sources": [
+        "session-meeting-friend.spelling.expected"
+      ]
+    },
+    {
+      "id": "how-much-is-that-9ac6775d",
+      "text": "How much is that?",
+      "normalized": "how much is that",
+      "tts": "How much is that?",
+      "align": "how much is that",
+      "sources": [
+        "session-coffee-shop.sentence.sentence",
+        "session-coffee-shop.sentence.expected"
+      ]
+    },
+    {
+      "id": "i-absolutely-love-it-3fe1cdf8",
+      "text": "I absolutely love it.",
+      "normalized": "i absolutely love it",
+      "tts": "I absolutely love it.",
+      "align": "i absolutely love it",
+      "sources": [
+        "session-focus-words.sentence.sentence",
+        "session-focus-words.sentence.expected"
+      ]
+    },
+    {
+      "id": "i-admire-the-company-culture-9139010a",
+      "text": "I admire the company culture.",
+      "normalized": "i admire the company culture",
+      "tts": "I admire the company culture.",
+      "align": "i admire the company culture",
+      "sources": [
+        "session-why-us.sentence.sentence",
+        "session-why-us.sentence.expected"
+      ]
+    },
+    {
+      "id": "i-am-a-team-player-e8442100",
+      "text": "I am a team player.",
+      "normalized": "i am a team player",
+      "tts": "I am a team player.",
+      "align": "i am a team player",
+      "sources": [
+        "session-strengths.sentence.sentence",
+        "session-strengths.sentence.expected"
+      ]
+    },
+    {
+      "id": "i-am-b9778453",
+      "text": "I AM",
+      "normalized": "i am",
+      "tts": "i am",
+      "align": "i am",
+      "sources": [
+        "session-call-intro.spelling.words"
+      ]
+    },
+    {
+      "id": "i-d-like-a-coffee-3c80f673",
+      "text": "I'd like a coffee",
+      "normalized": "i'd like a coffee",
+      "tts": "I'd like a coffee",
+      "align": "i would like a coffee",
+      "sources": [
+        "session-coffee-shop.sound.expected"
+      ]
+    },
+    {
+      "id": "i-d-like-a-table-for-two-at-eight-7a6c421e",
+      "text": "I'd like a table for two at eight.",
+      "normalized": "i'd like a table for two at eight",
+      "tts": "I'd like a table for two at eight.",
+      "align": "i would like a table for two at eight",
+      "sources": [
+        "session-booking-table.sentence.sentence",
+        "session-booking-table.sentence.expected"
+      ]
+    },
+    {
+      "id": "i-d-like-fish-and-chips-0e1407d4",
+      "text": "I'd like fish and chips.",
+      "normalized": "i'd like fish and chips",
+      "tts": "I'd like fish and chips.",
+      "align": "i would like fish and chips",
+      "sources": [
+        "session-schwa.sentence.sentence",
+        "session-schwa.sentence.expected"
+      ]
+    },
+    {
+      "id": "i-d-like-one-ticket-to-london-please-3e69d3e0",
+      "text": "I'd like one ticket to London, please.",
+      "normalized": "i'd like one ticket to london, please",
+      "tts": "I'd like one ticket to London, please.",
+      "align": "i would like one ticket to london please",
+      "sources": [
+        "session-buying-tickets.sentence.sentence",
+        "session-buying-tickets.sentence.expected"
+      ]
+    },
+    {
+      "id": "i-d-like-to-book-75a64a62",
+      "text": "I'd like to book",
+      "normalized": "i'd like to book",
+      "tts": "I'd like to book",
+      "align": "i would like to book",
+      "sources": [
+        "session-booking-table.sound.expected"
+      ]
+    },
+    {
+      "id": "i-have-a-reservation-under-smith-05d9517d",
+      "text": "I have a reservation under Smith.",
+      "normalized": "i have a reservation under smith",
+      "tts": "I have a reservation under Smith.",
+      "align": "i have a reservation under smith",
+      "sources": [
+        "session-hotel-checkin.sentence.sentence",
+        "session-hotel-checkin.sentence.expected"
+      ]
+    },
+    {
+      "id": "i-have-five-years-of-experience-88691676",
+      "text": "I have five years of experience.",
+      "normalized": "i have five years of experience",
+      "tts": "I have five years of experience.",
+      "align": "i have five years of experience",
+      "sources": [
+        "session-experience.sentence.sentence",
+        "session-experience.sentence.expected"
+      ]
+    },
+    {
+      "id": "i-know-how-to-use-a-knife-a22c93df",
+      "text": "I know how to use a knife.",
+      "normalized": "i know how to use a knife",
+      "tts": "I know how to use a knife.",
+      "align": "i know how to use a knife",
+      "sources": [
+        "session-silent-k.sentence.sentence",
+        "session-silent-k.sentence.expected"
+      ]
+    },
+    {
+      "id": "i-love-it-26ac68d2",
+      "text": "I love it",
+      "normalized": "i love it",
+      "tts": "I love it",
+      "align": "i love it",
+      "sources": [
+        "session-focus-words.sound.expected",
+        "session-focus-words.spelling.words",
+        "session-focus-words.spelling.words",
+        "session-focus-words.spelling.expected"
+      ]
+    },
+    {
+      "id": "i-m-great-thanks-and-you-c2067779",
+      "text": "I'm great, thanks! And you?",
+      "normalized": "i'm great, thanks! and you",
+      "tts": "I'm great, thanks! And you?",
+      "align": "i am great thanks and you",
+      "sources": [
+        "session-meeting-friend.sentence.sentence",
+        "session-meeting-friend.sentence.expected"
+      ]
+    },
+    {
+      "id": "i-see-f0723abd",
+      "text": "I SEE",
+      "normalized": "i see",
+      "tts": "i see",
+      "align": "i see",
+      "sources": [
+        "session-polite-disagreement.spelling.words",
+        "session-polite-disagreement.spelling.expected"
+      ]
+    },
+    {
+      "id": "i-see-your-point-ab51a4aa",
+      "text": "I see your point",
+      "normalized": "i see your point",
+      "tts": "I see your point",
+      "align": "i see your point",
+      "sources": [
+        "session-polite-disagreement.sound.expected"
+      ]
+    },
+    {
+      "id": "i-see-your-point-but-i-disagree-6ecf310b",
+      "text": "I see your point, but I disagree.",
+      "normalized": "i see your point, but i disagree",
+      "tts": "I see your point, but I disagree.",
+      "align": "i see your point but i disagree",
+      "sources": [
+        "session-polite-disagreement.sentence.sentence",
+        "session-polite-disagreement.sentence.expected"
+      ]
+    },
+    {
+      "id": "i-totally-agree-with-you-746e2822",
+      "text": "I totally agree with you.",
+      "normalized": "i totally agree with you",
+      "tts": "I totally agree with you.",
+      "align": "i totally agree with you",
+      "sources": [
+        "session-agreeing.sentence.sentence",
+        "session-agreeing.sentence.expected"
+      ]
+    },
+    {
+      "id": "ice-d53b257b",
+      "text": "ice",
+      "normalized": "ice",
+      "tts": "ice",
+      "align": "ice",
+      "sources": [
+        "session-i.sound.expected",
+        "session-i.spelling.words",
+        "session-i.spelling.expected"
+      ]
+    },
+    {
+      "id": "it-is-79d4a897",
+      "text": "IT IS",
+      "normalized": "it is",
+      "tts": "it is",
+      "align": "it is",
+      "sources": [
+        "session-call-intro.spelling.words"
+      ]
+    },
+    {
+      "id": "keep-1264bdfe",
+      "text": "KEEP",
+      "normalized": "keep",
+      "tts": "keep",
+      "align": "keep",
+      "sources": [
+        "session-k.spelling.words"
+      ]
+    },
+    {
+      "id": "kind-0ef25ae0",
+      "text": "KIND",
+      "normalized": "kind",
+      "tts": "kind",
+      "align": "kind",
+      "sources": [
+        "session-k.spelling.words"
+      ]
+    },
+    {
+      "id": "king-481902ec",
+      "text": "KING",
+      "normalized": "king",
+      "tts": "king",
+      "align": "king",
+      "sources": [
+        "session-k.spelling.words"
+      ]
+    },
+    {
+      "id": "kite-34e1c787",
+      "text": "kite",
+      "normalized": "kite",
+      "tts": "kite",
+      "align": "kite",
+      "sources": [
+        "session-k.sound.expected",
+        "session-k.spelling.words",
+        "session-k.spelling.expected"
+      ]
+    },
+    {
+      "id": "knee-d22dda44",
+      "text": "KNEE",
+      "normalized": "knee",
+      "tts": "knee",
+      "align": "knee",
+      "sources": [
+        "session-silent-k.spelling.words",
+        "session-silent-k.spelling.expected"
+      ]
+    },
+    {
+      "id": "knife-6e32618e",
+      "text": "Knife",
+      "normalized": "knife",
+      "tts": "Knife",
+      "align": "knife",
+      "sources": [
+        "session-silent-k.sound.expected"
+      ]
+    },
+    {
+      "id": "knock-03c065ba",
+      "text": "KNOCK",
+      "normalized": "knock",
+      "tts": "knock",
+      "align": "knock",
+      "sources": [
+        "session-k.spelling.words",
+        "session-silent-k.spelling.words"
+      ]
+    },
+    {
+      "id": "know-97accafb",
+      "text": "KNOW",
+      "normalized": "know",
+      "tts": "know",
+      "align": "know",
+      "sources": [
+        "session-silent-k.spelling.words"
+      ]
+    },
+    {
+      "id": "lamp-bc4edcce",
+      "text": "LAMP",
+      "normalized": "lamp",
+      "tts": "lamp",
+      "align": "lamp",
+      "sources": [
+        "session-l.spelling.words"
+      ]
+    },
+    {
+      "id": "large-5296d5cc",
+      "text": "LARGE",
+      "normalized": "large",
+      "tts": "large",
+      "align": "large",
+      "sources": [
+        "session-coffee-shop.spelling.words"
+      ]
+    },
+    {
+      "id": "later-3f14ecc8",
+      "text": "LATER",
+      "normalized": "later",
+      "tts": "later",
+      "align": "later",
+      "sources": [
+        "session-goodbyes.spelling.words",
+        "session-call-closing.spelling.words"
+      ]
+    },
+    {
+      "id": "lazy-1078cf41",
+      "text": "LAZY",
+      "normalized": "lazy",
+      "tts": "lazy",
+      "align": "lazy",
+      "sources": [
+        "session-strengths.spelling.words"
+      ]
+    },
+    {
+      "id": "light-dfccc06f",
+      "text": "LIGHT",
+      "normalized": "light",
+      "tts": "light",
+      "align": "light",
+      "sources": [
+        "session-i.spelling.words",
+        "session-l.spelling.words"
+      ]
+    },
+    {
+      "id": "lion-eaf14a01",
+      "text": "LION",
+      "normalized": "lion",
+      "tts": "lion",
+      "align": "lion",
+      "sources": [
+        "session-i.spelling.words",
+        "session-l.sound.expected",
+        "session-l.spelling.words",
+        "session-l.spelling.expected"
+      ]
+    },
+    {
+      "id": "little-45022297",
+      "text": "LITTLE",
+      "normalized": "little",
+      "tts": "little",
+      "align": "little",
+      "sources": [
+        "session-l.spelling.words"
+      ]
+    },
+    {
+      "id": "location-6469ac84",
+      "text": "LOCATION",
+      "normalized": "location",
+      "tts": "location",
+      "align": "location",
+      "sources": [
+        "session-why-us.spelling.words"
+      ]
+    },
+    {
+      "id": "london-1645ee78",
+      "text": "LONDON",
+      "normalized": "london",
+      "tts": "london",
+      "align": "london",
+      "sources": [
+        "session-buying-tickets.spelling.words",
+        "session-buying-tickets.spelling.expected"
+      ]
+    },
+    {
+      "id": "look-at-abdfd297",
+      "text": "LOOK_AT",
+      "normalized": "look_at",
+      "tts": "look_at",
+      "align": "look at",
+      "sources": [
+        "session-link-cv.spelling.words"
+      ]
+    },
+    {
+      "id": "love-9f2feb0f",
+      "text": "LOVE",
+      "normalized": "love",
+      "tts": "love",
+      "align": "love",
+      "sources": [
+        "session-v.spelling.words"
+      ]
+    },
+    {
+      "id": "man-8175e3c8",
+      "text": "MAN",
+      "normalized": "man",
+      "tts": "man",
+      "align": "man",
+      "sources": [
+        "session-pen-pan.spelling.words",
+        "session-pen-pan.spelling.expected"
+      ]
+    },
+    {
+      "id": "map-37745ed7",
+      "text": "MAP",
+      "normalized": "map",
+      "tts": "map",
+      "align": "map",
+      "sources": [
+        "session-a.spelling.words"
+      ]
+    },
+    {
+      "id": "medium-20af4186",
+      "text": "MEDIUM",
+      "normalized": "medium",
+      "tts": "medium",
+      "align": "medium",
+      "sources": [
+        "session-coffee-shop.spelling.words"
+      ]
+    },
+    {
+      "id": "meet-you-9b300726",
+      "text": "Meet you",
+      "normalized": "meet you",
+      "tts": "Meet you",
+      "align": "meet you",
+      "sources": [
+        "session-link-ty.sound.expected"
+      ]
+    },
+    {
+      "id": "men-6711b9eb",
+      "text": "MEN",
+      "normalized": "men",
+      "tts": "men",
+      "align": "men",
+      "sources": [
+        "session-pen-pan.spelling.words"
+      ]
+    },
+    {
+      "id": "move-379d6ce9",
+      "text": "MOVE",
+      "normalized": "move",
+      "tts": "move",
+      "align": "move",
+      "sources": [
+        "session-v.spelling.words"
+      ]
+    },
+    {
+      "id": "my-friend-is-famous-for-her-food-95790bf4",
+      "text": "My friend is famous for her food.",
+      "normalized": "my friend is famous for her food",
+      "tts": "My friend is famous for her food.",
+      "align": "my friend is famous for her food",
+      "sources": [
+        "session-f.sentence.sentence",
+        "session-f.sentence.expected"
+      ]
+    },
+    {
+      "id": "name-6ae99955",
+      "text": "NAME",
+      "normalized": "name",
+      "tts": "name",
+      "align": "name",
+      "sources": [
+        "session-hotel-checkin.spelling.words"
+      ]
+    },
+    {
+      "id": "new-york-dddd9606",
+      "text": "NEW YORK",
+      "normalized": "new york",
+      "tts": "new york",
+      "align": "new york",
+      "sources": [
+        "session-buying-tickets.spelling.words"
+      ]
+    },
+    {
+      "id": "next-edee9402",
+      "text": "NEXT",
+      "normalized": "next",
+      "tts": "next",
+      "align": "next",
+      "sources": [
+        "session-e.spelling.words"
+      ]
+    },
+    {
+      "id": "nice-to-meet-you-a2a75a27",
+      "text": "NICE TO MEET YOU",
+      "normalized": "nice to meet you",
+      "tts": "nice to meet you",
+      "align": "nice to meet you",
+      "sources": [
+        "session-link-ty.spelling.words",
+        "session-link-ty.sentence.sentence",
+        "session-link-ty.sentence.expected"
+      ]
+    },
+    {
+      "id": "no-way-1b20fde7",
+      "text": "NO WAY",
+      "normalized": "no way",
+      "tts": "no way",
+      "align": "no way",
+      "sources": [
+        "session-polite-disagreement.spelling.words"
+      ]
+    },
+    {
+      "id": "not-557f2555",
+      "text": "NOT",
+      "normalized": "not",
+      "tts": "not",
+      "align": "not",
+      "sources": [
+        "session-agreeing.spelling.words"
+      ]
+    },
+    {
+      "id": "o-pen-e03e3e37",
+      "text": "O-PEN",
+      "normalized": "o-pen",
+      "tts": "o-pen",
+      "align": "o pen",
+      "sources": [
+        "session-stress-2.spelling.words"
+      ]
+    },
+    {
+      "id": "often-6b77993c",
+      "text": "OFTEN",
+      "normalized": "often",
+      "tts": "often",
+      "align": "often",
+      "sources": [
+        "session-f.spelling.words"
+      ]
+    },
+    {
+      "id": "once-18638356",
+      "text": "ONCE",
+      "normalized": "once",
+      "tts": "once",
+      "align": "once",
+      "sources": [
+        "session-w.spelling.words"
+      ]
+    },
+    {
+      "id": "once-the-queen-found-water-and-a-new-way-in-the-wh-1567391c",
+      "text": "Once, the queen found water and a new way in the white world.",
+      "normalized": "once, the queen found water and a new way in the white world",
+      "tts": "Once, the queen found water and a new way in the white world.",
+      "align": "once the queen found water and a new way in the white world",
+      "sources": [
+        "session-w.sentence.sentence",
+        "session-w.sentence.expected"
+      ]
+    },
+    {
+      "id": "one-fe05bcdc",
+      "text": "ONE",
+      "normalized": "one",
+      "tts": "one",
+      "align": "one",
+      "sources": [
+        "session-booking-table.spelling.words",
+        "session-experience.spelling.words"
+      ]
+    },
+    {
+      "id": "one-ticket-32ca1595",
+      "text": "One ticket",
+      "normalized": "one ticket",
+      "tts": "One ticket",
+      "align": "one ticket",
+      "sources": [
+        "session-buying-tickets.sound.expected"
+      ]
+    },
+    {
+      "id": "open-5fc7e38b",
+      "text": "OPEN",
+      "normalized": "open",
+      "tts": "open",
+      "align": "open",
+      "sources": [
+        "session-o.spelling.words"
+      ]
+    },
+    {
+      "id": "orange-ef0ebbb7",
+      "text": "orange",
+      "normalized": "orange",
+      "tts": "orange",
+      "align": "orange",
+      "sources": [
+        "session-o.sound.expected",
+        "session-o.spelling.words",
+        "session-o.spelling.expected"
+      ]
+    },
+    {
+      "id": "pan-bd2bd821",
+      "text": "Pan",
+      "normalized": "pan",
+      "tts": "Pan",
+      "align": "pan",
+      "sources": [
+        "session-pen-pan.sound.expected",
+        "session-pen-pan.spelling.words"
+      ]
+    },
+    {
+      "id": "paper-950593b1",
+      "text": "PAPER",
+      "normalized": "paper",
+      "tts": "paper",
+      "align": "paper",
+      "sources": [
+        "session-p.spelling.words"
+      ]
+    },
+    {
+      "id": "paris-3c4bd4d0",
+      "text": "PARIS",
+      "normalized": "paris",
+      "tts": "paris",
+      "align": "paris",
+      "sources": [
+        "session-buying-tickets.spelling.words"
+      ]
+    },
+    {
+      "id": "partly-446855cd",
+      "text": "PARTLY",
+      "normalized": "partly",
+      "tts": "partly",
+      "align": "partly",
+      "sources": [
+        "session-agreeing.spelling.words"
+      ]
+    },
+    {
+      "id": "pen-31a841af",
+      "text": "pen",
+      "normalized": "pen",
+      "tts": "pen",
+      "align": "pen",
+      "sources": [
+        "session-p.sound.expected",
+        "session-p.spelling.words",
+        "session-p.spelling.expected",
+        "session-pen-pan.spelling.words"
+      ]
+    },
+    {
+      "id": "pho-to-gra-phic-6cac0797",
+      "text": "PHO-TO-GRA-PHIC",
+      "normalized": "pho-to-gra-phic",
+      "tts": "pho-to-gra-phic",
+      "align": "pho to gra phic",
+      "sources": [
+        "session-stress-shift.spelling.words"
+      ]
+    },
+    {
+      "id": "pho-to-gra-phy-fe308a36",
+      "text": "PHO-TO-GRA-PHY",
+      "normalized": "pho-to-gra-phy",
+      "tts": "pho-to-gra-phy",
+      "align": "pho to gra phy",
+      "sources": [
+        "session-stress-shift.spelling.words"
+      ]
+    },
+    {
+      "id": "pho-to-graph-f2f37059",
+      "text": "PHO-TO-GRAPH",
+      "normalized": "pho-to-graph",
+      "tts": "pho-to-graph",
+      "align": "pho to graph",
+      "sources": [
+        "session-stress-shift.spelling.words"
+      ]
+    },
+    {
+      "id": "phone-f6be6ca9",
+      "text": "PHONE",
+      "normalized": "phone",
+      "tts": "phone",
+      "align": "phone",
+      "sources": [
+        "session-p.spelling.words"
+      ]
+    },
+    {
+      "id": "photograph-5df588cd",
+      "text": "Photograph",
+      "normalized": "photograph",
+      "tts": "Photograph",
+      "align": "photograph",
+      "sources": [
+        "session-stress-shift.sound.expected"
+      ]
+    },
+    {
+      "id": "photography-9aa15b5b",
+      "text": "Photography",
+      "normalized": "photography",
+      "tts": "Photography",
+      "align": "photography",
+      "sources": [
+        "session-stress-shift.spelling.expected"
+      ]
+    },
+    {
+      "id": "pink-b0f7f128",
+      "text": "PINK",
+      "normalized": "pink",
+      "tts": "pink",
+      "align": "pink",
+      "sources": [
+        "session-p.spelling.words"
+      ]
+    },
+    {
+      "id": "play-516626bf",
+      "text": "PLAY",
+      "normalized": "play",
+      "tts": "play",
+      "align": "play",
+      "sources": [
+        "session-l.spelling.words"
+      ]
+    },
+    {
+      "id": "please-cae355b6",
+      "text": "PLEASE",
+      "normalized": "please",
+      "tts": "please",
+      "align": "please",
+      "sources": [
+        "session-coffee-shop.spelling.words"
+      ]
+    },
+    {
+      "id": "po-ta-to-faf995d3",
+      "text": "PO-TA-TO",
+      "normalized": "po-ta-to",
+      "tts": "po-ta-to",
+      "align": "po ta to",
+      "sources": [
+        "session-stress-3.spelling.words"
+      ]
+    },
+    {
+      "id": "pool-51a4b13b",
+      "text": "POOL",
+      "normalized": "pool",
+      "tts": "pool",
+      "align": "pool",
+      "sources": [
+        "session-full-fool.spelling.words",
+        "session-full-fool.spelling.expected"
+      ]
+    },
+    {
+      "id": "pull-c872d556",
+      "text": "PULL",
+      "normalized": "pull",
+      "tts": "pull",
+      "align": "pull",
+      "sources": [
+        "session-full-fool.spelling.words"
+      ]
+    },
+    {
+      "id": "queen-41011410",
+      "text": "QUEEN",
+      "normalized": "queen",
+      "tts": "queen",
+      "align": "queen",
+      "sources": [
+        "session-w.spelling.words"
+      ]
+    },
+    {
+      "id": "rabbit-6d0ebbbd",
+      "text": "rabbit",
+      "normalized": "rabbit",
+      "tts": "rabbit",
+      "align": "rabbit",
+      "sources": [
+        "session-r.sound.expected",
+        "session-r.spelling.words",
+        "session-r.spelling.expected"
+      ]
+    },
+    {
+      "id": "read-a7afddb6",
+      "text": "READ",
+      "normalized": "read",
+      "tts": "read",
+      "align": "read",
+      "sources": [
+        "session-r.spelling.words"
+      ]
+    },
+    {
+      "id": "receipt-14e60ace",
+      "text": "RECEIPT",
+      "normalized": "receipt",
+      "tts": "receipt",
+      "align": "receipt",
+      "sources": [
+        "session-asking-bill.spelling.words"
+      ]
+    },
+    {
+      "id": "red-78988010",
+      "text": "RED",
+      "normalized": "red",
+      "tts": "red",
+      "align": "red",
+      "sources": [
+        "session-e.spelling.words"
+      ]
+    },
+    {
+      "id": "reservation-bcf112ef",
+      "text": "RESERVATION",
+      "normalized": "reservation",
+      "tts": "reservation",
+      "align": "reservation",
+      "sources": [
+        "session-hotel-checkin.spelling.words",
+        "session-hotel-checkin.spelling.expected"
+      ]
+    },
+    {
+      "id": "ride-320ef6a3",
+      "text": "RIDE",
+      "normalized": "ride",
+      "tts": "ride",
+      "align": "ride",
+      "sources": [
+        "session-i.spelling.words"
+      ]
+    },
+    {
+      "id": "river-08fbe5a2",
+      "text": "RIVER",
+      "normalized": "river",
+      "tts": "river",
+      "align": "river",
+      "sources": [
+        "session-r.spelling.words"
+      ]
+    },
+    {
+      "id": "road-4adfa579",
+      "text": "ROAD",
+      "normalized": "road",
+      "tts": "road",
+      "align": "road",
+      "sources": [
+        "session-r.spelling.words"
+      ]
+    },
+    {
+      "id": "rock-and-roll-0652b4aa",
+      "text": "Rock and roll",
+      "normalized": "rock and roll",
+      "tts": "Rock and roll",
+      "align": "rock and roll",
+      "sources": [
+        "session-schwa.spelling.expected"
+      ]
+    },
+    {
+      "id": "rock-n-roll-7948ca00",
+      "text": "ROCK N ROLL",
+      "normalized": "rock n roll",
+      "tts": "rock n roll",
+      "align": "rock n roll",
+      "sources": [
+        "session-schwa.spelling.words"
+      ]
+    },
+    {
+      "id": "rose-7b7074fc",
+      "text": "ROSE",
+      "normalized": "rose",
+      "tts": "rose",
+      "align": "rose",
+      "sources": [
+        "session-o.spelling.words"
+      ]
+    },
+    {
+      "id": "round-f0590a6d",
+      "text": "ROUND",
+      "normalized": "round",
+      "tts": "round",
+      "align": "round",
+      "sources": [
+        "session-r.spelling.words"
+      ]
+    },
+    {
+      "id": "run-df6ad190",
+      "text": "RUN",
+      "normalized": "run",
+      "tts": "run",
+      "align": "run",
+      "sources": [
+        "session-u.spelling.words"
+      ]
+    },
+    {
+      "id": "salary-47dfeb55",
+      "text": "SALARY",
+      "normalized": "salary",
+      "tts": "salary",
+      "align": "salary",
+      "sources": [
+        "session-why-us.spelling.words"
+      ]
+    },
+    {
+      "id": "salt-n-pepper-5dc3030e",
+      "text": "SALT N PEPPER",
+      "normalized": "salt n pepper",
+      "tts": "salt n pepper",
+      "align": "salt n pepper",
+      "sources": [
+        "session-schwa.spelling.words"
+      ]
+    },
+    {
+      "id": "sand-42625bfe",
+      "text": "SAND",
+      "normalized": "sand",
+      "tts": "sand",
+      "align": "sand",
+      "sources": [
+        "session-a.spelling.words"
+      ]
+    },
+    {
+      "id": "say-what-4087e67b",
+      "text": "SAY WHAT",
+      "normalized": "say what",
+      "tts": "say what",
+      "align": "say what",
+      "sources": [
+        "session-clarifying.spelling.words"
+      ]
+    },
+    {
+      "id": "sea-6fa11fb2",
+      "text": "SEA",
+      "normalized": "sea",
+      "tts": "sea",
+      "align": "sea",
+      "sources": [
+        "session-s.spelling.words",
+        "session-sea-she.spelling.words"
+      ]
+    },
+    {
+      "id": "seat-ac814ccc",
+      "text": "SEAT",
+      "normalized": "seat",
+      "tts": "seat",
+      "align": "seat",
+      "sources": [
+        "session-ship-sheep.spelling.words"
+      ]
+    },
+    {
+      "id": "see-it-e4233811",
+      "text": "SEE_IT",
+      "normalized": "see_it",
+      "tts": "see_it",
+      "align": "see it",
+      "sources": [
+        "session-link-vv.spelling.words"
+      ]
+    },
+    {
+      "id": "see-you-8b9c4b13",
+      "text": "See you",
+      "normalized": "see you",
+      "tts": "See you",
+      "align": "see you",
+      "sources": [
+        "session-goodbyes.sound.expected"
+      ]
+    },
+    {
+      "id": "see-you-later-b522739f",
+      "text": "See you later",
+      "normalized": "see you later",
+      "tts": "See you later",
+      "align": "see you later",
+      "sources": [
+        "session-goodbyes.spelling.expected"
+      ]
+    },
+    {
+      "id": "see-you-later-have-a-nice-day-e3640108",
+      "text": "See you later, have a nice day!",
+      "normalized": "see you later, have a nice day",
+      "tts": "See you later, have a nice day!",
+      "align": "see you later have a nice day",
+      "sources": [
+        "session-goodbyes.sentence.sentence",
+        "session-goodbyes.sentence.expected"
+      ]
+    },
+    {
+      "id": "see-you-tomorrow-96b47ce7",
+      "text": "See you tomorrow.",
+      "normalized": "see you tomorrow",
+      "tts": "See you tomorrow.",
+      "align": "see you tomorrow",
+      "sources": [
+        "session-stress-3.sentence.sentence",
+        "session-stress-3.sentence.expected"
+      ]
+    },
+    {
+      "id": "shall-we-676dc018",
+      "text": "Shall we",
+      "normalized": "shall we",
+      "tts": "Shall we",
+      "align": "shall we",
+      "sources": [
+        "session-meeting-open.spelling.expected"
+      ]
+    },
+    {
+      "id": "shall-we-get-started-64623989",
+      "text": "Shall we get started?",
+      "normalized": "shall we get started",
+      "tts": "Shall we get started?",
+      "align": "shall we get started",
+      "sources": [
+        "session-meeting-open.sentence.sentence",
+        "session-meeting-open.sentence.expected"
+      ]
+    },
+    {
+      "id": "she-4a240ec0",
+      "text": "She",
+      "normalized": "she",
+      "tts": "She",
+      "align": "she",
+      "sources": [
+        "session-sea-she.sound.expected",
+        "session-sea-she.spelling.words"
+      ]
+    },
+    {
+      "id": "she-loves-it-f7f200da",
+      "text": "SHE loves it",
+      "normalized": "she loves it",
+      "tts": "SHE loves it",
+      "align": "she loves it",
+      "sources": [
+        "session-focus-words.spelling.words"
+      ]
+    },
+    {
+      "id": "she-sells-sea-shells-a31616ab",
+      "text": "She sells sea shells.",
+      "normalized": "she sells sea shells",
+      "tts": "She sells sea shells.",
+      "align": "she sells sea shells",
+      "sources": [
+        "session-sea-she.sentence.sentence",
+        "session-sea-she.sentence.expected"
+      ]
+    },
+    {
+      "id": "sheep-6525f2e6",
+      "text": "Sheep",
+      "normalized": "sheep",
+      "tts": "Sheep",
+      "align": "sheep",
+      "sources": [
+        "session-ship-sheep.sound.expected",
+        "session-ship-sheep.spelling.words",
+        "session-ship-sheep.spelling.expected"
+      ]
+    },
+    {
+      "id": "ship-ed43a8a0",
+      "text": "SHIP",
+      "normalized": "ship",
+      "tts": "ship",
+      "align": "ship",
+      "sources": [
+        "session-ship-sheep.spelling.words"
+      ]
+    },
+    {
+      "id": "shoe-4488ae65",
+      "text": "SHOE",
+      "normalized": "shoe",
+      "tts": "shoe",
+      "align": "shoe",
+      "sources": [
+        "session-sea-she.spelling.words",
+        "session-sea-she.spelling.expected"
+      ]
+    },
+    {
+      "id": "silver-f8248e12",
+      "text": "SILVER",
+      "normalized": "silver",
+      "tts": "silver",
+      "align": "silver",
+      "sources": [
+        "session-s.spelling.words"
+      ]
+    },
+    {
+      "id": "sing-f9bef9c2",
+      "text": "SING",
+      "normalized": "sing",
+      "tts": "sing",
+      "align": "sing",
+      "sources": [
+        "session-s.spelling.words"
+      ]
+    },
+    {
+      "id": "sister-1dd09baa",
+      "text": "SISTER",
+      "normalized": "sister",
+      "tts": "sister",
+      "align": "sister",
+      "sources": [
+        "session-s.spelling.words"
+      ]
+    },
+    {
+      "id": "sit-abdcde66",
+      "text": "SIT",
+      "normalized": "sit",
+      "tts": "sit",
+      "align": "sit",
+      "sources": [
+        "session-ship-sheep.spelling.words"
+      ]
+    },
+    {
+      "id": "sky-5737ef08",
+      "text": "SKY",
+      "normalized": "sky",
+      "tts": "sky",
+      "align": "sky",
+      "sources": [
+        "session-k.spelling.words"
+      ]
+    },
+    {
+      "id": "small-89f6229a",
+      "text": "SMALL",
+      "normalized": "small",
+      "tts": "small",
+      "align": "small",
+      "sources": [
+        "session-coffee-shop.spelling.words"
+      ]
+    },
+    {
+      "id": "snow-b94e9f3d",
+      "text": "SNOW",
+      "normalized": "snow",
+      "tts": "snow",
+      "align": "snow",
+      "sources": [
+        "session-o.spelling.words"
+      ]
+    },
+    {
+      "id": "soft-eb74f2cb",
+      "text": "SOFT",
+      "normalized": "soft",
+      "tts": "soft",
+      "align": "soft",
+      "sources": [
+        "session-f.spelling.words"
+      ]
+    },
+    {
+      "id": "solo-49f25741",
+      "text": "SOLO",
+      "normalized": "solo",
+      "tts": "solo",
+      "align": "solo",
+      "sources": [
+        "session-strengths.spelling.words"
+      ]
+    },
+    {
+      "id": "soon-3f934e4f",
+      "text": "SOON",
+      "normalized": "soon",
+      "tts": "soon",
+      "align": "soon",
+      "sources": [
+        "session-goodbyes.spelling.words"
+      ]
+    },
+    {
+      "id": "sound-5e2e97c3",
+      "text": "SOUND",
+      "normalized": "sound",
+      "tts": "sound",
+      "align": "sound",
+      "sources": [
+        "session-s.spelling.words"
+      ]
+    },
+    {
+      "id": "speak-up-137687d0",
+      "text": "Speak up",
+      "normalized": "speak up",
+      "tts": "Speak up",
+      "align": "speak up",
+      "sources": [
+        "session-clarifying.sound.expected"
+      ]
+    },
+    {
+      "id": "start-2b020927",
+      "text": "START",
+      "normalized": "start",
+      "tts": "start",
+      "align": "start",
+      "sources": [
+        "session-meeting-open.spelling.words"
+      ]
+    },
+    {
+      "id": "station-2da36ff3",
+      "text": "STATION",
+      "normalized": "station",
+      "tts": "station",
+      "align": "station",
+      "sources": [
+        "session-asking-directions.spelling.words",
+        "session-asking-directions.spelling.expected"
+      ]
+    },
+    {
+      "id": "stop-1b480158",
+      "text": "STOP",
+      "normalized": "stop",
+      "tts": "stop",
+      "align": "stop",
+      "sources": [
+        "session-p.spelling.words"
+      ]
+    },
+    {
+      "id": "sue-1eac7bdc",
+      "text": "SUE",
+      "normalized": "sue",
+      "tts": "sue",
+      "align": "sue",
+      "sources": [
+        "session-sea-she.spelling.words"
+      ]
+    },
+    {
+      "id": "sun-22fa6121",
+      "text": "SUN",
+      "normalized": "sun",
+      "tts": "sun",
+      "align": "sun",
+      "sources": [
+        "session-u.spelling.words",
+        "session-s.sound.expected",
+        "session-s.spelling.words",
+        "session-s.spelling.expected"
+      ]
+    },
+    {
+      "id": "ta-ble-b3cea8e4",
+      "text": "TA-BLE",
+      "normalized": "ta-ble",
+      "tts": "ta-ble",
+      "align": "ta ble",
+      "sources": [
+        "session-stress-2.spelling.words"
+      ]
+    },
+    {
+      "id": "table-c3ee137d",
+      "text": "TABLE",
+      "normalized": "table",
+      "tts": "table",
+      "align": "table",
+      "sources": [
+        "session-b.spelling.words"
+      ]
+    },
+    {
+      "id": "table-for-two-2d053d3f",
+      "text": "Table for two",
+      "normalized": "table for two",
+      "tts": "Table for two",
+      "align": "table for two",
+      "sources": [
+        "session-booking-table.spelling.expected"
+      ]
+    },
+    {
+      "id": "take-53bd7d99",
+      "text": "TAKE",
+      "normalized": "take",
+      "tts": "take",
+      "align": "take",
+      "sources": [
+        "session-t.spelling.words"
+      ]
+    },
+    {
+      "id": "take-a-photograph-of-photography-8e682bd0",
+      "text": "Take a photograph of photography.",
+      "normalized": "take a photograph of photography",
+      "tts": "Take a photograph of photography.",
+      "align": "take a photograph of photography",
+      "sources": [
+        "session-stress-shift.sentence.sentence",
+        "session-stress-shift.sentence.expected"
+      ]
+    },
+    {
+      "id": "take-the-ticket-to-the-train-9d0de2d7",
+      "text": "Take the ticket to the train.",
+      "normalized": "take the ticket to the train",
+      "tts": "Take the ticket to the train.",
+      "align": "take the ticket to the train",
+      "sources": [
+        "session-t.sentence.sentence",
+        "session-t.sentence.expected"
+      ]
+    },
+    {
+      "id": "talk-e55e91b2",
+      "text": "TALK",
+      "normalized": "talk",
+      "tts": "talk",
+      "align": "talk",
+      "sources": [
+        "session-silent-l.spelling.words",
+        "session-silent-l.spelling.expected"
+      ]
+    },
+    {
+      "id": "tank-b63ae12f",
+      "text": "TANK",
+      "normalized": "tank",
+      "tts": "tank",
+      "align": "tank",
+      "sources": [
+        "session-tree-three.spelling.words"
+      ]
+    },
+    {
+      "id": "team-d25187dc",
+      "text": "TEAM",
+      "normalized": "team",
+      "tts": "team",
+      "align": "team",
+      "sources": [
+        "session-t.spelling.words"
+      ]
+    },
+    {
+      "id": "team-player-93753c21",
+      "text": "Team player",
+      "normalized": "team player",
+      "tts": "Team player",
+      "align": "team player",
+      "sources": [
+        "session-strengths.sound.expected",
+        "session-strengths.spelling.words",
+        "session-strengths.spelling.expected"
+      ]
+    },
+    {
+      "id": "tell-47b8015d",
+      "text": "TELL",
+      "normalized": "tell",
+      "tts": "tell",
+      "align": "tell",
+      "sources": [
+        "session-e.spelling.words",
+        "session-t.spelling.words"
+      ]
+    },
+    {
+      "id": "ten-dd356244",
+      "text": "TEN",
+      "normalized": "ten",
+      "tts": "ten",
+      "align": "ten",
+      "sources": [
+        "session-experience.spelling.words"
+      ]
+    },
+    {
+      "id": "thank-c4121f6a",
+      "text": "THANK",
+      "normalized": "thank",
+      "tts": "thank",
+      "align": "thank",
+      "sources": [
+        "session-tree-three.spelling.words"
+      ]
+    },
+    {
+      "id": "thank-you-897a1c59",
+      "text": "Thank you",
+      "normalized": "thank you",
+      "tts": "Thank you",
+      "align": "thank you",
+      "sources": [
+        "session-call-closing.spelling.expected"
+      ]
+    },
+    {
+      "id": "thank-you-for-your-time-f556b223",
+      "text": "Thank you for your time.",
+      "normalized": "thank you for your time",
+      "tts": "Thank you for your time.",
+      "align": "thank you for your time",
+      "sources": [
+        "session-call-closing.sentence.sentence",
+        "session-call-closing.sentence.expected"
+      ]
+    },
+    {
+      "id": "thanks-6e3f5ad7",
+      "text": "THANKS",
+      "normalized": "thanks",
+      "tts": "thanks",
+      "align": "thanks",
+      "sources": [
+        "session-call-closing.spelling.words"
+      ]
+    },
+    {
+      "id": "the-baby-has-a-blue-book-a75d47fe",
+      "text": "The baby has a blue book.",
+      "normalized": "the baby has a blue book",
+      "tts": "The baby has a blue book.",
+      "align": "the baby has a blue book",
+      "sources": [
+        "session-b.sentence.sentence",
+        "session-b.sentence.expected"
+      ]
+    },
+    {
+      "id": "the-bill-please-c974d477",
+      "text": "The bill please",
+      "normalized": "the bill please",
+      "tts": "The bill please",
+      "align": "the bill please",
+      "sources": [
+        "session-asking-bill.sound.expected"
+      ]
+    },
+    {
+      "id": "the-check-ca53f90c",
+      "text": "The check",
+      "normalized": "the check",
+      "tts": "The check",
+      "align": "the check",
+      "sources": [
+        "session-asking-bill.spelling.expected"
+      ]
+    },
+    {
+      "id": "the-fool-is-full-of-food-4bf93aac",
+      "text": "The fool is full of food.",
+      "normalized": "the fool is full of food",
+      "tts": "The fool is full of food.",
+      "align": "the fool is full of food",
+      "sources": [
+        "session-full-fool.sentence.sentence",
+        "session-full-fool.sentence.expected"
+      ]
+    },
+    {
+      "id": "the-king-keeps-a-kite-in-the-sky-0818c9a8",
+      "text": "The king keeps a kite in the sky.",
+      "normalized": "the king keeps a kite in the sky",
+      "tts": "The king keeps a kite in the sky.",
+      "align": "the king keeps a kite in the sky",
+      "sources": [
+        "session-k.sentence.sentence",
+        "session-k.sentence.expected"
+      ]
+    },
+    {
+      "id": "the-little-lion-plays-near-the-lamp-5c0131a2",
+      "text": "The little lion plays near the lamp.",
+      "normalized": "the little lion plays near the lamp",
+      "tts": "The little lion plays near the lamp.",
+      "align": "the little lion plays near the lamp",
+      "sources": [
+        "session-l.sentence.sentence",
+        "session-l.sentence.expected"
+      ]
+    },
+    {
+      "id": "the-man-has-a-pen-in-the-pan-85dd91d7",
+      "text": "The man has a pen in the pan.",
+      "normalized": "the man has a pen in the pan",
+      "tts": "The man has a pen in the pan.",
+      "align": "the man has a pen in the pan",
+      "sources": [
+        "session-pen-pan.sentence.sentence",
+        "session-pen-pan.sentence.expected"
+      ]
+    },
+    {
+      "id": "the-orange-rose-is-at-home-e89a8548",
+      "text": "The orange rose is at home.",
+      "normalized": "the orange rose is at home",
+      "tts": "The orange rose is at home.",
+      "align": "the orange rose is at home",
+      "sources": [
+        "session-o.sentence.sentence",
+        "session-o.sentence.expected"
+      ]
+    },
+    {
+      "id": "the-pink-pen-is-on-the-paper-5d8e6c60",
+      "text": "The pink pen is on the paper.",
+      "normalized": "the pink pen is on the paper",
+      "tts": "The pink pen is on the paper.",
+      "align": "the pink pen is on the paper",
+      "sources": [
+        "session-p.sentence.sentence",
+        "session-p.sentence.expected"
+      ]
+    },
+    {
+      "id": "the-rabbit-ran-down-the-road-5a59d7e5",
+      "text": "The rabbit ran down the road.",
+      "normalized": "the rabbit ran down the road",
+      "tts": "The rabbit ran down the road.",
+      "align": "the rabbit ran down the road",
+      "sources": [
+        "session-r.sentence.sentence",
+        "session-r.sentence.expected"
+      ]
+    },
+    {
+      "id": "the-red-hen-left-the-nest-b8f6d884",
+      "text": "The red hen left the nest.",
+      "normalized": "the red hen left the nest",
+      "tts": "The red hen left the nest.",
+      "align": "the red hen left the nest",
+      "sources": [
+        "session-e.sentence.sentence",
+        "session-e.sentence.expected"
+      ]
+    },
+    {
+      "id": "the-sheep-is-on-the-ship-123249c5",
+      "text": "The sheep is on the ship.",
+      "normalized": "the sheep is on the ship",
+      "tts": "The sheep is on the ship.",
+      "align": "the sheep is on the ship",
+      "sources": [
+        "session-ship-sheep.sentence.sentence",
+        "session-ship-sheep.sentence.expected"
+      ]
+    },
+    {
+      "id": "the-sun-is-up-above-the-bus-9e171628",
+      "text": "The sun is up above the bus.",
+      "normalized": "the sun is up above the bus",
+      "tts": "The sun is up above the bus.",
+      "align": "the sun is up above the bus",
+      "sources": [
+        "session-u.sentence.sentence",
+        "session-u.sentence.expected"
+      ]
+    },
+    {
+      "id": "the-sun-shines-over-the-sea-d1b4edff",
+      "text": "The sun shines over the sea.",
+      "normalized": "the sun shines over the sea",
+      "tts": "The sun shines over the sea.",
+      "align": "the sun shines over the sea",
+      "sources": [
+        "session-s.sentence.sentence",
+        "session-s.sentence.expected"
+      ]
+    },
+    {
+      "id": "the-vampire-has-a-very-loud-voice-3480840e",
+      "text": "The vampire has a very loud voice.",
+      "normalized": "the vampire has a very loud voice",
+      "tts": "The vampire has a very loud voice.",
+      "align": "the vampire has a very loud voice",
+      "sources": [
+        "session-v.sentence.sentence",
+        "session-v.sentence.expected"
+      ]
+    },
+    {
+      "id": "the-white-light-is-bright-at-night-862da9cc",
+      "text": "The white light is bright at night.",
+      "normalized": "the white light is bright at night",
+      "tts": "The white light is bright at night.",
+      "align": "the white light is bright at night",
+      "sources": [
+        "session-i.sentence.sentence",
+        "session-i.sentence.expected"
+      ]
+    },
+    {
+      "id": "there-490528f3",
+      "text": "THERE",
+      "normalized": "there",
+      "tts": "there",
+      "align": "there",
+      "sources": [
+        "session-day-they.spelling.words",
+        "session-day-they.spelling.expected"
+      ]
+    },
+    {
+      "id": "they-f1fdd46d",
+      "text": "They",
+      "normalized": "they",
+      "tts": "They",
+      "align": "they",
+      "sources": [
+        "session-day-they.sound.expected",
+        "session-day-they.spelling.words"
+      ]
+    },
+    {
+      "id": "they-went-there-for-the-day-460ba953",
+      "text": "They went there for the day.",
+      "normalized": "they went there for the day",
+      "tts": "They went there for the day.",
+      "align": "they went there for the day",
+      "sources": [
+        "session-day-they.sentence.sentence",
+        "session-day-they.sentence.expected"
+      ]
+    },
+    {
+      "id": "thin-6ca0fa26",
+      "text": "THIN",
+      "normalized": "thin",
+      "tts": "thin",
+      "align": "thin",
+      "sources": [
+        "session-tree-three.spelling.words"
+      ]
+    },
+    {
+      "id": "this-is-87fe3990",
+      "text": "This is",
+      "normalized": "this is",
+      "tts": "This is",
+      "align": "this is",
+      "sources": [
+        "session-call-intro.sound.expected",
+        "session-call-intro.spelling.words",
+        "session-call-intro.spelling.expected"
+      ]
+    },
+    {
+      "id": "three-b802f384",
+      "text": "Three",
+      "normalized": "three",
+      "tts": "Three",
+      "align": "three",
+      "sources": [
+        "session-tree-three.sound.expected",
+        "session-tree-three.spelling.words",
+        "session-tree-three.spelling.expected",
+        "session-booking-table.spelling.words"
+      ]
+    },
+    {
+      "id": "three-trees-fell-down-778fc56f",
+      "text": "Three trees fell down.",
+      "normalized": "three trees fell down",
+      "tts": "Three trees fell down.",
+      "align": "three trees fell down",
+      "sources": [
+        "session-tree-three.sentence.sentence",
+        "session-tree-three.sentence.expected"
+      ]
+    },
+    {
+      "id": "ticket-346d34a0",
+      "text": "TICKET",
+      "normalized": "ticket",
+      "tts": "ticket",
+      "align": "ticket",
+      "sources": [
+        "session-t.spelling.words"
+      ]
+    },
+    {
+      "id": "time-714eea0f",
+      "text": "TIME",
+      "normalized": "time",
+      "tts": "time",
+      "align": "time",
+      "sources": [
+        "session-i.spelling.words",
+        "session-t.sound.expected",
+        "session-t.spelling.words",
+        "session-t.spelling.expected"
+      ]
+    },
+    {
+      "id": "tin-f2691976",
+      "text": "TIN",
+      "normalized": "tin",
+      "tts": "tin",
+      "align": "tin",
+      "sources": [
+        "session-tree-three.spelling.words"
+      ]
+    },
+    {
+      "id": "to-ma-to-fbb0b3a3",
+      "text": "TO-MA-TO",
+      "normalized": "to-ma-to",
+      "tts": "to-ma-to",
+      "align": "to ma to",
+      "sources": [
+        "session-stress-3.spelling.words"
+      ]
+    },
+    {
+      "id": "today-2dd2bed7",
+      "text": "TODAY",
+      "normalized": "today",
+      "tts": "today",
+      "align": "today",
+      "sources": [
+        "session-meeting-friend.spelling.words"
+      ]
+    },
+    {
+      "id": "tomorrow-2dac81d6",
+      "text": "TOMORROW",
+      "normalized": "tomorrow",
+      "tts": "tomorrow",
+      "align": "tomorrow",
+      "sources": [
+        "session-goodbyes.spelling.words",
+        "session-stress-3.sound.expected"
+      ]
+    },
+    {
+      "id": "top-af2c7b4c",
+      "text": "TOP",
+      "normalized": "top",
+      "tts": "top",
+      "align": "top",
+      "sources": [
+        "session-t.spelling.words"
+      ]
+    },
+    {
+      "id": "total-5a537e20",
+      "text": "TOTAL",
+      "normalized": "total",
+      "tts": "total",
+      "align": "total",
+      "sources": [
+        "session-asking-bill.spelling.words"
+      ]
+    },
+    {
+      "id": "totally-59a3b207",
+      "text": "Totally",
+      "normalized": "totally",
+      "tts": "Totally",
+      "align": "totally",
+      "sources": [
+        "session-agreeing.sound.expected",
+        "session-agreeing.spelling.words",
+        "session-agreeing.spelling.expected"
+      ]
+    },
+    {
+      "id": "tree-80655da8",
+      "text": "TREE",
+      "normalized": "tree",
+      "tts": "tree",
+      "align": "tree",
+      "sources": [
+        "session-tree-three.spelling.words"
+      ]
+    },
+    {
+      "id": "turn-on-2d1f77d0",
+      "text": "Turn on",
+      "normalized": "turn on",
+      "tts": "Turn on",
+      "align": "turn on",
+      "sources": [
+        "session-link-cv.sound.expected"
+      ]
+    },
+    {
+      "id": "turn-on-befe03dc",
+      "text": "TURN_ON",
+      "normalized": "turn_on",
+      "tts": "turn_on",
+      "align": "turn on",
+      "sources": [
+        "session-link-cv.spelling.words"
+      ]
+    },
+    {
+      "id": "turn-on-the-light-11a66785",
+      "text": "Turn on the light.",
+      "normalized": "turn on the light",
+      "tts": "Turn on the light.",
+      "align": "turn on the light",
+      "sources": [
+        "session-link-cv.sentence.sentence",
+        "session-link-cv.sentence.expected"
+      ]
+    },
+    {
+      "id": "two-ad782ecd",
+      "text": "TWO",
+      "normalized": "two",
+      "tts": "two",
+      "align": "two",
+      "sources": [
+        "session-booking-table.spelling.words"
+      ]
+    },
+    {
+      "id": "umbrella-3ff95ac9",
+      "text": "umbrella",
+      "normalized": "umbrella",
+      "tts": "umbrella",
+      "align": "umbrella",
+      "sources": [
+        "session-u.sound.expected",
+        "session-u.spelling.words",
+        "session-u.spelling.expected"
+      ]
+    },
+    {
+      "id": "vampire-d30d77bc",
+      "text": "vampire",
+      "normalized": "vampire",
+      "tts": "vampire",
+      "align": "vampire",
+      "sources": [
+        "session-v.sound.expected",
+        "session-v.spelling.words",
+        "session-v.spelling.expected"
+      ]
+    },
+    {
+      "id": "very-e74295bf",
+      "text": "VERY",
+      "normalized": "very",
+      "tts": "very",
+      "align": "very",
+      "sources": [
+        "session-v.spelling.words"
+      ]
+    },
+    {
+      "id": "voice-47ef6589",
+      "text": "VOICE",
+      "normalized": "voice",
+      "tts": "voice",
+      "align": "voice",
+      "sources": [
+        "session-v.spelling.words"
+      ]
+    },
+    {
+      "id": "wa-ter-a439d6dd",
+      "text": "WA-TER",
+      "normalized": "wa-ter",
+      "tts": "wa-ter",
+      "align": "wa ter",
+      "sources": [
+        "session-stress-2.spelling.words"
+      ]
+    },
+    {
+      "id": "wait-daaad336",
+      "text": "WAIT",
+      "normalized": "wait",
+      "tts": "wait",
+      "align": "wait",
+      "sources": [
+        "session-meeting-open.spelling.words"
+      ]
+    },
+    {
+      "id": "walk-df06b147",
+      "text": "Walk",
+      "normalized": "walk",
+      "tts": "Walk",
+      "align": "walk",
+      "sources": [
+        "session-silent-l.sound.expected"
+      ]
+    },
+    {
+      "id": "wanna-38ed7d5b",
+      "text": "WANNA",
+      "normalized": "wanna",
+      "tts": "wanna",
+      "align": "wanna",
+      "sources": [
+        "session-natural-flow.spelling.words",
+        "session-natural-flow.spelling.expected"
+      ]
+    },
+    {
+      "id": "water-6d5a4592",
+      "text": "water",
+      "normalized": "water",
+      "tts": "water",
+      "align": "water",
+      "sources": [
+        "session-w.sound.expected",
+        "session-w.spelling.words",
+        "session-w.spelling.expected",
+        "session-stress-2.sound.expected",
+        "session-stress-2.spelling.expected"
+      ]
+    },
+    {
+      "id": "water-the-flowers-ac530c53",
+      "text": "Water the flowers.",
+      "normalized": "water the flowers",
+      "tts": "Water the flowers.",
+      "align": "water the flowers",
+      "sources": [
+        "session-stress-2.sentence.sentence",
+        "session-stress-2.sentence.expected"
+      ]
+    },
+    {
+      "id": "way-ed36cbf2",
+      "text": "WAY",
+      "normalized": "way",
+      "tts": "way",
+      "align": "way",
+      "sources": [
+        "session-w.spelling.words"
+      ]
+    },
+    {
+      "id": "we-can-walk-and-talk-57432e20",
+      "text": "We can walk and talk.",
+      "normalized": "we can walk and talk",
+      "tts": "We can walk and talk.",
+      "align": "we can walk and talk",
+      "sources": [
+        "session-silent-l.sentence.sentence",
+        "session-silent-l.sentence.expected"
+      ]
+    },
+    {
+      "id": "what-do-you-want-to-do-b6f323b2",
+      "text": "What do you want to do",
+      "normalized": "what do you want to do",
+      "tts": "What do you want to do",
+      "align": "what do you want to do",
+      "sources": [
+        "session-natural-flow.sound.expected",
+        "session-natural-flow.sentence.sentence",
+        "session-natural-flow.sentence.expected"
+      ]
+    },
+    {
+      "id": "white-528cef87",
+      "text": "WHITE",
+      "normalized": "white",
+      "tts": "white",
+      "align": "white",
+      "sources": [
+        "session-w.spelling.words"
+      ]
+    },
+    {
+      "id": "won-t-you-15b6f8ea",
+      "text": "WON'T YOU",
+      "normalized": "won't you",
+      "tts": "won't you",
+      "align": "will not you",
+      "sources": [
+        "session-link-ty.spelling.words"
+      ]
+    },
+    {
+      "id": "world-7c211433",
+      "text": "WORLD",
+      "normalized": "world",
+      "tts": "world",
+      "align": "world",
+      "sources": [
+        "session-w.spelling.words"
+      ]
+    },
+    {
+      "id": "wrap-f0cad979",
+      "text": "WRAP",
+      "normalized": "wrap",
+      "tts": "wrap",
+      "align": "wrap",
+      "sources": [
+        "session-silent-w.spelling.words"
+      ]
+    },
+    {
+      "id": "wrist-f65c1f7d",
+      "text": "WRIST",
+      "normalized": "wrist",
+      "tts": "wrist",
+      "align": "wrist",
+      "sources": [
+        "session-silent-w.spelling.words"
+      ]
+    },
+    {
+      "id": "write-e1d0c6c1",
+      "text": "Write",
+      "normalized": "write",
+      "tts": "Write",
+      "align": "write",
+      "sources": [
+        "session-silent-w.sound.expected"
+      ]
+    },
+    {
+      "id": "wrong-a4b48a81",
+      "text": "WRONG",
+      "normalized": "wrong",
+      "tts": "wrong",
+      "align": "wrong",
+      "sources": [
+        "session-silent-w.spelling.words",
+        "session-silent-w.spelling.expected"
+      ]
+    },
+    {
+      "id": "you-8af56de6",
+      "text": "YOU",
+      "normalized": "you",
+      "tts": "you",
+      "align": "you",
+      "sources": [
+        "session-meeting-friend.spelling.words"
+      ]
+    },
+    {
+      "id": "you-re-wrong-97c13195",
+      "text": "YOU'RE WRONG",
+      "normalized": "you're wrong",
+      "tts": "you're wrong",
+      "align": "you are wrong",
+      "sources": [
+        "session-polite-disagreement.spelling.words"
+      ]
+    },
+    {
+      "id": "your-time-d598deaf",
+      "text": "Your time",
+      "normalized": "your time",
+      "tts": "Your time",
+      "align": "your time",
+      "sources": [
+        "session-call-closing.sound.expected"
+      ]
+    }
+  ],
+  "lookup": {
+    "a large one, please": "a-large-one-please-8b8b6ece",
+    "about": "about-5780daf6",
+    "an apple and a cat sit on a mat": "an-apple-and-a-cat-sit-on-a-mat-ab6bb0ab",
+    "apple": "apple-d0be2dc4",
+    "are": "are-5f9e5802",
+    "ba-na-na": "ba-na-na-fe92ea9b",
+    "baby": "baby-6cf34755",
+    "banana": "banana-250e77f1",
+    "bank": "bank-bdd240c8",
+    "bed": "bed-fefe2393",
+    "begin": "begin-8cbd0a74",
+    "bird": "bird-cd92815b",
+    "black n white": "black-n-white-8a21483f",
+    "blue": "blue-4c9a82ce",
+    "book": "book-e7e694c5",
+    "booking": "booking-2065075f",
+    "bright": "bright-0570b92f",
+    "bus": "bus-32c70ceb",
+    "bye": "bye-78c9a53e",
+    "calm": "calm-2ec3d0c7",
+    "cat": "cat-9d989e8d",
+    "check": "check-d56d9853",
+    "check in": "check-in-a0ba606b",
+    "cloud": "cloud-000e793d",
+    "could we have the bill, please": "could-we-have-the-bill-please-4bbde802",
+    "could you": "could-you-4a835a53",
+    "could you speak up, please": "could-you-speak-up-please-ba50ffdf",
+    "culture": "culture-8f2e7cd7",
+    "cup": "cup-ad00c690",
+    "dance": "dance-74b518ed",
+    "dare": "dare-3993d7b6",
+    "day": "day-a2620cbc",
+    "do_it": "do-it-29ac722b",
+    "do it": "do-it-994fa1b2",
+    "doing": "doing-f15fd675",
+    "don't write the wrong answer": "don-t-write-the-wrong-answer-8fbe05da",
+    "don't you": "don-t-you-b9117689",
+    "egg": "egg-4fa6024f",
+    "excuse me": "excuse-me-25018d83",
+    "excuse me, where is the train station": "excuse-me-where-is-the-train-station-2834258b",
+    "famous": "famous-d923de9f",
+    "feet": "feet-67c0fcca",
+    "fish and chips": "fish-and-chips-831721f3",
+    "fit": "fit-9c20b9ba",
+    "five": "five-4db2c1df",
+    "five years": "five-years-5f856f56",
+    "food": "food-39ccb32d",
+    "fool": "fool-33655e63",
+    "four": "four-9f8f7eec",
+    "friend": "friend-e69867ca",
+    "full": "full-52e6d8ab",
+    "get started": "get-started-4f47eb33",
+    "get up": "get-up-3f2d515e",
+    "get_up": "get-up-e53cea58",
+    "give": "give-fa9f22e6",
+    "go": "go-1ec558a6",
+    "go out": "go-out-52f7f7cc",
+    "go_out": "go-out-5b4374ca",
+    "go out and do it": "go-out-and-do-it-53821688",
+    "gonna": "gonna-6a3ab08e",
+    "good morning": "good-morning-a8cbec72",
+    "good morning, how do you do": "good-morning-how-do-you-do-d91f457d",
+    "gotta": "gotta-4b17286a",
+    "half": "half-6dbdd59a",
+    "happy": "happy-3978d009",
+    "hello": "hello-aaf4c61d",
+    "hello, this is john speaking": "hello-this-is-john-speaking-02a2d8ba",
+    "help": "help-92005ecf",
+    "hey": "hey-7f550a9f",
+    "hey you": "hey-you-59818cf1",
+    "hi": "hi-c22b5f91",
+    "home": "home-e83249bd",
+    "hotel": "hotel-14e83355",
+    "how": "how-0b064373",
+    "how are you": "how-are-you-4bfe46a7",
+    "how much is that": "how-much-is-that-9ac6775d",
+    "i absolutely love it": "i-absolutely-love-it-3fe1cdf8",
+    "i admire the company culture": "i-admire-the-company-culture-9139010a",
+    "i am a team player": "i-am-a-team-player-e8442100",
+    "i am": "i-am-b9778453",
+    "i'd like a coffee": "i-d-like-a-coffee-3c80f673",
+    "i'd like a table for two at eight": "i-d-like-a-table-for-two-at-eight-7a6c421e",
+    "i'd like fish and chips": "i-d-like-fish-and-chips-0e1407d4",
+    "i'd like one ticket to london, please": "i-d-like-one-ticket-to-london-please-3e69d3e0",
+    "i'd like to book": "i-d-like-to-book-75a64a62",
+    "i have a reservation under smith": "i-have-a-reservation-under-smith-05d9517d",
+    "i have five years of experience": "i-have-five-years-of-experience-88691676",
+    "i know how to use a knife": "i-know-how-to-use-a-knife-a22c93df",
+    "i love it": "i-love-it-26ac68d2",
+    "i'm great, thanks! and you": "i-m-great-thanks-and-you-c2067779",
+    "i see": "i-see-f0723abd",
+    "i see your point": "i-see-your-point-ab51a4aa",
+    "i see your point, but i disagree": "i-see-your-point-but-i-disagree-6ecf310b",
+    "i totally agree with you": "i-totally-agree-with-you-746e2822",
+    "ice": "ice-d53b257b",
+    "it is": "it-is-79d4a897",
+    "keep": "keep-1264bdfe",
+    "kind": "kind-0ef25ae0",
+    "king": "king-481902ec",
+    "kite": "kite-34e1c787",
+    "knee": "knee-d22dda44",
+    "knife": "knife-6e32618e",
+    "knock": "knock-03c065ba",
+    "know": "know-97accafb",
+    "lamp": "lamp-bc4edcce",
+    "large": "large-5296d5cc",
+    "later": "later-3f14ecc8",
+    "lazy": "lazy-1078cf41",
+    "light": "light-dfccc06f",
+    "lion": "lion-eaf14a01",
+    "little": "little-45022297",
+    "location": "location-6469ac84",
+    "london": "london-1645ee78",
+    "look_at": "look-at-abdfd297",
+    "love": "love-9f2feb0f",
+    "man": "man-8175e3c8",
+    "map": "map-37745ed7",
+    "medium": "medium-20af4186",
+    "meet you": "meet-you-9b300726",
+    "men": "men-6711b9eb",
+    "move": "move-379d6ce9",
+    "my friend is famous for her food": "my-friend-is-famous-for-her-food-95790bf4",
+    "name": "name-6ae99955",
+    "new york": "new-york-dddd9606",
+    "next": "next-edee9402",
+    "nice to meet you": "nice-to-meet-you-a2a75a27",
+    "no way": "no-way-1b20fde7",
+    "not": "not-557f2555",
+    "o-pen": "o-pen-e03e3e37",
+    "often": "often-6b77993c",
+    "once": "once-18638356",
+    "once, the queen found water and a new way in the white world": "once-the-queen-found-water-and-a-new-way-in-the-wh-1567391c",
+    "one": "one-fe05bcdc",
+    "one ticket": "one-ticket-32ca1595",
+    "open": "open-5fc7e38b",
+    "orange": "orange-ef0ebbb7",
+    "pan": "pan-bd2bd821",
+    "paper": "paper-950593b1",
+    "paris": "paris-3c4bd4d0",
+    "partly": "partly-446855cd",
+    "pen": "pen-31a841af",
+    "pho-to-gra-phic": "pho-to-gra-phic-6cac0797",
+    "pho-to-gra-phy": "pho-to-gra-phy-fe308a36",
+    "pho-to-graph": "pho-to-graph-f2f37059",
+    "phone": "phone-f6be6ca9",
+    "photograph": "photograph-5df588cd",
+    "photography": "photography-9aa15b5b",
+    "pink": "pink-b0f7f128",
+    "play": "play-516626bf",
+    "please": "please-cae355b6",
+    "po-ta-to": "po-ta-to-faf995d3",
+    "pool": "pool-51a4b13b",
+    "pull": "pull-c872d556",
+    "queen": "queen-41011410",
+    "rabbit": "rabbit-6d0ebbbd",
+    "read": "read-a7afddb6",
+    "receipt": "receipt-14e60ace",
+    "red": "red-78988010",
+    "reservation": "reservation-bcf112ef",
+    "ride": "ride-320ef6a3",
+    "river": "river-08fbe5a2",
+    "road": "road-4adfa579",
+    "rock and roll": "rock-and-roll-0652b4aa",
+    "rock n roll": "rock-n-roll-7948ca00",
+    "rose": "rose-7b7074fc",
+    "round": "round-f0590a6d",
+    "run": "run-df6ad190",
+    "salary": "salary-47dfeb55",
+    "salt n pepper": "salt-n-pepper-5dc3030e",
+    "sand": "sand-42625bfe",
+    "say what": "say-what-4087e67b",
+    "sea": "sea-6fa11fb2",
+    "seat": "seat-ac814ccc",
+    "see_it": "see-it-e4233811",
+    "see you": "see-you-8b9c4b13",
+    "see you later": "see-you-later-b522739f",
+    "see you later, have a nice day": "see-you-later-have-a-nice-day-e3640108",
+    "see you tomorrow": "see-you-tomorrow-96b47ce7",
+    "shall we": "shall-we-676dc018",
+    "shall we get started": "shall-we-get-started-64623989",
+    "she": "she-4a240ec0",
+    "she loves it": "she-loves-it-f7f200da",
+    "she sells sea shells": "she-sells-sea-shells-a31616ab",
+    "sheep": "sheep-6525f2e6",
+    "ship": "ship-ed43a8a0",
+    "shoe": "shoe-4488ae65",
+    "silver": "silver-f8248e12",
+    "sing": "sing-f9bef9c2",
+    "sister": "sister-1dd09baa",
+    "sit": "sit-abdcde66",
+    "sky": "sky-5737ef08",
+    "small": "small-89f6229a",
+    "snow": "snow-b94e9f3d",
+    "soft": "soft-eb74f2cb",
+    "solo": "solo-49f25741",
+    "soon": "soon-3f934e4f",
+    "sound": "sound-5e2e97c3",
+    "speak up": "speak-up-137687d0",
+    "start": "start-2b020927",
+    "station": "station-2da36ff3",
+    "stop": "stop-1b480158",
+    "sue": "sue-1eac7bdc",
+    "sun": "sun-22fa6121",
+    "ta-ble": "ta-ble-b3cea8e4",
+    "table": "table-c3ee137d",
+    "table for two": "table-for-two-2d053d3f",
+    "take": "take-53bd7d99",
+    "take a photograph of photography": "take-a-photograph-of-photography-8e682bd0",
+    "take the ticket to the train": "take-the-ticket-to-the-train-9d0de2d7",
+    "talk": "talk-e55e91b2",
+    "tank": "tank-b63ae12f",
+    "team": "team-d25187dc",
+    "team player": "team-player-93753c21",
+    "tell": "tell-47b8015d",
+    "ten": "ten-dd356244",
+    "thank": "thank-c4121f6a",
+    "thank you": "thank-you-897a1c59",
+    "thank you for your time": "thank-you-for-your-time-f556b223",
+    "thanks": "thanks-6e3f5ad7",
+    "the baby has a blue book": "the-baby-has-a-blue-book-a75d47fe",
+    "the bill please": "the-bill-please-c974d477",
+    "the check": "the-check-ca53f90c",
+    "the fool is full of food": "the-fool-is-full-of-food-4bf93aac",
+    "the king keeps a kite in the sky": "the-king-keeps-a-kite-in-the-sky-0818c9a8",
+    "the little lion plays near the lamp": "the-little-lion-plays-near-the-lamp-5c0131a2",
+    "the man has a pen in the pan": "the-man-has-a-pen-in-the-pan-85dd91d7",
+    "the orange rose is at home": "the-orange-rose-is-at-home-e89a8548",
+    "the pink pen is on the paper": "the-pink-pen-is-on-the-paper-5d8e6c60",
+    "the rabbit ran down the road": "the-rabbit-ran-down-the-road-5a59d7e5",
+    "the red hen left the nest": "the-red-hen-left-the-nest-b8f6d884",
+    "the sheep is on the ship": "the-sheep-is-on-the-ship-123249c5",
+    "the sun is up above the bus": "the-sun-is-up-above-the-bus-9e171628",
+    "the sun shines over the sea": "the-sun-shines-over-the-sea-d1b4edff",
+    "the vampire has a very loud voice": "the-vampire-has-a-very-loud-voice-3480840e",
+    "the white light is bright at night": "the-white-light-is-bright-at-night-862da9cc",
+    "there": "there-490528f3",
+    "they": "they-f1fdd46d",
+    "they went there for the day": "they-went-there-for-the-day-460ba953",
+    "thin": "thin-6ca0fa26",
+    "this is": "this-is-87fe3990",
+    "three": "three-b802f384",
+    "three trees fell down": "three-trees-fell-down-778fc56f",
+    "ticket": "ticket-346d34a0",
+    "time": "time-714eea0f",
+    "tin": "tin-f2691976",
+    "to-ma-to": "to-ma-to-fbb0b3a3",
+    "today": "today-2dd2bed7",
+    "tomorrow": "tomorrow-2dac81d6",
+    "top": "top-af2c7b4c",
+    "total": "total-5a537e20",
+    "totally": "totally-59a3b207",
+    "tree": "tree-80655da8",
+    "turn on": "turn-on-2d1f77d0",
+    "turn_on": "turn-on-befe03dc",
+    "turn on the light": "turn-on-the-light-11a66785",
+    "two": "two-ad782ecd",
+    "umbrella": "umbrella-3ff95ac9",
+    "vampire": "vampire-d30d77bc",
+    "very": "very-e74295bf",
+    "voice": "voice-47ef6589",
+    "wa-ter": "wa-ter-a439d6dd",
+    "wait": "wait-daaad336",
+    "walk": "walk-df06b147",
+    "wanna": "wanna-38ed7d5b",
+    "water": "water-6d5a4592",
+    "water the flowers": "water-the-flowers-ac530c53",
+    "way": "way-ed36cbf2",
+    "we can walk and talk": "we-can-walk-and-talk-57432e20",
+    "what do you want to do": "what-do-you-want-to-do-b6f323b2",
+    "white": "white-528cef87",
+    "won't you": "won-t-you-15b6f8ea",
+    "world": "world-7c211433",
+    "wrap": "wrap-f0cad979",
+    "wrist": "wrist-f65c1f7d",
+    "write": "write-e1d0c6c1",
+    "wrong": "wrong-a4b48a81",
+    "you": "you-8af56de6",
+    "you're wrong": "you-re-wrong-97c13195",
+    "your time": "your-time-d598deaf"
+  }
+}

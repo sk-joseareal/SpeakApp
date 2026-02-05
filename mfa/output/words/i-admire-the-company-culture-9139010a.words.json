@@ -1,0 +1,27 @@
+[
+  {
+    "start": 0,
+    "end": 0.18,
+    "word": "i"
+  },
+  {
+    "start": 0.18,
+    "end": 0.59,
+    "word": "admire"
+  },
+  {
+    "start": 0.59,
+    "end": 0.7,
+    "word": "the"
+  },
+  {
+    "start": 0.7,
+    "end": 1.14,
+    "word": "company"
+  },
+  {
+    "start": 1.14,
+    "end": 1.68,
+    "word": "culture"
+  }
+]

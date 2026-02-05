@@ -87,6 +87,8 @@ class PageHome extends HTMLElement {
     window.addEventListener('app:user-change', this._userHandler);
     this._rewardsHandler = () => this.updateHeaderRewards();
     window.addEventListener('app:speak-stores-change', this._rewardsHandler);
+    this._debugHandler = () => this.render();
+    window.addEventListener('app:speak-debug', this._debugHandler);
     this.render();
   }
 
@@ -99,6 +101,9 @@ class PageHome extends HTMLElement {
     }
     if (this._rewardsHandler) {
       window.removeEventListener('app:speak-stores-change', this._rewardsHandler);
+    }
+    if (this._debugHandler) {
+      window.removeEventListener('app:speak-debug', this._debugHandler);
     }
   }
 
@@ -242,7 +247,9 @@ class PageHome extends HTMLElement {
     };
 
     const routeProgressList = routes.map((route) => getRoutePercent(route));
+    const isDebug = Boolean(window.r34lp0w3r && window.r34lp0w3r.speakDebug);
     const routeUnlockList = routes.map((_, idx) => {
+      if (isDebug) return true;
       if (idx === 0) return true;
       const prev = routeProgressList[idx - 1];
       return prev && prev.tone === 'good';

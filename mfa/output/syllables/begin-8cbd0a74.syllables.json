@@ -1,0 +1,21 @@
+[
+  {
+    "word": "begin",
+    "start": 0,
+    "end": 0.4,
+    "syllables": [
+      {
+        "text": "be",
+        "start": 0,
+        "end": 0.16,
+        "index": 0
+      },
+      {
+        "text": "gin",
+        "start": 0.16,
+        "end": 0.4,
+        "index": 1
+      }
+    ]
+  }
+]

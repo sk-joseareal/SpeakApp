@@ -1,0 +1,80 @@
+[
+  {
+    "word": "i",
+    "start": 0,
+    "end": 0.1,
+    "syllables": [
+      {
+        "text": "i",
+        "start": 0,
+        "end": 0.1,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "am",
+    "start": 0.1,
+    "end": 0.2,
+    "syllables": [
+      {
+        "text": "am",
+        "start": 0.1,
+        "end": 0.2,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "great",
+    "start": 0.2,
+    "end": 0.6,
+    "syllables": [
+      {
+        "text": "great",
+        "start": 0.2,
+        "end": 0.6,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "thanks",
+    "start": 0.88,
+    "end": 1.41,
+    "syllables": [
+      {
+        "text": "thanks",
+        "start": 0.88,
+        "end": 1.41,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "and",
+    "start": 1.61,
+    "end": 1.77,
+    "syllables": [
+      {
+        "text": "and",
+        "start": 1.61,
+        "end": 1.77,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "you",
+    "start": 1.77,
+    "end": 2.05,
+    "syllables": [
+      {
+        "text": "you",
+        "start": 1.77,
+        "end": 2.05,
+        "index": 0
+      }
+    ]
+  }
+]

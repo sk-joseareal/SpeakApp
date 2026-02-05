@@ -1,0 +1,60 @@
+[
+  {
+    "word": "shall",
+    "start": 0,
+    "end": 0.3,
+    "syllables": [
+      {
+        "text": "shall",
+        "start": 0,
+        "end": 0.3,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "we",
+    "start": 0.3,
+    "end": 0.43,
+    "syllables": [
+      {
+        "text": "we",
+        "start": 0.3,
+        "end": 0.43,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "get",
+    "start": 0.43,
+    "end": 0.66,
+    "syllables": [
+      {
+        "text": "get",
+        "start": 0.43,
+        "end": 0.66,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "started",
+    "start": 0.66,
+    "end": 1.11,
+    "syllables": [
+      {
+        "text": "star",
+        "start": 0.66,
+        "end": 0.917,
+        "index": 0
+      },
+      {
+        "text": "ted",
+        "start": 0.917,
+        "end": 1.11,
+        "index": 1
+      }
+    ]
+  }
+]

@@ -1,0 +1,21 @@
+[
+  {
+    "word": "often",
+    "start": 0,
+    "end": 0.43,
+    "syllables": [
+      {
+        "text": "of",
+        "start": 0,
+        "end": 0.172,
+        "index": 0
+      },
+      {
+        "text": "ten",
+        "start": 0.172,
+        "end": 0.43,
+        "index": 1
+      }
+    ]
+  }
+]

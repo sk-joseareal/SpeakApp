@@ -1,0 +1,80 @@
+[
+  {
+    "word": "the",
+    "start": 0,
+    "end": 0.08,
+    "syllables": [
+      {
+        "text": "the",
+        "start": 0,
+        "end": 0.08,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "sheep",
+    "start": 0.08,
+    "end": 0.4,
+    "syllables": [
+      {
+        "text": "sheep",
+        "start": 0.08,
+        "end": 0.4,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "is",
+    "start": 0.4,
+    "end": 0.54,
+    "syllables": [
+      {
+        "text": "is",
+        "start": 0.4,
+        "end": 0.54,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "on",
+    "start": 0.54,
+    "end": 0.69,
+    "syllables": [
+      {
+        "text": "on",
+        "start": 0.54,
+        "end": 0.69,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "the",
+    "start": 0.69,
+    "end": 0.78,
+    "syllables": [
+      {
+        "text": "the",
+        "start": 0.69,
+        "end": 0.78,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "ship",
+    "start": 0.78,
+    "end": 1.1,
+    "syllables": [
+      {
+        "text": "ship",
+        "start": 0.78,
+        "end": 1.1,
+        "index": 0
+      }
+    ]
+  }
+]

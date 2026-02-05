@@ -1,0 +1,86 @@
+[
+  {
+    "word": "i",
+    "start": 0,
+    "end": 0.09,
+    "syllables": [
+      {
+        "text": "i",
+        "start": 0,
+        "end": 0.09,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "would",
+    "start": 0.09,
+    "end": 0.19,
+    "syllables": [
+      {
+        "text": "would",
+        "start": 0.09,
+        "end": 0.19,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "like",
+    "start": 0.19,
+    "end": 0.43,
+    "syllables": [
+      {
+        "text": "li",
+        "start": 0.19,
+        "end": 0.31,
+        "index": 0
+      },
+      {
+        "text": "ke",
+        "start": 0.31,
+        "end": 0.43,
+        "index": 1
+      }
+    ]
+  },
+  {
+    "word": "fish",
+    "start": 0.43,
+    "end": 0.7,
+    "syllables": [
+      {
+        "text": "fish",
+        "start": 0.43,
+        "end": 0.7,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "and",
+    "start": 0.7,
+    "end": 0.86,
+    "syllables": [
+      {
+        "text": "and",
+        "start": 0.7,
+        "end": 0.86,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "chips",
+    "start": 0.86,
+    "end": 1.32,
+    "syllables": [
+      {
+        "text": "chips",
+        "start": 0.86,
+        "end": 1.32,
+        "index": 0
+      }
+    ]
+  }
+]

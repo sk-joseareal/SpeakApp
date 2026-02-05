@@ -1,0 +1,28 @@
+[
+  {
+    "word": "thank",
+    "start": 0.07,
+    "end": 0.32,
+    "syllables": [
+      {
+        "text": "thank",
+        "start": 0.07,
+        "end": 0.32,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "you",
+    "start": 0.32,
+    "end": 0.6,
+    "syllables": [
+      {
+        "text": "you",
+        "start": 0.32,
+        "end": 0.6,
+        "index": 0
+      }
+    ]
+  }
+]

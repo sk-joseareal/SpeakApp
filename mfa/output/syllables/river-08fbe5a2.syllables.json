@@ -1,0 +1,21 @@
+[
+  {
+    "word": "river",
+    "start": 0,
+    "end": 0.35,
+    "syllables": [
+      {
+        "text": "ri",
+        "start": 0,
+        "end": 0.14,
+        "index": 0
+      },
+      {
+        "text": "ver",
+        "start": 0.14,
+        "end": 0.35,
+        "index": 1
+      }
+    ]
+  }
+]

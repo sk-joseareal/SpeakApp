@@ -1,0 +1,28 @@
+[
+  {
+    "word": "say",
+    "start": 0.03,
+    "end": 0.24,
+    "syllables": [
+      {
+        "text": "say",
+        "start": 0.03,
+        "end": 0.24,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "what",
+    "start": 0.24,
+    "end": 0.56,
+    "syllables": [
+      {
+        "text": "what",
+        "start": 0.24,
+        "end": 0.56,
+        "index": 0
+      }
+    ]
+  }
+]

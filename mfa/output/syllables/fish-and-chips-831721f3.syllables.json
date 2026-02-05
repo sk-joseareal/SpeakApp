@@ -1,0 +1,41 @@
+[
+  {
+    "word": "fish",
+    "start": 0,
+    "end": 0.28,
+    "syllables": [
+      {
+        "text": "fish",
+        "start": 0,
+        "end": 0.28,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "and",
+    "start": 0.28,
+    "end": 0.45,
+    "syllables": [
+      {
+        "text": "and",
+        "start": 0.28,
+        "end": 0.45,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "chips",
+    "start": 0.45,
+    "end": 0.91,
+    "syllables": [
+      {
+        "text": "chips",
+        "start": 0.45,
+        "end": 0.91,
+        "index": 0
+      }
+    ]
+  }
+]

@@ -1,0 +1,15 @@
+[
+  {
+    "word": "hi",
+    "start": 0.03,
+    "end": 0.39,
+    "syllables": [
+      {
+        "text": "hi",
+        "start": 0.03,
+        "end": 0.39,
+        "index": 0
+      }
+    ]
+  }
+]

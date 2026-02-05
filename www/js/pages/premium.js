@@ -24,15 +24,16 @@ class PagePremium extends HTMLElement {
           <div class="card premium-chat-card">
             <div class="premium-card-header">
               <div>
-                <div class="pill">Chatbot (beta)</div>
-                <h3>Coach de pronunciacion</h3>
-                <p class="muted">Graba tu frase, escucha tu audio y recibe una respuesta simulada.</p>
+                <div class="chat-mode-toggle" id="premium-mode-toggle" hidden>
+                  <button type="button" class="chat-mode-btn is-active" data-mode="catbot">Catbot</button>
+                  <button type="button" class="chat-mode-btn" data-mode="chatbot">Chatbot</button>
+                </div>
+                <h3 id="premium-coach-title">Coach de pronunciacion</h3>
+                <p class="muted" id="premium-coach-subtitle">
+                  Graba tu frase, escucha tu audio y recibe una respuesta simulada.
+                </p>
               </div>
               <div class="coach-avatar coach-avatar-cat" id="premium-coach-avatar" aria-label="Coach"></div>
-            </div>
-            <div class="chat-mode-toggle" id="premium-mode-toggle" hidden>
-              <button type="button" class="chat-mode-btn is-active" data-mode="catbot">Catbot</button>
-              <button type="button" class="chat-mode-btn" data-mode="chatbot">Chatbot</button>
             </div>
             <div class="premium-access" id="premium-access">
               <div class="premium-access-panel premium-loading-panel" id="premium-loading-panel" hidden>
@@ -62,7 +63,7 @@ class PagePremium extends HTMLElement {
                   autocomplete="off"
                 />
               </div>
-              <div class="chat-controls">
+              <div class="chat-controls" id="premium-chat-controls">
                 <button class="chat-btn chat-btn-record" id="premium-record-btn" type="button" aria-pressed="false">
                   <ion-icon name="mic"></ion-icon>
                   <span>Grabar</span>
@@ -97,10 +98,13 @@ class PagePremium extends HTMLElement {
     const recordBtn = this.querySelector('#premium-record-btn');
     const previewBtn = this.querySelector('#premium-preview-btn');
     const sendBtn = this.querySelector('#premium-send-btn');
+    const chatControls = this.querySelector('#premium-chat-controls');
     const hintEl = this.querySelector('#premium-chat-hint');
     const loginBtn = this.querySelector('#premium-login-btn');
     const modeToggle = this.querySelector('#premium-mode-toggle');
     const coachAvatar = this.querySelector('#premium-coach-avatar');
+    const coachTitleEl = this.querySelector('#premium-coach-title');
+    const coachSubtitleEl = this.querySelector('#premium-coach-subtitle');
     const textRow = this.querySelector('#premium-text-row');
     const textInput = this.querySelector('#premium-text-input');
     const defaultHint = hintEl ? hintEl.textContent : '';
@@ -137,7 +141,6 @@ class PagePremium extends HTMLElement {
     let speechFailed = false;
     let pendingAudioUrl = '';
     let finalizeTimer = null;
-    let replyTimer = null;
     let lastUserId = null;
     let lastPremium = false;
     let accessLoading = true;
@@ -145,9 +148,11 @@ class PagePremium extends HTMLElement {
     let pusherClient = null;
     let pusherChannel = null;
     let pusherChannelName = '';
-    let awaitingBot = false;
     let realtimeConnected = false;
     let chatMode = 'catbot';
+    const replyTimers = { catbot: null, chatbot: null };
+    const awaitingBot = { catbot: false, chatbot: false };
+    const chatThreads = { catbot: [], chatbot: [] };
 
     const canSpeak = () =>
       typeof window !== 'undefined' &&
@@ -228,12 +233,19 @@ class PagePremium extends HTMLElement {
       return user.image_local || user.image || '';
     };
 
-    const cancelSimulatedReply = () => {
-      if (replyTimer) {
-        clearTimeout(replyTimer);
-        replyTimer = null;
+    const cancelSimulatedReply = (mode) => {
+      const targetMode = mode || chatMode;
+      if (!replyTimers[targetMode]) {
+        awaitingBot[targetMode] = false;
+        return;
       }
-      awaitingBot = false;
+      clearTimeout(replyTimers[targetMode]);
+      replyTimers[targetMode] = null;
+      awaitingBot[targetMode] = false;
+    };
+
+    const cancelAllSimulatedReplies = () => {
+      Object.keys(replyTimers).forEach((mode) => cancelSimulatedReply(mode));
     };
 
     const setHint = (text) => {
@@ -508,7 +520,14 @@ class PagePremium extends HTMLElement {
       playSpeech(speakText);
     };
 
-    const appendMessage = ({ role, text, audioUrl, speakText }) => {
+    const getThread = (mode) => (mode === 'chatbot' ? chatThreads.chatbot : chatThreads.catbot);
+
+    const getIntroCopy = (mode) =>
+      mode === 'chatbot'
+        ? 'Hi!, i am your English teacher, how can i help you?'
+        : 'Hi! Record a phrase in English and I will answer with a suggestion.';
+
+    const renderMessage = ({ role, text, audioUrl, speakText }, mode) => {
       if (!threadEl) return;
       const msgEl = document.createElement('div');
       msgEl.className = `chat-msg chat-msg-${role}`;
@@ -521,18 +540,20 @@ class PagePremium extends HTMLElement {
       textEl.textContent = text;
       bubbleEl.appendChild(textEl);
 
-      const actionEl = document.createElement('div');
-      actionEl.className = 'chat-bubble-actions';
-      const playBtn = document.createElement('button');
-      playBtn.type = 'button';
-      playBtn.className = 'chat-audio-btn';
-      playBtn.innerHTML = `<ion-icon name="play"></ion-icon><span>${role === 'user' ? 'Escuchar' : 'Repetir'}</span>`;
-      if (!audioUrl && !speakText) {
-        playBtn.disabled = true;
+      if (mode !== 'chatbot') {
+        const actionEl = document.createElement('div');
+        actionEl.className = 'chat-bubble-actions';
+        const playBtn = document.createElement('button');
+        playBtn.type = 'button';
+        playBtn.className = 'chat-audio-btn';
+        playBtn.innerHTML = `<ion-icon name="play"></ion-icon><span>${role === 'user' ? 'Escuchar' : 'Repetir'}</span>`;
+        if (!audioUrl && !speakText) {
+          playBtn.disabled = true;
+        }
+        playBtn.addEventListener('click', () => playMessageAudio({ audioUrl, speakText }));
+        actionEl.appendChild(playBtn);
+        bubbleEl.appendChild(actionEl);
       }
-      playBtn.addEventListener('click', () => playMessageAudio({ audioUrl, speakText }));
-      actionEl.appendChild(playBtn);
-      bubbleEl.appendChild(actionEl);
 
       msgEl.appendChild(bubbleEl);
       threadEl.appendChild(msgEl);
@@ -544,26 +565,52 @@ class PagePremium extends HTMLElement {
       threadEl.innerHTML = '';
     };
 
-    const seedIntroMessage = () => {
-      if (!threadEl || threadEl.children.length) return;
-      appendMessage({
-        role: 'bot',
-        text: 'Hi! Record a phrase in English and I will answer with a suggestion.',
-        audioUrl: '',
-        speakText: 'Hi! Record a phrase in English and I will answer with a suggestion.'
-      });
+    const renderThread = (mode) => {
+      if (!threadEl) return;
+      clearThread();
+      const thread = getThread(mode);
+      thread.forEach((message) => renderMessage(message, mode));
+      threadEl.scrollTop = threadEl.scrollHeight;
+    };
+
+    const appendMessage = ({ role, text, audioUrl, speakText }, options = {}) => {
+      const targetMode = options.mode || chatMode;
+      const thread = getThread(targetMode);
+      const message = { role, text, audioUrl, speakText };
+      thread.push(message);
+      if (targetMode === chatMode) {
+        renderMessage(message, targetMode);
+      }
+    };
+
+    const ensureIntroMessage = (mode) => {
+      const targetMode = mode || chatMode;
+      const thread = getThread(targetMode);
+      if (thread.length) return;
+      const introCopy = getIntroCopy(targetMode);
+      appendMessage(
+        {
+          role: 'bot',
+          text: introCopy,
+          audioUrl: '',
+          speakText: introCopy
+        },
+        { mode: targetMode }
+      );
     };
 
     const resetChatSession = ({ keepIntro, setDefaultHint } = {}) => {
       stopPlayback();
       stopActiveCapture();
-      cancelSimulatedReply();
+      cancelAllSimulatedReplies();
       clearDraft(true);
       retainedAudioUrls.forEach((url) => URL.revokeObjectURL(url));
       retainedAudioUrls.length = 0;
+      chatThreads.catbot.length = 0;
+      chatThreads.chatbot.length = 0;
       clearThread();
       if (keepIntro) {
-        seedIntroMessage();
+        ensureIntroMessage(chatMode);
       }
       if (setDefaultHint && defaultHint) {
         setHint(defaultHint);
@@ -719,6 +766,7 @@ class PagePremium extends HTMLElement {
         user && user.id !== undefined && user.id !== null ? String(user.id) : '';
       if (!userId) return;
 
+      const connectedMode = chatMode;
       const channelName = buildChannelName(userId, config);
       if (pusherClient && pusherChannelName === channelName) {
         return;
@@ -770,9 +818,9 @@ class PagePremium extends HTMLElement {
         const message = normalizeIncoming(data, fallbackRole);
         if (!message) return;
         if (message.role === 'bot') {
-          cancelSimulatedReply();
+          cancelSimulatedReply(connectedMode);
         }
-        appendMessage(message);
+        appendMessage(message, { mode: connectedMode });
       };
 
       pusherChannel = pusherClient.subscribe(channelName);
@@ -910,7 +958,7 @@ class PagePremium extends HTMLElement {
         if (userChanged || premiumChanged) {
           resetChatSession({ keepIntro: true, setDefaultHint: true });
         } else {
-          seedIntroMessage();
+          ensureIntroMessage(chatMode);
         }
         setControlsEnabled(true);
         connectRealtime(user);
@@ -939,28 +987,36 @@ class PagePremium extends HTMLElement {
 
     const sendUserText = (userText, payload = {}) => {
       if (!userText) return;
-      awaitingBot = true;
+      const messageMode = chatMode;
+      if (messageMode === 'catbot') {
+        awaitingBot[messageMode] = true;
+      }
       appendMessage({
         role: 'user',
         text: userText,
         audioUrl: payload.audioUrl || '',
         speakText: payload.audioUrl ? '' : payload.speakText || userText
-      });
+      }, { mode: messageMode });
       if (payload.audioUrl) retainedAudioUrls.push(payload.audioUrl);
       clearDraft(false);
       setHint('Puedes grabar otra frase cuando quieras.');
       emitRealtimeMessage({ text: userText });
-      if (replyTimer) clearTimeout(replyTimer);
-      replyTimer = setTimeout(() => {
-        if (!awaitingBot) {
-          replyTimer = null;
-          return;
-        }
-        awaitingBot = false;
-        const reply = pickBotReply(userText);
-        appendMessage({ role: 'bot', text: reply, audioUrl: '', speakText: reply });
-        replyTimer = null;
-      }, 700);
+      if (messageMode === 'catbot') {
+        if (replyTimers[messageMode]) clearTimeout(replyTimers[messageMode]);
+        replyTimers[messageMode] = setTimeout(() => {
+          if (!awaitingBot[messageMode]) {
+            replyTimers[messageMode] = null;
+            return;
+          }
+          awaitingBot[messageMode] = false;
+          const reply = pickBotReply(userText);
+          appendMessage(
+            { role: 'bot', text: reply, audioUrl: '', speakText: reply },
+            { mode: messageMode }
+          );
+          replyTimers[messageMode] = null;
+        }, 700);
+      }
     };
 
     sendBtn?.addEventListener('click', () => {
@@ -1021,13 +1077,55 @@ class PagePremium extends HTMLElement {
     const updateCoachAvatar = () => {
       if (!coachAvatar) return;
       if (chatMode === 'chatbot') {
-        coachAvatar.textContent = 'B';
+        coachAvatar.textContent = '';
         coachAvatar.classList.remove('coach-avatar-cat');
         coachAvatar.classList.add('coach-avatar-bot');
       } else {
         coachAvatar.textContent = '';
         coachAvatar.classList.remove('coach-avatar-bot');
         coachAvatar.classList.add('coach-avatar-cat');
+      }
+    };
+
+    const updateCoachCopy = () => {
+      if (!coachTitleEl || !coachSubtitleEl) return;
+      if (chatMode === 'chatbot') {
+        coachTitleEl.textContent = 'Coach de IA';
+        coachSubtitleEl.textContent = 'Interactua libremente con el tutor de Ingles.';
+      } else {
+        coachTitleEl.textContent = 'Coach de pronunciacion';
+        coachSubtitleEl.textContent =
+          'Graba tu frase, escucha tu audio y recibe una respuesta simulada.';
+      }
+    };
+
+    const placeSendButton = () => {
+      if (!sendBtn || !textRow || !chatControls) return;
+      const target = chatMode === 'chatbot' ? textRow : chatControls;
+      if (sendBtn.parentElement !== target) {
+        target.appendChild(sendBtn);
+      }
+    };
+
+    const updateChatControlsVisibility = () => {
+      const isChatbot = chatMode === 'chatbot';
+      if (recordBtn) recordBtn.hidden = isChatbot;
+      if (previewBtn) previewBtn.hidden = isChatbot;
+      if (hintEl) hintEl.hidden = isChatbot;
+      if (chatControls) chatControls.hidden = isChatbot;
+      if (textRow) textRow.classList.toggle('chat-text-row-inline', isChatbot);
+      placeSendButton();
+    };
+
+    const updateTextRowVisibility = (debugOverride) => {
+      const debug =
+        debugOverride !== undefined
+          ? debugOverride
+          : Boolean(window.r34lp0w3r && window.r34lp0w3r.speakDebug);
+      const showText = debug && chatMode === 'chatbot';
+      if (textRow) textRow.hidden = !showText;
+      if (!showText && textInput) {
+        textInput.value = '';
       }
     };
 
@@ -1041,20 +1139,28 @@ class PagePremium extends HTMLElement {
         });
       }
       updateCoachAvatar();
+      updateCoachCopy();
+      updateChatControlsVisibility();
+      updateTextRowVisibility();
+      renderThread(chatMode);
+      ensureIntroMessage(chatMode);
       if (reconnect && lastPremium && window.user) {
         disconnectRealtime();
-        resetChatSession({ keepIntro: true, setDefaultHint: true });
         connectRealtime(window.user);
       }
+      updateDraftButtons();
     };
 
     const applyDebugMode = () => {
       const debug = Boolean(window.r34lp0w3r && window.r34lp0w3r.speakDebug);
       if (modeToggle) modeToggle.hidden = !debug;
-      if (textRow) textRow.hidden = !debug;
       if (!debug) {
         if (textInput) textInput.value = '';
+        updateTextRowVisibility(false);
         setChatMode('catbot', { reconnect: true });
+      } else {
+        updateTextRowVisibility(true);
+        updateChatControlsVisibility();
       }
       updateDraftButtons();
     };
@@ -1070,6 +1176,8 @@ class PagePremium extends HTMLElement {
     window.addEventListener('app:speak-debug', this._debugHandler);
     applyDebugMode();
     updateCoachAvatar();
+    updateCoachCopy();
+    updateChatControlsVisibility();
 
     this._cleanupPremiumChat = () => {
       resetChatSession({ keepIntro: false, setDefaultHint: false });

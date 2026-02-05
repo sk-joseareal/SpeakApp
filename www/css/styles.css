@@ -954,6 +954,24 @@ a {
   gap: 12px;
 }
 
+page-premium .page-shell {
+  min-height: 100%;
+  padding-bottom: 16px;
+}
+
+page-premium .premium-chat-card {
+  flex: 1;
+}
+
+page-premium .chat-panel {
+  flex: 1;
+}
+
+page-premium .chat-thread {
+  flex: 1;
+  max-height: none;
+}
+
 .premium-card-header {
   display: flex;
   justify-content: space-between;
@@ -962,15 +980,15 @@ a {
 }
 
 .coach-avatar {
-  width: 42px;
-  height: 42px;
+  width: 96px;
+  height: 96px;
   border-radius: 50%;
   border: 1px solid var(--app-border);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   font-weight: 700;
-  font-size: 0.95rem;
+  font-size: 1.6rem;
   flex-shrink: 0;
 }
 
@@ -980,8 +998,8 @@ a {
 }
 
 .coach-avatar-bot {
-  background: #111827;
-  color: #ffffff;
+  background: #eef2ff url('../assets/mascot/chatbot-icon.png') center/70% no-repeat;
+  color: transparent;
 }
 
 .chat-mode-toggle {
@@ -1013,6 +1031,20 @@ a {
 
 .chat-text-row {
   width: 100%;
+}
+
+.chat-text-row.chat-text-row-inline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.chat-text-row.chat-text-row-inline .chat-text-input {
+  flex: 1;
+}
+
+.chat-text-row.chat-text-row-inline .chat-btn {
+  white-space: nowrap;
 }
 
 .chat-text-input {

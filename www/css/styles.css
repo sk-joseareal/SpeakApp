@@ -954,6 +954,77 @@ a {
   gap: 12px;
 }
 
+.premium-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.coach-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 1px solid var(--app-border);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.95rem;
+  flex-shrink: 0;
+}
+
+.coach-avatar-cat {
+  background: rgba(15, 27, 45, 0.04) url('../assets/mascot/mascot-cat.png') center/70% no-repeat;
+  color: transparent;
+}
+
+.coach-avatar-bot {
+  background: #111827;
+  color: #ffffff;
+}
+
+.chat-mode-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px;
+  border-radius: 999px;
+  border: 1px solid var(--app-border);
+  background: var(--app-surface-2);
+  width: fit-content;
+}
+
+.chat-mode-btn {
+  border: none;
+  background: transparent;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--app-muted);
+  cursor: pointer;
+}
+
+.chat-mode-btn.is-active {
+  background: #111827;
+  color: #ffffff;
+}
+
+.chat-text-row {
+  width: 100%;
+}
+
+.chat-text-input {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--app-border);
+  background: #ffffff;
+  font-size: 0.9rem;
+  color: var(--app-text);
+}
+
 [hidden] {
   display: none !important;
 }

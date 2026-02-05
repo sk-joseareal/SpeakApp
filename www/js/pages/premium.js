@@ -22,9 +22,18 @@ class PagePremium extends HTMLElement {
       <ion-content fullscreen class="secret-content">
         <div class="page-shell">
           <div class="card premium-chat-card">
-            <div class="pill">Chatbot (beta)</div>
-            <h3>Coach de pronunciacion</h3>
-            <p class="muted">Graba tu frase, escucha tu audio y recibe una respuesta simulada.</p>
+            <div class="premium-card-header">
+              <div>
+                <div class="pill">Chatbot (beta)</div>
+                <h3>Coach de pronunciacion</h3>
+                <p class="muted">Graba tu frase, escucha tu audio y recibe una respuesta simulada.</p>
+              </div>
+              <div class="coach-avatar coach-avatar-cat" id="premium-coach-avatar" aria-label="Coach"></div>
+            </div>
+            <div class="chat-mode-toggle" id="premium-mode-toggle" hidden>
+              <button type="button" class="chat-mode-btn is-active" data-mode="catbot">Catbot</button>
+              <button type="button" class="chat-mode-btn" data-mode="chatbot">Chatbot</button>
+            </div>
             <div class="premium-access" id="premium-access">
               <div class="premium-access-panel premium-loading-panel" id="premium-loading-panel" hidden>
                 <ion-spinner name="dots"></ion-spinner>
@@ -44,6 +53,15 @@ class PagePremium extends HTMLElement {
             </div>
             <div class="chat-panel" id="premium-chat-panel">
               <div class="chat-thread" id="premium-chat-thread" role="log" aria-live="polite" aria-relevant="additions"></div>
+              <div class="chat-text-row" id="premium-text-row" hidden>
+                <input
+                  type="text"
+                  id="premium-text-input"
+                  class="chat-text-input"
+                  placeholder="Escribe tu mensaje..."
+                  autocomplete="off"
+                />
+              </div>
               <div class="chat-controls">
                 <button class="chat-btn chat-btn-record" id="premium-record-btn" type="button" aria-pressed="false">
                   <ion-icon name="mic"></ion-icon>
@@ -81,6 +99,10 @@ class PagePremium extends HTMLElement {
     const sendBtn = this.querySelector('#premium-send-btn');
     const hintEl = this.querySelector('#premium-chat-hint');
     const loginBtn = this.querySelector('#premium-login-btn');
+    const modeToggle = this.querySelector('#premium-mode-toggle');
+    const coachAvatar = this.querySelector('#premium-coach-avatar');
+    const textRow = this.querySelector('#premium-text-row');
+    const textInput = this.querySelector('#premium-text-input');
     const defaultHint = hintEl ? hintEl.textContent : '';
 
     const sampleTranscripts = [
@@ -125,6 +147,7 @@ class PagePremium extends HTMLElement {
     let pusherChannelName = '';
     let awaitingBot = false;
     let realtimeConnected = false;
+    let chatMode = 'catbot';
 
     const canSpeak = () =>
       typeof window !== 'undefined' &&
@@ -156,8 +179,11 @@ class PagePremium extends HTMLElement {
       };
     };
 
+    const getCoachId = () => (chatMode === 'chatbot' ? '2' : '1');
+
     const buildChannelName = (userId, config) => {
-      const base = `${config.channelPrefix}-${userId}`;
+      const coachId = getCoachId();
+      const base = `${config.channelPrefix}${coachId}-${userId}`;
       const type = config.channelType;
       if (!type || type === 'public') return base;
       return `${type}-${base}`;
@@ -226,8 +252,12 @@ class PagePremium extends HTMLElement {
 
     const updateDraftButtons = () => {
       if (!previewBtn || !sendBtn) return;
-      const hasTranscript = Boolean(draftTranscript);
-      const hasPlayback = Boolean(draftAudioUrl) || (Boolean(draftSpeakText) && canSpeak());
+      const typedText = textInput ? textInput.value.trim() : '';
+      const hasTranscript = Boolean(draftTranscript) || Boolean(typedText);
+      const hasPlayback =
+        Boolean(draftAudioUrl) ||
+        (Boolean(draftSpeakText) && canSpeak()) ||
+        (Boolean(typedText) && canSpeak());
       previewBtn.disabled = !hasTranscript || !hasPlayback;
       sendBtn.disabled = !hasTranscript;
     };
@@ -237,7 +267,9 @@ class PagePremium extends HTMLElement {
       if (!enabled) {
         if (previewBtn) previewBtn.disabled = true;
         if (sendBtn) sendBtn.disabled = true;
+        if (textInput) textInput.disabled = true;
       } else {
+        if (textInput) textInput.disabled = false;
         updateDraftButtons();
       }
     };
@@ -266,6 +298,7 @@ class PagePremium extends HTMLElement {
       draftTranscript = '';
       draftAudioUrl = '';
       draftSpeakText = '';
+      if (textInput) textInput.value = '';
       updateDraftButtons();
     };
 
@@ -276,6 +309,7 @@ class PagePremium extends HTMLElement {
       draftTranscript = transcript;
       draftAudioUrl = audioUrl || '';
       draftSpeakText = speakText || '';
+      if (textInput) textInput.value = '';
       updateDraftButtons();
       const label = simulated ? 'Transcripcion simulada' : 'Transcripcion lista';
       const hintText = notice ? `${notice} ${label}: "${transcript}"` : `${label}: "${transcript}"`;
@@ -895,21 +929,24 @@ class PagePremium extends HTMLElement {
     });
 
     previewBtn?.addEventListener('click', () => {
-      if (!draftTranscript) return;
-      playMessageAudio({ audioUrl: draftAudioUrl, speakText: draftSpeakText || draftTranscript });
+      const typedText = textInput ? textInput.value.trim() : '';
+      const activeText = draftTranscript || typedText;
+      if (!activeText) return;
+      const audioUrl = draftAudioUrl;
+      const speakText = draftSpeakText || activeText;
+      playMessageAudio({ audioUrl, speakText });
     });
 
-    sendBtn?.addEventListener('click', () => {
-      if (!draftTranscript) return;
-      const userText = draftTranscript;
+    const sendUserText = (userText, payload = {}) => {
+      if (!userText) return;
       awaitingBot = true;
       appendMessage({
         role: 'user',
         text: userText,
-        audioUrl: draftAudioUrl,
-        speakText: draftAudioUrl ? '' : draftSpeakText || userText
+        audioUrl: payload.audioUrl || '',
+        speakText: payload.audioUrl ? '' : payload.speakText || userText
       });
-      if (draftAudioUrl) retainedAudioUrls.push(draftAudioUrl);
+      if (payload.audioUrl) retainedAudioUrls.push(payload.audioUrl);
       clearDraft(false);
       setHint('Puedes grabar otra frase cuando quieras.');
       emitRealtimeMessage({ text: userText });
@@ -924,6 +961,28 @@ class PagePremium extends HTMLElement {
         appendMessage({ role: 'bot', text: reply, audioUrl: '', speakText: reply });
         replyTimer = null;
       }, 700);
+    };
+
+    sendBtn?.addEventListener('click', () => {
+      const typedText = textInput ? textInput.value.trim() : '';
+      const userText = draftTranscript || typedText;
+      if (!userText) return;
+      sendUserText(userText, {
+        audioUrl: draftAudioUrl,
+        speakText: draftSpeakText || userText
+      });
+    });
+
+    textInput?.addEventListener('input', () => {
+      updateDraftButtons();
+    });
+
+    textInput?.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter') return;
+      const typedText = textInput.value.trim();
+      if (!typedText) return;
+      event.preventDefault();
+      sendUserText(typedText, { audioUrl: '', speakText: typedText });
     });
 
     loginBtn?.addEventListener('click', () => {
@@ -959,6 +1018,59 @@ class PagePremium extends HTMLElement {
     this._rewardsHandler = () => updateHeaderRewards();
     window.addEventListener('app:speak-stores-change', this._rewardsHandler);
 
+    const updateCoachAvatar = () => {
+      if (!coachAvatar) return;
+      if (chatMode === 'chatbot') {
+        coachAvatar.textContent = 'B';
+        coachAvatar.classList.remove('coach-avatar-cat');
+        coachAvatar.classList.add('coach-avatar-bot');
+      } else {
+        coachAvatar.textContent = '';
+        coachAvatar.classList.remove('coach-avatar-bot');
+        coachAvatar.classList.add('coach-avatar-cat');
+      }
+    };
+
+    const setChatMode = (mode, { reconnect } = {}) => {
+      if (mode !== 'catbot' && mode !== 'chatbot') return;
+      if (chatMode === mode) return;
+      chatMode = mode;
+      if (modeToggle) {
+        modeToggle.querySelectorAll('.chat-mode-btn').forEach((btn) => {
+          btn.classList.toggle('is-active', btn.dataset.mode === mode);
+        });
+      }
+      updateCoachAvatar();
+      if (reconnect && lastPremium && window.user) {
+        disconnectRealtime();
+        resetChatSession({ keepIntro: true, setDefaultHint: true });
+        connectRealtime(window.user);
+      }
+    };
+
+    const applyDebugMode = () => {
+      const debug = Boolean(window.r34lp0w3r && window.r34lp0w3r.speakDebug);
+      if (modeToggle) modeToggle.hidden = !debug;
+      if (textRow) textRow.hidden = !debug;
+      if (!debug) {
+        if (textInput) textInput.value = '';
+        setChatMode('catbot', { reconnect: true });
+      }
+      updateDraftButtons();
+    };
+
+    modeToggle?.addEventListener('click', (event) => {
+      const button = event.target.closest('.chat-mode-btn');
+      if (!button) return;
+      const mode = button.dataset.mode;
+      setChatMode(mode, { reconnect: true });
+    });
+
+    this._debugHandler = applyDebugMode;
+    window.addEventListener('app:speak-debug', this._debugHandler);
+    applyDebugMode();
+    updateCoachAvatar();
+
     this._cleanupPremiumChat = () => {
       resetChatSession({ keepIntro: false, setDefaultHint: false });
       disconnectRealtime();
@@ -978,6 +1090,9 @@ class PagePremium extends HTMLElement {
     }
     if (this._rewardsHandler) {
       window.removeEventListener('app:speak-stores-change', this._rewardsHandler);
+    }
+    if (this._debugHandler) {
+      window.removeEventListener('app:speak-debug', this._debugHandler);
     }
   }
 }

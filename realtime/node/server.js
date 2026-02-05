@@ -27,6 +27,20 @@ const config = {
   useTLS
 };
 
+const chatbotEnabled = env('CHATBOT_ENABLED', 'false') === 'true';
+const chatbotCoachId = env('CHATBOT_COACH_ID', '2');
+const chatbotSystemPrompt = env(
+  'CHATBOT_SYSTEM_PROMPT',
+  'You are an English tutor. Keep replies short and ask a follow-up.'
+);
+const chatbotModel = env('CHATBOT_OPENAI_MODEL', 'gpt-4o-mini');
+const chatbotTemperature = Number(env('CHATBOT_TEMPERATURE', '0.6'));
+const chatbotMaxTokens = Number(env('CHATBOT_MAX_TOKENS', '200'));
+const chatbotMaxHistory = Number(env('CHATBOT_MAX_HISTORY', '16'));
+const chatbotHistoryLimit = Number.isFinite(chatbotMaxHistory) ? chatbotMaxHistory : 16;
+const openaiApiKey = env('OPENAI_API_KEY', '');
+const openaiApiBase = env('OPENAI_API_BASE', 'https://api.openai.com/v1');
+
 if (provider !== 'pusher') {
   config.host = env('REALTIME_HOST', '127.0.0.1');
   config.port = Number(env('REALTIME_PORT', '6001'));
@@ -41,6 +55,118 @@ if (missing.length) {
 }
 
 const pusher = new Pusher(config);
+
+const chatbotSessions = new Map();
+const openaiEndpoint = `${openaiApiBase.replace(/\/$/, '')}/chat/completions`;
+
+const parseCoachId = (channel) => {
+  if (typeof channel !== 'string') return null;
+  const match = /^private-coach(\d+)-/.exec(channel);
+  return match ? match[1] : null;
+};
+
+const shouldHandleChatbot = (channel, event) => {
+  if (!chatbotEnabled) return false;
+  if (!openaiApiKey) return false;
+  if (event !== 'user_message') return false;
+  const coachId = parseCoachId(channel);
+  return coachId && coachId === chatbotCoachId;
+};
+
+const getChatSession = (channel) => {
+  if (!chatbotSessions.has(channel)) {
+    const messages = [];
+    if (chatbotSystemPrompt) {
+      messages.push({ role: 'system', content: chatbotSystemPrompt });
+    }
+    chatbotSessions.set(channel, messages);
+  }
+  return chatbotSessions.get(channel);
+};
+
+const trimChatHistory = (messages) => {
+  if (!Array.isArray(messages)) return [];
+  const systemMessage =
+    messages.length && messages[0] && messages[0].role === 'system' ? messages[0] : null;
+  const history = systemMessage ? messages.slice(1) : messages.slice();
+  if (history.length <= chatbotHistoryLimit) return messages;
+  const trimmed = history.slice(-chatbotHistoryLimit);
+  return systemMessage ? [systemMessage, ...trimmed] : trimmed;
+};
+
+const extractOpenAIReply = (payload) => {
+  if (!payload || typeof payload !== 'object') return '';
+  const choice = Array.isArray(payload.choices) ? payload.choices[0] : null;
+  if (!choice) return '';
+  const content = choice.message?.content ?? choice.delta?.content ?? '';
+  return typeof content === 'string' ? content.trim() : '';
+};
+
+const requestOpenAI = (messages) => {
+  const url = new URL(openaiEndpoint);
+  const payload = JSON.stringify({
+    model: chatbotModel,
+    messages,
+    temperature: Number.isFinite(chatbotTemperature) ? chatbotTemperature : 0.6,
+    max_tokens: Number.isFinite(chatbotMaxTokens) ? chatbotMaxTokens : 200
+  });
+
+  const options = {
+    protocol: url.protocol,
+    hostname: url.hostname,
+    port: url.port || (url.protocol === 'https:' ? 443 : 80),
+    method: 'POST',
+    path: `${url.pathname}${url.search}`,
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${openaiApiKey}`,
+      'Content-Length': Buffer.byteLength(payload)
+    }
+  };
+
+  const client = url.protocol === 'https:' ? https : http;
+
+  return new Promise((resolve, reject) => {
+    const req = client.request(options, (res) => {
+      let body = '';
+      res.on('data', (chunk) => {
+        body += chunk;
+      });
+      res.on('end', () => {
+        if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
+          try {
+            const parsed = JSON.parse(body || '{}');
+            resolve(parsed);
+          } catch (err) {
+            reject(new Error(`OpenAI JSON parse error: ${err.message}`));
+          }
+        } else {
+          reject(new Error(`OpenAI HTTP ${res.statusCode}: ${body}`));
+        }
+      });
+    });
+    req.on('error', reject);
+    req.write(payload);
+    req.end();
+  });
+};
+
+const generateChatbotReply = async (channel, text) => {
+  if (!text) return '';
+  const session = getChatSession(channel);
+  session.push({ role: 'user', content: text });
+  const trimmed = trimChatHistory(session);
+  if (trimmed !== session) {
+    chatbotSessions.set(channel, trimmed);
+  }
+  const response = await requestOpenAI(trimmed);
+  const reply = extractOpenAIReply(response);
+  if (!reply) return '';
+  const updated = chatbotSessions.get(channel) || trimmed;
+  updated.push({ role: 'assistant', content: reply });
+  chatbotSessions.set(channel, updated);
+  return reply;
+};
 
 const apiHost =
   provider === 'pusher'
@@ -173,13 +299,31 @@ app.post('/realtime/emit', async (req, res) => {
     res.status(400).json({ error: 'channel required' });
     return;
   }
+  const eventName = event || 'chat_message';
   try {
-    await pusher.trigger(channel, event || 'chat_message', data || {});
+    await pusher.trigger(channel, eventName, data || {});
     res.json({ ok: true });
   } catch (err) {
     console.error('[realtime] trigger error', err);
     res.status(500).json({ error: 'trigger failed' });
+    return;
   }
+
+  if (!shouldHandleChatbot(channel, eventName)) return;
+  const text = data && typeof data.text === 'string' ? data.text.trim() : '';
+  if (!text) return;
+  generateChatbotReply(channel, text)
+    .then((reply) => {
+      if (!reply) return;
+      return pusher.trigger(channel, 'bot_message', {
+        text: reply,
+        role: 'bot',
+        coach_id: chatbotCoachId
+      });
+    })
+    .catch((err) => {
+      console.error('[realtime] chatbot error', err.message || err);
+    });
 });
 
 app.get('/realtime/channels', (req, res) => {

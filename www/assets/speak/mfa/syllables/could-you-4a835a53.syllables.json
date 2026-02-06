@@ -1,0 +1,28 @@
+[
+  {
+    "word": "could",
+    "start": 0,
+    "end": 0.18,
+    "syllables": [
+      {
+        "text": "could",
+        "start": 0,
+        "end": 0.18,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "you",
+    "start": 0.18,
+    "end": 0.46,
+    "syllables": [
+      {
+        "text": "you",
+        "start": 0.18,
+        "end": 0.46,
+        "index": 0
+      }
+    ]
+  }
+]

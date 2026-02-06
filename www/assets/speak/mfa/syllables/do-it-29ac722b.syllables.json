@@ -1,0 +1,28 @@
+[
+  {
+    "word": "do",
+    "start": 0,
+    "end": 0.17,
+    "syllables": [
+      {
+        "text": "do",
+        "start": 0,
+        "end": 0.17,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "it",
+    "start": 0.17,
+    "end": 0.39,
+    "syllables": [
+      {
+        "text": "it",
+        "start": 0.17,
+        "end": 0.39,
+        "index": 0
+      }
+    ]
+  }
+]

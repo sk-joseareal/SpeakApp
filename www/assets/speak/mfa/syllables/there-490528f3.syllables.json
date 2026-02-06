@@ -1,0 +1,21 @@
+[
+  {
+    "word": "there",
+    "start": 0,
+    "end": 0.31,
+    "syllables": [
+      {
+        "text": "the",
+        "start": 0,
+        "end": 0.186,
+        "index": 0
+      },
+      {
+        "text": "re",
+        "start": 0.186,
+        "end": 0.31,
+        "index": 1
+      }
+    ]
+  }
+]

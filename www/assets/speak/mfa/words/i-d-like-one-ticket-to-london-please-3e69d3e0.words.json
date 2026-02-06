@@ -1,0 +1,42 @@
+[
+  {
+    "start": 0,
+    "end": 0.06,
+    "word": "i"
+  },
+  {
+    "start": 0.06,
+    "end": 0.17,
+    "word": "would"
+  },
+  {
+    "start": 0.17,
+    "end": 0.42,
+    "word": "like"
+  },
+  {
+    "start": 0.42,
+    "end": 0.62,
+    "word": "one"
+  },
+  {
+    "start": 0.62,
+    "end": 0.98,
+    "word": "ticket"
+  },
+  {
+    "start": 0.98,
+    "end": 1.1,
+    "word": "to"
+  },
+  {
+    "start": 1.1,
+    "end": 1.55,
+    "word": "london"
+  },
+  {
+    "start": 1.78,
+    "end": 2.22,
+    "word": "please"
+  }
+]

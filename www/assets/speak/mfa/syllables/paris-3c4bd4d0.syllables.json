@@ -1,0 +1,21 @@
+[
+  {
+    "word": "paris",
+    "start": 0,
+    "end": 0.5,
+    "syllables": [
+      {
+        "text": "pa",
+        "start": 0,
+        "end": 0.2,
+        "index": 0
+      },
+      {
+        "text": "ris",
+        "start": 0.2,
+        "end": 0.5,
+        "index": 1
+      }
+    ]
+  }
+]

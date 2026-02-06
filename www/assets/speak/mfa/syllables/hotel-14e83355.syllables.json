@@ -1,0 +1,21 @@
+[
+  {
+    "word": "hotel",
+    "start": 0.03,
+    "end": 0.58,
+    "syllables": [
+      {
+        "text": "ho",
+        "start": 0.03,
+        "end": 0.25,
+        "index": 0
+      },
+      {
+        "text": "tel",
+        "start": 0.25,
+        "end": 0.58,
+        "index": 1
+      }
+    ]
+  }
+]

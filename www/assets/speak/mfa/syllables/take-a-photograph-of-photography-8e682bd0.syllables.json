@@ -1,0 +1,103 @@
+[
+  {
+    "word": "take",
+    "start": 0,
+    "end": 0.26,
+    "syllables": [
+      {
+        "text": "ta",
+        "start": 0,
+        "end": 0.13,
+        "index": 0
+      },
+      {
+        "text": "ke",
+        "start": 0.13,
+        "end": 0.26,
+        "index": 1
+      }
+    ]
+  },
+  {
+    "word": "a",
+    "start": 0.26,
+    "end": 0.31,
+    "syllables": [
+      {
+        "text": "a",
+        "start": 0.26,
+        "end": 0.31,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "photograph",
+    "start": 0.31,
+    "end": 0.95,
+    "syllables": [
+      {
+        "text": "pho",
+        "start": 0.31,
+        "end": 0.502,
+        "index": 0
+      },
+      {
+        "text": "tog",
+        "start": 0.502,
+        "end": 0.694,
+        "index": 1
+      },
+      {
+        "text": "raph",
+        "start": 0.694,
+        "end": 0.95,
+        "index": 2
+      }
+    ]
+  },
+  {
+    "word": "of",
+    "start": 0.95,
+    "end": 1.05,
+    "syllables": [
+      {
+        "text": "of",
+        "start": 0.95,
+        "end": 1.05,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "photography",
+    "start": 1.05,
+    "end": 1.91,
+    "syllables": [
+      {
+        "text": "pho",
+        "start": 1.05,
+        "end": 1.285,
+        "index": 0
+      },
+      {
+        "text": "tog",
+        "start": 1.285,
+        "end": 1.519,
+        "index": 1
+      },
+      {
+        "text": "rap",
+        "start": 1.519,
+        "end": 1.754,
+        "index": 2
+      },
+      {
+        "text": "hy",
+        "start": 1.754,
+        "end": 1.91,
+        "index": 3
+      }
+    ]
+  }
+]

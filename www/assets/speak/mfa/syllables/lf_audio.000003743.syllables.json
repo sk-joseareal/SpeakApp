@@ -1,0 +1,66 @@
+[
+  {
+    "word": "this",
+    "start": 0.4,
+    "end": 0.69,
+    "syllables": [
+      {
+        "text": "this",
+        "start": 0.4,
+        "end": 0.69,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "is",
+    "start": 0.69,
+    "end": 0.81,
+    "syllables": [
+      {
+        "text": "is",
+        "start": 0.69,
+        "end": 0.81,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "his",
+    "start": 0.81,
+    "end": 1,
+    "syllables": [
+      {
+        "text": "his",
+        "start": 0.81,
+        "end": 1,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "bicycle",
+    "start": 1,
+    "end": 1.69,
+    "syllables": [
+      {
+        "text": "bi",
+        "start": 1,
+        "end": 1.197,
+        "index": 0
+      },
+      {
+        "text": "cyc",
+        "start": 1.197,
+        "end": 1.493,
+        "index": 1
+      },
+      {
+        "text": "le",
+        "start": 1.493,
+        "end": 1.69,
+        "index": 2
+      }
+    ]
+  }
+]

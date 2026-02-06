@@ -4,6 +4,10 @@ class PageProfile extends HTMLElement {
   connectedCallback() {
     this.classList.add('ion-page');
     if (!this.activeTab) this.activeTab = 'review';
+    if (!this.reviewTone) {
+      const storedTone = window.r34lp0w3r && window.r34lp0w3r.profileReviewTone;
+      this.reviewTone = storedTone === 'okay' ? 'okay' : 'bad';
+    }
     this._logoutUser = () => {
       if (typeof window.setUser === 'function') {
         window.setUser(null);
@@ -34,6 +38,15 @@ class PageProfile extends HTMLElement {
   }
 
   render() {
+    if (window.r34lp0w3r && window.r34lp0w3r.profileForceTab) {
+      this.activeTab = window.r34lp0w3r.profileForceTab;
+      window.r34lp0w3r.profileForceTab = null;
+    }
+    const storedReviewTone = window.r34lp0w3r && window.r34lp0w3r.profileReviewTone;
+    if (storedReviewTone === 'okay' || storedReviewTone === 'bad') {
+      this.reviewTone = storedReviewTone;
+    }
+
     const routes = getRoutes();
     if (!routes.length && !this._loadingData) {
       this._loadingData = true;
@@ -93,6 +106,24 @@ class PageProfile extends HTMLElement {
       window.r34lp0w3r && window.r34lp0w3r.speakWordScores ? window.r34lp0w3r.speakWordScores : {};
     const phraseScoresStore =
       window.r34lp0w3r && window.r34lp0w3r.speakPhraseScores ? window.r34lp0w3r.speakPhraseScores : {};
+
+    const reviewTone = this.reviewTone === 'okay' ? 'okay' : 'bad';
+    const reviewToneLabel = reviewTone === 'okay' ? 'amarillo' : 'rojo';
+
+    const sessionLookup = new Map();
+    routes.forEach((routeItem) => {
+      const modules = routeItem && Array.isArray(routeItem.modules) ? routeItem.modules : [];
+      modules.forEach((moduleItem) => {
+        const sessions = moduleItem && Array.isArray(moduleItem.sessions) ? moduleItem.sessions : [];
+        sessions.forEach((sessionItem) => {
+          sessionLookup.set(sessionItem.id, {
+            routeId: routeItem.id,
+            moduleId: moduleItem.id,
+            session: sessionItem
+          });
+        });
+      });
+    });
 
     const hasSessionAttempts = (session) => {
       const wordScores = wordScoresStore[session.id] || {};
@@ -165,38 +196,79 @@ class PageProfile extends HTMLElement {
       : 0;
     const globalTone = hasAnyRoute ? getScoreTone(globalPercent) : 'neutral';
 
-    const badWordsMap = new Map();
+    const reviewWordsMap = new Map();
     Object.entries(wordScoresStore).forEach(([sessionId, sessionScores]) => {
       if (!sessionScores || typeof sessionScores !== 'object') return;
       Object.entries(sessionScores).forEach(([word, entry]) => {
         const percent = entry && typeof entry.percent === 'number' ? entry.percent : null;
         if (percent === null) return;
         const tone = getScoreTone(percent);
-        if (tone !== 'bad') return;
+        if (tone !== reviewTone) return;
         const key = word.toLowerCase();
-        const existing = badWordsMap.get(key);
+        const existing = reviewWordsMap.get(key);
         if (!existing || percent < existing.percent) {
-          badWordsMap.set(key, { word, percent, sessionId });
+          reviewWordsMap.set(key, { word, percent, sessionId });
         }
       });
     });
-    const reviewEntries = Array.from(badWordsMap.values()).sort((a, b) =>
+    const reviewWordEntries = Array.from(reviewWordsMap.values()).sort((a, b) =>
       a.word.localeCompare(b.word)
     );
+
+    const reviewPhraseEntries = [];
+    Object.entries(phraseScoresStore).forEach(([sessionId, entry]) => {
+      const percent = entry && typeof entry.percent === 'number' ? entry.percent : null;
+      if (percent === null) return;
+      const tone = getScoreTone(percent);
+      if (tone !== reviewTone) return;
+      const sessionInfo = sessionLookup.get(sessionId);
+      const phrase =
+        sessionInfo &&
+        sessionInfo.session &&
+        sessionInfo.session.speak &&
+        sessionInfo.session.speak.sentence
+          ? sessionInfo.session.speak.sentence.sentence
+          : '';
+      if (!phrase) return;
+      reviewPhraseEntries.push({ phrase, percent, sessionId });
+    });
+    reviewPhraseEntries.sort((a, b) => a.phrase.localeCompare(b.phrase));
 
     const user = window.user;
     const userId = user && user.id !== undefined && user.id !== null ? String(user.id) : '';
     const loggedIn = Boolean(userId);
     const reviewActive = this.activeTab === 'review';
 
-    const reviewMarkup = reviewEntries.length
-      ? `<div class="review-words">${reviewEntries
+    const reviewFiltersMarkup = `
+      <div class="review-filters">
+        <button class="review-filter-btn ${reviewTone === 'bad' ? 'active' : ''}" type="button" data-tone="bad">
+          <span class="review-dot bad"></span>
+          <span>Rojo</span>
+        </button>
+        <button class="review-filter-btn ${reviewTone === 'okay' ? 'active' : ''}" type="button" data-tone="okay">
+          <span class="review-dot okay"></span>
+          <span>Amarillo</span>
+        </button>
+      </div>
+    `;
+
+    const reviewWordsMarkup = reviewWordEntries.length
+      ? `<div class="review-words">${reviewWordEntries
           .map(
             (entry) =>
-              `<button class="review-word" type="button" data-word="${escapeHtml(entry.word)}" data-session-id="${escapeHtml(entry.sessionId)}">${escapeHtml(entry.word)}</button>`
+              `<button class="review-word review-entry ${reviewTone}" type="button" data-type="word" data-word="${escapeHtml(entry.word)}" data-session-id="${escapeHtml(entry.sessionId)}">${escapeHtml(entry.word)}</button>`
           )
           .join('')}</div>`
-      : '<div class="review-empty">Aun no hay palabras en rojo.</div>';
+      : `<div class="review-empty">Aún no hay palabras en ${reviewToneLabel}.</div>`;
+
+    const reviewPhrasesMarkup = reviewPhraseEntries.length
+      ? `<div class="review-phrases">${reviewPhraseEntries
+          .map(
+            (entry) =>
+              `<button class="review-word review-phrase review-entry ${reviewTone}" type="button" data-type="phrase" data-session-id="${escapeHtml(entry.sessionId)}">${escapeHtml(entry.phrase)}</button>`
+          )
+          .join('')}</div>`
+      : `<div class="review-empty">No hay frases en ${reviewToneLabel}.</div>`;
 
     this.innerHTML = `
       <ion-header translucent="true">
@@ -240,8 +312,11 @@ class PageProfile extends HTMLElement {
               </button>
             </div>
             <div class="profile-tab-panel" ${reviewActive ? '' : 'hidden'}>
+              ${reviewFiltersMarkup}
               <h3 class="profile-section-title">Palabras a revisar</h3>
-              ${reviewMarkup}
+              ${reviewWordsMarkup}
+              <h3 class="profile-section-title" style="margin-top:16px;">Frases a revisar</h3>
+              ${reviewPhrasesMarkup}
             </div>
             <div class="profile-tab-panel" ${reviewActive ? 'hidden' : ''}>
               <h3 class="profile-section-title">Preferences</h3>
@@ -357,30 +432,45 @@ class PageProfile extends HTMLElement {
       });
     });
 
+    const filterButtons = Array.from(this.querySelectorAll('.review-filter-btn'));
+    filterButtons.forEach((button) => {
+      button.addEventListener('click', () => {
+        const tone = button.dataset.tone;
+        if (!tone || tone === this.reviewTone) return;
+        this.reviewTone = tone === 'okay' ? 'okay' : 'bad';
+        if (!window.r34lp0w3r) window.r34lp0w3r = {};
+        window.r34lp0w3r.profileReviewTone = this.reviewTone;
+        this.render();
+      });
+    });
+
     const findSessionLocation = (sessionId) => {
       if (!sessionId) return null;
-      for (const routeItem of routes) {
-        const modules = routeItem && Array.isArray(routeItem.modules) ? routeItem.modules : [];
-        for (const moduleItem of modules) {
-          const sessions = moduleItem && Array.isArray(moduleItem.sessions) ? moduleItem.sessions : [];
-          if (sessions.some((sessionItem) => sessionItem.id === sessionId)) {
-            return { routeId: routeItem.id, moduleId: moduleItem.id, sessionId };
-          }
-        }
-      }
-      return null;
+      const entry = sessionLookup.get(sessionId);
+      return entry ? { routeId: entry.routeId, moduleId: entry.moduleId, sessionId } : null;
     };
 
-    const reviewButtons = Array.from(this.querySelectorAll('.review-word'));
+    const reviewButtons = Array.from(this.querySelectorAll('.review-entry'));
     reviewButtons.forEach((button) => {
       button.addEventListener('click', () => {
-        const word = button.dataset.word;
+        const type = button.dataset.type;
         const sessionId = button.dataset.sessionId;
         const location = findSessionLocation(sessionId);
-        if (!word || !location) return;
+        if (!location) return;
         if (!window.r34lp0w3r) window.r34lp0w3r = {};
-        window.r34lp0w3r.speakStartStep = 'spelling';
-        window.r34lp0w3r.speakStartWord = word;
+        if (type === 'phrase') {
+          window.r34lp0w3r.speakStartStep = 'sentence';
+          window.r34lp0w3r.speakStartWord = null;
+        } else {
+          const word = button.dataset.word;
+          if (!word) return;
+          window.r34lp0w3r.speakStartStep = 'spelling';
+          window.r34lp0w3r.speakStartWord = word;
+        }
+        window.r34lp0w3r.speakReturnToReview = true;
+        window.r34lp0w3r.speakReturnSessionId = sessionId;
+        window.r34lp0w3r.profileForceTab = 'review';
+        window.r34lp0w3r.profileReviewTone = this.reviewTone;
         setSelection(location);
         const tabs = document.querySelector('ion-tabs');
         if (tabs && typeof tabs.select === 'function') {

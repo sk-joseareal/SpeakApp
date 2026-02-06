@@ -1,0 +1,27 @@
+[
+  {
+    "start": 0,
+    "end": 0.21,
+    "word": "go"
+  },
+  {
+    "start": 0.21,
+    "end": 0.41,
+    "word": "out"
+  },
+  {
+    "start": 0.41,
+    "end": 0.58,
+    "word": "and"
+  },
+  {
+    "start": 0.58,
+    "end": 0.75,
+    "word": "do"
+  },
+  {
+    "start": 0.75,
+    "end": 0.98,
+    "word": "it"
+  }
+]

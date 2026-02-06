@@ -1,0 +1,21 @@
+[
+  {
+    "word": "home",
+    "start": 0.03,
+    "end": 0.39,
+    "syllables": [
+      {
+        "text": "ho",
+        "start": 0.03,
+        "end": 0.21,
+        "index": 0
+      },
+      {
+        "text": "me",
+        "start": 0.21,
+        "end": 0.39,
+        "index": 1
+      }
+    ]
+  }
+]

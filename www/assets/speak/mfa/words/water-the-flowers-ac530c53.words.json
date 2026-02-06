@@ -1,0 +1,17 @@
+[
+  {
+    "start": 0,
+    "end": 0.3,
+    "word": "water"
+  },
+  {
+    "start": 0.3,
+    "end": 0.41,
+    "word": "the"
+  },
+  {
+    "start": 0.41,
+    "end": 1.02,
+    "word": "flowers"
+  }
+]

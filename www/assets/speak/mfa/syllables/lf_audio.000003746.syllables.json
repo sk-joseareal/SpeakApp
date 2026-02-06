@@ -1,0 +1,78 @@
+[
+  {
+    "word": "these",
+    "start": 0.62,
+    "end": 1.01,
+    "syllables": [
+      {
+        "text": "the",
+        "start": 0.62,
+        "end": 0.854,
+        "index": 0
+      },
+      {
+        "text": "se",
+        "start": 0.854,
+        "end": 1.01,
+        "index": 1
+      }
+    ]
+  },
+  {
+    "word": "are",
+    "start": 1.01,
+    "end": 1.15,
+    "syllables": [
+      {
+        "text": "a",
+        "start": 1.01,
+        "end": 1.057,
+        "index": 0
+      },
+      {
+        "text": "re",
+        "start": 1.057,
+        "end": 1.15,
+        "index": 1
+      }
+    ]
+  },
+  {
+    "word": "our",
+    "start": 1.15,
+    "end": 1.27,
+    "syllables": [
+      {
+        "text": "our",
+        "start": 1.15,
+        "end": 1.27,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "suitcases",
+    "start": 1.27,
+    "end": 2.15,
+    "syllables": [
+      {
+        "text": "suit",
+        "start": 1.27,
+        "end": 1.661,
+        "index": 0
+      },
+      {
+        "text": "ca",
+        "start": 1.661,
+        "end": 1.857,
+        "index": 1
+      },
+      {
+        "text": "ses",
+        "start": 1.857,
+        "end": 2.15,
+        "index": 2
+      }
+    ]
+  }
+]

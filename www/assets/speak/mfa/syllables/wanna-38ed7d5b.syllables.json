@@ -1,0 +1,21 @@
+[
+  {
+    "word": "wanna",
+    "start": 0,
+    "end": 0.37,
+    "syllables": [
+      {
+        "text": "wan",
+        "start": 0,
+        "end": 0.222,
+        "index": 0
+      },
+      {
+        "text": "na",
+        "start": 0.222,
+        "end": 0.37,
+        "index": 1
+      }
+    ]
+  }
+]

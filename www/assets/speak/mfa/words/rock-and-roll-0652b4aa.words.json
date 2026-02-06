@@ -1,0 +1,17 @@
+[
+  {
+    "start": 0,
+    "end": 0.27,
+    "word": "rock"
+  },
+  {
+    "start": 0.27,
+    "end": 0.42,
+    "word": "and"
+  },
+  {
+    "start": 0.42,
+    "end": 0.75,
+    "word": "roll"
+  }
+]

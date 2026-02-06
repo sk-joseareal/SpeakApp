@@ -1,0 +1,27 @@
+[
+  {
+    "word": "tomorrow",
+    "start": 0.03,
+    "end": 0.55,
+    "syllables": [
+      {
+        "text": "to",
+        "start": 0.03,
+        "end": 0.16,
+        "index": 0
+      },
+      {
+        "text": "mor",
+        "start": 0.16,
+        "end": 0.355,
+        "index": 1
+      },
+      {
+        "text": "row",
+        "start": 0.355,
+        "end": 0.55,
+        "index": 2
+      }
+    ]
+  }
+]

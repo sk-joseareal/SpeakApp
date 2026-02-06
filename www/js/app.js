@@ -47,9 +47,9 @@ routerReady.then((router) => {
 
 function setupSecretDiagnostics(router) {
   const sequence = [
-    { target: 'title', needed: 3, count: 0 },
-    { target: 'content', needed: 3, count: 0 },
-    { target: 'title', needed: 3, count: 0 }
+    { target: 'title', needed: 2, count: 0 },
+    { target: 'content', needed: 2, count: 0 },
+    { target: 'title', needed: 1, count: 0 }
   ];
   let step = 0;
   const reset = () => {

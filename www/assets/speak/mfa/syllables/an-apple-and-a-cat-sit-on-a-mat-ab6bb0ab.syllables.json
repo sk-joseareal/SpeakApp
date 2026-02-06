@@ -1,0 +1,125 @@
+[
+  {
+    "word": "an",
+    "start": 0,
+    "end": 0.13,
+    "syllables": [
+      {
+        "text": "an",
+        "start": 0,
+        "end": 0.13,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "apple",
+    "start": 0.13,
+    "end": 0.44,
+    "syllables": [
+      {
+        "text": "app",
+        "start": 0.13,
+        "end": 0.316,
+        "index": 0
+      },
+      {
+        "text": "le",
+        "start": 0.316,
+        "end": 0.44,
+        "index": 1
+      }
+    ]
+  },
+  {
+    "word": "and",
+    "start": 0.44,
+    "end": 0.59,
+    "syllables": [
+      {
+        "text": "and",
+        "start": 0.44,
+        "end": 0.59,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "a",
+    "start": 0.59,
+    "end": 0.65,
+    "syllables": [
+      {
+        "text": "a",
+        "start": 0.59,
+        "end": 0.65,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "cat",
+    "start": 0.65,
+    "end": 0.93,
+    "syllables": [
+      {
+        "text": "cat",
+        "start": 0.65,
+        "end": 0.93,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "sit",
+    "start": 0.93,
+    "end": 1.12,
+    "syllables": [
+      {
+        "text": "sit",
+        "start": 0.93,
+        "end": 1.12,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "on",
+    "start": 1.12,
+    "end": 1.28,
+    "syllables": [
+      {
+        "text": "on",
+        "start": 1.12,
+        "end": 1.28,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "a",
+    "start": 1.28,
+    "end": 1.33,
+    "syllables": [
+      {
+        "text": "a",
+        "start": 1.28,
+        "end": 1.33,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "mat",
+    "start": 1.33,
+    "end": 1.67,
+    "syllables": [
+      {
+        "text": "mat",
+        "start": 1.33,
+        "end": 1.67,
+        "index": 0
+      }
+    ]
+  }
+]

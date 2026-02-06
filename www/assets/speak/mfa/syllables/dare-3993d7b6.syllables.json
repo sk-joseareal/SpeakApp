@@ -1,0 +1,21 @@
+[
+  {
+    "word": "dare",
+    "start": 0,
+    "end": 0.28,
+    "syllables": [
+      {
+        "text": "da",
+        "start": 0,
+        "end": 0.14,
+        "index": 0
+      },
+      {
+        "text": "re",
+        "start": 0.14,
+        "end": 0.28,
+        "index": 1
+      }
+    ]
+  }
+]

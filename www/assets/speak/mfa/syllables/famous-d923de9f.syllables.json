@@ -1,0 +1,21 @@
+[
+  {
+    "word": "famous",
+    "start": 0,
+    "end": 0.55,
+    "syllables": [
+      {
+        "text": "fa",
+        "start": 0,
+        "end": 0.183,
+        "index": 0
+      },
+      {
+        "text": "mous",
+        "start": 0.183,
+        "end": 0.55,
+        "index": 1
+      }
+    ]
+  }
+]

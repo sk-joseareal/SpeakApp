@@ -1,0 +1,67 @@
+[
+  {
+    "word": "we",
+    "start": 0,
+    "end": 0.12,
+    "syllables": [
+      {
+        "text": "we",
+        "start": 0,
+        "end": 0.12,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "can",
+    "start": 0.12,
+    "end": 0.34,
+    "syllables": [
+      {
+        "text": "can",
+        "start": 0.12,
+        "end": 0.34,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "walk",
+    "start": 0.34,
+    "end": 0.58,
+    "syllables": [
+      {
+        "text": "walk",
+        "start": 0.34,
+        "end": 0.58,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "and",
+    "start": 0.58,
+    "end": 0.74,
+    "syllables": [
+      {
+        "text": "and",
+        "start": 0.58,
+        "end": 0.74,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "talk",
+    "start": 0.74,
+    "end": 1.09,
+    "syllables": [
+      {
+        "text": "talk",
+        "start": 0.74,
+        "end": 1.09,
+        "index": 0
+      }
+    ]
+  }
+]

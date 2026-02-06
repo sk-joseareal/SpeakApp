@@ -1,0 +1,60 @@
+[
+  {
+    "word": "nice",
+    "start": 0,
+    "end": 0.3,
+    "syllables": [
+      {
+        "text": "ni",
+        "start": 0,
+        "end": 0.15,
+        "index": 0
+      },
+      {
+        "text": "ce",
+        "start": 0.15,
+        "end": 0.3,
+        "index": 1
+      }
+    ]
+  },
+  {
+    "word": "to",
+    "start": 0.3,
+    "end": 0.44,
+    "syllables": [
+      {
+        "text": "to",
+        "start": 0.3,
+        "end": 0.44,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "meet",
+    "start": 0.44,
+    "end": 0.71,
+    "syllables": [
+      {
+        "text": "meet",
+        "start": 0.44,
+        "end": 0.71,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "you",
+    "start": 0.71,
+    "end": 0.99,
+    "syllables": [
+      {
+        "text": "you",
+        "start": 0.71,
+        "end": 0.99,
+        "index": 0
+      }
+    ]
+  }
+]

@@ -1,0 +1,40 @@
+[
+  {
+    "word": "one",
+    "start": 0,
+    "end": 0.26,
+    "syllables": [
+      {
+        "text": "o",
+        "start": 0,
+        "end": 0.087,
+        "index": 0
+      },
+      {
+        "text": "ne",
+        "start": 0.087,
+        "end": 0.26,
+        "index": 1
+      }
+    ]
+  },
+  {
+    "word": "ticket",
+    "start": 0.26,
+    "end": 0.73,
+    "syllables": [
+      {
+        "text": "tic",
+        "start": 0.26,
+        "end": 0.495,
+        "index": 0
+      },
+      {
+        "text": "ket",
+        "start": 0.495,
+        "end": 0.73,
+        "index": 1
+      }
+    ]
+  }
+]

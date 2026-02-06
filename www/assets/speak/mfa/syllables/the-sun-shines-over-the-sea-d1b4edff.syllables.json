@@ -1,0 +1,92 @@
+[
+  {
+    "word": "the",
+    "start": 0,
+    "end": 0.08,
+    "syllables": [
+      {
+        "text": "the",
+        "start": 0,
+        "end": 0.08,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "sun",
+    "start": 0.08,
+    "end": 0.33,
+    "syllables": [
+      {
+        "text": "sun",
+        "start": 0.08,
+        "end": 0.33,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "shines",
+    "start": 0.33,
+    "end": 0.74,
+    "syllables": [
+      {
+        "text": "shi",
+        "start": 0.33,
+        "end": 0.535,
+        "index": 0
+      },
+      {
+        "text": "nes",
+        "start": 0.535,
+        "end": 0.74,
+        "index": 1
+      }
+    ]
+  },
+  {
+    "word": "over",
+    "start": 0.74,
+    "end": 0.99,
+    "syllables": [
+      {
+        "text": "o",
+        "start": 0.74,
+        "end": 0.802,
+        "index": 0
+      },
+      {
+        "text": "ver",
+        "start": 0.802,
+        "end": 0.99,
+        "index": 1
+      }
+    ]
+  },
+  {
+    "word": "the",
+    "start": 0.99,
+    "end": 1.11,
+    "syllables": [
+      {
+        "text": "the",
+        "start": 0.99,
+        "end": 1.11,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "sea",
+    "start": 1.11,
+    "end": 1.5,
+    "syllables": [
+      {
+        "text": "sea",
+        "start": 1.11,
+        "end": 1.5,
+        "index": 0
+      }
+    ]
+  }
+]

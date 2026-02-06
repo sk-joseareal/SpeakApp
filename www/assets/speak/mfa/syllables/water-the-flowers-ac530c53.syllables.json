@@ -1,0 +1,53 @@
+[
+  {
+    "word": "water",
+    "start": 0,
+    "end": 0.3,
+    "syllables": [
+      {
+        "text": "wa",
+        "start": 0,
+        "end": 0.12,
+        "index": 0
+      },
+      {
+        "text": "ter",
+        "start": 0.12,
+        "end": 0.3,
+        "index": 1
+      }
+    ]
+  },
+  {
+    "word": "the",
+    "start": 0.3,
+    "end": 0.41,
+    "syllables": [
+      {
+        "text": "the",
+        "start": 0.3,
+        "end": 0.41,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "flowers",
+    "start": 0.41,
+    "end": 1.02,
+    "syllables": [
+      {
+        "text": "flo",
+        "start": 0.41,
+        "end": 0.671,
+        "index": 0
+      },
+      {
+        "text": "wers",
+        "start": 0.671,
+        "end": 1.02,
+        "index": 1
+      }
+    ]
+  }
+]

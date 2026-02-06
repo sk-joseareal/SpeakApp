@@ -1,0 +1,21 @@
+[
+  {
+    "word": "phone",
+    "start": 0,
+    "end": 0.44,
+    "syllables": [
+      {
+        "text": "pho",
+        "start": 0,
+        "end": 0.264,
+        "index": 0
+      },
+      {
+        "text": "ne",
+        "start": 0.264,
+        "end": 0.44,
+        "index": 1
+      }
+    ]
+  }
+]

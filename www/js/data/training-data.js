@@ -1,8 +1,36 @@
 const DATA_URL = new URL('./training-data.json', import.meta.url);
+const SELECTION_STORAGE_KEY = 'appv5:training-selection';
 
 let dataCache = null;
 let dataPromise = null;
-let selection = { routeId: '', moduleId: '', sessionId: '' };
+
+const readStoredSelection = () => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(SELECTION_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return null;
+    return {
+      routeId: typeof parsed.routeId === 'string' ? parsed.routeId : '',
+      moduleId: typeof parsed.moduleId === 'string' ? parsed.moduleId : '',
+      sessionId: typeof parsed.sessionId === 'string' ? parsed.sessionId : ''
+    };
+  } catch (err) {
+    return null;
+  }
+};
+
+const writeStoredSelection = (value) => {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(SELECTION_STORAGE_KEY, JSON.stringify(value));
+  } catch (err) {
+    // no-op
+  }
+};
+
+let selection = readStoredSelection() || { routeId: '', moduleId: '', sessionId: '' };
 
 const hydrateData = (raw) => {
   const sessions = Array.isArray(raw.sessions) ? raw.sessions : [];
@@ -105,6 +133,7 @@ const ensureTrainingData = async () => {
   await loadTrainingData();
   const resolved = resolveSelection(selection);
   selection = resolved.selection;
+  writeStoredSelection(selection);
   return resolved;
 };
 
@@ -119,6 +148,7 @@ const setSelection = (next) => {
     const resolved = resolveSelection(selection);
     selection = resolved.selection;
   }
+  writeStoredSelection(selection);
   notifySelection();
   return selection;
 };

@@ -1,0 +1,92 @@
+[
+  {
+    "word": "could",
+    "start": 0,
+    "end": 0.18,
+    "syllables": [
+      {
+        "text": "could",
+        "start": 0,
+        "end": 0.18,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "we",
+    "start": 0.18,
+    "end": 0.3,
+    "syllables": [
+      {
+        "text": "we",
+        "start": 0.18,
+        "end": 0.3,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "have",
+    "start": 0.3,
+    "end": 0.48,
+    "syllables": [
+      {
+        "text": "ha",
+        "start": 0.3,
+        "end": 0.39,
+        "index": 0
+      },
+      {
+        "text": "ve",
+        "start": 0.39,
+        "end": 0.48,
+        "index": 1
+      }
+    ]
+  },
+  {
+    "word": "the",
+    "start": 0.48,
+    "end": 0.59,
+    "syllables": [
+      {
+        "text": "the",
+        "start": 0.48,
+        "end": 0.59,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "bill",
+    "start": 0.59,
+    "end": 0.9,
+    "syllables": [
+      {
+        "text": "bill",
+        "start": 0.59,
+        "end": 0.9,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "please",
+    "start": 1.14,
+    "end": 1.58,
+    "syllables": [
+      {
+        "text": "plea",
+        "start": 1.14,
+        "end": 1.433,
+        "index": 0
+      },
+      {
+        "text": "se",
+        "start": 1.433,
+        "end": 1.58,
+        "index": 1
+      }
+    ]
+  }
+]

@@ -1,0 +1,21 @@
+[
+  {
+    "word": "give",
+    "start": 0,
+    "end": 0.29,
+    "syllables": [
+      {
+        "text": "gi",
+        "start": 0,
+        "end": 0.145,
+        "index": 0
+      },
+      {
+        "text": "ve",
+        "start": 0.145,
+        "end": 0.29,
+        "index": 1
+      }
+    ]
+  }
+]

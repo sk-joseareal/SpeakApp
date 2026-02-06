@@ -1,0 +1,86 @@
+[
+  {
+    "word": "the",
+    "start": 0,
+    "end": 0.08,
+    "syllables": [
+      {
+        "text": "the",
+        "start": 0,
+        "end": 0.08,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "baby",
+    "start": 0.08,
+    "end": 0.43,
+    "syllables": [
+      {
+        "text": "ba",
+        "start": 0.08,
+        "end": 0.255,
+        "index": 0
+      },
+      {
+        "text": "by",
+        "start": 0.255,
+        "end": 0.43,
+        "index": 1
+      }
+    ]
+  },
+  {
+    "word": "has",
+    "start": 0.43,
+    "end": 0.65,
+    "syllables": [
+      {
+        "text": "has",
+        "start": 0.43,
+        "end": 0.65,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "a",
+    "start": 0.65,
+    "end": 0.72,
+    "syllables": [
+      {
+        "text": "a",
+        "start": 0.65,
+        "end": 0.72,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "blue",
+    "start": 0.72,
+    "end": 0.96,
+    "syllables": [
+      {
+        "text": "blue",
+        "start": 0.72,
+        "end": 0.96,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "book",
+    "start": 0.96,
+    "end": 1.28,
+    "syllables": [
+      {
+        "text": "book",
+        "start": 0.96,
+        "end": 1.28,
+        "index": 0
+      }
+    ]
+  }
+]

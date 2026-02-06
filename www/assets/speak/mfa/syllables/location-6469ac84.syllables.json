@@ -1,0 +1,27 @@
+[
+  {
+    "word": "location",
+    "start": 0,
+    "end": 0.73,
+    "syllables": [
+      {
+        "text": "lo",
+        "start": 0,
+        "end": 0.182,
+        "index": 0
+      },
+      {
+        "text": "ca",
+        "start": 0.182,
+        "end": 0.365,
+        "index": 1
+      },
+      {
+        "text": "tion",
+        "start": 0.365,
+        "end": 0.73,
+        "index": 2
+      }
+    ]
+  }
+]

@@ -1,0 +1,27 @@
+[
+  {
+    "start": 0,
+    "end": 0.12,
+    "word": "we"
+  },
+  {
+    "start": 0.12,
+    "end": 0.34,
+    "word": "can"
+  },
+  {
+    "start": 0.34,
+    "end": 0.58,
+    "word": "walk"
+  },
+  {
+    "start": 0.58,
+    "end": 0.74,
+    "word": "and"
+  },
+  {
+    "start": 0.74,
+    "end": 1.09,
+    "word": "talk"
+  }
+]

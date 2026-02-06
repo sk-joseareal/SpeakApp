@@ -8,6 +8,7 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+openai-usage.log
 
 .env
 .env.*
@@ -54,4 +55,3 @@ ios/**/.DS_Store
 
 *.keystore
 *.jks
-

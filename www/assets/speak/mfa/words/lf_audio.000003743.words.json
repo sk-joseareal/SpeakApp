@@ -1,0 +1,22 @@
+[
+  {
+    "start": 0.4,
+    "end": 0.69,
+    "word": "this"
+  },
+  {
+    "start": 0.69,
+    "end": 0.81,
+    "word": "is"
+  },
+  {
+    "start": 0.81,
+    "end": 1,
+    "word": "his"
+  },
+  {
+    "start": 1,
+    "end": 1.69,
+    "word": "bicycle"
+  }
+]

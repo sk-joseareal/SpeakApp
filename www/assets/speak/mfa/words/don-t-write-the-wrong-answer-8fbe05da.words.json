@@ -1,0 +1,32 @@
+[
+  {
+    "start": 0,
+    "end": 0.06,
+    "word": "do"
+  },
+  {
+    "start": 0.06,
+    "end": 0.22,
+    "word": "not"
+  },
+  {
+    "start": 0.22,
+    "end": 0.47,
+    "word": "write"
+  },
+  {
+    "start": 0.47,
+    "end": 0.58,
+    "word": "the"
+  },
+  {
+    "start": 0.58,
+    "end": 0.86,
+    "word": "wrong"
+  },
+  {
+    "start": 0.86,
+    "end": 1.32,
+    "word": "answer"
+  }
+]

@@ -1,0 +1,28 @@
+[
+  {
+    "word": "o",
+    "start": 0,
+    "end": 0.2,
+    "syllables": [
+      {
+        "text": "o",
+        "start": 0,
+        "end": 0.2,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "pen",
+    "start": 0.2,
+    "end": 0.62,
+    "syllables": [
+      {
+        "text": "pen",
+        "start": 0.2,
+        "end": 0.62,
+        "index": 0
+      }
+    ]
+  }
+]

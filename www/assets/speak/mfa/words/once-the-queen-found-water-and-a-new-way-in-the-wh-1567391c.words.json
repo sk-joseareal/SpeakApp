@@ -1,0 +1,67 @@
+[
+  {
+    "start": 0,
+    "end": 0.5,
+    "word": "once"
+  },
+  {
+    "start": 0.69,
+    "end": 0.78,
+    "word": "the"
+  },
+  {
+    "start": 0.78,
+    "end": 1.11,
+    "word": "queen"
+  },
+  {
+    "start": 1.11,
+    "end": 1.46,
+    "word": "found"
+  },
+  {
+    "start": 1.46,
+    "end": 1.76,
+    "word": "water"
+  },
+  {
+    "start": 1.76,
+    "end": 1.93,
+    "word": "and"
+  },
+  {
+    "start": 1.93,
+    "end": 1.98,
+    "word": "a"
+  },
+  {
+    "start": 1.98,
+    "end": 2.18,
+    "word": "new"
+  },
+  {
+    "start": 2.18,
+    "end": 2.39,
+    "word": "way"
+  },
+  {
+    "start": 2.39,
+    "end": 2.49,
+    "word": "in"
+  },
+  {
+    "start": 2.49,
+    "end": 2.59,
+    "word": "the"
+  },
+  {
+    "start": 2.59,
+    "end": 2.86,
+    "word": "white"
+  },
+  {
+    "start": 2.86,
+    "end": 3.24,
+    "word": "world"
+  }
+]

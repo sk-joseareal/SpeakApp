@@ -1,0 +1,117 @@
+[
+  {
+    "word": "excuse",
+    "start": 0,
+    "end": 0.51,
+    "syllables": [
+      {
+        "text": "ex",
+        "start": 0,
+        "end": 0.17,
+        "index": 0
+      },
+      {
+        "text": "cu",
+        "start": 0.17,
+        "end": 0.34,
+        "index": 1
+      },
+      {
+        "text": "se",
+        "start": 0.34,
+        "end": 0.51,
+        "index": 2
+      }
+    ]
+  },
+  {
+    "word": "me",
+    "start": 0.51,
+    "end": 0.81,
+    "syllables": [
+      {
+        "text": "me",
+        "start": 0.51,
+        "end": 0.81,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "where",
+    "start": 1,
+    "end": 1.23,
+    "syllables": [
+      {
+        "text": "whe",
+        "start": 1,
+        "end": 1.138,
+        "index": 0
+      },
+      {
+        "text": "re",
+        "start": 1.138,
+        "end": 1.23,
+        "index": 1
+      }
+    ]
+  },
+  {
+    "word": "is",
+    "start": 1.23,
+    "end": 1.36,
+    "syllables": [
+      {
+        "text": "is",
+        "start": 1.23,
+        "end": 1.36,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "the",
+    "start": 1.36,
+    "end": 1.48,
+    "syllables": [
+      {
+        "text": "the",
+        "start": 1.36,
+        "end": 1.48,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "train",
+    "start": 1.48,
+    "end": 1.84,
+    "syllables": [
+      {
+        "text": "train",
+        "start": 1.48,
+        "end": 1.84,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "station",
+    "start": 1.84,
+    "end": 2.46,
+    "syllables": [
+      {
+        "text": "sta",
+        "start": 1.84,
+        "end": 2.106,
+        "index": 0
+      },
+      {
+        "text": "tion",
+        "start": 2.106,
+        "end": 2.46,
+        "index": 1
+      }
+    ]
+  }
+]

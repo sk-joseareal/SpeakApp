@@ -1,0 +1,28 @@
+[
+  {
+    "word": "team",
+    "start": 0,
+    "end": 0.22,
+    "syllables": [
+      {
+        "text": "team",
+        "start": 0,
+        "end": 0.22,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "player",
+    "start": 0.22,
+    "end": 0.63,
+    "syllables": [
+      {
+        "text": "player",
+        "start": 0.22,
+        "end": 0.63,
+        "index": 0
+      }
+    ]
+  }
+]

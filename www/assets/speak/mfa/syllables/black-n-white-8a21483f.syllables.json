@@ -1,0 +1,47 @@
+[
+  {
+    "word": "black",
+    "start": 0,
+    "end": 0.29,
+    "syllables": [
+      {
+        "text": "black",
+        "start": 0,
+        "end": 0.29,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "n",
+    "start": 0.29,
+    "end": 0.47,
+    "syllables": [
+      {
+        "text": "n",
+        "start": 0.29,
+        "end": 0.47,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "white",
+    "start": 0.47,
+    "end": 0.81,
+    "syllables": [
+      {
+        "text": "whi",
+        "start": 0.47,
+        "end": 0.674,
+        "index": 0
+      },
+      {
+        "text": "te",
+        "start": 0.674,
+        "end": 0.81,
+        "index": 1
+      }
+    ]
+  }
+]

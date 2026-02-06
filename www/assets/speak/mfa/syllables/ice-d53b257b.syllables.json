@@ -1,0 +1,21 @@
+[
+  {
+    "word": "ice",
+    "start": 0,
+    "end": 0.4,
+    "syllables": [
+      {
+        "text": "i",
+        "start": 0,
+        "end": 0.133,
+        "index": 0
+      },
+      {
+        "text": "ce",
+        "start": 0.133,
+        "end": 0.4,
+        "index": 1
+      }
+    ]
+  }
+]

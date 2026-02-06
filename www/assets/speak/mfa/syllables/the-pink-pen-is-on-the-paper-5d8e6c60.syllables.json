@@ -1,0 +1,99 @@
+[
+  {
+    "word": "the",
+    "start": 0,
+    "end": 0.08,
+    "syllables": [
+      {
+        "text": "the",
+        "start": 0,
+        "end": 0.08,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "pink",
+    "start": 0.08,
+    "end": 0.4,
+    "syllables": [
+      {
+        "text": "pink",
+        "start": 0.08,
+        "end": 0.4,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "pen",
+    "start": 0.4,
+    "end": 0.61,
+    "syllables": [
+      {
+        "text": "pen",
+        "start": 0.4,
+        "end": 0.61,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "is",
+    "start": 0.61,
+    "end": 0.75,
+    "syllables": [
+      {
+        "text": "is",
+        "start": 0.61,
+        "end": 0.75,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "on",
+    "start": 0.75,
+    "end": 0.89,
+    "syllables": [
+      {
+        "text": "on",
+        "start": 0.75,
+        "end": 0.89,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "the",
+    "start": 0.89,
+    "end": 0.99,
+    "syllables": [
+      {
+        "text": "the",
+        "start": 0.89,
+        "end": 0.99,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "paper",
+    "start": 0.99,
+    "end": 1.46,
+    "syllables": [
+      {
+        "text": "pa",
+        "start": 0.99,
+        "end": 1.178,
+        "index": 0
+      },
+      {
+        "text": "per",
+        "start": 1.178,
+        "end": 1.46,
+        "index": 1
+      }
+    ]
+  }
+]

@@ -1,0 +1,37 @@
+[
+  {
+    "start": 0,
+    "end": 0.51,
+    "word": "excuse"
+  },
+  {
+    "start": 0.51,
+    "end": 0.81,
+    "word": "me"
+  },
+  {
+    "start": 1,
+    "end": 1.23,
+    "word": "where"
+  },
+  {
+    "start": 1.23,
+    "end": 1.36,
+    "word": "is"
+  },
+  {
+    "start": 1.36,
+    "end": 1.48,
+    "word": "the"
+  },
+  {
+    "start": 1.48,
+    "end": 1.84,
+    "word": "train"
+  },
+  {
+    "start": 1.84,
+    "end": 2.46,
+    "word": "station"
+  }
+]

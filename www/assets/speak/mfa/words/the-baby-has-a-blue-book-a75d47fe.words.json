@@ -1,0 +1,32 @@
+[
+  {
+    "start": 0,
+    "end": 0.08,
+    "word": "the"
+  },
+  {
+    "start": 0.08,
+    "end": 0.43,
+    "word": "baby"
+  },
+  {
+    "start": 0.43,
+    "end": 0.65,
+    "word": "has"
+  },
+  {
+    "start": 0.65,
+    "end": 0.72,
+    "word": "a"
+  },
+  {
+    "start": 0.72,
+    "end": 0.96,
+    "word": "blue"
+  },
+  {
+    "start": 0.96,
+    "end": 1.28,
+    "word": "book"
+  }
+]

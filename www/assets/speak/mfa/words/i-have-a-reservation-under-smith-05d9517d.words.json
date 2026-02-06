@@ -1,0 +1,32 @@
+[
+  {
+    "start": 0.03,
+    "end": 0.09,
+    "word": "i"
+  },
+  {
+    "start": 0.09,
+    "end": 0.3,
+    "word": "have"
+  },
+  {
+    "start": 0.3,
+    "end": 0.35,
+    "word": "a"
+  },
+  {
+    "start": 0.35,
+    "end": 1.04,
+    "word": "reservation"
+  },
+  {
+    "start": 1.04,
+    "end": 1.28,
+    "word": "under"
+  },
+  {
+    "start": 1.28,
+    "end": 1.65,
+    "word": "smith"
+  }
+]

@@ -1,5 +1,6 @@
 const path = require('path');
 const crypto = require('crypto');
+const fs = require('fs');
 const http = require('http');
 const https = require('https');
 
@@ -40,6 +41,13 @@ const chatbotMaxHistory = Number(env('CHATBOT_MAX_HISTORY', '16'));
 const chatbotHistoryLimit = Number.isFinite(chatbotMaxHistory) ? chatbotMaxHistory : 16;
 const openaiApiKey = env('OPENAI_API_KEY', '');
 const openaiApiBase = env('OPENAI_API_BASE', 'https://api.openai.com/v1');
+const openaiUsageLog = env('OPENAI_USAGE_LOG', 'openai-usage.log');
+const openaiPromptCost = Number(env('OPENAI_PROMPT_COST_PER_MILLION', '0.15'));
+const openaiCompletionCost = Number(env('OPENAI_COMPLETION_COST_PER_MILLION', '0.6'));
+const openaiLogTranscripts = env('OPENAI_LOG_TRANSCRIPTS', 'false') === 'true';
+const usageLogEnabled =
+  openaiUsageLog &&
+  !['false', '0', 'off', 'none'].includes(String(openaiUsageLog).toLowerCase());
 
 if (provider !== 'pusher') {
   config.host = env('REALTIME_HOST', '127.0.0.1');
@@ -63,6 +71,73 @@ const parseCoachId = (channel) => {
   if (typeof channel !== 'string') return null;
   const match = /^private-coach(\d+)-/.exec(channel);
   return match ? match[1] : null;
+};
+
+const parseCoachUserId = (channel) => {
+  if (typeof channel !== 'string') return null;
+  const match = /^private-coach\d+-(.+)$/.exec(channel);
+  return match ? match[1] : null;
+};
+
+const estimateOpenAITokenCost = (tokenCount, ratePerMillion) => {
+  if (!Number.isFinite(tokenCount) || !Number.isFinite(ratePerMillion)) return 0;
+  return (tokenCount / 1_000_000) * ratePerMillion;
+};
+
+const appendOpenAIUsageLog = (entry) => {
+  if (!usageLogEnabled) return;
+  const line = `${JSON.stringify(entry)}\n`;
+  fs.appendFile(openaiUsageLog, line, (err) => {
+    if (err) {
+      console.warn('Failed to write OpenAI usage log:', err.message);
+    }
+  });
+};
+
+const logOpenAIUsage = (usage, descriptor, extra = {}) => {
+  if (!usage || !usageLogEnabled) return;
+  try {
+    const promptTokens = Number(usage.prompt_tokens) || 0;
+    const completionTokens = Number(usage.completion_tokens) || 0;
+    const totalTokens = Number(usage.total_tokens) || promptTokens + completionTokens;
+    const pricing = descriptor && descriptor.pricing ? descriptor.pricing : {};
+    const promptRate =
+      typeof pricing.promptUsdPerMTokens === 'number' ? pricing.promptUsdPerMTokens : openaiPromptCost;
+    const completionRate =
+      typeof pricing.completionUsdPerMTokens === 'number'
+        ? pricing.completionUsdPerMTokens
+        : openaiCompletionCost;
+    const estimatedCost =
+      estimateOpenAITokenCost(promptTokens, promptRate) +
+      estimateOpenAITokenCost(completionTokens, completionRate);
+    const entry = {
+      timestamp: new Date().toISOString(),
+      model: (descriptor && descriptor.openaiModel) || chatbotModel,
+      prompt_tokens: promptTokens,
+      completion_tokens: completionTokens,
+      total_tokens: totalTokens,
+      ...extra
+    };
+    if (Number.isFinite(estimatedCost)) {
+      entry.estimated_cost_usd = Number(estimatedCost.toFixed(6));
+    }
+    appendOpenAIUsageLog(entry);
+  } catch (err) {
+    console.warn('Failed to record OpenAI usage:', err.message);
+  }
+};
+
+const formatRoleLabel = (role) => {
+  if (role === 'system') return 'System';
+  if (role === 'assistant') return 'Assistant';
+  return 'User';
+};
+
+const buildTranscript = (messages) => {
+  if (!Array.isArray(messages)) return '';
+  const lines = messages.map((msg) => `${formatRoleLabel(msg.role)}: ${msg.content}`);
+  lines.push('Assistant:');
+  return lines.join('\n');
 };
 
 const shouldHandleChatbot = (channel, event) => {
@@ -161,6 +236,28 @@ const generateChatbotReply = async (channel, text) => {
   }
   const response = await requestOpenAI(trimmed);
   const reply = extractOpenAIReply(response);
+  const extra = {
+    channel,
+    coach_id: chatbotCoachId,
+    user_id: parseCoachUserId(channel)
+  };
+  if (openaiLogTranscripts) {
+    extra.transcript = buildTranscript(trimmed);
+    extra.prompt_messages = trimmed;
+    extra.response = reply;
+    extra.raw_response = response;
+  }
+  logOpenAIUsage(
+    response && response.usage ? response.usage : null,
+    {
+      openaiModel: response && response.model ? response.model : chatbotModel,
+      pricing: {
+        promptUsdPerMTokens: openaiPromptCost,
+        completionUsdPerMTokens: openaiCompletionCost
+      }
+    },
+    extra
+  );
   if (!reply) return '';
   const updated = chatbotSessions.get(channel) || trimmed;
   updated.push({ role: 'assistant', content: reply });

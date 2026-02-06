@@ -19,6 +19,11 @@ class PageDiagnostics extends HTMLElement {
     this.innerHTML = `
       <ion-header translucent="true">
         <ion-toolbar>
+          <ion-buttons slot="start">
+            <ion-button fill="clear" id="diag-back">
+              <ion-icon slot="icon-only" name="chevron-back"></ion-icon>
+            </ion-button>
+          </ion-buttons>
           <ion-title>Diagnósticos</ion-title>
         </ion-toolbar>
       </ion-header>
@@ -109,15 +114,26 @@ class PageDiagnostics extends HTMLElement {
               <pre class="diag-json" id="diag-speak-rewards"></pre>
             </div>
 
+            <h4 style="margin-top:16px;">Talk timelines</h4>
+            <div class="diag-actions">
+              <ion-button size="small" fill="outline" id="diag-talk-refresh">Refrescar</ion-button>
+              <ion-button size="small" fill="outline" id="diag-talk-reset">Init</ion-button>
+            </div>
+            <div class="diag-speak-block">
+              <div class="pill">Catbot</div>
+              <pre class="diag-json" id="diag-talk-catbot"></pre>
+            </div>
+            <div class="diag-speak-block">
+              <div class="pill">Chatbot</div>
+              <pre class="diag-json" id="diag-talk-chatbot"></pre>
+            </div>
+
             <h4 style="margin-top:16px;">Login</h4>
             <div class="diag-actions">
               <ion-button size="small" fill="outline" id="diag-login">Abrir login</ion-button>
               <ion-button size="small" fill="outline" id="diag-logout" style="display:none;">Logout</ion-button>
             </div>
 
-            <br>
-            <ion-button expand="block" shape="round" id="diag-back">Volver</ion-button>
-            <br>
           </div>
         </div>
       </ion-content>
@@ -194,12 +210,24 @@ class PageDiagnostics extends HTMLElement {
     };
 
     updateUserPanel(window.user);
-    this._userHandler = (event) => updateUserPanel(event.detail);
+    this._userHandler = (event) => {
+      updateUserPanel(event.detail);
+      updateTalkPanels();
+    };
     window.addEventListener('app:user-change', this._userHandler);
 
     const wordsEl = this.querySelector('#diag-speak-words');
     const phraseEl = this.querySelector('#diag-speak-phrase');
     const rewardsEl = this.querySelector('#diag-speak-rewards');
+    const talkCatEl = this.querySelector('#diag-talk-catbot');
+    const talkBotEl = this.querySelector('#diag-talk-chatbot');
+    const TALK_STORAGE_PREFIX = 'appv5:talk-timelines:';
+
+    const getTalkStorageKey = () => {
+      const user = window.user;
+      const userId = user && user.id !== undefined && user.id !== null ? String(user.id) : 'anon';
+      return `${TALK_STORAGE_PREFIX}${userId}`;
+    };
 
     const formatJson = (value) => {
       try {
@@ -216,6 +244,36 @@ class PageDiagnostics extends HTMLElement {
       if (wordsEl) wordsEl.textContent = formatJson(words);
       if (phraseEl) phraseEl.textContent = formatJson(phrase);
       if (rewardsEl) rewardsEl.textContent = formatJson(rewards);
+    };
+
+    const readTalkTimelines = () => {
+      try {
+        const raw = localStorage.getItem(getTalkStorageKey());
+        if (!raw) return { catbot: [], chatbot: [] };
+        const parsed = JSON.parse(raw);
+        return {
+          catbot: Array.isArray(parsed.catbot) ? parsed.catbot : [],
+          chatbot: Array.isArray(parsed.chatbot) ? parsed.chatbot : []
+        };
+      } catch (err) {
+        return { catbot: [], chatbot: [] };
+      }
+    };
+
+    const updateTalkPanels = () => {
+      const data = readTalkTimelines();
+      if (talkCatEl) talkCatEl.textContent = formatJson(data.catbot);
+      if (talkBotEl) talkBotEl.textContent = formatJson(data.chatbot);
+    };
+
+    const resetTalkTimelines = () => {
+      try {
+        localStorage.setItem(getTalkStorageKey(), JSON.stringify({ catbot: [], chatbot: [] }));
+      } catch (err) {
+        // no-op
+      }
+      window.dispatchEvent(new CustomEvent('app:talk-timelines-reset'));
+      updateTalkPanels();
     };
 
     const seedSpeakStores = () => {
@@ -260,6 +318,7 @@ class PageDiagnostics extends HTMLElement {
     this._speakStoresHandler = updateSpeakPanels;
     window.addEventListener('app:speak-stores-change', this._speakStoresHandler);
     updateSpeakPanels();
+    updateTalkPanels();
 
     this.querySelector('#diag-back')?.addEventListener('click', () => {
       ensureInitialHash();
@@ -364,6 +423,12 @@ class PageDiagnostics extends HTMLElement {
     });
     this.querySelector('#diag-speak-reset')?.addEventListener('click', () => {
       resetSpeakStores();
+    });
+    this.querySelector('#diag-talk-refresh')?.addEventListener('click', () => {
+      updateTalkPanels();
+    });
+    this.querySelector('#diag-talk-reset')?.addEventListener('click', () => {
+      resetTalkTimelines();
     });
 
   }

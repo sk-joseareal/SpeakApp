@@ -1,0 +1,21 @@
+[
+  {
+    "word": "are",
+    "start": 0,
+    "end": 0.3,
+    "syllables": [
+      {
+        "text": "a",
+        "start": 0,
+        "end": 0.1,
+        "index": 0
+      },
+      {
+        "text": "re",
+        "start": 0.1,
+        "end": 0.3,
+        "index": 1
+      }
+    ]
+  }
+]

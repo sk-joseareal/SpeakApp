@@ -1,0 +1,21 @@
+[
+  {
+    "word": "hello",
+    "start": 0.03,
+    "end": 0.5,
+    "syllables": [
+      {
+        "text": "hel",
+        "start": 0.03,
+        "end": 0.312,
+        "index": 0
+      },
+      {
+        "text": "lo",
+        "start": 0.312,
+        "end": 0.5,
+        "index": 1
+      }
+    ]
+  }
+]

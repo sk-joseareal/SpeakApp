@@ -1,0 +1,117 @@
+[
+  {
+    "word": "the",
+    "start": 0,
+    "end": 0.08,
+    "syllables": [
+      {
+        "text": "the",
+        "start": 0,
+        "end": 0.08,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "vampire",
+    "start": 0.08,
+    "end": 0.6,
+    "syllables": [
+      {
+        "text": "vam",
+        "start": 0.08,
+        "end": 0.303,
+        "index": 0
+      },
+      {
+        "text": "pi",
+        "start": 0.303,
+        "end": 0.451,
+        "index": 1
+      },
+      {
+        "text": "re",
+        "start": 0.451,
+        "end": 0.6,
+        "index": 2
+      }
+    ]
+  },
+  {
+    "word": "has",
+    "start": 0.6,
+    "end": 0.81,
+    "syllables": [
+      {
+        "text": "has",
+        "start": 0.6,
+        "end": 0.81,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "a",
+    "start": 0.81,
+    "end": 0.86,
+    "syllables": [
+      {
+        "text": "a",
+        "start": 0.81,
+        "end": 0.86,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "very",
+    "start": 0.86,
+    "end": 1.17,
+    "syllables": [
+      {
+        "text": "ve",
+        "start": 0.86,
+        "end": 1.015,
+        "index": 0
+      },
+      {
+        "text": "ry",
+        "start": 1.015,
+        "end": 1.17,
+        "index": 1
+      }
+    ]
+  },
+  {
+    "word": "loud",
+    "start": 1.17,
+    "end": 1.43,
+    "syllables": [
+      {
+        "text": "loud",
+        "start": 1.17,
+        "end": 1.43,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "voice",
+    "start": 1.43,
+    "end": 1.86,
+    "syllables": [
+      {
+        "text": "voi",
+        "start": 1.43,
+        "end": 1.688,
+        "index": 0
+      },
+      {
+        "text": "ce",
+        "start": 1.688,
+        "end": 1.86,
+        "index": 1
+      }
+    ]
+  }
+]

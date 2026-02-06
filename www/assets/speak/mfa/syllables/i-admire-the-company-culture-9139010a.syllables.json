@@ -1,0 +1,103 @@
+[
+  {
+    "word": "i",
+    "start": 0,
+    "end": 0.18,
+    "syllables": [
+      {
+        "text": "i",
+        "start": 0,
+        "end": 0.18,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "admire",
+    "start": 0.18,
+    "end": 0.59,
+    "syllables": [
+      {
+        "text": "ad",
+        "start": 0.18,
+        "end": 0.317,
+        "index": 0
+      },
+      {
+        "text": "mi",
+        "start": 0.317,
+        "end": 0.453,
+        "index": 1
+      },
+      {
+        "text": "re",
+        "start": 0.453,
+        "end": 0.59,
+        "index": 2
+      }
+    ]
+  },
+  {
+    "word": "the",
+    "start": 0.59,
+    "end": 0.7,
+    "syllables": [
+      {
+        "text": "the",
+        "start": 0.59,
+        "end": 0.7,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "company",
+    "start": 0.7,
+    "end": 1.14,
+    "syllables": [
+      {
+        "text": "com",
+        "start": 0.7,
+        "end": 0.889,
+        "index": 0
+      },
+      {
+        "text": "pa",
+        "start": 0.889,
+        "end": 1.014,
+        "index": 1
+      },
+      {
+        "text": "ny",
+        "start": 1.014,
+        "end": 1.14,
+        "index": 2
+      }
+    ]
+  },
+  {
+    "word": "culture",
+    "start": 1.14,
+    "end": 1.68,
+    "syllables": [
+      {
+        "text": "cul",
+        "start": 1.14,
+        "end": 1.371,
+        "index": 0
+      },
+      {
+        "text": "tu",
+        "start": 1.371,
+        "end": 1.526,
+        "index": 1
+      },
+      {
+        "text": "re",
+        "start": 1.526,
+        "end": 1.68,
+        "index": 2
+      }
+    ]
+  }
+]

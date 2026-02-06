@@ -1,0 +1,21 @@
+[
+  {
+    "word": "white",
+    "start": 0,
+    "end": 0.36,
+    "syllables": [
+      {
+        "text": "whi",
+        "start": 0,
+        "end": 0.216,
+        "index": 0
+      },
+      {
+        "text": "te",
+        "start": 0.216,
+        "end": 0.36,
+        "index": 1
+      }
+    ]
+  }
+]

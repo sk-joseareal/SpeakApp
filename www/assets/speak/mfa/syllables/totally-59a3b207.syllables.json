@@ -1,0 +1,27 @@
+[
+  {
+    "word": "totally",
+    "start": 0.04,
+    "end": 0.53,
+    "syllables": [
+      {
+        "text": "to",
+        "start": 0.04,
+        "end": 0.18,
+        "index": 0
+      },
+      {
+        "text": "tal",
+        "start": 0.18,
+        "end": 0.39,
+        "index": 1
+      },
+      {
+        "text": "ly",
+        "start": 0.39,
+        "end": 0.53,
+        "index": 2
+      }
+    ]
+  }
+]

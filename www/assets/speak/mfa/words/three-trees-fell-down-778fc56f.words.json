@@ -1,0 +1,22 @@
+[
+  {
+    "start": 0.03,
+    "end": 0.27,
+    "word": "three"
+  },
+  {
+    "start": 0.27,
+    "end": 0.61,
+    "word": "trees"
+  },
+  {
+    "start": 0.61,
+    "end": 0.83,
+    "word": "fell"
+  },
+  {
+    "start": 0.83,
+    "end": 1.22,
+    "word": "down"
+  }
+]

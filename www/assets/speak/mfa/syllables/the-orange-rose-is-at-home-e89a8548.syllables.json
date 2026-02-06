@@ -1,0 +1,104 @@
+[
+  {
+    "word": "the",
+    "start": 0,
+    "end": 0.15,
+    "syllables": [
+      {
+        "text": "the",
+        "start": 0,
+        "end": 0.15,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "orange",
+    "start": 0.15,
+    "end": 0.52,
+    "syllables": [
+      {
+        "text": "o",
+        "start": 0.15,
+        "end": 0.212,
+        "index": 0
+      },
+      {
+        "text": "ran",
+        "start": 0.212,
+        "end": 0.397,
+        "index": 1
+      },
+      {
+        "text": "ge",
+        "start": 0.397,
+        "end": 0.52,
+        "index": 2
+      }
+    ]
+  },
+  {
+    "word": "rose",
+    "start": 0.52,
+    "end": 0.75,
+    "syllables": [
+      {
+        "text": "ro",
+        "start": 0.52,
+        "end": 0.635,
+        "index": 0
+      },
+      {
+        "text": "se",
+        "start": 0.635,
+        "end": 0.75,
+        "index": 1
+      }
+    ]
+  },
+  {
+    "word": "is",
+    "start": 0.75,
+    "end": 0.9,
+    "syllables": [
+      {
+        "text": "is",
+        "start": 0.75,
+        "end": 0.9,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "at",
+    "start": 0.9,
+    "end": 1.01,
+    "syllables": [
+      {
+        "text": "at",
+        "start": 0.9,
+        "end": 1.01,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "home",
+    "start": 1.01,
+    "end": 1.39,
+    "syllables": [
+      {
+        "text": "ho",
+        "start": 1.01,
+        "end": 1.2,
+        "index": 0
+      },
+      {
+        "text": "me",
+        "start": 1.2,
+        "end": 1.39,
+        "index": 1
+      }
+    ]
+  }
+]

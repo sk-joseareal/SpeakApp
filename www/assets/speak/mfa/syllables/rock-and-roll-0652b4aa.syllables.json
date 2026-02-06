@@ -1,0 +1,41 @@
+[
+  {
+    "word": "rock",
+    "start": 0,
+    "end": 0.27,
+    "syllables": [
+      {
+        "text": "rock",
+        "start": 0,
+        "end": 0.27,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "and",
+    "start": 0.27,
+    "end": 0.42,
+    "syllables": [
+      {
+        "text": "and",
+        "start": 0.27,
+        "end": 0.42,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "roll",
+    "start": 0.42,
+    "end": 0.75,
+    "syllables": [
+      {
+        "text": "roll",
+        "start": 0.42,
+        "end": 0.75,
+        "index": 0
+      }
+    ]
+  }
+]

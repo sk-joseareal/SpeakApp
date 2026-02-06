@@ -262,8 +262,8 @@ class PageHome extends HTMLElement {
     const showLockedRouteToast = (routeIndex) => {
       const prevRoute = routeIndex > 0 ? routes[routeIndex - 1] : null;
       const message = prevRoute
-        ? `Aun no puedes acceder a este modulo. Completa primero la ruta anterior: ${prevRoute.title}.`
-        : 'Aun no puedes acceder a este modulo.';
+        ? `Aún no puedes acceder a este modulo. Completa primero la ruta anterior: ${prevRoute.title}.`
+        : 'Aún no puedes acceder a este modulo.';
       const toast = document.createElement('ion-toast');
       toast.message = message;
       toast.duration = 2200;

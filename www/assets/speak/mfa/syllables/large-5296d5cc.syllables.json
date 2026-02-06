@@ -1,0 +1,21 @@
+[
+  {
+    "word": "large",
+    "start": 0,
+    "end": 0.49,
+    "syllables": [
+      {
+        "text": "lar",
+        "start": 0,
+        "end": 0.294,
+        "index": 0
+      },
+      {
+        "text": "ge",
+        "start": 0.294,
+        "end": 0.49,
+        "index": 1
+      }
+    ]
+  }
+]

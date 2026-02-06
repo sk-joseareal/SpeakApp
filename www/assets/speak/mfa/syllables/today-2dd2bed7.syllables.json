@@ -1,0 +1,21 @@
+[
+  {
+    "word": "today",
+    "start": 0,
+    "end": 0.47,
+    "syllables": [
+      {
+        "text": "to",
+        "start": 0,
+        "end": 0.188,
+        "index": 0
+      },
+      {
+        "text": "day",
+        "start": 0.188,
+        "end": 0.47,
+        "index": 1
+      }
+    ]
+  }
+]

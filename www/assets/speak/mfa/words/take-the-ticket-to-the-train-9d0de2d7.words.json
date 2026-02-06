@@ -1,0 +1,32 @@
+[
+  {
+    "start": 0,
+    "end": 0.25,
+    "word": "take"
+  },
+  {
+    "start": 0.25,
+    "end": 0.35,
+    "word": "the"
+  },
+  {
+    "start": 0.35,
+    "end": 0.74,
+    "word": "ticket"
+  },
+  {
+    "start": 0.74,
+    "end": 0.84,
+    "word": "to"
+  },
+  {
+    "start": 0.84,
+    "end": 0.96,
+    "word": "the"
+  },
+  {
+    "start": 0.96,
+    "end": 1.41,
+    "word": "train"
+  }
+]

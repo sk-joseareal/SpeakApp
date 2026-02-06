@@ -1,0 +1,47 @@
+[
+  {
+    "start": 0,
+    "end": 0.06,
+    "word": "i"
+  },
+  {
+    "start": 0.06,
+    "end": 0.17,
+    "word": "would"
+  },
+  {
+    "start": 0.17,
+    "end": 0.4,
+    "word": "like"
+  },
+  {
+    "start": 0.4,
+    "end": 0.46,
+    "word": "a"
+  },
+  {
+    "start": 0.46,
+    "end": 0.85,
+    "word": "table"
+  },
+  {
+    "start": 0.85,
+    "end": 1.01,
+    "word": "for"
+  },
+  {
+    "start": 1.01,
+    "end": 1.28,
+    "word": "two"
+  },
+  {
+    "start": 1.28,
+    "end": 1.37,
+    "word": "at"
+  },
+  {
+    "start": 1.37,
+    "end": 1.67,
+    "word": "eight"
+  }
+]

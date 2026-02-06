@@ -1,0 +1,41 @@
+[
+  {
+    "word": "to",
+    "start": 0,
+    "end": 0.11,
+    "syllables": [
+      {
+        "text": "to",
+        "start": 0,
+        "end": 0.11,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "ma",
+    "start": 0.11,
+    "end": 0.33,
+    "syllables": [
+      {
+        "text": "ma",
+        "start": 0.11,
+        "end": 0.33,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "to",
+    "start": 0.36,
+    "end": 0.7,
+    "syllables": [
+      {
+        "text": "to",
+        "start": 0.36,
+        "end": 0.7,
+        "index": 0
+      }
+    ]
+  }
+]

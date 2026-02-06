@@ -5,7 +5,7 @@ class PageSpeak extends HTMLElement {
     this.classList.add('ion-page');
     this.innerHTML = `
       <ion-header translucent="true" class="speak-header">
-        <ion-toolbar class="speak-toolbar">
+        <ion-toolbar class="speak-toolbar secret-title">
           <ion-buttons slot="start">
             <ion-button fill="clear" id="speak-prev">
               <ion-icon slot="icon-only" name="chevron-back"></ion-icon>
@@ -19,7 +19,7 @@ class PageSpeak extends HTMLElement {
           </ion-buttons>
         </ion-toolbar>
       </ion-header>
-      <ion-content fullscreen class="speak-content">
+      <ion-content fullscreen class="speak-content secret-content">
         <div class="speak-top">
           <div class="speak-track">
             <div class="speak-track-route" id="speak-track-route">SOUND JOURNEY</div>
@@ -42,8 +42,12 @@ class PageSpeak extends HTMLElement {
     const trackSubEl = this.querySelector('#speak-track-sub');
 
     const AVATAR_BASE = 'assets/speak/avatar';
-    const DATA_BASE = 'assets/speak/data';
-    const DEMO_AUDIO_ID = 'lf_audio.000003741';
+    const MFA_BASE = 'assets/speak/mfa';
+    const MFA_ITEMS_URL = `${MFA_BASE}/items.json`;
+    const MFA_AUDIO_BASE = `${MFA_BASE}/audio`;
+    const MFA_VISEME_BASE = `${MFA_BASE}/visemes`;
+    const MFA_WORDS_BASE = `${MFA_BASE}/words`;
+    const MFA_SYLLABLES_BASE = `${MFA_BASE}/syllables`;
     const AV_SYNC_DELAY = 0.06;
 
     const stepOrder = ['sound', 'spelling', 'sentence'];
@@ -74,9 +78,16 @@ class PageSpeak extends HTMLElement {
     let speechFailed = false;
     let activeAudio = null;
     let avatarAudio = null;
+    let playbackAudio = null;
+    let mfaItems = [];
+    let mfaLookup = {};
+    let mfaReady = false;
     let visemes = [];
     let animating = false;
     let currentViseme = 0;
+    let syllableTimeline = [];
+    let currentSyllable = 0;
+    let activeSyllableIndex = -1;
     let lastVisemeKey = 'NEUTRAL';
     let mouthImgA = null;
     let mouthImgB = null;
@@ -84,6 +95,8 @@ class PageSpeak extends HTMLElement {
     let inactiveMouth = null;
     let rafId = null;
     let isRecording = false;
+    let phoneticTextEl = null;
+    let sentenceTextEl = null;
 
     const stepState = {
       sound: { recordingUrl: '', transcript: '', percent: null },
@@ -108,6 +121,50 @@ class PageSpeak extends HTMLElement {
         .toLowerCase()
         .replace(/[^a-z0-9\s]/g, ' ')
         .replace(/\s+/g, ' ')
+        .trim();
+
+    const CONTRACTION_EXPANSIONS = {
+      "i'm": 'i am',
+      "i'd": 'i would',
+      "i'll": 'i will',
+      "i've": 'i have',
+      "you're": 'you are',
+      "you'd": 'you would',
+      "you'll": 'you will',
+      "you've": 'you have',
+      "we're": 'we are',
+      "we'd": 'we would',
+      "we'll": 'we will',
+      "we've": 'we have',
+      "they're": 'they are',
+      "they'd": 'they would',
+      "they'll": 'they will',
+      "they've": 'they have',
+      "it's": 'it is',
+      "that's": 'that is',
+      "can't": 'cannot',
+      "won't": 'will not',
+      "don't": 'do not',
+      "isn't": 'is not',
+      "aren't": 'are not',
+      "wasn't": 'was not',
+      "weren't": 'were not'
+    };
+
+    const CONTRACTION_MERGES = Object.entries(CONTRACTION_EXPANSIONS)
+      .map(([contraction, expanded]) => ({
+        contraction,
+        expandedTokens: expanded.split(' ')
+      }))
+      .sort((a, b) => b.expandedTokens.length - a.expandedTokens.length);
+
+    const normalizeMfaKey = (value) =>
+      String(value || '')
+        .toLowerCase()
+        .replace(/[\u2019\u2018]/g, "'")
+        .replace(/\s+/g, ' ')
+        .trim()
+        .replace(/[.,!?]+$/g, '')
         .trim();
 
     const escapeHtml = (value) =>
@@ -553,6 +610,7 @@ class PageSpeak extends HTMLElement {
     };
 
     const stopPlayback = () => {
+      const shouldResetSyllables = playbackAudio === activeAudio;
       if (activeAudio) {
         activeAudio.pause();
         activeAudio.currentTime = 0;
@@ -561,9 +619,14 @@ class PageSpeak extends HTMLElement {
       if (canSpeak()) {
         window.speechSynthesis.cancel();
       }
+      if (shouldResetSyllables) {
+        playbackAudio = null;
+        resetSyllables();
+      }
     };
 
     const stopAvatarPlayback = () => {
+      const shouldResetSyllables = playbackAudio === avatarAudio;
       if (avatarAudio) {
         avatarAudio.pause();
         avatarAudio.currentTime = 0;
@@ -576,6 +639,10 @@ class PageSpeak extends HTMLElement {
       animating = false;
       currentViseme = 0;
       setMouthViseme('NEUTRAL');
+      if (shouldResetSyllables) {
+        playbackAudio = null;
+        resetSyllables();
+      }
     };
 
     const startSpeechRecognition = () => {
@@ -767,15 +834,302 @@ class PageSpeak extends HTMLElement {
       window.speechSynthesis.speak(utter);
     };
 
-    const loadVisemes = async () => {
-      if (visemes.length) return;
+    const ensureMfaItems = async () => {
+      if (mfaReady) return true;
       try {
-        const res = await fetch(`${DATA_BASE}/${DEMO_AUDIO_ID}.visemes.json`);
-        if (!res.ok) return;
-        visemes = await res.json();
+        const res = await fetch(MFA_ITEMS_URL);
+        if (!res.ok) return false;
+        const data = await res.json();
+        mfaItems = Array.isArray(data.items) ? data.items : [];
+        mfaLookup = data && typeof data.lookup === 'object' ? data.lookup : {};
+        mfaReady = true;
+        return true;
       } catch (err) {
-        console.warn('[speak] visemes error', err);
+        console.warn('[speak] mfa items error', err);
+        return false;
       }
+    };
+
+    const getMfaIdForText = (text) => {
+      if (!mfaReady) return null;
+      const key = normalizeMfaKey(text);
+      if (!key) return null;
+      return mfaLookup[key] || null;
+    };
+
+    const fetchJson = async (url) => {
+      const res = await fetch(url);
+      if (!res.ok) {
+        throw new Error(`Failed to load ${url}`);
+      }
+      return res.json();
+    };
+
+    const loadSyllables = async (id) => {
+      try {
+        return await fetchJson(`${MFA_SYLLABLES_BASE}/${id}.syllables.json`);
+      } catch (err) {
+        const words = await fetchJson(`${MFA_WORDS_BASE}/${id}.words.json`);
+        return (Array.isArray(words) ? words : []).map((word) => ({
+          word: word.word,
+          start: word.start,
+          end: word.end,
+          syllables: [
+            {
+              text: word.word,
+              start: word.start,
+              end: word.end,
+              index: 0
+            }
+          ]
+        }));
+      }
+    };
+
+    const splitPhoneticText = (phonetic, expected) => {
+      if (!phonetic) return null;
+      if (expected) {
+        const lower = phonetic.toLowerCase();
+        const target = expected.toLowerCase();
+        const idx = lower.indexOf(target);
+        if (idx >= 0) {
+          return {
+            prefix: phonetic.slice(0, idx),
+            suffix: phonetic.slice(idx + expected.length)
+          };
+        }
+      }
+
+      const arrowMatch = phonetic.match(/^(.*?)(?:->|\u2192)\s*(.+)$/);
+      if (arrowMatch) {
+        const arrowSymbol = phonetic.includes('\u2192') ? '\u2192' : '->';
+        return {
+          prefix: `${arrowMatch[1]}${arrowSymbol} `,
+          suffix: ''
+        };
+      }
+
+      return null;
+    };
+
+    const getDisplayTokenMap = (text) => {
+      const tokens = String(text || '')
+        .replace(/[\u2019\u2018]/g, "'")
+        .split(/\s+/)
+        .map((token) => token.replace(/^[^a-z0-9']+|[^a-z0-9']+$/gi, ''))
+        .filter(Boolean);
+      const map = {};
+      tokens.forEach((token) => {
+        const key = token.toLowerCase();
+        if (!map[key]) map[key] = token;
+      });
+      return map;
+    };
+
+    const mergeSyllableDisplay = (data, displayText) => {
+      if (!Array.isArray(data)) return [];
+      const tokenMap = displayText ? getDisplayTokenMap(displayText) : {};
+      const hasToken = (token) => Boolean(tokenMap && tokenMap[token]);
+      const wordsLower = data.map((entry) => String(entry.word || '').toLowerCase());
+      const result = [];
+      let index = 0;
+
+      while (index < data.length) {
+        let merged = false;
+        for (const merge of CONTRACTION_MERGES) {
+          if (!hasToken(merge.contraction)) continue;
+          const len = merge.expandedTokens.length;
+          if (index + len - 1 >= data.length) continue;
+          const slice = wordsLower.slice(index, index + len);
+          const matches = merge.expandedTokens.every((token, idx) => token === slice[idx]);
+          if (!matches) continue;
+          const first = data[index];
+          const last = data[index + len - 1];
+          const word = tokenMap[merge.contraction] || merge.contraction;
+          result.push({
+            word,
+            start: first.start,
+            end: last.end,
+            syllables: [
+              {
+                text: word,
+                start: first.start,
+                end: last.end,
+                index: 0
+              }
+            ]
+          });
+          index += len;
+          merged = true;
+          break;
+        }
+        if (merged) continue;
+        const entry = data[index];
+        const key = String(entry.word || '').toLowerCase();
+        const displayWord = tokenMap[key] || entry.word;
+        result.push({
+          ...entry,
+          word: displayWord
+        });
+        index += 1;
+      }
+      return result;
+    };
+
+    const renderSyllables = (targetEl, data, fallbackText, highlightKey, prefix = '', suffix = '') => {
+      if (!targetEl) return;
+      targetEl.innerHTML = '';
+      syllableTimeline = [];
+      currentSyllable = 0;
+      activeSyllableIndex = -1;
+
+      if (!Array.isArray(data) || !data.length) {
+        targetEl.textContent = fallbackText || '';
+        return;
+      }
+
+      const displayData = mergeSyllableDisplay(data, fallbackText);
+      if (!displayData.length) {
+        targetEl.textContent = fallbackText || '';
+        return;
+      }
+
+      if (prefix) {
+        targetEl.appendChild(document.createTextNode(prefix));
+      }
+
+      displayData.forEach((wordEntry) => {
+        const wordSpan = document.createElement('span');
+        wordSpan.className = 'speak-syllable-word';
+        const syllables =
+          Array.isArray(wordEntry.syllables) && wordEntry.syllables.length
+            ? wordEntry.syllables
+            : [
+                {
+                  text: wordEntry.word,
+                  start: wordEntry.start,
+                  end: wordEntry.end,
+                  index: 0
+                }
+              ];
+
+        syllables.forEach((syllable, idx) => {
+          const sylSpan = document.createElement('span');
+          sylSpan.className = 'speak-syllable';
+          sylSpan.innerHTML = highlightLetter(syllable.text, highlightKey);
+          wordSpan.appendChild(sylSpan);
+          syllableTimeline.push({
+            start: syllable.start,
+            end: syllable.end,
+            el: sylSpan
+          });
+          if (idx < syllables.length - 1) {
+            const sep = document.createElement('span');
+            sep.className = 'speak-syllable-sep';
+            sep.textContent = '-';
+            wordSpan.appendChild(sep);
+          }
+        });
+
+        targetEl.appendChild(wordSpan);
+        targetEl.appendChild(document.createTextNode(' '));
+      });
+
+      if (suffix) {
+        targetEl.appendChild(document.createTextNode(suffix));
+      }
+    };
+
+    const highlightSyllable = (index) => {
+      if (activeSyllableIndex === index) return;
+      if (activeSyllableIndex >= 0 && syllableTimeline[activeSyllableIndex]) {
+        syllableTimeline[activeSyllableIndex].el.classList.remove('is-active');
+      }
+      if (index >= 0 && syllableTimeline[index]) {
+        syllableTimeline[index].el.classList.add('is-active');
+      }
+      activeSyllableIndex = index;
+    };
+
+    const resetSyllables = () => {
+      highlightSyllable(-1);
+      syllableTimeline = [];
+      currentSyllable = 0;
+      activeSyllableIndex = -1;
+    };
+
+    const updateSyllables = (time) => {
+      if (!syllableTimeline.length) return;
+      while (currentSyllable < syllableTimeline.length - 1 && time > syllableTimeline[currentSyllable].end) {
+        currentSyllable += 1;
+      }
+      const s = syllableTimeline[currentSyllable];
+      const newIndex = s && time >= s.start && time <= s.end ? currentSyllable : -1;
+      highlightSyllable(newIndex);
+    };
+
+    const playReferenceAudio = async ({ text, targetEl, phonetic, withVisemes }) => {
+      if (!text) return;
+      stopPlayback();
+      stopAvatarPlayback();
+
+      const ready = await ensureMfaItems();
+      const itemId = ready ? getMfaIdForText(text) : null;
+      if (!itemId) {
+        if (targetEl) targetEl.textContent = phonetic || text;
+        playTts(text);
+        return;
+      }
+
+      let syllablesData = [];
+      try {
+        syllablesData = await loadSyllables(itemId);
+      } catch (err) {
+        syllablesData = [];
+      }
+
+      if (targetEl) {
+        const split = phonetic ? splitPhoneticText(phonetic, text) : null;
+        const prefix = split ? split.prefix : '';
+        const suffix = split ? split.suffix : '';
+        renderSyllables(targetEl, syllablesData, text || phonetic, focusKey, prefix, suffix);
+      } else {
+        resetSyllables();
+      }
+
+      if (withVisemes) {
+        try {
+          const visemeData = await fetchJson(`${MFA_VISEME_BASE}/${itemId}.visemes.json`);
+          visemes = Array.isArray(visemeData) ? visemeData : [];
+        } catch (err) {
+          visemes = [];
+        }
+      } else {
+        visemes = [];
+      }
+
+      const audio = new Audio(`${MFA_AUDIO_BASE}/${itemId}.wav`);
+      playbackAudio = audio;
+      if (withVisemes) {
+        avatarAudio = audio;
+      } else {
+        activeAudio = audio;
+      }
+      animating = true;
+      currentViseme = 0;
+      currentSyllable = 0;
+      activeSyllableIndex = -1;
+      lastVisemeKey = 'NEUTRAL';
+      setMouthViseme('NEUTRAL');
+
+      audio.onended = () => {
+        animating = false;
+        setMouthViseme('NEUTRAL');
+        highlightSyllable(-1);
+      };
+
+      audio.play().catch(() => {});
+      rafId = requestAnimationFrame(updateAvatar);
     };
 
     const setMouthViseme = (visemeKeyRaw) => {
@@ -814,11 +1168,12 @@ class PageSpeak extends HTMLElement {
     };
 
     const updateAvatar = () => {
-      if (!animating || !avatarAudio || avatarAudio.paused || avatarAudio.ended) {
+      const audio = playbackAudio;
+      if (!animating || !audio || audio.paused || audio.ended) {
         animating = false;
         return;
       }
-      const t = Math.max(0, avatarAudio.currentTime - AV_SYNC_DELAY);
+      const t = Math.max(0, audio.currentTime - AV_SYNC_DELAY);
       if (visemes.length > 0) {
         while (currentViseme < visemes.length - 1 && t > visemes[currentViseme].end) {
           currentViseme += 1;
@@ -828,24 +1183,7 @@ class PageSpeak extends HTMLElement {
           setMouthViseme(v.viseme);
         }
       }
-      rafId = requestAnimationFrame(updateAvatar);
-    };
-
-    const playAvatarReference = async () => {
-      stopPlayback();
-      stopAvatarPlayback();
-      await loadVisemes();
-      const audio = new Audio(`${DATA_BASE}/${DEMO_AUDIO_ID}.wav`);
-      avatarAudio = audio;
-      animating = true;
-      currentViseme = 0;
-      lastVisemeKey = 'NEUTRAL';
-      setMouthViseme('NEUTRAL');
-      audio.onended = () => {
-        animating = false;
-        setMouthViseme('NEUTRAL');
-      };
-      audio.play().catch(() => {});
+      updateSyllables(t);
       rafId = requestAnimationFrame(updateAvatar);
     };
 
@@ -859,6 +1197,22 @@ class PageSpeak extends HTMLElement {
 
     const highlightSentence = (sentence, letter) => {
       return highlightLetter(sentence, letter);
+    };
+
+    const usesPhoneticDisplay = (phonetic, expected) => {
+      if (!phonetic) return false;
+      if (/[\\/]/.test(phonetic)) return true;
+      if (phonetic.includes('->') || phonetic.includes('\u2192')) return true;
+      if (expected && phonetic.toLowerCase().includes(expected.toLowerCase())) return true;
+      return false;
+    };
+
+    const getSoundDisplayText = () => {
+      if (!soundStep) return '';
+      const phonetic = soundStep.phonetic || '';
+      const expected = soundStep.expected || '';
+      if (usesPhoneticDisplay(phonetic, expected)) return phonetic;
+      return expected || phonetic;
     };
 
     const getExpectedText = (key) => {
@@ -953,6 +1307,7 @@ class PageSpeak extends HTMLElement {
       const percent = score && hasRecording ? score.percent : '';
       const tone = score && hasRecording ? score.tone : 'hint';
       const label = score && hasRecording ? score.label : 'Practice the sound';
+      const displayText = getSoundDisplayText();
 
       return `
         <div class="speak-step speak-step-sound">
@@ -988,7 +1343,9 @@ class PageSpeak extends HTMLElement {
             <button class="speak-play-btn" id="speak-play-ref" type="button">
               <ion-icon name="volume-high"></ion-icon>
             </button>
-            <span class="speak-phonetic-text">${highlightLetter(soundStep.phonetic, focusKey)}</span>
+            <span class="speak-phonetic-text" id="speak-phonetic-text">
+              ${highlightLetter(displayText, focusKey)}
+            </span>
           </div>
 
           <div class="speak-score speak-score-${tone}">
@@ -1102,7 +1459,9 @@ class PageSpeak extends HTMLElement {
             <button class="speak-play-btn" id="speak-play-sentence" type="button">
               <ion-icon name="volume-high"></ion-icon>
             </button>
-            <div class="speak-sentence">${highlightSentence(sentenceStep.sentence, focusKey)}</div>
+            <div class="speak-sentence" id="speak-sentence-text">
+              ${highlightSentence(sentenceStep.sentence, focusKey)}
+            </div>
           </div>
           <div class="speak-feedback ${tone}">${label}</div>
           ${scoreLine}
@@ -1213,13 +1572,35 @@ class PageSpeak extends HTMLElement {
         inactiveMouth = mouthImgB;
       }
 
+      phoneticTextEl = stepRoot.querySelector('#speak-phonetic-text');
+      sentenceTextEl = stepRoot.querySelector('#speak-sentence-text');
+
       playRefBtn?.addEventListener('click', () => {
-        playAvatarReference();
+        if (soundStep && soundStep.expected) {
+          const phonetic =
+            soundStep.phonetic && usesPhoneticDisplay(soundStep.phonetic, soundStep.expected)
+              ? soundStep.phonetic
+              : '';
+          playReferenceAudio({
+            text: soundStep.expected,
+            targetEl: phoneticTextEl,
+            phonetic,
+            withVisemes: true
+          });
+          return;
+        }
+        if (soundStep && soundStep.phonetic) {
+          playTts(soundStep.phonetic);
+        }
       });
 
       playSentenceBtn?.addEventListener('click', () => {
         if (sentenceStep && sentenceStep.sentence) {
-          playTts(sentenceStep.sentence);
+          playReferenceAudio({
+            text: sentenceStep.sentence,
+            targetEl: sentenceTextEl,
+            withVisemes: false
+          });
         }
       });
 
@@ -1245,8 +1626,8 @@ class PageSpeak extends HTMLElement {
           if (!word) return;
           selectedWord = word;
           syncSpellingStateFromStore(word);
-          playTts(word);
           renderStep();
+          playReferenceAudio({ text: word, withVisemes: false });
         });
       });
 
@@ -1290,6 +1671,21 @@ class PageSpeak extends HTMLElement {
       stopAvatarPlayback();
       stopRecording();
       if (showSummary) {
+        if (window.r34lp0w3r && window.r34lp0w3r.speakReturnToReview) {
+          const returnSessionId = window.r34lp0w3r.speakReturnSessionId;
+          if (!returnSessionId || returnSessionId === currentSessionId) {
+            window.r34lp0w3r.speakReturnToReview = false;
+            window.r34lp0w3r.speakReturnSessionId = null;
+            window.r34lp0w3r.profileForceTab = 'review';
+            const tabs = document.querySelector('ion-tabs');
+            if (tabs && typeof tabs.select === 'function') {
+              tabs.select('tu');
+            }
+            return;
+          }
+          window.r34lp0w3r.speakReturnToReview = false;
+          window.r34lp0w3r.speakReturnSessionId = null;
+        }
         const { route, module, session } = resolveSelection(getSelection());
         if (!route || !module || !session) {
           const tabs = document.querySelector('ion-tabs');

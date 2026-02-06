@@ -1,0 +1,73 @@
+[
+  {
+    "word": "thank",
+    "start": 0.07,
+    "end": 0.32,
+    "syllables": [
+      {
+        "text": "thank",
+        "start": 0.07,
+        "end": 0.32,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "you",
+    "start": 0.32,
+    "end": 0.43,
+    "syllables": [
+      {
+        "text": "you",
+        "start": 0.32,
+        "end": 0.43,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "for",
+    "start": 0.43,
+    "end": 0.57,
+    "syllables": [
+      {
+        "text": "for",
+        "start": 0.43,
+        "end": 0.57,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "your",
+    "start": 0.57,
+    "end": 0.74,
+    "syllables": [
+      {
+        "text": "your",
+        "start": 0.57,
+        "end": 0.74,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "time",
+    "start": 0.74,
+    "end": 1.23,
+    "syllables": [
+      {
+        "text": "ti",
+        "start": 0.74,
+        "end": 0.985,
+        "index": 0
+      },
+      {
+        "text": "me",
+        "start": 0.985,
+        "end": 1.23,
+        "index": 1
+      }
+    ]
+  }
+]

@@ -1,0 +1,21 @@
+[
+  {
+    "word": "five",
+    "start": 0,
+    "end": 0.42,
+    "syllables": [
+      {
+        "text": "fi",
+        "start": 0,
+        "end": 0.21,
+        "index": 0
+      },
+      {
+        "text": "ve",
+        "start": 0.21,
+        "end": 0.42,
+        "index": 1
+      }
+    ]
+  }
+]

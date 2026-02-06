@@ -1,0 +1,27 @@
+[
+  {
+    "word": "photograph",
+    "start": 0,
+    "end": 0.79,
+    "syllables": [
+      {
+        "text": "pho",
+        "start": 0,
+        "end": 0.237,
+        "index": 0
+      },
+      {
+        "text": "tog",
+        "start": 0.237,
+        "end": 0.474,
+        "index": 1
+      },
+      {
+        "text": "raph",
+        "start": 0.474,
+        "end": 0.79,
+        "index": 2
+      }
+    ]
+  }
+]

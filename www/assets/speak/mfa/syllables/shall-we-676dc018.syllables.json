@@ -1,0 +1,28 @@
+[
+  {
+    "word": "shall",
+    "start": 0,
+    "end": 0.31,
+    "syllables": [
+      {
+        "text": "shall",
+        "start": 0,
+        "end": 0.31,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "we",
+    "start": 0.31,
+    "end": 0.62,
+    "syllables": [
+      {
+        "text": "we",
+        "start": 0.31,
+        "end": 0.62,
+        "index": 0
+      }
+    ]
+  }
+]

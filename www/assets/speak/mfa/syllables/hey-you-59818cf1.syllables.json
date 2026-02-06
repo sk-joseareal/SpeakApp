@@ -1,0 +1,28 @@
+[
+  {
+    "word": "hey",
+    "start": 0.03,
+    "end": 0.17,
+    "syllables": [
+      {
+        "text": "hey",
+        "start": 0.03,
+        "end": 0.17,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "you",
+    "start": 0.17,
+    "end": 0.47,
+    "syllables": [
+      {
+        "text": "you",
+        "start": 0.17,
+        "end": 0.47,
+        "index": 0
+      }
+    ]
+  }
+]

@@ -1,0 +1,28 @@
+[
+  {
+    "word": "new",
+    "start": 0,
+    "end": 0.12,
+    "syllables": [
+      {
+        "text": "new",
+        "start": 0,
+        "end": 0.12,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "york",
+    "start": 0.12,
+    "end": 0.55,
+    "syllables": [
+      {
+        "text": "york",
+        "start": 0.12,
+        "end": 0.55,
+        "index": 0
+      }
+    ]
+  }
+]

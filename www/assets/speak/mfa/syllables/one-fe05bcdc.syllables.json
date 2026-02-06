@@ -1,0 +1,21 @@
+[
+  {
+    "word": "one",
+    "start": 0,
+    "end": 0.38,
+    "syllables": [
+      {
+        "text": "o",
+        "start": 0,
+        "end": 0.127,
+        "index": 0
+      },
+      {
+        "text": "ne",
+        "start": 0.127,
+        "end": 0.38,
+        "index": 1
+      }
+    ]
+  }
+]

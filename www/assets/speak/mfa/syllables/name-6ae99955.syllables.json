@@ -1,0 +1,21 @@
+[
+  {
+    "word": "name",
+    "start": 0,
+    "end": 0.4,
+    "syllables": [
+      {
+        "text": "na",
+        "start": 0,
+        "end": 0.2,
+        "index": 0
+      },
+      {
+        "text": "me",
+        "start": 0.2,
+        "end": 0.4,
+        "index": 1
+      }
+    ]
+  }
+]

@@ -1,0 +1,21 @@
+[
+  {
+    "word": "ride",
+    "start": 0,
+    "end": 0.37,
+    "syllables": [
+      {
+        "text": "ri",
+        "start": 0,
+        "end": 0.185,
+        "index": 0
+      },
+      {
+        "text": "de",
+        "start": 0.185,
+        "end": 0.37,
+        "index": 1
+      }
+    ]
+  }
+]

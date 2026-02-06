@@ -150,6 +150,9 @@ class PagePremium extends HTMLElement {
     let pusherChannelName = '';
     let realtimeConnected = false;
     let chatMode = 'catbot';
+    const TALK_STORAGE_PREFIX = 'appv5:talk-timelines:';
+    const TALK_STORAGE_LEGACY = 'appv5:talk-timelines';
+    let talkStorageKey = `${TALK_STORAGE_PREFIX}anon`;
     const replyTimers = { catbot: null, chatbot: null };
     const awaitingBot = { catbot: false, chatbot: false };
     const chatThreads = { catbot: [], chatbot: [] };
@@ -520,7 +523,71 @@ class PagePremium extends HTMLElement {
       playSpeech(speakText);
     };
 
+    const resolveTalkStorageKey = (userId) =>
+      `${TALK_STORAGE_PREFIX}${userId ? String(userId) : 'anon'}`;
+
+    const sanitizeTalkMessage = (message) => {
+      if (!message || typeof message !== 'object') return null;
+      const role = message.role === 'bot' ? 'bot' : 'user';
+      const text = typeof message.text === 'string' ? message.text.trim() : '';
+      if (!text) return null;
+      const speakText =
+        typeof message.speakText === 'string' && message.speakText.trim()
+          ? message.speakText.trim()
+          : text;
+      return { role, text, speakText };
+    };
+
+    const normalizeStoredTimeline = (value) =>
+      Array.isArray(value) ? value.map(sanitizeTalkMessage).filter(Boolean) : [];
+
+    const readStoredTimelines = (key) => {
+      try {
+        const raw = localStorage.getItem(key);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        const catbot = normalizeStoredTimeline(parsed.catbot);
+        const chatbot = normalizeStoredTimeline(parsed.chatbot);
+        return { catbot, chatbot };
+      } catch (err) {
+        return null;
+      }
+    };
+
+    const persistTalkTimelines = () => {
+      try {
+        const payload = {
+          catbot: chatThreads.catbot.map(sanitizeTalkMessage).filter(Boolean),
+          chatbot: chatThreads.chatbot.map(sanitizeTalkMessage).filter(Boolean)
+        };
+        localStorage.setItem(talkStorageKey, JSON.stringify(payload));
+      } catch (err) {
+        // no-op
+      }
+    };
+
     const getThread = (mode) => (mode === 'chatbot' ? chatThreads.chatbot : chatThreads.catbot);
+
+    const loadTalkTimelinesForUser = (userId) => {
+      const nextKey = resolveTalkStorageKey(userId);
+      talkStorageKey = nextKey;
+      let stored = readStoredTimelines(nextKey);
+      if ((!stored || (!stored.catbot.length && !stored.chatbot.length)) && userId) {
+        const legacy = readStoredTimelines(TALK_STORAGE_LEGACY);
+        if (legacy && (legacy.catbot.length || legacy.chatbot.length)) {
+          stored = legacy;
+          try {
+            localStorage.setItem(nextKey, JSON.stringify(legacy));
+            localStorage.removeItem(TALK_STORAGE_LEGACY);
+          } catch (err) {
+            // no-op
+          }
+        }
+      }
+      chatThreads.catbot = stored ? stored.catbot : [];
+      chatThreads.chatbot = stored ? stored.chatbot : [];
+      return stored;
+    };
 
     const getIntroCopy = (mode) =>
       mode === 'chatbot'
@@ -578,6 +645,7 @@ class PagePremium extends HTMLElement {
       const thread = getThread(targetMode);
       const message = { role, text, audioUrl, speakText };
       thread.push(message);
+      persistTalkTimelines();
       if (targetMode === chatMode) {
         renderMessage(message, targetMode);
       }
@@ -599,16 +667,19 @@ class PagePremium extends HTMLElement {
       );
     };
 
-    const resetChatSession = ({ keepIntro, setDefaultHint } = {}) => {
+    const resetChatSession = ({ keepIntro, setDefaultHint, keepTimeline } = {}) => {
       stopPlayback();
       stopActiveCapture();
       cancelAllSimulatedReplies();
       clearDraft(true);
       retainedAudioUrls.forEach((url) => URL.revokeObjectURL(url));
       retainedAudioUrls.length = 0;
-      chatThreads.catbot.length = 0;
-      chatThreads.chatbot.length = 0;
       clearThread();
+      if (!keepTimeline) {
+        chatThreads.catbot.length = 0;
+        chatThreads.chatbot.length = 0;
+        persistTalkTimelines();
+      }
       if (keepIntro) {
         ensureIntroMessage(chatMode);
       }
@@ -940,6 +1011,8 @@ class PagePremium extends HTMLElement {
       const premium = loggedIn && isPremiumUser(user);
       const userChanged = userId !== lastUserId;
       const premiumChanged = premium !== lastPremium;
+      const isInitialLoad = lastUserId === null;
+      const hasStoredMessages = chatThreads.catbot.length > 0 || chatThreads.chatbot.length > 0;
 
       updateUserHeader(user, loggedIn);
 
@@ -948,15 +1021,22 @@ class PagePremium extends HTMLElement {
       if (accessPanel) accessPanel.hidden = premium;
       if (chatPanel) chatPanel.hidden = !premium;
 
+      if (userChanged) {
+        loadTalkTimelinesForUser(userId);
+        clearThread();
+      }
+
       if (!premium) {
         if (userChanged || premiumChanged) {
-          resetChatSession({ keepIntro: false, setDefaultHint: false });
+          resetChatSession({ keepIntro: false, setDefaultHint: false, keepTimeline: true });
         }
         setControlsEnabled(false);
         disconnectRealtime();
       } else {
         if (userChanged || premiumChanged) {
-          resetChatSession({ keepIntro: true, setDefaultHint: true });
+          resetChatSession({ keepIntro: true, setDefaultHint: true, keepTimeline: true });
+          renderThread(chatMode);
+          ensureIntroMessage(chatMode);
         } else {
           ensureIntroMessage(chatMode);
         }
@@ -1063,6 +1143,11 @@ class PagePremium extends HTMLElement {
     const initialUser = window.user;
     const initialLoggedIn =
       initialUser && initialUser.id !== undefined && initialUser.id !== null;
+    if (initialUser && initialUser.id !== undefined && initialUser.id !== null) {
+      loadTalkTimelinesForUser(initialUser.id);
+    } else {
+      loadTalkTimelinesForUser(null);
+    }
     updateUserHeader(initialUser, Boolean(initialLoggedIn));
     updateHeaderRewards();
     showLoadingState();
@@ -1158,6 +1243,7 @@ class PagePremium extends HTMLElement {
         if (textInput) textInput.value = '';
         updateTextRowVisibility(false);
         setChatMode('catbot', { reconnect: true });
+        renderThread(chatMode);
       } else {
         updateTextRowVisibility(true);
         updateChatControlsVisibility();
@@ -1178,6 +1264,12 @@ class PagePremium extends HTMLElement {
     updateCoachAvatar();
     updateCoachCopy();
     updateChatControlsVisibility();
+
+    this._talkResetHandler = () => {
+      resetChatSession({ keepIntro: true, setDefaultHint: true });
+      renderThread(chatMode);
+    };
+    window.addEventListener('app:talk-timelines-reset', this._talkResetHandler);
 
     this._cleanupPremiumChat = () => {
       resetChatSession({ keepIntro: false, setDefaultHint: false });
@@ -1201,6 +1293,9 @@ class PagePremium extends HTMLElement {
     }
     if (this._debugHandler) {
       window.removeEventListener('app:speak-debug', this._debugHandler);
+    }
+    if (this._talkResetHandler) {
+      window.removeEventListener('app:talk-timelines-reset', this._talkResetHandler);
     }
   }
 }

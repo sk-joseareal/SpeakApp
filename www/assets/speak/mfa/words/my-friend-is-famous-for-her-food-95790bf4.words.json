@@ -1,0 +1,37 @@
+[
+  {
+    "start": 0,
+    "end": 0.17,
+    "word": "my"
+  },
+  {
+    "start": 0.17,
+    "end": 0.49,
+    "word": "friend"
+  },
+  {
+    "start": 0.49,
+    "end": 0.63,
+    "word": "is"
+  },
+  {
+    "start": 0.63,
+    "end": 1.05,
+    "word": "famous"
+  },
+  {
+    "start": 1.05,
+    "end": 1.18,
+    "word": "for"
+  },
+  {
+    "start": 1.18,
+    "end": 1.33,
+    "word": "her"
+  },
+  {
+    "start": 1.33,
+    "end": 1.71,
+    "word": "food"
+  }
+]

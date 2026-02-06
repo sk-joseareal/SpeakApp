@@ -1,0 +1,37 @@
+[
+  {
+    "start": 0,
+    "end": 0.08,
+    "word": "the"
+  },
+  {
+    "start": 0.08,
+    "end": 0.32,
+    "word": "sun"
+  },
+  {
+    "start": 0.32,
+    "end": 0.46,
+    "word": "is"
+  },
+  {
+    "start": 0.46,
+    "end": 0.62,
+    "word": "up"
+  },
+  {
+    "start": 0.62,
+    "end": 0.87,
+    "word": "above"
+  },
+  {
+    "start": 0.87,
+    "end": 0.98,
+    "word": "the"
+  },
+  {
+    "start": 0.98,
+    "end": 1.43,
+    "word": "bus"
+  }
+]

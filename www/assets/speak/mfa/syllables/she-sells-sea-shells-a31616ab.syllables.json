@@ -1,0 +1,54 @@
+[
+  {
+    "word": "she",
+    "start": 0.03,
+    "end": 0.19,
+    "syllables": [
+      {
+        "text": "she",
+        "start": 0.03,
+        "end": 0.19,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "sells",
+    "start": 0.19,
+    "end": 0.51,
+    "syllables": [
+      {
+        "text": "sells",
+        "start": 0.19,
+        "end": 0.51,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "sea",
+    "start": 0.51,
+    "end": 0.69,
+    "syllables": [
+      {
+        "text": "sea",
+        "start": 0.51,
+        "end": 0.69,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "shells",
+    "start": 0.69,
+    "end": 1.2,
+    "syllables": [
+      {
+        "text": "shells",
+        "start": 0.69,
+        "end": 1.2,
+        "index": 0
+      }
+    ]
+  }
+]

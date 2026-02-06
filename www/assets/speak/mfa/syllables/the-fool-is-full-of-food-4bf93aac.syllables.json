@@ -1,0 +1,80 @@
+[
+  {
+    "word": "the",
+    "start": 0,
+    "end": 0.08,
+    "syllables": [
+      {
+        "text": "the",
+        "start": 0,
+        "end": 0.08,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "fool",
+    "start": 0.08,
+    "end": 0.32,
+    "syllables": [
+      {
+        "text": "fool",
+        "start": 0.08,
+        "end": 0.32,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "is",
+    "start": 0.32,
+    "end": 0.46,
+    "syllables": [
+      {
+        "text": "is",
+        "start": 0.32,
+        "end": 0.46,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "full",
+    "start": 0.46,
+    "end": 0.7,
+    "syllables": [
+      {
+        "text": "full",
+        "start": 0.46,
+        "end": 0.7,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "of",
+    "start": 0.7,
+    "end": 0.79,
+    "syllables": [
+      {
+        "text": "of",
+        "start": 0.7,
+        "end": 0.79,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "food",
+    "start": 0.79,
+    "end": 1.19,
+    "syllables": [
+      {
+        "text": "food",
+        "start": 0.79,
+        "end": 1.19,
+        "index": 0
+      }
+    ]
+  }
+]

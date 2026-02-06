@@ -1,0 +1,27 @@
+[
+  {
+    "start": 0.03,
+    "end": 0.5,
+    "word": "hello"
+  },
+  {
+    "start": 0.71,
+    "end": 0.91,
+    "word": "this"
+  },
+  {
+    "start": 0.91,
+    "end": 1.05,
+    "word": "is"
+  },
+  {
+    "start": 1.05,
+    "end": 1.34,
+    "word": "john"
+  },
+  {
+    "start": 1.34,
+    "end": 1.91,
+    "word": "speaking"
+  }
+]

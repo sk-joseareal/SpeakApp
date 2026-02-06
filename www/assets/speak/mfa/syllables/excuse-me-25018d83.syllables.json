@@ -1,0 +1,40 @@
+[
+  {
+    "word": "excuse",
+    "start": 0,
+    "end": 0.51,
+    "syllables": [
+      {
+        "text": "ex",
+        "start": 0,
+        "end": 0.17,
+        "index": 0
+      },
+      {
+        "text": "cu",
+        "start": 0.17,
+        "end": 0.34,
+        "index": 1
+      },
+      {
+        "text": "se",
+        "start": 0.34,
+        "end": 0.51,
+        "index": 2
+      }
+    ]
+  },
+  {
+    "word": "me",
+    "start": 0.51,
+    "end": 0.81,
+    "syllables": [
+      {
+        "text": "me",
+        "start": 0.51,
+        "end": 0.81,
+        "index": 0
+      }
+    ]
+  }
+]

@@ -1,0 +1,42 @@
+[
+  {
+    "start": 0,
+    "end": 0.23,
+    "viseme": "A"
+  },
+  {
+    "start": 0.23,
+    "end": 0.28,
+    "viseme": "M"
+  },
+  {
+    "start": 0.28,
+    "end": 0.36,
+    "viseme": "A"
+  },
+  {
+    "start": 0.36,
+    "end": 0.46,
+    "viseme": "NEUTRAL"
+  },
+  {
+    "start": 0.46,
+    "end": 0.57,
+    "viseme": "I"
+  },
+  {
+    "start": 0.57,
+    "end": 0.72,
+    "viseme": "M"
+  },
+  {
+    "start": 0.72,
+    "end": 0.76,
+    "viseme": "NEUTRAL"
+  },
+  {
+    "start": 0.76,
+    "end": 0.88,
+    "viseme": "E"
+  }
+]

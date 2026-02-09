@@ -500,7 +500,27 @@ class PagePremium extends HTMLElement {
       return { role, text, audioUrl, speakText };
     };
 
+    const getPremiumOverride = () => {
+      if (window.r34lp0w3r && typeof window.r34lp0w3r.premiumOverride === 'boolean') {
+        return window.r34lp0w3r.premiumOverride;
+      }
+      try {
+        const raw = localStorage.getItem('appv5:premium-override');
+        if (raw === '1' || raw === '0') {
+          const value = raw === '1';
+          window.r34lp0w3r = window.r34lp0w3r || {};
+          window.r34lp0w3r.premiumOverride = value;
+          return value;
+        }
+      } catch (err) {
+        // no-op
+      }
+      return null;
+    };
+
     const isPremiumUser = (user) => {
+      const override = getPremiumOverride();
+      if (override !== null) return override;
       if (!user || !user.expires_date) return false;
       const expires = new Date(user.expires_date);
       if (Number.isNaN(expires.getTime())) return false;
@@ -1983,6 +2003,8 @@ class PagePremium extends HTMLElement {
     }, 180);
     this._userHandler = (event) => updateAccessState(event.detail);
     window.addEventListener('app:user-change', this._userHandler);
+    this._premiumOverrideHandler = () => updateAccessState(window.user);
+    window.addEventListener('app:premium-override', this._premiumOverrideHandler);
     this._rewardsHandler = () => updateHeaderRewards();
     window.addEventListener('app:speak-stores-change', this._rewardsHandler);
 
@@ -2121,6 +2143,9 @@ class PagePremium extends HTMLElement {
     }
     if (this._userHandler) {
       window.removeEventListener('app:user-change', this._userHandler);
+    }
+    if (this._premiumOverrideHandler) {
+      window.removeEventListener('app:premium-override', this._premiumOverrideHandler);
     }
     if (this._rewardsHandler) {
       window.removeEventListener('app:speak-stores-change', this._rewardsHandler);

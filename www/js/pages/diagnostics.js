@@ -43,6 +43,15 @@ class PageDiagnostics extends HTMLElement {
               <p>ID: <strong id="diag-user-id"></strong></p>
               <p>Nombre: <strong id="diag-user-name"></strong></p>
               <p>Avatar: <strong id="diag-user-avatar"></strong></p>
+              <p>Premium hasta: <strong id="diag-user-premium-expiry"></strong></p>
+              <p>Premium real: <strong id="diag-user-premium-state"></strong></p>
+              <div class="diag-debug-toggle" style="margin-top: 10px;">
+                <div class="diag-debug-text">
+                  <div class="diag-debug-title">Premium (override)</div>
+                  <div class="diag-debug-sub">Fuerza acceso Premium para pruebas.</div>
+                </div>
+                <ion-toggle id="diag-premium-toggle"></ion-toggle>
+              </div>
               <div class="diag-avatar-wrap">
                 <img id="diag-user-avatar-img" src="" alt="Avatar" class="diag-avatar">
               </div>
@@ -156,6 +165,8 @@ class PageDiagnostics extends HTMLElement {
 
     resolveVersionsAsync(plugins, this);
 
+    const PREMIUM_OVERRIDE_KEY = 'appv5:premium-override';
+
     const debugToggle = this.querySelector('#diag-debug-toggle');
     if (debugToggle) {
       const applyDebug = (enabled) => {
@@ -184,6 +195,61 @@ class PageDiagnostics extends HTMLElement {
       });
     }
 
+    const readPremiumOverride = () => {
+      if (window.r34lp0w3r && typeof window.r34lp0w3r.premiumOverride === 'boolean') {
+        return window.r34lp0w3r.premiumOverride;
+      }
+      try {
+        const raw = localStorage.getItem(PREMIUM_OVERRIDE_KEY);
+        if (raw === '1' || raw === '0') {
+          const value = raw === '1';
+          window.r34lp0w3r = window.r34lp0w3r || {};
+          window.r34lp0w3r.premiumOverride = value;
+          return value;
+        }
+      } catch (err) {
+        // no-op
+      }
+      return null;
+    };
+
+    const setPremiumOverride = (enabled) => {
+      window.r34lp0w3r = window.r34lp0w3r || {};
+      window.r34lp0w3r.premiumOverride = !!enabled;
+      try {
+        localStorage.setItem(PREMIUM_OVERRIDE_KEY, enabled ? '1' : '0');
+      } catch (err) {
+        // no-op
+      }
+      window.dispatchEvent(new CustomEvent('app:premium-override', { detail: !!enabled }));
+    };
+
+    const formatExpiry = (value) => {
+      if (!value) return 'n/a';
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return String(value);
+      return date.toISOString();
+    };
+
+    const isPremiumByExpiry = (user) => {
+      if (!user || !user.expires_date) return false;
+      const date = new Date(user.expires_date);
+      if (Number.isNaN(date.getTime())) return false;
+      return date.getTime() > Date.now();
+    };
+
+    const premiumToggle = this.querySelector('#diag-premium-toggle');
+    if (premiumToggle) {
+      const override = readPremiumOverride();
+      if (override !== null) {
+        premiumToggle.checked = override;
+      }
+      premiumToggle.addEventListener('ionChange', (event) => {
+        const checked = event && event.detail ? event.detail.checked : premiumToggle.checked;
+        setPremiumOverride(checked);
+      });
+    }
+
     const updateUserPanel = (user) => {
       const panel = this.querySelector('#diag-user');
       if (!panel) return;
@@ -194,16 +260,31 @@ class PageDiagnostics extends HTMLElement {
         const nameEl = this.querySelector('#diag-user-name');
         const avatarEl = this.querySelector('#diag-user-avatar');
         const avatarImgEl = this.querySelector('#diag-user-avatar-img');
+        const premiumExpiryEl = this.querySelector('#diag-user-premium-expiry');
+        const premiumStateEl = this.querySelector('#diag-user-premium-state');
+        const override = readPremiumOverride();
+        const premiumReal = isPremiumByExpiry(user);
         if (avatarEl) avatarEl.textContent = user.avatar || 'n/a';
         if (idEl) idEl.textContent = user.id || 'n/a';
         if (nameEl) nameEl.textContent = user.name || 'n/a';
         if (avatarEl) avatarEl.textContent = user.image_local || 'n/a';
         if (avatarImgEl) avatarImgEl.src = user.image_local || '';
+        if (premiumExpiryEl) {
+          premiumExpiryEl.textContent = formatExpiry(user.expires_date);
+        }
+        if (premiumStateEl) {
+          premiumStateEl.textContent = premiumReal ? 'si' : 'no';
+        }
+        if (premiumToggle) {
+          premiumToggle.disabled = false;
+          premiumToggle.checked = override !== null ? override : premiumReal;
+        }
         panel.style.display = 'block';
         if (loginBtn) loginBtn.disabled = true;
         if (logoutBtn) logoutBtn.style.display = '';
       } else {
         panel.style.display = 'none';
+        if (premiumToggle) premiumToggle.disabled = true;
         if (loginBtn) loginBtn.disabled = false;
         if (logoutBtn) logoutBtn.style.display = 'none';
       }

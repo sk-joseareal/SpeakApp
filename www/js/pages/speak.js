@@ -804,6 +804,14 @@ class PageSpeak extends HTMLElement {
       persistSpeakStores();
     };
 
+    const clearStoredWordResult = (sessionId, word) => {
+      if (!sessionId || !word) return;
+      const sessionScores = getSessionWordScores(sessionId);
+      if (!sessionScores || !Object.prototype.hasOwnProperty.call(sessionScores, word)) return;
+      delete sessionScores[word];
+      persistSpeakStores();
+    };
+
     const getStoredPhraseResult = (sessionId) => {
       if (!sessionId) return null;
       const store = getPhraseScoreStore();
@@ -814,6 +822,14 @@ class PageSpeak extends HTMLElement {
       if (!sessionId) return;
       const store = getPhraseScoreStore();
       store[sessionId] = { ...payload };
+      persistSpeakStores();
+    };
+
+    const clearStoredPhraseResult = (sessionId) => {
+      if (!sessionId) return;
+      const store = getPhraseScoreStore();
+      if (!Object.prototype.hasOwnProperty.call(store, sessionId)) return;
+      delete store[sessionId];
       persistSpeakStores();
     };
 
@@ -943,6 +959,13 @@ class PageSpeak extends HTMLElement {
                 data-tone="good"
                 aria-label="Forzar verde ${toneMax.good}%"
                 title="Verde ${toneMax.good}%"
+              ></button>
+              <button
+                class="speak-debug-tone tone-reset"
+                type="button"
+                data-tone="reset"
+                aria-label="Desasignar porcentaje"
+                title="Desasignar %"
               ></button>
             </div>
           </div>`
@@ -2086,10 +2109,29 @@ class PageSpeak extends HTMLElement {
         btn.addEventListener('click', () => {
           const tone = btn.dataset.tone;
           if (!tone) return;
+          const key = getStepKey();
+          if (tone === 'reset') {
+            if (key === 'spelling') {
+              const word =
+                selectedWord ||
+                (spellingStep && Array.isArray(spellingStep.words) ? spellingStep.words[0] : '');
+              if (word) {
+                clearStoredWordResult(currentSessionId, word);
+                syncSpellingStateFromStore(word);
+              }
+            } else if (key === 'sentence') {
+              clearStoredPhraseResult(currentSessionId);
+              syncSentenceStateFromStore();
+            } else if (key === 'sound' && stepState.sound) {
+              stepState.sound.percent = null;
+              stepState.sound.transcript = '';
+            }
+            renderStep();
+            return;
+          }
           const toneMax = getToneMaxValues();
           const percent = toneMax[tone];
           if (typeof percent !== 'number') return;
-          const key = getStepKey();
           if (key === 'spelling') {
             const word =
               selectedWord ||

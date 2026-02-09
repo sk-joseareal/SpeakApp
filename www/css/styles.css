@@ -2172,6 +2172,10 @@ page-premium ion-content::part(scroll) {
   background: #22c55e;
 }
 
+.speak-debug-tone.tone-reset {
+  background: #3b82f6;
+}
+
 .speak-debug-label {
   text-transform: uppercase;
   letter-spacing: 0.04em;

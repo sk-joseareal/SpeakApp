@@ -9,6 +9,8 @@ PODS:
     - Capacitor
     - Google-Mobile-Ads-SDK (= 11.3.0)
     - GoogleUserMessagingPlatform (< 3.0.0, >= 2.7.0)
+  - CapacitorCommunitySpeechRecognition (7.0.1):
+    - Capacitor
   - CapacitorCommunityTextToSpeech (6.0.0):
     - Capacitor
   - CapacitorCordova (7.4.2)
@@ -95,6 +97,7 @@ DEPENDENCIES:
   - "CapacitorApp (from `../../node_modules/@capacitor/app`)"
   - "CapacitorBrowser (from `../../node_modules/@capacitor/browser`)"
   - "CapacitorCommunityAdmob (from `../../node_modules/@capacitor-community/admob`)"
+  - "CapacitorCommunitySpeechRecognition (from `../../node_modules/@capacitor-community/speech-recognition`)"
   - "CapacitorCommunityTextToSpeech (from `../../node_modules/@capacitor-community/text-to-speech`)"
   - "CapacitorCordova (from `../../node_modules/@capacitor/ios`)"
   - "CapacitorFilesystem (from `../../node_modules/@capacitor/filesystem`)"
@@ -130,6 +133,8 @@ EXTERNAL SOURCES:
     :path: "../../node_modules/@capacitor/browser"
   CapacitorCommunityAdmob:
     :path: "../../node_modules/@capacitor-community/admob"
+  CapacitorCommunitySpeechRecognition:
+    :path: "../../node_modules/@capacitor-community/speech-recognition"
   CapacitorCommunityTextToSpeech:
     :path: "../../node_modules/@capacitor-community/text-to-speech"
   CapacitorCordova:
@@ -154,6 +159,7 @@ SPEC CHECKSUMS:
   CapacitorApp: febecbb9582cb353aed037e18ec765141f880fe9
   CapacitorBrowser: 6299776d496e968505464884d565992faa20444a
   CapacitorCommunityAdmob: 310beff216a3470b2c85b1fccd99d2a6815e1ef7
+  CapacitorCommunitySpeechRecognition: 3e03566c44c2bb3b52391a33d4518b1adbdeb38f
   CapacitorCommunityTextToSpeech: 4e82235c0e184d2edbd1b2d81ef22af531bda13e
   CapacitorCordova: 5e58d04631bc5094894ac106e2bf1da18a9e6151
   CapacitorFilesystem: 0329ace667c6b971410cab3619dfb98a39cc3b86
@@ -176,6 +182,6 @@ SPEC CHECKSUMS:
   PromisesObjC: f5707f49cb48b9636751c5b2e7d227e43fba9f47
   SokinternetP4w4: 44251f9b6a7c40722ef60ff5eaa31da5ac6a5686
 
-PODFILE CHECKSUM: 4378083155084ad7b8807a1fc4d4e126016cf22e
+PODFILE CHECKSUM: 5a75bd7e8b9402a9060aac745eaf9405893b7bc7
 
 COCOAPODS: 1.16.2

@@ -49,6 +49,13 @@ class PageSpeak extends HTMLElement {
     const MFA_WORDS_BASE = `${MFA_BASE}/words`;
     const MFA_SYLLABLES_BASE = `${MFA_BASE}/syllables`;
     const AV_SYNC_DELAY = 0.06;
+    const RECORDING_TIMESLICE = 500;
+    const VOSK_SAMPLE_RATE_DEFAULT = 16000;
+    const SWIPE_THRESHOLD = 60;
+    const SWIPE_MAX_TIME = 700;
+    const SWIPE_EDGE_GUARD = 16;
+    const SWIPE_VERTICAL_RATIO = 1.2;
+    const swipeSurface = this.querySelector('.speak-sheet');
 
     const stepOrder = ['sound', 'spelling', 'sentence'];
     let soundStep = null;
@@ -76,6 +83,8 @@ class PageSpeak extends HTMLElement {
     let speechTranscript = '';
     let speechInterim = '';
     let speechFailed = false;
+    let nativeSpeechActive = false;
+    let nativeSpeechListeners = [];
     let activeAudio = null;
     let avatarAudio = null;
     let playbackAudio = null;
@@ -95,8 +104,14 @@ class PageSpeak extends HTMLElement {
     let inactiveMouth = null;
     let rafId = null;
     let isRecording = false;
+    let isTranscribing = false;
+    let transcribingStepKey = null;
     let phoneticTextEl = null;
     let sentenceTextEl = null;
+    let swipeStartX = 0;
+    let swipeStartY = 0;
+    let swipeStartTime = 0;
+    let swipeActive = false;
 
     const stepState = {
       sound: { recordingUrl: '', transcript: '', percent: null },
@@ -105,6 +120,221 @@ class PageSpeak extends HTMLElement {
     };
 
     const getSpeechRecognition = () => window.SpeechRecognition || window.webkitSpeechRecognition;
+    const getNativeTranscribePlugin = () =>
+      window.Capacitor && window.Capacitor.Plugins ? window.Capacitor.Plugins.P4w4Plugin : null;
+    const getVoskSampleRate = () => {
+      const config = window.r34lp0w3r && window.r34lp0w3r.voskSampleRate;
+      const rate = Number(config);
+      if (Number.isFinite(rate) && rate >= 8000 && rate <= 48000) {
+        return Math.round(rate);
+      }
+      return VOSK_SAMPLE_RATE_DEFAULT;
+    };
+    const getVoskModelPath = () => {
+      const config = window.r34lp0w3r && window.r34lp0w3r.voskModelPath;
+      if (typeof config === 'string') {
+        const trimmed = config.trim();
+        if (trimmed) return trimmed;
+      }
+      return '';
+    };
+    const getFilesystemPlugin = () =>
+      window.Capacitor && window.Capacitor.Plugins ? window.Capacitor.Plugins.Filesystem : null;
+    const isIOSPlatform = () => {
+      const cap = window.Capacitor;
+      if (!cap) return false;
+      if (typeof cap.getPlatform === 'function') {
+        return cap.getPlatform() === 'ios';
+      }
+      return false;
+    };
+    const isAndroidPlatform = () => {
+      const cap = window.Capacitor;
+      if (!cap) return false;
+      if (typeof cap.getPlatform === 'function') {
+        return cap.getPlatform() === 'android';
+      }
+      return false;
+    };
+    const canNativeFileTranscribe = () => {
+      const plugin = getNativeTranscribePlugin();
+      if (!plugin || typeof plugin.transcribeAudio !== 'function') return false;
+      return isIOSPlatform() || isAndroidPlatform();
+    };
+    const isTranscribingStep = (key) =>
+      isAndroidPlatform() && isTranscribing && transcribingStepKey === key;
+
+    const getRecordMimeCandidates = () => {
+      if (isIOSPlatform()) {
+        return [
+          'audio/mp4;codecs=mp4a.40.2',
+          'audio/mp4',
+          'audio/aac',
+          'audio/webm;codecs=opus',
+          'audio/webm'
+        ];
+      }
+      return ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/aac'];
+    };
+    const getNativeSpeechPlugin = () =>
+      window.Capacitor && window.Capacitor.Plugins ? window.Capacitor.Plugins.SpeechRecognition : null;
+    const isNativeSpeechSupported = () => {
+      const cap = window.Capacitor;
+      return !!(
+        cap &&
+        typeof cap.isNativePlatform === 'function' &&
+        cap.isNativePlatform() &&
+        getNativeSpeechPlugin()
+      );
+    };
+
+    const extractNativeMatches = (payload) => {
+      if (!payload) return [];
+      if (Array.isArray(payload.matches)) return payload.matches;
+      if (Array.isArray(payload.results)) return payload.results;
+      if (Array.isArray(payload.value)) return payload.value;
+      if (typeof payload === 'string') return [payload];
+      return [];
+    };
+
+    const handleNativeSpeechResults = (payload, isFinal) => {
+      const matches = extractNativeMatches(payload);
+      if (!matches.length) return;
+      const text = String(matches[0] || '').trim();
+      if (!text) return;
+      if (isFinal) {
+        speechTranscript = text;
+        speechInterim = '';
+      } else {
+        speechInterim = text;
+      }
+    };
+
+    const clearNativeSpeechListeners = () => {
+      nativeSpeechListeners.forEach((listener) => {
+        try {
+          if (listener && typeof listener.remove === 'function') {
+            listener.remove();
+          }
+        } catch (err) {
+          // no-op
+        }
+      });
+      nativeSpeechListeners = [];
+    };
+
+    const isSpeechPermissionGranted = (status) => {
+      if (!status) return false;
+      if (typeof status === 'boolean') return status;
+      if (typeof status.granted === 'boolean') return status.granted;
+      if (typeof status.speechRecognition === 'string') {
+        return status.speechRecognition === 'granted';
+      }
+      if (typeof status.speechRecognition === 'boolean') return status.speechRecognition;
+      if (typeof status.speech === 'string') return status.speech === 'granted';
+      if (typeof status.speech === 'boolean') return status.speech;
+      if (typeof status.microphone === 'string') return status.microphone === 'granted';
+      if (typeof status.microphone === 'boolean') return status.microphone;
+      if (typeof status.audio === 'string') return status.audio === 'granted';
+      if (typeof status.audio === 'boolean') return status.audio;
+      if (typeof status.permission === 'string') return status.permission === 'granted';
+      if (typeof status.state === 'string') return status.state === 'granted';
+      const values = Object.values(status);
+      if (values.some((value) => value === true)) return true;
+      if (values.some((value) => value === 'granted')) return true;
+      return false;
+    };
+
+    const ensureNativeSpeechPermission = async (plugin) => {
+      if (!plugin) return false;
+      try {
+        if (typeof plugin.checkPermissions === 'function') {
+          const status = await plugin.checkPermissions();
+          if (isSpeechPermissionGranted(status)) return true;
+        } else if (typeof plugin.hasPermission === 'function') {
+          const status = await plugin.hasPermission();
+          if (isSpeechPermissionGranted(status)) return true;
+        }
+      } catch (err) {
+        // no-op
+      }
+      try {
+        if (typeof plugin.requestPermissions === 'function') {
+          const status = await plugin.requestPermissions();
+          return isSpeechPermissionGranted(status);
+        }
+        if (typeof plugin.requestPermission === 'function') {
+          const status = await plugin.requestPermission();
+          return isSpeechPermissionGranted(status);
+        }
+      } catch (err) {
+        // no-op
+      }
+      return false;
+    };
+
+    const startNativeSpeechRecognition = async () => {
+      const plugin = getNativeSpeechPlugin();
+      if (!plugin) return false;
+      resetSpeechState();
+      nativeSpeechActive = true;
+      const allowed = await ensureNativeSpeechPermission(plugin);
+      if (!allowed) {
+        speechFailed = true;
+        nativeSpeechActive = false;
+        return false;
+      }
+      if (typeof plugin.available === 'function') {
+        const availability = await plugin.available();
+        if (!availability || availability.available === false) {
+          speechFailed = true;
+          nativeSpeechActive = false;
+          return false;
+        }
+      }
+      clearNativeSpeechListeners();
+      if (typeof plugin.addListener === 'function') {
+        const add = (event, handler) => {
+          try {
+            nativeSpeechListeners.push(plugin.addListener(event, handler));
+          } catch (err) {
+            // no-op
+          }
+        };
+        add('partialResults', (data) => handleNativeSpeechResults(data, false));
+        add('partialResult', (data) => handleNativeSpeechResults(data, false));
+        add('result', (data) => handleNativeSpeechResults(data, true));
+        add('results', (data) => handleNativeSpeechResults(data, true));
+        add('speechResults', (data) => handleNativeSpeechResults(data, true));
+        add('error', () => {
+          speechFailed = true;
+        });
+      }
+      if (typeof plugin.start === 'function') {
+        await plugin.start({
+          language: 'en-US',
+          maxResults: 1,
+          partialResults: true,
+          popup: false
+        });
+      }
+      return true;
+    };
+
+    const stopNativeSpeechRecognition = async () => {
+      const plugin = getNativeSpeechPlugin();
+      if (!plugin || !nativeSpeechActive) return;
+      try {
+        if (typeof plugin.stop === 'function') {
+          const result = await plugin.stop();
+          handleNativeSpeechResults(result, true);
+        }
+      } catch (err) {
+        speechFailed = true;
+      }
+      clearNativeSpeechListeners();
+      nativeSpeechActive = false;
+    };
 
     const canRecord = () =>
       navigator.mediaDevices &&
@@ -218,6 +448,163 @@ class PageSpeak extends HTMLElement {
       { min: 60, label: 'Almost Correct!' },
       { min: 0, label: 'Keep practicing' }
     ];
+
+    const blobToBase64 = (blob) =>
+      new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const result = reader.result;
+          if (typeof result !== 'string') {
+            reject(new Error('reader result not string'));
+            return;
+          }
+          const base64 = result.split(',')[1] || '';
+          resolve(base64);
+        };
+        reader.onerror = () => reject(new Error('reader error'));
+        reader.readAsDataURL(blob);
+      });
+
+    const decodeAudioBlob = async (blob) => {
+      const arrayBuffer = await blob.arrayBuffer();
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContext) throw new Error('AudioContext not available');
+      const audioContext = new AudioContext();
+      try {
+        return await audioContext.decodeAudioData(arrayBuffer.slice(0));
+      } finally {
+        if (typeof audioContext.close === 'function') {
+          await audioContext.close().catch(() => {});
+        }
+      }
+    };
+
+    const resampleAudioBuffer = async (audioBuffer, targetRate) => {
+      if (!audioBuffer || !targetRate) return audioBuffer;
+      if (audioBuffer.sampleRate === targetRate) return audioBuffer;
+      const OfflineContext = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+      if (!OfflineContext) return audioBuffer;
+      const duration = audioBuffer.duration || audioBuffer.length / audioBuffer.sampleRate;
+      const targetLength = Math.max(1, Math.ceil(duration * targetRate));
+      const offline = new OfflineContext(1, targetLength, targetRate);
+      const source = offline.createBufferSource();
+      source.buffer = audioBuffer;
+      source.connect(offline.destination);
+      source.start(0);
+      return offline.startRendering();
+    };
+
+    const writeWavString = (view, offset, value) => {
+      for (let i = 0; i < value.length; i += 1) {
+        view.setUint8(offset + i, value.charCodeAt(i));
+      }
+    };
+
+    const audioBufferToWav = (audioBuffer, sampleRate) => {
+      const numChannels = 1;
+      const channelData = audioBuffer.getChannelData(0);
+      const bytesPerSample = 2;
+      const blockAlign = numChannels * bytesPerSample;
+      const dataSize = channelData.length * bytesPerSample;
+      const buffer = new ArrayBuffer(44 + dataSize);
+      const view = new DataView(buffer);
+      writeWavString(view, 0, 'RIFF');
+      view.setUint32(4, 36 + dataSize, true);
+      writeWavString(view, 8, 'WAVE');
+      writeWavString(view, 12, 'fmt ');
+      view.setUint32(16, 16, true);
+      view.setUint16(20, 1, true);
+      view.setUint16(22, numChannels, true);
+      view.setUint32(24, sampleRate, true);
+      view.setUint32(28, sampleRate * blockAlign, true);
+      view.setUint16(32, blockAlign, true);
+      view.setUint16(34, 16, true);
+      writeWavString(view, 36, 'data');
+      view.setUint32(40, dataSize, true);
+      let offset = 44;
+      for (let i = 0; i < channelData.length; i += 1) {
+        let sample = channelData[i];
+        sample = Math.max(-1, Math.min(1, sample));
+        view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7fff, true);
+        offset += 2;
+      }
+      return new Blob([view], { type: 'audio/wav' });
+    };
+
+    const prepareTranscriptionBlob = async (blob, targetRate) => {
+      if (!isAndroidPlatform()) return blob;
+      const decoded = await decodeAudioBlob(blob);
+      const rate = targetRate || getVoskSampleRate();
+      const resampled = await resampleAudioBuffer(decoded, rate);
+      const buffer = resampled || decoded;
+      if (!buffer || buffer.sampleRate !== rate) {
+        throw new Error(`No se pudo remuestrear audio a ${rate} Hz`);
+      }
+      return audioBufferToWav(buffer, rate);
+    };
+
+    const getAudioExtension = (mimeType) => {
+      const type = String(mimeType || '').toLowerCase();
+      if (type.includes('mp4') || type.includes('aac') || type.includes('m4a')) return 'm4a';
+      if (type.includes('wav')) return 'wav';
+      if (type.includes('ogg')) return 'ogg';
+      if (type.includes('webm')) return 'webm';
+      return 'm4a';
+    };
+
+    const writeBlobForTranscription = async (blob, prefix) => {
+      const fs = getFilesystemPlugin();
+      if (!fs) return null;
+      const ext = getAudioExtension(blob.type);
+      const dir = 'CACHE';
+      const folder = 'speech';
+      const filename = `${prefix}-${Date.now()}.${ext}`;
+      try {
+        await fs.mkdir({ path: folder, directory: dir, recursive: true });
+      } catch (err) {
+        // ignore
+      }
+      const data = await blobToBase64(blob);
+      const path = `${folder}/${filename}`;
+      const result = await fs.writeFile({ path, data, directory: dir });
+      return { uri: result && result.uri ? result.uri : '', path, directory: dir };
+    };
+
+    const transcribeNativeAudioBlob = async (blob) => {
+      const plugin = getNativeTranscribePlugin();
+      if (!plugin || !canNativeFileTranscribe()) return '';
+      const sampleRate = getVoskSampleRate();
+      let stored = null;
+      try {
+        const prepared = await prepareTranscriptionBlob(blob, sampleRate);
+        stored = await writeBlobForTranscription(prepared, 'speak');
+        if (!stored || !stored.uri) {
+          speechFailed = true;
+          return '';
+        }
+        const modelPath = getVoskModelPath();
+        const payload = {
+          path: stored.uri,
+          language: 'en-US',
+          sampleRate
+        };
+        if (modelPath) payload.modelPath = modelPath;
+        const result = await plugin.transcribeAudio(payload);
+        return result && typeof result.text === 'string' ? result.text : '';
+      } catch (err) {
+        speechFailed = true;
+        return '';
+      } finally {
+        try {
+          const fs = getFilesystemPlugin();
+          if (fs && stored && stored.path) {
+            await fs.deleteFile({ path: stored.path, directory: stored.directory });
+          }
+        } catch (err) {
+          // no-op
+        }
+      }
+    };
 
     const getFeedbackConfig = () => {
       const config = window.r34lp0w3r && window.r34lp0w3r.speakFeedback;
@@ -609,6 +996,14 @@ class PageSpeak extends HTMLElement {
       updateRecordUi();
     };
 
+    const setTranscribingState = (nextState, stepKey) => {
+      const nextKey = nextState ? stepKey || getStepKey() : null;
+      if (isTranscribing === nextState && transcribingStepKey === nextKey) return;
+      isTranscribing = nextState;
+      transcribingStepKey = nextKey;
+      if (stepRoot) renderStep();
+    };
+
     const stopPlayback = () => {
       const shouldResetSyllables = playbackAudio === activeAudio;
       if (activeAudio) {
@@ -646,6 +1041,16 @@ class PageSpeak extends HTMLElement {
     };
 
     const startSpeechRecognition = () => {
+      if (canNativeFileTranscribe()) {
+        return false;
+      }
+      if (isNativeSpeechSupported()) {
+        startNativeSpeechRecognition().catch(() => {
+          speechFailed = true;
+          nativeSpeechActive = false;
+        });
+        return true;
+      }
       const SpeechRecognition = getSpeechRecognition();
       if (!SpeechRecognition) return false;
       resetSpeechState();
@@ -687,6 +1092,12 @@ class PageSpeak extends HTMLElement {
     };
 
     const stopSpeechRecognition = () => {
+      if (nativeSpeechActive) {
+        stopNativeSpeechRecognition().catch(() => {
+          // no-op
+        });
+        return;
+      }
       if (!speechRecognizer) return;
       try {
         speechRecognizer.stop();
@@ -714,6 +1125,9 @@ class PageSpeak extends HTMLElement {
     };
 
     const startRecording = async () => {
+      if (isTranscribing) {
+        setTranscribingState(false, transcribingStepKey);
+      }
       if (!canRecord()) {
         setRecordingState(false);
         finalizeRecording('', getStepKey());
@@ -734,7 +1148,7 @@ class PageSpeak extends HTMLElement {
 
       let options;
       if (typeof MediaRecorder.isTypeSupported === 'function') {
-        const candidates = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/aac'];
+        const candidates = getRecordMimeCandidates();
         const supported = candidates.find((type) => MediaRecorder.isTypeSupported(type));
         if (supported) options = { mimeType: supported };
       }
@@ -750,11 +1164,35 @@ class PageSpeak extends HTMLElement {
           setRecordingState(false);
           const blob = new Blob(recordedChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
           const url = URL.createObjectURL(blob);
-          finalizeRecording(url, recordingStepKey || getStepKey());
+          const stepKey = recordingStepKey || getStepKey();
+          if (canNativeFileTranscribe()) {
+            if (isAndroidPlatform()) {
+              setTranscribingState(true, stepKey);
+            }
+            transcribeNativeAudioBlob(blob)
+              .then((text) => {
+                if (isAndroidPlatform()) {
+                  setTranscribingState(false, stepKey);
+                }
+                finalizeRecording(url, stepKey, text);
+              })
+              .catch(() => {
+                if (isAndroidPlatform()) {
+                  setTranscribingState(false, stepKey);
+                }
+                finalizeRecording(url, stepKey);
+              });
+          } else {
+            finalizeRecording(url, stepKey);
+          }
           recordingStepKey = null;
           mediaRecorder = null;
+          if (recordingStream) {
+            recordingStream.getTracks().forEach((track) => track.stop());
+            recordingStream = null;
+          }
         };
-        mediaRecorder.start();
+        mediaRecorder.start(RECORDING_TIMESLICE);
         setRecordingState(true);
         startSpeechRecognition();
       } catch (err) {
@@ -770,21 +1208,25 @@ class PageSpeak extends HTMLElement {
         return;
       }
       if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        if (typeof mediaRecorder.requestData === 'function') {
+          try {
+            mediaRecorder.requestData();
+          } catch (err) {
+            // no-op
+          }
+        }
         mediaRecorder.stop();
       }
       setRecordingState(false);
       stopSpeechRecognition();
-      if (recordingStream) {
-        recordingStream.getTracks().forEach((track) => track.stop());
-        recordingStream = null;
-      }
     };
 
-    const finalizeRecording = (audioUrl, stepKey) => {
+    const finalizeRecording = (audioUrl, stepKey, forcedTranscript) => {
       const key = stepKey || getStepKey();
       if (!stepState[key]) return;
       const expected = getExpectedText(key);
-      const transcript = speechTranscript || speechInterim;
+      const transcript =
+        typeof forcedTranscript === 'string' ? forcedTranscript : speechTranscript || speechInterim;
       const finalTranscript = transcript || '';
       let percent;
       if (finalTranscript) {
@@ -1304,9 +1746,10 @@ class PageSpeak extends HTMLElement {
     const renderSoundStep = () => {
       const score = getScoreForStep('sound');
       const hasRecording = Boolean(stepState.sound.recordingUrl);
-      const percent = score && hasRecording ? score.percent : '';
-      const tone = score && hasRecording ? score.tone : 'hint';
-      const label = score && hasRecording ? score.label : 'Practice the sound';
+      const transcribing = isTranscribingStep('sound');
+      const percent = transcribing ? '' : score && hasRecording ? score.percent : '';
+      const tone = transcribing ? 'hint' : score && hasRecording ? score.tone : 'hint';
+      const label = transcribing ? 'Transcribiendo...' : score && hasRecording ? score.label : 'Practice the sound';
       const displayText = getSoundDisplayText();
 
       return `
@@ -1374,9 +1817,10 @@ class PageSpeak extends HTMLElement {
     const renderSpellingStep = () => {
       const stored = getStoredWordResult(currentSessionId, selectedWord);
       const hasScore = stored && typeof stored.percent === 'number';
-      const percent = hasScore ? stored.percent : null;
-      const tone = hasScore ? getScoreTone(percent) : 'hint';
-      const label = hasScore ? getScoreLabel(percent) : 'Practice the words';
+      const transcribing = isTranscribingStep('spelling');
+      const percent = transcribing ? null : hasScore ? stored.percent : null;
+      const tone = transcribing ? 'hint' : hasScore ? getScoreTone(percent) : 'hint';
+      const label = transcribing ? 'Transcribiendo...' : hasScore ? getScoreLabel(percent) : 'Practice the words';
       const hasRecording = Boolean(stepState.spelling.recordingUrl);
 
       const words = spellingStep.words
@@ -1432,18 +1876,24 @@ class PageSpeak extends HTMLElement {
     const renderSentenceStep = () => {
       const score = getScoreForStep('sentence');
       const hasScore = score && typeof score.percent === 'number';
-      const percent = hasScore ? score.percent : '';
-      const tone = hasScore ? score.tone : 'hint';
-      const label = hasScore ? score.label : 'Practice the phrase';
+      const transcribing = isTranscribingStep('sentence');
+      const percent = transcribing ? '' : hasScore ? score.percent : '';
+      const tone = transcribing ? 'hint' : hasScore ? score.tone : 'hint';
+      const label = transcribing ? 'Transcribiendo...' : hasScore ? score.label : 'Practice the phrase';
       const hasRecordingUrl = Boolean(stepState.sentence.recordingUrl);
-      const scoreLine = hasScore
+      const scoreLine = hasScore && !transcribing
         ? `
           <div class="speak-score-line ${tone}">
             <div class="speak-score-line-value">${percent}%</div>
             <div class="speak-score-line-text">Good! Continue practicing</div>
           </div>
         `
-        : '';
+        : `
+          <div class="speak-score-line placeholder">
+            <div class="speak-score-line-value">&nbsp;</div>
+            <div class="speak-score-line-text">&nbsp;</div>
+          </div>
+        `;
 
       return `
         <div class="speak-step speak-step-sentence">
@@ -1666,6 +2116,47 @@ class PageSpeak extends HTMLElement {
       updateRecordUi();
     };
 
+    const handleSwipeStart = (event) => {
+      if (showSummary) return;
+      if (!event.touches || event.touches.length !== 1) return;
+      const touch = event.touches[0];
+      const width = window.innerWidth || document.documentElement.clientWidth || 0;
+      if (width && (touch.clientX <= SWIPE_EDGE_GUARD || touch.clientX >= width - SWIPE_EDGE_GUARD)) {
+        return;
+      }
+      swipeStartX = touch.clientX;
+      swipeStartY = touch.clientY;
+      swipeStartTime = Date.now();
+      swipeActive = true;
+    };
+
+    const handleSwipeEnd = (event) => {
+      if (!swipeActive) return;
+      swipeActive = false;
+      if (!event.changedTouches || event.changedTouches.length === 0) return;
+      const touch = event.changedTouches[0];
+      const dx = touch.clientX - swipeStartX;
+      const dy = touch.clientY - swipeStartY;
+      const elapsed = Date.now() - swipeStartTime;
+      swipeStartTime = 0;
+      if (elapsed > SWIPE_MAX_TIME) return;
+      if (Math.abs(dx) < SWIPE_THRESHOLD) return;
+      if (Math.abs(dx) < Math.abs(dy) * SWIPE_VERTICAL_RATIO) return;
+      if (showSummary) return;
+      if (dx < 0) {
+        if (stepIndex < stepOrder.length - 1) {
+          nextStep();
+        }
+      } else if (stepIndex > 0) {
+        prevStep();
+      }
+    };
+
+    const handleSwipeCancel = () => {
+      swipeActive = false;
+      swipeStartTime = 0;
+    };
+
     const nextStep = () => {
       stopPlayback();
       stopAvatarPlayback();
@@ -1750,6 +2241,11 @@ class PageSpeak extends HTMLElement {
 
     prevBtn?.addEventListener('click', prevStep);
     nextBtn?.addEventListener('click', nextStep);
+    if (swipeSurface) {
+      swipeSurface.addEventListener('touchstart', handleSwipeStart, { passive: true });
+      swipeSurface.addEventListener('touchend', handleSwipeEnd, { passive: true });
+      swipeSurface.addEventListener('touchcancel', handleSwipeCancel, { passive: true });
+    }
 
     const handleSelectionChange = () => {
       ensureTrainingData().then(() => {
@@ -1789,6 +2285,11 @@ class PageSpeak extends HTMLElement {
       }
       if (this._handleSpeakDebug) {
         window.removeEventListener('app:speak-debug', this._handleSpeakDebug);
+      }
+      if (swipeSurface) {
+        swipeSurface.removeEventListener('touchstart', handleSwipeStart);
+        swipeSurface.removeEventListener('touchend', handleSwipeEnd);
+        swipeSurface.removeEventListener('touchcancel', handleSwipeCancel);
       }
     };
   }

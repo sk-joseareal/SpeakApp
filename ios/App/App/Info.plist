@@ -47,6 +47,10 @@
 	<true/>
 <key>NSCameraUsageDescription</key>
 <string>Necesitamos acceder a la cámara para que puedas tomar una foto.</string>
+<key>NSMicrophoneUsageDescription</key>
+<string>Necesitamos acceder al micrófono para que puedas grabar tu voz.</string>
+<key>NSSpeechRecognitionUsageDescription</key>
+<string>Necesitamos acceder al reconocimiento de voz para transcribir tu audio.</string>
 <key>NSPhotoLibraryUsageDescription</key>
 <string>Necesitamos acceder a tu galería para que puedas seleccionar imágenes desde tu dispositivo.</string>
 <key>CFBundleURLTypes</key>

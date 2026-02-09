@@ -24,6 +24,7 @@ push/*.pem
 push/*.p12
 push/*.key
 push/*.crt
+android/app/src/main/assets/vosk-model-*
 
 dist/
 build/

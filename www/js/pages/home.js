@@ -85,7 +85,7 @@ class PageHome extends HTMLElement {
     };
     this._userHandler = (event) => this.updateHeaderUser(event.detail);
     window.addEventListener('app:user-change', this._userHandler);
-    this._rewardsHandler = () => this.updateHeaderRewards();
+    this._rewardsHandler = () => this.render();
     window.addEventListener('app:speak-stores-change', this._rewardsHandler);
     this._debugHandler = () => this.render();
     window.addEventListener('app:speak-debug', this._debugHandler);
@@ -246,6 +246,27 @@ class PageHome extends HTMLElement {
       return { started: true, percent, tone: getScoreTone(percent) };
     };
 
+    const rewardsStore =
+      window.r34lp0w3r && window.r34lp0w3r.speakSessionRewards
+        ? window.r34lp0w3r.speakSessionRewards
+        : {};
+
+    const getRouteRewards = (route) => {
+      const totals = {};
+      const modules = route && Array.isArray(route.modules) ? route.modules : [];
+      modules.forEach((module) => {
+        const sessions = module && Array.isArray(module.sessions) ? module.sessions : [];
+        sessions.forEach((session) => {
+          if (!session) return;
+          const reward = rewardsStore[session.id];
+          if (!reward || typeof reward.rewardQty !== 'number') return;
+          const icon = reward.rewardIcon || 'diamond';
+          totals[icon] = (totals[icon] || 0) + reward.rewardQty;
+        });
+      });
+      return totals;
+    };
+
     const routeProgressList = routes.map((route) => getRoutePercent(route));
     const isDebug = Boolean(window.r34lp0w3r && window.r34lp0w3r.speakDebug);
     const routeUnlockList = routes.map((_, idx) => {
@@ -280,6 +301,18 @@ class PageHome extends HTMLElement {
         const isRouteOpen = route.id === this.expandedRouteId;
         const routeProgress = routeProgressList[routeIndex];
         const routeUnlocked = routeUnlockList[routeIndex];
+        const routeRewards = getRouteRewards(route);
+        const rewardEntries = Object.entries(routeRewards).filter(([, qty]) => qty > 0);
+        const hasRouteRewards = rewardEntries.length > 0;
+        const routeRewardsMarkup = hasRouteRewards
+          ? `<div class="route-badges">${rewardEntries
+              .sort(([a], [b]) => a.localeCompare(b))
+              .map(
+                ([icon, qty]) =>
+                  `<div class="training-badge reward-badge"><ion-icon name="${icon}"></ion-icon><span>${qty}</span></div>`
+              )
+              .join('')}</div>`
+          : '';
         const routePercentMarkup =
           routeProgress && routeProgress.started
             ? `<span class="route-progress ${routeProgress.tone}">${routeProgress.percent}%</span>`
@@ -318,7 +351,7 @@ class PageHome extends HTMLElement {
           .join('');
 
         return `
-          <div class="route-item ${isRouteOpen ? 'is-open' : ''}">
+          <div class="route-item ${isRouteOpen ? 'is-open' : ''} ${hasRouteRewards ? 'has-rewards' : ''}">
             <button class="route-header" type="button" data-route-id="${route.id}">
               <span>${route.title}</span>
               <div class="route-header-meta">
@@ -327,6 +360,7 @@ class PageHome extends HTMLElement {
               </div>
             </button>
             ${route.note ? `<div class="route-note">${route.note}</div>` : ''}
+            ${routeRewardsMarkup}
             <div class="route-modules">
               ${modulesMarkup}
             </div>

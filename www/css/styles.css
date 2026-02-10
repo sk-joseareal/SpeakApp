@@ -151,6 +151,95 @@ a {
   color: var(--app-muted);
 }
 
+page-login .login-inputs {
+  display: grid;
+  gap: 10px;
+}
+
+page-login .login-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+page-login .login-label {
+  font-size: 0.75rem;
+  color: var(--app-muted);
+}
+
+page-login .login-text-input {
+  width: 100%;
+}
+
+page-login .login-text-input:focus {
+  outline: none;
+  border-color: rgba(75, 93, 255, 0.6);
+  box-shadow: 0 0 0 2px rgba(75, 93, 255, 0.12);
+}
+
+page-login .login-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+page-login .login-links {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+}
+
+page-login .login-link-btn {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--ion-color-primary, #4b5dff);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+}
+
+page-login .login-terms-item {
+  --background: transparent;
+  --border-color: transparent;
+  --border-width: 0;
+  --inner-border-width: 0;
+  --padding-start: 0;
+  --padding-end: 0;
+  --inner-padding-start: 0;
+  --inner-padding-end: 0;
+  --min-height: auto;
+}
+
+page-login .login-terms-item ion-label {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--app-muted);
+}
+
+page-login .login-social-btn {
+  --padding-start: 16px;
+  --padding-end: 16px;
+  --min-height: 44px;
+  text-transform: none;
+}
+
+page-login .login-social-icon {
+  width: 28px;
+  height: 28px;
+  margin-right: 8px;
+  object-fit: contain;
+  border-radius: 4px;
+}
+
+page-login .login-social-icon-apple {
+  width: 32px;
+  height: 32px;
+  margin-right: 4px;
+}
+
 .hero-card {
   position: relative;
   overflow: hidden;
@@ -300,6 +389,10 @@ a {
 
 .placeholder-card p {
   margin-top: 10px;
+}
+
+#profile-login-btn {
+  margin-top: 14px;
 }
 
 .profile-panel {
@@ -1717,6 +1810,24 @@ page-premium ion-content::part(scroll) {
   padding: 20px 18px 28px;
   min-height: calc(100vh - 140px);
   box-shadow: var(--speak-shadow);
+}
+
+.speak-swipe-stage {
+  position: relative;
+  overflow-x: hidden;
+  overflow-y: visible;
+}
+
+.speak-swipe-active,
+.speak-swipe-ghost {
+  will-change: transform;
+}
+
+.speak-swipe-ghost {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
 }
 
 .speak-step {

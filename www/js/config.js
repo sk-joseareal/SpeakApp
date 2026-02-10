@@ -35,6 +35,23 @@
     window.realtimeConfig.emitEndpoint =
       window.REALTIME_EMIT_ENDPOINT || 'https://realtime.curso-ingles.com/realtime/emit';
   }
+  if (window.realtimeConfig.stateEndpoint === undefined) {
+    window.realtimeConfig.stateEndpoint =
+      window.REALTIME_STATE_ENDPOINT || 'https://realtime.curso-ingles.com/realtime/state/sync';
+  }
+  if (window.realtimeConfig.stateSummaryEndpoint === undefined) {
+    window.realtimeConfig.stateSummaryEndpoint =
+      window.REALTIME_STATE_SUMMARY_ENDPOINT || 'https://realtime.curso-ingles.com/realtime/state/summary';
+  }
+  if (window.realtimeConfig.stateSnapshotEndpoint === undefined) {
+    window.realtimeConfig.stateSnapshotEndpoint =
+      window.REALTIME_STATE_SNAPSHOT_ENDPOINT || 'https://realtime.curso-ingles.com/realtime/state';
+  }
+  if (window.realtimeConfig.stateToken === undefined) {
+    window.realtimeConfig.stateToken =
+      window.REALTIME_STATE_TOKEN ||
+      'ca6c8ad7c431233c1d891f2bd9eebc1dbb0de269c690de994e2313b8c7e7a50';
+  }
   if (window.realtimeConfig.enabledTransports === undefined) {
     window.realtimeConfig.enabledTransports = ['ws', 'wss'];
   }

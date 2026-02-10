@@ -9,6 +9,7 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 openai-usage.log
+realtime/node/data/
 
 .env
 .env.*

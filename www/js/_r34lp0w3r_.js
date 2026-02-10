@@ -328,21 +328,99 @@ function arreglaStatusBar() {
 
 /// ----------------------------------------------------------------------------------- Logins Sociales
 
+// Guardar el proveedor activo
+let currentProvider = null;
+
+const dispatchLoginEvent = (type, detail) => {
+  try {
+    window.dispatchEvent(new CustomEvent(type, { detail }));
+  } catch (err) {
+    console.log('>#C02#> loginSocial: error disparando evento', type, err);
+  }
+};
+
+const notifyLoginError = (error, message) => {
+  const detail = {
+    provider: currentProvider || '',
+    error: error || '',
+    message: message || error || ''
+  };
+  dispatchLoginEvent('app:login-error', detail);
+};
+
+const notifyLoginSuccess = (user) => {
+  dispatchLoginEvent('app:login-success', {
+    provider: currentProvider || '',
+    user
+  });
+};
+
 function procesarLoginDesdeCallback(url) {
   try {
     Rlog()
     Rlog(">#C02#> loginSocial: procesarLoginDesdeCallback, >>> URL: " + url);
-    const params = new URL(url).searchParams;
+    const parsed = new URL(url);
+    const params = parsed.searchParams;
+    if (params.get('error')) {
+      const error = params.get('error');
+      Rlog('>#C02#> loginSocial: Error recibido en callback: ' + error);
+      notifyLoginError(error, error === 'datos_incompletos' ? 'Información incompleta.' : error);
+      return;
+    }
     Rlog('>#C02#> loginSocial: procesarLoginDesdeCallback: >>> LOGIN OK.');
     // for (const [key, value] of params) {
     //   Rlog('>#C02#> loginSocial: procesarLoginDesdeCallback: >>> ' + key + " : " + value);
     // }
     const loginDataRaw = params.get('loginData');
-    const loginData = JSON.parse(loginDataRaw);
+    if (!loginDataRaw) {
+      notifyLoginError('missing_login_data', 'Login sin datos.');
+      return;
+    }
+    let loginData = null;
+    try {
+      loginData = JSON.parse(loginDataRaw);
+    } catch (err) {
+      notifyLoginError('invalid_login_data', 'Login inválido.');
+      return;
+    }
     Rlog('>#C02#> loginSocial: procesarLoginDesdeCallback: >>> loginData:' + JSON.stringify(loginData));
-    // Aquí la lógica (guardar en localStorage, iniciar sesión, etc.)
+    const user = loginData && loginData.user ? { ...loginData.user } : null;
+    if (!user) {
+      notifyLoginError('missing_user', 'Login sin usuario.');
+      return;
+    }
+
+    if (!user.image) {
+      if (user.avatar_file_name) {
+        user.image = `https://s3.amazonaws.com/sk.audios.dev/avatars/${user.id}/original/${user.avatar_file_name}`;
+      } else {
+        user.image = 'https://s3.amazonaws.com/sk.CursoIngles/no-avatar.gif';
+      }
+    }
+
+    if (typeof window.setUser === 'function') {
+      window.setUser(user);
+    } else {
+      window.user = user;
+      try {
+        localStorage.setItem('appv5:user', JSON.stringify(user));
+      } catch (err) {
+        console.error('[user] error guardando localStorage', err);
+      }
+      try {
+        window.dispatchEvent(new CustomEvent('app:user-change', { detail: user }));
+      } catch (err) {
+        console.error('[user] error notificando cambio', err);
+      }
+    }
+
+    if (typeof refreshUserAvatarLocal === 'function') {
+      refreshUserAvatarLocal(user);
+    }
+    notifyLoginSuccess(user);
   } catch (err) {
     Rlog('>#C02#> loginSocial: procesarLoginDesdeCallback: Error procesando callback: ' + JSON.stringify(err));
+    notifyLoginError('callback_error', 'Error procesando login.');
   }
 }
 
@@ -376,8 +454,6 @@ const oauthProviders = {
   }
 };
 
-// Guardar el proveedor activo
-let currentProvider = null;
 loginSocial = async function (provider) {
   console.log(">###> loginSocial.")
   const cfg = oauthProviders[provider];
@@ -417,6 +493,12 @@ loginSocial = async function (provider) {
   } catch (err) {
     console.log('>#C02#> loginSocial: Error al abrir navegador:', err);
   }
+}
+
+if (!window.loginCallbackFromBrowser) {
+  window.loginCallbackFromBrowser = function(infoUrl) {
+    procesarLoginDesdeCallback(infoUrl);
+  };
 }
 
 /// ----------------------------------------------------------------------------------- Plugin AdMob
@@ -1966,12 +2048,41 @@ window.loadUser = () => {
   return window.user;
 };
 
-const getUserAvatarRemote = (user) => {
-  if (!user || !user.image) return '';
-  return String(user.image)
-    .replace('sk.audios.dev', 'sk.assets')
-    .replace('original/', '');
+const getUserAvatarRemoteCandidates = (user) => {
+  if (!user || !user.image) return [];
+  const raw = String(user.image);
+  const candidates = [];
+  const isS3 = raw.includes('s3.amazonaws.com/');
+  const hasAudios = raw.includes('sk.audios.dev');
+  const hasAssets = raw.includes('sk.assets');
+  if (isS3 && (hasAudios || hasAssets) && raw.includes('/avatars/')) {
+    let assetsUrl = raw;
+    let originalUrl = raw;
+    if (hasAudios) {
+      assetsUrl = raw.replace('sk.audios.dev', 'sk.assets').replace('/original/', '/');
+      originalUrl = raw;
+    } else {
+      assetsUrl = raw;
+      originalUrl = raw.replace('sk.assets', 'sk.audios.dev');
+      if (!originalUrl.includes('/original/')) {
+        originalUrl = originalUrl.replace(/\/avatars\/([^/]+)\//, '/avatars/$1/original/');
+      }
+    }
+    [assetsUrl, originalUrl].forEach((url) => {
+      if (url && !candidates.includes(url)) candidates.push(url);
+    });
+  } else {
+    candidates.push(raw);
+  }
+  return candidates;
 };
+
+const getUserAvatarRemote = (user) => {
+  const candidates = getUserAvatarRemoteCandidates(user);
+  return candidates[0] || '';
+};
+
+window.getUserAvatarRemoteCandidates = getUserAvatarRemoteCandidates;
 
 const getUserAvatarPath = (user) => {
   if (!user) return '';
@@ -2011,8 +2122,8 @@ const refreshUserAvatarLocal = async (user) => {
     // no-op
   }
 
-  const remote = getUserAvatarRemote(user);
-  if (!remote) return;
+  const remotes = getUserAvatarRemoteCandidates(user);
+  if (!remotes.length) return;
   if (window.navigator && window.navigator.onLine === false) return;
 
   try {
@@ -2021,20 +2132,29 @@ const refreshUserAvatarLocal = async (user) => {
     // no-op
   }
 
-  try {
-    const uri = await download(remote, path, directory);
-    const local =
-      window.Capacitor && typeof window.Capacitor.convertFileSrc === 'function'
-        ? window.Capacitor.convertFileSrc(uri)
-        : uri;
-    if (local) {
-      user.image_local = local;
-      user.image_path = path;
-      window.setUser(user);
+  let downloaded = false;
+  for (const remote of remotes) {
+    try {
+      const uri = await download(remote, path, directory);
+      const local =
+        window.Capacitor && typeof window.Capacitor.convertFileSrc === 'function'
+          ? window.Capacitor.convertFileSrc(uri)
+          : uri;
+      if (local) {
+        user.image_local = local;
+        user.image_path = path;
+        window.setUser(user);
+      }
+      downloaded = true;
+      break;
+    } catch (err) {
+      // try next candidate
     }
-  } catch (err) {
-    if (user.image_local !== remote || user.image_path !== path) {
-      user.image_local = remote;
+  }
+  if (!downloaded) {
+    const fallbackRemote = remotes[0];
+    if (fallbackRemote && (user.image_local !== fallbackRemote || user.image_path !== path)) {
+      user.image_local = fallbackRemote;
       user.image_path = path;
       window.setUser(user);
     }
@@ -2244,17 +2364,8 @@ document.addEventListener('DOMContentLoaded', async function() {
       if (window.loginCallbackFromBrowser) {
         console.log("|||||||||||||||| window.loginCallbackFromBrowser(info.url) ||||||||||||||||")
         window.loginCallbackFromBrowser(info.url);
-      }
-
-      const params = url.searchParams;
-
-      if (params.get('error')) {
-        console.log('>#C02#> Plugin App (loginSocial): El usuario canceló el login o hubo un error:', params.get('error'));
         return;
       }
-
-      // Aquí sí procesamos la respuesta válida      
-
       procesarLoginDesdeCallback(info.url);
     });
 

@@ -28,12 +28,17 @@ class PageSpeak extends HTMLElement {
           </div>
         </div>
         <div class="speak-sheet">
-          <div id="speak-step"></div>
+          <div class="speak-swipe-stage">
+            <div class="speak-swipe-ghost" id="speak-ghost" aria-hidden="true"></div>
+            <div id="speak-step" class="speak-swipe-active"></div>
+          </div>
         </div>
       </ion-content>
     `;
 
     const stepRoot = this.querySelector('#speak-step');
+    const ghostRoot = this.querySelector('#speak-ghost');
+    const swipeStage = this.querySelector('.speak-swipe-stage');
     const progressEl = this.querySelector('#speak-progress');
     const prevBtn = this.querySelector('#speak-prev');
     const nextBtn = this.querySelector('#speak-next');
@@ -51,8 +56,9 @@ class PageSpeak extends HTMLElement {
     const AV_SYNC_DELAY = 0.06;
     const RECORDING_TIMESLICE = 500;
     const VOSK_SAMPLE_RATE_DEFAULT = 16000;
-    const SWIPE_THRESHOLD = 60;
-    const SWIPE_MAX_TIME = 700;
+    const SWIPE_DRAG_THRESHOLD = 8;
+    const SWIPE_COMMIT_RATIO = 0.25;
+    const SWIPE_COMMIT_VELOCITY = 0.6;
     const SWIPE_EDGE_GUARD = 16;
     const SWIPE_VERTICAL_RATIO = 1.2;
     const swipeSurface = this.querySelector('.speak-sheet');
@@ -112,6 +118,11 @@ class PageSpeak extends HTMLElement {
     let swipeStartY = 0;
     let swipeStartTime = 0;
     let swipeActive = false;
+    let swipeDragging = false;
+    let swipeDirection = 0;
+    let swipeWidth = 0;
+    let swipeCurrentX = 0;
+    let swipeAnimating = false;
 
     const stepState = {
       sound: { recordingUrl: '', transcript: '', percent: null },
@@ -800,8 +811,22 @@ class PageSpeak extends HTMLElement {
       if (!sessionId || !word) return;
       const sessionScores = getSessionWordScores(sessionId);
       if (!sessionScores) return;
-      sessionScores[word] = { ...payload };
+      const now = Date.now();
+      const prev = sessionScores[word];
+      const next = { ...payload, ts: now };
+      if (prev && prev.percent === next.percent && prev.transcript === next.transcript) return;
+      sessionScores[word] = next;
       persistSpeakStores();
+      if (typeof window.queueSpeakEvent === 'function') {
+        window.queueSpeakEvent({
+          type: 'word_score',
+          session_id: sessionId,
+          word,
+          percent: next.percent,
+          transcript: next.transcript,
+          ts: now
+        });
+      }
     };
 
     const clearStoredWordResult = (sessionId, word) => {
@@ -821,8 +846,21 @@ class PageSpeak extends HTMLElement {
     const setStoredPhraseResult = (sessionId, payload) => {
       if (!sessionId) return;
       const store = getPhraseScoreStore();
-      store[sessionId] = { ...payload };
+      const now = Date.now();
+      const prev = store[sessionId];
+      const next = { ...payload, ts: now };
+      if (prev && prev.percent === next.percent && prev.transcript === next.transcript) return;
+      store[sessionId] = next;
       persistSpeakStores();
+      if (typeof window.queueSpeakEvent === 'function') {
+        window.queueSpeakEvent({
+          type: 'phrase_score',
+          session_id: sessionId,
+          percent: next.percent,
+          transcript: next.transcript,
+          ts: now
+        });
+      }
     };
 
     const clearStoredPhraseResult = (sessionId) => {
@@ -842,8 +880,29 @@ class PageSpeak extends HTMLElement {
     const setStoredSessionReward = (sessionId, payload) => {
       if (!sessionId) return;
       const store = getSessionRewardStore();
-      store[sessionId] = { ...payload };
+      const now = Date.now();
+      const prev = store[sessionId];
+      const next = { ...payload, ts: now };
+      if (
+        prev &&
+        prev.rewardQty === next.rewardQty &&
+        prev.rewardLabel === next.rewardLabel &&
+        prev.rewardIcon === next.rewardIcon
+      ) {
+        return;
+      }
+      store[sessionId] = next;
       persistSpeakStores();
+      if (typeof window.queueSpeakEvent === 'function') {
+        window.queueSpeakEvent({
+          type: 'session_reward',
+          session_id: sessionId,
+          rewardQty: next.rewardQty,
+          rewardLabel: next.rewardLabel,
+          rewardIcon: next.rewardIcon,
+          ts: now
+        });
+      }
     };
 
     const syncSpellingStateFromStore = (word) => {
@@ -1993,8 +2052,58 @@ class PageSpeak extends HTMLElement {
       `;
     };
 
+    const renderStepMarkup = (key) => {
+      if (key === 'sound') return renderSoundStep();
+      if (key === 'spelling') return renderSpellingStep();
+      if (key === 'sentence') return renderSentenceStep();
+      return '';
+    };
+
+    const sanitizeGhostMarkup = (markup) => {
+      if (!markup) return '';
+      const container = document.createElement('div');
+      container.innerHTML = markup;
+      container.querySelectorAll('[id]').forEach((node) => node.removeAttribute('id'));
+      return container.innerHTML;
+    };
+
+    const resetSwipeStageHeight = () => {
+      if (swipeStage) {
+        swipeStage.style.minHeight = '';
+      }
+    };
+
+    const updateSwipeStageHeight = () => {
+      if (!swipeStage) return;
+      const activeHeight = stepRoot
+        ? Math.max(stepRoot.scrollHeight || 0, stepRoot.getBoundingClientRect().height || 0)
+        : 0;
+      const ghostContent = ghostRoot ? ghostRoot.firstElementChild : null;
+      const ghostTarget = ghostContent || ghostRoot;
+      const ghostHeight = ghostTarget
+        ? Math.max(ghostTarget.scrollHeight || 0, ghostTarget.getBoundingClientRect().height || 0)
+        : 0;
+      const target = Math.max(activeHeight, ghostHeight);
+      if (target) {
+        swipeStage.style.minHeight = `${Math.ceil(target)}px`;
+      }
+    };
+
     const renderStep = () => {
       const key = getStepKey();
+      if (swipeStage) {
+        swipeStage.classList.remove('is-swiping');
+        swipeStage.style.minHeight = '';
+      }
+      if (ghostRoot) {
+        ghostRoot.innerHTML = '';
+        ghostRoot.style.opacity = '0';
+        ghostRoot.style.transform = '';
+        ghostRoot.style.transition = '';
+      }
+      if (stepRoot) {
+        stepRoot.style.transition = '';
+      }
       if (progressEl) {
         if (showSummary) {
           progressEl.textContent = '';
@@ -2026,6 +2135,7 @@ class PageSpeak extends HTMLElement {
       } else {
         stepRoot.innerHTML = renderSummaryStep();
       }
+      stepRoot.style.transform = '';
 
       bindStepControls();
     };
@@ -2158,8 +2268,119 @@ class PageSpeak extends HTMLElement {
       updateRecordUi();
     };
 
+    const resetSwipeState = () => {
+      swipeActive = false;
+      swipeDragging = false;
+      swipeDirection = 0;
+      swipeWidth = 0;
+      swipeCurrentX = 0;
+      swipeStartTime = 0;
+    };
+
+    const resolveSwipeWidth = () => {
+      if (swipeStage) {
+        const rect = swipeStage.getBoundingClientRect();
+        if (rect && rect.width) return rect.width;
+      }
+      if (swipeSurface) {
+        const rect = swipeSurface.getBoundingClientRect();
+        if (rect && rect.width) return rect.width;
+      }
+      const fallback = window.innerWidth || document.documentElement.clientWidth || 0;
+      return fallback || 1;
+    };
+
+    const getSwipeTargetKey = (direction) => {
+      const nextIndex = stepIndex + direction;
+      if (nextIndex < 0 || nextIndex >= stepOrder.length) return '';
+      return stepOrder[nextIndex];
+    };
+
+    const prepareSwipeGhost = (direction) => {
+      if (!ghostRoot) return false;
+      const key = getSwipeTargetKey(direction);
+      if (!key) return false;
+      ghostRoot.innerHTML = sanitizeGhostMarkup(renderStepMarkup(key));
+      ghostRoot.style.opacity = '1';
+      updateSwipeStageHeight();
+      requestAnimationFrame(updateSwipeStageHeight);
+      return true;
+    };
+
+    const setSwipeTransition = (enabled) => {
+      const value = enabled ? 'transform 240ms ease' : 'none';
+      if (stepRoot) stepRoot.style.transition = value;
+      if (ghostRoot) ghostRoot.style.transition = value;
+    };
+
+    const setSwipeTransforms = (dx) => {
+      if (!stepRoot || !swipeWidth) return;
+      stepRoot.style.transform = `translateX(${dx}px)`;
+      if (ghostRoot && swipeDirection) {
+        ghostRoot.style.transform = `translateX(${dx + swipeDirection * swipeWidth}px)`;
+      }
+    };
+
+    const resetSwipeVisuals = () => {
+      setSwipeTransition(false);
+      if (stepRoot) {
+        stepRoot.style.transform = '';
+      }
+      if (ghostRoot) {
+        ghostRoot.style.transform = '';
+        ghostRoot.style.opacity = '0';
+        ghostRoot.innerHTML = '';
+      }
+      if (swipeStage) {
+        swipeStage.classList.remove('is-swiping');
+      }
+      resetSwipeStageHeight();
+    };
+
+    const finalizeSwipe = (commit) => {
+      if (swipeAnimating) return;
+      swipeAnimating = true;
+      const direction = swipeDirection;
+      const width = swipeWidth || resolveSwipeWidth();
+      const targetX = commit ? (direction === 1 ? -width : width) : 0;
+      setSwipeTransition(true);
+      requestAnimationFrame(() => {
+        setSwipeTransforms(targetX);
+      });
+
+      let done = false;
+      const finish = () => {
+        if (done) return;
+        done = true;
+        if (stepRoot) {
+          stepRoot.removeEventListener('transitionend', onEnd);
+        }
+        swipeAnimating = false;
+        if (commit) {
+          if (direction === 1) {
+            nextStep();
+          } else {
+            prevStep();
+          }
+        } else {
+          resetSwipeVisuals();
+        }
+        resetSwipeState();
+      };
+
+      const onEnd = (event) => {
+        if (event && event.propertyName !== 'transform') return;
+        finish();
+      };
+
+      if (stepRoot) {
+        stepRoot.addEventListener('transitionend', onEnd);
+      }
+      setTimeout(finish, 260);
+    };
+
     const handleSwipeStart = (event) => {
-      if (showSummary) return;
+      if (showSummary || swipeAnimating) return;
       if (!event.touches || event.touches.length !== 1) return;
       const touch = event.touches[0];
       const width = window.innerWidth || document.documentElement.clientWidth || 0;
@@ -2170,33 +2391,84 @@ class PageSpeak extends HTMLElement {
       swipeStartY = touch.clientY;
       swipeStartTime = Date.now();
       swipeActive = true;
+      swipeDragging = false;
+      swipeDirection = 0;
+      swipeCurrentX = 0;
+      swipeWidth = resolveSwipeWidth();
+      if (ghostRoot) {
+        ghostRoot.innerHTML = '';
+        ghostRoot.style.opacity = '0';
+        ghostRoot.style.transform = '';
+      }
+    };
+
+    const handleSwipeMove = (event) => {
+      if (!swipeActive || showSummary || swipeAnimating) return;
+      if (!event.touches || event.touches.length !== 1) return;
+      const touch = event.touches[0];
+      const dx = touch.clientX - swipeStartX;
+      const dy = touch.clientY - swipeStartY;
+
+      if (!swipeDragging) {
+        if (Math.abs(dx) < SWIPE_DRAG_THRESHOLD && Math.abs(dy) < SWIPE_DRAG_THRESHOLD) {
+          return;
+        }
+        if (Math.abs(dx) < Math.abs(dy) * SWIPE_VERTICAL_RATIO) {
+          resetSwipeState();
+          return;
+        }
+        const direction = dx < 0 ? 1 : -1;
+        if (!getSwipeTargetKey(direction)) {
+          resetSwipeState();
+          return;
+        }
+        swipeDragging = true;
+        swipeDirection = direction;
+        if (!prepareSwipeGhost(direction)) {
+          resetSwipeState();
+          return;
+        }
+        if (swipeStage) {
+          swipeStage.classList.add('is-swiping');
+        }
+        setSwipeTransition(false);
+      }
+
+      if (!swipeDragging) return;
+      const width = swipeWidth || resolveSwipeWidth();
+      let clamped = dx;
+      if (clamped > width) clamped = width;
+      if (clamped < -width) clamped = -width;
+      swipeCurrentX = clamped;
+      setSwipeTransforms(clamped);
+      event.preventDefault();
     };
 
     const handleSwipeEnd = (event) => {
       if (!swipeActive) return;
       swipeActive = false;
-      if (!event.changedTouches || event.changedTouches.length === 0) return;
-      const touch = event.changedTouches[0];
-      const dx = touch.clientX - swipeStartX;
-      const dy = touch.clientY - swipeStartY;
-      const elapsed = Date.now() - swipeStartTime;
-      swipeStartTime = 0;
-      if (elapsed > SWIPE_MAX_TIME) return;
-      if (Math.abs(dx) < SWIPE_THRESHOLD) return;
-      if (Math.abs(dx) < Math.abs(dy) * SWIPE_VERTICAL_RATIO) return;
-      if (showSummary) return;
-      if (dx < 0) {
-        if (stepIndex < stepOrder.length - 1) {
-          nextStep();
-        }
-      } else if (stepIndex > 0) {
-        prevStep();
+      if (!swipeDragging) {
+        resetSwipeState();
+        return;
       }
+      const touch = event.changedTouches && event.changedTouches[0];
+      const dx = swipeCurrentX || (touch ? touch.clientX - swipeStartX : 0);
+      const absDx = Math.abs(dx);
+      const elapsed = Date.now() - swipeStartTime;
+      const velocity = elapsed > 0 ? absDx / elapsed : 0;
+      const width = swipeWidth || resolveSwipeWidth();
+      const commit = absDx > width * SWIPE_COMMIT_RATIO || velocity > SWIPE_COMMIT_VELOCITY;
+      finalizeSwipe(commit);
     };
 
     const handleSwipeCancel = () => {
+      if (!swipeActive) return;
       swipeActive = false;
-      swipeStartTime = 0;
+      if (swipeDragging) {
+        finalizeSwipe(false);
+        return;
+      }
+      resetSwipeState();
     };
 
     const nextStep = () => {
@@ -2285,6 +2557,7 @@ class PageSpeak extends HTMLElement {
     nextBtn?.addEventListener('click', nextStep);
     if (swipeSurface) {
       swipeSurface.addEventListener('touchstart', handleSwipeStart, { passive: true });
+      swipeSurface.addEventListener('touchmove', handleSwipeMove, { passive: false });
       swipeSurface.addEventListener('touchend', handleSwipeEnd, { passive: true });
       swipeSurface.addEventListener('touchcancel', handleSwipeCancel, { passive: true });
     }
@@ -2330,6 +2603,7 @@ class PageSpeak extends HTMLElement {
       }
       if (swipeSurface) {
         swipeSurface.removeEventListener('touchstart', handleSwipeStart);
+        swipeSurface.removeEventListener('touchmove', handleSwipeMove);
         swipeSurface.removeEventListener('touchend', handleSwipeEnd);
         swipeSurface.removeEventListener('touchcancel', handleSwipeCancel);
       }

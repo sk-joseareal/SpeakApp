@@ -42,6 +42,9 @@ There is a minimal Node gateway in `realtime/node/server.js`. It provides:
 - `POST /realtime/auth` for private/presence channels
 - `POST /realtime/emit` to trigger events
 - `GET /realtime/channels` to list active channels (optional; set `REALTIME_MONITOR_TOKEN`)
+- `GET /realtime/state/summary` for progress/badges metadata
+- `GET /realtime/state` for full progress/badges snapshot
+- `POST /realtime/state/sync` to append events + merge snapshots (file storage in `realtime/node/data/rt/`)
 
 The same code works with Soketi or Pusher by flipping env vars.
 

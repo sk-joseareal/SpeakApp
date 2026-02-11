@@ -415,7 +415,7 @@ function procesarLoginDesdeCallback(url) {
     }
 
     if (typeof refreshUserAvatarLocal === 'function') {
-      refreshUserAvatarLocal(user);
+      refreshUserAvatarLocal(user, { force: true });
     }
     notifyLoginSuccess(user);
   } catch (err) {
@@ -2043,7 +2043,7 @@ window.loadUser = () => {
   }
   notifyUserChange(window.user);
   if (window.user) {
-    refreshUserAvatarLocal(window.user);
+    refreshUserAvatarLocal(window.user, { force: true });
   }
   return window.user;
 };
@@ -2097,34 +2097,44 @@ const getUserAvatarPath = (user) => {
   return '';
 };
 
-const refreshUserAvatarLocal = async (user) => {
+const refreshUserAvatarLocal = async (user, options = {}) => {
   const fs = window.Capacitor?.Plugins?.Filesystem;
   if (!fs || !user) return;
 
+  const force = !!options.force;
   const directory = 'DATA';
   const path = getUserAvatarPath(user);
   if (!path) return;
 
+  let localPath = '';
+
   try {
     await fs.stat({ path, directory });
     const { uri } = await fs.getUri({ path, directory });
-    const local =
+    localPath =
       window.Capacitor && typeof window.Capacitor.convertFileSrc === 'function'
         ? window.Capacitor.convertFileSrc(uri)
         : uri;
-    if (local && (user.image_local !== local || user.image_path !== path)) {
-      user.image_local = local;
+    if (!force && localPath && (user.image_local !== localPath || user.image_path !== path)) {
+      user.image_local = localPath;
       user.image_path = path;
       window.setUser(user);
     }
-    return;
+    if (!force) return;
   } catch (err) {
     // no-op
   }
 
   const remotes = getUserAvatarRemoteCandidates(user);
   if (!remotes.length) return;
-  if (window.navigator && window.navigator.onLine === false) return;
+  if (window.navigator && window.navigator.onLine === false) {
+    if (localPath && (user.image_local !== localPath || user.image_path !== path)) {
+      user.image_local = localPath;
+      user.image_path = path;
+      window.setUser(user);
+    }
+    return;
+  }
 
   try {
     await fs.mkdir({ path: 'avatars', directory, recursive: true });
@@ -2135,7 +2145,7 @@ const refreshUserAvatarLocal = async (user) => {
   let downloaded = false;
   for (const remote of remotes) {
     try {
-      const uri = await download(remote, path, directory);
+      const uri = await download(remote, path, directory, { noCache: true });
       const local =
         window.Capacitor && typeof window.Capacitor.convertFileSrc === 'function'
           ? window.Capacitor.convertFileSrc(uri)
@@ -2152,23 +2162,30 @@ const refreshUserAvatarLocal = async (user) => {
     }
   }
   if (!downloaded) {
-    const fallbackRemote = remotes[0];
-    if (fallbackRemote && (user.image_local !== fallbackRemote || user.image_path !== path)) {
-      user.image_local = fallbackRemote;
+    if (localPath && (user.image_local !== localPath || user.image_path !== path)) {
+      user.image_local = localPath;
       user.image_path = path;
       window.setUser(user);
+    } else {
+      const fallbackRemote = remotes[0];
+      if (fallbackRemote && (user.image_local !== fallbackRemote || user.image_path !== path)) {
+        user.image_local = fallbackRemote;
+        user.image_path = path;
+        window.setUser(user);
+      }
     }
   }
 };
 
 window.loadUser();
 
-async function download(url, path, directory = 'DATA') {
+async function download(url, path, directory = 'DATA', options = {}) {
   console.log('>#[FS] download:', url, '->', directory + '/' + path);
   const fs = window.Capacitor?.Plugins?.Filesystem;
   if (!fs) throw new Error('Filesystem plugin no disponible');
 
-  const res = await fetch(url);
+  const fetchOptions = options && options.noCache ? { cache: 'no-store' } : undefined;
+  const res = await fetch(url, fetchOptions);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
   const blob = await res.blob();

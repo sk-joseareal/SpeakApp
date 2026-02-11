@@ -66,6 +66,7 @@ class PagePremium extends HTMLElement {
                   class="chat-text-input"
                   placeholder="Escribe tu mensaje..."
                   autocomplete="off"
+                  enterkeyhint="send"
                 />
               </div>
               <div class="chat-controls talk-controls" id="premium-chat-controls">
@@ -501,16 +502,18 @@ class PagePremium extends HTMLElement {
     };
 
     const getPremiumOverride = () => {
-      if (window.r34lp0w3r && typeof window.r34lp0w3r.premiumOverride === 'boolean') {
-        return window.r34lp0w3r.premiumOverride;
+      if (window.r34lp0w3r && window.r34lp0w3r.premiumOverride === true) {
+        return true;
       }
       try {
         const raw = localStorage.getItem('appv5:premium-override');
-        if (raw === '1' || raw === '0') {
-          const value = raw === '1';
+        if (raw === '1') {
           window.r34lp0w3r = window.r34lp0w3r || {};
-          window.r34lp0w3r.premiumOverride = value;
-          return value;
+          window.r34lp0w3r.premiumOverride = true;
+          return true;
+        }
+        if (raw === '0') {
+          localStorage.removeItem('appv5:premium-override');
         }
       } catch (err) {
         // no-op
@@ -554,6 +557,108 @@ class PagePremium extends HTMLElement {
 
     const setHint = (text) => {
       if (hintEl) hintEl.textContent = text;
+    };
+
+    let chatAutoScroll = true;
+    let scrollToBottomTimer = null;
+
+    const scrollThreadToBottom = (behavior = 'auto') => {
+      if (!threadEl) return;
+      try {
+        if (typeof threadEl.scrollTo === 'function') {
+          threadEl.scrollTo({ top: threadEl.scrollHeight, behavior });
+        } else {
+          threadEl.scrollTop = threadEl.scrollHeight;
+        }
+      } catch (err) {
+        threadEl.scrollTop = threadEl.scrollHeight;
+      }
+      chatAutoScroll = true;
+    };
+
+    const shouldAutoScroll = () =>
+      chatAutoScroll || (textInput && document.activeElement === textInput);
+
+    const scheduleScrollThreadToBottom = (behavior = 'auto') => {
+      if (!threadEl || !shouldAutoScroll()) return;
+      if (scrollToBottomTimer) clearTimeout(scrollToBottomTimer);
+      scrollToBottomTimer = setTimeout(() => {
+        scrollToBottomTimer = null;
+        scrollThreadToBottom(behavior);
+      }, 60);
+    };
+
+    const updateChatAutoScroll = () => {
+      if (!threadEl) return;
+      const distance = threadEl.scrollHeight - threadEl.clientHeight - threadEl.scrollTop;
+      chatAutoScroll = distance <= 24;
+    };
+
+    let premiumKeyboardOffset = 0;
+    let premiumKeyboardRaf = null;
+
+    const isChatInputActive = () =>
+      Boolean(textInput && textRow && !textRow.hidden && chatMode === 'chatbot');
+
+    const setPremiumKeyboardOffset = (value) => {
+      const next = Math.max(0, Math.round(value || 0));
+      if (premiumKeyboardOffset === next) return;
+      premiumKeyboardOffset = next;
+      this.style.setProperty('--premium-keyboard-offset', `${next}px`);
+      this.classList.toggle('chat-keyboard-open', next > 0);
+    };
+
+    const getPremiumKeyboardOffset = () => {
+      const viewport = window.visualViewport;
+      if (viewport) {
+        const visible = viewport.height + viewport.offsetTop;
+        const diff = window.innerHeight - visible;
+        return Math.max(0, diff);
+      }
+      if (typeof window.__keyboardHeight === 'number') {
+        return Math.max(0, window.__keyboardHeight);
+      }
+      return 0;
+    };
+
+    const syncPremiumKeyboardOffset = () => {
+      if (!isChatInputActive()) {
+        setPremiumKeyboardOffset(0);
+        return;
+      }
+      const offset = getPremiumKeyboardOffset();
+      setPremiumKeyboardOffset(offset);
+      scheduleScrollThreadToBottom('auto');
+    };
+
+    const schedulePremiumKeyboardSync = () => {
+      if (premiumKeyboardRaf) cancelAnimationFrame(premiumKeyboardRaf);
+      premiumKeyboardRaf = requestAnimationFrame(() => {
+        premiumKeyboardRaf = null;
+        syncPremiumKeyboardOffset();
+      });
+    };
+
+    const keepChatInputFocused = ({ defer, scroll } = {}) => {
+      if (!isChatInputActive()) return;
+      const focus = () => {
+        if (!textInput) return;
+        if (document.activeElement !== textInput) {
+          try {
+            textInput.focus({ preventScroll: true });
+          } catch (err) {
+            textInput.focus();
+          }
+        }
+        if (scroll) {
+          scrollThreadToBottom();
+        }
+      };
+      if (defer) {
+        requestAnimationFrame(focus);
+      } else {
+        focus();
+      }
     };
 
     const formatDuration = (ms) => {
@@ -1372,7 +1477,7 @@ class PagePremium extends HTMLElement {
 
       msgEl.appendChild(bubbleEl);
       threadEl.appendChild(msgEl);
-      threadEl.scrollTop = threadEl.scrollHeight;
+      scrollThreadToBottom();
     };
 
     const removeTypingIndicator = () => {
@@ -1396,7 +1501,7 @@ class PagePremium extends HTMLElement {
       `;
       msgEl.appendChild(bubbleEl);
       threadEl.appendChild(msgEl);
-      threadEl.scrollTop = threadEl.scrollHeight;
+      scrollThreadToBottom();
     };
 
     const setTypingState = (mode, isTyping) => {
@@ -1413,6 +1518,7 @@ class PagePremium extends HTMLElement {
     const clearThread = () => {
       if (!threadEl) return;
       threadEl.innerHTML = '';
+      updateChatAutoScroll();
     };
 
     const renderThread = (mode) => {
@@ -1423,7 +1529,8 @@ class PagePremium extends HTMLElement {
       if (typingState[mode]) {
         renderTypingIndicator();
       }
-      threadEl.scrollTop = threadEl.scrollHeight;
+      scrollThreadToBottom();
+      updateChatAutoScroll();
     };
 
     const appendMessage = ({ role, text, audioUrl, speakText }, options = {}) => {
@@ -1946,7 +2053,31 @@ class PagePremium extends HTMLElement {
       }
     };
 
+    const handleSendPointerDown = (event) => {
+      if (!isChatInputActive()) return;
+      event.preventDefault();
+      keepChatInputFocused({ scroll: true });
+    };
+
+    const handleChatPanelPointerDown = (event) => {
+      if (!isChatInputActive()) return;
+      const target = event.target;
+      if (target && target.closest && (
+        target.closest('#premium-text-row') || target.closest('#premium-chat-controls')
+      )) {
+        return;
+      }
+      if (textInput && document.activeElement === textInput) {
+        textInput.blur();
+      }
+    };
+
+    const handleViewportChange = () => {
+      schedulePremiumKeyboardSync();
+    };
+
     sendBtn?.addEventListener('click', () => {
+      keepChatInputFocused({ scroll: true });
       const typedText = textInput ? textInput.value.trim() : '';
       const userText = draftTranscript || typedText;
       if (!userText) return;
@@ -1954,10 +2085,21 @@ class PagePremium extends HTMLElement {
         audioUrl: draftAudioUrl,
         speakText: draftSpeakText || userText
       });
+      keepChatInputFocused({ defer: true, scroll: true });
     });
 
     textInput?.addEventListener('input', () => {
       updateDraftButtons();
+    });
+
+    textInput?.addEventListener('focus', () => {
+      schedulePremiumKeyboardSync();
+      scheduleScrollThreadToBottom('auto');
+    });
+
+    textInput?.addEventListener('blur', () => {
+      schedulePremiumKeyboardSync();
+      scheduleScrollThreadToBottom('auto');
     });
 
     textInput?.addEventListener('keydown', (event) => {
@@ -1966,6 +2108,7 @@ class PagePremium extends HTMLElement {
       if (!typedText) return;
       event.preventDefault();
       sendUserText(typedText, { audioUrl: '', speakText: typedText });
+      keepChatInputFocused({ defer: true, scroll: true });
     });
 
     loginBtn?.addEventListener('click', () => {
@@ -1986,6 +2129,15 @@ class PagePremium extends HTMLElement {
       }
       window.dispatchEvent(new CustomEvent('app:user-change', { detail: null }));
     });
+
+    chatPanel?.addEventListener('pointerdown', handleChatPanelPointerDown);
+    sendBtn?.addEventListener('pointerdown', handleSendPointerDown);
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', handleViewportChange);
+      window.visualViewport.addEventListener('scroll', handleViewportChange);
+    }
+    window.addEventListener('resize', handleViewportChange);
+    threadEl?.addEventListener('scroll', updateChatAutoScroll, { passive: true });
 
     const initialUser = window.user;
     const initialLoggedIn =
@@ -2056,6 +2208,7 @@ class PagePremium extends HTMLElement {
       placeSendButton();
       updateSendButtonIcon();
       setTalkState(talkState);
+      schedulePremiumKeyboardSync();
     };
 
     const updateTextRowVisibility = (debugOverride) => {
@@ -2068,6 +2221,7 @@ class PagePremium extends HTMLElement {
       if (!showText && textInput) {
         textInput.value = '';
       }
+      schedulePremiumKeyboardSync();
     };
 
     const setChatMode = (mode, { reconnect } = {}) => {
@@ -2134,6 +2288,23 @@ class PagePremium extends HTMLElement {
         clearTimeout(accessLoadingTimer);
         accessLoadingTimer = null;
       }
+      if (premiumKeyboardRaf) {
+        cancelAnimationFrame(premiumKeyboardRaf);
+        premiumKeyboardRaf = null;
+      }
+      if (scrollToBottomTimer) {
+        clearTimeout(scrollToBottomTimer);
+        scrollToBottomTimer = null;
+      }
+      setPremiumKeyboardOffset(0);
+      chatPanel?.removeEventListener('pointerdown', handleChatPanelPointerDown);
+      sendBtn?.removeEventListener('pointerdown', handleSendPointerDown);
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', handleViewportChange);
+        window.visualViewport.removeEventListener('scroll', handleViewportChange);
+      }
+      window.removeEventListener('resize', handleViewportChange);
+      threadEl?.removeEventListener('scroll', updateChatAutoScroll);
     };
   }
 

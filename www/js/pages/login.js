@@ -229,7 +229,7 @@ class PageLogin extends HTMLElement {
             let downloaded = false;
             for (const remote of remotes) {
               try {
-                const uri = await download(remote, localPath);
+                const uri = await download(remote, localPath, 'DATA', { noCache: true });
                 user.image_local =
                   window.Capacitor && typeof window.Capacitor.convertFileSrc === 'function'
                     ? window.Capacitor.convertFileSrc(uri)

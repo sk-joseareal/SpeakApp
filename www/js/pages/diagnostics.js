@@ -196,16 +196,18 @@ class PageDiagnostics extends HTMLElement {
     }
 
     const readPremiumOverride = () => {
-      if (window.r34lp0w3r && typeof window.r34lp0w3r.premiumOverride === 'boolean') {
-        return window.r34lp0w3r.premiumOverride;
+      if (window.r34lp0w3r && window.r34lp0w3r.premiumOverride === true) {
+        return true;
       }
       try {
         const raw = localStorage.getItem(PREMIUM_OVERRIDE_KEY);
-        if (raw === '1' || raw === '0') {
-          const value = raw === '1';
+        if (raw === '1') {
           window.r34lp0w3r = window.r34lp0w3r || {};
-          window.r34lp0w3r.premiumOverride = value;
-          return value;
+          window.r34lp0w3r.premiumOverride = true;
+          return true;
+        }
+        if (raw === '0') {
+          localStorage.removeItem(PREMIUM_OVERRIDE_KEY);
         }
       } catch (err) {
         // no-op
@@ -215,9 +217,17 @@ class PageDiagnostics extends HTMLElement {
 
     const setPremiumOverride = (enabled) => {
       window.r34lp0w3r = window.r34lp0w3r || {};
-      window.r34lp0w3r.premiumOverride = !!enabled;
+      if (enabled) {
+        window.r34lp0w3r.premiumOverride = true;
+      } else {
+        delete window.r34lp0w3r.premiumOverride;
+      }
       try {
-        localStorage.setItem(PREMIUM_OVERRIDE_KEY, enabled ? '1' : '0');
+        if (enabled) {
+          localStorage.setItem(PREMIUM_OVERRIDE_KEY, '1');
+        } else {
+          localStorage.removeItem(PREMIUM_OVERRIDE_KEY);
+        }
       } catch (err) {
         // no-op
       }
@@ -277,7 +287,7 @@ class PageDiagnostics extends HTMLElement {
         }
         if (premiumToggle) {
           premiumToggle.disabled = false;
-          premiumToggle.checked = override !== null ? override : premiumReal;
+          premiumToggle.checked = override === true;
         }
         panel.style.display = 'block';
         if (loginBtn) loginBtn.disabled = true;

@@ -34,10 +34,78 @@ const SPEAK_EVENTS_KEY = 'appv5:speak-events';
 const SPEAK_SYNC_OWNER_KEY = 'appv5:speak-sync-owner';
 const SPEAK_SYNC_TS_KEY = 'appv5:speak-sync-ts';
 const SPEAK_SYNC_CONFLICT_KEY = 'appv5:speak-sync-conflict';
+const SPEAK_LOCAL_OWNER_KEY = 'appv5:speak-local-owner';
 const SPEAK_USER_STORAGE_KEY = 'appv5:user';
 const SPEAK_MAX_EVENTS = 500;
 const SPEAK_SYNC_BATCH = 200;
 const SPEAK_SYNC_DEBOUNCE_MS = 4000;
+
+const readSpeakLocalOwner = () => {
+  try {
+    return localStorage.getItem(SPEAK_LOCAL_OWNER_KEY) || '';
+  } catch (err) {
+    return '';
+  }
+};
+
+const writeSpeakLocalOwner = (owner) => {
+  try {
+    if (owner) {
+      localStorage.setItem(SPEAK_LOCAL_OWNER_KEY, owner);
+    } else {
+      localStorage.removeItem(SPEAK_LOCAL_OWNER_KEY);
+    }
+  } catch (err) {
+    // no-op
+  }
+};
+
+const resolveSpeakLocalOwner = () => {
+  try {
+    const rawUser = localStorage.getItem(SPEAK_USER_STORAGE_KEY);
+    if (rawUser) {
+      const parsed = JSON.parse(rawUser);
+      if (parsed && parsed.id !== undefined && parsed.id !== null) {
+        return `user:${parsed.id}`;
+      }
+    }
+  } catch (err) {
+    // no-op
+  }
+  const uuid = window.uuid || localStorage.getItem('uuid') || '';
+  if (uuid) return `device:${uuid}`;
+  return '';
+};
+
+const updateSpeakLocalOwner = () => {
+  const words = window.r34lp0w3r.speakWordScores || {};
+  const phrases = window.r34lp0w3r.speakPhraseScores || {};
+  const rewards = window.r34lp0w3r.speakSessionRewards || {};
+  const badges = window.r34lp0w3r.speakBadges || {};
+  const hasData =
+    Object.keys(words).length ||
+    Object.keys(phrases).length ||
+    Object.keys(rewards).length ||
+    Object.keys(badges).length;
+  if (!hasData) {
+    writeSpeakLocalOwner('');
+    return;
+  }
+  const owner = resolveSpeakLocalOwner();
+  if (owner) {
+    writeSpeakLocalOwner(owner);
+  }
+};
+
+const resolveSpeakLocalOwnerHint = () => {
+  const localOwner = readSpeakLocalOwner();
+  if (localOwner) return localOwner;
+  try {
+    return localStorage.getItem(SPEAK_SYNC_OWNER_KEY) || '';
+  } catch (err) {
+    return '';
+  }
+};
 
 const readSpeakStore = (key) => {
   try {
@@ -82,11 +150,14 @@ window.r34lp0w3r.speakBadges = loadSpeakStore(
   window.r34lp0w3r.speakBadges || {}
 );
 
+updateSpeakLocalOwner();
+
 window.persistSpeakStores = () => {
   writeSpeakStore(SPEAK_WORDS_KEY, window.r34lp0w3r.speakWordScores || {});
   writeSpeakStore(SPEAK_PHRASE_KEY, window.r34lp0w3r.speakPhraseScores || {});
   writeSpeakStore(SPEAK_REWARDS_KEY, window.r34lp0w3r.speakSessionRewards || {});
   writeSpeakStore(SPEAK_BADGES_KEY, window.r34lp0w3r.speakBadges || {});
+  updateSpeakLocalOwner();
 };
 
 window.notifySpeakStoresChange = () => {
@@ -99,6 +170,7 @@ window.resetSpeakStores = () => {
   window.r34lp0w3r.speakSessionRewards = {};
   window.r34lp0w3r.speakBadges = {};
   window.persistSpeakStores();
+  writeSpeakLocalOwner('');
   window.notifySpeakStoresChange();
 };
 
@@ -579,7 +651,10 @@ window.addEventListener('app:user-change', (event) => {
   if (isLogin) {
     (async () => {
       const localHasData = !isSpeakSnapshotEmpty();
-      if (localHasData) {
+      const expectedOwner = `user:${nextId}`;
+      const localOwnerHint = resolveSpeakLocalOwnerHint();
+      const localMatchesUser = localOwnerHint === expectedOwner;
+      if (localHasData && !localMatchesUser) {
         writeSpeakSyncConflict(nextId);
       } else {
         clearSpeakSyncConflict();

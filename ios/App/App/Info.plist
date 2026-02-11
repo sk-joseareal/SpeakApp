@@ -18,10 +18,31 @@
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
 	<string>$(MARKETING_VERSION)</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>app</string>
+			</array>
+		</dict>
+	</array>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>GADApplicationIdentifier</key>
+	<string>ca-app-pub-7994364056975402~9838026114</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Necesitamos acceder a la cámara para que puedas tomar una foto.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Necesitamos acceder al micrófono para que puedas grabar tu voz.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Necesitamos acceder a tu galería para que puedas seleccionar imágenes desde tu dispositivo.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Necesitamos acceder al reconocimiento de voz para transcribir tu audio.</string>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
@@ -45,24 +66,5 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
-<key>NSCameraUsageDescription</key>
-<string>Necesitamos acceder a la cámara para que puedas tomar una foto.</string>
-<key>NSMicrophoneUsageDescription</key>
-<string>Necesitamos acceder al micrófono para que puedas grabar tu voz.</string>
-<key>NSSpeechRecognitionUsageDescription</key>
-<string>Necesitamos acceder al reconocimiento de voz para transcribir tu audio.</string>
-<key>NSPhotoLibraryUsageDescription</key>
-<string>Necesitamos acceder a tu galería para que puedas seleccionar imágenes desde tu dispositivo.</string>
-<key>CFBundleURLTypes</key>
-<array>
-  <dict>
-    <key>CFBundleURLSchemes</key>
-    <array>
-      <string>app</string>
-    </array>
-  </dict>
-</array>
-<key>GADApplicationIdentifier</key>
-<string>ca-app-pub-7994364056975402~9838026114</string>
 </dict>
 </plist>

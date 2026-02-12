@@ -47,6 +47,9 @@ class PageProfile extends HTMLElement {
     if (this._storesHandler) {
       window.removeEventListener('app:speak-stores-change', this._storesHandler);
     }
+    if (this._metaHandler) {
+      window.removeEventListener('app:meta-change', this._metaHandler);
+    }
   }
 
   render() {
@@ -280,6 +283,8 @@ class PageProfile extends HTMLElement {
     const loggedIn = Boolean(userId);
     const prefsActive = this.activeTab === 'prefs';
     const reviewActive = this.activeTab === 'review';
+    const showFooterLinks = loggedIn && prefsActive;
+    const showAppMeta = !loggedIn || prefsActive;
     const formatExpiry = (value) => {
       if (!value) return 'n/a';
       const date = new Date(value);
@@ -302,6 +307,16 @@ class PageProfile extends HTMLElement {
           ? date.toLocaleDateString()
           : date.toISOString().split('T')[0];
       }
+    };
+    const formatAppMeta = (meta) => {
+      const info = meta && typeof meta === 'object' ? meta : {};
+      const version =
+        info.version || info.appVersion || info.versionName || info.versionString || '';
+      const build = info.build || info.appBuild || info.buildNumber || info.versionCode || '';
+      if (version && build) return `v${version} (${build})`;
+      if (version) return `v${version}`;
+      if (build) return `build ${build}`;
+      return 'v n/d';
     };
     const resetProfileState = (nextUser) => {
       if (!nextUser || nextUser.id === undefined || nextUser.id === null) {
@@ -378,6 +393,7 @@ class PageProfile extends HTMLElement {
     };
     const profileNote = this.profileSaveMessage || '';
     const profileNoteError = this.profileSaveError === true;
+    const appMetaLabel = formatAppMeta(window.appMeta);
 
     const reviewFiltersMarkup = `
       <div class="review-filters">
@@ -554,10 +570,13 @@ class PageProfile extends HTMLElement {
               ${reviewPhrasesMarkup}
             </div>
           </div>
-          <div class="profile-links profile-links--footer" id="profile-links-footer" ${loggedIn ? '' : 'hidden'}>
+          <div class="profile-links profile-links--footer" id="profile-links-footer" ${showFooterLinks ? '' : 'hidden'}>
             <button class="profile-link-btn" type="button" data-action="contact">Contacto</button>
             <button class="profile-link-btn" type="button" data-action="legal">Avisos legales</button>
           </div>
+          <div class="profile-app-meta" id="profile-app-meta" ${showAppMeta ? '' : 'hidden'}>${escapeHtml(
+            appMetaLabel
+          )}</div>
         </div>
       </ion-content>
     `;
@@ -570,6 +589,7 @@ class PageProfile extends HTMLElement {
     const rewardsEl = this.querySelector('#profile-reward-badges');
     const linksLogin = this.querySelector('#profile-links-login');
     const linksFooter = this.querySelector('#profile-links-footer');
+    const appMetaEl = this.querySelector('#profile-app-meta');
     const avatarInput = this.querySelector('#profile-avatar-input');
     const avatarUploadBtn = this.querySelector('#profile-avatar-upload');
     const avatarDeleteBtn = this.querySelector('#profile-avatar-delete');
@@ -589,7 +609,10 @@ class PageProfile extends HTMLElement {
       if (loginPanel) loginPanel.hidden = isLoggedIn;
       if (contentPanel) contentPanel.hidden = !isLoggedIn;
       if (linksLogin) linksLogin.hidden = isLoggedIn;
-      if (linksFooter) linksFooter.hidden = !isLoggedIn;
+      const shouldShowFooterLinks = isLoggedIn && this.activeTab === 'prefs';
+      const shouldShowAppMeta = !isLoggedIn || this.activeTab === 'prefs';
+      if (linksFooter) linksFooter.hidden = !shouldShowFooterLinks;
+      if (appMetaEl) appMetaEl.hidden = !shouldShowAppMeta;
       if (logoutBtn) logoutBtn.hidden = !isLoggedIn;
       if (userInfoEl) userInfoEl.hidden = !isLoggedIn;
       if (!isLoggedIn || !nextUser) {
@@ -915,9 +938,9 @@ class PageProfile extends HTMLElement {
           image_local: '',
           image_path: ''
         };
-        await clearLocalAvatar(nextUser);
+        await clearLocalAvatar(user);
         if (typeof refreshUserAvatarLocal === 'function') {
-          refreshUserAvatarLocal(nextUser);
+          refreshUserAvatarLocal(nextUser, { force: true });
         }
         resetProfileState(nextUser);
         setProfileMessage('Avatar actualizado.', false);
@@ -1098,6 +1121,31 @@ class PageProfile extends HTMLElement {
 
     updateProfileState(user);
     updateHeaderRewards();
+
+    const applyAppMeta = (meta) => {
+      if (!appMetaEl) return;
+      appMetaEl.textContent = formatAppMeta(meta);
+    };
+    applyAppMeta(window.appMeta);
+    const appPlugin = window.Capacitor?.Plugins?.App;
+    if (appPlugin && typeof appPlugin.getInfo === 'function') {
+      appPlugin
+        .getInfo()
+        .then((info) => {
+          if (!info || typeof info !== 'object') return;
+          window.appMeta = { ...(window.appMeta || {}), ...info };
+          applyAppMeta(window.appMeta);
+        })
+        .catch(() => {});
+    }
+    if (this._metaHandler) {
+      window.removeEventListener('app:meta-change', this._metaHandler);
+    }
+    this._metaHandler = (event) => {
+      const meta = event && event.detail ? event.detail : window.appMeta;
+      applyAppMeta(meta);
+    };
+    window.addEventListener('app:meta-change', this._metaHandler);
   }
 }
 

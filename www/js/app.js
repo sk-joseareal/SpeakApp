@@ -1,5 +1,6 @@
 import { ensureInitialHash, setRouter, goToHome } from './nav.js';
 import { onboardingDone } from './state.js';
+import { getUnreadCount, markAllNotificationsRead } from './notifications-store.js';
 import './pages/onboarding.js';
 import './pages/home.js';
 import './pages/listas.js';
@@ -91,10 +92,16 @@ function setupSecretDiagnostics(router) {
 
 function setupNotificationsModal() {
   let modal = null;
-  document.body.classList.add('has-unread-notify');
+  const updateNotifyBadge = () => {
+    const unread = getUnreadCount();
+    document.body.classList.toggle('has-unread-notify', unread > 0);
+  };
+  updateNotifyBadge();
+  window.addEventListener('app:notifications-change', updateNotifyBadge);
 
   const openNotificationsModal = async () => {
-    document.body.classList.remove('has-unread-notify');
+    markAllNotificationsRead();
+    updateNotifyBadge();
     if (!modal) {
       modal = document.createElement('ion-modal');
       modal.classList.add('notifications-modal');

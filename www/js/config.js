@@ -7,6 +7,27 @@
   // Identificador de usuario si la app lo establece en runtime
   window.user_id = window.user_id || null;
 
+  window.appMeta = window.appMeta || {
+    version: window.APP_VERSION || '1.0.0',
+    build: window.APP_BUILD || '7'
+  };
+
+  const emitAppMeta = () => {
+    try {
+      window.dispatchEvent(new CustomEvent('app:meta-change', { detail: window.appMeta }));
+    } catch (err) {
+      // no-op
+    }
+  };
+
+  const setAppMeta = (next) => {
+    if (!next || typeof next !== 'object') return;
+    window.appMeta = { ...(window.appMeta || {}), ...next };
+    emitAppMeta();
+  };
+
+  window.setAppMeta = window.setAppMeta || setAppMeta;
+
   window.realtimeConfig = window.realtimeConfig || {};
   if (window.realtimeConfig.key === undefined) {
     window.realtimeConfig.key = window.PUSHER_APP_KEY || 'dev-key-123456';

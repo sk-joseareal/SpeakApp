@@ -83,10 +83,10 @@ const updateSpeakLocalOwner = () => {
   const rewards = window.r34lp0w3r.speakSessionRewards || {};
   const badges = window.r34lp0w3r.speakBadges || {};
   const hasData =
-    Object.keys(words).length ||
-    Object.keys(phrases).length ||
-    Object.keys(rewards).length ||
-    Object.keys(badges).length;
+    hasMeaningfulWordScores(words) ||
+    hasMeaningfulPhraseScores(phrases) ||
+    hasMeaningfulRewards(rewards) ||
+    hasMeaningfulBadges(badges);
   if (!hasData) {
     writeSpeakLocalOwner('');
     return;
@@ -281,19 +281,44 @@ const buildSpeakStateHeaders = () => {
   return headers;
 };
 
-const isSpeakSnapshotMeaningful = (snapshot) => {
+function hasMeaningfulWordScores(words) {
+  if (!words || typeof words !== 'object') return false;
+  return Object.values(words).some((session) => {
+    if (!session || typeof session !== 'object') return false;
+    return Object.values(session).some((entry) => entry && typeof entry.percent === 'number');
+  });
+}
+
+function hasMeaningfulPhraseScores(phrases) {
+  if (!phrases || typeof phrases !== 'object') return false;
+  return Object.values(phrases).some((entry) => entry && typeof entry.percent === 'number');
+}
+
+function hasMeaningfulRewards(rewards) {
+  if (!rewards || typeof rewards !== 'object') return false;
+  return Object.values(rewards).some((entry) => entry && typeof entry.rewardQty === 'number');
+}
+
+function hasMeaningfulBadges(badges) {
+  if (!badges || typeof badges !== 'object') return false;
+  return Object.values(badges).some(
+    (entry) => entry && typeof entry === 'object' && Object.keys(entry).length
+  );
+}
+
+function isSpeakSnapshotMeaningful(snapshot) {
   if (!snapshot || typeof snapshot !== 'object') return false;
   const words = snapshot.word_scores || {};
   const phrases = snapshot.phrase_scores || {};
   const rewards = snapshot.session_rewards || {};
   const badges = snapshot.badges || {};
   return (
-    Object.keys(words).length ||
-    Object.keys(phrases).length ||
-    Object.keys(rewards).length ||
-    Object.keys(badges).length
+    hasMeaningfulWordScores(words) ||
+    hasMeaningfulPhraseScores(phrases) ||
+    hasMeaningfulRewards(rewards) ||
+    hasMeaningfulBadges(badges)
   );
-};
+}
 
 const fetchSpeakSnapshotForOwner = async (owner) => {
   const endpoints = resolveSpeakStateEndpoints();
@@ -452,10 +477,10 @@ const isSpeakSnapshotEmpty = () => {
   const rewards = window.r34lp0w3r.speakSessionRewards || {};
   const badges = window.r34lp0w3r.speakBadges || {};
   return (
-    !Object.keys(words).length &&
-    !Object.keys(phrases).length &&
-    !Object.keys(rewards).length &&
-    !Object.keys(badges).length
+    !hasMeaningfulWordScores(words) &&
+    !hasMeaningfulPhraseScores(phrases) &&
+    !hasMeaningfulRewards(rewards) &&
+    !hasMeaningfulBadges(badges)
   );
 };
 
@@ -570,11 +595,15 @@ window.syncSpeakProgress = async (opts = {}) => {
   const batch = events.slice(0, SPEAK_SYNC_BATCH);
   const lastOwner = localStorage.getItem(SPEAK_SYNC_OWNER_KEY) || '';
   const ownerChanged = lastOwner && lastOwner !== owner;
-  const includeSnapshot =
+  const hasSnapshotData = !isSpeakSnapshotEmpty();
+  let includeSnapshot =
     forceIncludeSnapshot ||
     opts.includeSnapshot === true ||
     (opts.includeSnapshotOnOwnerChange && ownerChanged) ||
-    (opts.includeSnapshotIfEmpty && isSpeakSnapshotEmpty());
+    (opts.includeSnapshotIfEmpty && !hasSnapshotData);
+  if (opts.force && hasSnapshotData) {
+    includeSnapshot = true;
+  }
 
   if (!batch.length && !includeSnapshot) return { ok: false, skipped: 'empty' };
 

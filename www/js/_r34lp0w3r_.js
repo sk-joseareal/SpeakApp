@@ -398,6 +398,8 @@ function procesarLoginDesdeCallback(url) {
       }
     }
 
+    applyAvatarCacheBust(user);
+
     if (typeof window.setUser === 'function') {
       window.setUser(user);
     } else {
@@ -2020,6 +2022,36 @@ const writeStoredUser = (user) => {
   }
 };
 
+const resetSpeakOnLogout = () => {
+  if (typeof window.resetSpeakProgress === 'function') {
+    window.resetSpeakProgress();
+    return;
+  }
+  try {
+    localStorage.removeItem('appv5:speak-word-scores');
+    localStorage.removeItem('appv5:speak-phrase-scores');
+    localStorage.removeItem('appv5:speak-session-rewards');
+    localStorage.removeItem('appv5:speak-badges');
+    localStorage.removeItem('appv5:speak-events');
+    localStorage.removeItem('appv5:speak-sync-owner');
+    localStorage.removeItem('appv5:speak-sync-ts');
+    localStorage.removeItem('appv5:speak-sync-conflict');
+    localStorage.removeItem('appv5:speak-local-owner');
+  } catch (err) {
+    console.error('[speak] error limpiando progreso en logout', err);
+  }
+  if (!window.r34lp0w3r) window.r34lp0w3r = {};
+  window.r34lp0w3r.speakWordScores = {};
+  window.r34lp0w3r.speakPhraseScores = {};
+  window.r34lp0w3r.speakSessionRewards = {};
+  window.r34lp0w3r.speakBadges = {};
+  try {
+    window.dispatchEvent(new CustomEvent('app:speak-stores-change'));
+  } catch (err) {
+    // no-op
+  }
+};
+
 const notifyUserChange = (user) => {
   try {
     window.dispatchEvent(new CustomEvent('app:user-change', { detail: user }));
@@ -2031,13 +2063,55 @@ const notifyUserChange = (user) => {
 window.setUser = (user) => {
   window.user = user || null;
   writeStoredUser(window.user);
+  if (!window.user) {
+    resetSpeakOnLogout();
+  }
   notifyUserChange(window.user);
 };
+
+const isAvatarS3Url = (url) =>
+  typeof url === 'string' && url.includes('s3.amazonaws.com/') && url.includes('/avatars/');
+
+const addAvatarCacheBust = (url) => {
+  if (!isAvatarS3Url(url)) return url;
+  if (/[?&]ts=/.test(url)) return url;
+  const sep = url.includes('?') ? '&' : '?';
+  return `${url}${sep}ts=${Date.now()}`;
+};
+
+const addLocalCacheBust = (url) => {
+  if (!url || typeof url !== 'string') return url;
+  const [base, rawQuery] = url.split('?');
+  const params = new URLSearchParams(rawQuery || '');
+  params.set('ts', Date.now().toString());
+  return `${base}?${params.toString()}`;
+};
+
+const applyAvatarCacheBust = (user) => {
+  if (!user) return;
+  if (user.image) {
+    const nextImage = addAvatarCacheBust(String(user.image));
+    if (nextImage !== user.image) {
+      user.image = nextImage;
+    }
+  }
+  if (user.image_local && typeof user.image_local === 'string' && user.image_local.startsWith('http')) {
+    const nextLocal = addAvatarCacheBust(user.image_local);
+    if (nextLocal !== user.image_local) {
+      user.image_local = nextLocal;
+    }
+  }
+};
+
+window.applyAvatarCacheBust = applyAvatarCacheBust;
+window.addLocalCacheBust = addLocalCacheBust;
 
 window.loadUser = () => {
   const stored = readStoredUser();
   if (stored) {
     window.user = stored;
+    applyAvatarCacheBust(window.user);
+    writeStoredUser(window.user);
   } else if (!window.user) {
     window.user = null;
   }
@@ -2107,16 +2181,19 @@ const refreshUserAvatarLocal = async (user, options = {}) => {
   if (!path) return;
 
   let localPath = '';
+  let localUrl = '';
 
   try {
     await fs.stat({ path, directory });
     const { uri } = await fs.getUri({ path, directory });
-    localPath =
+    localUrl =
       window.Capacitor && typeof window.Capacitor.convertFileSrc === 'function'
         ? window.Capacitor.convertFileSrc(uri)
         : uri;
-    if (!force && localPath && (user.image_local !== localPath || user.image_path !== path)) {
-      user.image_local = localPath;
+    localPath = localUrl;
+    const bustedLocal = addLocalCacheBust(localUrl);
+    if (!force && bustedLocal && (user.image_local !== bustedLocal || user.image_path !== path)) {
+      user.image_local = bustedLocal;
       user.image_path = path;
       window.setUser(user);
     }
@@ -2128,10 +2205,13 @@ const refreshUserAvatarLocal = async (user, options = {}) => {
   const remotes = getUserAvatarRemoteCandidates(user);
   if (!remotes.length) return;
   if (window.navigator && window.navigator.onLine === false) {
-    if (localPath && (user.image_local !== localPath || user.image_path !== path)) {
-      user.image_local = localPath;
-      user.image_path = path;
-      window.setUser(user);
+    if (localUrl) {
+      const bustedLocal = addLocalCacheBust(localUrl);
+      if (bustedLocal && (user.image_local !== bustedLocal || user.image_path !== path)) {
+        user.image_local = bustedLocal;
+        user.image_path = path;
+        window.setUser(user);
+      }
     }
     return;
   }
@@ -2151,7 +2231,7 @@ const refreshUserAvatarLocal = async (user, options = {}) => {
           ? window.Capacitor.convertFileSrc(uri)
           : uri;
       if (local) {
-        user.image_local = local;
+        user.image_local = addLocalCacheBust(local);
         user.image_path = path;
         window.setUser(user);
       }
@@ -2162,17 +2242,29 @@ const refreshUserAvatarLocal = async (user, options = {}) => {
     }
   }
   if (!downloaded) {
-    if (localPath && (user.image_local !== localPath || user.image_path !== path)) {
-      user.image_local = localPath;
-      user.image_path = path;
+    const fallbackRemote = remotes[0];
+    if (force && fallbackRemote && user.image_local !== fallbackRemote) {
+      user.image_local = fallbackRemote;
       window.setUser(user);
-    } else {
-      const fallbackRemote = remotes[0];
-      if (fallbackRemote && (user.image_local !== fallbackRemote || user.image_path !== path)) {
-        user.image_local = fallbackRemote;
+      return;
+    }
+    if (localUrl) {
+      const bustedLocal = addLocalCacheBust(localUrl);
+      if (bustedLocal && (user.image_local !== bustedLocal || user.image_path !== path)) {
+        user.image_local = bustedLocal;
         user.image_path = path;
         window.setUser(user);
       }
+      return;
+    }
+    if (localPath && (user.image_local !== localPath || user.image_path !== path)) {
+      user.image_local = addLocalCacheBust(localPath);
+      user.image_path = path;
+      window.setUser(user);
+    } else if (fallbackRemote && (user.image_local !== fallbackRemote || user.image_path !== path)) {
+      user.image_local = fallbackRemote;
+      user.image_path = path;
+      window.setUser(user);
     }
   }
 };
@@ -2208,10 +2300,23 @@ async function sendMail() {
 
   const platform = window.r34lp0w3r?.platform || 'unknown';
   const uuid = window.uuid || localStorage.getItem('uuid') || 'n/a';  
+  const meta = window.appMeta || {};
+  const version =
+    meta.version || meta.appVersion || meta.versionName || meta.versionString || '';
+  const build = meta.build || meta.appBuild || meta.buildNumber || meta.versionCode || '';
+  const versionLabel = version && build ? `v${version} (${build})` : version ? `v${version}` : build ? `build ${build}` : 'v n/d';
+  const storedUser = window.user || (typeof readStoredUser === 'function' ? readStoredUser() : null);
+  let userRef = '';
+  if (storedUser && storedUser.id !== undefined && storedUser.id !== null) {
+    userRef = String(storedUser.id);
+  } else if (window.user_id !== undefined && window.user_id !== null) {
+    userRef = String(window.user_id);
+  }
 
-  const txtSubject = "I have commentaries."
+  const txtSubject = "I have commentaries.";
   const email = "contact@sokinternet.com";
-  const subject = encodeURIComponent(txtSubject + " (" + platform + ") (" + uuid + ")");
+  const subjectSuffix = `${uuid} ${versionLabel}${userRef ? ` ${userRef}` : ''}`;
+  const subject = encodeURIComponent(`${txtSubject} (${subjectSuffix})`);
   const mailtoURL = `mailto:${email}?subject=${subject}`;
 
   console.log(">#C02#> sendMail (window.location.href='" + mailtoURL + "').");
@@ -2456,6 +2561,13 @@ document.addEventListener('DOMContentLoaded', async function() {
   //
   ///// eventos de Cordova.Plugins.Keyboard
   const Keyboard = plugins.Keyboard;
+  const getRuntimePlatform = () => {
+    const cap = window.Capacitor;
+    if (cap && typeof cap.getPlatform === 'function') {
+      return cap.getPlatform();
+    }
+    return window.r34lp0w3r?.platform || 'unknown';
+  };
   if (Keyboard) {
     Keyboard.addListener('keyboardWillShow', async (info) => {
       console.log(">#C00.04#> Cordova.Plugins.Keyboard.keyboardWillShow(info). info:",JSON.stringify(info));
@@ -2464,13 +2576,22 @@ document.addEventListener('DOMContentLoaded', async function() {
     Keyboard.addListener('keyboardDidShow', async info => {
       console.log(">#C00.04#> Cordova.Plugins.Keyboard.keyboardDidShow(info). info:",JSON.stringify(info));
 
-      if ( r34lp0w3r.platform == "ios" ) return;
+      const platform = getRuntimePlatform();
+      const allowResize = platform === 'android' && window.__allowKeyboardResize === true;
+      if (!allowResize) {
+        window.__keyboardHeight = 0;
+        return;
+      }
         
       console.log(`>#C00.04#> Redimensionando WebView ${info.keyboardHeight} px.`)
 
       // Se supone que no debería, pero viene en dp:
-      const keyboardHeightPx = Math.round(info.keyboardHeight * window.devicePixelRatio);
-      await Capacitor.Plugins.P4w4Plugin.resizeWebView({ offset: keyboardHeightPx });
+      const rawHeight = info && typeof info.keyboardHeight === 'number' ? info.keyboardHeight : 0;
+      const keyboardHeightPx = Math.round(rawHeight * window.devicePixelRatio);
+      const plugin = window.Capacitor?.Plugins?.P4w4Plugin;
+      if (plugin && typeof plugin.resizeWebView === 'function') {
+        await plugin.resizeWebView({ offset: keyboardHeightPx });
+      }
 
       // Si viniera en px (Como dice la documentación)
       // await Capacitor.Plugins.P4w4Plugin.resizeWebView({ offset: info.keyboardHeight })
@@ -2481,9 +2602,15 @@ document.addEventListener('DOMContentLoaded', async function() {
       console.log(">#C00.04#> Cordova.Plugins.Keyboard.keyboardWillHide(info). info:",JSON.stringify(info));
       console.log(`>#C00.04#> Redimensionando WebView -${window.__keyboardHeight} px.`)
 
-      if ( r34lp0w3r.platform == "ios" ) return; // Si es Android, reducir el WebView para dejar espacio al teclado
+      const platform = getRuntimePlatform();
+      const allowResize = platform === 'android' && window.__allowKeyboardResize === true;
+      if (!allowResize) return; // Solo Android ajusta WebView y solo si esta habilitado
 
-      await Capacitor.Plugins.P4w4Plugin.resizeWebView({ offset: -window.__keyboardHeight })      
+      const plugin = window.Capacitor?.Plugins?.P4w4Plugin;
+      if (plugin && typeof plugin.resizeWebView === 'function') {
+        const offset = typeof window.__keyboardHeight === 'number' ? -window.__keyboardHeight : 0;
+        await plugin.resizeWebView({ offset });
+      }
     })
 
     Keyboard.addListener('keyboardDidHide', async info => {

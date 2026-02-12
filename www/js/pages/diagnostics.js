@@ -1,4 +1,5 @@
 import { ensureInitialHash } from '../nav.js';
+import { addNotification, clearNotifications, getNotifications } from '../notifications-store.js';
 
 class PageDiagnostics extends HTMLElement {
   connectedCallback() {
@@ -137,6 +138,15 @@ class PageDiagnostics extends HTMLElement {
               <pre class="diag-json" id="diag-talk-chatbot"></pre>
             </div>
 
+            <h4 style="margin-top:16px;">Notificaciones demo</h4>
+            <div class="diag-actions">
+              <ion-button size="small" fill="outline" id="diag-notify-generate">Generar</ion-button>
+              <ion-button size="small" fill="outline" id="diag-notify-open">Abrir</ion-button>
+              <ion-button size="small" fill="outline" id="diag-notify-clear">Limpiar</ion-button>
+            </div>
+            <div class="notify-list diag-notify-list" id="diag-notify-list"></div>
+            <div class="notify-empty" id="diag-notify-empty" hidden>No hay notificaciones demo.</div>
+
             <h4 style="margin-top:16px;">Login</h4>
             <div class="diag-actions">
               <ion-button size="small" fill="outline" id="diag-login">Abrir login</ion-button>
@@ -260,6 +270,32 @@ class PageDiagnostics extends HTMLElement {
       });
     }
 
+    const resolveAvatarSrc = (user) => {
+      if (!user) return '';
+      const local = user.image_local;
+      if (local && typeof local === 'string') return local;
+      return user.image || '';
+    };
+
+    const setAvatarImg = (imgEl, user) => {
+      if (!imgEl) return;
+      const initial = resolveAvatarSrc(user);
+      const remote = user && user.image ? String(user.image) : '';
+      imgEl.dataset.fallback = '';
+      imgEl.onerror = null;
+      imgEl.onload = null;
+      if (!initial) {
+        imgEl.src = '';
+        return;
+      }
+      imgEl.onerror = () => {
+        if (!remote || imgEl.dataset.fallback === '1' || imgEl.src === remote) return;
+        imgEl.dataset.fallback = '1';
+        imgEl.src = remote;
+      };
+      imgEl.src = initial;
+    };
+
     const updateUserPanel = (user) => {
       const panel = this.querySelector('#diag-user');
       if (!panel) return;
@@ -277,8 +313,9 @@ class PageDiagnostics extends HTMLElement {
         if (avatarEl) avatarEl.textContent = user.avatar || 'n/a';
         if (idEl) idEl.textContent = user.id || 'n/a';
         if (nameEl) nameEl.textContent = user.name || 'n/a';
-        if (avatarEl) avatarEl.textContent = user.image_local || 'n/a';
-        if (avatarImgEl) avatarImgEl.src = user.image_local || '';
+        const avatarSrc = resolveAvatarSrc(user);
+        if (avatarEl) avatarEl.textContent = avatarSrc || 'n/a';
+        setAvatarImg(avatarImgEl, user);
         if (premiumExpiryEl) {
           premiumExpiryEl.textContent = formatExpiry(user.expires_date);
         }
@@ -312,6 +349,8 @@ class PageDiagnostics extends HTMLElement {
     const rewardsEl = this.querySelector('#diag-speak-rewards');
     const talkCatEl = this.querySelector('#diag-talk-catbot');
     const talkBotEl = this.querySelector('#diag-talk-chatbot');
+    const notifyListEl = this.querySelector('#diag-notify-list');
+    const notifyEmptyEl = this.querySelector('#diag-notify-empty');
     const TALK_STORAGE_PREFIX = 'appv5:talk-timelines:';
 
     const getTalkStorageKey = () => {
@@ -355,6 +394,119 @@ class PageDiagnostics extends HTMLElement {
       const data = readTalkTimelines();
       if (talkCatEl) talkCatEl.textContent = formatJson(data.catbot);
       if (talkBotEl) talkBotEl.textContent = formatJson(data.chatbot);
+    };
+
+    const escapeHtml = (value) =>
+      String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/\"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+
+    const formatElapsed = (ts) => {
+      const value = Number(ts);
+      if (!value) return 'Hace un momento';
+      const diff = Math.max(0, Date.now() - value);
+      const seconds = Math.floor(diff / 1000);
+      if (seconds < 60) return 'Hace un momento';
+      const minutes = Math.floor(seconds / 60);
+      if (minutes < 60) return `Hace ${minutes} min`;
+      const hours = Math.floor(minutes / 60);
+      if (hours < 24) return `Hace ${hours} h`;
+      const days = Math.floor(hours / 24);
+      return `Hace ${days} d`;
+    };
+
+    const renderNotifyList = () => {
+      if (!notifyListEl || !notifyEmptyEl) return;
+      const items = getNotifications();
+      if (!items.length) {
+        notifyListEl.innerHTML = '';
+        notifyEmptyEl.hidden = false;
+        return;
+      }
+      notifyEmptyEl.hidden = true;
+      notifyListEl.innerHTML = items
+        .map((item) => {
+          const meta = `${item.status === 'unread' ? 'Nueva' : 'Leida'} · ${formatElapsed(item.created_at)}`;
+          const tone = item.tone === 'good' || item.tone === 'warn' ? item.tone : '';
+          const icon = escapeHtml(item.icon || 'notifications-outline');
+          return `
+            <div class="notify-item">
+              <div class="notify-icon ${tone}">
+                <ion-icon name="${icon}"></ion-icon>
+              </div>
+              <div class="notify-content">
+                <div class="notify-text">${escapeHtml(item.title)}</div>
+                ${item.text ? `<div class="notify-meta">${escapeHtml(item.text)}</div>` : ''}
+                <div class="notify-meta">${escapeHtml(meta)}</div>
+              </div>
+            </div>
+          `;
+        })
+        .join('');
+    };
+
+    const pick = (list) => list[Math.floor(Math.random() * list.length)];
+
+    const demoFactories = [
+      () => {
+        const qty = pick([2, 3, 4, 5]);
+        return {
+          type: 'review',
+          tone: 'warn',
+          icon: 'book-outline',
+          title: `Tienes ${qty} palabras flojas`,
+          text: 'Ve a Review y mejora tu pronunciacion.',
+          action: { label: 'Revisar', tab: 'tu', profileTab: 'review', complete: true }
+        };
+      },
+      () => ({
+        type: 'reward',
+        tone: 'good',
+        icon: 'sparkles-outline',
+        title: 'Nuevo badge desbloqueado',
+        text: 'Racha de 3 dias completada.',
+        action: { label: 'Ver perfil', tab: 'tu', profileTab: 'prefs', complete: true }
+      }),
+      () => ({
+        type: 'practice',
+        icon: 'mic-outline',
+        title: 'Mini practica lista',
+        text: 'Solo 2 minutos para hoy.',
+        action: { label: 'Practicar', tab: 'speak', complete: true }
+      }),
+      () => ({
+        type: 'talk',
+        icon: 'chatbubble-ellipses-outline',
+        title: 'Coach listo para ti',
+        text: 'Pregunta algo al coach.',
+        action: { label: 'Abrir coach', tab: 'premium', complete: true }
+      }),
+      () => ({
+        type: 'reminder',
+        tone: 'warn',
+        icon: 'timer-outline',
+        title: 'Recordatorio',
+        text: 'Practica 5 minutos hoy.',
+        action: { label: 'Ir a Training', tab: 'listas', complete: true }
+      }),
+      () => ({
+        type: 'info',
+        icon: 'notifications-outline',
+        title: 'Novedad',
+        text: 'Hay nuevos ejercicios disponibles.',
+        action: null
+      })
+    ];
+
+    const generateDemoNotifications = () => {
+      const count = pick([1, 2, 3]);
+      for (let i = 0; i < count; i += 1) {
+        const payload = demoFactories[Math.floor(Math.random() * demoFactories.length)]();
+        addNotification(payload);
+      }
     };
 
     const resetTalkTimelines = () => {
@@ -408,8 +560,11 @@ class PageDiagnostics extends HTMLElement {
 
     this._speakStoresHandler = updateSpeakPanels;
     window.addEventListener('app:speak-stores-change', this._speakStoresHandler);
+    this._notifyHandler = renderNotifyList;
+    window.addEventListener('app:notifications-change', this._notifyHandler);
     updateSpeakPanels();
     updateTalkPanels();
+    renderNotifyList();
 
     this.querySelector('#diag-back')?.addEventListener('click', () => {
       ensureInitialHash();
@@ -521,6 +676,17 @@ class PageDiagnostics extends HTMLElement {
     this.querySelector('#diag-talk-reset')?.addEventListener('click', () => {
       resetTalkTimelines();
     });
+    this.querySelector('#diag-notify-generate')?.addEventListener('click', () => {
+      generateDemoNotifications();
+    });
+    this.querySelector('#diag-notify-clear')?.addEventListener('click', () => {
+      clearNotifications();
+    });
+    this.querySelector('#diag-notify-open')?.addEventListener('click', () => {
+      if (typeof window.openNotificationsModal === 'function') {
+        window.openNotificationsModal();
+      }
+    });
 
   }
 
@@ -532,6 +698,10 @@ class PageDiagnostics extends HTMLElement {
     if (this._speakStoresHandler) {
       window.removeEventListener('app:speak-stores-change', this._speakStoresHandler);
       this._speakStoresHandler = null;
+    }
+    if (this._notifyHandler) {
+      window.removeEventListener('app:notifications-change', this._notifyHandler);
+      this._notifyHandler = null;
     }
   }
 }

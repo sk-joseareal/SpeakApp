@@ -399,8 +399,14 @@ page-login .login-social-icon-apple {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 10px;
+  gap: 14px;
   margin-top: 12px;
+}
+
+#profile-links-login {
+  gap: 16px;
+  margin-top: 16px;
+  margin-bottom: 12px;
 }
 
 .profile-link-btn {
@@ -418,8 +424,15 @@ page-login .login-social-icon-apple {
   justify-content: center;
   align-items: center;
   text-align: center;
-  margin-top: 20px;
-  padding-bottom: 12px;
+  margin-top: 6px;
+  padding-bottom: 6px;
+}
+
+.profile-app-meta {
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--app-muted);
+  margin: 3px 0 8px;
 }
 
 ion-modal.login-modal ion-content {
@@ -767,9 +780,49 @@ ion-modal.login-modal page-login .page-shell {
   margin-bottom: 2px;
 }
 
+.notify-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
 .notify-meta {
   font-size: 0.8rem;
   color: #64748b;
+}
+
+.notify-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.notify-action-btn {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--ion-color-primary, #4b5dff);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.notify-action-btn.danger {
+  color: #ef4444;
+}
+
+.notify-item.is-read {
+  opacity: 0.75;
+}
+
+.notify-empty {
+  font-size: 0.9rem;
+  color: var(--app-muted);
+}
+
+.diag-notify-list {
+  margin-top: 8px;
 }
 
 .diag-list {
@@ -1306,7 +1359,7 @@ page-premium .premium-chat-card {
 page-premium .chat-panel {
   flex: 1;
   min-height: 0;
-  padding-bottom: calc(var(--premium-keyboard-offset, 0px) + env(safe-area-inset-bottom));
+  padding-bottom: var(--premium-keyboard-offset, 0px);
   transition: padding-bottom 0.24s ease;
   will-change: padding-bottom;
 }
@@ -1315,7 +1368,7 @@ page-premium .chat-thread {
   flex: 1;
   min-height: 0;
   max-height: none;
-  scroll-padding-bottom: calc(120px + var(--premium-keyboard-offset, 0px) + env(safe-area-inset-bottom));
+  scroll-padding-bottom: calc(120px + var(--premium-keyboard-offset, 0px));
 }
 
 page-premium ion-content::part(scroll) {

@@ -13,7 +13,6 @@ class PageLogin extends HTMLElement {
       <ion-content>
         <div class="page-shell">
           <div class="card">
-            <div class="pill">Acceso</div>
             <div class="login-panel" data-panel="login">
               <h3>Iniciar sesion</h3>
               <p class="muted">Introduce tus datos para continuar.</p>
@@ -211,6 +210,10 @@ class PageLogin extends HTMLElement {
           return;
         }
 
+        if (typeof window.applyAvatarCacheBust === 'function') {
+          window.applyAvatarCacheBust(user);
+        }
+
         const remotes =
           typeof window.getUserAvatarRemoteCandidates === 'function'
             ? window.getUserAvatarRemoteCandidates(user)
@@ -230,10 +233,12 @@ class PageLogin extends HTMLElement {
             for (const remote of remotes) {
               try {
                 const uri = await download(remote, localPath, 'DATA', { noCache: true });
-                user.image_local =
+                const local =
                   window.Capacitor && typeof window.Capacitor.convertFileSrc === 'function'
                     ? window.Capacitor.convertFileSrc(uri)
                     : uri;
+                user.image_local =
+                  typeof window.addLocalCacheBust === 'function' ? window.addLocalCacheBust(local) : local;
                 downloaded = true;
                 break;
               } catch (err) {
@@ -275,6 +280,19 @@ class PageLogin extends HTMLElement {
       
       
     }
+
+    const maybeSubmitLogin = (event) => {
+      if (event.key !== 'Enter') return;
+      const loginPanel = panels.login;
+      if (loginPanel && loginPanel.hidden) return;
+      event.preventDefault();
+      loginCI();
+    };
+
+    const loginUserInput = this.querySelector('#login-user');
+    const loginPassInput = this.querySelector('#login-pass');
+    loginUserInput?.addEventListener('keydown', maybeSubmitLogin);
+    loginPassInput?.addEventListener('keydown', maybeSubmitLogin);
 
     const loginApple = async () => {
       console.log("> loginApple.");

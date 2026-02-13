@@ -1,5 +1,6 @@
 import { onboardingDone, setOnboardingDone } from '../state.js';
 import { goToHome } from '../nav.js';
+import { addNotification } from '../notifications-store.js';
 
 const onboardingSlides = [
   {
@@ -118,6 +119,17 @@ class PageOnboarding extends HTMLElement {
 
   finish() {
     setOnboardingDone();
+    const user = window.user;
+    const loggedIn = Boolean(user && user.id !== undefined && user.id !== null);
+    if (!loggedIn) {
+      addNotification({
+        type: 'info',
+        icon: 'log-in-outline',
+        title: 'Guarda tus avances',
+        text: 'Inicia sesion o crea una cuenta para guardar progreso y premios.',
+        action: { label: 'Iniciar sesion', callback: 'openLoginModal', complete: true }
+      });
+    }
     goToHome('root');
   }
 

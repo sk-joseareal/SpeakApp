@@ -1,5 +1,5 @@
 import { ensureInitialHash } from '../nav.js';
-import { addNotification, clearNotifications, getNotifications } from '../notifications-store.js';
+import { clearNotifications, generateDemoNotifications, getNotifications } from '../notifications-store.js';
 
 class PageDiagnostics extends HTMLElement {
   connectedCallback() {
@@ -446,67 +446,6 @@ class PageDiagnostics extends HTMLElement {
           `;
         })
         .join('');
-    };
-
-    const pick = (list) => list[Math.floor(Math.random() * list.length)];
-
-    const demoFactories = [
-      () => {
-        const qty = pick([2, 3, 4, 5]);
-        return {
-          type: 'review',
-          tone: 'warn',
-          icon: 'book-outline',
-          title: `Tienes ${qty} palabras flojas`,
-          text: 'Ve a Review y mejora tu pronunciacion.',
-          action: { label: 'Revisar', tab: 'tu', profileTab: 'review', complete: true }
-        };
-      },
-      () => ({
-        type: 'reward',
-        tone: 'good',
-        icon: 'sparkles-outline',
-        title: 'Nuevo badge desbloqueado',
-        text: 'Racha de 3 dias completada.',
-        action: { label: 'Ver perfil', tab: 'tu', profileTab: 'prefs', complete: true }
-      }),
-      () => ({
-        type: 'practice',
-        icon: 'mic-outline',
-        title: 'Mini practica lista',
-        text: 'Solo 2 minutos para hoy.',
-        action: { label: 'Practicar', tab: 'speak', complete: true }
-      }),
-      () => ({
-        type: 'talk',
-        icon: 'chatbubble-ellipses-outline',
-        title: 'Coach listo para ti',
-        text: 'Pregunta algo al coach.',
-        action: { label: 'Abrir coach', tab: 'premium', complete: true }
-      }),
-      () => ({
-        type: 'reminder',
-        tone: 'warn',
-        icon: 'timer-outline',
-        title: 'Recordatorio',
-        text: 'Practica 5 minutos hoy.',
-        action: { label: 'Ir a Training', tab: 'listas', complete: true }
-      }),
-      () => ({
-        type: 'info',
-        icon: 'notifications-outline',
-        title: 'Novedad',
-        text: 'Hay nuevos ejercicios disponibles.',
-        action: null
-      })
-    ];
-
-    const generateDemoNotifications = () => {
-      const count = pick([1, 2, 3]);
-      for (let i = 0; i < count; i += 1) {
-        const payload = demoFactories[Math.floor(Math.random() * demoFactories.length)]();
-        addNotification(payload);
-      }
     };
 
     const resetTalkTimelines = () => {

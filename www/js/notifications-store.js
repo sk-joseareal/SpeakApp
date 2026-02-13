@@ -127,9 +127,69 @@ export const completeNotification = (id) => {
 export const getUnreadCount = () =>
   readNotifications().reduce((sum, item) => sum + (item.status === 'unread' ? 1 : 0), 0);
 
+const demoFactories = [
+  () => {
+    const qty = [2, 3, 4, 5][Math.floor(Math.random() * 4)];
+    return {
+      type: 'review',
+      tone: 'warn',
+      icon: 'book-outline',
+      title: `Tienes ${qty} palabras flojas`,
+      text: 'Ve a Review y mejora tu pronunciacion.',
+      action: { label: 'Revisar', tab: 'tu', profileTab: 'review', complete: true }
+    };
+  },
+  () => ({
+    type: 'reward',
+    tone: 'good',
+    icon: 'sparkles-outline',
+    title: 'Nuevo badge desbloqueado',
+    text: 'Racha de 3 dias completada.',
+    action: { label: 'Ver perfil', tab: 'tu', profileTab: 'prefs', complete: true }
+  }),
+  () => ({
+    type: 'practice',
+    icon: 'mic-outline',
+    title: 'Mini practica lista',
+    text: 'Solo 2 minutos para hoy.',
+    action: { label: 'Practicar', tab: 'speak', complete: true }
+  }),
+  () => ({
+    type: 'talk',
+    icon: 'chatbubble-ellipses-outline',
+    title: 'Coach listo para ti',
+    text: 'Pregunta algo al coach.',
+    action: { label: 'Abrir coach', tab: 'premium', complete: true }
+  }),
+  () => ({
+    type: 'reminder',
+    tone: 'warn',
+    icon: 'timer-outline',
+    title: 'Recordatorio',
+    text: 'Practica 5 minutos hoy.',
+    action: { label: 'Ir a Training', tab: 'listas', complete: true }
+  }),
+  () => ({
+    type: 'info',
+    icon: 'notifications-outline',
+    title: 'Novedad',
+    text: 'Hay nuevos ejercicios disponibles.',
+    action: null
+  })
+];
+
+export const generateDemoNotifications = () => {
+  const now = Date.now();
+  demoFactories.forEach((factory, idx) => {
+    const payload = factory();
+    addNotification({ ...payload, created_at: now - idx * 1000 });
+  });
+};
+
 if (typeof window !== 'undefined') {
   window.getAppNotifications = getNotifications;
   window.addAppNotification = addNotification;
   window.clearAppNotifications = clearNotifications;
   window.removeAppNotification = removeNotification;
+  window.generateDemoNotifications = generateDemoNotifications;
 }

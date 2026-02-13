@@ -1,6 +1,6 @@
 import { ensureInitialHash, setRouter, goToHome } from './nav.js';
 import { onboardingDone } from './state.js';
-import { getUnreadCount, markAllNotificationsRead } from './notifications-store.js';
+import { generateDemoNotifications, getUnreadCount, markAllNotificationsRead } from './notifications-store.js';
 import './pages/onboarding.js';
 import './pages/home.js';
 import './pages/listas.js';
@@ -44,6 +44,8 @@ routerReady.then((router) => {
 
   setupSecretDiagnostics(router);
   setupNotificationsModal();
+  setupLoginModal();
+  setupLoginNotificationsSeed();
 });
 
 function setupSecretDiagnostics(router) {
@@ -135,5 +137,59 @@ function setupNotificationsModal() {
     openNotificationsModal().catch((err) => {
       console.error('[notifications] error abriendo modal', err);
     });
+  });
+}
+
+function setupLoginModal() {
+  let modal = null;
+  const openLoginModal = async () => {
+    if (!modal) {
+      modal = document.querySelector('ion-modal.login-modal');
+    }
+    if (!modal) {
+      modal = document.createElement('ion-modal');
+      modal.classList.add('login-modal');
+      modal.component = 'page-login';
+      modal.backdropDismiss = true;
+      modal.keepContentsMounted = true;
+      const presentingEl = document.querySelector('ion-router-outlet');
+      if (presentingEl) {
+        modal.presentingElement = presentingEl;
+      }
+      document.body.appendChild(modal);
+    }
+
+    if (modal.presented || modal.isOpen) {
+      return;
+    }
+    if (document.activeElement && typeof document.activeElement.blur === 'function') {
+      document.activeElement.blur();
+    }
+    await modal.present();
+  };
+
+  window.openLoginModal = openLoginModal;
+}
+
+function setupLoginNotificationsSeed() {
+  let lastUserId = '';
+  try {
+    const user = window.user;
+    if (user && user.id !== undefined && user.id !== null) {
+      lastUserId = String(user.id);
+    }
+  } catch (err) {
+    lastUserId = '';
+  }
+
+  window.addEventListener('app:user-change', (event) => {
+    const detail = event && event.detail ? event.detail : null;
+    const nextId =
+      detail && detail.id !== undefined && detail.id !== null ? String(detail.id) : '';
+    const isLogin = !lastUserId && nextId;
+    lastUserId = nextId;
+    if (isLogin) {
+      generateDemoNotifications();
+    }
   });
 }

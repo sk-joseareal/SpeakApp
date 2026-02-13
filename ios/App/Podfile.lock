@@ -107,7 +107,7 @@ DEPENDENCIES:
   - "CapacitorStatusBar (from `../../node_modules/@capacitor/status-bar`)"
   - CordovaPlugins (from `../capacitor-cordova-ios-plugins`)
   - Firebase/Messaging
-  - SokinternetP4w4 (from `../../../plugins/p4w4`)
+  - SokinternetP4w4 (from `../../plugins/p4w4`)
 
 SPEC REPOS:
   trunk:
@@ -152,7 +152,7 @@ EXTERNAL SOURCES:
   CordovaPlugins:
     :path: "../capacitor-cordova-ios-plugins"
   SokinternetP4w4:
-    :path: "../../../plugins/p4w4"
+    :path: "../../plugins/p4w4"
 
 SPEC CHECKSUMS:
   Capacitor: 9d9e481b79ffaeacaf7a85d6a11adec32bd33b59
@@ -182,6 +182,6 @@ SPEC CHECKSUMS:
   PromisesObjC: f5707f49cb48b9636751c5b2e7d227e43fba9f47
   SokinternetP4w4: 44251f9b6a7c40722ef60ff5eaa31da5ac6a5686
 
-PODFILE CHECKSUM: 5a75bd7e8b9402a9060aac745eaf9405893b7bc7
+PODFILE CHECKSUM: 3b6aa4bf6fc7a0bef9a7f98bc9eaec17a04afe3b
 
 COCOAPODS: 1.16.2

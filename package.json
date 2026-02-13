@@ -23,7 +23,7 @@
     "@capacitor/push-notifications": "^7.0.1",
     "@capacitor/splash-screen": "^7.0.1",
     "@capacitor/status-bar": "^7.0.1",
-    "@sokinternet/p4w4": "file:../plugins/p4w4",
+    "@sokinternet/p4w4": "file:./plugins/p4w4",
     "apn": "^2.2.0",
     "cordova-plugin-purchase": "^13.11.1",
     "firebase-admin": "^13.6.0"

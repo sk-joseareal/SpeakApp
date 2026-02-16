@@ -19,11 +19,12 @@ const path = require('path');
 
 // Parsear argumentos de línea de comandos
 const args = minimist(process.argv.slice(2), {
-  string: ['token', 'title', 'body'],
+  string: ['token', 'title', 'body', 'env', 'production'],
   default: {
     title: '¡Hola!',
     body: 'Esto es una prueba de notificación push',
-    delay: 0
+    delay: 0,
+    env: 'auto'
   }
 });
 
@@ -35,14 +36,44 @@ if (!args.token) {
 const deviceToken = args.token;
 const delaySeconds = parseInt(args.delay, 10);
 
-let apnProvider = new apn.Provider({
-  token: {
-    key: path.join(__dirname, 'AuthKey_5J64U76FC9.p8'), // la Key
-    keyId: "5J64U76FC9",          // el Key ID
-    teamId: "T4LYZV6KKS",         // tu Team ID
-  },
-  production: false,
-});
+function parseEnvironment(rawEnv, rawProduction) {
+  if (typeof rawEnv === 'string' && rawEnv.trim()) {
+    const value = rawEnv.trim().toLowerCase();
+    if (value === 'production' || value === 'prod') return 'production';
+    if (value === 'sandbox' || value === 'development' || value === 'dev') return 'sandbox';
+    if (value === 'auto') return 'auto';
+  }
+  if (typeof rawProduction !== 'undefined') {
+    const value = String(rawProduction).trim().toLowerCase();
+    if (value === '1' || value === 'true') return 'production';
+    if (value === '0' || value === 'false') return 'sandbox';
+  }
+  return 'auto';
+}
+
+function createApnProvider(production) {
+  return new apn.Provider({
+    token: {
+      key: path.join(__dirname, 'AuthKey_5J64U76FC9.p8'), // la Key
+      keyId: "5J64U76FC9",          // el Key ID
+      teamId: "T4LYZV6KKS",         // tu Team ID
+    },
+    production,
+  });
+}
+
+function isBadDeviceTokenResponse(response) {
+  if (!response || !Array.isArray(response.failed) || response.failed.length === 0) return false;
+  if (Array.isArray(response.sent) && response.sent.length > 0) return false;
+  return response.failed.every((item) =>
+    String(item && item.status) === '400' &&
+    item &&
+    item.response &&
+    item.response.reason === 'BadDeviceToken'
+  );
+}
+
+const environment = parseEnvironment(args.env, args.production);
 
 const notification = new apn.Notification();
 
@@ -67,17 +98,61 @@ notification.sound = "default";                     // Sonido por defecto
 //notification.topic = "com.sokinternet.cursoingles"; // Bundle ID de la app
 notification.topic = "com.sokinternet.speak"; // Bundle ID de la app
 
-async function enviarNotificacion() {
+async function sendWithEnvironment(production) {
+  const apnProvider = createApnProvider(production);
   try {
     const response = await apnProvider.send(notification, deviceToken);
-    console.log("✅ Respuesta del push:", JSON.stringify(response, null, 2));
-  } catch (err) {
-    console.error("❌ Error al enviar la notificación:", err);
+    return response;
   } finally {
     await apnProvider.shutdown();
-    console.log("🔚 Conexión cerrada.");
-    process.exit(0);
   }
+}
+
+async function enviarNotificacion() {
+  const targetEnvironments =
+    environment === 'auto'
+      ? [true, false] // true=production, false=sandbox
+      : [environment === 'production'];
+
+  let lastResponse = null;
+
+  for (let i = 0; i < targetEnvironments.length; i++) {
+    const production = targetEnvironments[i];
+    const envName = production ? 'production' : 'sandbox';
+    console.log(`🌐 Enviando a APNs (${envName})...`);
+
+    try {
+      const response = await sendWithEnvironment(production);
+      lastResponse = response;
+      console.log(`✅ Respuesta del push (${envName}):`, JSON.stringify(response, null, 2));
+
+      if (Array.isArray(response.sent) && response.sent.length > 0) {
+        console.log("🔚 Conexión cerrada.");
+        process.exit(0);
+      }
+
+      const shouldFallback =
+        environment === 'auto' &&
+        i < targetEnvironments.length - 1 &&
+        isBadDeviceTokenResponse(response);
+
+      if (shouldFallback) {
+        console.log('↪️ Recibido BadDeviceToken. Reintentando en el otro entorno APNs...');
+        continue;
+      }
+
+      break;
+    } catch (err) {
+      console.error(`❌ Error al enviar la notificación (${envName}):`, err);
+      break;
+    }
+  }
+
+  if (lastResponse && Array.isArray(lastResponse.failed) && lastResponse.failed.length > 0) {
+    console.error("❌ Push no entregado. Revisa token, topic y entorno APNs.");
+  }
+  console.log("🔚 Conexión cerrada.");
+  process.exit(0);
 }
 
 // Si hay retardo, esperamos antes de enviar
@@ -87,4 +162,3 @@ if (delaySeconds > 0) {
 } else {
   enviarNotificacion();
 }
-

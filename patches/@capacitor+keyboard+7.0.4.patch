@@ -1,0 +1,158 @@
+diff --git a/node_modules/@capacitor/keyboard/android/.project b/node_modules/@capacitor/keyboard/android/.project
+new file mode 100644
+index 0000000..d7cbea0
+--- /dev/null
++++ b/node_modules/@capacitor/keyboard/android/.project
+@@ -0,0 +1,34 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<projectDescription>
++	<name>capacitor-keyboard</name>
++	<comment>Project capacitor-keyboard created by Buildship.</comment>
++	<projects>
++	</projects>
++	<buildSpec>
++		<buildCommand>
++			<name>org.eclipse.jdt.core.javabuilder</name>
++			<arguments>
++			</arguments>
++		</buildCommand>
++		<buildCommand>
++			<name>org.eclipse.buildship.core.gradleprojectbuilder</name>
++			<arguments>
++			</arguments>
++		</buildCommand>
++	</buildSpec>
++	<natures>
++		<nature>org.eclipse.jdt.core.javanature</nature>
++		<nature>org.eclipse.buildship.core.gradleprojectnature</nature>
++	</natures>
++	<filteredResources>
++		<filter>
++			<id>1767175597148</id>
++			<name></name>
++			<type>30</type>
++			<matcher>
++				<id>org.eclipse.core.resources.regexFilterMatcher</id>
++				<arguments>node_modules|\.git|__CREATED_BY_JAVA_LANGUAGE_SERVER__</arguments>
++			</matcher>
++		</filter>
++	</filteredResources>
++</projectDescription>
+diff --git a/node_modules/@capacitor/keyboard/android/bin/build.gradle b/node_modules/@capacitor/keyboard/android/bin/build.gradle
+new file mode 100644
+index 0000000..47c4b9c
+--- /dev/null
++++ b/node_modules/@capacitor/keyboard/android/bin/build.gradle
+@@ -0,0 +1,79 @@
++ext {
++    capacitorVersion = System.getenv('CAPACITOR_VERSION')
++    junitVersion = project.hasProperty('junitVersion') ? rootProject.ext.junitVersion : '4.13.2'
++    androidxAppCompatVersion = project.hasProperty('androidxAppCompatVersion') ? rootProject.ext.androidxAppCompatVersion : '1.7.0'
++    androidxJunitVersion = project.hasProperty('androidxJunitVersion') ? rootProject.ext.androidxJunitVersion : '1.2.1'
++    androidxEspressoCoreVersion = project.hasProperty('androidxEspressoCoreVersion') ? rootProject.ext.androidxEspressoCoreVersion : '3.6.1'
++}
++
++buildscript {
++    repositories {
++        google()
++        mavenCentral()
++        maven {
++            url "https://plugins.gradle.org/m2/"
++        }
++    }
++    dependencies {
++        classpath 'com.android.tools.build:gradle:8.7.2'
++        if (System.getenv("CAP_PLUGIN_PUBLISH") == "true") {
++            classpath 'io.github.gradle-nexus:publish-plugin:1.3.0'
++        }
++    }
++}
++
++apply plugin: 'com.android.library'
++if (System.getenv("CAP_PLUGIN_PUBLISH") == "true") {
++    apply plugin: 'io.github.gradle-nexus.publish-plugin'
++    apply from: file('../../scripts/android/publish-root.gradle')
++    apply from: file('../../scripts/android/publish-module.gradle')
++}
++
++android {
++    namespace "com.capacitorjs.plugins.keyboard"
++    compileSdk project.hasProperty('compileSdkVersion') ? rootProject.ext.compileSdkVersion : 35
++    defaultConfig {
++        minSdkVersion project.hasProperty('minSdkVersion') ? rootProject.ext.minSdkVersion : 23
++        targetSdkVersion project.hasProperty('targetSdkVersion') ? rootProject.ext.targetSdkVersion : 35
++        versionCode 1
++        versionName "1.0"
++        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
++    }
++    buildTypes {
++        release {
++            minifyEnabled false
++            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
++        }
++    }
++    lintOptions {
++        abortOnError false
++    }
++    compileOptions {
++        sourceCompatibility JavaVersion.VERSION_21
++        targetCompatibility JavaVersion.VERSION_21
++    }
++    publishing {
++        singleVariant("release")
++    }
++}
++
++repositories {
++    google()
++    mavenCentral()
++}
++
++
++dependencies {
++    implementation fileTree(dir: 'libs', include: ['*.jar'])
++
++    if (System.getenv("CAP_PLUGIN_PUBLISH") == "true") {
++        implementation "com.capacitorjs:core:$capacitorVersion"
++    } else {
++        implementation project(':capacitor-android')
++    }
++
++    implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
++    testImplementation "junit:junit:$junitVersion"
++    androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
++    androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
++}
+diff --git a/node_modules/@capacitor/keyboard/android/bin/src/main/AndroidManifest.xml b/node_modules/@capacitor/keyboard/android/bin/src/main/AndroidManifest.xml
+new file mode 100644
+index 0000000..a2f47b6
+--- /dev/null
++++ b/node_modules/@capacitor/keyboard/android/bin/src/main/AndroidManifest.xml
+@@ -0,0 +1,2 @@
++<manifest xmlns:android="http://schemas.android.com/apk/res/android">
++</manifest>
+diff --git a/node_modules/@capacitor/keyboard/android/bin/src/main/java/com/capacitorjs/plugins/keyboard/Keyboard$KeyboardEventListener.class b/node_modules/@capacitor/keyboard/android/bin/src/main/java/com/capacitorjs/plugins/keyboard/Keyboard$KeyboardEventListener.class
+new file mode 100644
+index 0000000..18f7f72
+Binary files /dev/null and b/node_modules/@capacitor/keyboard/android/bin/src/main/java/com/capacitorjs/plugins/keyboard/Keyboard$KeyboardEventListener.class differ
+diff --git a/node_modules/@capacitor/keyboard/android/bin/src/main/java/com/capacitorjs/plugins/keyboard/Keyboard.class b/node_modules/@capacitor/keyboard/android/bin/src/main/java/com/capacitorjs/plugins/keyboard/Keyboard.class
+new file mode 100644
+index 0000000..03f3964
+Binary files /dev/null and b/node_modules/@capacitor/keyboard/android/bin/src/main/java/com/capacitorjs/plugins/keyboard/Keyboard.class differ
+diff --git a/node_modules/@capacitor/keyboard/android/bin/src/main/java/com/capacitorjs/plugins/keyboard/KeyboardPlugin.class b/node_modules/@capacitor/keyboard/android/bin/src/main/java/com/capacitorjs/plugins/keyboard/KeyboardPlugin.class
+new file mode 100644
+index 0000000..7004b3f
+Binary files /dev/null and b/node_modules/@capacitor/keyboard/android/bin/src/main/java/com/capacitorjs/plugins/keyboard/KeyboardPlugin.class differ
+diff --git a/node_modules/@capacitor/keyboard/android/build.gradle b/node_modules/@capacitor/keyboard/android/build.gradle
+index 889d1cb..47c4b9c 100644
+--- a/node_modules/@capacitor/keyboard/android/build.gradle
++++ b/node_modules/@capacitor/keyboard/android/build.gradle
+@@ -42,7 +42,7 @@ android {
+     buildTypes {
+         release {
+             minifyEnabled false
+-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
++            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+         }
+     }
+     lintOptions {

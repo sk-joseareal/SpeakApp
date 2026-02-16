@@ -5,10 +5,10 @@ PODS:
     - Capacitor
   - CapacitorBrowser (7.0.4):
     - Capacitor
-  - CapacitorCommunityAdmob (7.0.3):
+  - CapacitorCommunityAdmob (8.0.0):
     - Capacitor
-    - Google-Mobile-Ads-SDK (= 11.3.0)
-    - GoogleUserMessagingPlatform (< 3.0.0, >= 2.7.0)
+    - Google-Mobile-Ads-SDK (~> 12.14)
+    - GoogleUserMessagingPlatform (~> 3.1)
   - CapacitorCommunitySpeechRecognition (7.0.1):
     - Capacitor
   - CapacitorCommunityTextToSpeech (6.0.0):
@@ -52,12 +52,12 @@ PODS:
     - GoogleUtilities/Reachability (~> 8.1)
     - GoogleUtilities/UserDefaults (~> 8.1)
     - nanopb (~> 3.30910.0)
-  - Google-Mobile-Ads-SDK (11.3.0):
+  - Google-Mobile-Ads-SDK (12.14.0):
     - GoogleUserMessagingPlatform (>= 1.1)
   - GoogleDataTransport (10.1.0):
     - nanopb (~> 3.30910.0)
     - PromisesObjC (~> 2.4)
-  - GoogleUserMessagingPlatform (2.7.0)
+  - GoogleUserMessagingPlatform (3.1.0)
   - GoogleUtilities/AppDelegateSwizzler (8.1.0):
     - GoogleUtilities/Environment
     - GoogleUtilities/Logger
@@ -158,7 +158,7 @@ SPEC CHECKSUMS:
   Capacitor: 9d9e481b79ffaeacaf7a85d6a11adec32bd33b59
   CapacitorApp: f01a913211780e0718dae9750442c3e23f96e106
   CapacitorBrowser: affdd32ab6a1822942eb55095b3c5ecf3f656a9d
-  CapacitorCommunityAdmob: 310beff216a3470b2c85b1fccd99d2a6815e1ef7
+  CapacitorCommunityAdmob: 9c36b466f46da413e5c105f7484e7603178c6223
   CapacitorCommunitySpeechRecognition: 3e03566c44c2bb3b52391a33d4518b1adbdeb38f
   CapacitorCommunityTextToSpeech: 4e82235c0e184d2edbd1b2d81ef22af531bda13e
   CapacitorCordova: 5e58d04631bc5094894ac106e2bf1da18a9e6151
@@ -173,9 +173,9 @@ SPEC CHECKSUMS:
   FirebaseCoreInternal: 9afa45b1159304c963da48addb78275ef701c6b4
   FirebaseInstallations: 317270fec08a5d418fdbc8429282238cab3ac843
   FirebaseMessaging: 3b26e2cee503815e01c3701236b020aa9b576f09
-  Google-Mobile-Ads-SDK: 301a16c461c331ba34ff4dab40a22ab7c147af61
+  Google-Mobile-Ads-SDK: 4534fd2dfcd3f705c5485a6633c5188d03d4eed2
   GoogleDataTransport: aae35b7ea0c09004c3797d53c8c41f66f219d6a7
-  GoogleUserMessagingPlatform: a8b56893477f67212fbc8411c139e61d463349f5
+  GoogleUserMessagingPlatform: befe603da6501006420c206222acd449bba45a9c
   GoogleUtilities: 00c88b9a86066ef77f0da2fab05f65d7768ed8e1
   IONFilesystemLib: dfa8706539ac9ab77ccfd6e5b3830ce9b5e57f6c
   nanopb: fad817b59e0457d11a5dfbde799381cd727c1275

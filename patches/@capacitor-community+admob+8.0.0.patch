@@ -1,0 +1,647 @@
+diff --git a/node_modules/@capacitor-community/admob/android/.project b/node_modules/@capacitor-community/admob/android/.project
+new file mode 100644
+index 0000000..9de6f4f
+--- /dev/null
++++ b/node_modules/@capacitor-community/admob/android/.project
+@@ -0,0 +1,34 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<projectDescription>
++	<name>capacitor-community-admob</name>
++	<comment>Project capacitor-community-admob created by Buildship.</comment>
++	<projects>
++	</projects>
++	<buildSpec>
++		<buildCommand>
++			<name>org.eclipse.jdt.core.javabuilder</name>
++			<arguments>
++			</arguments>
++		</buildCommand>
++		<buildCommand>
++			<name>org.eclipse.buildship.core.gradleprojectbuilder</name>
++			<arguments>
++			</arguments>
++		</buildCommand>
++	</buildSpec>
++	<natures>
++		<nature>org.eclipse.jdt.core.javanature</nature>
++		<nature>org.eclipse.buildship.core.gradleprojectnature</nature>
++	</natures>
++	<filteredResources>
++		<filter>
++			<id>1767175597143</id>
++			<name></name>
++			<type>30</type>
++			<matcher>
++				<id>org.eclipse.core.resources.regexFilterMatcher</id>
++				<arguments>node_modules|\.git|__CREATED_BY_JAVA_LANGUAGE_SERVER__</arguments>
++			</matcher>
++		</filter>
++	</filteredResources>
++</projectDescription>
+diff --git a/node_modules/@capacitor-community/admob/android/bin/build.gradle b/node_modules/@capacitor-community/admob/android/bin/build.gradle
+new file mode 100644
+index 0000000..1056a18
+--- /dev/null
++++ b/node_modules/@capacitor-community/admob/android/bin/build.gradle
+@@ -0,0 +1,93 @@
++ext {
++    junitVersion = project.hasProperty('junitVersion') ? rootProject.ext.junitVersion : '4.13.2'
++    androidxAppCompatVersion = project.hasProperty('androidxAppCompatVersion') ? rootProject.ext.androidxAppCompatVersion : '1.7.1'
++    androidxCoordinatorLayoutVersion = project.hasProperty('androidxCoordinatorLayoutVersion') ? rootProject.ext.androidxCoordinatorLayoutVersion : '1.3.0'
++    androidxJunitVersion = project.hasProperty('androidxJunitVersion') ? rootProject.ext.androidxJunitVersion : '1.3.0'
++    androidxEspressoCoreVersion = project.hasProperty('androidxEspressoCoreVersion') ? rootProject.ext.androidxEspressoCoreVersion : '3.7.0'
++    playServicesAdsVersion = project.hasProperty('playServicesAdsVersion') ? rootProject.ext.playServicesAdsVersion : '24.9.+'
++    userMessagingPlatformVersion = project.hasProperty('userMessagingPlatformVersion') ? rootProject.ext.userMessagingPlatformVersion : '4.0.0'
++    androidxCoreKTXVersion = project.hasProperty('androidxCoreKTXVersion') ? rootProject.ext.androidxCoreKTXVersion : '1.15.0'
++}
++
++buildscript {
++    ext.kotlin_version = project.hasProperty("kotlin_version") ? rootProject.ext.kotlin_version : '2.2.20'
++    repositories {
++        google()
++        mavenCentral()
++    }
++    dependencies {
++        classpath 'com.android.tools.build:gradle:8.13.0'
++        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
++    }
++}
++
++apply plugin: 'com.android.library'
++apply plugin: 'kotlin-android'
++
++android {
++    namespace = "com.getcapacitor.community.admob.admob"
++    compileSdk = project.hasProperty('compileSdkVersion') ? rootProject.ext.compileSdkVersion : 36
++    defaultConfig {
++        minSdkVersion project.hasProperty('minSdkVersion') ? rootProject.ext.minSdkVersion : 24
++        targetSdkVersion project.hasProperty('targetSdkVersion') ? rootProject.ext.targetSdkVersion : 36
++        versionCode 1
++        versionName "1.0"
++        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
++    }
++    buildTypes {
++        release {
++            minifyEnabled false
++            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
++        }
++    }
++    lintOptions {
++        abortOnError = false
++    }
++    compileOptions {
++        sourceCompatibility JavaVersion.VERSION_21
++        targetCompatibility JavaVersion.VERSION_21
++    }
++    kotlinOptions {
++        jvmTarget = JavaVersion.VERSION_21
++    }
++}
++
++repositories {
++    google()
++        mavenCentral()
++
++}
++
++def testRunner = "1.7.0"
++
++dependencies {
++    implementation fileTree(dir: 'libs', include: ['*.jar'])
++    implementation project(':capacitor-android')
++
++    testImplementation 'org.mockito:mockito-inline:5.2.0'
++    testImplementation 'org.mockito:mockito-junit-jupiter:5.15.2'
++    testImplementation "org.junit.jupiter:junit-jupiter-api:5.11.4"
++    // https://medium.com/google-developer-experts/pushing-the-limits-of-androidx-test-3776ff249c71
++    testImplementation "androidx.test:core:$testRunner"
++    testImplementation "androidx.test:runner:$testRunner"
++
++    testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:5.11.4"
++    testImplementation "org.junit.jupiter:junit-jupiter-params:5.11.4"
++    testRuntimeOnly "org.junit.vintage:junit-vintage-engine:5.11.4"
++    testImplementation 'org.json:json:20231013'
++    // We do not need expresso tests here... or?
++    //    androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
++    //    androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
++
++    implementation "com.google.android.gms:play-services-ads:$playServicesAdsVersion"
++    implementation "com.google.android.ump:user-messaging-platform:$userMessagingPlatformVersion"
++    implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
++    implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
++    implementation "androidx.core:core-ktx:$androidxCoreKTXVersion"
++    implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
++}
++
++// Allow to run unit test with  ./gradlew test
++tasks.withType(Test) {
++    useJUnitPlatform()
++}
+diff --git a/node_modules/@capacitor-community/admob/android/bin/src/main/AndroidManifest.xml b/node_modules/@capacitor-community/admob/android/bin/src/main/AndroidManifest.xml
+new file mode 100644
+index 0000000..0594ae2
+--- /dev/null
++++ b/node_modules/@capacitor-community/admob/android/bin/src/main/AndroidManifest.xml
+@@ -0,0 +1,5 @@
++
++  <manifest xmlns:android="http://schemas.android.com/apk/res/android">
++    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
++    <uses-permission android:name="android.permission.INTERNET"/>
++  </manifest>
+diff --git a/node_modules/@capacitor-community/admob/android/bin/src/main/java/com/getcapacitor/community/admob/AdMob.class b/node_modules/@capacitor-community/admob/android/bin/src/main/java/com/getcapacitor/community/admob/AdMob.class
+new file mode 100644
+index 0000000..3758357
+Binary files /dev/null and b/node_modules/@capacitor-community/admob/android/bin/src/main/java/com/getcapacitor/community/admob/AdMob.class differ
+diff --git a/node_modules/@capacitor-community/admob/android/bin/src/main/java/com/getcapacitor/community/admob/banner/BannerAdPluginEvents.kt b/node_modules/@capacitor-community/admob/android/bin/src/main/java/com/getcapacitor/community/admob/banner/BannerAdPluginEvents.kt
+new file mode 100644
+index 0000000..268e39b
+--- /dev/null
++++ b/node_modules/@capacitor-community/admob/android/bin/src/main/java/com/getcapacitor/community/admob/banner/BannerAdPluginEvents.kt
+@@ -0,0 +1,11 @@
++package com.getcapacitor.community.admob.banner
++
++enum class BannerAdPluginEvents(val webEventName: String) {
++    SizeChanged("bannerAdSizeChanged"),
++    Closed("bannerAdClosed"),
++    FailedToLoad("bannerAdFailedToLoad"),
++    Opened("bannerAdOpened"),
++    Loaded("bannerAdLoaded"),
++    Clicked("bannerAdClicked"),
++    AdImpression("bannerAdImpression"),
++}
+\ No newline at end of file
+diff --git a/node_modules/@capacitor-community/admob/android/bin/src/main/java/com/getcapacitor/community/admob/banner/BannerAdSizeEnum.kt b/node_modules/@capacitor-community/admob/android/bin/src/main/java/com/getcapacitor/community/admob/banner/BannerAdSizeEnum.kt
+new file mode 100644
+index 0000000..01793ae
+--- /dev/null
++++ b/node_modules/@capacitor-community/admob/android/bin/src/main/java/com/getcapacitor/community/admob/banner/BannerAdSizeEnum.kt
+@@ -0,0 +1,20 @@
++package com.getcapacitor.community.admob.banner
++
++import com.google.android.gms.ads.AdSize
++
++/**
++ * https://developers.google.com/admob/android/banner#banner_sizes
++ */
++enum class BannerAdSizeEnum(val size: AdSize) {
++    BANNER(AdSize.BANNER),
++    FULL_BANNER(AdSize.FULL_BANNER),
++    LARGE_BANNER(AdSize.LARGE_BANNER),
++    MEDIUM_RECTANGLE(AdSize.MEDIUM_RECTANGLE),
++    LEADERBOARD(AdSize.LEADERBOARD),
++    ADAPTIVE_BANNER(AdSize.INVALID), // We should not use the AdSize here but calculate the device size
++    SMART_BANNER(AdSize.SMART_BANNER);
++
++    override fun toString(): String {
++        return name
++    }
++}
+\ No newline at end of file
+diff --git a/node_modules/@capacitor-community/admob/android/bin/src/main/java/com/getcapacitor/community/admob/banner/BannerAdSizeInfo.kt b/node_modules/@capacitor-community/admob/android/bin/src/main/java/com/getcapacitor/community/admob/banner/BannerAdSizeInfo.kt
+new file mode 100644
+index 0000000..a6e3982
+--- /dev/null
++++ b/node_modules/@capacitor-community/admob/android/bin/src/main/java/com/getcapacitor/community/admob/banner/BannerAdSizeInfo.kt
+@@ -0,0 +1,17 @@
++package com.getcapacitor.community.admob.banner
++
++import com.getcapacitor.JSObject
++import com.google.android.gms.ads.AdError
++import com.google.android.gms.ads.AdView
++import java.util.*
++
++data class BannerAdSizeInfo(val width: Int, val height: Int) : JSObject() {
++    override fun put(key: String, value: Int): JSObject {
++        throw Exception("Do not put elements directly here use the constructor")
++    }
++    init {
++        super.put("width", width)
++        super.put("height", height)
++    }
++    constructor(mAdView: AdView): this(Objects.requireNonNull(mAdView.adSize)!!.width, Objects.requireNonNull(mAdView.adSize)!!.height)
++}
+diff --git a/node_modules/@capacitor-community/admob/android/bin/src/main/java/com/getcapacitor/community/admob/banner/BannerExecutor.class b/node_modules/@capacitor-community/admob/android/bin/src/main/java/com/getcapacitor/community/admob/banner/BannerExecutor.class
+new file mode 100644
+index 0000000..7db8b5d
+Binary files /dev/null and b/node_modules/@capacitor-community/admob/android/bin/src/main/java/com/getcapacitor/community/admob/banner/BannerExecutor.class differ
+diff --git a/node_modules/@capacitor-community/admob/android/bin/src/main/java/com/getcapacitor/community/admob/consent/AdConsentExecutor.class b/node_modules/@capacitor-community/admob/android/bin/src/main/java/com/getcapacitor/community/admob/consent/AdConsentExecutor.class
+new file mode 100644
+index 0000000..dfcc657
+Binary files /dev/null and b/node_modules/@capacitor-community/admob/android/bin/src/main/java/com/getcapacitor/community/admob/consent/AdConsentExecutor.class differ
+diff --git a/node_modules/@capacitor-community/admob/android/bin/src/main/java/com/getcapacitor/community/admob/helpers/AdViewIdHelper.class b/node_modules/@capacitor-community/admob/android/bin/src/main/java/com/getcapacitor/community/admob/helpers/AdViewIdHelper.class
+new file mode 100644
+index 0000000..9e1396c
+Binary files /dev/null and b/node_modules/@capacitor-community/admob/android/bin/src/main/java/com/getcapacitor/community/admob/helpers/AdViewIdHelper.class differ
+diff --git a/node_modules/@capacitor-community/admob/android/bin/src/main/java/com/getcapacitor/community/admob/helpers/AuthorizationStatusEnum.kt b/node_modules/@capacitor-community/admob/android/bin/src/main/java/com/getcapacitor/community/admob/helpers/AuthorizationStatusEnum.kt
+new file mode 100644
+index 0000000..1b4632e
+--- /dev/null
++++ b/node_modules/@capacitor-community/admob/android/bin/src/main/java/com/getcapacitor/community/admob/helpers/AuthorizationStatusEnum.kt
+@@ -0,0 +1,5 @@
++package com.getcapacitor.community.admob.helpers
++
++enum class AuthorizationStatusEnum(val status: String) {
++    AUTHORIZED("authorized");
++}
+\ No newline at end of file
+diff --git a/node_modules/@capacitor-community/admob/android/bin/src/main/java/com/getcapacitor/community/admob/helpers/FullscreenPluginCallback.kt b/node_modules/@capacitor-community/admob/android/bin/src/main/java/com/getcapacitor/community/admob/helpers/FullscreenPluginCallback.kt
+new file mode 100644
+index 0000000..a9e37aa
+--- /dev/null
++++ b/node_modules/@capacitor-community/admob/android/bin/src/main/java/com/getcapacitor/community/admob/helpers/FullscreenPluginCallback.kt
+@@ -0,0 +1,27 @@
++package com.getcapacitor.community.admob.helpers
++
++import com.getcapacitor.JSObject
++import com.getcapacitor.community.admob.models.AdMobPluginError
++import com.getcapacitor.community.admob.models.LoadPluginEventNames
++import com.google.android.gms.ads.AdError
++import com.google.android.gms.ads.FullScreenContentCallback
++import com.google.android.gms.common.util.BiConsumer
++
++class FullscreenPluginCallback(private val loadPluginObject: LoadPluginEventNames,
++                               private val notifyListenersFunction: BiConsumer<String, JSObject>): FullScreenContentCallback() {
++
++    override fun onAdShowedFullScreenContent() {
++        notifyListenersFunction.accept(loadPluginObject.Showed, JSObject())
++    }
++
++    override fun onAdFailedToShowFullScreenContent(adError: AdError) {
++        val adMobError = AdMobPluginError(adError)
++        notifyListenersFunction.accept(
++                loadPluginObject.FailedToShow, adMobError
++        )
++    }
++
++    override fun onAdDismissedFullScreenContent() {
++        notifyListenersFunction.accept(loadPluginObject.Dismissed, JSObject())
++    }
++}
+\ No newline at end of file
+diff --git a/node_modules/@capacitor-community/admob/android/bin/src/main/java/com/getcapacitor/community/admob/helpers/RequestHelper.class b/node_modules/@capacitor-community/admob/android/bin/src/main/java/com/getcapacitor/community/admob/helpers/RequestHelper.class
+new file mode 100644
+index 0000000..77d3745
+Binary files /dev/null and b/node_modules/@capacitor-community/admob/android/bin/src/main/java/com/getcapacitor/community/admob/helpers/RequestHelper.class differ
+diff --git a/node_modules/@capacitor-community/admob/android/bin/src/main/java/com/getcapacitor/community/admob/interstitial/AdInterstitialExecutor.class b/node_modules/@capacitor-community/admob/android/bin/src/main/java/com/getcapacitor/community/admob/interstitial/AdInterstitialExecutor.class
+new file mode 100644
+index 0000000..ac084ab
+Binary files /dev/null and b/node_modules/@capacitor-community/admob/android/bin/src/main/java/com/getcapacitor/community/admob/interstitial/AdInterstitialExecutor.class differ
+diff --git a/node_modules/@capacitor-community/admob/android/bin/src/main/java/com/getcapacitor/community/admob/interstitial/InterstitialAdCallbackAndListeners.kt b/node_modules/@capacitor-community/admob/android/bin/src/main/java/com/getcapacitor/community/admob/interstitial/InterstitialAdCallbackAndListeners.kt
+new file mode 100644
+index 0000000..1aaf6f7
+--- /dev/null
++++ b/node_modules/@capacitor-community/admob/android/bin/src/main/java/com/getcapacitor/community/admob/interstitial/InterstitialAdCallbackAndListeners.kt
+@@ -0,0 +1,40 @@
++package com.getcapacitor.community.admob.interstitial
++
++import com.getcapacitor.JSObject
++import com.getcapacitor.PluginCall
++import com.getcapacitor.community.admob.helpers.FullscreenPluginCallback
++import com.getcapacitor.community.admob.models.AdMobPluginError
++import com.google.android.gms.ads.LoadAdError
++import com.google.android.gms.ads.interstitial.InterstitialAd
++import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback
++import com.google.android.gms.common.util.BiConsumer
++
++object InterstitialAdCallbackAndListeners {
++
++    fun getInterstitialAdLoadCallback(call: PluginCall,
++                                      notifyListenersFunction: BiConsumer<String, JSObject>,
++    ): InterstitialAdLoadCallback {
++        return object : InterstitialAdLoadCallback() {
++            override fun onAdLoaded(ad: InterstitialAd) {
++                val immersiveMode = call.getBoolean("immersiveMode")
++                ad.fullScreenContentCallback = FullscreenPluginCallback(InterstitialAdPluginPluginEvent, notifyListenersFunction)
++                ad.setImmersiveMode(immersiveMode ?: false)
++
++                AdInterstitialExecutor.interstitialAd = ad
++
++                val adInfo = JSObject()
++                adInfo.put("adUnitId", ad.adUnitId)
++                call.resolve(adInfo)
++
++                notifyListenersFunction.accept(InterstitialAdPluginPluginEvent.Loaded, adInfo)
++            }
++
++            override fun onAdFailedToLoad(adError: LoadAdError) {
++                val adMobError = AdMobPluginError(adError)
++
++                notifyListenersFunction.accept(InterstitialAdPluginPluginEvent.FailedToLoad, adMobError)
++                call.reject(adError.message)
++            }
++        }
++    }
++}
+\ No newline at end of file
+diff --git a/node_modules/@capacitor-community/admob/android/bin/src/main/java/com/getcapacitor/community/admob/interstitial/InterstitialAdPluginPluginEvent.kt b/node_modules/@capacitor-community/admob/android/bin/src/main/java/com/getcapacitor/community/admob/interstitial/InterstitialAdPluginPluginEvent.kt
+new file mode 100644
+index 0000000..2cef74a
+--- /dev/null
++++ b/node_modules/@capacitor-community/admob/android/bin/src/main/java/com/getcapacitor/community/admob/interstitial/InterstitialAdPluginPluginEvent.kt
+@@ -0,0 +1,11 @@
++package com.getcapacitor.community.admob.interstitial
++
++import com.getcapacitor.community.admob.models.LoadPluginEventNames
++
++object InterstitialAdPluginPluginEvent: LoadPluginEventNames {
++    const val Loaded = "interstitialAdLoaded"
++    const val FailedToLoad = "interstitialAdFailedToLoad"
++    override val Showed = "interstitialAdShowed"
++    override val FailedToShow = "interstitialAdFailedToShow"
++    override val Dismissed = "interstitialAdDismissed"
++}
+\ No newline at end of file
+diff --git a/node_modules/@capacitor-community/admob/android/bin/src/main/java/com/getcapacitor/community/admob/models/AdMobPluginError.kt b/node_modules/@capacitor-community/admob/android/bin/src/main/java/com/getcapacitor/community/admob/models/AdMobPluginError.kt
+new file mode 100644
+index 0000000..82540fb
+--- /dev/null
++++ b/node_modules/@capacitor-community/admob/android/bin/src/main/java/com/getcapacitor/community/admob/models/AdMobPluginError.kt
+@@ -0,0 +1,15 @@
++package com.getcapacitor.community.admob.models
++
++import com.getcapacitor.JSObject
++import com.google.android.gms.ads.AdError
++
++data class AdMobPluginError(val code: Int, val message: String) : JSObject() {
++    override fun put(key: String, value: Int): JSObject {
++        throw Exception("Do not put elements directly here use the constructor")
++    }
++    init {
++        super.put("code", this.code)
++        super.put("message", this.message)
++    }
++    constructor(adError: AdError): this(adError.code, adError.message)
++}
+diff --git a/node_modules/@capacitor-community/admob/android/bin/src/main/java/com/getcapacitor/community/admob/models/AdOptions$AdOptionsFactory.class b/node_modules/@capacitor-community/admob/android/bin/src/main/java/com/getcapacitor/community/admob/models/AdOptions$AdOptionsFactory.class
+new file mode 100644
+index 0000000..17be95d
+Binary files /dev/null and b/node_modules/@capacitor-community/admob/android/bin/src/main/java/com/getcapacitor/community/admob/models/AdOptions$AdOptionsFactory.class differ
+diff --git a/node_modules/@capacitor-community/admob/android/bin/src/main/java/com/getcapacitor/community/admob/models/AdOptions$TesterAdOptionsBuilder.class b/node_modules/@capacitor-community/admob/android/bin/src/main/java/com/getcapacitor/community/admob/models/AdOptions$TesterAdOptionsBuilder.class
+new file mode 100644
+index 0000000..fee6d21
+Binary files /dev/null and b/node_modules/@capacitor-community/admob/android/bin/src/main/java/com/getcapacitor/community/admob/models/AdOptions$TesterAdOptionsBuilder.class differ
+diff --git a/node_modules/@capacitor-community/admob/android/bin/src/main/java/com/getcapacitor/community/admob/models/AdOptions.class b/node_modules/@capacitor-community/admob/android/bin/src/main/java/com/getcapacitor/community/admob/models/AdOptions.class
+new file mode 100644
+index 0000000..a4f24fb
+Binary files /dev/null and b/node_modules/@capacitor-community/admob/android/bin/src/main/java/com/getcapacitor/community/admob/models/AdOptions.class differ
+diff --git a/node_modules/@capacitor-community/admob/android/bin/src/main/java/com/getcapacitor/community/admob/models/Executor.class b/node_modules/@capacitor-community/admob/android/bin/src/main/java/com/getcapacitor/community/admob/models/Executor.class
+new file mode 100644
+index 0000000..95187fa
+Binary files /dev/null and b/node_modules/@capacitor-community/admob/android/bin/src/main/java/com/getcapacitor/community/admob/models/Executor.class differ
+diff --git a/node_modules/@capacitor-community/admob/android/bin/src/main/java/com/getcapacitor/community/admob/models/LoadPluginEventNames.kt b/node_modules/@capacitor-community/admob/android/bin/src/main/java/com/getcapacitor/community/admob/models/LoadPluginEventNames.kt
+new file mode 100644
+index 0000000..53289da
+--- /dev/null
++++ b/node_modules/@capacitor-community/admob/android/bin/src/main/java/com/getcapacitor/community/admob/models/LoadPluginEventNames.kt
+@@ -0,0 +1,7 @@
++package com.getcapacitor.community.admob.models
++
++interface LoadPluginEventNames {
++    val Showed: String
++    val FailedToShow: String
++    val Dismissed: String
++}
+\ No newline at end of file
+diff --git a/node_modules/@capacitor-community/admob/android/bin/src/main/java/com/getcapacitor/community/admob/rewarded/AdRewardExecutor.class b/node_modules/@capacitor-community/admob/android/bin/src/main/java/com/getcapacitor/community/admob/rewarded/AdRewardExecutor.class
+new file mode 100644
+index 0000000..b4618ca
+Binary files /dev/null and b/node_modules/@capacitor-community/admob/android/bin/src/main/java/com/getcapacitor/community/admob/rewarded/AdRewardExecutor.class differ
+diff --git a/node_modules/@capacitor-community/admob/android/bin/src/main/java/com/getcapacitor/community/admob/rewarded/RewardAdPluginEvents.kt b/node_modules/@capacitor-community/admob/android/bin/src/main/java/com/getcapacitor/community/admob/rewarded/RewardAdPluginEvents.kt
+new file mode 100644
+index 0000000..c491645
+--- /dev/null
++++ b/node_modules/@capacitor-community/admob/android/bin/src/main/java/com/getcapacitor/community/admob/rewarded/RewardAdPluginEvents.kt
+@@ -0,0 +1,12 @@
++package com.getcapacitor.community.admob.rewarded
++
++import com.getcapacitor.community.admob.models.LoadPluginEventNames
++
++object RewardAdPluginEvents: LoadPluginEventNames {
++    const val Loaded = "onRewardedVideoAdLoaded"
++    const val FailedToLoad = "onRewardedVideoAdFailedToLoad"
++    const val Rewarded = "onRewardedVideoAdReward"
++    override val Showed = "onRewardedVideoAdShowed"
++    override val FailedToShow = "onRewardedVideoAdFailedToShow"
++    override val Dismissed = "onRewardedVideoAdDismissed"
++}
+\ No newline at end of file
+diff --git a/node_modules/@capacitor-community/admob/android/bin/src/main/java/com/getcapacitor/community/admob/rewarded/RewardedAdCallbackAndListeners.kt b/node_modules/@capacitor-community/admob/android/bin/src/main/java/com/getcapacitor/community/admob/rewarded/RewardedAdCallbackAndListeners.kt
+new file mode 100644
+index 0000000..c465077
+--- /dev/null
++++ b/node_modules/@capacitor-community/admob/android/bin/src/main/java/com/getcapacitor/community/admob/rewarded/RewardedAdCallbackAndListeners.kt
+@@ -0,0 +1,66 @@
++package com.getcapacitor.community.admob.rewarded
++
++import com.getcapacitor.JSObject
++import com.getcapacitor.PluginCall
++import com.getcapacitor.community.admob.helpers.FullscreenPluginCallback
++import com.getcapacitor.community.admob.models.AdMobPluginError
++import com.getcapacitor.community.admob.models.AdOptions
++import com.google.android.gms.ads.LoadAdError
++import com.google.android.gms.ads.OnUserEarnedRewardListener
++import com.google.android.gms.ads.rewarded.RewardItem
++import com.google.android.gms.ads.rewarded.RewardedAd
++import com.google.android.gms.ads.rewarded.RewardedAdLoadCallback
++import com.google.android.gms.ads.rewarded.ServerSideVerificationOptions
++import com.google.android.gms.common.util.BiConsumer
++
++object RewardedAdCallbackAndListeners {
++
++    fun getOnUserEarnedRewardListener(call: PluginCall, notifyListenersFunction: BiConsumer<String, JSObject>): OnUserEarnedRewardListener {
++        return OnUserEarnedRewardListener { item: RewardItem ->
++            val response = JSObject()
++            response.put("type", item.type)
++                    .put("amount", item.amount)
++            notifyListenersFunction.accept(RewardAdPluginEvents.Rewarded, response)
++            call.resolve(response)
++        }
++    }
++
++    fun getRewardedAdLoadCallback(call: PluginCall, notifyListenersFunction: BiConsumer<String, JSObject>, adOptions: AdOptions): RewardedAdLoadCallback {
++        return object : RewardedAdLoadCallback() {
++            override fun onAdLoaded(ad: RewardedAd) {
++                val immersiveMode = call.getBoolean("immersiveMode")
++                ad.setImmersiveMode(immersiveMode ?: false)
++
++                AdRewardExecutor.mRewardedAd = ad
++                AdRewardExecutor.mRewardedAd.fullScreenContentCallback = FullscreenPluginCallback(
++                        RewardAdPluginEvents, notifyListenersFunction)
++
++                if(adOptions.ssvInfo.hasInfo){
++                    val ssvOptions = ServerSideVerificationOptions.Builder()
++                    adOptions.ssvInfo.customData?.let {
++                        ssvOptions.setCustomData(it)
++                    }
++
++                    adOptions.ssvInfo.userId?.let {
++                        ssvOptions.setUserId(it)
++                    }
++                    AdRewardExecutor.mRewardedAd.setServerSideVerificationOptions(ssvOptions.build())
++                }
++
++                val adInfo = JSObject()
++                adInfo.put("adUnitId", ad.adUnitId)
++                call.resolve(adInfo)
++
++                notifyListenersFunction.accept(RewardAdPluginEvents.Loaded, adInfo)
++            }
++
++            override fun onAdFailedToLoad(adError: LoadAdError) {
++                val adMobError = AdMobPluginError(adError)
++
++                notifyListenersFunction.accept(RewardAdPluginEvents.FailedToLoad, adMobError)
++                call.reject(adError.message)
++            }
++        }
++    }
++
++}
+\ No newline at end of file
+diff --git a/node_modules/@capacitor-community/admob/android/bin/src/main/java/com/getcapacitor/community/admob/rewarded/models/SsvInfo.kt b/node_modules/@capacitor-community/admob/android/bin/src/main/java/com/getcapacitor/community/admob/rewarded/models/SsvInfo.kt
+new file mode 100644
+index 0000000..48d8a52
+--- /dev/null
++++ b/node_modules/@capacitor-community/admob/android/bin/src/main/java/com/getcapacitor/community/admob/rewarded/models/SsvInfo.kt
+@@ -0,0 +1,20 @@
++package com.getcapacitor.community.admob.rewarded.models
++
++import com.getcapacitor.PluginCall
++
++class SsvInfo(
++    val customData: String? = null,
++    val userId: String? = null) {
++
++    constructor(pluginCall: PluginCall?) : this(
++        pluginCall?.getObject("ssv")?.getString("customData"),
++        pluginCall?.getObject("ssv")?.getString("userId")
++    )
++
++    constructor() : this(null, null)
++
++    val hasInfo
++        get(): Boolean {
++            return customData != null || userId != null
++        }
++}
+\ No newline at end of file
+diff --git a/node_modules/@capacitor-community/admob/android/bin/src/main/java/com/getcapacitor/community/admob/rewardedinterstitial/AdRewardInterstitialExecutor.class b/node_modules/@capacitor-community/admob/android/bin/src/main/java/com/getcapacitor/community/admob/rewardedinterstitial/AdRewardInterstitialExecutor.class
+new file mode 100644
+index 0000000..cebf6bc
+Binary files /dev/null and b/node_modules/@capacitor-community/admob/android/bin/src/main/java/com/getcapacitor/community/admob/rewardedinterstitial/AdRewardInterstitialExecutor.class differ
+diff --git a/node_modules/@capacitor-community/admob/android/bin/src/main/java/com/getcapacitor/community/admob/rewardedinterstitial/RewardInterstitialAdPluginEvents.kt b/node_modules/@capacitor-community/admob/android/bin/src/main/java/com/getcapacitor/community/admob/rewardedinterstitial/RewardInterstitialAdPluginEvents.kt
+new file mode 100644
+index 0000000..ce1c2ee
+--- /dev/null
++++ b/node_modules/@capacitor-community/admob/android/bin/src/main/java/com/getcapacitor/community/admob/rewardedinterstitial/RewardInterstitialAdPluginEvents.kt
+@@ -0,0 +1,12 @@
++package com.getcapacitor.community.admob.rewardedinterstitial
++
++import com.getcapacitor.community.admob.models.LoadPluginEventNames
++
++object RewardInterstitialAdPluginEvents: LoadPluginEventNames {
++    const val Loaded = "onRewardedInterstitialAdLoaded"
++    const val FailedToLoad = "onRewardedInterstitialAdFailedToLoad"
++    const val Rewarded = "onRewardedInterstitialAdReward"
++    override val Showed = "onRewardedInterstitialAdShowed"
++    override val FailedToShow = "onRewardedInterstitialAdFailedToShow"
++    override val Dismissed = "onRewardedInterstitialAdDismissed"
++}
+\ No newline at end of file
+diff --git a/node_modules/@capacitor-community/admob/android/bin/src/main/java/com/getcapacitor/community/admob/rewardedinterstitial/RewardedInterstitialAdCallbackAndListeners.kt b/node_modules/@capacitor-community/admob/android/bin/src/main/java/com/getcapacitor/community/admob/rewardedinterstitial/RewardedInterstitialAdCallbackAndListeners.kt
+new file mode 100644
+index 0000000..0648832
+--- /dev/null
++++ b/node_modules/@capacitor-community/admob/android/bin/src/main/java/com/getcapacitor/community/admob/rewardedinterstitial/RewardedInterstitialAdCallbackAndListeners.kt
+@@ -0,0 +1,50 @@
++package com.getcapacitor.community.admob.rewardedinterstitial
++
++import com.getcapacitor.JSObject
++import com.getcapacitor.PluginCall
++import com.getcapacitor.community.admob.helpers.FullscreenPluginCallback
++import com.getcapacitor.community.admob.models.AdMobPluginError
++import com.getcapacitor.community.admob.models.AdOptions
++import com.google.android.gms.ads.LoadAdError
++import com.google.android.gms.ads.OnUserEarnedRewardListener
++import com.google.android.gms.ads.rewarded.RewardItem
++import com.google.android.gms.ads.rewardedinterstitial.RewardedInterstitialAd
++import com.google.android.gms.ads.rewardedinterstitial.RewardedInterstitialAdLoadCallback
++import com.google.android.gms.common.util.BiConsumer
++
++object RewardedInterstitialAdCallbackAndListeners {
++
++    fun getOnUserEarnedRewardListener(call: PluginCall, notifyListenersFunction: BiConsumer<String, JSObject>): OnUserEarnedRewardListener {
++        return OnUserEarnedRewardListener { item: RewardItem ->
++            val response = JSObject()
++            response.put("type", item.type)
++                    .put("amount", item.amount)
++            notifyListenersFunction.accept(RewardInterstitialAdPluginEvents.Rewarded, response)
++            call.resolve(response)
++        }
++    }
++
++    fun getRewardedAdLoadCallback(call: PluginCall, notifyListenersFunction: BiConsumer<String, JSObject>, adOptions: AdOptions): RewardedInterstitialAdLoadCallback {
++        return object : RewardedInterstitialAdLoadCallback() {
++            override fun onAdLoaded(ad: RewardedInterstitialAd) {
++                AdRewardInterstitialExecutor.mRewardedInterstitialAd = ad
++                AdRewardInterstitialExecutor.mRewardedInterstitialAd.fullScreenContentCallback = FullscreenPluginCallback(
++                        RewardInterstitialAdPluginEvents, notifyListenersFunction)
++
++                val adInfo = JSObject()
++                adInfo.put("adUnitId", ad.adUnitId)
++                call.resolve(adInfo)
++
++                notifyListenersFunction.accept(RewardInterstitialAdPluginEvents.Loaded, adInfo)
++            }
++
++            override fun onAdFailedToLoad(adError: LoadAdError) {
++                val adMobError = AdMobPluginError(adError)
++
++                notifyListenersFunction.accept(RewardInterstitialAdPluginEvents.FailedToLoad, adMobError)
++                call.reject(adError.message)
++            }
++        }
++    }
++
++}
+\ No newline at end of file
+diff --git a/node_modules/@capacitor-community/admob/android/bin/src/main/java/com/getcapacitor/community/admob/rewardedinterstitial/models/SsvInfo.kt b/node_modules/@capacitor-community/admob/android/bin/src/main/java/com/getcapacitor/community/admob/rewardedinterstitial/models/SsvInfo.kt
+new file mode 100644
+index 0000000..34532ed
+--- /dev/null
++++ b/node_modules/@capacitor-community/admob/android/bin/src/main/java/com/getcapacitor/community/admob/rewardedinterstitial/models/SsvInfo.kt
+@@ -0,0 +1,20 @@
++package com.getcapacitor.community.admob.rewardedinterstitial.models
++
++import com.getcapacitor.PluginCall
++
++class SsvInfo(
++    val customData: String? = null,
++    val userId: String? = null) {
++
++    constructor(pluginCall: PluginCall?) : this(
++        pluginCall?.getObject("ssv")?.getString("customData"),
++        pluginCall?.getObject("ssv")?.getString("userId")
++    )
++
++    constructor() : this(null, null)
++
++    val hasInfo
++        get(): Boolean {
++            return customData != null || userId != null
++        }
++}
+\ No newline at end of file
+diff --git a/node_modules/@capacitor-community/admob/android/build.gradle b/node_modules/@capacitor-community/admob/android/build.gradle
+index 1056a18..13d21f7 100644
+--- a/node_modules/@capacitor-community/admob/android/build.gradle
++++ b/node_modules/@capacitor-community/admob/android/build.gradle
+@@ -37,7 +37,7 @@ android {
+     buildTypes {
+         release {
+             minifyEnabled false
+-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
++            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+         }
+     }
+     lintOptions {

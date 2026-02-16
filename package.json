@@ -4,13 +4,14 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "postinstall": "patch-package"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@capacitor-community/admob": "^7.0.3",
+    "@capacitor-community/admob": "^8.0.0",
     "@capacitor-community/speech-recognition": "^7.0.1",
     "@capacitor-community/text-to-speech": "^6.0.0",
     "@capacitor/android": "^7.5.0",
@@ -30,6 +31,7 @@
   },
   "devDependencies": {
     "@capacitor/assets": "^3.0.5",
-    "@capacitor/cli": "^7.5.0"
+    "@capacitor/cli": "^7.5.0",
+    "patch-package": "^8.0.1"
   }
 }

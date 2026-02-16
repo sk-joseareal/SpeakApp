@@ -13,16 +13,16 @@
     "@capacitor-community/admob": "^7.0.3",
     "@capacitor-community/speech-recognition": "^7.0.1",
     "@capacitor-community/text-to-speech": "^6.0.0",
-    "@capacitor/android": "^7.4.2",
-    "@capacitor/app": "^7.0.1",
-    "@capacitor/browser": "^7.0.1",
-    "@capacitor/core": "^7.4.2",
-    "@capacitor/filesystem": "^7.1.3",
+    "@capacitor/android": "^7.5.0",
+    "@capacitor/app": "^7.1.2",
+    "@capacitor/browser": "^7.0.4",
+    "@capacitor/core": "^7.5.0",
+    "@capacitor/filesystem": "^7.1.8",
     "@capacitor/ios": "^7.4.2",
-    "@capacitor/keyboard": "^7.0.1",
-    "@capacitor/push-notifications": "^7.0.1",
-    "@capacitor/splash-screen": "^7.0.1",
-    "@capacitor/status-bar": "^7.0.1",
+    "@capacitor/keyboard": "^7.0.4",
+    "@capacitor/push-notifications": "^7.0.5",
+    "@capacitor/splash-screen": "^7.0.5",
+    "@capacitor/status-bar": "^7.0.5",
     "@sokinternet/p4w4": "file:./plugins/p4w4",
     "apn": "^2.2.0",
     "cordova-plugin-purchase": "^13.11.1",
@@ -30,6 +30,6 @@
   },
   "devDependencies": {
     "@capacitor/assets": "^3.0.5",
-    "@capacitor/cli": "^7.4.4"
+    "@capacitor/cli": "^7.5.0"
   }
 }

@@ -9,7 +9,7 @@
 
   window.appMeta = window.appMeta || {
     version: window.APP_VERSION || '1.0.0',
-    build: window.APP_BUILD || '7'
+    build: window.APP_BUILD || '8'
   };
 
   const emitAppMeta = () => {

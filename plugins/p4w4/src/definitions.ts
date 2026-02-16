@@ -6,4 +6,5 @@ export interface P4w4PluginPlugin {
   getStatusBarHeight(): Promise<{ height: number }>;
   setStartupHtml(options: { file: string }): Promise<void>;
   resetBadgeCount(): Promise<void>;
+  playNotificationBell(options?: { soundId?: number; durationMs?: number; vibrate?: boolean }): Promise<{ started?: boolean; stream?: number; vibrated?: boolean; mode?: string } | void>;
 }

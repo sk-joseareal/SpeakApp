@@ -2,6 +2,7 @@ import Foundation
 import Capacitor
 import UIKit
 import Speech
+import AudioToolbox
 
 /**
  * Please read the Capacitor iOS Plugin Development Guide
@@ -21,7 +22,8 @@ public class P4w4PluginPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "reloadWebView", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "restartApp", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "transcribeAudio", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "resetBadgeCount", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "resetBadgeCount", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "playNotificationBell", returnType: CAPPluginReturnPromise)
     ]
     private let implementation = P4w4Plugin()
 
@@ -249,6 +251,15 @@ public class P4w4PluginPlugin: CAPPlugin, CAPBridgedPlugin {
         DispatchQueue.main.async {
             UIApplication.shared.applicationIconBadgeNumber = 0
             print(">#P4w4Plugin#> resetBadgeCount: Badge de icono puesto a 0");
+            call.resolve()
+        }
+    }
+
+    @objc func playNotificationBell(_ call: CAPPluginCall) {
+        let soundIdInt = call.getInt("soundId") ?? 1007
+        let soundId = SystemSoundID(soundIdInt)
+        DispatchQueue.main.async {
+            AudioServicesPlaySystemSound(soundId)
             call.resolve()
         }
     }

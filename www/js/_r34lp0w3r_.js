@@ -713,6 +713,139 @@ function logFullObject(label, obj, depth = 2, prefix = '') {
   }
 }
 
+function queuePushInboxNotification(raw, source) {
+  try {
+    const payload = {
+      source: source || 'push',
+      raw: raw || null,
+      received_at: Date.now()
+    };
+    if (typeof window.addPushNotification === 'function') {
+      window.addPushNotification(payload);
+      return;
+    }
+    if (!Array.isArray(window.__pendingPushInbox)) {
+      window.__pendingPushInbox = [];
+    }
+    window.__pendingPushInbox.push(payload);
+  } catch (err) {
+    console.error('>#C04#> queuePushInboxNotification error:', err);
+  }
+}
+
+function setupPushForegroundBellUnlock() {
+  if (window.__pushBellUnlockSetup) return;
+  window.__pushBellUnlockSetup = true;
+
+  const unlock = function() {
+    try {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return;
+      if (!window.__pushBellCtx) {
+        window.__pushBellCtx = new Ctx();
+      }
+      if (window.__pushBellCtx && window.__pushBellCtx.state === 'suspended') {
+        window.__pushBellCtx.resume().catch(function() {});
+      }
+    } catch (err) {
+      // no-op
+    }
+  };
+
+  window.addEventListener('pointerdown', unlock, { passive: true });
+  window.addEventListener('touchstart', unlock, { passive: true });
+  window.addEventListener('keydown', unlock, { passive: true });
+}
+
+function playPushForegroundBellWeb() {
+  try {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return;
+
+    const ctx = window.__pushBellCtx || (window.__pushBellCtx = new Ctx());
+    const renderBell = function() {
+      const now = ctx.currentTime;
+      const master = ctx.createGain();
+      master.connect(ctx.destination);
+      master.gain.setValueAtTime(0.0001, now);
+      master.gain.exponentialRampToValueAtTime(0.12, now + 0.015);
+      master.gain.exponentialRampToValueAtTime(0.0001, now + 0.42);
+
+      const toneA = ctx.createOscillator();
+      toneA.type = 'sine';
+      toneA.frequency.setValueAtTime(1568, now);
+      toneA.frequency.exponentialRampToValueAtTime(1319, now + 0.30);
+      toneA.connect(master);
+      toneA.start(now);
+      toneA.stop(now + 0.33);
+
+      const toneB = ctx.createOscillator();
+      const toneBGain = ctx.createGain();
+      toneBGain.gain.setValueAtTime(0.35, now);
+      toneB.type = 'triangle';
+      toneB.frequency.setValueAtTime(1047, now + 0.06);
+      toneB.frequency.exponentialRampToValueAtTime(880, now + 0.34);
+      toneB.connect(toneBGain);
+      toneBGain.connect(master);
+      toneB.start(now + 0.06);
+      toneB.stop(now + 0.35);
+    };
+
+    if (ctx.state === 'suspended') {
+      ctx.resume().then(renderBell).catch(function() {});
+      return;
+    }
+    renderBell();
+  } catch (err) {
+    console.error('>#C04#> playPushForegroundBellWeb error:', err);
+  }
+}
+
+function playPushForegroundBell() {
+  let plugin = null;
+  try {
+    plugin = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.P4w4Plugin;
+  } catch (err) {
+    plugin = null;
+  }
+
+  if (!plugin || typeof plugin.playNotificationBell !== 'function') {
+    console.log('>#C04#> playPushForegroundBell: native not available -> web');
+    playPushForegroundBellWeb();
+    return;
+  }
+
+  console.log('>#C04#> playPushForegroundBell: trying native');
+  let done = false;
+  const timer = setTimeout(function() {
+    if (done) return;
+    done = true;
+    console.warn('>#C04#> playPushForegroundBell native timeout -> web fallback');
+    playPushForegroundBellWeb();
+  }, 220);
+
+  plugin.playNotificationBell({ durationMs: 170, vibrate: true }).then(function(result) {
+    if (done) return;
+    done = true;
+    clearTimeout(timer);
+    if (result && result.started === false) {
+      console.warn('>#C04#> playPushForegroundBell: native reported no tone -> web fallback', result);
+      playPushForegroundBellWeb();
+      return;
+    }
+    console.log('>#C04#> playPushForegroundBell: native success', result || '');
+  }).catch(function(err) {
+    if (done) return;
+    done = true;
+    clearTimeout(timer);
+    console.warn('>#C04#> playPushForegroundBell native error -> web fallback:', err);
+    playPushForegroundBellWeb();
+  });
+}
+
+window.playPushForegroundBell = playPushForegroundBell;
+window.playPushForegroundBellWeb = playPushForegroundBellWeb;
+
 
 
 async function PushNotificationsInit()
@@ -720,6 +853,7 @@ async function PushNotificationsInit()
   console.log(">#C04#> PushNotificationsInit.")
 
   const Push = Capacitor.Plugins.PushNotifications;
+  setupPushForegroundBellUnlock();
 
   // Permiso (obligatorio en Android 13+)
   console.log(">#C04#> PushNotificationsInit: requestPermissions().");
@@ -761,12 +895,15 @@ async function PushNotificationsInit()
     logFullObject(">#C04#> PushNotifications: pushNotificationReceived. notification:",notification)
     Rlog()
     Rlog(">#C04#> pushNotificationReceived: notification:" + JSON.stringify(notification))
+    playPushForegroundBell()
+    queuePushInboxNotification(notification, 'pushNotificationReceived')
   });
 
   Push.addListener('pushNotificationActionPerformed', function(action) {
     logFullObject(">#C04#> PushNotifications: pushNotificationActionPerformed. action:",action)
     Rlog()
-    Rlog(">#C04#> pushNotificationActionPerformed: action:" + JSON.stringify(notification))    
+    Rlog(">#C04#> pushNotificationActionPerformed: action:" + JSON.stringify(action))
+    queuePushInboxNotification(action && action.notification ? action.notification : action, 'pushNotificationActionPerformed')
   });
 
   console.log(">#C04#> PushNotificationsInit: Listeners de PushNotifications registrados correctamente.");
@@ -791,6 +928,7 @@ async function PushNotificationsInit()
 
   window.addEventListener('pushNotificationTap', function(e) {
     console.log('>#C04#> pushNotificationTap: 📥 Notificación recibida al abrir (nativo):', JSON.stringify(e.detail));
+    queuePushInboxNotification(e && e.detail ? e.detail : null, 'pushNotificationTap')
   });
 
   console.log(">#C04#> PushNotificationsInit: Listeners apnsToken, fcmToken y pushNotificationTap registrados correctamente.");

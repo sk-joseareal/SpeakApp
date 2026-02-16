@@ -12,8 +12,17 @@ import android.util.Log;
 import android.graphics.Color;
 
 import android.content.Context;
+import android.media.AudioManager;
+import android.media.ToneGenerator;
+import android.media.AudioAttributes;
+import android.media.Ringtone;
+import android.media.RingtoneManager;
 
 import android.os.Process;
+import android.os.Build;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
+import android.os.VibratorManager;
 
 import android.webkit.WebView;
 
@@ -478,6 +487,144 @@ public class P4w4PluginPlugin extends Plugin {
 
 
 
+
+    private int pickAudibleStream(AudioManager audioManager) {
+        if (audioManager == null) {
+            return AudioManager.STREAM_MUSIC;
+        }
+
+        int[] preferredStreams = new int[] {
+            AudioManager.STREAM_NOTIFICATION,
+            AudioManager.STREAM_RING,
+            AudioManager.STREAM_MUSIC,
+            AudioManager.STREAM_ALARM,
+            AudioManager.STREAM_SYSTEM
+        };
+        for (int stream : preferredStreams) {
+            try {
+                if (audioManager.getStreamVolume(stream) > 0) {
+                    return stream;
+                }
+            } catch (Exception ignored) {
+            }
+        }
+        return AudioManager.STREAM_MUSIC;
+    }
+
+    private boolean triggerShortVibration(int durationMs) {
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                VibratorManager vibratorManager = (VibratorManager) getContext().getSystemService(Context.VIBRATOR_MANAGER_SERVICE);
+                if (vibratorManager == null) {
+                    return false;
+                }
+                Vibrator vibrator = vibratorManager.getDefaultVibrator();
+                if (vibrator == null || !vibrator.hasVibrator()) {
+                    return false;
+                }
+                VibrationEffect effect = VibrationEffect.createOneShot(durationMs, VibrationEffect.DEFAULT_AMPLITUDE);
+                vibrator.vibrate(effect);
+                return true;
+            }
+
+            Vibrator vibrator = (Vibrator) getContext().getSystemService(Context.VIBRATOR_SERVICE);
+            if (vibrator == null || !vibrator.hasVibrator()) {
+                return false;
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                VibrationEffect effect = VibrationEffect.createOneShot(durationMs, VibrationEffect.DEFAULT_AMPLITUDE);
+                vibrator.vibrate(effect);
+            } else {
+                vibrator.vibrate(durationMs);
+            }
+            return true;
+        } catch (Exception ignored) {
+            return false;
+        }
+    }
+
+    @PluginMethod
+    public void playNotificationBell(PluginCall call) {
+        int durationMs = 170;
+        Integer customDuration = call.getInt("durationMs");
+        if (customDuration != null && customDuration > 0) {
+            durationMs = Math.max(40, Math.min(customDuration, 1500));
+        }
+        Integer customTone = call.getInt("soundId");
+        final int toneType = customTone != null ? customTone : ToneGenerator.TONE_PROP_BEEP2;
+        Boolean vibrateOption = call.getBoolean("vibrate");
+        final boolean shouldVibrate = vibrateOption == null || vibrateOption;
+
+        final int toneDuration = durationMs;
+
+        getActivity().runOnUiThread(() -> {
+            ToneGenerator tone = null;
+            int usedStream = AudioManager.STREAM_NOTIFICATION;
+            boolean started = false;
+            boolean vibrated = false;
+            String mode = "none";
+            try {
+                Uri ringtoneUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+                if (ringtoneUri == null) {
+                    ringtoneUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE);
+                }
+                if (ringtoneUri != null) {
+                    Ringtone ringtone = RingtoneManager.getRingtone(getContext(), ringtoneUri);
+                    if (ringtone != null) {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                            ringtone.setAudioAttributes(
+                                new AudioAttributes.Builder()
+                                    .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+                                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                                    .build()
+                            );
+                        }
+                        ringtone.play();
+                        started = true;
+                        mode = "ringtone";
+                    }
+                }
+
+                if (!started) {
+                    AudioManager audioManager = (AudioManager) getContext().getSystemService(Context.AUDIO_SERVICE);
+                    usedStream = pickAudibleStream(audioManager);
+                    tone = new ToneGenerator(usedStream, 100);
+                    started = tone.startTone(toneType, toneDuration);
+
+                    if (!started && usedStream != AudioManager.STREAM_MUSIC) {
+                        tone.release();
+                        tone = new ToneGenerator(AudioManager.STREAM_MUSIC, 100);
+                        usedStream = AudioManager.STREAM_MUSIC;
+                        started = tone.startTone(toneType, toneDuration);
+                    }
+
+                    ToneGenerator finalTone = tone;
+                    new Handler(Looper.getMainLooper()).postDelayed(finalTone::release, toneDuration + 80L);
+                    mode = "tone";
+                }
+
+                if (shouldVibrate) {
+                    int vibrationMs = Math.max(60, Math.min(toneDuration, 220));
+                    vibrated = triggerShortVibration(vibrationMs);
+                }
+
+                JSObject ret = new JSObject();
+                ret.put("started", started);
+                ret.put("stream", usedStream);
+                ret.put("vibrated", vibrated);
+                ret.put("mode", mode);
+                call.resolve(ret);
+            } catch (Exception e) {
+                if (tone != null) {
+                    tone.release();
+                }
+                if (shouldVibrate) {
+                    triggerShortVibration(Math.max(60, Math.min(toneDuration, 220)));
+                }
+                call.reject("No se pudo reproducir tono: " + e.getMessage());
+            }
+        });
+    }
 
     @PluginMethod
     public void restartApp(PluginCall call) {

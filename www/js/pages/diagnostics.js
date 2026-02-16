@@ -86,6 +86,7 @@ class PageDiagnostics extends HTMLElement {
             <p>Token fcm: <strong>${window.__fcmToken ? window.__fcmToken : 'n/a'}</strong></p>
             <p>Token APNs: <strong>${window.__APNsToken ? window.__APNsToken : 'n/a' }</strong></p>
             <div class="diag-actions">
+              <ion-button size="small" fill="outline" id="pn-bell">Probar campana</ion-button>
               <ion-button size="small" fill="outline" id="pn-10s">Recibir en 10 segundos</ion-button>
             </div>
 
@@ -540,6 +541,7 @@ class PageDiagnostics extends HTMLElement {
     // Controles de Notificaciones Push
     const hasPushPlugin =
       !!(window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.PushNotifications);
+    bind('#pn-bell', 'playPushForegroundBell', true);
     bind('#pn-10s', platform == 'ios' ? 'enviarPushAPNS10' : 'enviarPushFCM10', hasPushPlugin);
 
     // Controles de AdMob

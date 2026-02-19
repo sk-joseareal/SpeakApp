@@ -19,11 +19,12 @@ const path = require('path');
 
 // Parsear argumentos de línea de comandos
 const args = minimist(process.argv.slice(2), {
-  string: ['token', 'title', 'body', 'env', 'production'],
+  string: ['token', 'title', 'body', 'destination', 'env', 'production'],
   default: {
     title: '¡Hola!',
     body: 'Esto es una prueba de notificación push',
     delay: 0,
+    destination: 'cursoingles',
     env: 'auto'
   }
 });
@@ -49,6 +50,16 @@ function parseEnvironment(rawEnv, rawProduction) {
     if (value === '0' || value === 'false') return 'sandbox';
   }
   return 'auto';
+}
+
+function resolveTopic(destination) {
+  const value = String(destination || '').trim();
+  if (!value) return 'com.sokinternet.cursoingles';
+  if (value.startsWith('com.')) return value;
+  if (!/^[a-z0-9.-]+$/i.test(value)) {
+    throw new Error(`Destino invalido para topic APNs: ${value}`);
+  }
+  return `com.sokinternet.${value}`;
 }
 
 function createApnProvider(production) {
@@ -95,8 +106,7 @@ notification.alert = {
 
 notification.badge = 1;                             // Muestra el número en el icono de la app
 notification.sound = "default";                     // Sonido por defecto
-//notification.topic = "com.sokinternet.cursoingles"; // Bundle ID de la app
-notification.topic = "com.sokinternet.speak"; // Bundle ID de la app
+notification.topic = resolveTopic(args.destination); // Bundle ID de la app
 
 async function sendWithEnvironment(production) {
   const apnProvider = createApnProvider(production);

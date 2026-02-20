@@ -80,6 +80,35 @@ const parseCoachUserId = (channel) => {
   return match ? match[1] : null;
 };
 
+const pickFirstString = (...values) => {
+  for (let i = 0; i < values.length; i += 1) {
+    const value = values[i];
+    if (value === undefined || value === null) continue;
+    const text = String(value).trim();
+    if (text) return text;
+  }
+  return '';
+};
+
+const extractChatUserMeta = (data, channel) => {
+  const source = data && typeof data === 'object' ? data : {};
+  const userId = pickFirstString(source.user_id, source.userId, source.id, parseCoachUserId(channel));
+  const userName = pickFirstString(source.user_name, source.userName, source.name);
+  return { userId, userName };
+};
+
+const logChatbotInteraction = ({ channel, text, userId, userName }) => {
+  const payload = {
+    timestamp: new Date().toISOString(),
+    channel: channel || '',
+    coach_id: chatbotCoachId,
+    user_id: userId || '',
+    user_name: userName || '',
+    text: text || ''
+  };
+  console.log('[chatbot] interaction', JSON.stringify(payload));
+};
+
 const estimateOpenAITokenCost = (tokenCount, ratePerMillion) => {
   if (!Number.isFinite(tokenCount) || !Number.isFinite(ratePerMillion)) return 0;
   return (tokenCount / 1_000_000) * ratePerMillion;
@@ -227,7 +256,7 @@ const requestOpenAI = (messages) => {
   });
 };
 
-const generateChatbotReply = async (channel, text) => {
+const generateChatbotReply = async (channel, text, userMeta = {}) => {
   if (!text) return '';
   const session = getChatSession(channel);
   session.push({ role: 'user', content: text });
@@ -237,10 +266,22 @@ const generateChatbotReply = async (channel, text) => {
   }
   const response = await requestOpenAI(trimmed);
   const reply = extractOpenAIReply(response);
+  const resolvedUserId = pickFirstString(
+    userMeta.userId,
+    userMeta.user_id,
+    userMeta.id,
+    parseCoachUserId(channel)
+  );
+  const resolvedUserName = pickFirstString(
+    userMeta.userName,
+    userMeta.user_name,
+    userMeta.name
+  );
   const extra = {
     channel,
     coach_id: chatbotCoachId,
-    user_id: parseCoachUserId(channel)
+    user_id: resolvedUserId || null,
+    user_name: resolvedUserName || null
   };
   if (openaiLogTranscripts) {
     extra.transcript = buildTranscript(trimmed);
@@ -871,7 +912,14 @@ app.post('/realtime/emit', async (req, res) => {
   if (!shouldHandleChatbot(channel, eventName)) return;
   const text = data && typeof data.text === 'string' ? data.text.trim() : '';
   if (!text) return;
-  generateChatbotReply(channel, text)
+  const userMeta = extractChatUserMeta(data, channel);
+  logChatbotInteraction({
+    channel,
+    text,
+    userId: userMeta.userId,
+    userName: userMeta.userName
+  });
+  generateChatbotReply(channel, text, userMeta)
     .then((reply) => {
       if (!reply) return;
       return pusher.trigger(channel, 'bot_message', {

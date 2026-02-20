@@ -59,46 +59,48 @@ class PagePremium extends HTMLElement {
             </div>
             <div class="chat-panel" id="premium-chat-panel">
               <div class="chat-thread" id="premium-chat-thread" role="log" aria-live="polite" aria-relevant="additions"></div>
-              <div class="chat-text-row" id="premium-text-row" hidden>
-                <input
-                  type="text"
-                  id="premium-text-input"
-                  class="chat-text-input"
-                  placeholder="Escribe tu mensaje..."
-                  autocomplete="off"
-                  enterkeyhint="send"
-                />
-              </div>
-              <div class="chat-controls talk-controls" id="premium-chat-controls">
-                <button class="chat-btn chat-btn-record talk-record-btn" id="premium-record-btn" type="button" aria-pressed="false" aria-label="Grabar">
-                  <ion-icon name="mic"></ion-icon>
-                  <span>Grabar</span>
-                </button>
-                <div class="talk-recording" id="premium-recording-ui" hidden>
-                  <div class="talk-wave talk-wave-recording" id="premium-recording-wave">
-                    ${waveBarsMarkup}
-                  </div>
-                  <div class="talk-timer" id="premium-recording-timer">0:00</div>
-                  <button class="talk-icon-btn talk-stop-btn" id="premium-stop-btn" type="button" aria-label="Detener">
-                    <ion-icon name="stop"></ion-icon>
-                  </button>
+              <div class="chat-composer-row" id="premium-composer-row">
+                <div class="chat-text-row" id="premium-text-row" hidden>
+                  <input
+                    type="text"
+                    id="premium-text-input"
+                    class="chat-text-input"
+                    placeholder="Escribe tu mensaje..."
+                    autocomplete="off"
+                    enterkeyhint="send"
+                  />
                 </div>
-                <div class="talk-review" id="premium-review-ui" hidden>
-                  <button class="talk-icon-btn talk-cancel-btn" id="premium-cancel-btn" type="button" aria-label="Cancelar">
-                    <ion-icon name="close"></ion-icon>
+                <div class="chat-controls talk-controls" id="premium-chat-controls">
+                  <button class="chat-btn chat-btn-record talk-record-btn" id="premium-record-btn" type="button" aria-pressed="false" aria-label="Grabar">
+                    <ion-icon name="mic"></ion-icon>
+                    <span>Grabar</span>
                   </button>
-                  <button class="chat-btn talk-play-btn" id="premium-preview-btn" type="button" aria-label="Reproducir" disabled>
-                    <ion-icon name="play"></ion-icon>
-                    <span>Escuchar</span>
-                  </button>
-                  <div class="talk-wave talk-wave-review" id="premium-review-wave">
-                    ${waveBarsMarkup}
+                  <div class="talk-recording" id="premium-recording-ui" hidden>
+                    <div class="talk-wave talk-wave-recording" id="premium-recording-wave">
+                      ${waveBarsMarkup}
+                    </div>
+                    <div class="talk-timer" id="premium-recording-timer">0:00</div>
+                    <button class="talk-icon-btn talk-stop-btn" id="premium-stop-btn" type="button" aria-label="Detener">
+                      <ion-icon name="stop"></ion-icon>
+                    </button>
                   </div>
-                  <div class="talk-timer talk-timer-review" id="premium-review-timer">0:00</div>
-                  <button class="chat-btn chat-btn-send talk-send-btn" id="premium-send-btn" type="button" aria-label="Enviar" disabled>
-                    <ion-icon name="arrow-up"></ion-icon>
-                    <span>Enviar</span>
-                  </button>
+                  <div class="talk-review" id="premium-review-ui" hidden>
+                    <button class="talk-icon-btn talk-cancel-btn" id="premium-cancel-btn" type="button" aria-label="Cancelar">
+                      <ion-icon name="close"></ion-icon>
+                    </button>
+                    <button class="chat-btn talk-play-btn" id="premium-preview-btn" type="button" aria-label="Reproducir" disabled>
+                      <ion-icon name="play"></ion-icon>
+                      <span>Escuchar</span>
+                    </button>
+                    <div class="talk-wave talk-wave-review" id="premium-review-wave">
+                      ${waveBarsMarkup}
+                    </div>
+                    <div class="talk-timer talk-timer-review" id="premium-review-timer">0:00</div>
+                    <button class="chat-btn chat-btn-send talk-send-btn" id="premium-send-btn" type="button" aria-label="Enviar" disabled>
+                      <ion-icon name="arrow-up"></ion-icon>
+                      <span>Enviar</span>
+                    </button>
+                  </div>
                 </div>
               </div>
               <div class="chat-hint" id="premium-chat-hint">Pulsa "Grabar" y luego "Detener" para crear tu frase.</div>
@@ -137,6 +139,7 @@ class PagePremium extends HTMLElement {
     const coachAvatar = this.querySelector('#premium-coach-avatar');
     const coachTitleEl = this.querySelector('#premium-coach-title');
     const coachSubtitleEl = this.querySelector('#premium-coach-subtitle');
+    const composerRow = this.querySelector('#premium-composer-row');
     const textRow = this.querySelector('#premium-text-row');
     const textInput = this.querySelector('#premium-text-input');
     const defaultHint = hintEl ? hintEl.textContent : '';
@@ -193,6 +196,7 @@ class PagePremium extends HTMLElement {
     const VOSK_SAMPLE_RATE_DEFAULT = 16000;
     const TALK_STORAGE_PREFIX = 'appv5:talk-timelines:';
     const TALK_STORAGE_LEGACY = 'appv5:talk-timelines';
+    const CHAT_MODE_DEBUG_KEY = 'appv5:premium-debug-chat-mode';
     let talkStorageKey = `${TALK_STORAGE_PREFIX}anon`;
     const replyTimers = { catbot: null, chatbot: null };
     const awaitingBot = { catbot: false, chatbot: false };
@@ -487,17 +491,48 @@ class PagePremium extends HTMLElement {
       return fallbackRole;
     };
 
+    const stripMarkdownSyntax = (value) => {
+      if (typeof value !== 'string') return '';
+      let text = value.replace(/\r/g, '');
+      text = text
+        .replace(/```[\s\S]*?```/g, (block) =>
+          block.replace(/^```[^\n]*\n?/, '').replace(/```$/, '').trim()
+        )
+        .replace(/`([^`]+)`/g, '$1')
+        .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '$1')
+        .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1')
+        .replace(/^\s{0,3}#{1,6}\s+/gm, '')
+        .replace(/^\s{0,3}>\s?/gm, '')
+        .replace(/^\s*[-*+]\s+/gm, '')
+        .replace(/^\s*\d+\.\s+/gm, '')
+        .replace(/\*\*([^*]+)\*\*/g, '$1')
+        .replace(/__([^_]+)__/g, '$1')
+        .replace(/(^|[\s(])\*([^*\n]+)\*(?=$|[\s).,!?;:])/g, '$1$2')
+        .replace(/(^|[\s(])_([^_\n]+)_(?=$|[\s).,!?;:])/g, '$1$2')
+        .replace(/~~([^~]+)~~/g, '$1')
+        .replace(/\s{2,}/g, ' ')
+        .replace(/\n{3,}/g, '\n\n');
+      return text.trim();
+    };
+
+    const normalizeChatText = (value) => {
+      if (value === undefined || value === null) return '';
+      return stripMarkdownSyntax(String(value)).trim();
+    };
+
     const normalizeIncoming = (data, fallbackRole) => {
       if (!data) return null;
       if (typeof data === 'string') {
-        return { role: fallbackRole, text: data, audioUrl: '', speakText: data };
+        const text = normalizeChatText(data);
+        if (!text) return null;
+        return { role: fallbackRole, text, audioUrl: '', speakText: text };
       }
       if (typeof data !== 'object') return null;
-      const text = data.text || data.message || data.body || data.content;
+      const text = normalizeChatText(data.text || data.message || data.body || data.content);
       if (!text) return null;
       const role = normalizeRole(data.role || data.sender || data.from, fallbackRole);
       const audioUrl = data.audio_url || data.audioUrl || '';
-      const speakText = data.speakText || data.speak_text || text;
+      const speakText = normalizeChatText(data.speakText || data.speak_text || text) || text;
       return { role, text, audioUrl, speakText };
     };
 
@@ -561,6 +596,7 @@ class PagePremium extends HTMLElement {
 
     let chatAutoScroll = true;
     let scrollToBottomTimer = null;
+    let keyboardOpenScrollTimer = null;
 
     const scrollThreadToBottom = (behavior = 'auto') => {
       if (!threadEl) return;
@@ -626,9 +662,18 @@ class PagePremium extends HTMLElement {
         setPremiumKeyboardOffset(0);
         return;
       }
+      const previousOffset = premiumKeyboardOffset;
       const offset = getPremiumKeyboardOffset();
       setPremiumKeyboardOffset(offset);
       scheduleScrollThreadToBottom('auto');
+      if (offset > 0 && previousOffset <= 0) {
+        scrollThreadToBottom('auto');
+        if (keyboardOpenScrollTimer) clearTimeout(keyboardOpenScrollTimer);
+        keyboardOpenScrollTimer = setTimeout(() => {
+          keyboardOpenScrollTimer = null;
+          scrollThreadToBottom('auto');
+        }, 140);
+      }
     };
 
     const schedulePremiumKeyboardSync = () => {
@@ -724,6 +769,10 @@ class PagePremium extends HTMLElement {
         resetWaveBars(recordingBars);
         resetWaveBars(reviewBars);
       }
+      placeSendButton();
+      updateSendButtonIcon();
+      updateTextRowVisibility();
+      updateChatbotOneLineLayout();
     };
 
     const startRecordingTimer = () => {
@@ -1379,15 +1428,32 @@ class PagePremium extends HTMLElement {
     const resolveTalkStorageKey = (userId) =>
       `${TALK_STORAGE_PREFIX}${userId ? String(userId) : 'anon'}`;
 
+    const readDebugChatMode = () => {
+      try {
+        const raw = localStorage.getItem(CHAT_MODE_DEBUG_KEY);
+        if (raw === 'catbot' || raw === 'chatbot') return raw;
+      } catch (err) {
+        // no-op
+      }
+      return 'catbot';
+    };
+
+    const writeDebugChatMode = (mode) => {
+      if (mode !== 'catbot' && mode !== 'chatbot') return;
+      try {
+        localStorage.setItem(CHAT_MODE_DEBUG_KEY, mode);
+      } catch (err) {
+        // no-op
+      }
+    };
+
     const sanitizeTalkMessage = (message) => {
       if (!message || typeof message !== 'object') return null;
       const role = message.role === 'bot' ? 'bot' : 'user';
-      const text = typeof message.text === 'string' ? message.text.trim() : '';
+      const text = normalizeChatText(message.text);
       if (!text) return null;
       const speakText =
-        typeof message.speakText === 'string' && message.speakText.trim()
-          ? message.speakText.trim()
-          : text;
+        normalizeChatText(message.speakText) || text;
       return { role, text, speakText };
     };
 
@@ -1460,7 +1526,8 @@ class PagePremium extends HTMLElement {
       textEl.textContent = text;
       bubbleEl.appendChild(textEl);
 
-      if (mode !== 'chatbot') {
+      const showAudioAction = mode !== 'chatbot' || role === 'bot';
+      if (showAudioAction) {
         const actionEl = document.createElement('div');
         actionEl.className = 'chat-bubble-actions';
         const playBtn = document.createElement('button');
@@ -1470,6 +1537,11 @@ class PagePremium extends HTMLElement {
         if (!audioUrl && !speakText) {
           playBtn.disabled = true;
         }
+        playBtn.addEventListener('pointerdown', (event) => {
+          if (!isChatInputActive()) return;
+          event.preventDefault();
+          keepChatInputFocused({ scroll: true });
+        });
         playBtn.addEventListener('click', () => playMessageAudio({ audioUrl, speakText }));
         actionEl.appendChild(playBtn);
         bubbleEl.appendChild(actionEl);
@@ -1535,18 +1607,32 @@ class PagePremium extends HTMLElement {
 
     const appendMessage = ({ role, text, audioUrl, speakText }, options = {}) => {
       const targetMode = options.mode || chatMode;
-      if (role === 'bot') {
+      const shouldAutoplay = options.autoplay === true;
+      const normalizedRole = role === 'bot' ? 'bot' : 'user';
+      const normalizedText = normalizeChatText(text);
+      if (!normalizedText) return;
+      const normalizedSpeakText = normalizeChatText(speakText) || normalizedText;
+      const normalizedAudioUrl = typeof audioUrl === 'string' ? audioUrl : '';
+      if (normalizedRole === 'bot') {
         typingState[targetMode] = false;
       }
       const thread = getThread(targetMode);
-      const message = { role, text, audioUrl, speakText };
+      const message = {
+        role: normalizedRole,
+        text: normalizedText,
+        audioUrl: normalizedAudioUrl,
+        speakText: normalizedSpeakText
+      };
       thread.push(message);
       persistTalkTimelines();
       if (targetMode === chatMode) {
-        if (role === 'bot') {
+        if (normalizedRole === 'bot') {
           removeTypingIndicator();
         }
         renderMessage(message, targetMode);
+        if (shouldAutoplay && normalizedRole === 'bot') {
+          playMessageAudio({ audioUrl: normalizedAudioUrl, speakText: normalizedSpeakText });
+        }
       }
     };
 
@@ -1832,7 +1918,10 @@ class PagePremium extends HTMLElement {
           setTypingState(connectedMode, false);
           cancelSimulatedReply(connectedMode);
         }
-        appendMessage(message, { mode: connectedMode });
+        appendMessage(message, {
+          mode: connectedMode,
+          autoplay: message.role === 'bot'
+        });
       };
 
       pusherChannel = pusherClient.subscribe(channelName);
@@ -2064,11 +2153,22 @@ class PagePremium extends HTMLElement {
       keepChatInputFocused({ scroll: true });
     };
 
+    const handleControlPointerDown = (event) => {
+      if (!isChatInputActive()) return;
+      const target = event.target;
+      if (target && target.closest && target.closest('#premium-text-row')) return;
+      event.preventDefault();
+      keepChatInputFocused({ scroll: true });
+    };
+
     const handleChatPanelPointerDown = (event) => {
       if (!isChatInputActive()) return;
       const target = event.target;
       if (target && target.closest && (
-        target.closest('#premium-text-row') || target.closest('#premium-chat-controls')
+        target.closest('#premium-text-row') ||
+        target.closest('#premium-chat-controls') ||
+        target.closest('#premium-composer-row') ||
+        target.closest('#premium-chat-thread')
       )) {
         return;
       }
@@ -2082,15 +2182,20 @@ class PagePremium extends HTMLElement {
     };
 
     sendBtn?.addEventListener('click', () => {
-      keepChatInputFocused({ scroll: true });
       const typedText = textInput ? textInput.value.trim() : '';
-      const userText = draftTranscript || typedText;
+      const hasDraft = Boolean(draftTranscript);
+      const userText = hasDraft ? draftTranscript : typedText;
       if (!userText) return;
+      if (!hasDraft) {
+        keepChatInputFocused({ scroll: true });
+      }
       sendUserText(userText, {
         audioUrl: draftAudioUrl,
         speakText: draftSpeakText || userText
       });
-      keepChatInputFocused({ defer: true, scroll: true });
+      if (!hasDraft) {
+        keepChatInputFocused({ defer: true, scroll: true });
+      }
     });
 
     textInput?.addEventListener('input', () => {
@@ -2136,6 +2241,11 @@ class PagePremium extends HTMLElement {
     });
 
     chatPanel?.addEventListener('pointerdown', handleChatPanelPointerDown);
+    composerRow?.addEventListener('pointerdown', handleControlPointerDown);
+    recordBtn?.addEventListener('pointerdown', handleControlPointerDown);
+    stopBtn?.addEventListener('pointerdown', handleControlPointerDown);
+    cancelBtn?.addEventListener('pointerdown', handleControlPointerDown);
+    previewBtn?.addEventListener('pointerdown', handleControlPointerDown);
     sendBtn?.addEventListener('pointerdown', handleSendPointerDown);
     if (window.visualViewport) {
       window.visualViewport.addEventListener('resize', handleViewportChange);
@@ -2194,45 +2304,68 @@ class PagePremium extends HTMLElement {
       if (!sendBtn) return;
       const icon = sendBtn.querySelector('ion-icon');
       if (!icon) return;
-      icon.setAttribute('name', chatMode === 'chatbot' ? 'paper-plane' : 'arrow-up');
+      const isInlineTextSend = sendBtn.parentElement === textRow;
+      icon.setAttribute('name', isInlineTextSend ? 'paper-plane' : 'arrow-up');
+    };
+
+    const updateChatbotOneLineLayout = () => {
+      const textVisible = Boolean(textRow && !textRow.hidden);
+      const controlsVisible = Boolean(chatControls && !chatControls.hidden);
+      const isOneLine =
+        chatMode === 'chatbot' &&
+        talkState === TALK_STATE_IDLE &&
+        textVisible &&
+        controlsVisible;
+      this.classList.toggle('premium-chatbot-one-line', isOneLine);
     };
 
     const placeSendButton = () => {
       if (!sendBtn || !textRow || !chatControls) return;
-      const target = chatMode === 'chatbot' ? textRow : (reviewUi || chatControls);
+      let target = reviewUi || chatControls;
+      if (chatMode === 'chatbot') {
+        const reviewTarget = reviewUi || chatControls;
+        const hasDraftReview = talkState === TALK_STATE_REVIEW && Boolean(draftTranscript);
+        target = hasDraftReview ? reviewTarget : textRow;
+      }
       if (sendBtn.parentElement !== target) {
         target.appendChild(sendBtn);
       }
+      updateSendButtonIcon();
     };
 
     const updateChatControlsVisibility = () => {
       const isChatbot = chatMode === 'chatbot';
-      if (hintEl) hintEl.hidden = isChatbot;
-      if (chatControls) chatControls.hidden = isChatbot;
+      if (hintEl) hintEl.hidden = false;
+      if (chatControls) chatControls.hidden = false;
       if (textRow) textRow.classList.toggle('chat-text-row-inline', isChatbot);
       placeSendButton();
       updateSendButtonIcon();
       setTalkState(talkState);
+      updateChatbotOneLineLayout();
       schedulePremiumKeyboardSync();
     };
 
     const updateTextRowVisibility = (debugOverride) => {
-      const debug =
-        debugOverride !== undefined
-          ? debugOverride
-          : Boolean(window.r34lp0w3r && window.r34lp0w3r.speakDebug);
-      const showText = debug && chatMode === 'chatbot';
-      if (textRow) textRow.hidden = !showText;
-      if (!showText && textInput) {
+      const isChatbot = chatMode === 'chatbot';
+      const collapsed = isChatbot && talkState !== TALK_STATE_IDLE;
+      if (textRow) {
+        textRow.hidden = !isChatbot;
+        textRow.classList.toggle('is-collapsed', collapsed);
+      }
+      if (!isChatbot && textInput) {
         textInput.value = '';
       }
+      updateChatbotOneLineLayout();
       schedulePremiumKeyboardSync();
     };
 
-    const setChatMode = (mode, { reconnect } = {}) => {
+    const setChatMode = (mode, { reconnect, persist } = {}) => {
       if (mode !== 'catbot' && mode !== 'chatbot') return;
       if (chatMode === mode) return;
       chatMode = mode;
+      if (persist !== false) {
+        writeDebugChatMode(mode);
+      }
       if (modeToggle) {
         modeToggle.querySelectorAll('.chat-mode-btn').forEach((btn) => {
           btn.classList.toggle('is-active', btn.dataset.mode === mode);
@@ -2257,11 +2390,16 @@ class PagePremium extends HTMLElement {
       if (!debug) {
         if (textInput) textInput.value = '';
         updateTextRowVisibility(false);
-        setChatMode('catbot', { reconnect: true });
+        setChatMode('catbot', { reconnect: true, persist: false });
         renderThread(chatMode);
       } else {
-        updateTextRowVisibility(true);
-        updateChatControlsVisibility();
+        const preferredMode = readDebugChatMode();
+        if (chatMode !== preferredMode) {
+          setChatMode(preferredMode, { reconnect: true, persist: false });
+        } else {
+          updateTextRowVisibility(true);
+          updateChatControlsVisibility();
+        }
       }
       updateDraftButtons();
     };
@@ -2301,8 +2439,17 @@ class PagePremium extends HTMLElement {
         clearTimeout(scrollToBottomTimer);
         scrollToBottomTimer = null;
       }
+      if (keyboardOpenScrollTimer) {
+        clearTimeout(keyboardOpenScrollTimer);
+        keyboardOpenScrollTimer = null;
+      }
       setPremiumKeyboardOffset(0);
       chatPanel?.removeEventListener('pointerdown', handleChatPanelPointerDown);
+      composerRow?.removeEventListener('pointerdown', handleControlPointerDown);
+      recordBtn?.removeEventListener('pointerdown', handleControlPointerDown);
+      stopBtn?.removeEventListener('pointerdown', handleControlPointerDown);
+      cancelBtn?.removeEventListener('pointerdown', handleControlPointerDown);
+      previewBtn?.removeEventListener('pointerdown', handleControlPointerDown);
       sendBtn?.removeEventListener('pointerdown', handleSendPointerDown);
       if (window.visualViewport) {
         window.visualViewport.removeEventListener('resize', handleViewportChange);

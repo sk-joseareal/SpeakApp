@@ -33,7 +33,11 @@ const chatbotEnabled = env('CHATBOT_ENABLED', 'false') === 'true';
 const chatbotCoachId = env('CHATBOT_COACH_ID', '2');
 const chatbotSystemPrompt = env(
   'CHATBOT_SYSTEM_PROMPT',
-  'You are an English tutor. Keep replies short and ask a follow-up.'
+  'You are an English tutor. Keep replies short, ask one follow-up question, and use plain text only.'
+);
+const chatbotPlainTextGuard = env(
+  'CHATBOT_PLAINTEXT_GUARD',
+  'Reply in plain text only. Do not use markdown, asterisks, code blocks, or list formatting.'
 );
 const chatbotModel = env('CHATBOT_OPENAI_MODEL', 'gpt-4o-mini');
 const chatbotTemperature = Number(env('CHATBOT_TEMPERATURE', '0.6'));
@@ -184,6 +188,9 @@ const getChatSession = (channel) => {
     if (chatbotSystemPrompt) {
       messages.push({ role: 'system', content: chatbotSystemPrompt });
     }
+    if (chatbotPlainTextGuard) {
+      messages.push({ role: 'system', content: chatbotPlainTextGuard });
+    }
     chatbotSessions.set(channel, messages);
   }
   return chatbotSessions.get(channel);
@@ -191,12 +198,42 @@ const getChatSession = (channel) => {
 
 const trimChatHistory = (messages) => {
   if (!Array.isArray(messages)) return [];
-  const systemMessage =
-    messages.length && messages[0] && messages[0].role === 'system' ? messages[0] : null;
-  const history = systemMessage ? messages.slice(1) : messages.slice();
+  const firstNonSystemIndex = messages.findIndex((msg) => !msg || msg.role !== 'system');
+  const hasOnlySystemMessages = firstNonSystemIndex === -1;
+  if (hasOnlySystemMessages) return messages;
+  const systemMessages =
+    firstNonSystemIndex > 0 ? messages.slice(0, firstNonSystemIndex) : [];
+  const history = messages.slice(firstNonSystemIndex);
   if (history.length <= chatbotHistoryLimit) return messages;
   const trimmed = history.slice(-chatbotHistoryLimit);
-  return systemMessage ? [systemMessage, ...trimmed] : trimmed;
+  return [...systemMessages, ...trimmed];
+};
+
+const stripMarkdownSyntax = (value) => {
+  if (typeof value !== 'string') return '';
+  let text = value.replace(/\r/g, '').trim();
+  if (!text) return '';
+
+  text = text
+    .replace(/```[\s\S]*?```/g, (block) =>
+      block.replace(/^```[^\n]*\n?/, '').replace(/```$/, '').trim()
+    )
+    .replace(/`([^`]+)`/g, '$1')
+    .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '$1')
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1')
+    .replace(/^\s{0,3}#{1,6}\s+/gm, '')
+    .replace(/^\s{0,3}>\s?/gm, '')
+    .replace(/^\s*[-*+]\s+/gm, '')
+    .replace(/^\s*\d+\.\s+/gm, '')
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/__([^_]+)__/g, '$1')
+    .replace(/(^|[\s(])\*([^*\n]+)\*(?=$|[\s).,!?;:])/g, '$1$2')
+    .replace(/(^|[\s(])_([^_\n]+)_(?=$|[\s).,!?;:])/g, '$1$2')
+    .replace(/~~([^~]+)~~/g, '$1')
+    .replace(/\s{2,}/g, ' ')
+    .replace(/\n{3,}/g, '\n\n');
+
+  return text.trim();
 };
 
 const extractOpenAIReply = (payload) => {
@@ -204,7 +241,15 @@ const extractOpenAIReply = (payload) => {
   const choice = Array.isArray(payload.choices) ? payload.choices[0] : null;
   if (!choice) return '';
   const content = choice.message?.content ?? choice.delta?.content ?? '';
-  return typeof content === 'string' ? content.trim() : '';
+  if (typeof content === 'string') return stripMarkdownSyntax(content);
+  if (Array.isArray(content)) {
+    const merged = content
+      .map((part) => (part && typeof part.text === 'string' ? part.text : ''))
+      .filter(Boolean)
+      .join('\n');
+    return stripMarkdownSyntax(merged);
+  }
+  return '';
 };
 
 const requestOpenAI = (messages) => {

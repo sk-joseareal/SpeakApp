@@ -609,6 +609,28 @@ const authorizeState = (req, res) => {
   return true;
 };
 
+const authorizeUsage = (req, res) => {
+  if (!monitorToken && !stateToken) return true;
+  const monitorCandidate =
+    req.get('x-monitor-token') ||
+    (req.query ? req.query.monitor_token || req.query.token : '') ||
+    (req.body ? req.body.monitor_token || req.body.token : '');
+  if (monitorToken && monitorCandidate && monitorCandidate === monitorToken) {
+    return true;
+  }
+
+  const stateCandidate =
+    req.get('x-rt-token') ||
+    (req.query ? req.query.rt_token || req.query.state_token || req.query.token : '') ||
+    (req.body ? req.body.rt_token || req.body.state_token || req.body.token : '');
+  if (stateToken && stateCandidate && stateCandidate === stateToken) {
+    return true;
+  }
+
+  res.status(401).json({ error: 'unauthorized' });
+  return false;
+};
+
 const dataRoot = path.join(__dirname, 'data', 'rt');
 const eventsDir = path.join(dataRoot, 'events');
 const snapshotsDir = path.join(dataRoot, 'snapshots');
@@ -1230,7 +1252,7 @@ app.get('/realtime/channels', (req, res) => {
 });
 
 app.get('/realtime/chatbot/usage/daily', (req, res) => {
-  if (!authorizeMonitor(req, res)) return;
+  if (!authorizeUsage(req, res)) return;
 
   if (!usageDailyEnabled) {
     res.json({

@@ -56,6 +56,11 @@
     window.realtimeConfig.emitEndpoint =
       window.REALTIME_EMIT_ENDPOINT || 'https://realtime.curso-ingles.com/realtime/emit';
   }
+  if (window.realtimeConfig.chatbotUsageDailyEndpoint === undefined) {
+    window.realtimeConfig.chatbotUsageDailyEndpoint =
+      window.REALTIME_CHATBOT_USAGE_DAILY_ENDPOINT ||
+      'https://realtime.curso-ingles.com/realtime/chatbot/usage/daily';
+  }
   if (window.realtimeConfig.stateEndpoint === undefined) {
     window.realtimeConfig.stateEndpoint =
       window.REALTIME_STATE_ENDPOINT || 'https://realtime.curso-ingles.com/realtime/state/sync';
@@ -72,6 +77,9 @@
     window.realtimeConfig.stateToken =
       window.REALTIME_STATE_TOKEN ||
       'ca6c8ad7c431233c1d891f2bd9eebc1dbb0de269c690de994e2313b8c7e7a50';
+  }
+  if (window.realtimeConfig.monitorToken === undefined) {
+    window.realtimeConfig.monitorToken = window.REALTIME_MONITOR_TOKEN || '';
   }
   if (window.realtimeConfig.enabledTransports === undefined) {
     window.realtimeConfig.enabledTransports = ['ws', 'wss'];

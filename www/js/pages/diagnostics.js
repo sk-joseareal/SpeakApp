@@ -145,6 +145,17 @@ class PageDiagnostics extends HTMLElement {
               <pre class="diag-json" id="diag-talk-chatbot"></pre>
             </div>
 
+            <h4 style="margin-top:16px;">Chatbot usage (usuario/dia)</h4>
+            <div class="diag-actions">
+              <ion-button size="small" fill="outline" id="diag-usage-refresh">Refrescar</ion-button>
+            </div>
+            <div class="diag-speak-block">
+              <div class="pill">Tokens y coste</div>
+              <div class="diag-usage-status" id="diag-usage-status">Cargando...</div>
+              <div class="diag-usage-totals" id="diag-usage-totals" hidden></div>
+              <div class="diag-usage-list" id="diag-usage-list"></div>
+            </div>
+
             <h4 style="margin-top:16px;">Notificaciones demo</h4>
             <div class="diag-actions">
               <ion-button size="small" fill="outline" id="diag-notify-generate">Generar</ion-button>
@@ -348,6 +359,7 @@ class PageDiagnostics extends HTMLElement {
     this._userHandler = (event) => {
       updateUserPanel(event.detail);
       updateTalkPanels();
+      refreshUserUsage();
     };
     window.addEventListener('app:user-change', this._userHandler);
 
@@ -356,9 +368,13 @@ class PageDiagnostics extends HTMLElement {
     const rewardsEl = this.querySelector('#diag-speak-rewards');
     const talkCatEl = this.querySelector('#diag-talk-catbot');
     const talkBotEl = this.querySelector('#diag-talk-chatbot');
+    const usageStatusEl = this.querySelector('#diag-usage-status');
+    const usageTotalsEl = this.querySelector('#diag-usage-totals');
+    const usageListEl = this.querySelector('#diag-usage-list');
     const notifyListEl = this.querySelector('#diag-notify-list');
     const notifyEmptyEl = this.querySelector('#diag-notify-empty');
     const TALK_STORAGE_PREFIX = 'appv5:talk-timelines:';
+    let usageRequestSeq = 0;
 
     const getTalkStorageKey = () => {
       const user = window.user;
@@ -401,6 +417,173 @@ class PageDiagnostics extends HTMLElement {
       const data = readTalkTimelines();
       if (talkCatEl) talkCatEl.textContent = formatJson(data.catbot);
       if (talkBotEl) talkBotEl.textContent = formatJson(data.chatbot);
+    };
+
+    const getUsageUserId = () => {
+      const user = window.user;
+      if (!user || user.id === undefined || user.id === null) return '';
+      const value = String(user.id).trim();
+      return value || '';
+    };
+
+    const toUsageNumber = (value, fallback = 0) => {
+      const parsed = Number(value);
+      if (!Number.isFinite(parsed)) return fallback;
+      if (parsed < 0) return fallback;
+      return parsed;
+    };
+
+    const usageIntFmt = new Intl.NumberFormat('es-ES');
+    const usageMoneyFmt = new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 6,
+      maximumFractionDigits: 6
+    });
+
+    const formatUsageDate = (value) => {
+      if (!value) return '';
+      const date = new Date(`${value}T00:00:00Z`);
+      if (Number.isNaN(date.getTime())) return String(value);
+      return date.toLocaleDateString('es-ES');
+    };
+
+    const resolveUsageEndpoint = () => {
+      const cfg = window.realtimeConfig || {};
+      const direct = cfg.chatbotUsageDailyEndpoint || cfg.chatbotUsageEndpoint;
+      if (typeof direct === 'string' && direct.trim()) return direct.trim();
+      const emitEndpoint = cfg.emitEndpoint;
+      if (typeof emitEndpoint === 'string' && emitEndpoint.trim()) {
+        const trimmed = emitEndpoint.trim().replace(/\/+$/, '');
+        if (trimmed.endsWith('/emit')) {
+          return `${trimmed.slice(0, -5)}/chatbot/usage/daily`;
+        }
+      }
+      return '';
+    };
+
+    const buildUsageHeaders = () => {
+      const headers = {};
+      const cfg = window.realtimeConfig || {};
+      const monitor = cfg.monitorToken || '';
+      const state = cfg.stateToken || '';
+      if (monitor) headers['x-monitor-token'] = monitor;
+      if (state) headers['x-rt-token'] = state;
+      return headers;
+    };
+
+    const renderUsageRows = (rows) => {
+      if (!usageListEl) return;
+      usageListEl.innerHTML = '';
+      if (!Array.isArray(rows) || !rows.length) {
+        const emptyEl = document.createElement('div');
+        emptyEl.className = 'diag-usage-empty';
+        emptyEl.textContent = 'Sin consumo registrado.';
+        usageListEl.appendChild(emptyEl);
+        return;
+      }
+      rows.forEach((row) => {
+        const itemEl = document.createElement('div');
+        itemEl.className = 'diag-usage-row';
+
+        const dayEl = document.createElement('div');
+        dayEl.className = 'diag-usage-day';
+        dayEl.textContent = formatUsageDate(row.day) || '-';
+
+        const metaEl = document.createElement('div');
+        metaEl.className = 'diag-usage-meta';
+        const req = usageIntFmt.format(Math.round(toUsageNumber(row.requests, 0)));
+        const tokens = usageIntFmt.format(Math.round(toUsageNumber(row.total_tokens, 0)));
+        const cost = usageMoneyFmt.format(toUsageNumber(row.estimated_cost_usd, 0));
+        metaEl.textContent = `${req} req · ${tokens} tk · ${cost}`;
+
+        itemEl.appendChild(dayEl);
+        itemEl.appendChild(metaEl);
+        usageListEl.appendChild(itemEl);
+      });
+    };
+
+    const renderUsageTotals = (totals, days) => {
+      if (!usageTotalsEl) return;
+      const requests = usageIntFmt.format(Math.round(toUsageNumber(totals.requests, 0)));
+      const tokens = usageIntFmt.format(Math.round(toUsageNumber(totals.total_tokens, 0)));
+      const cost = usageMoneyFmt.format(toUsageNumber(totals.estimated_cost_usd, 0));
+      const dayLabel = `${days} día${days === 1 ? '' : 's'}`;
+      usageTotalsEl.hidden = false;
+      usageTotalsEl.textContent = `Total (${dayLabel}): ${requests} req · ${tokens} tk · ${cost}`;
+    };
+
+    const updateUsageStatus = (text) => {
+      if (!usageStatusEl) return;
+      usageStatusEl.textContent = text;
+    };
+
+    const refreshUserUsage = async () => {
+      if (!usageStatusEl || !usageTotalsEl || !usageListEl) return;
+      const userId = getUsageUserId();
+      if (!userId) {
+        usageTotalsEl.hidden = true;
+        usageListEl.innerHTML = '';
+        updateUsageStatus('Inicia sesión para ver consumo por usuario.');
+        return;
+      }
+
+      const endpoint = resolveUsageEndpoint();
+      if (!endpoint) {
+        usageTotalsEl.hidden = true;
+        usageListEl.innerHTML = '';
+        updateUsageStatus('Endpoint de usage no configurado.');
+        return;
+      }
+
+      let url;
+      try {
+        url = new URL(endpoint, window.location.origin);
+      } catch (err) {
+        usageTotalsEl.hidden = true;
+        usageListEl.innerHTML = '';
+        updateUsageStatus('Endpoint de usage inválido.');
+        return;
+      }
+      url.searchParams.set('user_id', userId);
+      url.searchParams.set('limit', '30');
+
+      const requestId = usageRequestSeq + 1;
+      usageRequestSeq = requestId;
+      updateUsageStatus('Cargando consumo...');
+
+      try {
+        const response = await fetch(url.toString(), {
+          headers: buildUsageHeaders()
+        });
+        if (requestId !== usageRequestSeq) return;
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        const payload = await response.json();
+        if (requestId !== usageRequestSeq) return;
+        if (!payload || payload.enabled === false) {
+          usageTotalsEl.hidden = true;
+          usageListEl.innerHTML = '';
+          updateUsageStatus('Tracking de usage desactivado en servidor.');
+          return;
+        }
+        const rows = Array.isArray(payload.rows) ? payload.rows : [];
+        const totals = payload && typeof payload.totals === 'object' ? payload.totals : {};
+        renderUsageTotals(totals, rows.length);
+        renderUsageRows(rows);
+        if (rows.length) {
+          const now = new Date().toLocaleTimeString('es-ES');
+          updateUsageStatus(`Actualizado: ${now}`);
+        } else {
+          updateUsageStatus('Sin consumo registrado para este usuario.');
+        }
+      } catch (err) {
+        if (requestId !== usageRequestSeq) return;
+        usageTotalsEl.hidden = true;
+        usageListEl.innerHTML = '';
+        updateUsageStatus(`Error cargando usage: ${err.message || String(err)}`);
+      }
     };
 
     const escapeHtml = (value) =>
@@ -510,6 +693,7 @@ class PageDiagnostics extends HTMLElement {
     window.addEventListener('app:notifications-change', this._notifyHandler);
     updateSpeakPanels();
     updateTalkPanels();
+    refreshUserUsage();
     renderNotifyList();
 
     this.querySelector('#diag-back')?.addEventListener('click', () => {
@@ -627,6 +811,9 @@ class PageDiagnostics extends HTMLElement {
     });
     this.querySelector('#diag-talk-reset')?.addEventListener('click', () => {
       resetTalkTimelines();
+    });
+    this.querySelector('#diag-usage-refresh')?.addEventListener('click', () => {
+      refreshUserUsage();
     });
     this.querySelector('#diag-notify-generate')?.addEventListener('click', () => {
       generateDemoNotifications();

@@ -49,6 +49,7 @@ const openaiApiBase = env('OPENAI_API_BASE', 'https://api.openai.com/v1');
 const openaiUsageLog = env('OPENAI_USAGE_LOG', 'openai-usage.log');
 const openaiUsageDailyFile = env('OPENAI_USAGE_DAILY_FILE', 'openai-usage-daily.json');
 const openaiUsageDailyRetentionDays = Number(env('OPENAI_USAGE_DAILY_RETENTION_DAYS', '120'));
+const chatbotDailyLimitsFile = env('CHATBOT_DAILY_LIMITS_FILE', 'chatbot-daily-limits.json');
 const openaiPromptCost = Number(env('OPENAI_PROMPT_COST_PER_MILLION', '0.15'));
 const openaiCompletionCost = Number(env('OPENAI_COMPLETION_COST_PER_MILLION', '0.6'));
 const openaiLogTranscripts = env('OPENAI_LOG_TRANSCRIPTS', 'false') === 'true';
@@ -58,6 +59,9 @@ const usageLogEnabled =
 const usageDailyEnabled =
   openaiUsageDailyFile &&
   !['false', '0', 'off', 'none'].includes(String(openaiUsageDailyFile).toLowerCase());
+const chatbotDailyLimitsEnabled =
+  chatbotDailyLimitsFile &&
+  !['false', '0', 'off', 'none'].includes(String(chatbotDailyLimitsFile).toLowerCase());
 
 if (provider !== 'pusher') {
   config.host = env('REALTIME_HOST', '127.0.0.1');
@@ -78,6 +82,8 @@ const chatbotSessions = new Map();
 const openaiEndpoint = `${openaiApiBase.replace(/\/$/, '')}/chat/completions`;
 const openaiDailyUsageByUserDay = new Map();
 let openaiDailyUsageFlushTimer = null;
+const chatbotDailyTokenLimits = new Map();
+let chatbotDailyLimitsFlushTimer = null;
 
 const formatUsageDay = (value) => {
   if (!value) return '';
@@ -311,6 +317,126 @@ const summarizeUsageRows = (rows) =>
     }
   );
 
+const normalizeChatbotDailyLimitRow = (row) => {
+  if (!row || typeof row !== 'object') return null;
+  const userId = pickFirstString(row.user_id, row.userId);
+  if (!userId) return null;
+  const tokenLimit = Math.floor(toNonNegativeNumber(row.token_limit_day, 0));
+  const updatedAt = pickFirstString(row.updated_at, row.updatedAt, row.timestamp, new Date().toISOString());
+  if (!tokenLimit) return null;
+  return {
+    user_id: userId,
+    token_limit_day: tokenLimit,
+    updated_at: updatedAt
+  };
+};
+
+const serializeChatbotDailyLimitRows = () =>
+  Array.from(chatbotDailyTokenLimits.values()).sort((a, b) =>
+    String(a.user_id || '').localeCompare(String(b.user_id || ''))
+  );
+
+const flushChatbotDailyLimits = () => {
+  if (!chatbotDailyLimitsEnabled) return;
+  ensureParentDir(chatbotDailyLimitsFile);
+  const rows = serializeChatbotDailyLimitRows();
+  fs.writeFile(chatbotDailyLimitsFile, `${JSON.stringify(rows, null, 2)}\n`, (err) => {
+    if (err) {
+      console.warn('Failed to write chatbot limits file:', err.message);
+    }
+  });
+};
+
+const flushChatbotDailyLimitsSync = () => {
+  if (!chatbotDailyLimitsEnabled) return;
+  ensureParentDir(chatbotDailyLimitsFile);
+  const rows = serializeChatbotDailyLimitRows();
+  try {
+    fs.writeFileSync(chatbotDailyLimitsFile, `${JSON.stringify(rows, null, 2)}\n`);
+  } catch (err) {
+    console.warn('Failed to flush chatbot limits file:', err.message);
+  }
+};
+
+const scheduleChatbotDailyLimitsFlush = () => {
+  if (!chatbotDailyLimitsEnabled) return;
+  if (chatbotDailyLimitsFlushTimer) return;
+  chatbotDailyLimitsFlushTimer = setTimeout(() => {
+    chatbotDailyLimitsFlushTimer = null;
+    flushChatbotDailyLimits();
+  }, 200);
+};
+
+const loadChatbotDailyLimitsFromDisk = () => {
+  if (!chatbotDailyLimitsEnabled) return;
+  try {
+    const raw = fs.readFileSync(chatbotDailyLimitsFile, 'utf8');
+    const parsed = JSON.parse(raw);
+    const rows = Array.isArray(parsed) ? parsed : [];
+    rows.forEach((row) => {
+      const normalized = normalizeChatbotDailyLimitRow(row);
+      if (!normalized) return;
+      chatbotDailyTokenLimits.set(normalized.user_id, normalized);
+    });
+  } catch (err) {
+    if (err && err.code === 'ENOENT') return;
+    console.warn('Failed to load chatbot limits file:', err.message);
+  }
+};
+
+const getChatbotDailyTokenLimit = (userId) => {
+  const normalizedUserId = pickFirstString(userId);
+  if (!normalizedUserId) return 0;
+  const row = chatbotDailyTokenLimits.get(normalizedUserId);
+  if (!row) return 0;
+  return Math.floor(toNonNegativeNumber(row.token_limit_day, 0));
+};
+
+const setChatbotDailyTokenLimit = (userId, tokenLimit) => {
+  const normalizedUserId = pickFirstString(userId);
+  if (!normalizedUserId) return null;
+  const normalizedLimit = Math.floor(toNonNegativeNumber(tokenLimit, 0));
+  if (!normalizedLimit) {
+    chatbotDailyTokenLimits.delete(normalizedUserId);
+    scheduleChatbotDailyLimitsFlush();
+    return null;
+  }
+  const row = {
+    user_id: normalizedUserId,
+    token_limit_day: normalizedLimit,
+    updated_at: new Date().toISOString()
+  };
+  chatbotDailyTokenLimits.set(normalizedUserId, row);
+  scheduleChatbotDailyLimitsFlush();
+  return row;
+};
+
+const getUsageTotalTokensForUserDay = (userId, day) => {
+  const normalizedUserId = pickFirstString(userId);
+  const normalizedDay = formatUsageDay(day) || new Date().toISOString().slice(0, 10);
+  if (!normalizedUserId) return 0;
+  const key = `${normalizedDay}::${normalizedUserId}`;
+  const row = openaiDailyUsageByUserDay.get(key);
+  if (!row) return 0;
+  return Math.round(toNonNegativeNumber(row.total_tokens, 0));
+};
+
+const getChatbotDailyLimitStatus = (userId, day) => {
+  const normalizedUserId = pickFirstString(userId);
+  const resolvedDay = formatUsageDay(day) || new Date().toISOString().slice(0, 10);
+  const limitTokens = getChatbotDailyTokenLimit(normalizedUserId);
+  const usedTokens = getUsageTotalTokensForUserDay(normalizedUserId, resolvedDay);
+  const remainingTokens = limitTokens > 0 ? Math.max(0, limitTokens - usedTokens) : null;
+  return {
+    user_id: normalizedUserId || '',
+    day: resolvedDay,
+    token_limit_day: limitTokens,
+    used_tokens_day: usedTokens,
+    remaining_tokens_day: remainingTokens,
+    limit_reached_today: Boolean(limitTokens > 0 && usedTokens >= limitTokens)
+  };
+};
+
 const extractChatUserMeta = (data, channel) => {
   const source = data && typeof data === 'object' ? data : {};
   const userId = pickFirstString(source.user_id, source.userId, source.id, parseCoachUserId(channel));
@@ -382,6 +508,7 @@ const logOpenAIUsage = (usage, descriptor, extra = {}) => {
 };
 
 loadOpenAIDailyUsageFromDisk();
+loadChatbotDailyLimitsFromDisk();
 
 const formatRoleLabel = (role) => {
   if (role === 'system') return 'System';
@@ -1202,10 +1329,36 @@ app.post('/realtime/emit', async (req, res) => {
   const text = data && typeof data.text === 'string' ? data.text.trim() : '';
   if (!text) return;
   const userMeta = extractChatUserMeta(data, channel);
+  const resolvedUserId = pickFirstString(
+    userMeta.userId,
+    userMeta.user_id,
+    userMeta.id,
+    parseCoachUserId(channel)
+  );
+  const dailyLimitStatus = getChatbotDailyLimitStatus(resolvedUserId);
+  if (dailyLimitStatus.limit_reached_today) {
+    const limitText = `Has alcanzado el limite diario del chatbot (${dailyLimitStatus.token_limit_day} tokens). Vuelve manana.`;
+    pusher
+      .trigger(channel, 'bot_message', {
+        text: limitText,
+        role: 'bot',
+        coach_id: chatbotCoachId,
+        chatbot_disabled: 'daily_token_limit',
+        limit_reached: true,
+        day: dailyLimitStatus.day,
+        token_limit_day: dailyLimitStatus.token_limit_day,
+        used_tokens_day: dailyLimitStatus.used_tokens_day,
+        remaining_tokens_day: dailyLimitStatus.remaining_tokens_day
+      })
+      .catch((err) => {
+        console.error('[realtime] chatbot limit message error', err.message || err);
+      });
+    return;
+  }
   logChatbotInteraction({
     channel,
     text,
-    userId: userMeta.userId,
+    userId: resolvedUserId,
     userName: userMeta.userName
   });
   generateChatbotReply(channel, text, userMeta)
@@ -1303,6 +1456,7 @@ app.get('/realtime/chatbot/usage/daily', (req, res) => {
 
   const totals = summarizeUsageRows(rows);
   const outputRows = rows.slice(0, limit);
+  const limitStatus = userIdFilter ? getChatbotDailyLimitStatus(userIdFilter) : null;
 
   res.json({
     ok: true,
@@ -1318,8 +1472,45 @@ app.get('/realtime/chatbot/usage/daily', (req, res) => {
       coach_id: coachIdFilter || '',
       limit
     },
+    limit_status: limitStatus,
     totals,
     rows: outputRows
+  });
+});
+
+app.get('/realtime/chatbot/usage/limit', (req, res) => {
+  if (!authorizeUsage(req, res)) return;
+  const userId = pickFirstString(req.query.user_id, req.query.userId);
+  if (!userId) {
+    res.status(400).json({ error: 'user_id required' });
+    return;
+  }
+  const status = getChatbotDailyLimitStatus(userId);
+  res.json({
+    ok: true,
+    ...status
+  });
+});
+
+app.post('/realtime/chatbot/usage/limit', (req, res) => {
+  if (!authorizeUsage(req, res)) return;
+  const body = req.body && typeof req.body === 'object' ? req.body : {};
+  const userId = pickFirstString(body.user_id, body.userId, req.query.user_id, req.query.userId);
+  if (!userId) {
+    res.status(400).json({ error: 'user_id required' });
+    return;
+  }
+  const requestedLimit = Number(body.token_limit_day ?? body.tokenLimitDay);
+  if (!Number.isFinite(requestedLimit)) {
+    res.status(400).json({ error: 'token_limit_day must be a number' });
+    return;
+  }
+  setChatbotDailyTokenLimit(userId, requestedLimit);
+  const status = getChatbotDailyLimitStatus(userId);
+  res.json({
+    ok: true,
+    updated: true,
+    ...status
   });
 });
 
@@ -1458,11 +1649,13 @@ app.post('/realtime/state/sync', (req, res) => {
 
 process.on('SIGINT', () => {
   flushOpenAIDailyUsageSync();
+  flushChatbotDailyLimitsSync();
   process.exit(0);
 });
 
 process.on('SIGTERM', () => {
   flushOpenAIDailyUsageSync();
+  flushChatbotDailyLimitsSync();
   process.exit(0);
 });
 

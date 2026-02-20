@@ -188,6 +188,9 @@ class PagePremium extends HTMLElement {
     let pusherChannel = null;
     let pusherChannelName = '';
     let realtimeConnected = false;
+    let controlsBaseEnabled = false;
+    let chatbotDailyLimitBlocked = false;
+    let chatbotDailyLimitInfo = null;
     let chatMode = 'catbot';
     const TALK_STATE_IDLE = 'idle';
     const TALK_STATE_RECORDING = 'recording';
@@ -525,7 +528,16 @@ class PagePremium extends HTMLElement {
       if (typeof data === 'string') {
         const text = normalizeChatText(data);
         if (!text) return null;
-        return { role: fallbackRole, text, audioUrl: '', speakText: text };
+        return {
+          role: fallbackRole,
+          text,
+          audioUrl: '',
+          speakText: text,
+          limitReached: false,
+          tokenLimitDay: 0,
+          usedTokensDay: 0,
+          day: ''
+        };
       }
       if (typeof data !== 'object') return null;
       const text = normalizeChatText(data.text || data.message || data.body || data.content);
@@ -533,7 +545,21 @@ class PagePremium extends HTMLElement {
       const role = normalizeRole(data.role || data.sender || data.from, fallbackRole);
       const audioUrl = data.audio_url || data.audioUrl || '';
       const speakText = normalizeChatText(data.speakText || data.speak_text || text) || text;
-      return { role, text, audioUrl, speakText };
+      const limitReached = Boolean(
+        data.limit_reached ||
+        data.limitReached ||
+        data.chatbot_disabled === 'daily_token_limit'
+      );
+      return {
+        role,
+        text,
+        audioUrl,
+        speakText,
+        limitReached,
+        tokenLimitDay: Number(data.token_limit_day || data.tokenLimitDay || 0),
+        usedTokensDay: Number(data.used_tokens_day || data.usedTokensDay || 0),
+        day: typeof data.day === 'string' ? data.day : ''
+      };
     };
 
     const getPremiumOverride = () => {
@@ -592,6 +618,51 @@ class PagePremium extends HTMLElement {
 
     const setHint = (text) => {
       if (hintEl) hintEl.textContent = text;
+    };
+
+    const tokenFmt = new Intl.NumberFormat('es-ES');
+
+    const getTodayKey = () => new Date().toISOString().slice(0, 10);
+
+    const isChatbotDailyLimitActive = () => {
+      if (!chatbotDailyLimitBlocked) return false;
+      const limitDay = chatbotDailyLimitInfo && chatbotDailyLimitInfo.day ? String(chatbotDailyLimitInfo.day) : '';
+      if (limitDay && limitDay !== getTodayKey()) {
+        chatbotDailyLimitBlocked = false;
+        chatbotDailyLimitInfo = null;
+        return false;
+      }
+      return true;
+    };
+
+    const getChatbotDailyLimitHint = () => {
+      const info = chatbotDailyLimitInfo || {};
+      const limit = Number.isFinite(Number(info.tokenLimitDay))
+        ? Math.max(0, Math.round(Number(info.tokenLimitDay)))
+        : 0;
+      const used = Number.isFinite(Number(info.usedTokensDay))
+        ? Math.max(0, Math.round(Number(info.usedTokensDay)))
+        : 0;
+      if (limit > 0) {
+        return `Limite diario alcanzado: ${tokenFmt.format(used)} / ${tokenFmt.format(limit)} tokens. Vuelve manana.`;
+      }
+      return 'Limite diario del chatbot alcanzado. Vuelve manana.';
+    };
+
+    const setChatbotDailyLimitBlocked = (blocked, info = {}) => {
+      chatbotDailyLimitBlocked = Boolean(blocked);
+      chatbotDailyLimitInfo = chatbotDailyLimitBlocked
+        ? {
+            day: info.day || getTodayKey(),
+            tokenLimitDay: Number(info.tokenLimitDay || info.token_limit_day || 0),
+            usedTokensDay: Number(info.usedTokensDay || info.used_tokens_day || 0)
+          }
+        : null;
+      if (chatbotDailyLimitBlocked) {
+        setTypingState('chatbot', false);
+        setHint(getChatbotDailyLimitHint());
+      }
+      applyControlsEnabled();
     };
 
     let chatAutoScroll = true;
@@ -905,6 +976,11 @@ class PagePremium extends HTMLElement {
 
     const updateDraftButtons = () => {
       if (!previewBtn || !sendBtn) return;
+      if (!controlsBaseEnabled || (chatMode === 'chatbot' && isChatbotDailyLimitActive())) {
+        previewBtn.disabled = true;
+        sendBtn.disabled = true;
+        return;
+      }
       const typedText = textInput ? textInput.value.trim() : '';
       const hasTranscript = Boolean(draftTranscript) || Boolean(typedText);
       const hasPlayback =
@@ -915,7 +991,9 @@ class PagePremium extends HTMLElement {
       sendBtn.disabled = !hasTranscript;
     };
 
-    const setControlsEnabled = (enabled) => {
+    const applyControlsEnabled = () => {
+      const limited = chatMode === 'chatbot' && isChatbotDailyLimitActive();
+      const enabled = controlsBaseEnabled && !limited;
       if (recordBtn) recordBtn.disabled = !enabled;
       if (stopBtn) stopBtn.disabled = !enabled;
       if (cancelBtn) cancelBtn.disabled = !enabled;
@@ -927,6 +1005,14 @@ class PagePremium extends HTMLElement {
         if (textInput) textInput.disabled = false;
         updateDraftButtons();
       }
+      if (limited) {
+        setHint(getChatbotDailyLimitHint());
+      }
+    };
+
+    const setControlsEnabled = (enabled) => {
+      controlsBaseEnabled = Boolean(enabled);
+      applyControlsEnabled();
     };
 
     const showLoadingState = () => {
@@ -1917,6 +2003,13 @@ class PagePremium extends HTMLElement {
         if (message.role === 'bot') {
           setTypingState(connectedMode, false);
           cancelSimulatedReply(connectedMode);
+          if (connectedMode === 'chatbot' && message.limitReached) {
+            setChatbotDailyLimitBlocked(true, {
+              day: message.day,
+              tokenLimitDay: message.tokenLimitDay,
+              usedTokensDay: message.usedTokensDay
+            });
+          }
         }
         appendMessage(message, {
           mode: connectedMode,
@@ -2057,11 +2150,13 @@ class PagePremium extends HTMLElement {
       if (chatPanel) chatPanel.hidden = !premium;
 
       if (userChanged) {
+        setChatbotDailyLimitBlocked(false);
         loadTalkTimelinesForUser(userId);
         clearThread();
       }
 
       if (!premium) {
+        setChatbotDailyLimitBlocked(false);
         if (userChanged || premiumChanged) {
           resetChatSession({ keepIntro: false, setDefaultHint: false, keepTimeline: true });
         }
@@ -2113,6 +2208,10 @@ class PagePremium extends HTMLElement {
     const sendUserText = (userText, payload = {}) => {
       if (!userText) return;
       const messageMode = chatMode;
+      if (messageMode === 'chatbot' && isChatbotDailyLimitActive()) {
+        setHint(getChatbotDailyLimitHint());
+        return;
+      }
       if (messageMode === 'catbot') {
         awaitingBot[messageMode] = true;
       }
@@ -2381,6 +2480,7 @@ class PagePremium extends HTMLElement {
         disconnectRealtime();
         connectRealtime(window.user);
       }
+      applyControlsEnabled();
       updateDraftButtons();
     };
 

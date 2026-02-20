@@ -152,6 +152,19 @@ class PageDiagnostics extends HTMLElement {
             <div class="diag-speak-block">
               <div class="pill">Tokens y coste</div>
               <div class="diag-usage-status" id="diag-usage-status">Cargando...</div>
+              <div class="diag-actions diag-usage-limit-actions">
+                <input
+                  id="diag-usage-limit-input"
+                  class="chat-text-input diag-usage-limit-input"
+                  type="number"
+                  min="0"
+                  step="1"
+                  placeholder="Limite tokens/dia"
+                />
+                <ion-button size="small" fill="outline" id="diag-usage-limit-save">Guardar limite</ion-button>
+                <ion-button size="small" fill="outline" color="medium" id="diag-usage-limit-clear">Sin limite</ion-button>
+              </div>
+              <div class="diag-usage-limit-status" id="diag-usage-limit-status"></div>
               <div class="diag-usage-totals" id="diag-usage-totals" hidden></div>
               <div class="diag-usage-list" id="diag-usage-list"></div>
             </div>
@@ -369,6 +382,10 @@ class PageDiagnostics extends HTMLElement {
     const talkCatEl = this.querySelector('#diag-talk-catbot');
     const talkBotEl = this.querySelector('#diag-talk-chatbot');
     const usageStatusEl = this.querySelector('#diag-usage-status');
+    const usageLimitInputEl = this.querySelector('#diag-usage-limit-input');
+    const usageLimitStatusEl = this.querySelector('#diag-usage-limit-status');
+    const usageLimitSaveBtn = this.querySelector('#diag-usage-limit-save');
+    const usageLimitClearBtn = this.querySelector('#diag-usage-limit-clear');
     const usageTotalsEl = this.querySelector('#diag-usage-totals');
     const usageListEl = this.querySelector('#diag-usage-list');
     const notifyListEl = this.querySelector('#diag-notify-list');
@@ -462,6 +479,17 @@ class PageDiagnostics extends HTMLElement {
       return '';
     };
 
+    const resolveUsageLimitEndpoint = () => {
+      const cfg = window.realtimeConfig || {};
+      const direct = cfg.chatbotUsageLimitEndpoint;
+      if (typeof direct === 'string' && direct.trim()) return direct.trim();
+      const dailyEndpoint = resolveUsageEndpoint();
+      if (dailyEndpoint) {
+        return dailyEndpoint.replace(/\/daily$/, '/limit');
+      }
+      return '';
+    };
+
     const buildUsageHeaders = () => {
       const headers = {};
       const cfg = window.realtimeConfig || {};
@@ -470,6 +498,69 @@ class PageDiagnostics extends HTMLElement {
       if (monitor) headers['x-monitor-token'] = monitor;
       if (state) headers['x-rt-token'] = state;
       return headers;
+    };
+
+    const updateUsageLimitStatus = (text) => {
+      if (!usageLimitStatusEl) return;
+      usageLimitStatusEl.textContent = text || '';
+    };
+
+    const renderUsageLimit = (status) => {
+      if (!usageLimitInputEl) return;
+      const limit = Math.max(0, Math.round(toUsageNumber(status && status.token_limit_day, 0)));
+      usageLimitInputEl.value = limit > 0 ? String(limit) : '';
+      const used = Math.max(0, Math.round(toUsageNumber(status && status.used_tokens_day, 0)));
+      if (!limit) {
+        updateUsageLimitStatus(`Sin limite diario. Usados hoy: ${usageIntFmt.format(used)} tokens.`);
+        return;
+      }
+      const reached = Boolean(status && status.limit_reached_today);
+      const remaining = Math.max(0, Math.round(toUsageNumber(status && status.remaining_tokens_day, limit - used)));
+      updateUsageLimitStatus(
+        reached
+          ? `Limite activo: ${usageIntFmt.format(limit)} tk/dia. Alcanzado hoy (${usageIntFmt.format(used)}).`
+          : `Limite activo: ${usageIntFmt.format(limit)} tk/dia. Restantes hoy: ${usageIntFmt.format(remaining)}.`
+      );
+    };
+
+    const fetchUsageLimitStatus = async (userId) => {
+      const endpoint = resolveUsageLimitEndpoint();
+      if (!endpoint) {
+        updateUsageLimitStatus('Endpoint de limite no configurado.');
+        return null;
+      }
+      const url = new URL(endpoint, window.location.origin);
+      url.searchParams.set('user_id', userId);
+      const response = await fetch(url.toString(), {
+        headers: buildUsageHeaders()
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      return response.json();
+    };
+
+    const saveUsageLimit = async (userId, limitTokens) => {
+      const endpoint = resolveUsageLimitEndpoint();
+      if (!endpoint) {
+        updateUsageLimitStatus('Endpoint de limite no configurado.');
+        return null;
+      }
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...buildUsageHeaders()
+        },
+        body: JSON.stringify({
+          user_id: userId,
+          token_limit_day: limitTokens
+        })
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      return response.json();
     };
 
     const renderUsageRows = (rows) => {
@@ -525,14 +616,21 @@ class PageDiagnostics extends HTMLElement {
         usageTotalsEl.hidden = true;
         usageListEl.innerHTML = '';
         updateUsageStatus('Inicia sesión para ver consumo por usuario.');
+        if (usageLimitInputEl) usageLimitInputEl.value = '';
+        updateUsageLimitStatus('Inicia sesión para configurar limite diario.');
+        if (usageLimitSaveBtn) usageLimitSaveBtn.disabled = true;
+        if (usageLimitClearBtn) usageLimitClearBtn.disabled = true;
         return;
       }
+      if (usageLimitSaveBtn) usageLimitSaveBtn.disabled = false;
+      if (usageLimitClearBtn) usageLimitClearBtn.disabled = false;
 
       const endpoint = resolveUsageEndpoint();
       if (!endpoint) {
         usageTotalsEl.hidden = true;
         usageListEl.innerHTML = '';
         updateUsageStatus('Endpoint de usage no configurado.');
+        updateUsageLimitStatus('Endpoint de usage no configurado.');
         return;
       }
 
@@ -551,12 +649,23 @@ class PageDiagnostics extends HTMLElement {
       const requestId = usageRequestSeq + 1;
       usageRequestSeq = requestId;
       updateUsageStatus('Cargando consumo...');
+      updateUsageLimitStatus('Cargando limite...');
 
       try {
-        const response = await fetch(url.toString(), {
-          headers: buildUsageHeaders()
-        });
+        const [response, limitPayload] = await Promise.all([
+          fetch(url.toString(), {
+            headers: buildUsageHeaders()
+          }),
+          fetchUsageLimitStatus(userId).catch((err) => ({ _error: err }))
+        ]);
         if (requestId !== usageRequestSeq) return;
+        if (limitPayload && !limitPayload._error) {
+          renderUsageLimit(limitPayload);
+        } else if (limitPayload && limitPayload._error) {
+          updateUsageLimitStatus(
+            `No se pudo leer limite: ${limitPayload._error.message || String(limitPayload._error)}`
+          );
+        }
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}`);
         }
@@ -572,6 +681,9 @@ class PageDiagnostics extends HTMLElement {
         const totals = payload && typeof payload.totals === 'object' ? payload.totals : {};
         renderUsageTotals(totals, rows.length);
         renderUsageRows(rows);
+        if (payload && payload.limit_status && typeof payload.limit_status === 'object') {
+          renderUsageLimit(payload.limit_status);
+        }
         if (rows.length) {
           const now = new Date().toLocaleTimeString('es-ES');
           updateUsageStatus(`Actualizado: ${now}`);
@@ -583,6 +695,41 @@ class PageDiagnostics extends HTMLElement {
         usageTotalsEl.hidden = true;
         usageListEl.innerHTML = '';
         updateUsageStatus(`Error cargando usage: ${err.message || String(err)}`);
+      }
+    };
+
+    const getUsageLimitInputValue = () => {
+      if (!usageLimitInputEl) return NaN;
+      const raw = String(usageLimitInputEl.value || '').trim();
+      if (!raw) return 0;
+      return Number(raw);
+    };
+
+    const submitUsageLimit = async (limitTokens) => {
+      const userId = getUsageUserId();
+      if (!userId) {
+        updateUsageLimitStatus('Inicia sesión para configurar limite.');
+        return;
+      }
+      const normalized = Number.isFinite(limitTokens) ? Math.max(0, Math.floor(limitTokens)) : NaN;
+      if (!Number.isFinite(normalized)) {
+        updateUsageLimitStatus('Introduce un numero valido.');
+        return;
+      }
+      if (usageLimitSaveBtn) usageLimitSaveBtn.disabled = true;
+      if (usageLimitClearBtn) usageLimitClearBtn.disabled = true;
+      updateUsageLimitStatus('Guardando limite...');
+      try {
+        const payload = await saveUsageLimit(userId, normalized);
+        if (payload && typeof payload === 'object') {
+          renderUsageLimit(payload);
+        }
+        await refreshUserUsage();
+      } catch (err) {
+        updateUsageLimitStatus(`Error guardando limite: ${err.message || String(err)}`);
+      } finally {
+        if (usageLimitSaveBtn) usageLimitSaveBtn.disabled = false;
+        if (usageLimitClearBtn) usageLimitClearBtn.disabled = false;
       }
     };
 
@@ -814,6 +961,12 @@ class PageDiagnostics extends HTMLElement {
     });
     this.querySelector('#diag-usage-refresh')?.addEventListener('click', () => {
       refreshUserUsage();
+    });
+    usageLimitSaveBtn?.addEventListener('click', () => {
+      submitUsageLimit(getUsageLimitInputValue());
+    });
+    usageLimitClearBtn?.addEventListener('click', () => {
+      submitUsageLimit(0);
     });
     this.querySelector('#diag-notify-generate')?.addEventListener('click', () => {
       generateDemoNotifications();

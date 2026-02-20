@@ -1009,6 +1009,22 @@ ion-modal.login-modal page-login .page-shell {
   color: var(--app-muted);
 }
 
+.diag-usage-limit-actions {
+  margin-top: 8px;
+  align-items: center;
+}
+
+.diag-usage-limit-input {
+  max-width: 180px;
+  min-width: 140px;
+}
+
+.diag-usage-limit-status {
+  margin-top: 6px;
+  font-size: 0.8rem;
+  color: var(--app-muted);
+}
+
 .diag-usage-totals {
   margin-top: 8px;
   padding: 8px 10px;

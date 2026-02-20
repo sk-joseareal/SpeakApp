@@ -47,12 +47,17 @@ const chatbotHistoryLimit = Number.isFinite(chatbotMaxHistory) ? chatbotMaxHisto
 const openaiApiKey = env('OPENAI_API_KEY', '');
 const openaiApiBase = env('OPENAI_API_BASE', 'https://api.openai.com/v1');
 const openaiUsageLog = env('OPENAI_USAGE_LOG', 'openai-usage.log');
+const openaiUsageDailyFile = env('OPENAI_USAGE_DAILY_FILE', 'openai-usage-daily.json');
+const openaiUsageDailyRetentionDays = Number(env('OPENAI_USAGE_DAILY_RETENTION_DAYS', '120'));
 const openaiPromptCost = Number(env('OPENAI_PROMPT_COST_PER_MILLION', '0.15'));
 const openaiCompletionCost = Number(env('OPENAI_COMPLETION_COST_PER_MILLION', '0.6'));
 const openaiLogTranscripts = env('OPENAI_LOG_TRANSCRIPTS', 'false') === 'true';
 const usageLogEnabled =
   openaiUsageLog &&
   !['false', '0', 'off', 'none'].includes(String(openaiUsageLog).toLowerCase());
+const usageDailyEnabled =
+  openaiUsageDailyFile &&
+  !['false', '0', 'off', 'none'].includes(String(openaiUsageDailyFile).toLowerCase());
 
 if (provider !== 'pusher') {
   config.host = env('REALTIME_HOST', '127.0.0.1');
@@ -71,6 +76,18 @@ const pusher = new Pusher(config);
 
 const chatbotSessions = new Map();
 const openaiEndpoint = `${openaiApiBase.replace(/\/$/, '')}/chat/completions`;
+const openaiDailyUsageByUserDay = new Map();
+let openaiDailyUsageFlushTimer = null;
+
+const formatUsageDay = (value) => {
+  if (!value) return '';
+  const raw = String(value).trim();
+  if (!raw) return '';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+  const parsed = new Date(raw);
+  if (Number.isNaN(parsed.getTime())) return '';
+  return parsed.toISOString().slice(0, 10);
+};
 
 const parseCoachId = (channel) => {
   if (typeof channel !== 'string') return null;
@@ -93,6 +110,206 @@ const pickFirstString = (...values) => {
   }
   return '';
 };
+
+const toNonNegativeNumber = (value, fallback = 0) => {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return fallback;
+  if (numeric < 0) return fallback;
+  return numeric;
+};
+
+const ensureParentDir = (filePath) => {
+  if (!filePath) return;
+  const dirPath = path.dirname(filePath);
+  if (!dirPath || dirPath === '.') return;
+  try {
+    fs.mkdirSync(dirPath, { recursive: true });
+  } catch (err) {
+    console.warn('[usage] mkdir failed', dirPath, err.message);
+  }
+};
+
+const usageRowSort = (a, b) => {
+  const dayCompare = String(b.day || '').localeCompare(String(a.day || ''));
+  if (dayCompare !== 0) return dayCompare;
+  const costCompare = toNonNegativeNumber(b.estimated_cost_usd) - toNonNegativeNumber(a.estimated_cost_usd);
+  if (costCompare !== 0) return costCompare;
+  const tokenCompare = toNonNegativeNumber(b.total_tokens) - toNonNegativeNumber(a.total_tokens);
+  if (tokenCompare !== 0) return tokenCompare;
+  return String(a.user_id || '').localeCompare(String(b.user_id || ''));
+};
+
+const serializeOpenAIDailyUsageRows = () =>
+  Array.from(openaiDailyUsageByUserDay.values()).sort(usageRowSort);
+
+const pruneOpenAIDailyUsage = () => {
+  if (!Number.isFinite(openaiUsageDailyRetentionDays) || openaiUsageDailyRetentionDays <= 0) return;
+  const cutoffMs = Date.now() - openaiUsageDailyRetentionDays * 24 * 60 * 60 * 1000;
+  const cutoffDay = new Date(cutoffMs).toISOString().slice(0, 10);
+  Array.from(openaiDailyUsageByUserDay.entries()).forEach(([key, row]) => {
+    if (!row || !row.day || row.day < cutoffDay) {
+      openaiDailyUsageByUserDay.delete(key);
+    }
+  });
+};
+
+const flushOpenAIDailyUsage = () => {
+  if (!usageDailyEnabled) return;
+  ensureParentDir(openaiUsageDailyFile);
+  const rows = serializeOpenAIDailyUsageRows();
+  fs.writeFile(openaiUsageDailyFile, `${JSON.stringify(rows, null, 2)}\n`, (err) => {
+    if (err) {
+      console.warn('Failed to write OpenAI daily usage file:', err.message);
+    }
+  });
+};
+
+const flushOpenAIDailyUsageSync = () => {
+  if (!usageDailyEnabled) return;
+  ensureParentDir(openaiUsageDailyFile);
+  const rows = serializeOpenAIDailyUsageRows();
+  try {
+    fs.writeFileSync(openaiUsageDailyFile, `${JSON.stringify(rows, null, 2)}\n`);
+  } catch (err) {
+    console.warn('Failed to flush OpenAI daily usage file:', err.message);
+  }
+};
+
+const scheduleOpenAIDailyUsageFlush = () => {
+  if (!usageDailyEnabled) return;
+  if (openaiDailyUsageFlushTimer) return;
+  openaiDailyUsageFlushTimer = setTimeout(() => {
+    openaiDailyUsageFlushTimer = null;
+    flushOpenAIDailyUsage();
+  }, 250);
+};
+
+const normalizeDailyUsageRow = (row) => {
+  if (!row || typeof row !== 'object') return null;
+  const day = formatUsageDay(row.day || row.date || row.timestamp);
+  if (!day) return null;
+  const userId = pickFirstString(row.user_id, row.userId, 'unknown');
+  const userName = pickFirstString(row.user_name, row.userName, row.name);
+  const coachId = pickFirstString(row.coach_id, row.coachId);
+  const promptTokens = Math.round(toNonNegativeNumber(row.prompt_tokens, 0));
+  const completionTokens = Math.round(toNonNegativeNumber(row.completion_tokens, 0));
+  const totalTokensRaw = Math.round(toNonNegativeNumber(row.total_tokens, promptTokens + completionTokens));
+  const totalTokens = totalTokensRaw || promptTokens + completionTokens;
+  const estimatedCost = toNonNegativeNumber(
+    row.estimated_cost_usd,
+    estimateOpenAITokenCost(promptTokens, openaiPromptCost) +
+      estimateOpenAITokenCost(completionTokens, openaiCompletionCost)
+  );
+  const requests = Math.round(toNonNegativeNumber(row.requests, 1));
+  const firstRequestAt = pickFirstString(row.first_request_at, row.firstRequestAt, row.timestamp);
+  const lastRequestAt = pickFirstString(row.last_request_at, row.lastRequestAt, row.timestamp);
+
+  return {
+    day,
+    user_id: userId,
+    user_name: userName || '',
+    coach_id: coachId || '',
+    requests,
+    prompt_tokens: promptTokens,
+    completion_tokens: completionTokens,
+    total_tokens: totalTokens,
+    estimated_cost_usd: Number(estimatedCost.toFixed(6)),
+    first_request_at: firstRequestAt || '',
+    last_request_at: lastRequestAt || ''
+  };
+};
+
+const loadOpenAIDailyUsageFromDisk = () => {
+  if (!usageDailyEnabled) return;
+  try {
+    const raw = fs.readFileSync(openaiUsageDailyFile, 'utf8');
+    const parsed = JSON.parse(raw);
+    const rows = Array.isArray(parsed) ? parsed : [];
+    rows.forEach((row) => {
+      const normalized = normalizeDailyUsageRow(row);
+      if (!normalized) return;
+      const key = `${normalized.day}::${normalized.user_id}`;
+      openaiDailyUsageByUserDay.set(key, normalized);
+    });
+    pruneOpenAIDailyUsage();
+  } catch (err) {
+    if (err && err.code === 'ENOENT') return;
+    console.warn('Failed to load OpenAI daily usage file:', err.message);
+  }
+};
+
+const trackOpenAIDailyUsage = (entry) => {
+  if (!usageDailyEnabled || !entry || typeof entry !== 'object') return;
+  const day = formatUsageDay(entry.timestamp) || new Date().toISOString().slice(0, 10);
+  const userId = pickFirstString(entry.user_id, entry.userId, 'unknown');
+  const userName = pickFirstString(entry.user_name, entry.userName, entry.name);
+  const coachId = pickFirstString(entry.coach_id, entry.coachId);
+  const promptTokens = Math.round(toNonNegativeNumber(entry.prompt_tokens, 0));
+  const completionTokens = Math.round(toNonNegativeNumber(entry.completion_tokens, 0));
+  const totalTokensRaw = Math.round(toNonNegativeNumber(entry.total_tokens, promptTokens + completionTokens));
+  const totalTokens = totalTokensRaw || promptTokens + completionTokens;
+  const estimatedCost = toNonNegativeNumber(
+    entry.estimated_cost_usd,
+    estimateOpenAITokenCost(promptTokens, openaiPromptCost) +
+      estimateOpenAITokenCost(completionTokens, openaiCompletionCost)
+  );
+  const timestamp = pickFirstString(entry.timestamp, new Date().toISOString());
+  const key = `${day}::${userId}`;
+  const current = openaiDailyUsageByUserDay.get(key) || {
+    day,
+    user_id: userId,
+    user_name: userName || '',
+    coach_id: coachId || '',
+    requests: 0,
+    prompt_tokens: 0,
+    completion_tokens: 0,
+    total_tokens: 0,
+    estimated_cost_usd: 0,
+    first_request_at: timestamp,
+    last_request_at: timestamp
+  };
+
+  current.requests += 1;
+  current.prompt_tokens += promptTokens;
+  current.completion_tokens += completionTokens;
+  current.total_tokens += totalTokens;
+  current.estimated_cost_usd = Number((current.estimated_cost_usd + estimatedCost).toFixed(6));
+  if (userName) current.user_name = userName;
+  if (coachId) current.coach_id = coachId;
+  if (timestamp) {
+    if (!current.first_request_at || timestamp < current.first_request_at) {
+      current.first_request_at = timestamp;
+    }
+    if (!current.last_request_at || timestamp > current.last_request_at) {
+      current.last_request_at = timestamp;
+    }
+  }
+
+  openaiDailyUsageByUserDay.set(key, current);
+  pruneOpenAIDailyUsage();
+  scheduleOpenAIDailyUsageFlush();
+};
+
+const summarizeUsageRows = (rows) =>
+  rows.reduce(
+    (acc, row) => {
+      acc.requests += toNonNegativeNumber(row.requests, 0);
+      acc.prompt_tokens += toNonNegativeNumber(row.prompt_tokens, 0);
+      acc.completion_tokens += toNonNegativeNumber(row.completion_tokens, 0);
+      acc.total_tokens += toNonNegativeNumber(row.total_tokens, 0);
+      acc.estimated_cost_usd = Number(
+        (acc.estimated_cost_usd + toNonNegativeNumber(row.estimated_cost_usd, 0)).toFixed(6)
+      );
+      return acc;
+    },
+    {
+      requests: 0,
+      prompt_tokens: 0,
+      completion_tokens: 0,
+      total_tokens: 0,
+      estimated_cost_usd: 0
+    }
+  );
 
 const extractChatUserMeta = (data, channel) => {
   const source = data && typeof data === 'object' ? data : {};
@@ -129,7 +346,7 @@ const appendOpenAIUsageLog = (entry) => {
 };
 
 const logOpenAIUsage = (usage, descriptor, extra = {}) => {
-  if (!usage || !usageLogEnabled) return;
+  if (!usage) return;
   try {
     const promptTokens = Number(usage.prompt_tokens) || 0;
     const completionTokens = Number(usage.completion_tokens) || 0;
@@ -155,11 +372,16 @@ const logOpenAIUsage = (usage, descriptor, extra = {}) => {
     if (Number.isFinite(estimatedCost)) {
       entry.estimated_cost_usd = Number(estimatedCost.toFixed(6));
     }
-    appendOpenAIUsageLog(entry);
+    if (usageLogEnabled) {
+      appendOpenAIUsageLog(entry);
+    }
+    trackOpenAIDailyUsage(entry);
   } catch (err) {
     console.warn('Failed to record OpenAI usage:', err.message);
   }
 };
+
+loadOpenAIDailyUsageFromDisk();
 
 const formatRoleLabel = (role) => {
   if (role === 'system') return 'System';
@@ -1007,6 +1229,78 @@ app.get('/realtime/channels', (req, res) => {
   });
 });
 
+app.get('/realtime/chatbot/usage/daily', (req, res) => {
+  if (!authorizeMonitor(req, res)) return;
+
+  if (!usageDailyEnabled) {
+    res.json({
+      ok: true,
+      enabled: false,
+      rows: [],
+      totals: summarizeUsageRows([])
+    });
+    return;
+  }
+
+  const dayFilterRaw = pickFirstString(req.query.day);
+  const fromRaw = pickFirstString(req.query.from, req.query.date_from);
+  const toRaw = pickFirstString(req.query.to, req.query.date_to);
+  const userIdFilter = pickFirstString(req.query.user_id, req.query.userId);
+  const coachIdFilter = pickFirstString(req.query.coach_id, req.query.coachId);
+  const limitValue = Number(req.query.limit);
+  const limit = Number.isFinite(limitValue) && limitValue > 0 ? Math.min(Math.floor(limitValue), 5000) : 300;
+
+  const dayFilter = dayFilterRaw ? formatUsageDay(dayFilterRaw) : '';
+  if (dayFilterRaw && !dayFilter) {
+    res.status(400).json({ error: 'invalid day format (expected YYYY-MM-DD)' });
+    return;
+  }
+  const fromFilter = fromRaw ? formatUsageDay(fromRaw) : '';
+  if (fromRaw && !fromFilter) {
+    res.status(400).json({ error: 'invalid from format (expected YYYY-MM-DD)' });
+    return;
+  }
+  const toFilter = toRaw ? formatUsageDay(toRaw) : '';
+  if (toRaw && !toFilter) {
+    res.status(400).json({ error: 'invalid to format (expected YYYY-MM-DD)' });
+    return;
+  }
+  if (fromFilter && toFilter && fromFilter > toFilter) {
+    res.status(400).json({ error: '"from" must be before or equal to "to"' });
+    return;
+  }
+
+  const rows = serializeOpenAIDailyUsageRows().filter((row) => {
+    if (dayFilter && row.day !== dayFilter) return false;
+    if (fromFilter && row.day < fromFilter) return false;
+    if (toFilter && row.day > toFilter) return false;
+    if (userIdFilter && row.user_id !== userIdFilter) return false;
+    if (coachIdFilter && String(row.coach_id || '') !== coachIdFilter) return false;
+    return true;
+  });
+
+  const totals = summarizeUsageRows(rows);
+  const outputRows = rows.slice(0, limit);
+
+  res.json({
+    ok: true,
+    enabled: true,
+    count: rows.length,
+    returned: outputRows.length,
+    truncated: rows.length > outputRows.length,
+    filters: {
+      day: dayFilter || '',
+      from: fromFilter || '',
+      to: toFilter || '',
+      user_id: userIdFilter || '',
+      coach_id: coachIdFilter || '',
+      limit
+    },
+    totals,
+    rows: outputRows
+  });
+});
+
 app.get('/realtime/state/summary', (req, res) => {
   if (!authorizeState(req, res)) return;
   const owner = resolveOwner(req);
@@ -1138,6 +1432,16 @@ app.post('/realtime/state/sync', (req, res) => {
     snapshot,
     summary: buildSummary(snapshot)
   });
+});
+
+process.on('SIGINT', () => {
+  flushOpenAIDailyUsageSync();
+  process.exit(0);
+});
+
+process.on('SIGTERM', () => {
+  flushOpenAIDailyUsageSync();
+  process.exit(0);
 });
 
 const port = Number(env('REALTIME_GATEWAY_PORT', '8787'));

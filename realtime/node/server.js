@@ -1337,7 +1337,7 @@ app.post('/realtime/emit', async (req, res) => {
   );
   const dailyLimitStatus = getChatbotDailyLimitStatus(resolvedUserId);
   if (dailyLimitStatus.limit_reached_today) {
-    const limitText = `Has alcanzado el limite diario del chatbot (${dailyLimitStatus.token_limit_day} tokens). Vuelve manana.`;
+    const limitText = `Sorry but you have reached the chatbot daily use limit. Come back tomorrow.` //Has alcanzado el limite diario del chatbot (${dailyLimitStatus.token_limit_day} tokens). Vuelve manana.`;
     pusher
       .trigger(channel, 'bot_message', {
         text: limitText,

@@ -1,5 +1,6 @@
 import { ensureInitialHash } from '../nav.js';
 import { clearNotifications, generateDemoNotifications, getNotifications } from '../notifications-store.js';
+import { clearOnboardingDone } from '../state.js';
 
 class PageDiagnostics extends HTMLElement {
   connectedCallback() {
@@ -104,6 +105,11 @@ class PageDiagnostics extends HTMLElement {
             <div class="diag-actions">
               <ion-button size="small" fill="outline" id="var-sendmail">Contact</ion-button>
               <ion-button size="small" fill="outline" id="var-goweblegal">Legal web</ion-button>
+            </div>
+
+            <h4 style="margin-top:16px;">Onboarding</h4>
+            <div class="diag-actions">
+              <ion-button size="small" fill="outline" id="diag-onboarding-repeat">Repetir onboarding</ion-button>
             </div>
 
             <h4 style="margin-top:16px;">Speak stores</h4>
@@ -557,6 +563,11 @@ class PageDiagnostics extends HTMLElement {
     // Varios
     bind('#var-sendmail', 'sendMail', true);
     bind('#var-goweblegal', 'goWebLegal', true);
+
+    this.querySelector('#diag-onboarding-repeat')?.addEventListener('click', () => {
+      clearOnboardingDone();
+      window.location.hash = '#/onboarding';
+    });
 
     // Login
     const openLoginModal = async () => {

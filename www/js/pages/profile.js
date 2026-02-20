@@ -1,4 +1,7 @@
+import { getAppLocale, setAppLocale } from '../state.js';
 import { ensureTrainingData, getRoutes, setSelection } from '../data/training-data.js';
+import { getLocaleMeta, getNextLocaleCode, resolveLocale } from '../content/copy.js';
+import { goToSpeak } from '../nav.js';
 
 class PageProfile extends HTMLElement {
   connectedCallback() {
@@ -283,6 +286,13 @@ class PageProfile extends HTMLElement {
     const loggedIn = Boolean(userId);
     const prefsActive = this.activeTab === 'prefs';
     const reviewActive = this.activeTab === 'review';
+    const rawLocaleSetting = resolveLocale(
+      getAppLocale() || (window.varGlobal && window.varGlobal.locale) || 'es',
+      'es'
+    );
+    const profileLocaleUi = getLocaleMeta(rawLocaleSetting);
+    const nextLocaleCode = getNextLocaleCode(profileLocaleUi.code);
+    const nextLocaleLabel = getLocaleMeta(nextLocaleCode).label;
     const showFooterLinks = loggedIn && prefsActive;
     const showAppMeta = !loggedIn || prefsActive;
     const formatExpiry = (value) => {
@@ -459,8 +469,27 @@ class PageProfile extends HTMLElement {
           <div class="profile-panel" id="profile-content-panel" ${loggedIn ? '' : 'hidden'}>
             <div class="card profile-overview">
               <div class="profile-progress">
-                <div class="profile-progress-circle ${globalTone}">${globalPercent}</div>
-                <div class="profile-progress-label">Pronunciacion</div>
+                <div class="profile-progress-top">
+                  <div class="profile-progress-main">
+                    <div class="profile-progress-head">
+                      <div class="profile-progress-circle ${globalTone}">${globalPercent}</div>
+                    </div>
+                    <div class="profile-progress-label">Progreso</div>
+                  </div>
+                  <button
+                    class="profile-locale-indicator"
+                    id="profile-locale-toggle"
+                    type="button"
+                    data-next-locale="${escapeHtml(nextLocaleCode)}"
+                    aria-label="Cambiar idioma a ${escapeHtml(nextLocaleLabel)}"
+                    title="Cambiar idioma a ${escapeHtml(nextLocaleLabel)}"
+                  >
+                    <img class="profile-locale-flag" src="${escapeHtml(profileLocaleUi.flag)}" alt="${escapeHtml(
+                      profileLocaleUi.alt
+                    )}">
+                    <span class="profile-locale-name">${escapeHtml(profileLocaleUi.label)}</span>
+                  </button>
+                </div>
               </div>
             </div>
             <div class="profile-tabs">
@@ -599,6 +628,7 @@ class PageProfile extends HTMLElement {
     const profilePasswordConfirm = this.querySelector('#profile-password-confirm');
     const profileSaveBtn = this.querySelector('#profile-save-btn');
     const profileSaveNote = this.querySelector('#profile-save-note');
+    const profileLocaleToggle = this.querySelector('#profile-locale-toggle');
 
     const updateProfileState = (nextUser) => {
       const nextUserId =
@@ -689,6 +719,16 @@ class PageProfile extends HTMLElement {
       openLoginModal().catch((err) => {
         console.error('[profile] error abriendo login', err);
       });
+    });
+
+    profileLocaleToggle?.addEventListener('click', () => {
+      const nextLocale = String(profileLocaleToggle.dataset.nextLocale || '').toLowerCase() === 'en' ? 'en' : 'es';
+      setAppLocale(nextLocale);
+      if (window.varGlobal && typeof window.varGlobal === 'object') {
+        window.varGlobal.locale = nextLocale;
+      }
+      window.dispatchEvent(new CustomEvent('app:locale-change', { detail: { locale: nextLocale } }));
+      this.render();
     });
 
     logoutBtn?.addEventListener('click', this._logoutUser);
@@ -1112,10 +1152,7 @@ class PageProfile extends HTMLElement {
         window.r34lp0w3r.profileForceTab = 'review';
         window.r34lp0w3r.profileReviewTone = this.reviewTone;
         setSelection(location);
-        const tabs = document.querySelector('ion-tabs');
-        if (tabs && typeof tabs.select === 'function') {
-          tabs.select('speak');
-        }
+        goToSpeak('forward');
       });
     });
 

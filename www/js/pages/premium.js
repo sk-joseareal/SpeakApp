@@ -1847,13 +1847,18 @@ class PagePremium extends HTMLElement {
       const config = getRealtimeConfig();
       if (!config.emitEndpoint || !pusherChannelName) return;
       if (!lastUserId) return;
+      const userName = getUserDisplayName(window.user || {});
       const payload = {
         channel: pusherChannelName,
         event: 'user_message',
         data: {
           text,
           user_id: lastUserId,
-          name: getUserDisplayName(window.user || {})
+          userId: lastUserId,
+          id: lastUserId,
+          name: userName,
+          user_name: userName,
+          userName
         }
       };
       try {

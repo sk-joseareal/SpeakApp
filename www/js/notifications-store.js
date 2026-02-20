@@ -308,7 +308,7 @@ const demoFactories = [
     icon: 'mic-outline',
     title: 'Mini practica lista',
     text: 'Solo 2 minutos para hoy.',
-    action: { label: 'Practicar', tab: 'speak', complete: true }
+    action: { label: 'Practicar', hash: '/speak', complete: true }
   }),
   () => ({
     type: 'talk',
@@ -323,7 +323,7 @@ const demoFactories = [
     icon: 'timer-outline',
     title: 'Recordatorio',
     text: 'Practica 5 minutos hoy.',
-    action: { label: 'Ir a Training', tab: 'listas', complete: true }
+    action: { label: 'Ir a Home', tab: 'home', complete: true }
   }),
   () => ({
     type: 'info',

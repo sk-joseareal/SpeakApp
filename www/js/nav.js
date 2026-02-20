@@ -11,6 +11,11 @@ export const goToHome = async (direction = 'forward') => {
   routerRef.push('/tabs', direction);
 };
 
+export const goToSpeak = async (direction = 'forward') => {
+  if (!routerRef) return;
+  routerRef.push('/speak', direction);
+};
+
 export const ensureInitialHash = () => {
   const hash = window.location.hash.replace('#', '');
 

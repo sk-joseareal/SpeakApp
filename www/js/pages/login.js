@@ -14,25 +14,7 @@ class PageLogin extends HTMLElement {
         <div class="page-shell">
           <div class="card">
             <div class="login-panel" data-panel="login">
-              <h3>Iniciar sesion</h3>
-              <p class="muted">Introduce tus datos para continuar.</p>
-              <div class="login-inputs">
-                <label class="login-field" for="login-user">
-                  <span class="login-label">Usuario</span>
-                  <input class="chat-text-input login-text-input" autocomplete="username" name="username" id="login-user" type="email" inputmode="email" placeholder="tu usuario">
-                </label>
-                <label class="login-field" for="login-pass">
-                  <span class="login-label">Contraseña</span>
-                  <input class="chat-text-input login-text-input" autocomplete="current-password" name="password" id="login-pass" type="password" placeholder="********">
-                </label>
-              </div>
-              <p id="login-error" style="display:none; margin:4px 0 0; color: var(--ion-color-danger, #eb445a); font-size:0.9rem;"></p>
-              <ion-button expand="block" shape="round" id="login-enter">Entrar</ion-button>
-              <div class="login-links">
-                <button class="login-link-btn" type="button" id="login-register-link">Crear cuenta</button>
-                <button class="login-link-btn" type="button" id="login-forgot-link">Recuperar contraseña</button>
-              </div>
-              <div class="diag-actions">
+              <div class="login-social-stack">
                 <ion-button expand="block" fill="outline" id="login-google" class="login-social-btn">
                   <img class="login-social-icon" src="assets/social/google.png" alt="" slot="start" aria-hidden="true">
                   <span>Login con Google</span>
@@ -45,6 +27,24 @@ class PageLogin extends HTMLElement {
                   <img class="login-social-icon login-social-icon-apple" src="assets/social/apple.png" alt="" slot="start" aria-hidden="true">
                   <span>Login con Apple</span>
                 </ion-button>
+              </div>
+              <button class="login-link-btn login-create-email-btn" type="button" id="login-register-link">Crear cuenta con tu email</button>
+              <div class="login-email-block">
+                <div class="login-inputs">
+                  <label class="login-field" for="login-user">
+                    <span class="login-label">Usuario</span>
+                    <input class="chat-text-input login-text-input" autocomplete="username" name="username" id="login-user" type="email" inputmode="email" placeholder="tu usuario">
+                  </label>
+                  <label class="login-field" for="login-pass">
+                    <span class="login-label">Contraseña</span>
+                    <input class="chat-text-input login-text-input" autocomplete="current-password" name="password" id="login-pass" type="password" placeholder="********">
+                  </label>
+                </div>
+                <p id="login-error" style="display:none; margin:4px 0 0; color: var(--ion-color-danger, #eb445a); font-size:0.9rem;"></p>
+                <ion-button expand="block" shape="round" id="login-enter">Entrar</ion-button>
+                <div class="login-links login-links-bottom">
+                  <button class="login-link-btn" type="button" id="login-forgot-link">Recuperar contraseña</button>
+                </div>
               </div>
             </div>
             <div class="login-panel" data-panel="register" hidden>
@@ -115,7 +115,25 @@ class PageLogin extends HTMLElement {
     const setRegisterError = (message) => setError(registerErrorEl(), message);
     const setRecoverError = (message) => setError(recoverErrorEl(), message);
 
+    const isLoginLocked = () => {
+      const modal = this.closest('ion-modal');
+      if (!modal || modal.dataset.locked !== 'true') return false;
+      const user = window.user;
+      return !(user && user.id !== undefined && user.id !== null);
+    };
+
+    const syncLockedLoginUi = () => {
+      const closeBtn = this.querySelector('#login-close');
+      if (!closeBtn) return;
+      const locked = isLoginLocked();
+      closeBtn.hidden = locked;
+      closeBtn.disabled = locked;
+    };
+
     const closeLogin = () => {
+      if (isLoginLocked()) {
+        return;
+      }
       const modal = this.closest('ion-modal');
       if (modal) {
         modal.dismiss();
@@ -170,6 +188,10 @@ class PageLogin extends HTMLElement {
     this._loginSocialSuccessHandler = handleSocialSuccess;
     window.addEventListener('app:login-error', handleSocialError);
     window.addEventListener('app:login-success', handleSocialSuccess);
+    this._modalLockChangeHandler = () => syncLockedLoginUi();
+    this._userChangeHandler = () => syncLockedLoginUi();
+    window.addEventListener('app:login-modal-lock-change', this._modalLockChangeHandler);
+    window.addEventListener('app:user-change', this._userChangeHandler);
 
     const loginCI = async () => {
       console.log("> loginCI.");
@@ -463,6 +485,7 @@ class PageLogin extends HTMLElement {
     this.querySelector('#register-submit')?.addEventListener('click', registerAccount);
     this.querySelector('#recover-submit')?.addEventListener('click', recoverPassword);
     setPanel('login');
+    syncLockedLoginUi();
 
   }
 
@@ -472,6 +495,12 @@ class PageLogin extends HTMLElement {
     }
     if (this._loginSocialSuccessHandler) {
       window.removeEventListener('app:login-success', this._loginSocialSuccessHandler);
+    }
+    if (this._modalLockChangeHandler) {
+      window.removeEventListener('app:login-modal-lock-change', this._modalLockChangeHandler);
+    }
+    if (this._userChangeHandler) {
+      window.removeEventListener('app:user-change', this._userChangeHandler);
     }
   }
 }

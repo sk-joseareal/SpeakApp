@@ -1,36 +1,45 @@
 import { ensureTrainingData, getSelection, resolveSelection, setSelection } from '../data/training-data.js';
+import { goToHome } from '../nav.js';
 
 class PageSpeak extends HTMLElement {
   connectedCallback() {
     this.classList.add('ion-page');
     this.innerHTML = `
-      <ion-header translucent="true" class="speak-header">
-        <ion-toolbar class="speak-toolbar secret-title">
-          <ion-buttons slot="start">
-            <ion-button fill="clear" id="speak-prev">
-              <ion-icon slot="icon-only" name="chevron-back"></ion-icon>
-            </ion-button>
-          </ion-buttons>
-          <ion-title class="speak-progress" id="speak-progress">1/4</ion-title>
-          <ion-buttons slot="end">
-            <ion-button fill="clear" id="speak-next">
-              <ion-icon slot="icon-only" name="chevron-forward"></ion-icon>
-            </ion-button>
-          </ion-buttons>
-        </ion-toolbar>
-      </ion-header>
       <ion-content fullscreen class="speak-content secret-content">
-        <div class="speak-top">
-          <div class="speak-track">
-            <div class="speak-track-route" id="speak-track-route">SOUND JOURNEY</div>
-            <div class="speak-track-title" id="speak-track-title">TRAINING 1</div>
-            <div class="speak-track-sub" id="speak-track-sub">EL SONIDO W de WATER</div>
+        <div class="speak-shell">
+          <div class="speak-session-title-wrap">
+            <h2 class="speak-session-title secret-title" id="speak-session-title"></h2>
           </div>
-        </div>
-        <div class="speak-sheet">
-          <div class="speak-swipe-stage">
-            <div class="speak-swipe-ghost" id="speak-ghost" aria-hidden="true"></div>
-            <div id="speak-step" class="speak-swipe-active"></div>
+          <section class="speak-hero-card onboarding-intro-card" id="speak-hero-card">
+            <button
+              class="speak-hero-debug-btn"
+              id="speak-debug-toggle"
+              type="button"
+              aria-label="Toggle debug panel"
+              aria-pressed="false"
+              hidden
+            >
+              Debug
+            </button>
+            <button
+              class="onboarding-intro-flag-btn journey-plan-flag-btn speak-hero-flag-btn"
+              type="button"
+              aria-label="English"
+              title="English"
+            >
+              <img class="onboarding-intro-flag" src="assets/flags/eeuu.png" alt="English">
+            </button>
+            <div class="speak-hero-head">
+              <img class="onboarding-intro-cat speak-hero-cat" src="assets/mascot/mascot-cat.png" alt="" aria-hidden="true">
+              <p class="speak-hero-step-title" id="speak-hero-step-title"></p>
+            </div>
+            <p class="onboarding-intro-bubble speak-hero-bubble" id="speak-hero-hint"></p>
+          </section>
+          <div class="speak-sheet">
+            <div class="speak-swipe-stage">
+              <div class="speak-swipe-ghost" id="speak-ghost" aria-hidden="true"></div>
+              <div id="speak-step" class="speak-swipe-active"></div>
+            </div>
           </div>
         </div>
       </ion-content>
@@ -39,12 +48,11 @@ class PageSpeak extends HTMLElement {
     const stepRoot = this.querySelector('#speak-step');
     const ghostRoot = this.querySelector('#speak-ghost');
     const swipeStage = this.querySelector('.speak-swipe-stage');
-    const progressEl = this.querySelector('#speak-progress');
-    const prevBtn = this.querySelector('#speak-prev');
-    const nextBtn = this.querySelector('#speak-next');
-    const trackRouteEl = this.querySelector('#speak-track-route');
-    const trackTitleEl = this.querySelector('#speak-track-title');
-    const trackSubEl = this.querySelector('#speak-track-sub');
+    const sessionTitleEl = this.querySelector('#speak-session-title');
+    const heroCardEl = this.querySelector('#speak-hero-card');
+    const heroStepTitleEl = this.querySelector('#speak-hero-step-title');
+    const heroHintEl = this.querySelector('#speak-hero-hint');
+    const debugToggleBtn = this.querySelector('#speak-debug-toggle');
 
     const AVATAR_BASE = 'assets/speak/avatar';
     const MFA_BASE = 'assets/speak/mfa';
@@ -61,6 +69,7 @@ class PageSpeak extends HTMLElement {
     const SWIPE_COMMIT_VELOCITY = 0.6;
     const SWIPE_EDGE_GUARD = 16;
     const SWIPE_VERTICAL_RATIO = 1.2;
+    const DEBUG_PANEL_OPEN_KEY = 'appv5:speak-debug-panel-open';
     const swipeSurface = this.querySelector('.speak-sheet');
 
     const stepOrder = ['sound', 'spelling', 'sentence'];
@@ -72,6 +81,7 @@ class PageSpeak extends HTMLElement {
     let currentSessionId = '';
     let showSummary = false;
     let summaryState = null;
+    let debugPanelOpen = false;
 
     const DEFAULT_SCORES = {
       sound: 68,
@@ -94,6 +104,7 @@ class PageSpeak extends HTMLElement {
     let activeAudio = null;
     let avatarAudio = null;
     let playbackAudio = null;
+    let activePlayButton = null;
     let mfaItems = [];
     let mfaLookup = {};
     let mfaReady = false;
@@ -123,6 +134,7 @@ class PageSpeak extends HTMLElement {
     let swipeWidth = 0;
     let swipeCurrentX = 0;
     let swipeAnimating = false;
+    let heroCardLockedHeight = 0;
 
     const stepState = {
       sound: { recordingUrl: '', transcript: '', percent: null },
@@ -747,6 +759,24 @@ class PageSpeak extends HTMLElement {
       }
     };
 
+    const readPersistedDebugPanelOpen = () => {
+      try {
+        return localStorage.getItem(DEBUG_PANEL_OPEN_KEY) === '1';
+      } catch (err) {
+        return false;
+      }
+    };
+
+    const persistDebugPanelOpen = (value) => {
+      try {
+        localStorage.setItem(DEBUG_PANEL_OPEN_KEY, value ? '1' : '0');
+      } catch (err) {
+        // no-op
+      }
+    };
+
+    debugPanelOpen = readPersistedDebugPanelOpen();
+
     const getWordScoreStore = () => {
       if (!window.r34lp0w3r) window.r34lp0w3r = {};
       if (!window.r34lp0w3r.speakWordScores) window.r34lp0w3r.speakWordScores = {};
@@ -971,8 +1001,9 @@ class PageSpeak extends HTMLElement {
       return maxByTone;
     };
 
-    const renderDebugBox = (key) => {
+    const renderDebugBox = (key, options = {}) => {
       if (!isSpeakDebugEnabled()) return '';
+      const inline = Boolean(options.inline);
       const expected = getExpectedText(key);
       const state = stepState[key] || {};
       const transcript = state.transcript || '';
@@ -983,8 +1014,16 @@ class PageSpeak extends HTMLElement {
       const sessionPercent = getSessionPercent();
       const toneMax = getToneMaxValues();
       const showTonePicker = key !== 'sound';
+      const inlineNav = inline
+        ? `
+          <div class="speak-debug-inline-nav">
+            <button class="speak-debug-nav-btn" id="speak-debug-prev" type="button" aria-label="Previous step">&lt;</button>
+            <button class="speak-debug-nav-btn" id="speak-debug-next" type="button" aria-label="Next step">&gt;</button>
+          </div>
+        `
+        : '';
       return `
-        <div class="speak-debug">
+        <div class="speak-debug ${inline ? 'speak-debug-inline' : ''}">
           <div class="speak-debug-row">
             <span class="speak-debug-label">Esperado</span>
             <span class="speak-debug-value">${escapeHtml(expectedText)}</span>
@@ -1042,6 +1081,47 @@ class PageSpeak extends HTMLElement {
             <span class="speak-debug-label">Session %</span>
             <span class="speak-debug-value">${sessionPercent}%</span>
           </div>
+          ${inlineNav}
+        </div>
+      `;
+    };
+
+    const renderBottomPanel = (key, options = {}) => {
+      const hasVoiceRecording = Boolean(options.hasVoiceRecording);
+      if (isSpeakDebugEnabled() && debugPanelOpen) {
+        return `
+          <div class="speak-step-bottom">
+            <div class="speak-voice-nav speak-voice-nav-debug">
+              ${renderDebugBox(key, { inline: true })}
+            </div>
+          </div>
+        `;
+      }
+      return `
+        <div class="speak-step-bottom">
+          <div class="speak-voice-nav">
+            <button class="speak-step-arrow-btn" id="speak-prev-inline" type="button" aria-label="Previous step">
+              <ion-icon name="chevron-back"></ion-icon>
+            </button>
+            <div class="speak-voice-actions">
+              <button class="speak-circle-btn speak-record-btn ${isRecording ? 'is-recording' : ''}" id="speak-record" type="button" aria-pressed="${isRecording}">
+                <span class="record-visual" aria-hidden="true">
+                  <ion-icon class="record-mic-icon" name="mic"></ion-icon>
+                  <span class="record-live-wave">
+                    <span></span><span></span><span></span><span></span><span></span>
+                  </span>
+                </span>
+                <span class="record-label">${isRecording ? 'End' : 'Say'}</span>
+              </button>
+              <button class="speak-circle-btn" id="speak-voice" type="button" ${hasVoiceRecording ? '' : 'disabled'}>
+                <ion-icon name="ear"></ion-icon>
+                <span>Your voice</span>
+              </button>
+            </div>
+            <button class="speak-step-arrow-btn" id="speak-next-inline" type="button" aria-label="Next step">
+              <ion-icon name="chevron-forward"></ion-icon>
+            </button>
+          </div>
         </div>
       `;
     };
@@ -1096,6 +1176,10 @@ class PageSpeak extends HTMLElement {
       if (canSpeak()) {
         window.speechSynthesis.cancel();
       }
+      if (activePlayButton) {
+        activePlayButton.classList.remove('is-playing');
+        activePlayButton = null;
+      }
       if (shouldResetSyllables) {
         playbackAudio = null;
         resetSyllables();
@@ -1120,6 +1204,22 @@ class PageSpeak extends HTMLElement {
         playbackAudio = null;
         resetSyllables();
       }
+    };
+
+    const setActivePlayButton = (buttonEl) => {
+      if (activePlayButton && activePlayButton !== buttonEl) {
+        activePlayButton.classList.remove('is-playing');
+      }
+      activePlayButton = buttonEl || null;
+      if (activePlayButton) {
+        activePlayButton.classList.add('is-playing');
+      }
+    };
+
+    const clearActivePlayButton = () => {
+      if (!activePlayButton) return;
+      activePlayButton.classList.remove('is-playing');
+      activePlayButton = null;
     };
 
     const startSpeechRecognition = () => {
@@ -1350,11 +1450,18 @@ class PageSpeak extends HTMLElement {
       };
     };
 
-    const playTts = (text) => {
+    const playTts = (text, triggerBtn) => {
       if (!text || !canSpeak()) return;
       stopPlayback();
+      setActivePlayButton(triggerBtn || null);
       const utter = new SpeechSynthesisUtterance(text);
       utter.lang = 'en-US';
+      utter.onend = () => {
+        clearActivePlayButton();
+      };
+      utter.onerror = () => {
+        clearActivePlayButton();
+      };
       window.speechSynthesis.speak(utter);
     };
 
@@ -1592,7 +1699,7 @@ class PageSpeak extends HTMLElement {
       highlightSyllable(newIndex);
     };
 
-    const playReferenceAudio = async ({ text, targetEl, phonetic, withVisemes }) => {
+    const playReferenceAudio = async ({ text, targetEl, phonetic, withVisemes, triggerBtn }) => {
       if (!text) return;
       stopPlayback();
       stopAvatarPlayback();
@@ -1601,7 +1708,7 @@ class PageSpeak extends HTMLElement {
       const itemId = ready ? getMfaIdForText(text) : null;
       if (!itemId) {
         if (targetEl) targetEl.textContent = phonetic || text;
-        playTts(text);
+        playTts(text, triggerBtn || null);
         return;
       }
 
@@ -1634,6 +1741,7 @@ class PageSpeak extends HTMLElement {
 
       const audio = new Audio(`${MFA_AUDIO_BASE}/${itemId}.wav`);
       playbackAudio = audio;
+      setActivePlayButton(triggerBtn || null);
       if (withVisemes) {
         avatarAudio = audio;
       } else {
@@ -1650,9 +1758,16 @@ class PageSpeak extends HTMLElement {
         animating = false;
         setMouthViseme('NEUTRAL');
         highlightSyllable(-1);
+        clearActivePlayButton();
       };
 
-      audio.play().catch(() => {});
+      audio.onerror = () => {
+        clearActivePlayButton();
+      };
+
+      audio.play().catch(() => {
+        clearActivePlayButton();
+      });
       rafId = requestAnimationFrame(updateAvatar);
     };
 
@@ -1788,11 +1903,73 @@ class PageSpeak extends HTMLElement {
       return words.find((word) => String(word).toLowerCase() === target) || null;
     };
 
+    const getHeroSourceByStepKey = (stepKey) => {
+      if (stepKey === 'sound') return soundStep;
+      if (stepKey === 'spelling') return spellingStep;
+      if (stepKey === 'sentence') return sentenceStep;
+      return null;
+    };
+
+    const applyHeroSource = (source) => {
+      if (!heroStepTitleEl || !heroHintEl) return;
+      heroStepTitleEl.textContent = source && source.title ? source.title : '';
+      const hint = source && source.hint ? source.hint : '';
+      heroHintEl.textContent = hint;
+      heroHintEl.hidden = !hint;
+    };
+
+    const lockHeroCardHeight = () => {
+      if (!heroCardEl || !heroStepTitleEl || !heroHintEl) return;
+      const sources = [soundStep, spellingStep, sentenceStep].filter(Boolean);
+      if (!sources.length) return;
+
+      const prevHidden = heroCardEl.hidden;
+      const prevVisibility = heroCardEl.style.visibility;
+      const prevPointerEvents = heroCardEl.style.pointerEvents;
+      const prevTitle = heroStepTitleEl.textContent;
+      const prevHint = heroHintEl.textContent;
+      const prevHintHidden = heroHintEl.hidden;
+      const prevMinHeight = heroCardEl.style.minHeight;
+
+      heroCardEl.hidden = false;
+      heroCardEl.style.visibility = 'hidden';
+      heroCardEl.style.pointerEvents = 'none';
+      heroCardEl.style.minHeight = '';
+
+      let maxHeight = 0;
+      sources.forEach((source) => {
+        applyHeroSource(source);
+        const nextHeight = Math.ceil(
+          Math.max(heroCardEl.scrollHeight || 0, heroCardEl.getBoundingClientRect().height || 0)
+        );
+        if (nextHeight > maxHeight) {
+          maxHeight = nextHeight;
+        }
+      });
+
+      heroStepTitleEl.textContent = prevTitle;
+      heroHintEl.textContent = prevHint;
+      heroHintEl.hidden = prevHintHidden;
+      heroCardEl.hidden = prevHidden;
+      heroCardEl.style.visibility = prevVisibility;
+      heroCardEl.style.pointerEvents = prevPointerEvents;
+
+      if (maxHeight > 0) {
+        heroCardLockedHeight = maxHeight;
+        heroCardEl.style.minHeight = `${heroCardLockedHeight}px`;
+      } else {
+        heroCardEl.style.minHeight = prevMinHeight;
+      }
+    };
+
     const applySessionData = (nextSelection = getSelection()) => {
-      const { route, module, session } = resolveSelection(nextSelection);
-      if (!route || !module || !session || !session.speak) return;
+      const { session } = resolveSelection(nextSelection);
+      if (!session || !session.speak) return;
       currentSessionId = session.id;
       sessionTitle = session.title || '';
+      if (sessionTitleEl) {
+        sessionTitleEl.textContent = sessionTitle;
+      }
       focusKey = session.focus || (session.speak && session.speak.focus) || '';
       soundStep = session.speak.sound;
       spellingStep = session.speak.spelling;
@@ -1809,9 +1986,6 @@ class PageSpeak extends HTMLElement {
         spellingStep && Array.isArray(spellingStep.words) ? spellingStep.words : [];
       const matchedWord = resolveStartWord(startWord, spellingWords);
       selectedWord = matchedWord || (spellingWords.length ? spellingWords[0] : '');
-      if (trackRouteEl) trackRouteEl.textContent = route.title || '';
-      if (trackTitleEl) trackTitleEl.textContent = module.title || '';
-      if (trackSubEl) trackSubEl.textContent = sessionTitle;
       stepIndex = startStep !== null ? resolveStartStepIndex(startStep) : 0;
       showSummary = false;
       summaryState = null;
@@ -1822,6 +1996,7 @@ class PageSpeak extends HTMLElement {
         window.r34lp0w3r.speakStartStep = null;
         window.r34lp0w3r.speakStartWord = null;
       }
+      lockHeroCardHeight();
       renderStep();
     };
 
@@ -1836,62 +2011,43 @@ class PageSpeak extends HTMLElement {
 
       return `
         <div class="speak-step speak-step-sound">
-          <div class="speak-guide">
-            <div class="mascot-cat"></div>
-            <div class="speak-guide-body">
-              <div class="speak-step-title">${soundStep.title}</div>
-              <div class="speak-bubble">${soundStep.hint}</div>
-            </div>
-          </div>
-
-          <div class="speak-avatar">
-            <div class="avatar-wrapper">
-              <img class="avatar-head" src="${AVATAR_BASE}/avatar-head.png" alt="Avatar">
-              <div class="avatar-mouth-container">
-                <img
-                  id="speak-mouth-a"
-                  class="speak-mouth mouth-layer mouth-layer-active viseme-neutral"
-                  src="${AVATAR_BASE}/mouth-neutral.png"
-                  alt="Mouth"
-                />
-                <img
-                  id="speak-mouth-b"
-                  class="speak-mouth mouth-layer viseme-neutral"
-                  src="${AVATAR_BASE}/mouth-neutral.png"
-                  alt="Mouth"
-                />
+          <div class="speak-step-main">
+            <div class="speak-avatar">
+              <div class="avatar-wrapper">
+                <img class="avatar-head" src="${AVATAR_BASE}/avatar-head.png" alt="Avatar">
+                <div class="avatar-mouth-container">
+                  <img
+                    id="speak-mouth-a"
+                    class="speak-mouth mouth-layer mouth-layer-active viseme-neutral"
+                    src="${AVATAR_BASE}/mouth-neutral.png"
+                    alt="Mouth"
+                  />
+                  <img
+                    id="speak-mouth-b"
+                    class="speak-mouth mouth-layer viseme-neutral"
+                    src="${AVATAR_BASE}/mouth-neutral.png"
+                    alt="Mouth"
+                  />
+                </div>
               </div>
             </div>
+
+            <div class="speak-phonetic">
+              <button class="speak-play-btn" id="speak-play-ref" type="button">
+                <ion-icon name="volume-high"></ion-icon>
+              </button>
+              <span class="speak-phonetic-text" id="speak-phonetic-text">
+                ${highlightLetter(displayText, focusKey)}
+              </span>
+            </div>
+
+            <div class="speak-score speak-score-${tone}">
+              <div class="speak-score-label">${label}</div>
+              <div class="speak-score-value">${percent !== '' ? percent + '%' : ''}</div>
+            </div>
           </div>
 
-          <div class="speak-phonetic">
-            <button class="speak-play-btn" id="speak-play-ref" type="button">
-              <ion-icon name="volume-high"></ion-icon>
-            </button>
-            <span class="speak-phonetic-text" id="speak-phonetic-text">
-              ${highlightLetter(displayText, focusKey)}
-            </span>
-          </div>
-
-          <div class="speak-score speak-score-${tone}">
-            <div class="speak-score-label">${label}</div>
-            <div class="speak-score-value">${percent !== '' ? percent + '%' : ''}</div>
-          </div>
-
-          <div class="speak-voice-actions">
-            <button class="speak-circle-btn speak-record-btn ${isRecording ? 'is-recording' : ''}" id="speak-record" type="button" aria-pressed="${isRecording}">
-              <ion-icon name="mic"></ion-icon>
-              <span class="record-label">${isRecording ? 'End' : 'Say'}</span>
-            </button>
-            <button class="speak-circle-btn" id="speak-voice" type="button" ${hasRecording ? '' : 'disabled'}>
-              <ion-icon name="ear"></ion-icon>
-              <span>Your voice</span>
-            </button>
-          </div>
-
-          ${renderDebugBox('sound')}
-
-          <button class="speak-next-btn" id="speak-next-step" type="button">Next</button>
+          ${renderBottomPanel('sound', { hasVoiceRecording: hasRecording })}
         </div>
       `;
     };
@@ -1913,7 +2069,6 @@ class PageSpeak extends HTMLElement {
           const toneClass = wordTone ? `speak-word-tone-${wordTone}` : '';
           return `
             <button class="speak-word ${toneClass} ${word === selectedWord ? 'is-active' : ''}" data-word="${word}" type="button">
-              <ion-icon name="volume-medium"></ion-icon>
               <span>${highlightLetter(word, focusKey)}</span>
             </button>
           `;
@@ -1922,35 +2077,21 @@ class PageSpeak extends HTMLElement {
 
       return `
         <div class="speak-step speak-step-spelling">
-          <div class="speak-guide">
-            <div class="mascot-cat"></div>
-            <div class="speak-guide-body">
-              <div class="speak-step-title">${spellingStep.title}</div>
-              <div class="speak-bubble">${spellingStep.hint}</div>
+          <div class="speak-step-main">
+            <div class="speak-word-grid">${words}</div>
+            <div class="speak-word-play">
+              <button class="speak-play-btn" id="speak-play-word" type="button" ${selectedWord ? '' : 'disabled'}>
+                <ion-icon name="volume-high"></ion-icon>
+              </button>
+            </div>
+
+            <div class="speak-score speak-score-${tone}">
+              <div class="speak-score-label">${label}</div>
+              <div class="speak-score-value">${percent !== null ? percent + '%' : ''}</div>
             </div>
           </div>
 
-          <div class="speak-word-grid">${words}</div>
-
-          <div class="speak-score speak-score-${tone}">
-            <div class="speak-score-label">${label}</div>
-            <div class="speak-score-value">${percent !== null ? percent + '%' : ''}</div>
-          </div>
-
-          <div class="speak-voice-actions">
-            <button class="speak-circle-btn speak-record-btn ${isRecording ? 'is-recording' : ''}" id="speak-record" type="button" aria-pressed="${isRecording}">
-              <ion-icon name="mic"></ion-icon>
-              <span class="record-label">${isRecording ? 'End' : 'Say'}</span>
-            </button>
-            <button class="speak-circle-btn" id="speak-voice" type="button" ${hasRecording ? '' : 'disabled'}>
-              <ion-icon name="ear"></ion-icon>
-              <span>Your voice</span>
-            </button>
-          </div>
-
-          ${renderDebugBox('spelling')}
-
-          <button class="speak-next-btn" id="speak-next-step" type="button">Next</button>
+          ${renderBottomPanel('spelling', { hasVoiceRecording: hasRecording })}
         </div>
       `;
     };
@@ -1979,39 +2120,20 @@ class PageSpeak extends HTMLElement {
 
       return `
         <div class="speak-step speak-step-sentence">
-          <div class="speak-guide">
-            <div class="mascot-cat"></div>
-            <div class="speak-guide-body">
-              <div class="speak-step-title">${sentenceStep.title}</div>
-              <div class="speak-bubble">${sentenceStep.hint}</div>
+          <div class="speak-step-main">
+            <div class="speak-sentence-row">
+              <div class="speak-sentence" id="speak-sentence-text">
+                ${highlightSentence(sentenceStep.sentence, focusKey)}
+              </div>
+              <button class="speak-play-btn" id="speak-play-sentence" type="button">
+                <ion-icon name="volume-high"></ion-icon>
+              </button>
             </div>
+            <div class="speak-feedback ${tone}">${label}</div>
+            ${scoreLine}
           </div>
 
-          <div class="speak-sentence-row">
-            <button class="speak-play-btn" id="speak-play-sentence" type="button">
-              <ion-icon name="volume-high"></ion-icon>
-            </button>
-            <div class="speak-sentence" id="speak-sentence-text">
-              ${highlightSentence(sentenceStep.sentence, focusKey)}
-            </div>
-          </div>
-          <div class="speak-feedback ${tone}">${label}</div>
-          ${scoreLine}
-
-          <div class="speak-voice-actions">
-            <button class="speak-circle-btn speak-record-btn ${isRecording ? 'is-recording' : ''}" id="speak-record" type="button" aria-pressed="${isRecording}">
-              <ion-icon name="mic"></ion-icon>
-              <span class="record-label">${isRecording ? 'End' : 'Say'}</span>
-            </button>
-            <button class="speak-circle-btn" id="speak-voice" type="button" ${hasRecordingUrl ? '' : 'disabled'}>
-              <ion-icon name="ear"></ion-icon>
-              <span>Your voice</span>
-            </button>
-          </div>
-
-          ${renderDebugBox('sentence')}
-
-          <button class="speak-next-btn" id="speak-next-step" type="button">Next</button>
+          ${renderBottomPanel('sentence', { hasVoiceRecording: hasRecordingUrl })}
         </div>
       `;
     };
@@ -2059,6 +2181,30 @@ class PageSpeak extends HTMLElement {
       return '';
     };
 
+    const updateHeroCard = (stepKey) => {
+      if (!heroCardEl || !heroStepTitleEl || !heroHintEl) return;
+      if (showSummary) {
+        heroCardEl.hidden = true;
+        if (debugToggleBtn) {
+          debugToggleBtn.hidden = true;
+          debugToggleBtn.classList.remove('is-active');
+          debugToggleBtn.setAttribute('aria-pressed', 'false');
+        }
+        return;
+      }
+      heroCardEl.hidden = false;
+      const debugEnabled = isSpeakDebugEnabled();
+      if (debugToggleBtn) {
+        debugToggleBtn.hidden = !debugEnabled;
+        debugToggleBtn.classList.toggle('is-active', debugEnabled && debugPanelOpen);
+        debugToggleBtn.setAttribute('aria-pressed', debugEnabled && debugPanelOpen ? 'true' : 'false');
+      }
+      applyHeroSource(getHeroSourceByStepKey(stepKey));
+      if (sessionTitleEl) {
+        sessionTitleEl.textContent = sessionTitle || '';
+      }
+    };
+
     const sanitizeGhostMarkup = (markup) => {
       if (!markup) return '';
       const container = document.createElement('div');
@@ -2104,25 +2250,7 @@ class PageSpeak extends HTMLElement {
       if (stepRoot) {
         stepRoot.style.transition = '';
       }
-      if (progressEl) {
-        if (showSummary) {
-          progressEl.textContent = '';
-          progressEl.style.visibility = 'hidden';
-        } else {
-          const current = Math.min(stepIndex + 1, stepOrder.length);
-          progressEl.textContent = `${current}/${stepOrder.length}`;
-          progressEl.style.visibility = '';
-        }
-      }
-      if (prevBtn) {
-        prevBtn.disabled = showSummary || stepIndex === 0;
-        prevBtn.style.visibility = showSummary ? 'hidden' : '';
-      }
-      if (nextBtn) {
-        nextBtn.disabled = showSummary || stepIndex >= stepOrder.length - 1;
-        nextBtn.style.visibility = showSummary ? 'hidden' : '';
-      }
-
+      updateHeroCard(key);
       if (!stepRoot) return;
       if (showSummary) {
         stepRoot.innerHTML = renderSummaryStep();
@@ -2142,10 +2270,15 @@ class PageSpeak extends HTMLElement {
 
     const bindStepControls = () => {
       const playRefBtn = stepRoot.querySelector('#speak-play-ref');
+      const playWordBtn = stepRoot.querySelector('#speak-play-word');
       const playSentenceBtn = stepRoot.querySelector('#speak-play-sentence');
       const recordBtn = stepRoot.querySelector('#speak-record');
       const voiceBtn = stepRoot.querySelector('#speak-voice');
       const nextStepBtn = stepRoot.querySelector('#speak-next-step');
+      const prevInlineBtn = stepRoot.querySelector('#speak-prev-inline');
+      const nextInlineBtn = stepRoot.querySelector('#speak-next-inline');
+      const debugPrevBtn = stepRoot.querySelector('#speak-debug-prev');
+      const debugNextBtn = stepRoot.querySelector('#speak-debug-next');
       const wordButtons = Array.from(stepRoot.querySelectorAll('.speak-word'));
 
       mouthImgA = stepRoot.querySelector('#speak-mouth-a');
@@ -2168,12 +2301,13 @@ class PageSpeak extends HTMLElement {
             text: soundStep.expected,
             targetEl: phoneticTextEl,
             phonetic,
-            withVisemes: true
+            withVisemes: true,
+            triggerBtn: playRefBtn
           });
           return;
         }
         if (soundStep && soundStep.phonetic) {
-          playTts(soundStep.phonetic);
+          playTts(soundStep.phonetic, playRefBtn);
         }
       });
 
@@ -2182,9 +2316,19 @@ class PageSpeak extends HTMLElement {
           playReferenceAudio({
             text: sentenceStep.sentence,
             targetEl: sentenceTextEl,
-            withVisemes: false
+            withVisemes: false,
+            triggerBtn: playSentenceBtn
           });
         }
+      });
+
+      playWordBtn?.addEventListener('click', () => {
+        if (!selectedWord) return;
+        playReferenceAudio({
+          text: selectedWord,
+          withVisemes: false,
+          triggerBtn: playWordBtn
+        });
       });
 
       recordBtn?.addEventListener('click', () => {
@@ -2199,6 +2343,22 @@ class PageSpeak extends HTMLElement {
         playRecording();
       });
 
+      prevInlineBtn?.addEventListener('click', () => {
+        prevStep();
+      });
+
+      nextInlineBtn?.addEventListener('click', () => {
+        nextStep();
+      });
+
+      debugPrevBtn?.addEventListener('click', () => {
+        prevStep();
+      });
+
+      debugNextBtn?.addEventListener('click', () => {
+        nextStep();
+      });
+
       nextStepBtn?.addEventListener('click', () => {
         nextStep();
       });
@@ -2207,10 +2367,11 @@ class PageSpeak extends HTMLElement {
         btn.addEventListener('click', () => {
           const word = btn.dataset.word;
           if (!word) return;
+          stopPlayback();
+          stopAvatarPlayback();
           selectedWord = word;
           syncSpellingStateFromStore(word);
           renderStep();
-          playReferenceAudio({ text: word, withVisemes: false });
         });
       });
 
@@ -2482,49 +2643,33 @@ class PageSpeak extends HTMLElement {
             window.r34lp0w3r.speakReturnToReview = false;
             window.r34lp0w3r.speakReturnSessionId = null;
             window.r34lp0w3r.profileForceTab = 'review';
-            const tabs = document.querySelector('ion-tabs');
-            if (tabs && typeof tabs.select === 'function') {
-              tabs.select('tu');
+            try {
+              localStorage.setItem('appv5:active-tab', 'tu');
+            } catch (err) {
+              // no-op
             }
+            goToHome('back');
             return;
           }
           window.r34lp0w3r.speakReturnToReview = false;
           window.r34lp0w3r.speakReturnSessionId = null;
         }
         const { route, module, session } = resolveSelection(getSelection());
-        if (!route || !module || !session) {
-          const tabs = document.querySelector('ion-tabs');
-          if (tabs && typeof tabs.select === 'function') {
-            tabs.select('listas');
-          }
-          return;
-        }
-        const sessionIndex = module.sessions.findIndex((item) => item.id === session.id);
-        const nextSession = module.sessions[sessionIndex + 1];
-        showSummary = false;
-        summaryState = null;
-        if (nextSession) {
+        if (route && module && session) {
           setSelection({
             routeId: route.id,
             moduleId: module.id,
-            sessionId: nextSession.id
-          });
-          return;
-        }
-        const moduleIndex = route.modules.findIndex((item) => item.id === module.id);
-        const nextModule = route.modules[moduleIndex + 1] || route.modules[0];
-        const nextSessionFallback = nextModule.sessions[0];
-        if (nextModule && nextSessionFallback) {
-          setSelection({
-            routeId: route.id,
-            moduleId: nextModule.id,
-            sessionId: nextSessionFallback.id
+            sessionId: session.id
           });
         }
-        const tabs = document.querySelector('ion-tabs');
-        if (tabs && typeof tabs.select === 'function') {
-          tabs.select('listas');
+        showSummary = false;
+        summaryState = null;
+        try {
+          localStorage.setItem('appv5:active-tab', 'home');
+        } catch (err) {
+          // no-op
         }
+        goToHome('back');
         return;
       }
       if (stepIndex < stepOrder.length - 1) {
@@ -2534,6 +2679,27 @@ class PageSpeak extends HTMLElement {
       }
       showSummary = true;
       summaryState = rollSummaryOutcome();
+      renderStep();
+    };
+
+    const goBackToRoutes = () => {
+      try {
+        localStorage.setItem('appv5:active-tab', 'home');
+      } catch (err) {
+        // no-op
+      }
+      goToHome('back');
+    };
+
+    const toggleDebugPanel = () => {
+      if (!isSpeakDebugEnabled() || showSummary) return;
+      debugPanelOpen = !debugPanelOpen;
+      persistDebugPanelOpen(debugPanelOpen);
+      stopRecording();
+      if (debugPanelOpen) {
+        stopPlayback();
+        stopAvatarPlayback();
+      }
       renderStep();
     };
 
@@ -2550,11 +2716,11 @@ class PageSpeak extends HTMLElement {
       if (stepIndex > 0) {
         stepIndex -= 1;
         renderStep();
+        return;
       }
+      goBackToRoutes();
     };
 
-    prevBtn?.addEventListener('click', prevStep);
-    nextBtn?.addEventListener('click', nextStep);
     if (swipeSurface) {
       swipeSurface.addEventListener('touchstart', handleSwipeStart, { passive: true });
       swipeSurface.addEventListener('touchmove', handleSwipeMove, { passive: false });
@@ -2586,9 +2752,18 @@ class PageSpeak extends HTMLElement {
     this._handleSpeakDebug = handleDebugToggle;
     window.addEventListener('app:speak-debug', handleDebugToggle);
 
+    const handleViewportResize = () => {
+      if (!this.isConnected) return;
+      lockHeroCardHeight();
+    };
+    this._handleSpeakResize = handleViewportResize;
+    window.addEventListener('resize', handleViewportResize);
+
     ensureTrainingData().then(() => {
       applySessionData(getSelection());
     });
+
+    debugToggleBtn?.addEventListener('click', toggleDebugPanel);
 
     this._cleanupSpeak = () => {
       stopPlayback();
@@ -2600,6 +2775,12 @@ class PageSpeak extends HTMLElement {
       }
       if (this._handleSpeakDebug) {
         window.removeEventListener('app:speak-debug', this._handleSpeakDebug);
+      }
+      if (this._handleSpeakResize) {
+        window.removeEventListener('resize', this._handleSpeakResize);
+      }
+      if (debugToggleBtn) {
+        debugToggleBtn.removeEventListener('click', toggleDebugPanel);
       }
       if (swipeSurface) {
         swipeSurface.removeEventListener('touchstart', handleSwipeStart);

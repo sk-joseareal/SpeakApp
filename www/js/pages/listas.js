@@ -5,6 +5,7 @@ import {
   resolveSelection,
   setSelection
 } from '../data/training-data.js';
+import { goToSpeak } from '../nav.js';
 
 class PageListas extends HTMLElement {
   connectedCallback() {
@@ -416,10 +417,7 @@ class PageListas extends HTMLElement {
           moduleId: module.id,
           sessionId: selectedSession.id
         });
-        const tabs = document.querySelector('ion-tabs');
-        if (tabs && typeof tabs.select === 'function') {
-          tabs.select('speak');
-        }
+        goToSpeak('forward');
       });
     });
 

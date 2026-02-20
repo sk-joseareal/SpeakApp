@@ -1,0 +1,448 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Sprite: parrilla + selección + recorte por alpha (sin drift)</title>
+  <style>
+    :root { --gap: 10px; --radius: 12px; }
+    body { font-family: system-ui, sans-serif; margin: 0; padding: 16px; display: grid; gap: 16px; }
+    .layout { display: grid; grid-template-columns: 380px 1fr; gap: 16px; align-items: start; }
+    .card { border: 1px solid #e5e5e5; border-radius: var(--radius); padding: 12px; background: #fff; }
+    .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    label { display: grid; gap: 6px; font-size: 14px; }
+    input[type="number"], select{
+      padding: 8px; border: 1px solid #ddd; border-radius: 10px; width: 100%;
+    }
+    input[type="range"]{ width: 100%; }
+    button{
+      padding: 10px 12px; border: 1px solid #ddd; border-radius: 12px;
+      background: #fff; cursor: pointer;
+    }
+    button.primary{ border-color: #bbb; font-weight: 600; }
+    .hint { font-size: 13px; color: #555; line-height: 1.35; }
+    .kbd { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; padding: 2px 6px; border: 1px solid #ddd; border-radius: 8px; background: #fafafa; }
+
+    /* Checkerboard para transparencia */
+    .checker {
+      background:
+        linear-gradient(45deg, #eee 25%, transparent 25%) -10px 0/20px 20px,
+        linear-gradient(-45deg, #eee 25%, transparent 25%) -10px 0/20px 20px,
+        linear-gradient(45deg, transparent 75%, #eee 75%) -10px 0/20px 20px,
+        linear-gradient(-45deg, transparent 75%, #eee 75%) -10px 0/20px 20px;
+      border-radius: var(--radius);
+    }
+
+    #preview { width: 100%; height: auto; border: 1px solid #e5e5e5; border-radius: var(--radius); }
+
+    #grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+      gap: var(--gap);
+      margin-top: 12px;
+    }
+    .tile {
+      border: 1px solid #e5e5e5;
+      border-radius: var(--radius);
+      padding: 8px;
+      display: grid;
+      gap: 6px;
+      user-select: none;
+      cursor: pointer;
+      background: #fff;
+    }
+    .tile.selected { outline: 3px solid #111; }
+    .meta { font-size: 12px; color: #555; display:flex; justify-content: space-between; gap: 8px; }
+    .order { font-weight: 700; color: #111; }
+    canvas.thumb {
+      width: 100%;
+      height: auto;
+      border-radius: 10px;
+      border: 1px solid #eee;
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <div class="card">
+      <h3 style="margin:0 0 10px 0;">Controles</h3>
+
+      <div class="row" style="margin-bottom:10px;">
+        <label style="flex:1;">
+          Cargar sprite sheet (PNG con alpha)
+          <input id="file" type="file" accept="image/*" />
+        </label>
+      </div>
+
+      <div class="row" style="margin-bottom:10px;">
+        <label style="flex:1;">
+          Columnas
+          <input id="cols" type="number" value="3" min="1" />
+        </label>
+        <label style="flex:1;">
+          Filas
+          <input id="rows" type="number" value="3" min="1" />
+        </label>
+      </div>
+
+      <div class="row" style="margin-bottom:10px;">
+        <label style="flex:1;">
+          FPS (<span id="fpsVal">8</span>)
+          <input id="fps" type="range" min="1" max="30" value="8" />
+        </label>
+      </div>
+
+      <div class="row" style="margin-bottom:10px;">
+        <label style="flex:1;">
+          Umbral alpha (0-255)
+          <input id="alphaThr" type="number" value="8" min="0" max="255" />
+        </label>
+        <label style="flex:1;">
+          Padding (px)
+          <input id="pad" type="number" value="2" min="0" max="50" />
+        </label>
+      </div>
+
+      <div class="row" style="margin-bottom:10px;">
+        <label style="flex:1;">
+          Anchor
+          <select id="anchor">
+            <option value="bottom-center" selected>Bottom-center (recomendado)</option>
+            <option value="center">Center</option>
+            <option value="bottom-left">Bottom-left</option>
+            <option value="bottom-right">Bottom-right</option>
+            <option value="top-center">Top-center</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="row" style="margin-bottom:10px;">
+        <button id="rebuild" class="primary">Cortar (alpha) y mostrar parrilla</button>
+        <button id="clear">Limpiar selección</button>
+      </div>
+
+      <div class="row" style="margin-bottom:10px;">
+        <button id="play" class="primary">▶ Reproducir selección</button>
+        <button id="pause">⏸ Pausar</button>
+      </div>
+
+      <p class="hint" style="margin:0;">
+        Atajos: <span class="kbd">Espacio</span> play/pausa · <span class="kbd">Esc</span> limpiar
+      </p>
+    </div>
+
+    <div class="card">
+      <div class="row" style="justify-content:space-between;">
+        <h3 style="margin:0;">Preview</h3>
+        <div class="hint">Seleccionados: <span id="selCount">0</span></div>
+      </div>
+
+      <div class="checker" style="padding:10px; margin-top:10px;">
+        <canvas id="preview" width="420" height="420"></canvas>
+      </div>
+
+      <div class="hint" style="margin-top:10px;">Modo: <span id="mode">Pausado</span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="row" style="justify-content:space-between;">
+      <h3 style="margin:0;">Parrilla</h3>
+      <div class="hint">Click para seleccionar (en orden de clicks)</div>
+    </div>
+    <div id="grid"></div>
+  </div>
+
+<script>
+(() => {
+  const fileEl = document.getElementById('file');
+  const colsEl = document.getElementById('cols');
+  const rowsEl = document.getElementById('rows');
+  const fpsEl  = document.getElementById('fps');
+  const fpsVal = document.getElementById('fpsVal');
+  const alphaThrEl = document.getElementById('alphaThr');
+  const padEl = document.getElementById('pad');
+  const anchorEl = document.getElementById('anchor');
+
+  const rebuildBtn = document.getElementById('rebuild');
+  const clearBtn = document.getElementById('clear');
+  const playBtn = document.getElementById('play');
+  const pauseBtn = document.getElementById('pause');
+
+  const gridEl = document.getElementById('grid');
+  const preview = document.getElementById('preview');
+  const pctx = preview.getContext('2d');
+
+  const selCountEl = document.getElementById('selCount');
+  const modeEl = document.getElementById('mode');
+
+  let img = new Image();
+  let imgReady = false;
+
+  // frame: { canvas, w, h, ax, ay }
+  let frames = [];
+  let selected = [];
+
+  let running = false;
+  let raf = null;
+  let lastT = 0;
+  let ptr = 0;
+
+  fpsEl.addEventListener('input', () => fpsVal.textContent = fpsEl.value);
+
+  function setMode(text){ modeEl.textContent = text; }
+  function setSelCount(){ selCountEl.textContent = selected.length; }
+
+  function clearSelection() {
+    selected = [];
+    ptr = 0;
+    setSelCount();
+    [...gridEl.querySelectorAll('.tile.selected')].forEach(el => el.classList.remove('selected'));
+    [...gridEl.querySelectorAll('[data-order]')].forEach(el => el.textContent = '');
+    drawPreview(null);
+  }
+
+  // Corta una celda usando límites proporcionales (evita drift por redondeos)
+  function cellBounds(c, r, cols, rows, W, H) {
+    const x0 = Math.round(c * W / cols);
+    const x1 = Math.round((c + 1) * W / cols);
+    const y0 = Math.round(r * H / rows);
+    const y1 = Math.round((r + 1) * H / rows);
+    return { x0, y0, w: Math.max(1, x1 - x0), h: Math.max(1, y1 - y0) };
+  }
+
+  // Recorte tight por alpha dentro de la celda (sx,sy,sw,sh)
+  function alphaTightBox(sx, sy, sw, sh, alphaThr, pad) {
+    const tmp = document.createElement('canvas');
+    tmp.width = sw; tmp.height = sh;
+    const tctx = tmp.getContext('2d', { willReadFrequently: true });
+    tctx.clearRect(0,0,sw,sh);
+    tctx.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
+
+    const data = tctx.getImageData(0,0,sw,sh).data;
+
+    let minX = sw, minY = sh, maxX = -1, maxY = -1;
+
+    for (let y = 0; y < sh; y++) {
+      for (let x = 0; x < sw; x++) {
+        const a = data[(y * sw + x) * 4 + 3];
+        if (a > alphaThr) {
+          if (x < minX) minX = x;
+          if (y < minY) minY = y;
+          if (x > maxX) maxX = x;
+          if (y > maxY) maxY = y;
+        }
+      }
+    }
+
+    // si todo transparente, usar celda entera
+    if (maxX < 0) return { x:0, y:0, w:sw, h:sh, tmp };
+
+    minX = Math.max(0, minX - pad);
+    minY = Math.max(0, minY - pad);
+    maxX = Math.min(sw - 1, maxX + pad);
+    maxY = Math.min(sh - 1, maxY + pad);
+
+    return { x:minX, y:minY, w:(maxX-minX+1), h:(maxY-minY+1), tmp };
+  }
+
+  function anchorPoint(w, h, anchor) {
+    switch(anchor) {
+      case 'bottom-center': return { ax: w/2, ay: h };
+      case 'center': return { ax: w/2, ay: h/2 };
+      case 'bottom-left': return { ax: 0, ay: h };
+      case 'bottom-right': return { ax: w, ay: h };
+      case 'top-center': return { ax: w/2, ay: 0 };
+      default: return { ax: w/2, ay: h };
+    }
+  }
+
+  // Preview: fit-to-canvas + anchor estable
+  function drawPreview(frameIndex) {
+    pctx.clearRect(0, 0, preview.width, preview.height);
+    if (frameIndex == null || !frames[frameIndex]) return;
+
+    const f = frames[frameIndex];
+    const outW = preview.width;
+    const outH = preview.height;
+
+    const anchor = anchorEl.value;
+
+    let targetX = outW / 2;
+    let targetY = outH / 2;
+    if (anchor.startsWith('bottom')) targetY = outH * 0.85;
+    if (anchor.startsWith('top'))    targetY = outH * 0.15;
+
+    const margin = 0.92;
+    const scale = Math.min(
+      (outW * margin) / f.w,
+      (outH * margin) / f.h
+    );
+
+    const drawW = f.w * scale;
+    const drawH = f.h * scale;
+
+    const dx = targetX - f.ax * scale;
+    const dy = targetY - f.ay * scale;
+
+    pctx.drawImage(f.canvas, dx, dy, drawW, drawH);
+  }
+
+  function rebuild() {
+    if (!imgReady) { alert('Primero cargá una imagen.'); return; }
+
+    const cols = Math.max(1, parseInt(colsEl.value, 10));
+    const rows = Math.max(1, parseInt(rowsEl.value, 10));
+    const alphaThr = Math.max(0, Math.min(255, parseInt(alphaThrEl.value, 10)));
+    const pad = Math.max(0, parseInt(padEl.value, 10));
+    const anchor = anchorEl.value;
+
+    const W = img.width;
+    const H = img.height;
+
+    frames = [];
+    gridEl.innerHTML = '';
+    clearSelection();
+
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const cb = cellBounds(c, r, cols, rows, W, H);
+        const box = alphaTightBox(cb.x0, cb.y0, cb.w, cb.h, alphaThr, pad);
+
+        const fc = document.createElement('canvas');
+        fc.width = box.w;
+        fc.height = box.h;
+        const fctx = fc.getContext('2d');
+        fctx.clearRect(0,0,box.w,box.h);
+        fctx.drawImage(box.tmp, box.x, box.y, box.w, box.h, 0, 0, box.w, box.h);
+
+        const ap = anchorPoint(box.w, box.h, anchor);
+        frames.push({ canvas: fc, w: box.w, h: box.h, ax: ap.ax, ay: ap.ay });
+      }
+    }
+
+    // Parrilla
+    frames.forEach((f, idx) => {
+      const tile = document.createElement('div');
+      tile.className = 'tile';
+      tile.dataset.idx = String(idx);
+
+      const meta = document.createElement('div');
+      meta.className = 'meta';
+      meta.innerHTML = `<span>#${idx}</span><span class="order" data-order></span>`;
+
+      const t = document.createElement('canvas');
+      t.className = 'thumb checker';
+      const tctx = t.getContext('2d');
+
+      const maxW = 160;
+      const scale = Math.min(1, maxW / f.w);
+      t.width  = Math.max(1, Math.round(f.w * scale));
+      t.height = Math.max(1, Math.round(f.h * scale));
+      tctx.clearRect(0,0,t.width,t.height);
+      tctx.drawImage(f.canvas, 0, 0, t.width, t.height);
+
+      tile.appendChild(meta);
+      tile.appendChild(t);
+
+      tile.addEventListener('click', () => {
+        const i = idx;
+        const pos = selected.indexOf(i);
+        if (pos !== -1) {
+          selected.splice(pos, 1);
+          tile.classList.remove('selected');
+        } else {
+          selected.push(i);
+          tile.classList.add('selected');
+        }
+
+        // Actualiza orden
+        [...gridEl.querySelectorAll('.tile')].forEach(el => {
+          const ti = parseInt(el.dataset.idx, 10);
+          const p = selected.indexOf(ti);
+          el.querySelector('[data-order]').textContent = (p === -1) ? '' : String(p + 1);
+        });
+
+        setSelCount();
+        if (selected.length) drawPreview(selected[selected.length - 1]);
+        else drawPreview(null);
+      });
+
+      gridEl.appendChild(tile);
+    });
+
+    if (frames.length) drawPreview(0);
+  }
+
+  function tick(t) {
+    raf = requestAnimationFrame(tick);
+    if (!running) return;
+    if (!selected.length) return;
+
+    const fps = Math.max(1, parseInt(fpsEl.value, 10));
+    const frameMs = 1000 / fps;
+
+    if (!lastT) lastT = t;
+    if (t - lastT >= frameMs) {
+      lastT = t;
+      const idx = selected[ptr % selected.length];
+      drawPreview(idx);
+      ptr = (ptr + 1) % selected.length;
+    }
+  }
+
+  function play() {
+    if (!imgReady || !frames.length) { alert('Cargá la imagen y reconstruí la parrilla.'); return; }
+    if (!selected.length) { alert('Seleccioná al menos 1 frame.'); return; }
+    running = true;
+    setMode('Reproduciendo');
+    if (!raf) requestAnimationFrame(tick);
+  }
+
+  function pause() {
+    running = false;
+    setMode('Pausado');
+  }
+
+  fileEl.addEventListener('change', () => {
+    const f = fileEl.files?.[0];
+    if (!f) return;
+    const url = URL.createObjectURL(f);
+    img = new Image();
+    img.onload = () => {
+      imgReady = true;
+      rebuild();
+      URL.revokeObjectURL(url);
+    };
+    img.onerror = () => {
+      imgReady = false;
+      alert('No se pudo cargar la imagen.');
+      URL.revokeObjectURL(url);
+    };
+    img.src = url;
+  });
+
+  rebuildBtn.addEventListener('click', rebuild);
+  clearBtn.addEventListener('click', clearSelection);
+  playBtn.addEventListener('click', play);
+  pauseBtn.addEventListener('click', pause);
+
+  // Si cambias anchor, hay que recalcular ax/ay
+  anchorEl.addEventListener('change', rebuild);
+
+  // Atajos
+  window.addEventListener('keydown', (e) => {
+    if (e.code === 'Space') {
+      e.preventDefault();
+      running ? pause() : play();
+    }
+    if (e.code === 'Escape') clearSelection();
+  });
+
+  setMode('Pausado');
+  setSelCount();
+  fpsVal.textContent = fpsEl.value;
+})();
+</script>
+</body>
+</html>

@@ -1,12 +1,12 @@
 import { ensureInitialHash, setRouter, goToHome } from './nav.js';
-import { onboardingDone } from './state.js';
+import { clearLoginTabsLock, hasLoginTabsLock, onboardingDone, setLoginTabsLock } from './state.js';
 import { generateDemoNotifications, getUnreadCount, markAllNotificationsRead } from './notifications-store.js';
 import './pages/onboarding.js';
 import './pages/home.js';
-import './pages/listas.js';
 import './pages/speak.js';
 import './pages/profile.js';
 import './pages/premium.js';
+import './pages/free-ride.js';
 import './pages/tabs.js';
 import './pages/diagnostics.js';
 import './pages/login.js';
@@ -22,9 +22,14 @@ routerReady.then((router) => {
   if (onboardingDone() && (hashPath === '/' || hashPath === '/onboarding')) {
     goToHome('root');
   }
-  if (!onboardingDone() && hashPath.startsWith('/tabs')) {
+  if (!onboardingDone() && (hashPath.startsWith('/tabs') || hashPath === '/speak')) {
     router.push('/onboarding', 'root');
   }
+
+  const isLoggedIn = () => {
+    const user = window.user;
+    return Boolean(user && user.id !== undefined && user.id !== null);
+  };
 
   router.addEventListener('ionRouteWillChange', (event) => {
     const to = event.detail.to;
@@ -33,8 +38,16 @@ routerReady.then((router) => {
       goToHome('root');
       return;
     }
-    if (!onboardingDone() && to.startsWith('/tabs')) {
+    if (!onboardingDone() && (to.startsWith('/tabs') || to === '/speak')) {
       router.push('/onboarding', 'root');
+      return;
+    }
+    if (hasLoginTabsLock() && !isLoggedIn() && to === '/speak') {
+      goToHome('root');
+      return;
+    }
+    if (to === '/tabs/speak') {
+      router.push('/speak', 'root');
       return;
     }
     if (to.startsWith('/tabs/') && to !== '/tabs') {
@@ -49,15 +62,56 @@ routerReady.then((router) => {
 });
 
 function setupSecretDiagnostics(router) {
+  const DIAG_UNLOCK_KEY = 'appv5:diag-unlocked';
   const sequence = [
     { target: 'title', needed: 2, count: 0 },
     { target: 'content', needed: 2, count: 0 },
     { target: 'title', needed: 1, count: 0 }
   ];
   let step = 0;
+  let titleTapCount = 0;
+  let titleTapTimer = null;
+  const readUnlocked = () => {
+    try {
+      return localStorage.getItem(DIAG_UNLOCK_KEY) === 'yes';
+    } catch (err) {
+      return false;
+    }
+  };
+  const writeUnlocked = () => {
+    try {
+      localStorage.setItem(DIAG_UNLOCK_KEY, 'yes');
+    } catch (err) {
+      // no-op
+    }
+  };
+  const openDiagnostics = () => {
+    router?.push('/diagnostics', 'forward');
+  };
   const reset = () => {
     step = 0;
     sequence.forEach((s) => (s.count = 0));
+  };
+  const resetTitleTap = () => {
+    titleTapCount = 0;
+    if (titleTapTimer) {
+      clearTimeout(titleTapTimer);
+      titleTapTimer = null;
+    }
+  };
+  const onUnlockedTitleTap = () => {
+    titleTapCount += 1;
+    if (titleTapCount >= 2) {
+      resetTitleTap();
+      openDiagnostics();
+      return;
+    }
+    if (titleTapTimer) {
+      clearTimeout(titleTapTimer);
+    }
+    titleTapTimer = setTimeout(() => {
+      resetTitleTap();
+    }, 700);
   };
 
   const handler = (event) => {
@@ -67,6 +121,14 @@ function setupSecretDiagnostics(router) {
 
     const isTitle = hasClassInPath('secret-title');
     const isContent = hasClassInPath('secret-content');
+
+    if (readUnlocked()) {
+      if (isTitle) {
+        onUnlockedTitleTap();
+      }
+      return;
+    }
+
     const expected = sequence[step];
 
     const matched =
@@ -83,7 +145,8 @@ function setupSecretDiagnostics(router) {
       step += 1;
       if (step >= sequence.length) {
         reset();
-        router?.push('/diagnostics', 'forward');
+        writeUnlocked();
+        openDiagnostics();
         return;
       }
     }
@@ -142,7 +205,20 @@ function setupNotificationsModal() {
 
 function setupLoginModal() {
   let modal = null;
-  const openLoginModal = async () => {
+  const isLoggedIn = () => {
+    const user = window.user;
+    return Boolean(user && user.id !== undefined && user.id !== null);
+  };
+
+  const applyLoginModalLock = (locked) => {
+    if (!modal) return;
+    modal.dataset.locked = locked ? 'true' : 'false';
+    modal.backdropDismiss = !locked;
+    modal.canDismiss = !locked;
+    window.dispatchEvent(new CustomEvent('app:login-modal-lock-change', { detail: { locked } }));
+  };
+
+  const openLoginModal = async (options = {}) => {
     if (!modal) {
       modal = document.querySelector('ion-modal.login-modal');
     }
@@ -159,6 +235,9 @@ function setupLoginModal() {
       document.body.appendChild(modal);
     }
 
+    const locked = Boolean(options && options.locked) || (hasLoginTabsLock() && !isLoggedIn());
+    applyLoginModalLock(locked);
+
     if (modal.presented || modal.isOpen) {
       return;
     }
@@ -169,9 +248,41 @@ function setupLoginModal() {
   };
 
   window.openLoginModal = openLoginModal;
+
+  window.addEventListener('app:user-change', (event) => {
+    const detail = event && event.detail ? event.detail : null;
+    const loggedIn = Boolean(detail && detail.id !== undefined && detail.id !== null);
+    if (loggedIn) {
+      if (hasLoginTabsLock()) {
+        clearLoginTabsLock();
+        window.dispatchEvent(new CustomEvent('app:tabs-lock-change', { detail: { locked: false } }));
+      }
+      if (modal) {
+        applyLoginModalLock(false);
+      }
+      return;
+    }
+
+    setLoginTabsLock();
+    window.dispatchEvent(new CustomEvent('app:tabs-lock-change', { detail: { locked: true } }));
+    if (modal) {
+      applyLoginModalLock(true);
+    }
+  });
 }
 
 function setupLoginNotificationsSeed() {
+  const resetProfileTabOnLogin = () => {
+    window.r34lp0w3r = window.r34lp0w3r || {};
+    window.r34lp0w3r.profileActiveTab = 'prefs';
+    window.r34lp0w3r.profileForceTab = null;
+    try {
+      localStorage.setItem('appv5:profile-tab', 'prefs');
+    } catch (err) {
+      // no-op
+    }
+  };
+
   let lastUserId = '';
   try {
     const user = window.user;
@@ -189,6 +300,7 @@ function setupLoginNotificationsSeed() {
     const isLogin = !lastUserId && nextId;
     lastUserId = nextId;
     if (isLogin) {
+      resetProfileTabOnLogin();
       generateDemoNotifications();
     }
   });

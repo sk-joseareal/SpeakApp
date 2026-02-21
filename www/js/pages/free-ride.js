@@ -21,6 +21,10 @@ const FREE_RIDE_DEBUG_PANEL_OPEN_KEY = 'appv5:free-ride-debug-panel-open';
 const SPEAK_REWARDS_STORAGE_KEY = 'appv5:speak-session-rewards';
 const FREE_RIDE_REWARD_SESSION_PREFIX = 'free-ride';
 const DEFAULT_SUMMARY_REWARD = { icon: 'diamond', label: 'diamonds', min: 1, max: 1 };
+const FREE_RIDE_ALIGNED_CACHE_MAX_ITEMS = 36;
+const FREE_RIDE_AUDIO_MODE_KEY = 'appv5:free-ride-audio-mode';
+const FREE_RIDE_AUDIO_MODE_GENERATED = 'generated';
+const FREE_RIDE_AUDIO_MODE_LOCAL = 'local';
 
 const DEFAULT_TONE_SCALE = [
   { min: 80, tone: 'good' },
@@ -68,6 +72,11 @@ class PageFreeRide extends HTMLElement {
     this.keyboardResizePrevMode = '';
     this.keyboardResizeApplied = false;
     this.keyboardResizeRequestId = 0;
+    this.alignedTtsCache = new Map();
+    this.phraseHighlightRaf = null;
+    this.phraseHighlightTimeline = [];
+    this.phraseHighlightTokenEls = [];
+    this.playbackRequestToken = 0;
   }
 
   connectedCallback() {
@@ -104,6 +113,12 @@ class PageFreeRide extends HTMLElement {
       this.render();
     };
     window.addEventListener('app:speak-debug', this._debugHandler);
+
+    this._audioModeHandler = () => {
+      if (!this.isConnected) return;
+      this.updatePhrasePreview(this.currentCopy);
+    };
+    window.addEventListener('app:free-ride-audio-mode-change', this._audioModeHandler);
 
     this._tabsDidChangeHandler = (event) => {
       const tab = event && event.detail ? event.detail.tab : '';
@@ -171,6 +186,11 @@ class PageFreeRide extends HTMLElement {
       this._debugHandler = null;
     }
 
+    if (this._audioModeHandler) {
+      window.removeEventListener('app:free-ride-audio-mode-change', this._audioModeHandler);
+      this._audioModeHandler = null;
+    }
+
     if (this._tabsDidChangeHandler) {
       if (this._tabsEl) {
         this._tabsEl.removeEventListener('ionTabsDidChange', this._tabsDidChangeHandler);
@@ -218,6 +238,47 @@ class PageFreeRide extends HTMLElement {
 
   getPracticeSpeechLocale() {
     return 'en-US';
+  }
+
+  normalizeFreeRideAudioMode(value) {
+    const normalized = String(value || '')
+      .trim()
+      .toLowerCase();
+    return normalized === FREE_RIDE_AUDIO_MODE_LOCAL
+      ? FREE_RIDE_AUDIO_MODE_LOCAL
+      : FREE_RIDE_AUDIO_MODE_GENERATED;
+  }
+
+  getFreeRideAudioMode() {
+    const modeFromState =
+      window.r34lp0w3r && typeof window.r34lp0w3r.freeRideAudioMode === 'string'
+        ? window.r34lp0w3r.freeRideAudioMode
+        : '';
+    if (modeFromState) {
+      return this.normalizeFreeRideAudioMode(modeFromState);
+    }
+    try {
+      return this.normalizeFreeRideAudioMode(localStorage.getItem(FREE_RIDE_AUDIO_MODE_KEY));
+    } catch (err) {
+      return FREE_RIDE_AUDIO_MODE_GENERATED;
+    }
+  }
+
+  setFreeRideAudioMode(mode) {
+    const normalized = this.normalizeFreeRideAudioMode(mode);
+    window.r34lp0w3r = window.r34lp0w3r || {};
+    window.r34lp0w3r.freeRideAudioMode = normalized;
+    try {
+      localStorage.setItem(FREE_RIDE_AUDIO_MODE_KEY, normalized);
+    } catch (err) {
+      // no-op
+    }
+    window.dispatchEvent(
+      new CustomEvent('app:free-ride-audio-mode-change', {
+        detail: { mode: normalized }
+      })
+    );
+    return normalized;
   }
 
   isNativeRuntime() {
@@ -580,6 +641,355 @@ class PageFreeRide extends HTMLElement {
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#39;');
+  }
+
+  escapeRegex(value) {
+    return String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  resolveAlignedTtsEndpoint() {
+    const cfg = window.realtimeConfig || {};
+    const direct = cfg.ttsAlignedEndpoint || window.REALTIME_TTS_ALIGNED_ENDPOINT;
+    if (typeof direct === 'string' && direct.trim()) {
+      return direct.trim();
+    }
+    const emitEndpoint = cfg.emitEndpoint;
+    if (typeof emitEndpoint === 'string' && emitEndpoint.trim()) {
+      const trimmed = emitEndpoint.trim().replace(/\/+$/, '');
+      if (trimmed.endsWith('/emit')) {
+        return `${trimmed.slice(0, -5)}/tts/aligned`;
+      }
+    }
+    return 'https://realtime.curso-ingles.com/realtime/tts/aligned';
+  }
+
+  buildAlignedTtsHeaders() {
+    const headers = { 'Content-Type': 'application/json' };
+    const cfg = window.realtimeConfig || {};
+    const token =
+      typeof cfg.stateToken === 'string'
+        ? cfg.stateToken.trim()
+        : typeof window.REALTIME_STATE_TOKEN === 'string'
+        ? window.REALTIME_STATE_TOKEN.trim()
+        : '';
+    if (token) {
+      headers['x-rt-token'] = token;
+    }
+    return headers;
+  }
+
+  getAlignedTtsCacheKey(text, lang) {
+    return `${String(lang || '').trim().toLowerCase()}::${String(text || '').trim()}`;
+  }
+
+  getAlignedTtsFromCache(text, lang) {
+    const key = this.getAlignedTtsCacheKey(text, lang);
+    if (!key || !this.alignedTtsCache.has(key)) return null;
+    const cached = this.alignedTtsCache.get(key);
+    this.alignedTtsCache.delete(key);
+    this.alignedTtsCache.set(key, cached);
+    return cached;
+  }
+
+  storeAlignedTtsInCache(text, lang, payload) {
+    const key = this.getAlignedTtsCacheKey(text, lang);
+    if (!key || !payload) return;
+    this.alignedTtsCache.set(key, payload);
+    while (this.alignedTtsCache.size > FREE_RIDE_ALIGNED_CACHE_MAX_ITEMS) {
+      const oldest = this.alignedTtsCache.keys().next();
+      if (oldest && !oldest.done) {
+        this.alignedTtsCache.delete(oldest.value);
+      } else {
+        break;
+      }
+    }
+  }
+
+  async fetchAlignedTts(text, lang) {
+    const expected = String(text || '').trim();
+    const locale = String(lang || '').trim() || 'en-US';
+    if (!expected) return null;
+
+    const cached = this.getAlignedTtsFromCache(expected, locale);
+    if (cached) return cached;
+
+    const endpoint = this.resolveAlignedTtsEndpoint();
+    if (!endpoint) return null;
+
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: this.buildAlignedTtsHeaders(),
+      body: JSON.stringify({
+        text: expected,
+        locale
+      })
+    });
+
+    if (!response.ok) return null;
+    const data = await response.json();
+    if (!data || data.ok !== true) return null;
+    if (typeof data.audio_url !== 'string' || !data.audio_url.trim()) return null;
+    this.storeAlignedTtsInCache(expected, locale, data);
+    return data;
+  }
+
+  toNumberOrFallback(value, fallback = 0) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  }
+
+  buildTimedWordData(text, words) {
+    const sourceText = String(text || '');
+    if (!sourceText) return null;
+    if (!Array.isArray(words) || !words.length) return null;
+
+    const ranges = [];
+    let searchCursor = 0;
+
+    words.forEach((entry) => {
+      if (!entry || typeof entry !== 'object') return;
+      const tokenRaw = entry.text || entry.word || '';
+      const token = String(tokenRaw || '')
+        .replace(/\s+/g, ' ')
+        .trim();
+      if (!token) return;
+
+      const startMs = Math.max(
+        0,
+        Math.round(this.toNumberOrFallback(entry.start_ms, this.toNumberOrFallback(entry.start, 0)))
+      );
+      const endMs = Math.max(
+        startMs + 40,
+        Math.round(
+          this.toNumberOrFallback(
+            entry.end_ms,
+            this.toNumberOrFallback(entry.end, startMs + 260)
+          )
+        )
+      );
+
+      const escaped = this.escapeRegex(token).replace(/'/g, "['\\u2019\\u2018]");
+      const regex = new RegExp(escaped, 'i');
+      const remaining = sourceText.slice(searchCursor);
+      const match = regex.exec(remaining);
+      if (!match) return;
+
+      const startChar = searchCursor + match.index;
+      const endChar = startChar + match[0].length;
+      ranges.push({ startChar, endChar, startMs, endMs });
+      searchCursor = endChar;
+    });
+
+    if (!ranges.length) return null;
+
+    const segments = [];
+    const timeline = [];
+    let cursor = 0;
+
+    ranges.forEach((range, tokenIndex) => {
+      const safeStart = Math.max(cursor, Math.min(sourceText.length, range.startChar));
+      const safeEnd = Math.max(safeStart, Math.min(sourceText.length, range.endChar));
+      if (safeStart > cursor) {
+        segments.push({ type: 'plain', text: sourceText.slice(cursor, safeStart) });
+      }
+      const tokenText = sourceText.slice(safeStart, safeEnd);
+      if (!tokenText) return;
+      segments.push({ type: 'token', text: tokenText, tokenIndex });
+      timeline[tokenIndex] = { startMs: range.startMs, endMs: range.endMs };
+      cursor = safeEnd;
+    });
+
+    if (cursor < sourceText.length) {
+      segments.push({ type: 'plain', text: sourceText.slice(cursor) });
+    }
+
+    const validTimeline = timeline.filter(Boolean);
+    if (!validTimeline.length) return null;
+    return { segments, timeline };
+  }
+
+  setPhraseTextPlain(text) {
+    const phraseEl = this.querySelector('#free-ride-target');
+    if (!phraseEl) return;
+    phraseEl.classList.remove('is-word-timed');
+    delete phraseEl.dataset.localSpeakingActive;
+    delete phraseEl.dataset.localSpeakingText;
+    phraseEl.textContent = String(text || '');
+    this.phraseHighlightTimeline = [];
+    this.phraseHighlightTokenEls = [];
+  }
+
+  setPhraseTextTimed(text, timedData) {
+    const phraseEl = this.querySelector('#free-ride-target');
+    if (!phraseEl) return;
+    const timed = timedData && Array.isArray(timedData.segments) ? timedData : null;
+    if (!timed || !timed.segments.length) {
+      this.setPhraseTextPlain(text);
+      return;
+    }
+
+    phraseEl.classList.add('is-word-timed');
+    phraseEl.innerHTML = '';
+    const tokenEls = [];
+
+    timed.segments.forEach((segment) => {
+      if (!segment || segment.type !== 'token') {
+        phraseEl.appendChild(document.createTextNode(segment && segment.text ? segment.text : ''));
+        return;
+      }
+      const tokenEl = document.createElement('span');
+      tokenEl.className = 'free-ride-tts-token';
+      tokenEl.textContent = segment.text || '';
+      phraseEl.appendChild(tokenEl);
+      tokenEls[segment.tokenIndex] = tokenEl;
+    });
+
+    this.phraseHighlightTokenEls = tokenEls;
+    this.phraseHighlightTimeline = Array.isArray(timed.timeline) ? timed.timeline : [];
+  }
+
+  clearPhraseHighlightClasses() {
+    this.phraseHighlightTokenEls.forEach((tokenEl) => {
+      if (!tokenEl) return;
+      tokenEl.classList.remove('is-active');
+      tokenEl.classList.remove('is-past');
+    });
+  }
+
+  stopPhraseHighlightLoop() {
+    if (this.phraseHighlightRaf) {
+      cancelAnimationFrame(this.phraseHighlightRaf);
+      this.phraseHighlightRaf = null;
+    }
+    this.clearPhraseHighlightClasses();
+  }
+
+  setPhraseLocalSpeaking(isSpeaking) {
+    const phraseEl = this.querySelector('#free-ride-target');
+    if (!phraseEl) return;
+    if (phraseEl.classList.contains('is-word-timed')) return;
+
+    if (isSpeaking) {
+      if (phraseEl.dataset.localSpeakingActive === '1') return;
+      const rawText = String(phraseEl.textContent || '');
+      phraseEl.dataset.localSpeakingActive = '1';
+      phraseEl.dataset.localSpeakingText = rawText;
+      phraseEl.innerHTML = `<span class="free-ride-local-speaking-pill">${this.escapeHtml(rawText)}</span>`;
+      return;
+    }
+
+    if (phraseEl.dataset.localSpeakingActive === '1') {
+      const rawText =
+        typeof phraseEl.dataset.localSpeakingText === 'string'
+          ? phraseEl.dataset.localSpeakingText
+          : String(phraseEl.textContent || '');
+      phraseEl.textContent = rawText;
+    }
+    delete phraseEl.dataset.localSpeakingActive;
+    delete phraseEl.dataset.localSpeakingText;
+  }
+
+  updatePhraseHighlight(timeMs) {
+    const timeline = this.phraseHighlightTimeline;
+    const tokenEls = this.phraseHighlightTokenEls;
+    if (!Array.isArray(timeline) || !timeline.length || !Array.isArray(tokenEls) || !tokenEls.length) {
+      return;
+    }
+
+    const ms = Math.max(0, Number(timeMs) || 0);
+    tokenEls.forEach((tokenEl, index) => {
+      if (!tokenEl) return;
+      const slot = timeline[index];
+      if (!slot) {
+        tokenEl.classList.remove('is-active');
+        tokenEl.classList.remove('is-past');
+        return;
+      }
+      const startMs = Math.max(0, this.toNumberOrFallback(slot.startMs, 0));
+      const endMs = Math.max(startMs + 40, this.toNumberOrFallback(slot.endMs, startMs + 260));
+      const isActive = ms >= startMs && ms <= endMs;
+      const isPast = ms > endMs;
+      tokenEl.classList.toggle('is-active', isActive);
+      tokenEl.classList.toggle('is-past', !isActive && isPast);
+    });
+  }
+
+  startPhraseHighlightLoop(audioEl, playbackToken) {
+    this.stopPhraseHighlightLoop();
+    if (!audioEl) return;
+    const step = () => {
+      if (!this.isConnected) return;
+      if (playbackToken !== this.playbackRequestToken) return;
+      if (!audioEl || audioEl.paused || audioEl.ended) return;
+      this.updatePhraseHighlight(audioEl.currentTime * 1000);
+      this.phraseHighlightRaf = requestAnimationFrame(step);
+    };
+    this.updatePhraseHighlight(0);
+    this.phraseHighlightRaf = requestAnimationFrame(step);
+  }
+
+  restorePhrasePreviewText(copy = this.currentCopy) {
+    const expected = this.getExpectedTextTrimmed();
+    const text = expected || (copy && copy.emptyPhrase ? copy.emptyPhrase : '');
+    this.setPhraseTextPlain(text);
+  }
+
+  async playPhraseAligned(text, lang, playbackToken) {
+    let payload = null;
+    try {
+      payload = await this.fetchAlignedTts(text, lang);
+    } catch (err) {
+      payload = null;
+    }
+    if (!payload || playbackToken !== this.playbackRequestToken) return false;
+
+    const audioUrl = String(payload.audio_url || '').trim();
+    if (!audioUrl) return false;
+
+    const timedData = this.buildTimedWordData(text, payload.words);
+    if (timedData && timedData.segments && timedData.segments.length) {
+      this.setPhraseTextTimed(text, timedData);
+    } else {
+      this.setPhraseTextPlain(text);
+    }
+
+    const audio = new Audio(audioUrl);
+    audio.preload = 'auto';
+    this.activeAudio = audio;
+    if (timedData) {
+      this.startPhraseHighlightLoop(audio, playbackToken);
+    }
+
+    const finish = () => {
+      if (this.activeAudio === audio) {
+        this.activeAudio = null;
+      }
+      this.stopPhraseHighlightLoop();
+      this.restorePhrasePreviewText();
+      if (playbackToken === this.playbackRequestToken) {
+        this.clearActivePlayButton();
+      }
+    };
+
+    audio.onended = () => {
+      finish();
+    };
+    audio.onerror = () => {
+      finish();
+    };
+
+    try {
+      await audio.play();
+      if (playbackToken !== this.playbackRequestToken) {
+        audio.pause();
+        audio.currentTime = 0;
+        return false;
+      }
+      return true;
+    } catch (err) {
+      finish();
+      return false;
+    }
   }
 
   getToneScale() {
@@ -1611,6 +2021,7 @@ class PageFreeRide extends HTMLElement {
   }
 
   stopPlayback() {
+    this.playbackRequestToken += 1;
     const plugin = this.getNativeTtsPlugin();
     if (plugin && typeof plugin.stop === 'function') {
       try {
@@ -1631,6 +2042,8 @@ class PageFreeRide extends HTMLElement {
         window.speechSynthesis.cancel();
       }
     }
+    this.stopPhraseHighlightLoop();
+    this.restorePhrasePreviewText();
     if (this.activePlayButton) {
       this.activePlayButton.classList.remove('is-playing');
       this.activePlayButton = null;
@@ -1653,12 +2066,24 @@ class PageFreeRide extends HTMLElement {
     this.activePlayButton = null;
   }
 
-  playPhraseWeb(text, lang) {
+  playPhraseWeb(text, lang, hooks = null) {
     if (!text || !this.canSpeak()) return false;
+    const onStart = hooks && typeof hooks.onStart === 'function' ? hooks.onStart : null;
+    const onEnd = hooks && typeof hooks.onEnd === 'function' ? hooks.onEnd : null;
     const utter = new SpeechSynthesisUtterance(text);
     utter.lang = lang || this.getPracticeSpeechLocale();
-    utter.onend = () => this.clearActivePlayButton();
-    utter.onerror = () => this.clearActivePlayButton();
+    let settled = false;
+    const settle = () => {
+      if (settled) return;
+      settled = true;
+      if (onEnd) onEnd();
+      this.clearActivePlayButton();
+    };
+    utter.onstart = () => {
+      if (onStart) onStart();
+    };
+    utter.onend = () => settle();
+    utter.onerror = () => settle();
     try {
       const started =
         typeof window.speakWebUtterance === 'function'
@@ -1668,12 +2093,12 @@ class PageFreeRide extends HTMLElement {
               return true;
             })();
       if (!started) {
-        this.clearActivePlayButton();
+        settle();
         return false;
       }
       return true;
     } catch (err) {
-      this.clearActivePlayButton();
+      settle();
       return false;
     }
   }
@@ -1690,34 +2115,89 @@ class PageFreeRide extends HTMLElement {
     this.stopPlayback();
     this.setActivePlayButton(triggerBtn || null);
     const lang = this.getPracticeSpeechLocale();
-    const plugin = this.getNativeTtsPlugin();
-    if (plugin && typeof plugin.speak === 'function') {
-      Promise.resolve(
-        plugin.speak({
-          text,
-          lang,
-          rate: 1.0,
-          pitch: 1.0,
-          volume: 1.0,
-          category: 'ambient',
-          queueStrategy: 1
-        })
-      )
-        .then(() => {
-          this.clearActivePlayButton();
-        })
-        .catch(() => {
-          const started = this.playPhraseWeb(text, lang);
-          if (!started) {
+    const audioMode = this.getFreeRideAudioMode();
+    const localMode = audioMode === FREE_RIDE_AUDIO_MODE_LOCAL;
+    const playbackToken = this.playbackRequestToken;
+    const markLocalStart = () => {
+      if (!localMode) return;
+      this.setPhraseLocalSpeaking(true);
+    };
+    const markLocalEnd = () => {
+      if (!localMode) return;
+      this.setPhraseLocalSpeaking(false);
+    };
+
+    const fallback = () => {
+      if (playbackToken !== this.playbackRequestToken) return;
+      const plugin = this.getNativeTtsPlugin();
+      if (plugin && typeof plugin.speak === 'function') {
+        markLocalStart();
+        Promise.resolve(
+          plugin.speak({
+            text,
+            lang,
+            rate: 1.0,
+            pitch: 1.0,
+            volume: 1.0,
+            category: 'ambient',
+            queueStrategy: 1
+          })
+        )
+          .then(() => {
+            if (playbackToken !== this.playbackRequestToken) return;
+            markLocalEnd();
             this.clearActivePlayButton();
-          }
-        });
+          })
+          .catch(() => {
+            if (playbackToken !== this.playbackRequestToken) return;
+            markLocalEnd();
+            const started = this.playPhraseWeb(
+              text,
+              lang,
+              localMode
+                ? {
+                    onStart: markLocalStart,
+                    onEnd: markLocalEnd
+                  }
+                : null
+            );
+            if (!started) {
+              markLocalEnd();
+              this.clearActivePlayButton();
+            }
+          });
+        return;
+      }
+      const started = this.playPhraseWeb(
+        text,
+        lang,
+        localMode
+          ? {
+              onStart: markLocalStart,
+              onEnd: markLocalEnd
+            }
+          : null
+      );
+      if (!started) {
+        markLocalEnd();
+        this.clearActivePlayButton();
+      }
+    };
+
+    if (localMode) {
+      fallback();
       return;
     }
-    const started = this.playPhraseWeb(text, lang);
-    if (!started) {
-      this.clearActivePlayButton();
-    }
+
+    this.playPhraseAligned(text, lang, playbackToken)
+      .then((started) => {
+        if (started || playbackToken !== this.playbackRequestToken) return;
+        fallback();
+      })
+      .catch(() => {
+        if (playbackToken !== this.playbackRequestToken) return;
+        fallback();
+      });
   }
 
   playRecording(triggerBtn) {
@@ -1897,8 +2377,7 @@ class PageFreeRide extends HTMLElement {
     const controlsDisabledAttr = controlsDisabled ? 'disabled' : '';
     const percentText =
       typeof this.state.percent === 'number' ? `${Math.max(0, Math.min(100, Math.round(this.state.percent)))}%` : 'n/d';
-    const recordingText = this.state.isRecording ? 'on' : 'off';
-    const transcribingText = this.state.isTranscribing ? 'on' : 'off';
+    const audioMode = this.getFreeRideAudioMode();
 
     return `
       <div class="speak-voice-nav speak-voice-nav-debug">
@@ -1911,54 +2390,68 @@ class PageFreeRide extends HTMLElement {
             <span class="speak-debug-label">Transcrito</span>
             <span class="speak-debug-value">${transcript}</span>
           </div>
-          <div class="speak-debug-row">
-            <span class="speak-debug-label">Forzar</span>
-            <div class="speak-debug-tones">
-              <button
-                class="speak-debug-tone tone-bad"
-                type="button"
-                data-debug-tone="bad"
-                aria-label="Forzar rojo ${toneMax.bad}%"
-                title="Rojo ${toneMax.bad}%"
-                ${controlsDisabledAttr}
-              ></button>
-              <button
-                class="speak-debug-tone tone-okay"
-                type="button"
-                data-debug-tone="okay"
-                aria-label="Forzar amarillo ${toneMax.okay}%"
-                title="Amarillo ${toneMax.okay}%"
-                ${controlsDisabledAttr}
-              ></button>
-              <button
-                class="speak-debug-tone tone-good"
-                type="button"
-                data-debug-tone="good"
-                aria-label="Forzar verde ${toneMax.good}%"
-                title="Verde ${toneMax.good}%"
-                ${controlsDisabledAttr}
-              ></button>
-              <button
-                class="speak-debug-tone tone-reset"
-                type="button"
-                data-debug-tone="reset"
-                aria-label="Desasignar porcentaje"
-                title="Desasignar %"
-                ${controlsDisabledAttr}
-              ></button>
+          <div class="speak-debug-row free-ride-debug-score-row">
+            <span class="speak-debug-label">Score</span>
+            <div class="free-ride-debug-score-tools">
+              <span class="speak-debug-value free-ride-debug-score-value">${percentText}</span>
+              <div class="speak-debug-tones">
+                <button
+                  class="speak-debug-tone tone-bad"
+                  type="button"
+                  data-debug-tone="bad"
+                  aria-label="Forzar rojo ${toneMax.bad}%"
+                  title="Rojo ${toneMax.bad}%"
+                  ${controlsDisabledAttr}
+                ></button>
+                <button
+                  class="speak-debug-tone tone-okay"
+                  type="button"
+                  data-debug-tone="okay"
+                  aria-label="Forzar amarillo ${toneMax.okay}%"
+                  title="Amarillo ${toneMax.okay}%"
+                  ${controlsDisabledAttr}
+                ></button>
+                <button
+                  class="speak-debug-tone tone-good"
+                  type="button"
+                  data-debug-tone="good"
+                  aria-label="Forzar verde ${toneMax.good}%"
+                  title="Verde ${toneMax.good}%"
+                  ${controlsDisabledAttr}
+                ></button>
+                <button
+                  class="speak-debug-tone tone-reset"
+                  type="button"
+                  data-debug-tone="reset"
+                  aria-label="Desasignar porcentaje"
+                  title="Desasignar %"
+                  ${controlsDisabledAttr}
+                ></button>
+              </div>
             </div>
           </div>
           <div class="speak-debug-row">
-            <span class="speak-debug-label">Score</span>
-            <span class="speak-debug-value">${percentText}</span>
-          </div>
-          <div class="speak-debug-row">
-            <span class="speak-debug-label">Rec</span>
-            <span class="speak-debug-value">${recordingText}</span>
-          </div>
-          <div class="speak-debug-row">
-            <span class="speak-debug-label">STT</span>
-            <span class="speak-debug-value">${transcribingText}</span>
+            <span class="speak-debug-label">Audio</span>
+            <div class="free-ride-debug-audio-toggle">
+              <button
+                class="free-ride-debug-audio-btn ${audioMode === FREE_RIDE_AUDIO_MODE_GENERATED ? 'is-active' : ''}"
+                type="button"
+                data-audio-mode="${FREE_RIDE_AUDIO_MODE_GENERATED}"
+                aria-label="Usar audio generado con alineación"
+                title="Audio generado (alineado)"
+                aria-pressed="${audioMode === FREE_RIDE_AUDIO_MODE_GENERATED ? 'true' : 'false'}"
+                ${controlsDisabledAttr}
+              >Alineado</button>
+              <button
+                class="free-ride-debug-audio-btn ${audioMode === FREE_RIDE_AUDIO_MODE_LOCAL ? 'is-active' : ''}"
+                type="button"
+                data-audio-mode="${FREE_RIDE_AUDIO_MODE_LOCAL}"
+                aria-label="Usar audio local sin alineación"
+                title="Audio local"
+                aria-pressed="${audioMode === FREE_RIDE_AUDIO_MODE_LOCAL ? 'true' : 'false'}"
+                ${controlsDisabledAttr}
+              >Local</button>
+            </div>
           </div>
         </div>
       </div>
@@ -2081,12 +2574,13 @@ class PageFreeRide extends HTMLElement {
     const rewardEl = this.querySelector('#free-ride-earned-reward');
     const transcriptEl = this.querySelector('#free-ride-transcript');
     const debugToggleBtn = this.querySelector('#free-ride-debug-toggle');
+    const debugAudioModeButtons = Array.from(this.querySelectorAll('[data-audio-mode]'));
 
     const expected = this.getExpectedTextTrimmed();
     const hasText = Boolean(expected);
 
     if (phraseEl) {
-      phraseEl.textContent = hasText ? expected : copy.emptyPhrase || '';
+      this.setPhraseTextPlain(hasText ? expected : copy.emptyPhrase || '');
     }
     if (playBtn) {
       playBtn.disabled = !hasText || this.state.isRecording || this.state.isTranscribing;
@@ -2149,6 +2643,17 @@ class PageFreeRide extends HTMLElement {
       debugToggleBtn.classList.toggle('is-active', active);
       debugToggleBtn.setAttribute('aria-pressed', active ? 'true' : 'false');
     }
+    if (debugAudioModeButtons.length) {
+      const currentAudioMode = this.getFreeRideAudioMode();
+      const modeControlsDisabled = this.state.isRecording || this.state.isTranscribing;
+      debugAudioModeButtons.forEach((button) => {
+        const mode = String(button.dataset.audioMode || '');
+        const isActive = mode === currentAudioMode;
+        button.classList.toggle('is-active', isActive);
+        button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+        button.disabled = modeControlsDisabled;
+      });
+    }
   }
 
   bindUi(copy) {
@@ -2159,6 +2664,7 @@ class PageFreeRide extends HTMLElement {
     const voiceBtn = this.querySelector('#free-ride-voice');
     const debugToggleBtn = this.querySelector('#free-ride-debug-toggle');
     const debugToneButtons = Array.from(this.querySelectorAll('[data-debug-tone]'));
+    const debugAudioModeButtons = Array.from(this.querySelectorAll('[data-audio-mode]'));
 
     if (inputEl) {
       inputEl.value = this.getExpectedText();
@@ -2190,6 +2696,17 @@ class PageFreeRide extends HTMLElement {
       button.addEventListener('click', () => {
         const tone = button.dataset.debugTone || '';
         this.applyDebugTone(tone);
+      });
+    });
+
+    debugAudioModeButtons.forEach((button) => {
+      button.addEventListener('click', () => {
+        if (this.state.isRecording || this.state.isTranscribing) return;
+        const nextMode = button.dataset.audioMode || '';
+        if (!nextMode) return;
+        this.stopPlayback();
+        this.setFreeRideAudioMode(nextMode);
+        this.updatePhrasePreview(copy);
       });
     });
 

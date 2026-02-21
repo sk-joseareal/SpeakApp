@@ -1069,17 +1069,13 @@ class PageSpeak extends HTMLElement {
           </div>`
               : ''
           }
-          <div class="speak-debug-row">
-            <span class="speak-debug-label">Words %</span>
-            <span class="speak-debug-value">${wordsPercent}%</span>
-          </div>
-          <div class="speak-debug-row">
-            <span class="speak-debug-label">Phrase %</span>
-            <span class="speak-debug-value">${phrasePercent}%</span>
-          </div>
-          <div class="speak-debug-row">
-            <span class="speak-debug-label">Session %</span>
-            <span class="speak-debug-value">${sessionPercent}%</span>
+          <div class="speak-debug-row speak-debug-metrics-row">
+            <span class="speak-debug-label">Score</span>
+            <div class="speak-debug-metrics">
+              <span class="speak-debug-metric"><b>Words</b> ${wordsPercent}%</span>
+              <span class="speak-debug-metric"><b>Phrase</b> ${phrasePercent}%</span>
+              <span class="speak-debug-metric"><b>Session</b> ${sessionPercent}%</span>
+            </div>
           </div>
           ${inlineNav}
         </div>

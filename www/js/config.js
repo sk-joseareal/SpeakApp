@@ -66,6 +66,11 @@
       window.REALTIME_CHATBOT_USAGE_LIMIT_ENDPOINT ||
       'https://realtime.curso-ingles.com/realtime/chatbot/usage/limit';
   }
+  if (window.realtimeConfig.ttsAlignedEndpoint === undefined) {
+    window.realtimeConfig.ttsAlignedEndpoint =
+      window.REALTIME_TTS_ALIGNED_ENDPOINT ||
+      'https://realtime.curso-ingles.com/realtime/tts/aligned';
+  }
   if (window.realtimeConfig.stateEndpoint === undefined) {
     window.realtimeConfig.stateEndpoint =
       window.REALTIME_STATE_ENDPOINT || 'https://realtime.curso-ingles.com/realtime/state/sync';

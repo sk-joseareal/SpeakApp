@@ -18,6 +18,30 @@ class PageDiagnostics extends HTMLElement {
       plugins = [];
     }
 
+    const FREE_RIDE_AUDIO_MODE_KEY = 'appv5:free-ride-audio-mode';
+    const FREE_RIDE_AUDIO_MODE_GENERATED = 'generated';
+    const FREE_RIDE_AUDIO_MODE_LOCAL = 'local';
+    const normalizeFreeRideAudioMode = (value) => {
+      const normalized = String(value || '')
+        .trim()
+        .toLowerCase();
+      return normalized === FREE_RIDE_AUDIO_MODE_LOCAL
+        ? FREE_RIDE_AUDIO_MODE_LOCAL
+        : FREE_RIDE_AUDIO_MODE_GENERATED;
+    };
+    const getStoredFreeRideAudioMode = () => {
+      const globalValue =
+        window.r34lp0w3r && typeof window.r34lp0w3r.freeRideAudioMode === 'string'
+          ? window.r34lp0w3r.freeRideAudioMode
+          : '';
+      if (globalValue) return normalizeFreeRideAudioMode(globalValue);
+      try {
+        return normalizeFreeRideAudioMode(localStorage.getItem(FREE_RIDE_AUDIO_MODE_KEY));
+      } catch (err) {
+        return FREE_RIDE_AUDIO_MODE_GENERATED;
+      }
+    };
+
     this.innerHTML = `
       <ion-header translucent="true">
         <ion-toolbar>
@@ -110,6 +134,20 @@ class PageDiagnostics extends HTMLElement {
             <h4 style="margin-top:16px;">Onboarding</h4>
             <div class="diag-actions">
               <ion-button size="small" fill="outline" id="diag-onboarding-repeat">Repetir onboarding</ion-button>
+            </div>
+            <div class="diag-speak-block">
+              <div class="pill">Free ride audio</div>
+              <div class="diag-audio-mode-wrap">
+                <ion-segment id="diag-free-ride-audio-mode" value="${getStoredFreeRideAudioMode()}">
+                  <ion-segment-button value="generated">
+                    <ion-label>Alineado</ion-label>
+                  </ion-segment-button>
+                  <ion-segment-button value="local">
+                    <ion-label>Local</ion-label>
+                  </ion-segment-button>
+                </ion-segment>
+                <div class="diag-debug-sub" id="diag-free-ride-audio-sub"></div>
+              </div>
             </div>
 
             <h4 style="margin-top:16px;">Speak stores</h4>
@@ -406,12 +444,45 @@ class PageDiagnostics extends HTMLElement {
     const ttsInputEl = this.querySelector('#diag-tts-input');
     const ttsPlayBtn = this.querySelector('#diag-tts-play');
     const ttsStatusEl = this.querySelector('#diag-tts-status');
+    const freeRideAudioModeEl = this.querySelector('#diag-free-ride-audio-mode');
+    const freeRideAudioSubEl = this.querySelector('#diag-free-ride-audio-sub');
     const notifyListEl = this.querySelector('#diag-notify-list');
     const notifyEmptyEl = this.querySelector('#diag-notify-empty');
     const TALK_STORAGE_PREFIX = 'appv5:talk-timelines:';
     let usageRequestSeq = 0;
     let ttsUtter = null;
     let ttsPlaying = false;
+
+    const setFreeRideAudioMode = (mode) => {
+      const normalized = normalizeFreeRideAudioMode(mode);
+      window.r34lp0w3r = window.r34lp0w3r || {};
+      window.r34lp0w3r.freeRideAudioMode = normalized;
+      try {
+        localStorage.setItem(FREE_RIDE_AUDIO_MODE_KEY, normalized);
+      } catch (err) {
+        // no-op
+      }
+      window.dispatchEvent(
+        new CustomEvent('app:free-ride-audio-mode-change', {
+          detail: { mode: normalized }
+        })
+      );
+      return normalized;
+    };
+
+    const updateFreeRideAudioModeUi = (mode) => {
+      const normalized = normalizeFreeRideAudioMode(mode);
+      if (freeRideAudioModeEl) {
+        freeRideAudioModeEl.value = normalized;
+      }
+      if (freeRideAudioSubEl) {
+        freeRideAudioSubEl.textContent =
+          normalized === FREE_RIDE_AUDIO_MODE_LOCAL
+            ? 'Local: usa TTS nativo/web con realce global mientras suena.'
+            : 'Alineado: usa backend alineado (audio + highlighting progresivo por palabra).';
+      }
+      return normalized;
+    };
 
     const getTalkStorageKey = () => {
       const user = window.user;
@@ -888,6 +959,8 @@ class PageDiagnostics extends HTMLElement {
     updateTalkPanels();
     refreshUserUsage();
     renderNotifyList();
+    const initialFreeRideAudioMode = getStoredFreeRideAudioMode();
+    updateFreeRideAudioModeUi(setFreeRideAudioMode(initialFreeRideAudioMode));
 
     this.querySelector('#diag-back')?.addEventListener('click', () => {
       ensureInitialHash();
@@ -944,6 +1017,11 @@ class PageDiagnostics extends HTMLElement {
     this.querySelector('#diag-onboarding-repeat')?.addEventListener('click', () => {
       clearOnboardingDone();
       window.location.hash = '#/onboarding';
+    });
+
+    freeRideAudioModeEl?.addEventListener('ionChange', (event) => {
+      const nextMode = event && event.detail ? event.detail.value : freeRideAudioModeEl.value;
+      updateFreeRideAudioModeUi(setFreeRideAudioMode(nextMode));
     });
 
     // Login

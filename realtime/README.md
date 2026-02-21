@@ -41,6 +41,7 @@ There is a minimal Node gateway in `realtime/node/server.js`. It provides:
 
 - `POST /realtime/auth` for private/presence channels
 - `POST /realtime/emit` to trigger events
+- `POST /realtime/tts/aligned` to generate Polly audio + per-word timings
 - `GET /realtime/channels` to list active channels (optional; set `REALTIME_MONITOR_TOKEN`)
 - `GET /realtime/state/summary` for progress/badges metadata
 - `GET /realtime/state` for full progress/badges snapshot

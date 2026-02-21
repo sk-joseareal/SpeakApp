@@ -1,0 +1,429 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TTS Isolated Test</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    body {
+      margin: 0;
+      background: #f5f7fb;
+      color: #1f2937;
+    }
+    .wrap {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 20px 16px 28px;
+    }
+    .card {
+      background: #ffffff;
+      border: 1px solid #dbe2ec;
+      border-radius: 14px;
+      box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
+      padding: 14px;
+    }
+    h1 {
+      margin: 0 0 12px;
+      font-size: 1.35rem;
+    }
+    .muted {
+      color: #64748b;
+      font-size: 0.9rem;
+      margin: 4px 0 12px;
+    }
+    .grid {
+      display: grid;
+      gap: 10px;
+    }
+    @media (min-width: 680px) {
+      .grid-2 {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+    label {
+      font-size: 0.86rem;
+      color: #334155;
+      display: block;
+      margin-bottom: 5px;
+    }
+    textarea,
+    select,
+    input[type="number"] {
+      width: 100%;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      padding: 9px 10px;
+      font: inherit;
+      background: #fff;
+      color: #0f172a;
+    }
+    textarea {
+      min-height: 90px;
+      resize: vertical;
+    }
+    .row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    button {
+      border: 1px solid #b9c6dc;
+      background: #eaf0ff;
+      color: #1d4ed8;
+      border-radius: 10px;
+      padding: 8px 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    button.secondary {
+      background: #eef2f7;
+      color: #334155;
+    }
+    button.danger {
+      background: #fee2e2;
+      color: #b91c1c;
+      border-color: #fecaca;
+    }
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .status {
+      margin-top: 10px;
+      font-size: 0.9rem;
+      color: #0f766e;
+    }
+    .log {
+      margin-top: 12px;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      background: #0f172a;
+      color: #dbeafe;
+      padding: 10px;
+      min-height: 180px;
+      max-height: 360px;
+      overflow: auto;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+      line-height: 1.45;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .check {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.88rem;
+      color: #334155;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>TTS Isolated Test</h1>
+      <p class="muted">
+        Standalone browser test with native Web Speech API only.
+      </p>
+
+      <div class="grid">
+        <div>
+          <label for="ttsText">Text</label>
+          <textarea id="ttsText">This is an isolated browser text to speech test.</textarea>
+        </div>
+
+        <div class="grid grid-2">
+          <div>
+            <label for="ttsLang">Language</label>
+            <select id="ttsLang">
+              <option value="en-US">English (US)</option>
+              <option value="en-GB">English (UK)</option>
+              <option value="es-ES">Spanish (ES)</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="ttsVoice">Voice</label>
+            <select id="ttsVoice">
+              <option value="">(auto)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-2">
+          <div>
+            <label for="ttsRate">Rate (0.1 - 10)</label>
+            <input id="ttsRate" type="number" min="0.1" max="10" step="0.1" value="1">
+          </div>
+          <div>
+            <label for="ttsPitch">Pitch (0 - 2)</label>
+            <input id="ttsPitch" type="number" min="0" max="2" step="0.1" value="1">
+          </div>
+        </div>
+
+        <div class="row">
+          <label class="check">
+            <input id="cancelBefore" type="checkbox" checked>
+            Cancel queue before speak
+          </label>
+          <label class="check">
+            <input id="logBoundary" type="checkbox">
+            Log boundary events
+          </label>
+        </div>
+
+        <div class="row">
+          <button id="btnRefreshVoices" class="secondary">Refresh voices</button>
+          <button id="btnPlay">Play</button>
+          <button id="btnStop" class="danger">Stop</button>
+          <button id="btnClearLog" class="secondary">Clear log</button>
+        </div>
+      </div>
+
+      <div id="status" class="status">Ready.</div>
+      <div id="log" class="log"></div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      const textEl = document.getElementById('ttsText');
+      const langEl = document.getElementById('ttsLang');
+      const voiceEl = document.getElementById('ttsVoice');
+      const rateEl = document.getElementById('ttsRate');
+      const pitchEl = document.getElementById('ttsPitch');
+      const cancelBeforeEl = document.getElementById('cancelBefore');
+      const logBoundaryEl = document.getElementById('logBoundary');
+      const refreshBtn = document.getElementById('btnRefreshVoices');
+      const playBtn = document.getElementById('btnPlay');
+      const stopBtn = document.getElementById('btnStop');
+      const clearLogBtn = document.getElementById('btnClearLog');
+      const statusEl = document.getElementById('status');
+      const logEl = document.getElementById('log');
+
+      const synth = window.speechSynthesis;
+      let voicesCache = [];
+      let activeUtter = null;
+      let pollTimer = null;
+      let startWatchdog = null;
+      let stuckWatchdog = null;
+
+      function now() {
+        return new Date().toLocaleTimeString();
+      }
+
+      function setStatus(msg, tone) {
+        statusEl.textContent = msg || '';
+        statusEl.style.color = tone || '#0f766e';
+      }
+
+      function log(msg, data) {
+        const suffix = data === undefined ? '' : ' ' + JSON.stringify(data);
+        logEl.textContent += '[' + now() + '] ' + msg + suffix + '\n';
+        logEl.scrollTop = logEl.scrollHeight;
+      }
+
+      function clearTimers() {
+        if (pollTimer) {
+          clearInterval(pollTimer);
+          pollTimer = null;
+        }
+        if (startWatchdog) {
+          clearTimeout(startWatchdog);
+          startWatchdog = null;
+        }
+        if (stuckWatchdog) {
+          clearTimeout(stuckWatchdog);
+          stuckWatchdog = null;
+        }
+      }
+
+      function renderVoices() {
+        if (!synth || typeof synth.getVoices !== 'function') return;
+        voicesCache = synth.getVoices() || [];
+        const selected = voiceEl.value;
+        voiceEl.innerHTML = '<option value="">(auto)</option>';
+        voicesCache.forEach((voice, idx) => {
+          const opt = document.createElement('option');
+          opt.value = String(idx);
+          opt.textContent = voice.name + ' [' + voice.lang + ']' + (voice.default ? ' (default)' : '');
+          voiceEl.appendChild(opt);
+        });
+        if (selected && voiceEl.querySelector('option[value="' + selected + '"]')) {
+          voiceEl.value = selected;
+        }
+        log('voices loaded', { count: voicesCache.length });
+      }
+
+      function stopSpeaking(reason) {
+        if (!synth) return;
+        clearTimers();
+        activeUtter = null;
+        try {
+          synth.cancel();
+        } catch (err) {
+          // no-op
+        }
+        if (reason) log('stop', { reason: reason });
+        setStatus('Stopped.', '#b91c1c');
+      }
+
+      function startPoll(textLen) {
+        clearTimers();
+        pollTimer = setInterval(function () {
+          if (!synth) return;
+          log('poll', {
+            speaking: !!synth.speaking,
+            pending: !!synth.pending,
+            paused: !!synth.paused
+          });
+        }, 700);
+        startWatchdog = setTimeout(function () {
+          if (!activeUtter) return;
+          if (synth && !synth.speaking && !synth.pending) {
+            log('watchdog: no start after 3s');
+            setStatus('No start after 3s (possible browser issue).', '#b91c1c');
+          }
+        }, 3000);
+        const maxSpeakMs = Math.max(4000, Math.min(15000, 2200 + Number(textLen || 0) * 120));
+        stuckWatchdog = setTimeout(function () {
+          if (!activeUtter || !synth) return;
+          if (!synth.speaking && !synth.pending) return;
+          log('watchdog: stuck-speaking-timeout', {
+            speaking: !!synth.speaking,
+            pending: !!synth.pending,
+            timeoutMs: maxSpeakMs
+          });
+          try {
+            synth.cancel();
+          } catch (err) {
+            // no-op
+          }
+          clearTimers();
+          activeUtter = null;
+          setStatus('Stuck speaking timeout: canceled.', '#b91c1c');
+        }, maxSpeakMs);
+      }
+
+      function playTts() {
+        if (!synth || typeof window.SpeechSynthesisUtterance === 'undefined') {
+          setStatus('Web Speech API not available.', '#b91c1c');
+          return;
+        }
+
+        const text = String(textEl.value || '').trim();
+        if (!text) {
+          setStatus('Text is empty.', '#b91c1c');
+          return;
+        }
+
+        const utter = new SpeechSynthesisUtterance(text);
+        utter.lang = langEl.value || 'en-US';
+        utter.rate = Math.max(0.1, Number(rateEl.value || 1));
+        utter.pitch = Math.max(0, Number(pitchEl.value || 1));
+        utter.volume = 1;
+
+        const selectedIndex = voiceEl.value;
+        let chosenVoice = null;
+        if (selectedIndex !== '') {
+          const idx = Number(selectedIndex);
+          if (Number.isInteger(idx) && voicesCache[idx]) {
+            chosenVoice = voicesCache[idx];
+          }
+        }
+        if (chosenVoice) utter.voice = chosenVoice;
+
+        utter.onstart = function () {
+          log('event:onstart', { lang: utter.lang, voice: utter.voice ? utter.voice.name : null });
+          setStatus('Speaking...', '#0f766e');
+        };
+        utter.onend = function () {
+          log('event:onend');
+          clearTimers();
+          activeUtter = null;
+          setStatus('Done.', '#0f766e');
+        };
+        utter.onerror = function (event) {
+          log('event:onerror', { error: event && event.error ? event.error : 'unknown' });
+          clearTimers();
+          activeUtter = null;
+          setStatus('Error: ' + (event && event.error ? event.error : 'unknown'), '#b91c1c');
+        };
+        utter.onpause = function () {
+          log('event:onpause');
+        };
+        utter.onresume = function () {
+          log('event:onresume');
+        };
+        utter.onboundary = function (event) {
+          if (!logBoundaryEl.checked) return;
+          log('event:onboundary', {
+            name: event && event.name ? event.name : '',
+            charIndex: event && typeof event.charIndex === 'number' ? event.charIndex : -1
+          });
+        };
+
+        try {
+          if (cancelBeforeEl.checked) {
+            synth.cancel();
+          }
+          activeUtter = utter;
+          log('speak()', {
+            lang: utter.lang,
+            rate: utter.rate,
+            pitch: utter.pitch,
+            voice: utter.voice ? utter.voice.name : '(auto)',
+            textLen: text.length
+          });
+          synth.speak(utter);
+          startPoll(text.length);
+          setStatus('Requested...', '#1d4ed8');
+        } catch (err) {
+          log('exception', { message: err && err.message ? err.message : String(err) });
+          setStatus('Exception: ' + (err && err.message ? err.message : String(err)), '#b91c1c');
+          clearTimers();
+          activeUtter = null;
+        }
+      }
+
+      function init() {
+        const supported = !!(synth && typeof window.SpeechSynthesisUtterance !== 'undefined');
+        log('init', {
+          supported: supported,
+          ua: navigator.userAgent
+        });
+        if (!supported) {
+          setStatus('Web Speech API not available in this browser.', '#b91c1c');
+          playBtn.disabled = true;
+          stopBtn.disabled = true;
+          refreshBtn.disabled = true;
+          return;
+        }
+
+        renderVoices();
+        if (typeof synth.addEventListener === 'function') {
+          synth.addEventListener('voiceschanged', renderVoices);
+        } else {
+          synth.onvoiceschanged = renderVoices;
+        }
+
+        refreshBtn.addEventListener('click', renderVoices);
+        playBtn.addEventListener('click', playTts);
+        stopBtn.addEventListener('click', function () { stopSpeaking('manual'); });
+        clearLogBtn.addEventListener('click', function () { logEl.textContent = ''; });
+
+        window.addEventListener('beforeunload', function () {
+          stopSpeaking('unload');
+        });
+      }
+
+      init();
+    })();
+  </script>
+</body>
+</html>

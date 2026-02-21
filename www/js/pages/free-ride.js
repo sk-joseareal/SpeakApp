@@ -62,6 +62,12 @@ class PageFreeRide extends HTMLElement {
     this.heroMascotFrameTimer = null;
     this.heroMascotIsTalking = false;
     this.debugPanelOpen = this.readPersistedDebugPanelOpen();
+    this.layoutSyncTimer = null;
+    this.layoutSyncRaf = null;
+    this.layoutSyncVersion = 0;
+    this.keyboardResizePrevMode = '';
+    this.keyboardResizeApplied = false;
+    this.keyboardResizeRequestId = 0;
   }
 
   connectedCallback() {
@@ -101,15 +107,35 @@ class PageFreeRide extends HTMLElement {
 
     this._tabsDidChangeHandler = (event) => {
       const tab = event && event.detail ? event.detail.tab : '';
-      if (tab !== 'freeride') return;
+      if (tab !== 'freeride') {
+        this.classList.remove('free-ride-keyboard-open');
+        this.restoreIOSKeyboardResizeMode();
+        return;
+      }
+      this.applyIOSKeyboardOverlayMode();
       const delayMs = this.isNativeRuntime() ? 160 : 80;
+      this.scheduleLayoutSync(0);
+      this.scheduleLayoutSync(delayMs + 140);
       this.scheduleHeroNarration(delayMs, false);
     };
     this._tabsEl = this.getTabsEl();
     this._tabsEl?.addEventListener('ionTabsDidChange', this._tabsDidChangeHandler);
 
+    this._layoutViewportHandler = () => {
+      if (!this.isConnected) return;
+      this.scheduleLayoutSync(0);
+    };
+    window.addEventListener('resize', this._layoutViewportHandler);
+    if (window.visualViewport && typeof window.visualViewport.addEventListener === 'function') {
+      window.visualViewport.addEventListener('resize', this._layoutViewportHandler);
+      window.visualViewport.addEventListener('scroll', this._layoutViewportHandler);
+    }
+
     if (this.isTabActive('freeride')) {
+      this.applyIOSKeyboardOverlayMode();
       const initialDelayMs = this.isNativeRuntime() ? 280 : 820;
+      this.scheduleLayoutSync(0);
+      this.scheduleLayoutSync(140);
       this.scheduleHeroNarration(initialDelayMs, false);
     }
 
@@ -152,6 +178,19 @@ class PageFreeRide extends HTMLElement {
       this._tabsEl = null;
       this._tabsDidChangeHandler = null;
     }
+
+    if (this._layoutViewportHandler) {
+      window.removeEventListener('resize', this._layoutViewportHandler);
+      if (window.visualViewport && typeof window.visualViewport.removeEventListener === 'function') {
+        window.visualViewport.removeEventListener('resize', this._layoutViewportHandler);
+        window.visualViewport.removeEventListener('scroll', this._layoutViewportHandler);
+      }
+      this._layoutViewportHandler = null;
+    }
+
+    this.restoreIOSKeyboardResizeMode();
+    this.classList.remove('free-ride-keyboard-open');
+    this.clearLayoutSync();
   }
 
   normalizeLocale(locale) {
@@ -191,7 +230,74 @@ class PageFreeRide extends HTMLElement {
     return capacitor.platform === 'ios' || capacitor.platform === 'android';
   }
 
+  isNativeIOS() {
+    if (!this.isNativeRuntime()) return false;
+    const capacitor = window.Capacitor;
+    if (!capacitor) return false;
+    if (typeof capacitor.getPlatform === 'function') {
+      return capacitor.getPlatform() === 'ios';
+    }
+    return capacitor.platform === 'ios';
+  }
+
+  getKeyboardPlugin() {
+    if (typeof window === 'undefined') return null;
+    const plugins =
+      window && window.Capacitor && window.Capacitor.Plugins ? window.Capacitor.Plugins : null;
+    if (!plugins) return null;
+    return plugins.Keyboard || null;
+  }
+
+  async applyIOSKeyboardOverlayMode() {
+    if (!this.isNativeIOS()) return;
+    const plugin = this.getKeyboardPlugin();
+    if (!plugin || typeof plugin.setResizeMode !== 'function') return;
+
+    const requestId = (this.keyboardResizeRequestId += 1);
+    try {
+      if (!this.keyboardResizeApplied) {
+        let currentMode = '';
+        if (typeof plugin.getResizeMode === 'function') {
+          const modeResult = await plugin.getResizeMode();
+          currentMode =
+            modeResult && typeof modeResult.mode === 'string'
+              ? String(modeResult.mode).toLowerCase()
+              : '';
+        }
+        if (requestId !== this.keyboardResizeRequestId) return;
+        this.keyboardResizePrevMode = currentMode || 'native';
+      }
+      await plugin.setResizeMode({ mode: 'none' });
+      if (requestId !== this.keyboardResizeRequestId) return;
+      this.keyboardResizeApplied = true;
+    } catch (err) {
+      // no-op
+    }
+  }
+
+  async restoreIOSKeyboardResizeMode() {
+    if (!this.isNativeIOS()) return;
+    const plugin = this.getKeyboardPlugin();
+    if (!plugin || typeof plugin.setResizeMode !== 'function') return;
+    if (!this.keyboardResizeApplied && !this.keyboardResizePrevMode) return;
+
+    const requestId = (this.keyboardResizeRequestId += 1);
+    const mode = this.keyboardResizePrevMode || 'native';
+    try {
+      await plugin.setResizeMode({ mode });
+      if (requestId !== this.keyboardResizeRequestId) return;
+    } catch (err) {
+      // no-op
+    } finally {
+      if (requestId === this.keyboardResizeRequestId) {
+        this.keyboardResizeApplied = false;
+        this.keyboardResizePrevMode = '';
+      }
+    }
+  }
+
   getNativeTtsPlugin() {
+    if (!this.isNativeRuntime()) return null;
     if (typeof window === 'undefined') return null;
     const plugins =
       window && window.Capacitor && window.Capacitor.Plugins ? window.Capacitor.Plugins : null;
@@ -222,6 +328,93 @@ class PageFreeRide extends HTMLElement {
       if (selected && selected !== tabName) return false;
     }
     return true;
+  }
+
+  getContentEl() {
+    return this.querySelector('ion-content.free-ride-content');
+  }
+
+  getShellEl() {
+    return this.querySelector('.free-ride-shell');
+  }
+
+  clearLayoutSync() {
+    if (this.layoutSyncTimer) {
+      clearTimeout(this.layoutSyncTimer);
+      this.layoutSyncTimer = null;
+    }
+    if (this.layoutSyncRaf) {
+      cancelAnimationFrame(this.layoutSyncRaf);
+      this.layoutSyncRaf = null;
+    }
+    this.layoutSyncVersion += 1;
+  }
+
+  scheduleLayoutSync(delayMs = 0) {
+    if (!this.isConnected) return;
+    if (this.layoutSyncTimer) {
+      clearTimeout(this.layoutSyncTimer);
+      this.layoutSyncTimer = null;
+    }
+
+    const runSync = () => {
+      if (!this.isConnected) return;
+      if (this.layoutSyncRaf) {
+        cancelAnimationFrame(this.layoutSyncRaf);
+      }
+      this.layoutSyncRaf = requestAnimationFrame(() => {
+        this.layoutSyncRaf = null;
+        this.syncLayoutToViewport().catch(() => {});
+      });
+    };
+
+    if (delayMs > 0) {
+      this.layoutSyncTimer = setTimeout(() => {
+        this.layoutSyncTimer = null;
+        runSync();
+      }, delayMs);
+      return;
+    }
+
+    runSync();
+  }
+
+  async syncLayoutToViewport() {
+    if (!this.isConnected) return;
+    const shellEl = this.getShellEl();
+    if (!shellEl) return;
+    if (!this.isTabActive('freeride')) return;
+
+    const callVersion = this.layoutSyncVersion;
+    if (!this.isConnected || callVersion !== this.layoutSyncVersion || !shellEl.isConnected) return;
+
+    const shellRect = shellEl.getBoundingClientRect();
+    const viewport = window.visualViewport;
+    const layoutViewportBottom =
+      window.innerHeight || document.documentElement.clientHeight || 0;
+    const visualViewportBottom = viewport
+      ? viewport.height + viewport.offsetTop
+      : layoutViewportBottom;
+
+    const tabBarEl = document.querySelector('tabs-page ion-tab-bar');
+    const tabBarTop = tabBarEl ? tabBarEl.getBoundingClientRect().top : layoutViewportBottom;
+    const nativeIOS = this.isNativeIOS();
+    const bottomLimit = nativeIOS ? tabBarTop : Math.min(visualViewportBottom, tabBarTop);
+    const usableHeight = bottomLimit - shellRect.top - 8;
+
+    const keyboardOffset = Math.max(0, layoutViewportBottom - visualViewportBottom);
+    const inputEl = this.querySelector('#free-ride-input');
+    const inputFocused = Boolean(inputEl && document.activeElement === inputEl);
+    const keyboardOpen = nativeIOS && inputFocused && keyboardOffset > 80;
+    this.classList.toggle('free-ride-keyboard-open', keyboardOpen);
+
+    if (!Number.isFinite(usableHeight) || usableHeight <= 40) {
+      shellEl.style.removeProperty('--free-ride-shell-height');
+      return;
+    }
+
+    const nextHeight = Math.max(120, Math.floor(usableHeight));
+    shellEl.style.setProperty('--free-ride-shell-height', `${nextHeight}px`);
   }
 
   readLocaleOverride() {
@@ -1201,7 +1394,11 @@ class PageFreeRide extends HTMLElement {
       }
     }
     if (this.canSpeak() && typeof window.speechSynthesis.cancel === 'function') {
-      window.speechSynthesis.cancel();
+      if (typeof window.cancelWebSpeech === 'function') {
+        window.cancelWebSpeech();
+      } else {
+        window.speechSynthesis.cancel();
+      }
     }
     this.stopHeroMascotTalk({ settle: true });
   }
@@ -1246,7 +1443,7 @@ class PageFreeRide extends HTMLElement {
       .catch(() => false);
   }
 
-  async speakNarrationWeb(text, lang, normalizedLocale, token, voiceWaitMs = 1200, hooks = {}) {
+  async speakNarrationWeb(text, lang, token, voiceWaitMs = 1200, hooks = {}) {
     if (!this.canSpeak()) return false;
     await this.waitForDocumentVisible(1800);
     if (token !== this.narrationToken) return true;
@@ -1255,14 +1452,6 @@ class PageFreeRide extends HTMLElement {
 
     const utter = new SpeechSynthesisUtterance(text);
     utter.lang = lang;
-    const voices = window.speechSynthesis.getVoices ? window.speechSynthesis.getVoices() : [];
-    const langPrefix = normalizedLocale === 'en' ? 'en' : 'es';
-    const voiceMatch =
-      voices.find((voice) => String(voice.lang || '').toLowerCase() === String(lang).toLowerCase()) ||
-      voices.find((voice) => String(voice.lang || '').toLowerCase().startsWith(langPrefix));
-    if (voiceMatch) {
-      utter.voice = voiceMatch;
-    }
 
     return new Promise((resolve) => {
       let settled = false;
@@ -1298,7 +1487,17 @@ class PageFreeRide extends HTMLElement {
         settle(false);
       };
       try {
-        window.speechSynthesis.speak(utter);
+        const started =
+          typeof window.speakWebUtterance === 'function'
+            ? window.speakWebUtterance(utter)
+            : (() => {
+                window.speechSynthesis.speak(utter);
+                return true;
+              })();
+        if (!started) {
+          notifyPlaybackEnd();
+          settle(false);
+        }
       } catch (err) {
         notifyPlaybackEnd();
         settle(false);
@@ -1348,14 +1547,14 @@ class PageFreeRide extends HTMLElement {
       }
     };
 
-    const started = await this.speakNarrationWeb(text, lang, normalizedLocale, token, 1500, hooks);
+    const started = await this.speakNarrationWeb(text, lang, token, 1500, hooks);
     if (started || token !== this.narrationToken) return started;
 
     await new Promise((resolve) => setTimeout(resolve, 450));
     if (token !== this.narrationToken) return false;
     await this.stopNarrationPlayback();
     if (token !== this.narrationToken) return false;
-    return this.speakNarrationWeb(text, lang, normalizedLocale, token, 3200, hooks);
+    return this.speakNarrationWeb(text, lang, token, 3200, hooks);
   }
 
   clearRecordingUrl() {
@@ -1412,13 +1611,25 @@ class PageFreeRide extends HTMLElement {
   }
 
   stopPlayback() {
+    const plugin = this.getNativeTtsPlugin();
+    if (plugin && typeof plugin.stop === 'function') {
+      try {
+        Promise.resolve(plugin.stop()).catch(() => {});
+      } catch (err) {
+        // no-op
+      }
+    }
     if (this.activeAudio) {
       this.activeAudio.pause();
       this.activeAudio.currentTime = 0;
       this.activeAudio = null;
     }
     if (this.canSpeak()) {
-      window.speechSynthesis.cancel();
+      if (typeof window.cancelWebSpeech === 'function') {
+        window.cancelWebSpeech();
+      } else {
+        window.speechSynthesis.cancel();
+      }
     }
     if (this.activePlayButton) {
       this.activePlayButton.classList.remove('is-playing');
@@ -1442,16 +1653,71 @@ class PageFreeRide extends HTMLElement {
     this.activePlayButton = null;
   }
 
-  playPhrase(triggerBtn) {
-    const text = this.getExpectedTextTrimmed();
-    if (!text || !this.canSpeak()) return;
-    this.stopPlayback();
-    this.setActivePlayButton(triggerBtn || null);
+  playPhraseWeb(text, lang) {
+    if (!text || !this.canSpeak()) return false;
     const utter = new SpeechSynthesisUtterance(text);
-    utter.lang = this.getPracticeSpeechLocale();
+    utter.lang = lang || this.getPracticeSpeechLocale();
     utter.onend = () => this.clearActivePlayButton();
     utter.onerror = () => this.clearActivePlayButton();
-    window.speechSynthesis.speak(utter);
+    try {
+      const started =
+        typeof window.speakWebUtterance === 'function'
+          ? window.speakWebUtterance(utter)
+          : (() => {
+              window.speechSynthesis.speak(utter);
+              return true;
+            })();
+      if (!started) {
+        this.clearActivePlayButton();
+        return false;
+      }
+      return true;
+    } catch (err) {
+      this.clearActivePlayButton();
+      return false;
+    }
+  }
+
+  playPhrase(triggerBtn) {
+    const text = this.getExpectedTextTrimmed();
+    if (!text) return;
+    // Prevent overlap with hero narration timers/playback that can hijack Web Speech on Chrome.
+    this.stopNarration().catch(() => {});
+    if (triggerBtn && this.activePlayButton === triggerBtn) {
+      this.stopPlayback();
+      return;
+    }
+    this.stopPlayback();
+    this.setActivePlayButton(triggerBtn || null);
+    const lang = this.getPracticeSpeechLocale();
+    const plugin = this.getNativeTtsPlugin();
+    if (plugin && typeof plugin.speak === 'function') {
+      Promise.resolve(
+        plugin.speak({
+          text,
+          lang,
+          rate: 1.0,
+          pitch: 1.0,
+          volume: 1.0,
+          category: 'ambient',
+          queueStrategy: 1
+        })
+      )
+        .then(() => {
+          this.clearActivePlayButton();
+        })
+        .catch(() => {
+          const started = this.playPhraseWeb(text, lang);
+          if (!started) {
+            this.clearActivePlayButton();
+          }
+        });
+      return;
+    }
+    const started = this.playPhraseWeb(text, lang);
+    if (!started) {
+      this.clearActivePlayButton();
+    }
   }
 
   playRecording(triggerBtn) {
@@ -1898,6 +2164,15 @@ class PageFreeRide extends HTMLElement {
       inputEl.value = this.getExpectedText();
       inputEl.addEventListener('input', () => {
         this.onInputText(inputEl.value);
+        this.scheduleLayoutSync(0);
+      });
+      inputEl.addEventListener('focus', () => {
+        this.scheduleLayoutSync(0);
+        this.scheduleLayoutSync(140);
+      });
+      inputEl.addEventListener('blur', () => {
+        this.scheduleLayoutSync(0);
+        this.scheduleLayoutSync(140);
       });
     }
 
@@ -2019,31 +2294,33 @@ class PageFreeRide extends HTMLElement {
           </section>
 
           <section class="free-ride-card">
-            <div class="free-ride-input-wrap">
-              <label class="free-ride-label" for="free-ride-input">${this.escapeHtml(copy.inputLabel || '')}</label>
-              <textarea
-                id="free-ride-input"
-                class="free-ride-input"
-                rows="3"
-                placeholder="${this.escapeHtml(copy.inputPlaceholder || '')}"
-              ></textarea>
-            </div>
+            <div class="free-ride-card-main">
+              <div class="free-ride-input-wrap">
+                <label class="free-ride-label" for="free-ride-input">${this.escapeHtml(copy.inputLabel || '')}</label>
+                <textarea
+                  id="free-ride-input"
+                  class="free-ride-input"
+                  rows="3"
+                  placeholder="${this.escapeHtml(copy.inputPlaceholder || '')}"
+                ></textarea>
+              </div>
 
-            <div class="speak-sentence-row free-ride-sentence-row">
-              <div class="speak-sentence" id="free-ride-target"></div>
-              <button class="speak-play-btn" id="free-ride-play" type="button" aria-label="${this.escapeHtml(
-                copy.playPhrase || 'Play phrase'
-              )}">
-                <ion-icon name="volume-high"></ion-icon>
-              </button>
-            </div>
+              <div class="speak-sentence-row free-ride-sentence-row">
+                <div class="speak-sentence" id="free-ride-target"></div>
+                <button class="speak-play-btn" id="free-ride-play" type="button" aria-label="${this.escapeHtml(
+                  copy.playPhrase || 'Play phrase'
+                )}">
+                  <ion-icon name="volume-high"></ion-icon>
+                </button>
+              </div>
 
-            <div class="speak-score-line placeholder" id="free-ride-score-line">
-              <div class="speak-score-line-value" id="free-ride-score-value">&nbsp;</div>
-              <div class="speak-score-line-text" id="free-ride-score-text">&nbsp;</div>
+              <div class="speak-score-line placeholder" id="free-ride-score-line">
+                <div class="speak-score-line-value" id="free-ride-score-value">&nbsp;</div>
+                <div class="speak-score-line-text" id="free-ride-score-text">&nbsp;</div>
+              </div>
+              <div class="free-ride-earned-reward" id="free-ride-earned-reward" hidden></div>
+              <div class="free-ride-transcript" id="free-ride-transcript"> </div>
             </div>
-            <div class="free-ride-earned-reward" id="free-ride-earned-reward" hidden></div>
-            <div class="free-ride-transcript" id="free-ride-transcript"> </div>
 
             <div class="speak-step-bottom free-ride-bottom">
               ${this.renderBottomPanel(copy)}
@@ -2061,6 +2338,8 @@ class PageFreeRide extends HTMLElement {
     });
     this.renderHeroMascotFrame(this.heroMascotFrameIndex);
     this.setHeroBubbleSpeaking(this.heroMascotIsTalking);
+    this.scheduleLayoutSync(0);
+    this.scheduleLayoutSync(140);
 
     const forceNarration = Boolean(options.forceNarration);
     const narrationDelayMs =

@@ -145,11 +145,11 @@ class PageDiagnostics extends HTMLElement {
               <pre class="diag-json" id="diag-talk-chatbot"></pre>
             </div>
 
-            <h4 style="margin-top:16px;">Chatbot usage (usuario/dia)</h4>
-            <div class="diag-actions">
-              <ion-button size="small" fill="outline" id="diag-usage-refresh">Refrescar</ion-button>
-            </div>
-            <div class="diag-speak-block">
+	            <h4 style="margin-top:16px;">Chatbot usage (usuario/dia)</h4>
+	            <div class="diag-actions">
+	              <ion-button size="small" fill="outline" id="diag-usage-refresh">Refrescar</ion-button>
+	            </div>
+	            <div class="diag-speak-block">
               <div class="pill">Tokens y coste</div>
               <div class="diag-usage-status" id="diag-usage-status">Cargando...</div>
               <div class="diag-actions diag-usage-limit-actions">
@@ -166,12 +166,27 @@ class PageDiagnostics extends HTMLElement {
               </div>
               <div class="diag-usage-limit-status" id="diag-usage-limit-status"></div>
               <div class="diag-usage-totals" id="diag-usage-totals" hidden></div>
-              <div class="diag-usage-list" id="diag-usage-list"></div>
-            </div>
+	              <div class="diag-usage-list" id="diag-usage-list"></div>
+	            </div>
 
-            <h4 style="margin-top:16px;">Notificaciones demo</h4>
-            <div class="diag-actions">
-              <ion-button size="small" fill="outline" id="diag-notify-generate">Generar</ion-button>
+	            <h4 style="margin-top:16px;">Prueba TTS navegador (aislada)</h4>
+	            <div class="diag-speak-block">
+	              <div class="pill">Web Speech API</div>
+	              <textarea
+	                id="diag-tts-input"
+	                class="chat-text-input diag-tts-input"
+	                rows="3"
+	                placeholder="Texto para reproducir por TTS en el navegador"
+	              >This is a browser TTS diagnostic test.</textarea>
+	              <div class="diag-actions diag-tts-actions">
+	                <ion-button size="small" fill="outline" id="diag-tts-play">Play TTS</ion-button>
+	              </div>
+	              <div class="diag-tts-status" id="diag-tts-status">Listo.</div>
+	            </div>
+
+	            <h4 style="margin-top:16px;">Notificaciones demo</h4>
+	            <div class="diag-actions">
+	              <ion-button size="small" fill="outline" id="diag-notify-generate">Generar</ion-button>
               <ion-button size="small" fill="outline" id="diag-notify-open">Abrir</ion-button>
               <ion-button size="small" fill="outline" id="diag-notify-clear">Limpiar</ion-button>
             </div>
@@ -388,10 +403,15 @@ class PageDiagnostics extends HTMLElement {
     const usageLimitClearBtn = this.querySelector('#diag-usage-limit-clear');
     const usageTotalsEl = this.querySelector('#diag-usage-totals');
     const usageListEl = this.querySelector('#diag-usage-list');
+    const ttsInputEl = this.querySelector('#diag-tts-input');
+    const ttsPlayBtn = this.querySelector('#diag-tts-play');
+    const ttsStatusEl = this.querySelector('#diag-tts-status');
     const notifyListEl = this.querySelector('#diag-notify-list');
     const notifyEmptyEl = this.querySelector('#diag-notify-empty');
     const TALK_STORAGE_PREFIX = 'appv5:talk-timelines:';
     let usageRequestSeq = 0;
+    let ttsUtter = null;
+    let ttsPlaying = false;
 
     const getTalkStorageKey = () => {
       const user = window.user;
@@ -795,6 +815,32 @@ class PageDiagnostics extends HTMLElement {
       updateTalkPanels();
     };
 
+    const setTtsStatus = (text) => {
+      if (!ttsStatusEl) return;
+      ttsStatusEl.textContent = text || '';
+    };
+
+    const setTtsButtonPlaying = (playing) => {
+      ttsPlaying = Boolean(playing);
+      if (!ttsPlayBtn) return;
+      ttsPlayBtn.textContent = ttsPlaying ? 'Stop TTS' : 'Play TTS';
+      ttsPlayBtn.setAttribute('color', ttsPlaying ? 'danger' : 'primary');
+    };
+
+    const stopBrowserTts = () => {
+      ttsUtter = null;
+      setTtsButtonPlaying(false);
+      try {
+        if (typeof window.cancelWebSpeech === 'function') {
+          window.cancelWebSpeech();
+        } else if (window.speechSynthesis && typeof window.speechSynthesis.cancel === 'function') {
+          window.speechSynthesis.cancel();
+        }
+      } catch (err) {
+        // no-op
+      }
+    };
+
     const seedSpeakStores = () => {
       window.r34lp0w3r = window.r34lp0w3r || {};
       window.r34lp0w3r.speakWordScores = {
@@ -980,6 +1026,76 @@ class PageDiagnostics extends HTMLElement {
       }
     });
 
+    if (ttsPlayBtn) {
+      const ttsSupported =
+        typeof window !== 'undefined' &&
+        typeof window.speechSynthesis !== 'undefined' &&
+        typeof window.SpeechSynthesisUtterance !== 'undefined';
+      if (!ttsSupported) {
+        ttsPlayBtn.disabled = true;
+        setTtsStatus('Web Speech API no disponible en este entorno.');
+      } else {
+        setTtsStatus('Listo.');
+        ttsPlayBtn.addEventListener('click', () => {
+          if (ttsPlaying) {
+            stopBrowserTts();
+            setTtsStatus('Detenido.');
+            return;
+          }
+          const text = String(ttsInputEl ? ttsInputEl.value : '').trim();
+          if (!text) {
+            setTtsStatus('Introduce un texto para reproducir.');
+            return;
+          }
+
+          const utter = new SpeechSynthesisUtterance(text);
+          utter.lang = 'en-US';
+          utter.rate = 1;
+          utter.pitch = 1;
+          utter.volume = 1;
+
+          utter.onstart = () => {
+            setTtsButtonPlaying(true);
+            setTtsStatus('Reproduciendo...');
+          };
+          utter.onend = () => {
+            ttsUtter = null;
+            setTtsButtonPlaying(false);
+            setTtsStatus('Finalizado.');
+          };
+          utter.onerror = (event) => {
+            ttsUtter = null;
+            setTtsButtonPlaying(false);
+            const reason = event && event.error ? String(event.error) : 'error desconocido';
+            setTtsStatus(`Error TTS: ${reason}`);
+          };
+
+          ttsUtter = utter;
+          try {
+            const started =
+              typeof window.speakWebUtterance === 'function'
+                ? window.speakWebUtterance(utter)
+                : (() => {
+                    window.speechSynthesis.cancel();
+                    window.speechSynthesis.speak(utter);
+                    return true;
+                  })();
+            if (!started) {
+              ttsUtter = null;
+              setTtsButtonPlaying(false);
+              setTtsStatus('No se pudo iniciar TTS.');
+            }
+          } catch (err) {
+            ttsUtter = null;
+            setTtsButtonPlaying(false);
+            setTtsStatus(`Error al iniciar TTS: ${err.message || String(err)}`);
+          }
+        });
+      }
+    }
+
+    this._diagStopBrowserTts = stopBrowserTts;
+
   }
 
   disconnectedCallback() {
@@ -994,6 +1110,10 @@ class PageDiagnostics extends HTMLElement {
     if (this._notifyHandler) {
       window.removeEventListener('app:notifications-change', this._notifyHandler);
       this._notifyHandler = null;
+    }
+    if (this._diagStopBrowserTts) {
+      this._diagStopBrowserTts();
+      this._diagStopBrowserTts = null;
     }
   }
 }

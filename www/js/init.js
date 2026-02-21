@@ -6,6 +6,360 @@ const initState = {
 };
 
 window.r34lp0w3r = window.r34lp0w3r || {};
+
+const isChromeTtsBrowser = () => {
+  if (typeof navigator === 'undefined') return false;
+  const ua = String(navigator.userAgent || '');
+  const isChromium = /Chrome|CriOS|Chromium/.test(ua);
+  const isExcluded = /Edg|OPR|SamsungBrowser|DuckDuckGo/.test(ua);
+  return isChromium && !isExcluded;
+};
+
+const waitForWebTtsVoices = (timeoutMs = 1400) =>
+  new Promise((resolve) => {
+    const synth = window.speechSynthesis;
+    if (!synth || typeof synth.getVoices !== 'function') {
+      resolve([]);
+      return;
+    }
+    const voicesNow = synth.getVoices() || [];
+    if (voicesNow.length) {
+      resolve(voicesNow);
+      return;
+    }
+    let settled = false;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      if (typeof synth.removeEventListener === 'function') {
+        synth.removeEventListener('voiceschanged', onVoicesChanged);
+      } else {
+        synth.onvoiceschanged = null;
+      }
+      const voices = synth.getVoices ? synth.getVoices() : [];
+      resolve(Array.isArray(voices) ? voices : []);
+    };
+    const onVoicesChanged = () => finish();
+    if (typeof synth.addEventListener === 'function') {
+      synth.addEventListener('voiceschanged', onVoicesChanged, { once: true });
+    } else {
+      synth.onvoiceschanged = onVoicesChanged;
+    }
+    setTimeout(finish, Math.max(200, timeoutMs));
+  });
+
+window.cancelWebSpeech = () => {
+  if (typeof window === 'undefined') return;
+  const synth = window.speechSynthesis;
+  if (!synth || typeof synth.cancel !== 'function') return;
+  try {
+    synth.cancel();
+    window.r34lp0w3r.__speechCancelTs = Date.now();
+    window.r34lp0w3r.__webTtsReqSeq = Number(window.r34lp0w3r.__webTtsReqSeq || 0) + 1;
+  } catch (err) {
+    // no-op
+  }
+};
+
+window.speakWebUtterance = (utter) => {
+  if (typeof window === 'undefined') return false;
+  const synth = window.speechSynthesis;
+  if (!synth || typeof synth.speak !== 'function' || !utter) return false;
+
+  const originalOnStart = typeof utter.onstart === 'function' ? utter.onstart : null;
+  const originalOnEnd = typeof utter.onend === 'function' ? utter.onend : null;
+  const originalOnError = typeof utter.onerror === 'function' ? utter.onerror : null;
+  const myReqSeq = Number(window.r34lp0w3r.__webTtsReqSeq || 0) + 1;
+  window.r34lp0w3r.__webTtsReqSeq = myReqSeq;
+  let started = false;
+  let finished = false;
+  let startEventSent = false;
+  let startWatchdog = null;
+  let pendingWatchdog = null;
+  let endWatchdog = null;
+  let completionWatchdog = null;
+  let startAtTs = 0;
+  let idleProbeCount = 0;
+  let retriedForVoices = false;
+  let retriedForNoStart = false;
+
+  const callHandler = (handler, payload) => {
+    if (typeof handler !== 'function') return;
+    try {
+      handler(payload);
+    } catch (err) {
+      // no-op
+    }
+  };
+
+  const clearWatchdogs = () => {
+    if (startWatchdog) {
+      clearTimeout(startWatchdog);
+      startWatchdog = null;
+    }
+    if (pendingWatchdog) {
+      clearTimeout(pendingWatchdog);
+      pendingWatchdog = null;
+    }
+    if (endWatchdog) {
+      clearTimeout(endWatchdog);
+      endWatchdog = null;
+    }
+    if (completionWatchdog) {
+      clearInterval(completionWatchdog);
+      completionWatchdog = null;
+    }
+  };
+
+  const finishWithEnd = (payload) => {
+    if (finished) return;
+    finished = true;
+    clearWatchdogs();
+    callHandler(originalOnEnd, payload);
+  };
+
+  const finishWithError = (errorCode = 'speak-failed') => {
+    if (finished) return;
+    finished = true;
+    clearWatchdogs();
+    if (typeof console !== 'undefined' && typeof console.warn === 'function') {
+      console.warn('[tts-web] speak error', errorCode, {
+        lang: utter && utter.lang ? utter.lang : '',
+        textLen: utter && utter.text ? String(utter.text).length : 0,
+        speaking: Boolean(synth && synth.speaking),
+        pending: Boolean(synth && synth.pending)
+      });
+    }
+    callHandler(originalOnError, { error: errorCode });
+  };
+
+  const markStart = (eventPayload) => {
+    if (finished) return;
+    started = true;
+    startAtTs = Date.now();
+    idleProbeCount = 0;
+    if (startEventSent) return;
+    startEventSent = true;
+    callHandler(originalOnStart, eventPayload);
+    if (!completionWatchdog) {
+      completionWatchdog = setInterval(() => {
+        if (finished || !started) return;
+        const speaking = Boolean(synth && synth.speaking);
+        const pending = Boolean(synth && synth.pending);
+        if (speaking || pending) {
+          idleProbeCount = 0;
+          return;
+        }
+        if (Date.now() - startAtTs < 280) return;
+        idleProbeCount += 1;
+        if (idleProbeCount >= 2) {
+          finishWithEnd({ type: 'end', synthetic: true });
+        }
+      }, 180);
+    }
+    const textLength = String(utter.text || '').length;
+    const estimateMs = Math.max(2600, Math.min(24000, 1900 + textLength * 95));
+    endWatchdog = setTimeout(() => {
+      if (finished) return;
+      if (!synth.speaking && !synth.pending) {
+        finishWithEnd({ type: 'end', synthetic: 'idle-timeout' });
+        return;
+      }
+      setTimeout(() => {
+        if (finished) return;
+        if (!synth.speaking && !synth.pending) {
+          finishWithEnd({ type: 'end', synthetic: 'late-idle' });
+          return;
+        }
+        try {
+          if (typeof synth.cancel === 'function') {
+            synth.cancel();
+          }
+        } catch (err) {
+          // no-op
+        }
+        finishWithError('speak-end-timeout');
+      }, 360);
+    }, estimateMs);
+  };
+
+  const retrySpeakAfterCancel = () => {
+    if (retriedForNoStart) return false;
+    retriedForNoStart = true;
+    try {
+      if (typeof synth.cancel === 'function') {
+        synth.cancel();
+      }
+    } catch (err) {
+      // no-op
+    }
+    setTimeout(() => {
+      if (finished) return;
+      runSpeak();
+    }, 90);
+    return true;
+  };
+
+  const selectBestVoice = () => {
+    if (!utter || utter.voice || typeof synth.getVoices !== 'function') return;
+    if (isChromeTtsBrowser()) return;
+    const allVoices = synth.getVoices() || [];
+    if (!allVoices.length) return;
+    const targetLang = String(utter.lang || '').toLowerCase();
+    const rankVoice = (voice) => {
+      const isLocal = Boolean(voice && voice.localService);
+      const isDefault = Boolean(voice && voice.default);
+      return (isLocal ? 2 : 0) + (isDefault ? 1 : 0);
+    };
+    const pickBest = (voices) =>
+      voices
+        .slice()
+        .sort((a, b) => rankVoice(b) - rankVoice(a))[0] || null;
+
+    let voiceMatch = null;
+    if (targetLang) {
+      const prefix = targetLang.split('-')[0];
+      const exact = allVoices.filter(
+        (voice) => String(voice.lang || '').toLowerCase() === targetLang
+      );
+      const starts = allVoices.filter((voice) =>
+        String(voice.lang || '').toLowerCase().startsWith(prefix)
+      );
+      voiceMatch = pickBest(exact) || pickBest(starts);
+    }
+    if (!voiceMatch) {
+      const defaults = allVoices.filter((voice) => Boolean(voice && voice.default));
+      const locals = allVoices.filter((voice) => Boolean(voice && voice.localService));
+      voiceMatch = pickBest(defaults) || pickBest(locals) || allVoices[0] || null;
+    }
+    if (voiceMatch) {
+      utter.voice = voiceMatch;
+    }
+  };
+
+  const lastCancel = Number(window.r34lp0w3r.__speechCancelTs || 0);
+  const elapsed = Date.now() - lastCancel;
+  let delayMs = 0;
+  const hasUserActivation = Boolean(
+    typeof navigator !== 'undefined' &&
+    navigator.userActivation &&
+    navigator.userActivation.isActive
+  );
+  if (isChromeTtsBrowser()) {
+    const minGapAfterCancel = 110;
+    if (!hasUserActivation && elapsed >= 0 && elapsed < minGapAfterCancel) {
+      delayMs = Math.max(delayMs, minGapAfterCancel - elapsed);
+    }
+  }
+
+  utter.onstart = (event) => markStart(event);
+  utter.onend = (event) => finishWithEnd(event);
+  utter.onerror = (event) => {
+    if (finished) return;
+    finished = true;
+    clearWatchdogs();
+    callHandler(originalOnError, event);
+  };
+
+  const runSpeak = () => {
+    try {
+      if (typeof synth.resume === 'function') {
+        synth.resume();
+      }
+    } catch (err) {
+      // no-op
+    }
+    if (Number(window.r34lp0w3r.__webTtsReqSeq || 0) !== myReqSeq) {
+      finishWithError('speak-aborted');
+      return;
+    }
+    utter.rate = typeof utter.rate === 'number' ? utter.rate : 1;
+    utter.pitch = typeof utter.pitch === 'number' ? utter.pitch : 1;
+    utter.volume = typeof utter.volume === 'number' ? utter.volume : 1;
+
+    // Chrome can get stuck with specific voices (e.g. Samantha on macOS).
+    // Default behavior: keep lang, but do not force utter.voice in Chrome.
+    if (!isChromeTtsBrowser()) {
+      selectBestVoice();
+    } else {
+      try {
+        utter.voice = null;
+      } catch (err) {
+        // no-op
+      }
+    }
+    try {
+      synth.speak(utter);
+    } catch (err) {
+      finishWithError('speak-exception');
+      return;
+    }
+    const startTimeoutMs = 2400;
+    const pendingTimeoutMs = 3400;
+    startWatchdog = setTimeout(() => {
+      if (finished || started) return;
+      const speaking = Boolean(synth.speaking);
+      const pending = Boolean(synth.pending);
+      if (speaking) {
+        if (retrySpeakAfterCancel()) return;
+        finishWithError('speak-start-timeout');
+        return;
+      }
+      if (
+        !retriedForVoices &&
+        typeof synth.getVoices === 'function' &&
+        Array.isArray(synth.getVoices()) &&
+        synth.getVoices().length === 0
+      ) {
+        retriedForVoices = true;
+        waitForWebTtsVoices(1800).then(() => {
+          if (finished || started) return;
+          if (Number(window.r34lp0w3r.__webTtsReqSeq || 0) !== myReqSeq) {
+            finishWithError('speak-aborted');
+            return;
+          }
+          try {
+            if (typeof synth.cancel === 'function') {
+              synth.cancel();
+            }
+          } catch (err) {
+            // no-op
+          }
+          runSpeak();
+        });
+        return;
+      }
+      if (pending) {
+        pendingWatchdog = setTimeout(() => {
+          if (finished || started) return;
+          if (synth.speaking) {
+            if (retrySpeakAfterCancel()) return;
+            finishWithError('speak-pending-timeout');
+            return;
+          }
+          try {
+            if (typeof synth.cancel === 'function') {
+              synth.cancel();
+            }
+          } catch (err) {
+            // no-op
+          }
+          finishWithError('speak-pending-timeout');
+        }, pendingTimeoutMs);
+        return;
+      }
+      finishWithError('speak-start-timeout');
+    }, startTimeoutMs);
+  };
+
+  if (delayMs > 0) {
+    setTimeout(runSpeak, delayMs);
+  } else {
+    runSpeak();
+  }
+  return true;
+};
+
 window.r34lp0w3r.speakFeedback = window.r34lp0w3r.speakFeedback || {
   toneScale: [
     { min: 80, tone: 'good' },

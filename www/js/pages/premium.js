@@ -24,7 +24,7 @@ class PagePremium extends HTMLElement {
           </div>
         </ion-toolbar>
       </ion-header>
-      <ion-content fullscreen class="secret-content">
+      <ion-content fullscreen class="secret-content" scroll-y="false">
         <div class="page-shell">
           <div class="card premium-chat-card">
             <div class="premium-card-header">
@@ -110,6 +110,7 @@ class PagePremium extends HTMLElement {
       </ion-content>
     `;
 
+    const contentEl = this.querySelector('ion-content.secret-content');
     const threadEl = this.querySelector('#premium-chat-thread');
     const chatPanel = this.querySelector('#premium-chat-panel');
     const accessPanel = this.querySelector('#premium-access');
@@ -227,6 +228,27 @@ class PagePremium extends HTMLElement {
       typeof window !== 'undefined' &&
       typeof window.speechSynthesis !== 'undefined' &&
       typeof window.SpeechSynthesisUtterance !== 'undefined';
+    const isNativeRuntime = () => {
+      const cap = window.Capacitor;
+      if (!cap) return false;
+      if (typeof cap.isNativePlatform === 'function') {
+        return Boolean(cap.isNativePlatform());
+      }
+      const platform =
+        typeof cap.getPlatform === 'function' ? cap.getPlatform() : cap.platform;
+      return platform === 'ios' || platform === 'android';
+    };
+    const getNativeTtsPlugin = () => {
+      if (!isNativeRuntime()) return null;
+      return window.Capacitor && window.Capacitor.Plugins ? window.Capacitor.Plugins.TextToSpeech : null;
+    };
+    const canSpeechPlayback = () => {
+      const nativeTts = getNativeTtsPlugin();
+      return Boolean(
+        (nativeTts && typeof nativeTts.speak === 'function') ||
+        canSpeak()
+      );
+    };
 
     const canRecord = () =>
       navigator.mediaDevices &&
@@ -703,16 +725,79 @@ class PagePremium extends HTMLElement {
 
     let premiumKeyboardOffset = 0;
     let premiumKeyboardRaf = null;
+    let premiumKeyboardOpen = false;
+    let premiumKeyboardResized = false;
+    let premiumViewportBaseHeight = 0;
+    const KEYBOARD_RESIZE_THRESHOLD = 96;
+    const KEYBOARD_OFFSET_EPSILON = 2;
 
     const isChatInputActive = () =>
       Boolean(textInput && textRow && !textRow.hidden && chatMode === 'chatbot');
+
+    const getVisibleViewportBottom = () => {
+      const viewport = window.visualViewport;
+      if (viewport) {
+        return Math.max(0, viewport.height + viewport.offsetTop);
+      }
+      return Math.max(
+        0,
+        window.innerHeight ||
+        (document && document.documentElement ? document.documentElement.clientHeight : 0) ||
+        0
+      );
+    };
+
+    const setPremiumKeyboardState = (open, resized) => {
+      const nextOpen = Boolean(open);
+      const nextResized = nextOpen && Boolean(resized);
+      const changed = premiumKeyboardOpen !== nextOpen || premiumKeyboardResized !== nextResized;
+      premiumKeyboardOpen = nextOpen;
+      premiumKeyboardResized = nextResized;
+      this.classList.toggle('chat-keyboard-open', nextOpen);
+      this.classList.toggle('chat-keyboard-resized', nextResized);
+      return changed;
+    };
 
     const setPremiumKeyboardOffset = (value) => {
       const next = Math.max(0, Math.round(value || 0));
       if (premiumKeyboardOffset === next) return;
       premiumKeyboardOffset = next;
       this.style.setProperty('--premium-keyboard-offset', `${next}px`);
-      this.classList.toggle('chat-keyboard-open', next > 0);
+    };
+
+    const clearThreadViewportClamp = () => {
+      if (!threadEl) return;
+      threadEl.style.maxHeight = '';
+      threadEl.style.minHeight = '';
+    };
+
+    const applyThreadViewportClamp = () => {
+      if (!threadEl || !chatPanel) return;
+      if (!isChatInputActive() || !premiumKeyboardOpen) {
+        clearThreadViewportClamp();
+        return;
+      }
+
+      const visibleBottom = getVisibleViewportBottom();
+      const threadTopRaw = threadEl.getBoundingClientRect().top;
+      const threadTop = Math.max(0, threadTopRaw);
+      if (!Number.isFinite(threadTop) || visibleBottom <= threadTop) {
+        clearThreadViewportClamp();
+        return;
+      }
+
+      const panelStyles = window.getComputedStyle ? window.getComputedStyle(chatPanel) : null;
+      const panelGapRaw = panelStyles ? panelStyles.rowGap || panelStyles.gap || '0' : '0';
+      const panelGap = Number.parseFloat(panelGapRaw) || 0;
+      const composerHeight = composerRow ? composerRow.getBoundingClientRect().height || 0 : 0;
+      const hintVisible = Boolean(hintEl && !hintEl.hidden);
+      const hintHeight = hintVisible && hintEl ? hintEl.getBoundingClientRect().height || 0 : 0;
+      const reservedBottom = composerHeight + hintHeight + panelGap * 2 + 14;
+      const availableHeight = Math.floor(visibleBottom - threadTop - reservedBottom);
+      const clampedHeight = Math.max(96, availableHeight);
+
+      threadEl.style.minHeight = '0px';
+      threadEl.style.maxHeight = `${clampedHeight}px`;
     };
 
     const getPremiumKeyboardOffset = () => {
@@ -729,15 +814,45 @@ class PagePremium extends HTMLElement {
     };
 
     const syncPremiumKeyboardOffset = () => {
+      const visibleBottom = getVisibleViewportBottom();
       if (!isChatInputActive()) {
         setPremiumKeyboardOffset(0);
+        setPremiumKeyboardState(false, false);
+        clearThreadViewportClamp();
+        if (visibleBottom > 0) {
+          premiumViewportBaseHeight = visibleBottom;
+        }
         return;
       }
+      if (visibleBottom > 0 && (!premiumViewportBaseHeight || visibleBottom > premiumViewportBaseHeight)) {
+        premiumViewportBaseHeight = visibleBottom;
+      }
+      const wasKeyboardOpen = premiumKeyboardOpen;
       const previousOffset = premiumKeyboardOffset;
       const offset = getPremiumKeyboardOffset();
-      setPremiumKeyboardOffset(offset);
+      const resizeDelta = Math.max(0, premiumViewportBaseHeight - visibleBottom);
+      const inputFocused = Boolean(textInput && document.activeElement === textInput);
+      const nativeFocusedKeyboard = (isIOSPlatform() || isAndroidPlatform()) && inputFocused;
+      const resizedKeyboardOpen =
+        offset <= KEYBOARD_OFFSET_EPSILON && resizeDelta > KEYBOARD_RESIZE_THRESHOLD;
+      const keyboardOpen = offset > KEYBOARD_OFFSET_EPSILON || resizedKeyboardOpen || nativeFocusedKeyboard;
+      setPremiumKeyboardOffset(offset > KEYBOARD_OFFSET_EPSILON ? offset : 0);
+      setPremiumKeyboardState(keyboardOpen, resizedKeyboardOpen);
+      if (keyboardOpen && contentEl) {
+        try {
+          if (typeof contentEl.scrollToTop === 'function') {
+            contentEl.scrollToTop(0).catch(() => {});
+          } else if (typeof contentEl.scrollToPoint === 'function') {
+            contentEl.scrollToPoint(0, 0, 0).catch(() => {});
+          }
+        } catch (err) {
+          // no-op
+        }
+      }
+      applyThreadViewportClamp();
       scheduleScrollThreadToBottom('auto');
-      if (offset > 0 && previousOffset <= 0) {
+      const openedByOffset = offset > KEYBOARD_OFFSET_EPSILON && previousOffset <= KEYBOARD_OFFSET_EPSILON;
+      if ((keyboardOpen && !wasKeyboardOpen) || openedByOffset) {
         scrollThreadToBottom('auto');
         if (keyboardOpenScrollTimer) clearTimeout(keyboardOpenScrollTimer);
         keyboardOpenScrollTimer = setTimeout(() => {
@@ -985,8 +1100,8 @@ class PagePremium extends HTMLElement {
       const hasTranscript = Boolean(draftTranscript) || Boolean(typedText);
       const hasPlayback =
         Boolean(draftAudioUrl) ||
-        (Boolean(draftSpeakText) && canSpeak()) ||
-        (Boolean(typedText) && canSpeak());
+        (Boolean(draftSpeakText) && canSpeechPlayback()) ||
+        (Boolean(typedText) && canSpeechPlayback());
       previewBtn.disabled = !hasTranscript || !hasPlayback;
       sendBtn.disabled = !hasTranscript;
     };
@@ -1424,6 +1539,14 @@ class PagePremium extends HTMLElement {
     };
 
     const stopPlayback = () => {
+      const ttsPlugin = getNativeTtsPlugin();
+      if (ttsPlugin && typeof ttsPlugin.stop === 'function') {
+        try {
+          Promise.resolve(ttsPlugin.stop()).catch(() => {});
+        } catch (err) {
+          // no-op
+        }
+      }
       if (activeAudio) {
         activeAudio.pause();
         activeAudio.currentTime = 0;
@@ -1434,7 +1557,11 @@ class PagePremium extends HTMLElement {
         activeAudio = null;
       }
       if (canSpeak()) {
-        window.speechSynthesis.cancel();
+        if (typeof window.cancelWebSpeech === 'function') {
+          window.cancelWebSpeech();
+        } else {
+          window.speechSynthesis.cancel();
+        }
       }
       if (isPreviewPlaying) {
         setPreviewPlaying(false);
@@ -1456,13 +1583,75 @@ class PagePremium extends HTMLElement {
       return true;
     };
 
-    const playSpeech = (text) => {
+    const playSpeechWeb = (text, options = {}) => {
+      const { onEnd, onError, skipStop = false } = options;
       if (!text || !canSpeak()) return false;
-      stopPlayback();
+      if (!skipStop) {
+        stopPlayback();
+      }
       const utter = new SpeechSynthesisUtterance(text);
       utter.lang = 'en-US';
-      window.speechSynthesis.speak(utter);
-      return true;
+      utter.onend = () => {
+        if (typeof onEnd === 'function') onEnd();
+      };
+      utter.onerror = (err) => {
+        if (typeof onError === 'function') onError(err);
+      };
+      try {
+        const started =
+          typeof window.speakWebUtterance === 'function'
+            ? window.speakWebUtterance(utter)
+            : (() => {
+                window.speechSynthesis.speak(utter);
+                return true;
+              })();
+        if (!started) {
+          if (typeof onError === 'function') onError(new Error('web-tts-unavailable'));
+          return false;
+        }
+        return true;
+      } catch (err) {
+        if (typeof onError === 'function') onError(err);
+        return false;
+      }
+    };
+
+    const playSpeech = (text, options = {}) => {
+      const { onEnd, onError, skipStop = false } = options;
+      if (!text) return false;
+      if (!skipStop) {
+        stopPlayback();
+      }
+
+      const ttsPlugin = getNativeTtsPlugin();
+      if (ttsPlugin && typeof ttsPlugin.speak === 'function') {
+        Promise.resolve(
+          ttsPlugin.speak({
+            text,
+            lang: 'en-US',
+            rate: 1.0,
+            pitch: 1.0,
+            volume: 1.0,
+            category: 'ambient',
+            queueStrategy: 1
+          })
+        )
+          .then(() => {
+            if (typeof onEnd === 'function') onEnd();
+          })
+          .catch((err) => {
+            const startedWeb = playSpeechWeb(text, {
+              onEnd,
+              onError,
+              skipStop: true
+            });
+            if (!startedWeb && typeof onError === 'function') {
+              onError(err);
+            }
+          });
+        return true;
+      }
+      return playSpeechWeb(text, { onEnd, onError, skipStop: true });
     };
 
     const playPreviewAudio = ({ audioUrl, speakText }) => {
@@ -1492,18 +1681,17 @@ class PagePremium extends HTMLElement {
         };
         return;
       }
-      if (!speakText || !canSpeak()) return;
+      if (!speakText) return;
       stopPlayback();
       setPreviewPlaying(true);
-      const utter = new SpeechSynthesisUtterance(speakText);
-      utter.lang = 'en-US';
-      utter.onend = () => {
+      const started = playSpeech(speakText, {
+        skipStop: true,
+        onEnd: () => setPreviewPlaying(false),
+        onError: () => setPreviewPlaying(false)
+      });
+      if (!started) {
         setPreviewPlaying(false);
-      };
-      utter.onerror = () => {
-        setPreviewPlaying(false);
-      };
-      window.speechSynthesis.speak(utter);
+      }
     };
 
     const playMessageAudio = ({ audioUrl, speakText }) => {
@@ -2544,6 +2732,8 @@ class PagePremium extends HTMLElement {
         keyboardOpenScrollTimer = null;
       }
       setPremiumKeyboardOffset(0);
+      setPremiumKeyboardState(false, false);
+      clearThreadViewportClamp();
       chatPanel?.removeEventListener('pointerdown', handleChatPanelPointerDown);
       composerRow?.removeEventListener('pointerdown', handleControlPointerDown);
       recordBtn?.removeEventListener('pointerdown', handleControlPointerDown);

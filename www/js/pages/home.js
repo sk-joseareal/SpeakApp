@@ -1074,6 +1074,7 @@ class PageHome extends HTMLElement {
   }
 
   getNativeTtsPlugin() {
+    if (!this.isNativeRuntime()) return null;
     if (typeof window === 'undefined') return null;
     const plugins =
       window && window.Capacitor && window.Capacitor.Plugins ? window.Capacitor.Plugins : null;
@@ -1168,7 +1169,11 @@ class PageHome extends HTMLElement {
       }
     }
     if (this.canWebSpeak() && typeof window.speechSynthesis.cancel === 'function') {
-      window.speechSynthesis.cancel();
+      if (typeof window.cancelWebSpeech === 'function') {
+        window.cancelWebSpeech();
+      } else {
+        window.speechSynthesis.cancel();
+      }
     }
     this.stopPlanMascotTalk({ settle: true });
   }
@@ -1288,7 +1293,7 @@ class PageHome extends HTMLElement {
       });
   }
 
-  async speakNarrationWeb(text, lang, normalizedLocale, token, voiceWaitMs = 1200, hooks = {}) {
+  async speakNarrationWeb(text, lang, token, voiceWaitMs = 1200, hooks = {}) {
     if (!this.canWebSpeak()) return false;
     await this.waitForDocumentVisible(1800);
     if (token !== this.narrationToken) return true;
@@ -1297,14 +1302,6 @@ class PageHome extends HTMLElement {
 
     const utter = new SpeechSynthesisUtterance(text);
     utter.lang = lang;
-    const voices = window.speechSynthesis.getVoices ? window.speechSynthesis.getVoices() : [];
-    const langPrefix = normalizedLocale === 'en' ? 'en' : 'es';
-    const voiceMatch =
-      voices.find((voice) => String(voice.lang || '').toLowerCase() === String(lang).toLowerCase()) ||
-      voices.find((voice) => String(voice.lang || '').toLowerCase().startsWith(langPrefix));
-    if (voiceMatch) {
-      utter.voice = voiceMatch;
-    }
 
     return new Promise((resolve) => {
       let settled = false;
@@ -1340,7 +1337,17 @@ class PageHome extends HTMLElement {
         settle(false);
       };
       try {
-        window.speechSynthesis.speak(utter);
+        const started =
+          typeof window.speakWebUtterance === 'function'
+            ? window.speakWebUtterance(utter)
+            : (() => {
+                window.speechSynthesis.speak(utter);
+                return true;
+              })();
+        if (!started) {
+          notifyPlaybackEnd();
+          settle(false);
+        }
       } catch (err) {
         notifyPlaybackEnd();
         settle(false);
@@ -1393,7 +1400,6 @@ class PageHome extends HTMLElement {
     const started = await this.speakNarrationWeb(
       text,
       lang,
-      normalizedLocale,
       token,
       1500,
       hooks
@@ -1404,7 +1410,7 @@ class PageHome extends HTMLElement {
     if (token !== this.narrationToken) return false;
     await this.stopNarrationPlayback();
     if (token !== this.narrationToken) return false;
-    return this.speakNarrationWeb(text, lang, normalizedLocale, token, 3200, hooks);
+    return this.speakNarrationWeb(text, lang, token, 3200, hooks);
   }
 }
 

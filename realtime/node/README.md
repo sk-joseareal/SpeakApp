@@ -25,6 +25,7 @@ npm start
 
 - `POST /realtime/auth` (private and presence auth)
 - `POST /realtime/emit` (trigger events)
+- `POST /realtime/tts/aligned` (AWS Polly audio + word timings)
 - `GET /realtime/health`
 - `GET /realtime/state/summary` (snapshot metadata)
 - `GET /realtime/state` (full snapshot)
@@ -40,3 +41,21 @@ npm start
 
 Set `REALTIME_PROVIDER=pusher` and remove `REALTIME_HOST/REALTIME_PORT`.
 The same code continues to work with the Pusher service.
+
+## TTS aligned quick test
+
+Configure `TTS_ALIGNED_S3_BUCKET` plus AWS creds in `../.env`, then:
+
+```bash
+curl -X POST http://localhost:8787/realtime/tts/aligned \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "text": "This is a Free ride test sentence.",
+    "locale": "en-US"
+  }'
+```
+
+Response includes:
+
+- `audio_url`: playable mp3 in S3
+- `words[]`: `{ text, start_ms, end_ms }` for live highlight

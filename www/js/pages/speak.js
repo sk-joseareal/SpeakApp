@@ -1174,7 +1174,11 @@ class PageSpeak extends HTMLElement {
         activeAudio = null;
       }
       if (canSpeak()) {
-        window.speechSynthesis.cancel();
+        if (typeof window.cancelWebSpeech === 'function') {
+          window.cancelWebSpeech();
+        } else {
+          window.speechSynthesis.cancel();
+        }
       }
       if (activePlayButton) {
         activePlayButton.classList.remove('is-playing');
@@ -1462,7 +1466,16 @@ class PageSpeak extends HTMLElement {
       utter.onerror = () => {
         clearActivePlayButton();
       };
-      window.speechSynthesis.speak(utter);
+      const started =
+        typeof window.speakWebUtterance === 'function'
+          ? window.speakWebUtterance(utter)
+          : (() => {
+              window.speechSynthesis.speak(utter);
+              return true;
+            })();
+      if (!started) {
+        clearActivePlayButton();
+      }
     };
 
     const ensureMfaItems = async () => {

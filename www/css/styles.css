@@ -62,6 +62,7 @@ ion-router-outlet {
 page-onboarding,
 tabs-page,
 page-home,
+page-free-ride,
 page-listas,
 page-speak,
 page-profile,
@@ -1074,6 +1075,22 @@ ion-modal.login-modal page-login .page-shell {
   color: var(--app-muted);
 }
 
+.diag-tts-input {
+  margin-top: 8px;
+  width: 100%;
+  resize: vertical;
+}
+
+.diag-tts-actions {
+  margin-top: 8px;
+}
+
+.diag-tts-status {
+  margin-top: 6px;
+  font-size: 0.8rem;
+  color: var(--app-muted);
+}
+
 .app-tab-bar {
   --background: rgba(255, 255, 255, 0.94);
   --color: var(--app-muted);
@@ -1823,6 +1840,47 @@ page-premium .chat-thread {
   min-height: 140px;
   max-height: none;
   scroll-padding-bottom: calc(120px + var(--premium-keyboard-offset, 0px));
+}
+
+page-premium.chat-keyboard-open .page-shell {
+  padding-bottom: 8px;
+}
+
+page-premium.chat-keyboard-open .premium-chat-card {
+  gap: 8px;
+}
+
+page-premium.chat-keyboard-open .chat-panel {
+  gap: 8px;
+}
+
+page-premium.chat-keyboard-open .chat-thread {
+  min-height: 0;
+}
+
+page-premium.chat-keyboard-open .chat-hint {
+  display: none;
+}
+
+page-premium.chat-keyboard-resized .page-shell {
+  padding-bottom: 8px;
+}
+
+page-premium.chat-keyboard-resized .premium-chat-card {
+  gap: 8px;
+}
+
+page-premium.chat-keyboard-resized .chat-panel {
+  gap: 8px;
+}
+
+page-premium.chat-keyboard-resized .chat-thread {
+  min-height: 0;
+  scroll-padding-bottom: 120px;
+}
+
+page-premium.chat-keyboard-resized .chat-hint {
+  display: none;
 }
 
 page-premium ion-content::part(scroll) {
@@ -3309,9 +3367,11 @@ page-premium ion-content::part(scroll) {
 }
 
 .free-ride-shell {
-  min-height: 100%;
-  padding-bottom: max(16px, env(safe-area-inset-bottom));
+  height: var(--free-ride-shell-height, auto);
+  min-height: 0;
+  padding-bottom: 8px;
   gap: 14px;
+  overflow: hidden;
 }
 
 .free-ride-title-wrap {
@@ -3329,7 +3389,9 @@ page-premium ion-content::part(scroll) {
 }
 
 .free-ride-hero-card {
-  min-height: 0;
+  margin: 0;
+  flex: 0 0 auto;
+  min-height: clamp(170px, 32vw, 198px);
   padding: 14px;
 }
 
@@ -3373,6 +3435,8 @@ page-premium ion-content::part(scroll) {
 }
 
 .free-ride-card {
+  margin: 0;
+  flex: 1 1 auto;
   width: 100%;
   background: var(--speak-card);
   border: 1px solid var(--speak-outline);
@@ -3382,8 +3446,18 @@ page-premium ion-content::part(scroll) {
   display: flex;
   flex-direction: column;
   gap: 14px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.free-ride-card-main {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
   flex: 1 1 auto;
   min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .free-ride-flag-btn:focus-visible {
@@ -3414,7 +3488,7 @@ page-premium ion-content::part(scroll) {
   padding: 10px 12px 11px;
   font-size: 1rem;
   line-height: 1.38;
-  resize: vertical;
+  resize: none;
   min-height: 86px;
   max-height: 180px;
   background: #ffffff;
@@ -3480,14 +3554,23 @@ page-premium ion-content::part(scroll) {
 }
 
 .free-ride-bottom {
-  margin-top: auto;
+  margin-top: 0;
   padding-top: 10px;
   justify-content: center;
+  align-items: center;
+  min-height: 110px;
+  flex: 0 0 auto;
+}
+
+page-free-ride.free-ride-keyboard-open .free-ride-bottom {
+  display: none;
 }
 
 .free-ride-voice-actions {
   width: 100%;
   max-width: 268px;
+  flex: 0 0 auto;
+  min-height: 110px;
 }
 
 .speak-step-summary {

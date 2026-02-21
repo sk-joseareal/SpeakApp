@@ -3,6 +3,9 @@
   "appName": "Speak App",
   "webDir": "www",
   "plugins": {
+    "Keyboard": {
+      "resize": "native"
+    },
     "SplashScreen": {
       "launchShowDuration": 3000,
       "launchAutoHide": true,

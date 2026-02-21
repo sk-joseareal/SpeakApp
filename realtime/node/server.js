@@ -3,6 +3,8 @@ const crypto = require('crypto');
 const fs = require('fs');
 const http = require('http');
 const https = require('https');
+const { PollyClient, SynthesizeSpeechCommand } = require('@aws-sdk/client-polly');
+const { S3Client, PutObjectCommand, HeadObjectCommand, GetObjectCommand } = require('@aws-sdk/client-s3');
 
 require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 
@@ -62,6 +64,17 @@ const usageDailyEnabled =
 const chatbotDailyLimitsEnabled =
   chatbotDailyLimitsFile &&
   !['false', '0', 'off', 'none'].includes(String(chatbotDailyLimitsFile).toLowerCase());
+const awsRegion = env('AWS_REGION', 'us-east-1');
+const awsAccessKeyId = env('AWS_KEY', '');
+const awsSecretAccessKey = env('AWS_SECRET', '');
+const ttsAlignedS3Bucket = env('TTS_ALIGNED_S3_BUCKET', '');
+const ttsAlignedS3Prefix = env('TTS_ALIGNED_S3_PREFIX', 'realtime/tts-aligned');
+const ttsAlignedPublicBaseUrl = env('TTS_ALIGNED_PUBLIC_BASE_URL', '');
+const ttsAlignedPollyEngine = env('TTS_ALIGNED_POLLY_ENGINE', 'standard');
+const ttsAlignedTextMaxLen = Number(env('TTS_ALIGNED_TEXT_MAX_LEN', '320'));
+const ttsAlignedDefaultVoiceEnUS = env('TTS_ALIGNED_VOICE_EN_US', 'Danielle');
+const ttsAlignedDefaultVoiceEnGB = env('TTS_ALIGNED_VOICE_EN_GB', 'Amy');
+const ttsAlignedDefaultVoiceEsES = env('TTS_ALIGNED_VOICE_ES_ES', 'Lucia');
 
 if (provider !== 'pusher') {
   config.host = env('REALTIME_HOST', '127.0.0.1');
@@ -75,6 +88,20 @@ if (missing.length) {
   console.error(`Missing env: ${missing.join(', ')}`);
   process.exit(1);
 }
+
+const awsClientOptions = {
+  region: awsRegion
+};
+if (awsAccessKeyId && awsSecretAccessKey) {
+  awsClientOptions.credentials = {
+    accessKeyId: awsAccessKeyId,
+    secretAccessKey: awsSecretAccessKey
+  };
+}
+
+const ttsAlignedEnabled = Boolean(ttsAlignedS3Bucket);
+const s3Client = ttsAlignedEnabled ? new S3Client(awsClientOptions) : null;
+const pollyClient = ttsAlignedEnabled ? new PollyClient(awsClientOptions) : null;
 
 const pusher = new Pusher(config);
 
@@ -122,6 +149,164 @@ const toNonNegativeNumber = (value, fallback = 0) => {
   if (!Number.isFinite(numeric)) return fallback;
   if (numeric < 0) return fallback;
   return numeric;
+};
+
+const toPositiveInteger = (value, fallback) => {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return fallback;
+  const parsed = Math.floor(numeric);
+  return parsed > 0 ? parsed : fallback;
+};
+
+const normalizeTtsLocale = (value) => {
+  const raw = pickFirstString(value).toLowerCase();
+  if (!raw) return 'en-US';
+  if (raw.startsWith('es')) return 'es-ES';
+  if (raw === 'en-gb' || raw.startsWith('en_gb')) return 'en-GB';
+  if (raw.startsWith('en')) return 'en-US';
+  return 'en-US';
+};
+
+const normalizeTtsText = (value) => String(value || '').replace(/\s+/g, ' ').trim();
+
+const selectDefaultTtsVoice = (locale) => {
+  const normalizedLocale = normalizeTtsLocale(locale);
+  if (normalizedLocale === 'es-ES') return ttsAlignedDefaultVoiceEsES;
+  if (normalizedLocale === 'en-GB') return ttsAlignedDefaultVoiceEnGB;
+  return ttsAlignedDefaultVoiceEnUS;
+};
+
+const sanitizeS3PathPart = (value) =>
+  String(value || '')
+    .replace(/^\/*/, '')
+    .replace(/\/*$/, '');
+
+const buildTtsS3Key = (...parts) =>
+  parts
+    .map(sanitizeS3PathPart)
+    .filter(Boolean)
+    .join('/');
+
+const buildTtsCacheHash = ({ text, locale, voice, engine }) =>
+  crypto
+    .createHash('sha1')
+    .update([text, locale, voice, engine, 'v1'].join('|'))
+    .digest('hex');
+
+const getTtsPublicUrl = (key) => {
+  const cleanKey = sanitizeS3PathPart(key);
+  if (!cleanKey || !ttsAlignedS3Bucket) return '';
+  if (ttsAlignedPublicBaseUrl) {
+    return `${ttsAlignedPublicBaseUrl.replace(/\/$/, '')}/${cleanKey}`;
+  }
+  return `https://s3.amazonaws.com/${ttsAlignedS3Bucket}/${cleanKey}`;
+};
+
+const streamToBuffer = async (stream) => {
+  if (!stream) return Buffer.alloc(0);
+  if (Buffer.isBuffer(stream)) return stream;
+  if (stream instanceof Uint8Array) return Buffer.from(stream);
+  const chunks = [];
+  for await (const chunk of stream) {
+    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+  }
+  return Buffer.concat(chunks);
+};
+
+const s3ObjectExists = async (key) => {
+  if (!s3Client || !ttsAlignedS3Bucket || !key) return false;
+  try {
+    await s3Client.send(
+      new HeadObjectCommand({
+        Bucket: ttsAlignedS3Bucket,
+        Key: key
+      })
+    );
+    return true;
+  } catch (err) {
+    const statusCode = err?.$metadata?.httpStatusCode;
+    if (
+      statusCode === 404 ||
+      err?.name === 'NotFound' ||
+      err?.name === 'NoSuchKey' ||
+      err?.Code === 'NotFound' ||
+      err?.Code === 'NoSuchKey'
+    ) {
+      return false;
+    }
+    throw err;
+  }
+};
+
+const readS3JsonObject = async (key) => {
+  if (!s3Client || !ttsAlignedS3Bucket || !key) return null;
+  try {
+    const response = await s3Client.send(
+      new GetObjectCommand({
+        Bucket: ttsAlignedS3Bucket,
+        Key: key
+      })
+    );
+    const body = await streamToBuffer(response?.Body);
+    return JSON.parse(body.toString('utf8'));
+  } catch (err) {
+    const statusCode = err?.$metadata?.httpStatusCode;
+    if (
+      statusCode === 404 ||
+      err?.name === 'NoSuchKey' ||
+      err?.name === 'NotFound' ||
+      err?.Code === 'NoSuchKey' ||
+      err?.Code === 'NotFound'
+    ) {
+      return null;
+    }
+    throw err;
+  }
+};
+
+const parsePollyWordMarks = (rawMarks) => {
+  const lines = String(rawMarks || '')
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const marks = lines
+    .map((line) => {
+      try {
+        return JSON.parse(line);
+      } catch (err) {
+        return null;
+      }
+    })
+    .filter((item) => item && item.type === 'word' && Number.isFinite(Number(item.time)));
+  const words = marks.map((item, index) => {
+    const startMs = Math.max(0, Math.round(Number(item.time) || 0));
+    const next = marks[index + 1];
+    const fallbackEnd = startMs + Math.max(140, Math.min(900, String(item.value || '').length * 80));
+    const endMs = next ? Math.max(startMs + 60, Math.round(Number(next.time) || fallbackEnd)) : fallbackEnd;
+    return {
+      index,
+      text: String(item.value || ''),
+      start_ms: startMs,
+      end_ms: endMs,
+      start_char: Number.isFinite(Number(item.start)) ? Number(item.start) : null,
+      end_char: Number.isFinite(Number(item.end)) ? Number(item.end) : null
+    };
+  });
+  const durationMs = words.length ? words[words.length - 1].end_ms : 0;
+  return { words, duration_ms: durationMs };
+};
+
+const synthesizePollyBuffer = async ({ text, voice, engine, outputFormat, speechMarkTypes }) => {
+  if (!pollyClient) throw new Error('polly_not_configured');
+  const command = new SynthesizeSpeechCommand({
+    Text: text,
+    VoiceId: voice,
+    Engine: engine,
+    OutputFormat: outputFormat,
+    SpeechMarkTypes: speechMarkTypes
+  });
+  const response = await pollyClient.send(command);
+  return streamToBuffer(response?.AudioStream);
 };
 
 const ensureParentDir = (filePath) => {
@@ -1373,6 +1558,143 @@ app.post('/realtime/emit', async (req, res) => {
     .catch((err) => {
       console.error('[realtime] chatbot error', err.message || err);
     });
+});
+
+app.post('/realtime/tts/aligned', async (req, res) => {
+  if (!authorizeUsage(req, res)) return;
+  if (!ttsAlignedEnabled || !s3Client || !pollyClient) {
+    res.status(501).json({ ok: false, error: 'tts_aligned_not_configured' });
+    return;
+  }
+
+  const source = Object.assign({}, req.query || {}, req.body || {});
+  const text = normalizeTtsText(pickFirstString(source.text, source.phrase, source.input));
+  const maxLen = toPositiveInteger(ttsAlignedTextMaxLen, 320);
+  if (!text) {
+    res.status(400).json({ ok: false, error: 'text_required' });
+    return;
+  }
+  if (text.length > maxLen) {
+    res.status(400).json({
+      ok: false,
+      error: `text_too_long_max_${maxLen}`,
+      text_length: text.length,
+      max_length: maxLen
+    });
+    return;
+  }
+
+  const locale = normalizeTtsLocale(source.locale || source.lang || source.language);
+  const voice = pickFirstString(source.voice, selectDefaultTtsVoice(locale));
+  if (!voice) {
+    res.status(400).json({ ok: false, error: 'voice_required' });
+    return;
+  }
+
+  const engine = pickFirstString(source.engine, ttsAlignedPollyEngine);
+  const cacheHash = buildTtsCacheHash({ text, locale, voice, engine });
+  const cachePrefix = sanitizeS3PathPart(ttsAlignedS3Prefix);
+  const audioKey = buildTtsS3Key(cachePrefix, locale, `${cacheHash}.mp3`);
+  const wordsKey = buildTtsS3Key(cachePrefix, locale, `${cacheHash}.words.json`);
+  const forceRegenerate =
+    String(source.force || source.regenerate || '')
+      .toLowerCase()
+      .trim() === 'true' ||
+    String(source.force || source.regenerate || '').trim() === '1';
+
+  try {
+    let cached = false;
+    let wordsPayload = null;
+
+    if (!forceRegenerate) {
+      const [hasAudio, hasWords] = await Promise.all([s3ObjectExists(audioKey), s3ObjectExists(wordsKey)]);
+      if (hasAudio && hasWords) {
+        wordsPayload = await readS3JsonObject(wordsKey);
+        if (wordsPayload && Array.isArray(wordsPayload.words)) {
+          cached = true;
+        }
+      }
+    }
+
+    if (!cached) {
+      const [audioBuffer, marksBuffer] = await Promise.all([
+        synthesizePollyBuffer({
+          text,
+          voice,
+          engine,
+          outputFormat: 'mp3'
+        }),
+        synthesizePollyBuffer({
+          text,
+          voice,
+          engine,
+          outputFormat: 'json',
+          speechMarkTypes: ['word']
+        })
+      ]);
+
+      const parsedMarks = parsePollyWordMarks(marksBuffer.toString('utf8'));
+      wordsPayload = {
+        schema: 1,
+        generated_at: new Date().toISOString(),
+        hash: cacheHash,
+        text,
+        locale,
+        voice,
+        engine,
+        duration_ms: parsedMarks.duration_ms,
+        words: parsedMarks.words
+      };
+
+      await Promise.all([
+        s3Client.send(
+          new PutObjectCommand({
+            Bucket: ttsAlignedS3Bucket,
+            Key: audioKey,
+            Body: audioBuffer,
+            ContentType: 'audio/mpeg',
+            CacheControl: 'public, max-age=31536000, immutable'
+          })
+        ),
+        s3Client.send(
+          new PutObjectCommand({
+            Bucket: ttsAlignedS3Bucket,
+            Key: wordsKey,
+            Body: Buffer.from(JSON.stringify(wordsPayload)),
+            ContentType: 'application/json; charset=utf-8',
+            CacheControl: 'public, max-age=31536000, immutable'
+          })
+        )
+      ]);
+    }
+
+    if (!wordsPayload || !Array.isArray(wordsPayload.words)) {
+      res.status(500).json({ ok: false, error: 'tts_aligned_words_missing' });
+      return;
+    }
+
+    res.json({
+      ok: true,
+      provider: 'aws-polly',
+      cached,
+      hash: cacheHash,
+      text,
+      locale,
+      voice,
+      engine,
+      audio_url: getTtsPublicUrl(audioKey),
+      words_url: getTtsPublicUrl(wordsKey),
+      duration_ms: toNonNegativeNumber(wordsPayload.duration_ms, 0),
+      words: wordsPayload.words
+    });
+  } catch (err) {
+    console.error('[realtime] tts aligned error', err.message || err);
+    res.status(500).json({
+      ok: false,
+      error: 'tts_aligned_failed',
+      message: err && err.message ? err.message : String(err)
+    });
+  }
 });
 
 app.get('/realtime/channels', (req, res) => {

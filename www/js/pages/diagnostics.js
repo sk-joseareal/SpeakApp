@@ -207,8 +207,32 @@ class PageDiagnostics extends HTMLElement {
 	              <div class="diag-usage-list" id="diag-usage-list"></div>
 	            </div>
 
-	            <h4 style="margin-top:16px;">Prueba TTS navegador (aislada)</h4>
-	            <div class="diag-speak-block">
+		            <h4 style="margin-top:16px;">TTS aligned usage (usuario/dia)</h4>
+		            <div class="diag-actions">
+		              <ion-button size="small" fill="outline" id="diag-tts-usage-refresh">Refrescar</ion-button>
+		            </div>
+		            <div class="diag-speak-block">
+              <div class="pill">Chars y coste</div>
+              <div class="diag-usage-status" id="diag-tts-usage-status">Cargando...</div>
+              <div class="diag-actions diag-usage-limit-actions">
+                <input
+                  id="diag-tts-usage-limit-input"
+                  class="chat-text-input diag-usage-limit-input"
+                  type="number"
+                  min="0"
+                  step="1"
+                  placeholder="Limite chars/dia"
+                />
+                <ion-button size="small" fill="outline" id="diag-tts-usage-limit-save">Guardar limite</ion-button>
+                <ion-button size="small" fill="outline" color="medium" id="diag-tts-usage-limit-clear">Sin limite</ion-button>
+              </div>
+              <div class="diag-usage-limit-status" id="diag-tts-usage-limit-status"></div>
+              <div class="diag-usage-totals" id="diag-tts-usage-totals" hidden></div>
+		              <div class="diag-usage-list" id="diag-tts-usage-list"></div>
+		            </div>
+
+		            <h4 style="margin-top:16px;">Prueba TTS navegador (aislada)</h4>
+		            <div class="diag-speak-block">
 	              <div class="pill">Web Speech API</div>
 	              <textarea
 	                id="diag-tts-input"
@@ -426,6 +450,7 @@ class PageDiagnostics extends HTMLElement {
       updateUserPanel(event.detail);
       updateTalkPanels();
       refreshUserUsage();
+      refreshTtsUserUsage();
     };
     window.addEventListener('app:user-change', this._userHandler);
 
@@ -441,6 +466,13 @@ class PageDiagnostics extends HTMLElement {
     const usageLimitClearBtn = this.querySelector('#diag-usage-limit-clear');
     const usageTotalsEl = this.querySelector('#diag-usage-totals');
     const usageListEl = this.querySelector('#diag-usage-list');
+    const ttsUsageStatusEl = this.querySelector('#diag-tts-usage-status');
+    const ttsUsageLimitInputEl = this.querySelector('#diag-tts-usage-limit-input');
+    const ttsUsageLimitStatusEl = this.querySelector('#diag-tts-usage-limit-status');
+    const ttsUsageLimitSaveBtn = this.querySelector('#diag-tts-usage-limit-save');
+    const ttsUsageLimitClearBtn = this.querySelector('#diag-tts-usage-limit-clear');
+    const ttsUsageTotalsEl = this.querySelector('#diag-tts-usage-totals');
+    const ttsUsageListEl = this.querySelector('#diag-tts-usage-list');
     const ttsInputEl = this.querySelector('#diag-tts-input');
     const ttsPlayBtn = this.querySelector('#diag-tts-play');
     const ttsStatusEl = this.querySelector('#diag-tts-status');
@@ -450,6 +482,7 @@ class PageDiagnostics extends HTMLElement {
     const notifyEmptyEl = this.querySelector('#diag-notify-empty');
     const TALK_STORAGE_PREFIX = 'appv5:talk-timelines:';
     let usageRequestSeq = 0;
+    let ttsUsageRequestSeq = 0;
     let ttsUtter = null;
     let ttsPlaying = false;
 
@@ -824,6 +857,275 @@ class PageDiagnostics extends HTMLElement {
       }
     };
 
+    const resolveTtsUsageEndpoint = () => {
+      const cfg = window.realtimeConfig || {};
+      const direct = cfg.ttsUsageDailyEndpoint;
+      if (typeof direct === 'string' && direct.trim()) return direct.trim();
+      const ttsAligned = cfg.ttsAlignedEndpoint || window.REALTIME_TTS_ALIGNED_ENDPOINT;
+      if (typeof ttsAligned === 'string' && ttsAligned.trim()) {
+        const trimmed = ttsAligned.trim().replace(/\/+$/, '');
+        if (trimmed.endsWith('/tts/aligned')) {
+          return `${trimmed.slice(0, -12)}/tts/usage/daily`;
+        }
+      }
+      const emitEndpoint = cfg.emitEndpoint;
+      if (typeof emitEndpoint === 'string' && emitEndpoint.trim()) {
+        const trimmed = emitEndpoint.trim().replace(/\/+$/, '');
+        if (trimmed.endsWith('/emit')) {
+          return `${trimmed.slice(0, -5)}/tts/usage/daily`;
+        }
+      }
+      return '';
+    };
+
+    const resolveTtsUsageLimitEndpoint = () => {
+      const cfg = window.realtimeConfig || {};
+      const direct = cfg.ttsUsageLimitEndpoint;
+      if (typeof direct === 'string' && direct.trim()) return direct.trim();
+      const dailyEndpoint = resolveTtsUsageEndpoint();
+      if (dailyEndpoint) {
+        return dailyEndpoint.replace(/\/daily$/, '/limit');
+      }
+      return '';
+    };
+
+    const updateTtsUsageLimitStatus = (text) => {
+      if (!ttsUsageLimitStatusEl) return;
+      ttsUsageLimitStatusEl.textContent = text || '';
+    };
+
+    const renderTtsUsageLimit = (status) => {
+      if (!ttsUsageLimitInputEl) return;
+      const limit = Math.max(0, Math.round(toUsageNumber(status && status.char_limit_day, 0)));
+      ttsUsageLimitInputEl.value = limit > 0 ? String(limit) : '';
+      const used = Math.max(0, Math.round(toUsageNumber(status && status.used_chars_day, 0)));
+      if (!limit) {
+        updateTtsUsageLimitStatus(`Sin limite diario. Usados hoy: ${usageIntFmt.format(used)} chars.`);
+        return;
+      }
+      const reached = Boolean(status && status.limit_reached_today);
+      const remaining = Math.max(0, Math.round(toUsageNumber(status && status.remaining_chars_day, limit - used)));
+      updateTtsUsageLimitStatus(
+        reached
+          ? `Limite activo: ${usageIntFmt.format(limit)} chars/dia. Alcanzado hoy (${usageIntFmt.format(used)}).`
+          : `Limite activo: ${usageIntFmt.format(limit)} chars/dia. Restantes hoy: ${usageIntFmt.format(remaining)}.`
+      );
+    };
+
+    const fetchTtsUsageLimitStatus = async (userId) => {
+      const endpoint = resolveTtsUsageLimitEndpoint();
+      if (!endpoint) {
+        updateTtsUsageLimitStatus('Endpoint de limite TTS no configurado.');
+        return null;
+      }
+      const url = new URL(endpoint, window.location.origin);
+      url.searchParams.set('user_id', userId);
+      const response = await fetch(url.toString(), {
+        headers: buildUsageHeaders()
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      return response.json();
+    };
+
+    const saveTtsUsageLimit = async (userId, limitChars) => {
+      const endpoint = resolveTtsUsageLimitEndpoint();
+      if (!endpoint) {
+        updateTtsUsageLimitStatus('Endpoint de limite TTS no configurado.');
+        return null;
+      }
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...buildUsageHeaders()
+        },
+        body: JSON.stringify({
+          user_id: userId,
+          char_limit_day: limitChars
+        })
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      return response.json();
+    };
+
+    const renderTtsUsageRows = (rows) => {
+      if (!ttsUsageListEl) return;
+      ttsUsageListEl.innerHTML = '';
+      if (!Array.isArray(rows) || !rows.length) {
+        const emptyEl = document.createElement('div');
+        emptyEl.className = 'diag-usage-empty';
+        emptyEl.textContent = 'Sin consumo TTS registrado.';
+        ttsUsageListEl.appendChild(emptyEl);
+        return;
+      }
+      rows.forEach((row) => {
+        const itemEl = document.createElement('div');
+        itemEl.className = 'diag-usage-row';
+
+        const dayEl = document.createElement('div');
+        dayEl.className = 'diag-usage-day';
+        dayEl.textContent = formatUsageDate(row.day) || '-';
+
+        const metaEl = document.createElement('div');
+        metaEl.className = 'diag-usage-meta';
+        const req = usageIntFmt.format(Math.round(toUsageNumber(row.requests, 0)));
+        const chars = usageIntFmt.format(Math.round(toUsageNumber(row.billed_characters, 0)));
+        const hit = usageIntFmt.format(Math.round(toUsageNumber(row.cache_hits, 0)));
+        const miss = usageIntFmt.format(Math.round(toUsageNumber(row.cache_misses, 0)));
+        const cost = usageMoneyFmt.format(toUsageNumber(row.estimated_cost_usd, 0));
+        metaEl.textContent = `${req} req · ${chars} chars · H${hit}/M${miss} · ${cost}`;
+
+        itemEl.appendChild(dayEl);
+        itemEl.appendChild(metaEl);
+        ttsUsageListEl.appendChild(itemEl);
+      });
+    };
+
+    const renderTtsUsageTotals = (totals, days) => {
+      if (!ttsUsageTotalsEl) return;
+      const requests = usageIntFmt.format(Math.round(toUsageNumber(totals.requests, 0)));
+      const chars = usageIntFmt.format(Math.round(toUsageNumber(totals.billed_characters, 0)));
+      const hits = usageIntFmt.format(Math.round(toUsageNumber(totals.cache_hits, 0)));
+      const misses = usageIntFmt.format(Math.round(toUsageNumber(totals.cache_misses, 0)));
+      const cost = usageMoneyFmt.format(toUsageNumber(totals.estimated_cost_usd, 0));
+      const dayLabel = `${days} día${days === 1 ? '' : 's'}`;
+      ttsUsageTotalsEl.hidden = false;
+      ttsUsageTotalsEl.textContent = `Total (${dayLabel}): ${requests} req · ${chars} chars · H${hits}/M${misses} · ${cost}`;
+    };
+
+    const updateTtsUsageStatus = (text) => {
+      if (!ttsUsageStatusEl) return;
+      ttsUsageStatusEl.textContent = text;
+    };
+
+    const refreshTtsUserUsage = async () => {
+      if (!ttsUsageStatusEl || !ttsUsageTotalsEl || !ttsUsageListEl) return;
+      const userId = getUsageUserId();
+      if (!userId) {
+        ttsUsageTotalsEl.hidden = true;
+        ttsUsageListEl.innerHTML = '';
+        updateTtsUsageStatus('Inicia sesión para ver consumo TTS por usuario.');
+        if (ttsUsageLimitInputEl) ttsUsageLimitInputEl.value = '';
+        updateTtsUsageLimitStatus('Inicia sesión para configurar limite diario TTS.');
+        if (ttsUsageLimitSaveBtn) ttsUsageLimitSaveBtn.disabled = true;
+        if (ttsUsageLimitClearBtn) ttsUsageLimitClearBtn.disabled = true;
+        return;
+      }
+      if (ttsUsageLimitSaveBtn) ttsUsageLimitSaveBtn.disabled = false;
+      if (ttsUsageLimitClearBtn) ttsUsageLimitClearBtn.disabled = false;
+
+      const endpoint = resolveTtsUsageEndpoint();
+      if (!endpoint) {
+        ttsUsageTotalsEl.hidden = true;
+        ttsUsageListEl.innerHTML = '';
+        updateTtsUsageStatus('Endpoint de usage TTS no configurado.');
+        updateTtsUsageLimitStatus('Endpoint de usage TTS no configurado.');
+        return;
+      }
+
+      let url;
+      try {
+        url = new URL(endpoint, window.location.origin);
+      } catch (err) {
+        ttsUsageTotalsEl.hidden = true;
+        ttsUsageListEl.innerHTML = '';
+        updateTtsUsageStatus('Endpoint de usage TTS inválido.');
+        return;
+      }
+      url.searchParams.set('user_id', userId);
+      url.searchParams.set('limit', '30');
+
+      const requestId = ttsUsageRequestSeq + 1;
+      ttsUsageRequestSeq = requestId;
+      updateTtsUsageStatus('Cargando consumo TTS...');
+      updateTtsUsageLimitStatus('Cargando limite TTS...');
+
+      try {
+        const [response, limitPayload] = await Promise.all([
+          fetch(url.toString(), {
+            headers: buildUsageHeaders()
+          }),
+          fetchTtsUsageLimitStatus(userId).catch((err) => ({ _error: err }))
+        ]);
+        if (requestId !== ttsUsageRequestSeq) return;
+        if (limitPayload && !limitPayload._error) {
+          renderTtsUsageLimit(limitPayload);
+        } else if (limitPayload && limitPayload._error) {
+          updateTtsUsageLimitStatus(
+            `No se pudo leer limite TTS: ${limitPayload._error.message || String(limitPayload._error)}`
+          );
+        }
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        const payload = await response.json();
+        if (requestId !== ttsUsageRequestSeq) return;
+        if (!payload || payload.enabled === false) {
+          ttsUsageTotalsEl.hidden = true;
+          ttsUsageListEl.innerHTML = '';
+          updateTtsUsageStatus('Tracking TTS desactivado en servidor.');
+          return;
+        }
+        const rows = Array.isArray(payload.rows) ? payload.rows : [];
+        const totals = payload && typeof payload.totals === 'object' ? payload.totals : {};
+        renderTtsUsageTotals(totals, rows.length);
+        renderTtsUsageRows(rows);
+        if (payload && payload.limit_status && typeof payload.limit_status === 'object') {
+          renderTtsUsageLimit(payload.limit_status);
+        }
+        if (rows.length) {
+          const now = new Date().toLocaleTimeString('es-ES');
+          updateTtsUsageStatus(`Actualizado: ${now}`);
+        } else {
+          updateTtsUsageStatus('Sin consumo TTS registrado para este usuario.');
+        }
+      } catch (err) {
+        if (requestId !== ttsUsageRequestSeq) return;
+        ttsUsageTotalsEl.hidden = true;
+        ttsUsageListEl.innerHTML = '';
+        updateTtsUsageStatus(`Error cargando usage TTS: ${err.message || String(err)}`);
+      }
+    };
+
+    const getTtsUsageLimitInputValue = () => {
+      if (!ttsUsageLimitInputEl) return NaN;
+      const raw = String(ttsUsageLimitInputEl.value || '').trim();
+      if (!raw) return 0;
+      return Number(raw);
+    };
+
+    const submitTtsUsageLimit = async (limitChars) => {
+      const userId = getUsageUserId();
+      if (!userId) {
+        updateTtsUsageLimitStatus('Inicia sesión para configurar limite TTS.');
+        return;
+      }
+      const normalized = Number.isFinite(limitChars) ? Math.max(0, Math.floor(limitChars)) : NaN;
+      if (!Number.isFinite(normalized)) {
+        updateTtsUsageLimitStatus('Introduce un numero valido.');
+        return;
+      }
+      if (ttsUsageLimitSaveBtn) ttsUsageLimitSaveBtn.disabled = true;
+      if (ttsUsageLimitClearBtn) ttsUsageLimitClearBtn.disabled = true;
+      updateTtsUsageLimitStatus('Guardando limite TTS...');
+      try {
+        const payload = await saveTtsUsageLimit(userId, normalized);
+        if (payload && typeof payload === 'object') {
+          renderTtsUsageLimit(payload);
+        }
+        await refreshTtsUserUsage();
+      } catch (err) {
+        updateTtsUsageLimitStatus(`Error guardando limite TTS: ${err.message || String(err)}`);
+      } finally {
+        if (ttsUsageLimitSaveBtn) ttsUsageLimitSaveBtn.disabled = false;
+        if (ttsUsageLimitClearBtn) ttsUsageLimitClearBtn.disabled = false;
+      }
+    };
+
     const escapeHtml = (value) =>
       String(value ?? '')
         .replace(/&/g, '&amp;')
@@ -958,6 +1260,7 @@ class PageDiagnostics extends HTMLElement {
     updateSpeakPanels();
     updateTalkPanels();
     refreshUserUsage();
+    refreshTtsUserUsage();
     renderNotifyList();
     const initialFreeRideAudioMode = getStoredFreeRideAudioMode();
     updateFreeRideAudioModeUi(setFreeRideAudioMode(initialFreeRideAudioMode));
@@ -1091,6 +1394,15 @@ class PageDiagnostics extends HTMLElement {
     });
     usageLimitClearBtn?.addEventListener('click', () => {
       submitUsageLimit(0);
+    });
+    this.querySelector('#diag-tts-usage-refresh')?.addEventListener('click', () => {
+      refreshTtsUserUsage();
+    });
+    ttsUsageLimitSaveBtn?.addEventListener('click', () => {
+      submitTtsUsageLimit(getTtsUsageLimitInputValue());
+    });
+    ttsUsageLimitClearBtn?.addEventListener('click', () => {
+      submitTtsUsageLimit(0);
     });
     this.querySelector('#diag-notify-generate')?.addEventListener('click', () => {
       generateDemoNotifications();

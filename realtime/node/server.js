@@ -52,6 +52,9 @@ const openaiUsageLog = env('OPENAI_USAGE_LOG', 'openai-usage.log');
 const openaiUsageDailyFile = env('OPENAI_USAGE_DAILY_FILE', 'openai-usage-daily.json');
 const openaiUsageDailyRetentionDays = Number(env('OPENAI_USAGE_DAILY_RETENTION_DAYS', '120'));
 const chatbotDailyLimitsFile = env('CHATBOT_DAILY_LIMITS_FILE', 'chatbot-daily-limits.json');
+const ttsUsageDailyFile = env('TTS_USAGE_DAILY_FILE', 'tts-usage-daily.json');
+const ttsUsageDailyRetentionDays = Number(env('TTS_USAGE_DAILY_RETENTION_DAYS', '120'));
+const ttsDailyLimitsFile = env('TTS_DAILY_LIMITS_FILE', 'tts-daily-limits.json');
 const openaiPromptCost = Number(env('OPENAI_PROMPT_COST_PER_MILLION', '0.15'));
 const openaiCompletionCost = Number(env('OPENAI_COMPLETION_COST_PER_MILLION', '0.6'));
 const openaiLogTranscripts = env('OPENAI_LOG_TRANSCRIPTS', 'false') === 'true';
@@ -64,6 +67,12 @@ const usageDailyEnabled =
 const chatbotDailyLimitsEnabled =
   chatbotDailyLimitsFile &&
   !['false', '0', 'off', 'none'].includes(String(chatbotDailyLimitsFile).toLowerCase());
+const ttsUsageDailyEnabled =
+  ttsUsageDailyFile &&
+  !['false', '0', 'off', 'none'].includes(String(ttsUsageDailyFile).toLowerCase());
+const ttsDailyLimitsEnabled =
+  ttsDailyLimitsFile &&
+  !['false', '0', 'off', 'none'].includes(String(ttsDailyLimitsFile).toLowerCase());
 const awsRegion = env('AWS_REGION', 'us-east-1');
 const awsAccessKeyId = env('AWS_KEY', '');
 const awsSecretAccessKey = env('AWS_SECRET', '');
@@ -75,6 +84,9 @@ const ttsAlignedTextMaxLen = Number(env('TTS_ALIGNED_TEXT_MAX_LEN', '320'));
 const ttsAlignedDefaultVoiceEnUS = env('TTS_ALIGNED_VOICE_EN_US', 'Danielle');
 const ttsAlignedDefaultVoiceEnGB = env('TTS_ALIGNED_VOICE_EN_GB', 'Amy');
 const ttsAlignedDefaultVoiceEsES = env('TTS_ALIGNED_VOICE_ES_ES', 'Lucia');
+const ttsPollyCostPerMillionCharsStandard = Number(env('TTS_POLLY_STANDARD_COST_PER_MILLION_CHARS', '4'));
+const ttsPollyCostPerMillionCharsNeural = Number(env('TTS_POLLY_NEURAL_COST_PER_MILLION_CHARS', '16'));
+const ttsPollyCostPerMillionCharsGenerative = Number(env('TTS_POLLY_GENERATIVE_COST_PER_MILLION_CHARS', '30'));
 
 if (provider !== 'pusher') {
   config.host = env('REALTIME_HOST', '127.0.0.1');
@@ -111,6 +123,10 @@ const openaiDailyUsageByUserDay = new Map();
 let openaiDailyUsageFlushTimer = null;
 const chatbotDailyTokenLimits = new Map();
 let chatbotDailyLimitsFlushTimer = null;
+const ttsDailyUsageByUserDay = new Map();
+let ttsDailyUsageFlushTimer = null;
+const ttsDailyCharLimits = new Map();
+let ttsDailyLimitsFlushTimer = null;
 
 const formatUsageDay = (value) => {
   if (!value) return '';
@@ -306,7 +322,10 @@ const synthesizePollyBuffer = async ({ text, voice, engine, outputFormat, speech
     SpeechMarkTypes: speechMarkTypes
   });
   const response = await pollyClient.send(command);
-  return streamToBuffer(response?.AudioStream);
+  return {
+    buffer: await streamToBuffer(response?.AudioStream),
+    requestCharacters: Math.round(toNonNegativeNumber(response?.RequestCharacters, 0))
+  };
 };
 
 const ensureParentDir = (filePath) => {
@@ -622,6 +641,336 @@ const getChatbotDailyLimitStatus = (userId, day) => {
   };
 };
 
+const estimatePollyCharacterCost = (charCount, ratePerMillion) => {
+  if (!Number.isFinite(charCount) || !Number.isFinite(ratePerMillion)) return 0;
+  return (charCount / 1_000_000) * ratePerMillion;
+};
+
+const getPollyCostRateForEngine = (engine) => {
+  const normalized = String(engine || '').trim().toLowerCase();
+  if (normalized === 'standard') return ttsPollyCostPerMillionCharsStandard;
+  if (normalized === 'generative') return ttsPollyCostPerMillionCharsGenerative;
+  return ttsPollyCostPerMillionCharsNeural;
+};
+
+const ttsUsageRowSort = (a, b) => {
+  const dayCompare = String(b.day || '').localeCompare(String(a.day || ''));
+  if (dayCompare !== 0) return dayCompare;
+  const costCompare = toNonNegativeNumber(b.estimated_cost_usd) - toNonNegativeNumber(a.estimated_cost_usd);
+  if (costCompare !== 0) return costCompare;
+  const charsCompare = toNonNegativeNumber(b.billed_characters) - toNonNegativeNumber(a.billed_characters);
+  if (charsCompare !== 0) return charsCompare;
+  return String(a.user_id || '').localeCompare(String(b.user_id || ''));
+};
+
+const serializeTtsDailyUsageRows = () => Array.from(ttsDailyUsageByUserDay.values()).sort(ttsUsageRowSort);
+
+const pruneTtsDailyUsage = () => {
+  if (!Number.isFinite(ttsUsageDailyRetentionDays) || ttsUsageDailyRetentionDays <= 0) return;
+  const cutoffMs = Date.now() - ttsUsageDailyRetentionDays * 24 * 60 * 60 * 1000;
+  const cutoffDay = new Date(cutoffMs).toISOString().slice(0, 10);
+  Array.from(ttsDailyUsageByUserDay.entries()).forEach(([key, row]) => {
+    if (!row || !row.day || row.day < cutoffDay) {
+      ttsDailyUsageByUserDay.delete(key);
+    }
+  });
+};
+
+const flushTtsDailyUsage = () => {
+  if (!ttsUsageDailyEnabled) return;
+  ensureParentDir(ttsUsageDailyFile);
+  const rows = serializeTtsDailyUsageRows();
+  fs.writeFile(ttsUsageDailyFile, `${JSON.stringify(rows, null, 2)}\n`, (err) => {
+    if (err) {
+      console.warn('Failed to write TTS daily usage file:', err.message);
+    }
+  });
+};
+
+const flushTtsDailyUsageSync = () => {
+  if (!ttsUsageDailyEnabled) return;
+  ensureParentDir(ttsUsageDailyFile);
+  const rows = serializeTtsDailyUsageRows();
+  try {
+    fs.writeFileSync(ttsUsageDailyFile, `${JSON.stringify(rows, null, 2)}\n`);
+  } catch (err) {
+    console.warn('Failed to flush TTS daily usage file:', err.message);
+  }
+};
+
+const scheduleTtsDailyUsageFlush = () => {
+  if (!ttsUsageDailyEnabled) return;
+  if (ttsDailyUsageFlushTimer) return;
+  ttsDailyUsageFlushTimer = setTimeout(() => {
+    ttsDailyUsageFlushTimer = null;
+    flushTtsDailyUsage();
+  }, 250);
+};
+
+const normalizeTtsDailyUsageRow = (row) => {
+  if (!row || typeof row !== 'object') return null;
+  const day = formatUsageDay(row.day || row.date || row.timestamp);
+  if (!day) return null;
+  const userId = pickFirstString(row.user_id, row.userId, 'unknown');
+  const userName = pickFirstString(row.user_name, row.userName, row.name);
+  const locale = pickFirstString(row.locale, row.lang, row.language);
+  const voice = pickFirstString(row.voice);
+  const engine = pickFirstString(row.engine, ttsAlignedPollyEngine);
+  const requests = Math.round(toNonNegativeNumber(row.requests, 1));
+  const cacheHits = Math.round(toNonNegativeNumber(row.cache_hits, 0));
+  const cacheMisses = Math.round(toNonNegativeNumber(row.cache_misses, 0));
+  const textChars = Math.round(toNonNegativeNumber(row.text_characters, row.text_chars || 0));
+  const billedChars = Math.round(
+    toNonNegativeNumber(row.billed_characters, row.billed_chars ?? row.characters ?? 0)
+  );
+  const estimatedCost = toNonNegativeNumber(
+    row.estimated_cost_usd,
+    estimatePollyCharacterCost(billedChars, getPollyCostRateForEngine(engine))
+  );
+  const firstRequestAt = pickFirstString(row.first_request_at, row.firstRequestAt, row.timestamp);
+  const lastRequestAt = pickFirstString(row.last_request_at, row.lastRequestAt, row.timestamp);
+
+  return {
+    day,
+    user_id: userId,
+    user_name: userName || '',
+    requests,
+    cache_hits: cacheHits,
+    cache_misses: cacheMisses,
+    text_characters: textChars,
+    billed_characters: billedChars,
+    estimated_cost_usd: Number(estimatedCost.toFixed(6)),
+    locale: locale || '',
+    voice: voice || '',
+    engine: engine || '',
+    first_request_at: firstRequestAt || '',
+    last_request_at: lastRequestAt || ''
+  };
+};
+
+const loadTtsDailyUsageFromDisk = () => {
+  if (!ttsUsageDailyEnabled) return;
+  try {
+    const raw = fs.readFileSync(ttsUsageDailyFile, 'utf8');
+    const parsed = JSON.parse(raw);
+    const rows = Array.isArray(parsed) ? parsed : [];
+    rows.forEach((row) => {
+      const normalized = normalizeTtsDailyUsageRow(row);
+      if (!normalized) return;
+      const key = `${normalized.day}::${normalized.user_id}`;
+      ttsDailyUsageByUserDay.set(key, normalized);
+    });
+    pruneTtsDailyUsage();
+  } catch (err) {
+    if (err && err.code === 'ENOENT') return;
+    console.warn('Failed to load TTS daily usage file:', err.message);
+  }
+};
+
+const trackTtsDailyUsage = (entry) => {
+  if (!ttsUsageDailyEnabled || !entry || typeof entry !== 'object') return;
+  const day = formatUsageDay(entry.timestamp) || new Date().toISOString().slice(0, 10);
+  const userId = pickFirstString(entry.user_id, entry.userId, 'unknown');
+  const userName = pickFirstString(entry.user_name, entry.userName, entry.name);
+  const locale = pickFirstString(entry.locale, entry.lang, entry.language);
+  const voice = pickFirstString(entry.voice);
+  const engine = pickFirstString(entry.engine, ttsAlignedPollyEngine);
+  const billedChars = Math.round(
+    toNonNegativeNumber(entry.billed_characters, entry.billed_chars ?? entry.characters ?? 0)
+  );
+  const textChars = Math.round(toNonNegativeNumber(entry.text_characters, entry.text_chars ?? 0));
+  const cacheHit = Boolean(entry.cached === true || entry.cache_hit === true);
+  const cacheMiss = Boolean(entry.cached === false || entry.cache_miss === true || !cacheHit);
+  const estimatedCost = toNonNegativeNumber(
+    entry.estimated_cost_usd,
+    estimatePollyCharacterCost(billedChars, getPollyCostRateForEngine(engine))
+  );
+  const timestamp = pickFirstString(entry.timestamp, new Date().toISOString());
+  const key = `${day}::${userId}`;
+  const current = ttsDailyUsageByUserDay.get(key) || {
+    day,
+    user_id: userId,
+    user_name: userName || '',
+    requests: 0,
+    cache_hits: 0,
+    cache_misses: 0,
+    text_characters: 0,
+    billed_characters: 0,
+    estimated_cost_usd: 0,
+    locale: locale || '',
+    voice: voice || '',
+    engine: engine || '',
+    first_request_at: timestamp,
+    last_request_at: timestamp
+  };
+
+  current.requests += 1;
+  current.cache_hits += cacheHit ? 1 : 0;
+  current.cache_misses += cacheMiss ? 1 : 0;
+  current.text_characters += textChars;
+  current.billed_characters += billedChars;
+  current.estimated_cost_usd = Number((current.estimated_cost_usd + estimatedCost).toFixed(6));
+  if (userName) current.user_name = userName;
+  if (locale) current.locale = locale;
+  if (voice) current.voice = voice;
+  if (engine) current.engine = engine;
+  if (timestamp) {
+    if (!current.first_request_at || timestamp < current.first_request_at) {
+      current.first_request_at = timestamp;
+    }
+    if (!current.last_request_at || timestamp > current.last_request_at) {
+      current.last_request_at = timestamp;
+    }
+  }
+
+  ttsDailyUsageByUserDay.set(key, current);
+  pruneTtsDailyUsage();
+  scheduleTtsDailyUsageFlush();
+};
+
+const summarizeTtsUsageRows = (rows) =>
+  rows.reduce(
+    (acc, row) => {
+      acc.requests += toNonNegativeNumber(row.requests, 0);
+      acc.cache_hits += toNonNegativeNumber(row.cache_hits, 0);
+      acc.cache_misses += toNonNegativeNumber(row.cache_misses, 0);
+      acc.text_characters += toNonNegativeNumber(row.text_characters, 0);
+      acc.billed_characters += toNonNegativeNumber(row.billed_characters, 0);
+      acc.estimated_cost_usd = Number(
+        (acc.estimated_cost_usd + toNonNegativeNumber(row.estimated_cost_usd, 0)).toFixed(6)
+      );
+      return acc;
+    },
+    {
+      requests: 0,
+      cache_hits: 0,
+      cache_misses: 0,
+      text_characters: 0,
+      billed_characters: 0,
+      estimated_cost_usd: 0
+    }
+  );
+
+const normalizeTtsDailyLimitRow = (row) => {
+  if (!row || typeof row !== 'object') return null;
+  const userId = pickFirstString(row.user_id, row.userId);
+  if (!userId) return null;
+  const charLimit = Math.floor(toNonNegativeNumber(row.char_limit_day, row.chars_limit_day ?? 0));
+  const updatedAt = pickFirstString(row.updated_at, row.updatedAt, row.timestamp, new Date().toISOString());
+  if (!charLimit) return null;
+  return {
+    user_id: userId,
+    char_limit_day: charLimit,
+    updated_at: updatedAt
+  };
+};
+
+const serializeTtsDailyLimitRows = () =>
+  Array.from(ttsDailyCharLimits.values()).sort((a, b) =>
+    String(a.user_id || '').localeCompare(String(b.user_id || ''))
+  );
+
+const flushTtsDailyLimits = () => {
+  if (!ttsDailyLimitsEnabled) return;
+  ensureParentDir(ttsDailyLimitsFile);
+  const rows = serializeTtsDailyLimitRows();
+  fs.writeFile(ttsDailyLimitsFile, `${JSON.stringify(rows, null, 2)}\n`, (err) => {
+    if (err) {
+      console.warn('Failed to write TTS limits file:', err.message);
+    }
+  });
+};
+
+const flushTtsDailyLimitsSync = () => {
+  if (!ttsDailyLimitsEnabled) return;
+  ensureParentDir(ttsDailyLimitsFile);
+  const rows = serializeTtsDailyLimitRows();
+  try {
+    fs.writeFileSync(ttsDailyLimitsFile, `${JSON.stringify(rows, null, 2)}\n`);
+  } catch (err) {
+    console.warn('Failed to flush TTS limits file:', err.message);
+  }
+};
+
+const scheduleTtsDailyLimitsFlush = () => {
+  if (!ttsDailyLimitsEnabled) return;
+  if (ttsDailyLimitsFlushTimer) return;
+  ttsDailyLimitsFlushTimer = setTimeout(() => {
+    ttsDailyLimitsFlushTimer = null;
+    flushTtsDailyLimits();
+  }, 200);
+};
+
+const loadTtsDailyLimitsFromDisk = () => {
+  if (!ttsDailyLimitsEnabled) return;
+  try {
+    const raw = fs.readFileSync(ttsDailyLimitsFile, 'utf8');
+    const parsed = JSON.parse(raw);
+    const rows = Array.isArray(parsed) ? parsed : [];
+    rows.forEach((row) => {
+      const normalized = normalizeTtsDailyLimitRow(row);
+      if (!normalized) return;
+      ttsDailyCharLimits.set(normalized.user_id, normalized);
+    });
+  } catch (err) {
+    if (err && err.code === 'ENOENT') return;
+    console.warn('Failed to load TTS limits file:', err.message);
+  }
+};
+
+const getTtsDailyCharLimit = (userId) => {
+  const normalizedUserId = pickFirstString(userId);
+  if (!normalizedUserId) return 0;
+  const row = ttsDailyCharLimits.get(normalizedUserId);
+  if (!row) return 0;
+  return Math.floor(toNonNegativeNumber(row.char_limit_day, 0));
+};
+
+const setTtsDailyCharLimit = (userId, charLimit) => {
+  const normalizedUserId = pickFirstString(userId);
+  if (!normalizedUserId) return null;
+  const normalizedLimit = Math.floor(toNonNegativeNumber(charLimit, 0));
+  if (!normalizedLimit) {
+    ttsDailyCharLimits.delete(normalizedUserId);
+    scheduleTtsDailyLimitsFlush();
+    return null;
+  }
+  const row = {
+    user_id: normalizedUserId,
+    char_limit_day: normalizedLimit,
+    updated_at: new Date().toISOString()
+  };
+  ttsDailyCharLimits.set(normalizedUserId, row);
+  scheduleTtsDailyLimitsFlush();
+  return row;
+};
+
+const getTtsUsageBilledCharsForUserDay = (userId, day) => {
+  const normalizedUserId = pickFirstString(userId);
+  const normalizedDay = formatUsageDay(day) || new Date().toISOString().slice(0, 10);
+  if (!normalizedUserId) return 0;
+  const key = `${normalizedDay}::${normalizedUserId}`;
+  const row = ttsDailyUsageByUserDay.get(key);
+  if (!row) return 0;
+  return Math.round(toNonNegativeNumber(row.billed_characters, 0));
+};
+
+const getTtsDailyLimitStatus = (userId, day) => {
+  const normalizedUserId = pickFirstString(userId);
+  const resolvedDay = formatUsageDay(day) || new Date().toISOString().slice(0, 10);
+  const charLimit = getTtsDailyCharLimit(normalizedUserId);
+  const usedChars = getTtsUsageBilledCharsForUserDay(normalizedUserId, resolvedDay);
+  const remainingChars = charLimit > 0 ? Math.max(0, charLimit - usedChars) : null;
+  return {
+    user_id: normalizedUserId || '',
+    day: resolvedDay,
+    char_limit_day: charLimit,
+    used_chars_day: usedChars,
+    remaining_chars_day: remainingChars,
+    limit_reached_today: Boolean(charLimit > 0 && usedChars >= charLimit)
+  };
+};
+
 const extractChatUserMeta = (data, channel) => {
   const source = data && typeof data === 'object' ? data : {};
   const userId = pickFirstString(source.user_id, source.userId, source.id, parseCoachUserId(channel));
@@ -694,6 +1043,8 @@ const logOpenAIUsage = (usage, descriptor, extra = {}) => {
 
 loadOpenAIDailyUsageFromDisk();
 loadChatbotDailyLimitsFromDisk();
+loadTtsDailyUsageFromDisk();
+loadTtsDailyLimitsFromDisk();
 
 const formatRoleLabel = (role) => {
   if (role === 'system') return 'System';
@@ -1569,6 +1920,8 @@ app.post('/realtime/tts/aligned', async (req, res) => {
 
   const source = Object.assign({}, req.query || {}, req.body || {});
   const text = normalizeTtsText(pickFirstString(source.text, source.phrase, source.input));
+  const ttsUserId = pickFirstString(source.user_id, source.userId, source.id);
+  const ttsUserName = pickFirstString(source.user_name, source.userName, source.name);
   const maxLen = toPositiveInteger(ttsAlignedTextMaxLen, 320);
   if (!text) {
     res.status(400).json({ ok: false, error: 'text_required' });
@@ -1605,6 +1958,8 @@ app.post('/realtime/tts/aligned', async (req, res) => {
   try {
     let cached = false;
     let wordsPayload = null;
+    let billedCharacters = 0;
+    const projectedBilledCharacters = Math.max(0, text.length) * 2;
 
     if (!forceRegenerate) {
       const [hasAudio, hasWords] = await Promise.all([s3ObjectExists(audioKey), s3ObjectExists(wordsKey)]);
@@ -1617,7 +1972,27 @@ app.post('/realtime/tts/aligned', async (req, res) => {
     }
 
     if (!cached) {
-      const [audioBuffer, marksBuffer] = await Promise.all([
+      if (ttsUserId) {
+        const limitStatus = getTtsDailyLimitStatus(ttsUserId);
+        const hasLimit = limitStatus.char_limit_day > 0;
+        const alreadyReached = Boolean(hasLimit && limitStatus.used_chars_day >= limitStatus.char_limit_day);
+        const wouldExceed =
+          Boolean(hasLimit && limitStatus.used_chars_day + projectedBilledCharacters > limitStatus.char_limit_day);
+        if (alreadyReached || wouldExceed) {
+          res.status(429).json({
+            ok: false,
+            error: 'tts_daily_char_limit',
+            message: 'Daily TTS character limit reached',
+            provider: 'aws-polly',
+            projected_billed_characters: projectedBilledCharacters,
+            would_exceed_today: wouldExceed,
+            ...limitStatus
+          });
+          return;
+        }
+      }
+
+      const [audioSynth, marksSynth] = await Promise.all([
         synthesizePollyBuffer({
           text,
           voice,
@@ -1632,6 +2007,15 @@ app.post('/realtime/tts/aligned', async (req, res) => {
           speechMarkTypes: ['word']
         })
       ]);
+      const audioBuffer = audioSynth && audioSynth.buffer ? audioSynth.buffer : Buffer.alloc(0);
+      const marksBuffer = marksSynth && marksSynth.buffer ? marksSynth.buffer : Buffer.alloc(0);
+      const audioRequestChars = Math.round(
+        toNonNegativeNumber(audioSynth && audioSynth.requestCharacters, text.length)
+      );
+      const marksRequestChars = Math.round(
+        toNonNegativeNumber(marksSynth && marksSynth.requestCharacters, text.length)
+      );
+      billedCharacters = audioRequestChars + marksRequestChars;
 
       const parsedMarks = parsePollyWordMarks(marksBuffer.toString('utf8'));
       wordsPayload = {
@@ -1673,6 +2057,19 @@ app.post('/realtime/tts/aligned', async (req, res) => {
       return;
     }
 
+    trackTtsDailyUsage({
+      timestamp: new Date().toISOString(),
+      user_id: ttsUserId || 'unknown',
+      user_name: ttsUserName || '',
+      locale,
+      voice,
+      engine,
+      text_characters: text.length,
+      billed_characters: cached ? 0 : billedCharacters,
+      cached
+    });
+    const ttsLimitStatus = ttsUserId ? getTtsDailyLimitStatus(ttsUserId) : null;
+
     res.json({
       ok: true,
       provider: 'aws-polly',
@@ -1685,7 +2082,8 @@ app.post('/realtime/tts/aligned', async (req, res) => {
       audio_url: getTtsPublicUrl(audioKey),
       words_url: getTtsPublicUrl(wordsKey),
       duration_ms: toNonNegativeNumber(wordsPayload.duration_ms, 0),
-      words: wordsPayload.words
+      words: wordsPayload.words,
+      limit_status: ttsLimitStatus
     });
   } catch (err) {
     console.error('[realtime] tts aligned error', err.message || err);
@@ -1723,6 +2121,119 @@ app.get('/realtime/channels', (req, res) => {
       }
     }
     res.status(statusCode).json(body || {});
+  });
+});
+
+app.get('/realtime/tts/usage/daily', (req, res) => {
+  if (!authorizeUsage(req, res)) return;
+
+  if (!ttsUsageDailyEnabled) {
+    res.json({
+      ok: true,
+      enabled: false,
+      rows: [],
+      totals: summarizeTtsUsageRows([])
+    });
+    return;
+  }
+
+  const dayFilterRaw = pickFirstString(req.query.day);
+  const fromRaw = pickFirstString(req.query.from, req.query.date_from);
+  const toRaw = pickFirstString(req.query.to, req.query.date_to);
+  const userIdFilter = pickFirstString(req.query.user_id, req.query.userId);
+  const localeFilter = pickFirstString(req.query.locale, req.query.lang, req.query.language);
+  const engineFilter = pickFirstString(req.query.engine);
+  const limitValue = Number(req.query.limit);
+  const limit = Number.isFinite(limitValue) && limitValue > 0 ? Math.min(Math.floor(limitValue), 5000) : 300;
+
+  const dayFilter = dayFilterRaw ? formatUsageDay(dayFilterRaw) : '';
+  if (dayFilterRaw && !dayFilter) {
+    res.status(400).json({ error: 'invalid day format (expected YYYY-MM-DD)' });
+    return;
+  }
+  const fromFilter = fromRaw ? formatUsageDay(fromRaw) : '';
+  if (fromRaw && !fromFilter) {
+    res.status(400).json({ error: 'invalid from format (expected YYYY-MM-DD)' });
+    return;
+  }
+  const toFilter = toRaw ? formatUsageDay(toRaw) : '';
+  if (toRaw && !toFilter) {
+    res.status(400).json({ error: 'invalid to format (expected YYYY-MM-DD)' });
+    return;
+  }
+  if (fromFilter && toFilter && fromFilter > toFilter) {
+    res.status(400).json({ error: '"from" must be before or equal to "to"' });
+    return;
+  }
+
+  const rows = serializeTtsDailyUsageRows().filter((row) => {
+    if (dayFilter && row.day !== dayFilter) return false;
+    if (fromFilter && row.day < fromFilter) return false;
+    if (toFilter && row.day > toFilter) return false;
+    if (userIdFilter && row.user_id !== userIdFilter) return false;
+    if (localeFilter && String(row.locale || '') !== localeFilter) return false;
+    if (engineFilter && String(row.engine || '') !== engineFilter) return false;
+    return true;
+  });
+
+  const totals = summarizeTtsUsageRows(rows);
+  const outputRows = rows.slice(0, limit);
+  const limitStatus = userIdFilter ? getTtsDailyLimitStatus(userIdFilter) : null;
+
+  res.json({
+    ok: true,
+    enabled: true,
+    count: rows.length,
+    returned: outputRows.length,
+    truncated: rows.length > outputRows.length,
+    filters: {
+      day: dayFilter || '',
+      from: fromFilter || '',
+      to: toFilter || '',
+      user_id: userIdFilter || '',
+      locale: localeFilter || '',
+      engine: engineFilter || '',
+      limit
+    },
+    limit_status: limitStatus,
+    totals,
+    rows: outputRows
+  });
+});
+
+app.get('/realtime/tts/usage/limit', (req, res) => {
+  if (!authorizeUsage(req, res)) return;
+  const userId = pickFirstString(req.query.user_id, req.query.userId);
+  if (!userId) {
+    res.status(400).json({ error: 'user_id required' });
+    return;
+  }
+  const status = getTtsDailyLimitStatus(userId);
+  res.json({
+    ok: true,
+    ...status
+  });
+});
+
+app.post('/realtime/tts/usage/limit', (req, res) => {
+  if (!authorizeUsage(req, res)) return;
+  const body = req.body && typeof req.body === 'object' ? req.body : {};
+  const userId = pickFirstString(body.user_id, body.userId, req.query.user_id, req.query.userId);
+  if (!userId) {
+    res.status(400).json({ error: 'user_id required' });
+    return;
+  }
+  const requestedLimit = Number(body.char_limit_day ?? body.charLimitDay ?? body.chars_limit_day);
+  if (!Number.isFinite(requestedLimit)) {
+    res.status(400).json({ error: 'char_limit_day must be a number' });
+    return;
+  }
+  setTtsDailyCharLimit(userId, requestedLimit);
+  const status = getTtsDailyLimitStatus(userId);
+  res.json({
+    ok: true,
+    updated: true,
+    ...status
   });
 });
 
@@ -1972,12 +2483,16 @@ app.post('/realtime/state/sync', (req, res) => {
 process.on('SIGINT', () => {
   flushOpenAIDailyUsageSync();
   flushChatbotDailyLimitsSync();
+  flushTtsDailyUsageSync();
+  flushTtsDailyLimitsSync();
   process.exit(0);
 });
 
 process.on('SIGTERM', () => {
   flushOpenAIDailyUsageSync();
   flushChatbotDailyLimitsSync();
+  flushTtsDailyUsageSync();
+  flushTtsDailyLimitsSync();
   process.exit(0);
 });
 

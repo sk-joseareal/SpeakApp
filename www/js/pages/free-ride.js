@@ -715,14 +715,22 @@ class PageFreeRide extends HTMLElement {
 
     const endpoint = this.resolveAlignedTtsEndpoint();
     if (!endpoint) return null;
+    const body = {
+      text: expected,
+      locale
+    };
+    const user = window.user;
+    if (user && user.id !== undefined && user.id !== null && String(user.id).trim()) {
+      body.user_id = String(user.id).trim();
+    }
+    if (user && typeof user.name === 'string' && user.name.trim()) {
+      body.user_name = user.name.trim();
+    }
 
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: this.buildAlignedTtsHeaders(),
-      body: JSON.stringify({
-        text: expected,
-        locale
-      })
+      body: JSON.stringify(body)
     });
 
     if (!response.ok) return null;

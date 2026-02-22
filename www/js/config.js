@@ -71,6 +71,16 @@
       window.REALTIME_TTS_ALIGNED_ENDPOINT ||
       'https://realtime.curso-ingles.com/realtime/tts/aligned';
   }
+  if (window.realtimeConfig.ttsUsageDailyEndpoint === undefined) {
+    window.realtimeConfig.ttsUsageDailyEndpoint =
+      window.REALTIME_TTS_USAGE_DAILY_ENDPOINT ||
+      'https://realtime.curso-ingles.com/realtime/tts/usage/daily';
+  }
+  if (window.realtimeConfig.ttsUsageLimitEndpoint === undefined) {
+    window.realtimeConfig.ttsUsageLimitEndpoint =
+      window.REALTIME_TTS_USAGE_LIMIT_ENDPOINT ||
+      'https://realtime.curso-ingles.com/realtime/tts/usage/limit';
+  }
   if (window.realtimeConfig.stateEndpoint === undefined) {
     window.realtimeConfig.stateEndpoint =
       window.REALTIME_STATE_ENDPOINT || 'https://realtime.curso-ingles.com/realtime/state/sync';

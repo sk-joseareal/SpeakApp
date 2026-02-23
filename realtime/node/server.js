@@ -13,7 +13,14 @@ const cors = require('cors');
 const Pusher = require('pusher');
 
 const app = express();
-app.use(cors());
+app.use(
+  cors({
+    // Reflect request origin (e.g. https://localhost in Android WebView) instead of "*"
+    // so private-channel auth works even if the runtime sends credentials.
+    origin: true,
+    credentials: true
+  })
+);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

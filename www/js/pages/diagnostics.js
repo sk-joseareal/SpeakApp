@@ -135,8 +135,8 @@ class PageDiagnostics extends HTMLElement {
             <div class="diag-actions">
               <ion-button size="small" fill="outline" id="diag-onboarding-repeat">Repetir onboarding</ion-button>
             </div>
-            <div class="diag-speak-block">
-              <div class="pill">Free ride audio</div>
+	            <div class="diag-speak-block">
+	              <div class="pill">Free ride / chatbot audio</div>
               <div class="diag-audio-mode-wrap">
                 <ion-segment id="diag-free-ride-audio-mode" value="${getStoredFreeRideAudioMode()}">
                   <ion-segment-button value="generated">
@@ -508,12 +508,12 @@ class PageDiagnostics extends HTMLElement {
       if (freeRideAudioModeEl) {
         freeRideAudioModeEl.value = normalized;
       }
-      if (freeRideAudioSubEl) {
-        freeRideAudioSubEl.textContent =
-          normalized === FREE_RIDE_AUDIO_MODE_LOCAL
-            ? 'Local: usa TTS nativo/web con realce global mientras suena.'
-            : 'Alineado: usa backend alineado (audio + highlighting progresivo por palabra).';
-      }
+	      if (freeRideAudioSubEl) {
+	        freeRideAudioSubEl.textContent =
+	          normalized === FREE_RIDE_AUDIO_MODE_LOCAL
+	            ? 'Local (Free ride / chatbot audio): usa TTS nativo/web; en Free ride aplica realce global mientras suena.'
+	            : 'Alineado (Free ride / chatbot audio): usa backend alineado (audio + timings; en Free ride con highlighting progresivo por palabra).';
+	      }
       return normalized;
     };
 

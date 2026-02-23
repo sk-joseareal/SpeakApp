@@ -73,6 +73,7 @@ class PageFreeRide extends HTMLElement {
     this.keyboardResizeApplied = false;
     this.keyboardResizeRequestId = 0;
     this.alignedTtsCache = new Map();
+    this.alignedTtsLimitStatus = null;
     this.phraseHighlightRaf = null;
     this.phraseHighlightTimeline = [];
     this.phraseHighlightTokenEls = [];
@@ -100,6 +101,8 @@ class PageFreeRide extends HTMLElement {
 
     this._userHandler = (event) => {
       this.updateHeaderUser(event && event.detail ? event.detail : null);
+      this.clearAlignedTtsLimitStatus();
+      this.updatePhrasePreview(this.currentCopy);
     };
     window.addEventListener('app:user-change', this._userHandler);
 
@@ -123,6 +126,13 @@ class PageFreeRide extends HTMLElement {
     this._tabsDidChangeHandler = (event) => {
       const tab = event && event.detail ? event.detail.tab : '';
       if (tab !== 'freeride') {
+        this.clearNarrationTimer();
+        this.narrationToken += 1;
+        if (this.heroMascotIsTalking) {
+          this.stopNarrationPlayback().catch(() => {});
+        } else {
+          this.stopHeroMascotTalk({ settle: true });
+        }
         this.classList.remove('free-ride-keyboard-open');
         this.restoreIOSKeyboardResizeMode();
         return;
@@ -279,6 +289,84 @@ class PageFreeRide extends HTMLElement {
       })
     );
     return normalized;
+  }
+
+  getCurrentUsageDayUtc() {
+    return new Date().toISOString().slice(0, 10);
+  }
+
+  getCurrentTtsUsageUserId() {
+    const user = window.user;
+    if (!user || user.id === undefined || user.id === null) return '';
+    const value = String(user.id).trim();
+    return value || '';
+  }
+
+  clearAlignedTtsLimitStatus() {
+    this.alignedTtsLimitStatus = null;
+  }
+
+  setAlignedTtsLimitStatus(status) {
+    if (!status || typeof status !== 'object') {
+      this.alignedTtsLimitStatus = null;
+      return null;
+    }
+    const userIdRaw =
+      status.user_id !== undefined && status.user_id !== null ? String(status.user_id).trim() : '';
+    const dayRaw = status.day !== undefined && status.day !== null ? String(status.day).trim() : '';
+    const charLimit = Number(status.char_limit_day);
+    const usedChars = Number(status.used_chars_day);
+    const remainingChars = Number(status.remaining_chars_day);
+    const normalized = {
+      user_id: userIdRaw || '',
+      day: dayRaw,
+      char_limit_day: Number.isFinite(charLimit) ? Math.max(0, Math.floor(charLimit)) : 0,
+      used_chars_day: Number.isFinite(usedChars) ? Math.max(0, Math.floor(usedChars)) : 0,
+      remaining_chars_day: Number.isFinite(remainingChars) ? Math.max(0, Math.floor(remainingChars)) : null,
+      limit_reached_today: Boolean(status.limit_reached_today)
+    };
+    this.alignedTtsLimitStatus = normalized;
+    return normalized;
+  }
+
+  applyAlignedTtsLimitStatusFromPayload(payload) {
+    if (!payload || typeof payload !== 'object') return null;
+    if (payload.limit_status && typeof payload.limit_status === 'object') {
+      return this.setAlignedTtsLimitStatus(payload.limit_status);
+    }
+    if (
+      payload.char_limit_day !== undefined ||
+      payload.used_chars_day !== undefined ||
+      payload.remaining_chars_day !== undefined ||
+      payload.limit_reached_today !== undefined
+    ) {
+      return this.setAlignedTtsLimitStatus(payload);
+    }
+    return null;
+  }
+
+  isAlignedTtsBlockedByLimit() {
+    const status = this.alignedTtsLimitStatus;
+    if (!status || !status.limit_reached_today) return false;
+    if (status.day && status.day !== this.getCurrentUsageDayUtc()) return false;
+    const currentUserId = this.getCurrentTtsUsageUserId();
+    if (currentUserId) {
+      if (status.user_id && status.user_id !== currentUserId) return false;
+      return true;
+    }
+    if (status.user_id && status.user_id !== 'unknown') return false;
+    return true;
+  }
+
+  getEffectiveFreeRideAudioMode() {
+    const selectedMode = this.getFreeRideAudioMode();
+    if (
+      selectedMode === FREE_RIDE_AUDIO_MODE_GENERATED &&
+      this.isAlignedTtsBlockedByLimit()
+    ) {
+      return FREE_RIDE_AUDIO_MODE_LOCAL;
+    }
+    return selectedMode;
   }
 
   isNativeRuntime() {
@@ -733,8 +821,32 @@ class PageFreeRide extends HTMLElement {
       body: JSON.stringify(body)
     });
 
-    if (!response.ok) return null;
+    if (!response.ok) {
+      let errorPayload = null;
+      try {
+        errorPayload = await response.json();
+      } catch (err) {
+        errorPayload = null;
+      }
+      if (errorPayload) {
+        const prevBlocked = this.isAlignedTtsBlockedByLimit();
+        this.applyAlignedTtsLimitStatusFromPayload(errorPayload);
+        const nextBlocked = this.isAlignedTtsBlockedByLimit();
+        if (nextBlocked !== prevBlocked) {
+          this.updatePhrasePreview(this.currentCopy);
+        }
+      }
+      return null;
+    }
     const data = await response.json();
+    if (data) {
+      const prevBlocked = this.isAlignedTtsBlockedByLimit();
+      this.applyAlignedTtsLimitStatusFromPayload(data);
+      const nextBlocked = this.isAlignedTtsBlockedByLimit();
+      if (nextBlocked !== prevBlocked) {
+        this.updatePhrasePreview(this.currentCopy);
+      }
+    }
     if (!data || data.ok !== true) return null;
     if (typeof data.audio_url !== 'string' || !data.audio_url.trim()) return null;
     this.storeAlignedTtsInCache(expected, locale, data);
@@ -2115,7 +2227,7 @@ class PageFreeRide extends HTMLElement {
     const text = this.getExpectedTextTrimmed();
     if (!text) return;
     // Prevent overlap with hero narration timers/playback that can hijack Web Speech on Chrome.
-    this.stopNarration().catch(() => {});
+    const stopNarrationPromise = this.stopNarration().catch(() => {});
     if (triggerBtn && this.activePlayButton === triggerBtn) {
       this.stopPlayback();
       return;
@@ -2123,20 +2235,23 @@ class PageFreeRide extends HTMLElement {
     this.stopPlayback();
     this.setActivePlayButton(triggerBtn || null);
     const lang = this.getPracticeSpeechLocale();
-    const audioMode = this.getFreeRideAudioMode();
-    const localMode = audioMode === FREE_RIDE_AUDIO_MODE_LOCAL;
+    const effectiveAudioMode = this.getEffectiveFreeRideAudioMode();
+    const localMode = effectiveAudioMode === FREE_RIDE_AUDIO_MODE_LOCAL;
     const playbackToken = this.playbackRequestToken;
     const markLocalStart = () => {
-      if (!localMode) return;
+      if (this.getEffectiveFreeRideAudioMode() !== FREE_RIDE_AUDIO_MODE_LOCAL) return;
       this.setPhraseLocalSpeaking(true);
     };
     const markLocalEnd = () => {
-      if (!localMode) return;
+      if (this.getEffectiveFreeRideAudioMode() !== FREE_RIDE_AUDIO_MODE_LOCAL) return;
       this.setPhraseLocalSpeaking(false);
     };
 
     const fallback = () => {
-      if (playbackToken !== this.playbackRequestToken) return;
+      Promise.resolve(stopNarrationPromise)
+        .catch(() => {})
+        .then(() => {
+          if (playbackToken !== this.playbackRequestToken) return;
       const plugin = this.getNativeTtsPlugin();
       if (plugin && typeof plugin.speak === 'function') {
         markLocalStart();
@@ -2162,7 +2277,7 @@ class PageFreeRide extends HTMLElement {
             const started = this.playPhraseWeb(
               text,
               lang,
-              localMode
+              this.getEffectiveFreeRideAudioMode() === FREE_RIDE_AUDIO_MODE_LOCAL
                 ? {
                     onStart: markLocalStart,
                     onEnd: markLocalEnd
@@ -2179,7 +2294,7 @@ class PageFreeRide extends HTMLElement {
       const started = this.playPhraseWeb(
         text,
         lang,
-        localMode
+        this.getEffectiveFreeRideAudioMode() === FREE_RIDE_AUDIO_MODE_LOCAL
           ? {
               onStart: markLocalStart,
               onEnd: markLocalEnd
@@ -2190,6 +2305,7 @@ class PageFreeRide extends HTMLElement {
         markLocalEnd();
         this.clearActivePlayButton();
       }
+        });
     };
 
     if (localMode) {
@@ -2652,14 +2768,35 @@ class PageFreeRide extends HTMLElement {
       debugToggleBtn.setAttribute('aria-pressed', active ? 'true' : 'false');
     }
     if (debugAudioModeButtons.length) {
-      const currentAudioMode = this.getFreeRideAudioMode();
+      const selectedAudioMode = this.getFreeRideAudioMode();
+      const effectiveAudioMode = this.getEffectiveFreeRideAudioMode();
       const modeControlsDisabled = this.state.isRecording || this.state.isTranscribing;
+      const generatedBlockedByLimit = this.isAlignedTtsBlockedByLimit();
       debugAudioModeButtons.forEach((button) => {
         const mode = String(button.dataset.audioMode || '');
-        const isActive = mode === currentAudioMode;
+        const isActive = mode === effectiveAudioMode;
         button.classList.toggle('is-active', isActive);
         button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
-        button.disabled = modeControlsDisabled;
+        const disabledByLimit =
+          generatedBlockedByLimit && mode === FREE_RIDE_AUDIO_MODE_GENERATED;
+        button.disabled = modeControlsDisabled || disabledByLimit;
+        if (mode === FREE_RIDE_AUDIO_MODE_GENERATED) {
+          const title = generatedBlockedByLimit
+            ? 'Audio generado bloqueado por limite diario TTS'
+            : 'Audio generado (alineado)';
+          button.title = title;
+          button.setAttribute(
+            'aria-label',
+            generatedBlockedByLimit
+              ? 'Audio generado bloqueado por limite diario TTS'
+              : 'Usar audio generado con alineación'
+          );
+        } else if (mode === FREE_RIDE_AUDIO_MODE_LOCAL) {
+          button.title =
+            selectedAudioMode === FREE_RIDE_AUDIO_MODE_GENERATED && generatedBlockedByLimit
+              ? 'Audio local (activo por limite diario TTS)'
+              : 'Audio local';
+        }
       });
     }
   }
@@ -2712,6 +2849,13 @@ class PageFreeRide extends HTMLElement {
         if (this.state.isRecording || this.state.isTranscribing) return;
         const nextMode = button.dataset.audioMode || '';
         if (!nextMode) return;
+        if (
+          nextMode === FREE_RIDE_AUDIO_MODE_GENERATED &&
+          this.isAlignedTtsBlockedByLimit()
+        ) {
+          this.updatePhrasePreview(copy);
+          return;
+        }
         this.stopPlayback();
         this.setFreeRideAudioMode(nextMode);
         this.updatePhrasePreview(copy);

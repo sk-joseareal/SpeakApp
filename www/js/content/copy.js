@@ -28,17 +28,21 @@ const APP_COPY = {
         intro: {
           title: 'SAY like a Native',
           messageHtml:
-            'HOLA, VAMOS A ENSEÑARTE A <strong>ENTRENAR TU PRONUNCIACIÓN</strong> Y A PODER HABLAR INGLÉS CON NATURALIDAD',
+            'Hola, vamos a enseñarte a <strong>entrenar tu pronunciación</strong> y a hablar inglés con naturalidad.',
           points: ['Y tu inglés sonará mejor', 'Tu confianza aumentará']
         },
         level: {
           title: 'SAY like a Native',
-          messageHtml: 'ESTE SERÁ EL PLAN QUE HARÁ HABLES COMO UN NATIVO EN SOLO 48 DÍAS',
-          points: ['EXPLICAR METODOLOGIA']
+          messageHtml: 'Este es tu plan para mejorar pronunciación paso a paso en 48 días.',
+          points: [
+            'Sesiones cortas cada día',
+            'Escucha, repite y grábate',
+            'Mejora con feedback inmediato'
+          ]
         },
         topics: {
           title: 'SAY like a Native',
-          messageHtml: '¿CUAL ES TU LENGUA MATERNA?'
+          messageHtml: '¿Cuál es tu lengua materna?'
         }
       }
     },
@@ -77,17 +81,21 @@ const APP_COPY = {
         intro: {
           title: 'SAY like a Native',
           messageHtml:
-            'HI, WE ARE GOING TO TEACH YOU TO <strong>TRAIN YOUR PRONUNCIATION</strong> AND SPEAK ENGLISH NATURALLY',
+            'Hi, we are going to teach you to <strong>train your pronunciation</strong> and speak English naturally.',
           points: ['Your English will sound better', 'Your confidence will grow']
         },
         level: {
           title: 'SAY like a Native',
-          messageHtml: 'THIS IS THE PLAN THAT WILL MAKE YOU SOUND LIKE A NATIVE IN ONLY 48 DAYS',
-          points: ['EXPLAIN METHODOLOGY']
+          messageHtml: 'This is your step-by-step plan to improve pronunciation in 48 days.',
+          points: [
+            'Short daily sessions',
+            'Listen, repeat, and record yourself',
+            'Improve with instant feedback'
+          ]
         },
         topics: {
           title: 'SAY like a Native',
-          messageHtml: 'WHAT IS YOUR NATIVE LANGUAGE?'
+          messageHtml: 'What is your native language?'
         }
       }
     },

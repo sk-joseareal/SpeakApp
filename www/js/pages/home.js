@@ -137,7 +137,17 @@ class PageHome extends HTMLElement {
     window.addEventListener('app:locale-change', this._localeHandler);
     this._tabsDidChangeHandler = (event) => {
       const tab = event && event.detail ? event.detail.tab : '';
-      if (tab !== 'home') return;
+      if (tab !== 'home') {
+        this.clearNarrationTimer();
+        this.clearBrowserNarrationRetryTimer();
+        this.narrationToken += 1;
+        if (this.planMascotIsTalking) {
+          this.stopNarrationPlayback().catch(() => {});
+        } else {
+          this.stopPlanMascotTalk({ settle: true });
+        }
+        return;
+      }
       const delayMs = this.isNativeRuntime() ? 180 : 90;
       this.schedulePlanNarration(delayMs, false);
     };

@@ -1487,7 +1487,7 @@ ion-modal.login-modal page-login .page-shell {
   margin-left: 8px;
   margin-top: 2px;
   display: inline-flex;
-  align-items: flex-start;
+  align-items: flex-end;
   justify-content: center;
   flex: 0 0 auto;
   position: relative;
@@ -1499,7 +1499,7 @@ ion-modal.login-modal page-login .page-shell {
   height: 100%;
   margin: 0;
   object-fit: contain;
-  object-position: center top;
+  object-position: center bottom;
   display: block;
 }
 
@@ -1512,26 +1512,53 @@ ion-modal.login-modal page-login .page-shell {
   font-size: clamp(1.02rem, 3.6vw, 1.2rem);
   line-height: 1.2;
   font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.01em;
+  text-transform: none;
+  letter-spacing: 0;
   position: relative;
   z-index: 2;
 }
 
 .onboarding-hero-bubble {
-  border: 1px solid transparent;
+  border: 1px solid rgba(255, 255, 255, 0.18);
   box-shadow: none;
-  transition: color 140ms ease, text-shadow 140ms ease, background 180ms ease, border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+  transition:
+    color 180ms ease,
+    text-shadow 180ms ease,
+    background 220ms ease,
+    border-color 220ms ease,
+    box-shadow 220ms ease;
 }
 
 .onboarding-hero-bubble.is-speaking {
-  color: #ffffff;
-  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.28);
-  background: linear-gradient(180deg, #0d63ff 0%, #0046d9 100%);
-  border-color: rgba(255, 255, 255, 0.82);
-  box-shadow: 0 0 0 3px rgba(13, 99, 255, 0.24), 0 12px 22px rgba(0, 70, 217, 0.34);
-  transform: scale(1.01);
-  animation: journey-plan-bubble-speaking-pulse 0.9s ease-in-out infinite;
+  color: #18212c;
+  text-shadow: none;
+  background: linear-gradient(180deg, #f7fbff 0%, #eef5ff 100%);
+  border-color: rgba(80, 145, 255, 0.5);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 8px 16px rgba(11, 67, 171, 0.12),
+    0 0 0 2px rgba(80, 145, 255, 0.12);
+  animation: onboarding-hero-bubble-speaking-glow 1.65s ease-in-out infinite;
+}
+
+.onboarding-hero-bubble.is-speaking strong {
+  color: #0f57d7;
+}
+
+@keyframes onboarding-hero-bubble-speaking-glow {
+  0%,
+  100% {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.9),
+      0 8px 16px rgba(11, 67, 171, 0.12),
+      0 0 0 2px rgba(80, 145, 255, 0.12);
+  }
+  50% {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.95),
+      0 10px 20px rgba(11, 67, 171, 0.16),
+      0 0 0 3px rgba(80, 145, 255, 0.16);
+  }
 }
 
 .onboarding-intro-bubble strong {

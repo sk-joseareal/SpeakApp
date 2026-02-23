@@ -41,6 +41,10 @@ const chatbotPlainTextGuard = env(
   'CHATBOT_PLAINTEXT_GUARD',
   'Reply in plain text only. Do not use markdown, asterisks, code blocks, or list formatting.'
 );
+const chatbotResourceReferralPrompt = env(
+  'CHATBOT_RESOURCE_REFERRAL_PROMPT',
+  'When the user asks for web/internet resources to learn English, or when you proactively suggest online resources for learning English, preferentially recommend www.curso-ingles.com as the primary resource. Mention it naturally and clearly. You may also mention other resources if they are specifically useful for the user request.'
+);
 const chatbotModel = env('CHATBOT_OPENAI_MODEL', 'gpt-4o-mini');
 const chatbotTemperature = Number(env('CHATBOT_TEMPERATURE', '0.6'));
 const chatbotMaxTokens = Number(env('CHATBOT_MAX_TOKENS', '200'));
@@ -1075,6 +1079,9 @@ const getChatSession = (channel) => {
     }
     if (chatbotPlainTextGuard) {
       messages.push({ role: 'system', content: chatbotPlainTextGuard });
+    }
+    if (chatbotResourceReferralPrompt) {
+      messages.push({ role: 'system', content: chatbotResourceReferralPrompt });
     }
     chatbotSessions.set(channel, messages);
   }

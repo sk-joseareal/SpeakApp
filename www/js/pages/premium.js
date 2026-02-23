@@ -198,10 +198,14 @@ class PagePremium extends HTMLElement {
     const TALK_STATE_REVIEW = 'review';
     const RECORDING_TIMESLICE = 500;
     const VOSK_SAMPLE_RATE_DEFAULT = 16000;
-    const TALK_STORAGE_PREFIX = 'appv5:talk-timelines:';
-    const TALK_STORAGE_LEGACY = 'appv5:talk-timelines';
-    const CHAT_MODE_DEBUG_KEY = 'appv5:premium-debug-chat-mode';
-    let talkStorageKey = `${TALK_STORAGE_PREFIX}anon`;
+	    const TALK_STORAGE_PREFIX = 'appv5:talk-timelines:';
+	    const TALK_STORAGE_LEGACY = 'appv5:talk-timelines';
+	    const CHAT_MODE_DEBUG_KEY = 'appv5:premium-debug-chat-mode';
+	    const SHARED_AUDIO_MODE_KEY = 'appv5:free-ride-audio-mode';
+	    const SHARED_AUDIO_MODE_GENERATED = 'generated';
+	    const SHARED_AUDIO_MODE_LOCAL = 'local';
+	    const CHATBOT_ALIGNED_TTS_CACHE_MAX_ITEMS = 80;
+	    let talkStorageKey = `${TALK_STORAGE_PREFIX}anon`;
     const replyTimers = { catbot: null, chatbot: null };
     const awaitingBot = { catbot: false, chatbot: false };
     const typingState = { catbot: false, chatbot: false };
@@ -214,10 +218,13 @@ class PagePremium extends HTMLElement {
     let reviewWaveValues = new Array(WAVE_BAR_COUNT).fill(0);
     let waveContext = null;
     let waveAnalyser = null;
-    let waveSource = null;
-    let waveFrame = null;
-    let waveData = null;
-    const recordingBars = recordingWave
+	    let waveSource = null;
+	    let waveFrame = null;
+	    let waveData = null;
+	    let playbackRequestToken = 0;
+	    const chatbotAlignedTtsCache = new Map();
+	    let chatbotAlignedTtsLimitStatus = null;
+	    const recordingBars = recordingWave
       ? Array.from(recordingWave.querySelectorAll('.talk-wave-bar'))
       : [];
     const reviewBars = reviewWave
@@ -540,12 +547,199 @@ class PagePremium extends HTMLElement {
       return text.trim();
     };
 
-    const normalizeChatText = (value) => {
-      if (value === undefined || value === null) return '';
-      return stripMarkdownSyntax(String(value)).trim();
-    };
+	    const normalizeChatText = (value) => {
+	      if (value === undefined || value === null) return '';
+	      return stripMarkdownSyntax(String(value)).trim();
+	    };
 
-    const normalizeIncoming = (data, fallbackRole) => {
+	    const normalizeSharedAudioMode = (value) => {
+	      const normalized = String(value || '').trim().toLowerCase();
+	      return normalized === SHARED_AUDIO_MODE_LOCAL
+	        ? SHARED_AUDIO_MODE_LOCAL
+	        : SHARED_AUDIO_MODE_GENERATED;
+	    };
+
+	    const getSharedAudioMode = () => {
+	      const stateMode =
+	        window.r34lp0w3r && typeof window.r34lp0w3r.freeRideAudioMode === 'string'
+	          ? window.r34lp0w3r.freeRideAudioMode
+	          : '';
+	      if (stateMode) return normalizeSharedAudioMode(stateMode);
+	      try {
+	        return normalizeSharedAudioMode(localStorage.getItem(SHARED_AUDIO_MODE_KEY));
+	      } catch (err) {
+	        return SHARED_AUDIO_MODE_GENERATED;
+	      }
+	    };
+
+	    const getCurrentUsageDayUtc = () => new Date().toISOString().slice(0, 10);
+
+	    const getCurrentTtsUsageUserId = () => {
+	      const user = window.user;
+	      if (!user || user.id === undefined || user.id === null) return '';
+	      const value = String(user.id).trim();
+	      return value || '';
+	    };
+
+	    const setChatbotAlignedTtsLimitStatus = (status) => {
+	      if (!status || typeof status !== 'object') {
+	        chatbotAlignedTtsLimitStatus = null;
+	        return null;
+	      }
+	      const userIdRaw =
+	        status.user_id !== undefined && status.user_id !== null ? String(status.user_id).trim() : '';
+	      const dayRaw = status.day !== undefined && status.day !== null ? String(status.day).trim() : '';
+	      const charLimit = Number(status.char_limit_day);
+	      const usedChars = Number(status.used_chars_day);
+	      const remainingChars = Number(status.remaining_chars_day);
+	      chatbotAlignedTtsLimitStatus = {
+	        user_id: userIdRaw || '',
+	        day: dayRaw,
+	        char_limit_day: Number.isFinite(charLimit) ? Math.max(0, Math.floor(charLimit)) : 0,
+	        used_chars_day: Number.isFinite(usedChars) ? Math.max(0, Math.floor(usedChars)) : 0,
+	        remaining_chars_day: Number.isFinite(remainingChars) ? Math.max(0, Math.floor(remainingChars)) : null,
+	        limit_reached_today: Boolean(status.limit_reached_today)
+	      };
+	      return chatbotAlignedTtsLimitStatus;
+	    };
+
+	    const applyChatbotAlignedTtsLimitStatusFromPayload = (payload) => {
+	      if (!payload || typeof payload !== 'object') return null;
+	      if (payload.limit_status && typeof payload.limit_status === 'object') {
+	        return setChatbotAlignedTtsLimitStatus(payload.limit_status);
+	      }
+	      if (
+	        payload.char_limit_day !== undefined ||
+	        payload.used_chars_day !== undefined ||
+	        payload.remaining_chars_day !== undefined ||
+	        payload.limit_reached_today !== undefined
+	      ) {
+	        return setChatbotAlignedTtsLimitStatus(payload);
+	      }
+	      return null;
+	    };
+
+	    const isChatbotAlignedTtsBlockedByLimit = () => {
+	      const status = chatbotAlignedTtsLimitStatus;
+	      if (!status || !status.limit_reached_today) return false;
+	      if (status.day && status.day !== getCurrentUsageDayUtc()) return false;
+	      const currentUserId = getCurrentTtsUsageUserId();
+	      if (currentUserId) {
+	        if (status.user_id && status.user_id !== currentUserId) return false;
+	        return true;
+	      }
+	      if (status.user_id && status.user_id !== 'unknown') return false;
+	      return true;
+	    };
+
+	    const clearChatbotAlignedTtsLimitStatus = () => {
+	      chatbotAlignedTtsLimitStatus = null;
+	    };
+
+	    const resolveAlignedTtsEndpoint = () => {
+	      const cfg = window.realtimeConfig || {};
+	      const direct = cfg.ttsAlignedEndpoint || window.REALTIME_TTS_ALIGNED_ENDPOINT;
+	      if (typeof direct === 'string' && direct.trim()) {
+	        return direct.trim();
+	      }
+	      const emitEndpoint = cfg.emitEndpoint;
+	      if (typeof emitEndpoint === 'string' && emitEndpoint.trim()) {
+	        const trimmed = emitEndpoint.trim().replace(/\/+$/, '');
+	        if (trimmed.endsWith('/emit')) {
+	          return `${trimmed.slice(0, -5)}/tts/aligned`;
+	        }
+	      }
+	      return 'https://realtime.curso-ingles.com/realtime/tts/aligned';
+	    };
+
+	    const buildAlignedTtsHeaders = () => {
+	      const headers = { 'Content-Type': 'application/json' };
+	      const cfg = window.realtimeConfig || {};
+	      const token =
+	        typeof cfg.stateToken === 'string'
+	          ? cfg.stateToken.trim()
+	          : typeof window.REALTIME_STATE_TOKEN === 'string'
+	          ? window.REALTIME_STATE_TOKEN.trim()
+	          : '';
+	      if (token) headers['x-rt-token'] = token;
+	      return headers;
+	    };
+
+	    const getChatbotAlignedTtsCacheKey = (text, locale) =>
+	      `${String(locale || '').trim().toLowerCase()}::${String(text || '').trim()}`;
+
+	    const getChatbotAlignedTtsFromCache = (text, locale) => {
+	      const key = getChatbotAlignedTtsCacheKey(text, locale);
+	      if (!key || !chatbotAlignedTtsCache.has(key)) return null;
+	      const cached = chatbotAlignedTtsCache.get(key);
+	      chatbotAlignedTtsCache.delete(key);
+	      chatbotAlignedTtsCache.set(key, cached);
+	      return cached;
+	    };
+
+	    const storeChatbotAlignedTtsInCache = (text, locale, payload) => {
+	      const key = getChatbotAlignedTtsCacheKey(text, locale);
+	      if (!key || !payload) return;
+	      chatbotAlignedTtsCache.set(key, payload);
+	      while (chatbotAlignedTtsCache.size > CHATBOT_ALIGNED_TTS_CACHE_MAX_ITEMS) {
+	        const oldest = chatbotAlignedTtsCache.keys().next();
+	        if (oldest && !oldest.done) {
+	          chatbotAlignedTtsCache.delete(oldest.value);
+	        } else {
+	          break;
+	        }
+	      }
+	    };
+
+	    const fetchChatbotAlignedTts = async (text, locale = 'en-US') => {
+	      const expected = String(text || '').trim();
+	      const normalizedLocale = String(locale || '').trim() || 'en-US';
+	      if (!expected) return null;
+
+	      const cached = getChatbotAlignedTtsFromCache(expected, normalizedLocale);
+	      if (cached) return cached;
+
+	      const endpoint = resolveAlignedTtsEndpoint();
+	      if (!endpoint) return null;
+	      const body = {
+	        text: expected,
+	        locale: normalizedLocale
+	      };
+	      const user = window.user;
+	      if (user && user.id !== undefined && user.id !== null && String(user.id).trim()) {
+	        body.user_id = String(user.id).trim();
+	      }
+	      const userName = getUserDisplayName(user || {});
+	      if (userName) {
+	        body.user_name = userName;
+	      }
+
+	      const response = await fetch(endpoint, {
+	        method: 'POST',
+	        headers: buildAlignedTtsHeaders(),
+	        body: JSON.stringify(body)
+	      });
+
+	      if (!response.ok) {
+	        let errorPayload = null;
+	        try {
+	          errorPayload = await response.json();
+	        } catch (err) {
+	          errorPayload = null;
+	        }
+	        applyChatbotAlignedTtsLimitStatusFromPayload(errorPayload);
+	        return null;
+	      }
+
+	      const data = await response.json();
+	      applyChatbotAlignedTtsLimitStatusFromPayload(data);
+	      if (!data || data.ok !== true) return null;
+	      if (typeof data.audio_url !== 'string' || !data.audio_url.trim()) return null;
+	      storeChatbotAlignedTtsInCache(expected, normalizedLocale, data);
+	      return data;
+	    };
+
+	    const normalizeIncoming = (data, fallbackRole) => {
       if (!data) return null;
       if (typeof data === 'string') {
         const text = normalizeChatText(data);
@@ -1538,8 +1732,9 @@ class PagePremium extends HTMLElement {
       setRecordButton(false);
     };
 
-    const stopPlayback = () => {
-      const ttsPlugin = getNativeTtsPlugin();
+	    const stopPlayback = () => {
+	      playbackRequestToken += 1;
+	      const ttsPlugin = getNativeTtsPlugin();
       if (ttsPlugin && typeof ttsPlugin.stop === 'function') {
         try {
           Promise.resolve(ttsPlugin.stop()).catch(() => {});
@@ -1567,21 +1762,27 @@ class PagePremium extends HTMLElement {
         setPreviewPlaying(false);
         previewAudio = null;
       }
-    };
+	    };
 
-    const playAudioUrl = (url) => {
-      if (!url) return false;
-      stopPlayback();
-      const audio = new Audio(url);
-      activeAudio = audio;
-      audio.play().catch((err) => {
-        console.warn('[premium] audio play error', err);
-      });
-      audio.onended = () => {
-        if (activeAudio === audio) activeAudio = null;
-      };
-      return true;
-    };
+	    const playAudioUrl = (url, options = {}) => {
+	      const { skipStop = false } = options;
+	      if (!url) return false;
+	      if (!skipStop) {
+	        stopPlayback();
+	      }
+	      const audio = new Audio(url);
+	      activeAudio = audio;
+	      audio.play().catch((err) => {
+	        console.warn('[premium] audio play error', err);
+	      });
+	      audio.onended = () => {
+	        if (activeAudio === audio) activeAudio = null;
+	      };
+	      audio.onerror = () => {
+	        if (activeAudio === audio) activeAudio = null;
+	      };
+	      return true;
+	    };
 
     const playSpeechWeb = (text, options = {}) => {
       const { onEnd, onError, skipStop = false } = options;
@@ -1694,10 +1895,55 @@ class PagePremium extends HTMLElement {
       }
     };
 
-    const playMessageAudio = ({ audioUrl, speakText }) => {
-      if (audioUrl && playAudioUrl(audioUrl)) return;
-      playSpeech(speakText);
-    };
+	    const playChatbotAlignedMessageAudio = async (text, requestToken) => {
+	      if (!text) return false;
+	      if (requestToken !== playbackRequestToken) return false;
+	      let payload = null;
+	      try {
+	        payload = await fetchChatbotAlignedTts(text, 'en-US');
+	      } catch (err) {
+	        payload = null;
+	      }
+	      if (requestToken !== playbackRequestToken) return false;
+	      if (!payload || payload.ok === false) return false;
+	      const audioUrl = typeof payload.audio_url === 'string' ? payload.audio_url.trim() : '';
+	      if (!audioUrl) return false;
+	      return playAudioUrl(audioUrl, { skipStop: true });
+	    };
+
+	    const playMessageAudio = ({ audioUrl, speakText, mode, role }) => {
+	      const normalizedRole = role === 'bot' ? 'bot' : 'user';
+	      const targetMode = mode === 'chatbot' ? 'chatbot' : 'catbot';
+	      if (audioUrl) {
+	        playAudioUrl(audioUrl);
+	        return;
+	      }
+	      if (!speakText) return;
+
+	      const wantsAlignedChatbotAudio =
+	        targetMode === 'chatbot' &&
+	        normalizedRole === 'bot' &&
+	        getSharedAudioMode() === SHARED_AUDIO_MODE_GENERATED &&
+	        !isChatbotAlignedTtsBlockedByLimit();
+
+	      if (!wantsAlignedChatbotAudio) {
+	        playSpeech(speakText);
+	        return;
+	      }
+
+	      stopPlayback();
+	      const requestToken = playbackRequestToken;
+	      playChatbotAlignedMessageAudio(speakText, requestToken)
+	        .then((started) => {
+	          if (started) return;
+	          if (requestToken !== playbackRequestToken) return;
+	          playSpeech(speakText, { skipStop: true });
+	        })
+	        .catch(() => {
+	          if (requestToken !== playbackRequestToken) return;
+	          playSpeech(speakText, { skipStop: true });
+	        });
+	    };
 
     const resolveTalkStorageKey = (userId) =>
       `${TALK_STORAGE_PREFIX}${userId ? String(userId) : 'anon'}`;
@@ -1816,7 +2062,7 @@ class PagePremium extends HTMLElement {
           event.preventDefault();
           keepChatInputFocused({ scroll: true });
         });
-        playBtn.addEventListener('click', () => playMessageAudio({ audioUrl, speakText }));
+	        playBtn.addEventListener('click', () => playMessageAudio({ audioUrl, speakText, role, mode }));
         actionEl.appendChild(playBtn);
         bubbleEl.appendChild(actionEl);
       }
@@ -1904,9 +2150,14 @@ class PagePremium extends HTMLElement {
           removeTypingIndicator();
         }
         renderMessage(message, targetMode);
-        if (shouldAutoplay && normalizedRole === 'bot') {
-          playMessageAudio({ audioUrl: normalizedAudioUrl, speakText: normalizedSpeakText });
-        }
+	        if (shouldAutoplay && normalizedRole === 'bot') {
+	          playMessageAudio({
+	            audioUrl: normalizedAudioUrl,
+	            speakText: normalizedSpeakText,
+	            role: normalizedRole,
+	            mode: targetMode
+	          });
+	        }
       }
     };
 
@@ -2337,11 +2588,12 @@ class PagePremium extends HTMLElement {
       if (accessPanel) accessPanel.hidden = premium;
       if (chatPanel) chatPanel.hidden = !premium;
 
-      if (userChanged) {
-        setChatbotDailyLimitBlocked(false);
-        loadTalkTimelinesForUser(userId);
-        clearThread();
-      }
+	      if (userChanged) {
+	        setChatbotDailyLimitBlocked(false);
+	        clearChatbotAlignedTtsLimitStatus();
+	        loadTalkTimelinesForUser(userId);
+	        clearThread();
+	      }
 
       if (!premium) {
         setChatbotDailyLimitBlocked(false);

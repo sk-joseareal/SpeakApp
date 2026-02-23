@@ -172,6 +172,10 @@
             Cancel queue before speak
           </label>
           <label class="check">
+            <input id="robustChromeMode" type="checkbox" checked>
+            Robust Chrome workaround
+          </label>
+          <label class="check">
             <input id="logBoundary" type="checkbox">
             Log boundary events
           </label>
@@ -198,6 +202,7 @@
       const rateEl = document.getElementById('ttsRate');
       const pitchEl = document.getElementById('ttsPitch');
       const cancelBeforeEl = document.getElementById('cancelBefore');
+      const robustChromeModeEl = document.getElementById('robustChromeMode');
       const logBoundaryEl = document.getElementById('logBoundary');
       const refreshBtn = document.getElementById('btnRefreshVoices');
       const playBtn = document.getElementById('btnPlay');
@@ -212,6 +217,8 @@
       let pollTimer = null;
       let startWatchdog = null;
       let stuckWatchdog = null;
+      let activeRun = null;
+      let runSeq = 0;
 
       function now() {
         return new Date().toLocaleTimeString();
@@ -243,6 +250,86 @@
         }
       }
 
+      function isChromeLikeBrowser() {
+        const ua = String(navigator.userAgent || '');
+        const isChromium = /Chrome|CriOS|Chromium/.test(ua);
+        const isExcluded = /Edg|OPR|SamsungBrowser|DuckDuckGo/.test(ua);
+        return isChromium && !isExcluded;
+      }
+
+      function wait(ms) {
+        return new Promise(function (resolve) {
+          setTimeout(resolve, Math.max(0, Number(ms) || 0));
+        });
+      }
+
+      function voiceKey(voice) {
+        if (!voice) return '';
+        return String(voice.voiceURI || voice.name || '') + '|' + String(voice.lang || '');
+      }
+
+      function normalizeLang(value) {
+        return String(value || '').toLowerCase();
+      }
+
+      function scoreVoiceForChrome(voice, lang) {
+        if (!voice) return -9999;
+        const voiceLang = normalizeLang(voice.lang);
+        const target = normalizeLang(lang);
+        const targetPrefix = target.split('-')[0];
+        const voiceName = String(voice.name || '');
+        let score = 0;
+        if (voiceLang === target) score += 120;
+        else if (targetPrefix && voiceLang.indexOf(targetPrefix) === 0) score += 70;
+        if (/Google/i.test(voiceName)) score += 50;
+        if (voice.localService) score += 18;
+        if (voice.default) score += 10;
+        if (/Samantha/i.test(voiceName)) score -= 20;
+        return score;
+      }
+
+      function buildChromeVoiceAttempts(lang, selectedVoice) {
+        const attempts = [];
+        const seen = new Set();
+
+        function pushAttempt(kind, voice, label) {
+          const key = voice ? voiceKey(voice) : 'auto';
+          if (seen.has(key)) return;
+          seen.add(key);
+          attempts.push({
+            kind: kind,
+            voice: voice || null,
+            label: label || (voice ? voice.name + ' [' + voice.lang + ']' : '(auto)')
+          });
+        }
+
+        if (selectedVoice) {
+          pushAttempt('selected', selectedVoice, 'selected: ' + selectedVoice.name + ' [' + selectedVoice.lang + ']');
+        }
+        pushAttempt('auto', null, '(auto)');
+
+        const targetLang = normalizeLang(lang || 'en-US');
+        const matches = (voicesCache || [])
+          .filter(function (voice) {
+            if (!voice) return false;
+            const voiceLang = normalizeLang(voice.lang);
+            if (!voiceLang) return false;
+            if (voiceLang === targetLang) return true;
+            const prefix = targetLang.split('-')[0];
+            return prefix && voiceLang.indexOf(prefix) === 0;
+          })
+          .slice()
+          .sort(function (a, b) {
+            return scoreVoiceForChrome(b, targetLang) - scoreVoiceForChrome(a, targetLang);
+          });
+
+        matches.slice(0, 4).forEach(function (voice) {
+          pushAttempt('fallback', voice, 'fallback: ' + voice.name + ' [' + voice.lang + ']');
+        });
+
+        return attempts;
+      }
+
       function renderVoices() {
         if (!synth || typeof synth.getVoices !== 'function') return;
         voicesCache = synth.getVoices() || [];
@@ -262,6 +349,10 @@
 
       function stopSpeaking(reason) {
         if (!synth) return;
+        if (activeRun) {
+          activeRun.stopped = true;
+          activeRun = null;
+        }
         clearTimers();
         activeUtter = null;
         try {
@@ -308,6 +399,278 @@
           activeUtter = null;
           setStatus('Stuck speaking timeout: canceled.', '#b91c1c');
         }, maxSpeakMs);
+      }
+
+      function startPollRobust(run, attempt, textLen) {
+        clearTimers();
+        pollTimer = setInterval(function () {
+          if (!synth || !activeRun || activeRun.id !== run.id) return;
+          log('poll', {
+            speaking: !!synth.speaking,
+            pending: !!synth.pending,
+            paused: !!synth.paused,
+            attempt: attempt.index + 1
+          });
+        }, 700);
+
+        startWatchdog = setTimeout(function () {
+          if (!activeRun || activeRun.id !== run.id) return;
+          if (run.attemptToken !== attempt.token) return;
+          if (attempt.started) return;
+
+          log('watchdog: no-start', {
+            attempt: attempt.index + 1,
+            speaking: !!(synth && synth.speaking),
+            pending: !!(synth && synth.pending),
+            voice: attempt.voice ? attempt.voice.name : '(auto)'
+          });
+
+          if (run.nextAttempt) {
+            run.internalRetry = true;
+            try {
+              synth.cancel();
+            } catch (err) {
+              // no-op
+            }
+            clearTimers();
+            run.nextAttempt('no-start');
+            return;
+          }
+
+          setStatus('No start after retries (Chrome/Web Speech issue).', '#b91c1c');
+        }, 2800);
+
+        const maxSpeakMs = Math.max(5000, Math.min(18000, 2400 + Number(textLen || 0) * 125));
+        stuckWatchdog = setTimeout(function () {
+          if (!activeRun || activeRun.id !== run.id) return;
+          if (run.attemptToken !== attempt.token) return;
+          if (!synth) return;
+          if (!synth.speaking && !synth.pending) return;
+
+          log('watchdog: stuck-speaking', {
+            attempt: attempt.index + 1,
+            speaking: !!synth.speaking,
+            pending: !!synth.pending,
+            started: !!attempt.started,
+            timeoutMs: maxSpeakMs
+          });
+
+          if (!attempt.started && run.nextAttempt) {
+            run.internalRetry = true;
+            try {
+              synth.cancel();
+            } catch (err) {
+              // no-op
+            }
+            clearTimers();
+            run.nextAttempt('stuck-no-start');
+            return;
+          }
+
+          try {
+            synth.cancel();
+          } catch (err) {
+            // no-op
+          }
+          clearTimers();
+          activeUtter = null;
+          activeRun = null;
+          setStatus('Stuck speaking timeout: canceled.', '#b91c1c');
+        }, maxSpeakMs);
+      }
+
+      function playTtsRobust() {
+        if (!synth || typeof window.SpeechSynthesisUtterance === 'undefined') {
+          setStatus('Web Speech API not available.', '#b91c1c');
+          return;
+        }
+
+        const text = String(textEl.value || '').trim();
+        if (!text) {
+          setStatus('Text is empty.', '#b91c1c');
+          return;
+        }
+
+        const lang = langEl.value || 'en-US';
+        const rate = Math.max(0.1, Number(rateEl.value || 1));
+        const pitch = Math.max(0, Number(pitchEl.value || 1));
+
+        const selectedIndex = voiceEl.value;
+        let chosenVoice = null;
+        if (selectedIndex !== '') {
+          const idx = Number(selectedIndex);
+          if (Number.isInteger(idx) && voicesCache[idx]) {
+            chosenVoice = voicesCache[idx];
+          }
+        }
+
+        const chromeLike = isChromeLikeBrowser();
+        const attempts = chromeLike
+          ? buildChromeVoiceAttempts(lang, chosenVoice)
+          : [{
+              kind: chosenVoice ? 'selected' : 'auto',
+              voice: chosenVoice || null,
+              label: chosenVoice ? ('selected: ' + chosenVoice.name + ' [' + chosenVoice.lang + ']') : '(auto)'
+            }];
+
+        if (!attempts.length) {
+          setStatus('No voice attempts available.', '#b91c1c');
+          return;
+        }
+
+        stopSpeaking('restart');
+
+        const run = {
+          id: ++runSeq,
+          stopped: false,
+          internalRetry: false,
+          attemptToken: 0,
+          attemptIndex: -1,
+          attempts: attempts
+        };
+        activeRun = run;
+
+        setStatus('Requested (robust mode)...', '#1d4ed8');
+
+        const nextAttempt = async function (reason) {
+          if (!activeRun || activeRun.id !== run.id || run.stopped) return;
+          run.attemptIndex += 1;
+          if (run.attemptIndex >= run.attempts.length) {
+            activeRun = null;
+            activeUtter = null;
+            clearTimers();
+            log('robust: exhausted attempts');
+            setStatus('No working voice found (Chrome/Web Speech issue).', '#b91c1c');
+            return;
+          }
+
+          const attemptMeta = run.attempts[run.attemptIndex];
+          const attempt = {
+            index: run.attemptIndex,
+            token: ++run.attemptToken,
+            started: false,
+            finished: false,
+            voice: attemptMeta.voice || null
+          };
+          run.internalRetry = false;
+          run.nextAttempt = function (retryReason) {
+            if (!activeRun || activeRun.id !== run.id || run.stopped) return;
+            log('robust: retry', { reason: retryReason, nextAttempt: run.attemptIndex + 2 });
+            setTimeout(function () {
+              nextAttempt(retryReason);
+            }, 140);
+          };
+
+          clearTimers();
+          activeUtter = null;
+
+          try {
+            if (typeof synth.cancel === 'function') synth.cancel();
+          } catch (err) {
+            // no-op
+          }
+          try {
+            if (typeof synth.resume === 'function') synth.resume();
+          } catch (err) {
+            // no-op
+          }
+          await wait(cancelBeforeEl.checked ? 120 : 40);
+          if (!activeRun || activeRun.id !== run.id || run.stopped) return;
+          if (run.attemptToken !== attempt.token) return;
+
+          const utter = new SpeechSynthesisUtterance(text);
+          utter.lang = lang;
+          utter.rate = rate;
+          utter.pitch = pitch;
+          utter.volume = 1;
+          if (attemptMeta.voice) {
+            utter.voice = attemptMeta.voice;
+          }
+
+          utter.onstart = function () {
+            if (!activeRun || activeRun.id !== run.id || run.attemptToken !== attempt.token) return;
+            attempt.started = true;
+            log('event:onstart', {
+              lang: utter.lang,
+              voice: utter.voice ? utter.voice.name : null,
+              attempt: attempt.index + 1
+            });
+            setStatus('Speaking... (attempt ' + (attempt.index + 1) + ')', '#0f766e');
+          };
+          utter.onend = function () {
+            if (!activeRun || activeRun.id !== run.id || run.attemptToken !== attempt.token) return;
+            attempt.finished = true;
+            log('event:onend', { attempt: attempt.index + 1 });
+            clearTimers();
+            activeUtter = null;
+            activeRun = null;
+            setStatus('Done.', '#0f766e');
+          };
+          utter.onerror = function (event) {
+            if (!activeRun || activeRun.id !== run.id || run.attemptToken !== attempt.token) return;
+            const errorCode = event && event.error ? event.error : 'unknown';
+            if (run.internalRetry && errorCode === 'canceled') {
+              log('event:onerror (ignored)', { error: errorCode, attempt: attempt.index + 1 });
+              return;
+            }
+            log('event:onerror', { error: errorCode, attempt: attempt.index + 1 });
+            clearTimers();
+            activeUtter = null;
+            if (!attempt.started && run.attemptIndex < run.attempts.length - 1) {
+              run.nextAttempt('onerror:' + errorCode);
+              return;
+            }
+            activeRun = null;
+            setStatus('Error: ' + errorCode, '#b91c1c');
+          };
+          utter.onpause = function () {
+            if (!activeRun || activeRun.id !== run.id || run.attemptToken !== attempt.token) return;
+            log('event:onpause', { attempt: attempt.index + 1 });
+          };
+          utter.onresume = function () {
+            if (!activeRun || activeRun.id !== run.id || run.attemptToken !== attempt.token) return;
+            log('event:onresume', { attempt: attempt.index + 1 });
+          };
+          utter.onboundary = function (event) {
+            if (!logBoundaryEl.checked) return;
+            if (!activeRun || activeRun.id !== run.id || run.attemptToken !== attempt.token) return;
+            log('event:onboundary', {
+              attempt: attempt.index + 1,
+              name: event && event.name ? event.name : '',
+              charIndex: event && typeof event.charIndex === 'number' ? event.charIndex : -1
+            });
+          };
+
+          activeUtter = utter;
+          log('speak() [robust]', {
+            attempt: attempt.index + 1,
+            attemptsTotal: run.attempts.length,
+            reason: reason || 'initial',
+            lang: utter.lang,
+            rate: utter.rate,
+            pitch: utter.pitch,
+            voice: utter.voice ? utter.voice.name : '(auto)',
+            label: attemptMeta.label,
+            textLen: text.length
+          });
+
+          try {
+            synth.speak(utter);
+            startPollRobust(run, attempt, text.length);
+          } catch (err) {
+            log('exception', { message: err && err.message ? err.message : String(err) });
+            if (run.attemptIndex < run.attempts.length - 1) {
+              run.nextAttempt('exception');
+              return;
+            }
+            clearTimers();
+            activeUtter = null;
+            activeRun = null;
+            setStatus('Exception: ' + (err && err.message ? err.message : String(err)), '#b91c1c');
+          }
+        };
+
+        nextAttempt('initial');
       }
 
       function playTts() {
@@ -413,7 +776,13 @@
         }
 
         refreshBtn.addEventListener('click', renderVoices);
-        playBtn.addEventListener('click', playTts);
+        playBtn.addEventListener('click', function () {
+          if (robustChromeModeEl && robustChromeModeEl.checked && isChromeLikeBrowser()) {
+            playTtsRobust();
+            return;
+          }
+          playTts();
+        });
         stopBtn.addEventListener('click', function () { stopSpeaking('manual'); });
         clearLogBtn.addEventListener('click', function () { logEl.textContent = ''; });
 

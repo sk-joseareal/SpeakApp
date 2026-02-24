@@ -25,6 +25,10 @@ const FREE_RIDE_ALIGNED_CACHE_MAX_ITEMS = 36;
 const FREE_RIDE_AUDIO_MODE_KEY = 'appv5:free-ride-audio-mode';
 const FREE_RIDE_AUDIO_MODE_GENERATED = 'generated';
 const FREE_RIDE_AUDIO_MODE_LOCAL = 'local';
+const FREE_RIDE_EVAL_MODE_KEY = 'appv5:free-ride-eval-mode';
+const FREE_RIDE_EVAL_MODE_STANDARD = 'standard';
+const FREE_RIDE_EVAL_MODE_ADVANCED = 'advanced';
+const FREE_RIDE_ADVANCED_AUDIO_SAMPLE_RATE = 16000;
 
 const DEFAULT_TONE_SCALE = [
   { min: 80, tone: 'good' },
@@ -43,7 +47,9 @@ class PageFreeRide extends HTMLElement {
       recentReward: null,
       recordingUrl: '',
       isRecording: false,
-      isTranscribing: false
+      isTranscribing: false,
+      advancedAssessment: null,
+      advancedAssessmentPending: false
     };
 
     this.currentUiLocale = 'en';
@@ -74,6 +80,8 @@ class PageFreeRide extends HTMLElement {
     this.keyboardResizeRequestId = 0;
     this.alignedTtsCache = new Map();
     this.alignedTtsLimitStatus = null;
+    this.advancedAssessLimitStatus = null;
+    this.advancedAssessRequestToken = 0;
     this.phraseHighlightRaf = null;
     this.phraseHighlightTimeline = [];
     this.phraseHighlightTokenEls = [];
@@ -102,6 +110,8 @@ class PageFreeRide extends HTMLElement {
     this._userHandler = (event) => {
       this.updateHeaderUser(event && event.detail ? event.detail : null);
       this.clearAlignedTtsLimitStatus();
+      this.clearAdvancedAssessLimitStatus();
+      this.clearAdvancedAssessmentState({ skipRender: true });
       this.updatePhrasePreview(this.currentCopy);
     };
     window.addEventListener('app:user-change', this._userHandler);
@@ -291,6 +301,42 @@ class PageFreeRide extends HTMLElement {
     return normalized;
   }
 
+  normalizeFreeRideEvalMode(value) {
+    const normalized = String(value || '')
+      .trim()
+      .toLowerCase();
+    return normalized === FREE_RIDE_EVAL_MODE_ADVANCED
+      ? FREE_RIDE_EVAL_MODE_ADVANCED
+      : FREE_RIDE_EVAL_MODE_STANDARD;
+  }
+
+  getFreeRideEvalMode() {
+    const modeFromState =
+      window.r34lp0w3r && typeof window.r34lp0w3r.freeRideEvalMode === 'string'
+        ? window.r34lp0w3r.freeRideEvalMode
+        : '';
+    if (modeFromState) {
+      return this.normalizeFreeRideEvalMode(modeFromState);
+    }
+    try {
+      return this.normalizeFreeRideEvalMode(localStorage.getItem(FREE_RIDE_EVAL_MODE_KEY));
+    } catch (err) {
+      return FREE_RIDE_EVAL_MODE_STANDARD;
+    }
+  }
+
+  setFreeRideEvalMode(mode) {
+    const normalized = this.normalizeFreeRideEvalMode(mode);
+    window.r34lp0w3r = window.r34lp0w3r || {};
+    window.r34lp0w3r.freeRideEvalMode = normalized;
+    try {
+      localStorage.setItem(FREE_RIDE_EVAL_MODE_KEY, normalized);
+    } catch (err) {
+      // no-op
+    }
+    return normalized;
+  }
+
   getCurrentUsageDayUtc() {
     return new Date().toISOString().slice(0, 10);
   }
@@ -304,6 +350,10 @@ class PageFreeRide extends HTMLElement {
 
   clearAlignedTtsLimitStatus() {
     this.alignedTtsLimitStatus = null;
+  }
+
+  clearAdvancedAssessLimitStatus() {
+    this.advancedAssessLimitStatus = null;
   }
 
   setAlignedTtsLimitStatus(status) {
@@ -329,6 +379,35 @@ class PageFreeRide extends HTMLElement {
     return normalized;
   }
 
+  setAdvancedAssessLimitStatus(status) {
+    if (!status || typeof status !== 'object') {
+      this.advancedAssessLimitStatus = null;
+      return null;
+    }
+    const userIdRaw =
+      status.user_id !== undefined && status.user_id !== null ? String(status.user_id).trim() : '';
+    const dayRaw = status.day !== undefined && status.day !== null ? String(status.day).trim() : '';
+    const secondsLimit = Number(status.seconds_limit_day);
+    const usedSeconds = Number(status.used_seconds_day);
+    const remainingSeconds = Number(status.remaining_seconds_day);
+    const normalized = {
+      user_id: userIdRaw || '',
+      day: dayRaw,
+      seconds_limit_day: Number.isFinite(secondsLimit)
+        ? Math.max(0, Math.floor(secondsLimit))
+        : 0,
+      used_seconds_day: Number.isFinite(usedSeconds)
+        ? Math.max(0, Number(usedSeconds.toFixed(3)))
+        : 0,
+      remaining_seconds_day: Number.isFinite(remainingSeconds)
+        ? Math.max(0, Number(remainingSeconds.toFixed(3)))
+        : null,
+      limit_reached_today: Boolean(status.limit_reached_today)
+    };
+    this.advancedAssessLimitStatus = normalized;
+    return normalized;
+  }
+
   applyAlignedTtsLimitStatusFromPayload(payload) {
     if (!payload || typeof payload !== 'object') return null;
     if (payload.limit_status && typeof payload.limit_status === 'object') {
@@ -345,8 +424,37 @@ class PageFreeRide extends HTMLElement {
     return null;
   }
 
+  applyAdvancedAssessLimitStatusFromPayload(payload) {
+    if (!payload || typeof payload !== 'object') return null;
+    if (payload.limit_status && typeof payload.limit_status === 'object') {
+      return this.setAdvancedAssessLimitStatus(payload.limit_status);
+    }
+    if (
+      payload.seconds_limit_day !== undefined ||
+      payload.used_seconds_day !== undefined ||
+      payload.remaining_seconds_day !== undefined ||
+      payload.limit_reached_today !== undefined
+    ) {
+      return this.setAdvancedAssessLimitStatus(payload);
+    }
+    return null;
+  }
+
   isAlignedTtsBlockedByLimit() {
     const status = this.alignedTtsLimitStatus;
+    if (!status || !status.limit_reached_today) return false;
+    if (status.day && status.day !== this.getCurrentUsageDayUtc()) return false;
+    const currentUserId = this.getCurrentTtsUsageUserId();
+    if (currentUserId) {
+      if (status.user_id && status.user_id !== currentUserId) return false;
+      return true;
+    }
+    if (status.user_id && status.user_id !== 'unknown') return false;
+    return true;
+  }
+
+  isAdvancedAssessBlockedByLimit() {
+    const status = this.advancedAssessLimitStatus;
     if (!status || !status.limit_reached_today) return false;
     if (status.day && status.day !== this.getCurrentUsageDayUtc()) return false;
     const currentUserId = this.getCurrentTtsUsageUserId();
@@ -365,6 +473,17 @@ class PageFreeRide extends HTMLElement {
       this.isAlignedTtsBlockedByLimit()
     ) {
       return FREE_RIDE_AUDIO_MODE_LOCAL;
+    }
+    return selectedMode;
+  }
+
+  getEffectiveFreeRideEvalMode() {
+    const selectedMode = this.getFreeRideEvalMode();
+    if (
+      selectedMode === FREE_RIDE_EVAL_MODE_ADVANCED &&
+      this.isAdvancedAssessBlockedByLimit()
+    ) {
+      return FREE_RIDE_EVAL_MODE_STANDARD;
     }
     return selectedMode;
   }
@@ -851,6 +970,170 @@ class PageFreeRide extends HTMLElement {
     if (typeof data.audio_url !== 'string' || !data.audio_url.trim()) return null;
     this.storeAlignedTtsInCache(expected, locale, data);
     return data;
+  }
+
+  resolvePronunciationAssessEndpoint() {
+    const cfg = window.realtimeConfig || {};
+    const direct = cfg.pronunciationAssessEndpoint || window.REALTIME_PRONUNCIATION_ASSESS_ENDPOINT;
+    if (typeof direct === 'string' && direct.trim()) {
+      return direct.trim();
+    }
+    const emitEndpoint = cfg.emitEndpoint;
+    if (typeof emitEndpoint === 'string' && emitEndpoint.trim()) {
+      const trimmed = emitEndpoint.trim().replace(/\/+$/, '');
+      if (trimmed.endsWith('/emit')) {
+        return `${trimmed.slice(0, -5)}/pronunciation/assess`;
+      }
+    }
+    return 'https://realtime.curso-ingles.com/realtime/pronunciation/assess';
+  }
+
+  clearAdvancedAssessmentState(options = {}) {
+    this.advancedAssessRequestToken += 1;
+    this.state.advancedAssessment = null;
+    this.state.advancedAssessmentPending = false;
+    if (!options.skipRender) {
+      this.render();
+    }
+  }
+
+  setAdvancedAssessmentPending(pending, options = {}) {
+    this.state.advancedAssessmentPending = Boolean(pending);
+    if (!pending && options.clearResult) {
+      this.state.advancedAssessment = null;
+    }
+    if (!options.skipRender) {
+      this.render();
+    }
+  }
+
+  setAdvancedAssessmentResult(result, options = {}) {
+    this.state.advancedAssessment = result && typeof result === 'object' ? result : null;
+    this.state.advancedAssessmentPending = false;
+    if (!options.skipRender) {
+      this.render();
+    }
+  }
+
+  getAdvancedAssessmentSummaryText() {
+    if (this.state.advancedAssessmentPending) return 'Evaluando...';
+    const result = this.state.advancedAssessment;
+    if (!result || typeof result !== 'object') return 'n/d';
+    if (result.ok === false) {
+      return result.error_label || result.error || 'error';
+    }
+    const scores = result.scores && typeof result.scores === 'object' ? result.scores : {};
+    const parts = [];
+    const pushScore = (label, value) => {
+      if (typeof value === 'number' && Number.isFinite(value)) {
+        parts.push(`${label}${Math.round(value)}`);
+      }
+    };
+    pushScore('O', scores.overall);
+    pushScore('A', scores.accuracy);
+    pushScore('F', scores.fluency);
+    pushScore('C', scores.completeness);
+    pushScore('P', scores.prosody);
+    if (!parts.length) {
+      const status = String(result.recognition_status || '').trim();
+      return status || 'ok';
+    }
+    return parts.join(' · ');
+  }
+
+  async fetchAdvancedPronunciationAssessment(expectedText, recordingBlob) {
+    const expected = String(expectedText || '').trim();
+    if (!expected || !recordingBlob) return null;
+    const endpoint = this.resolvePronunciationAssessEndpoint();
+    if (!endpoint) return null;
+
+    const prepared = await this.prepareAdvancedAssessmentAudio(recordingBlob);
+    const preparedBlob = prepared && prepared.blob ? prepared.blob : recordingBlob;
+    const audioBase64 = await this.blobToBase64(preparedBlob);
+    const body = {
+      expected_text: expected,
+      locale: this.getPracticeSpeechLocale(),
+      audio_base64: audioBase64,
+      audio_content_type: preparedBlob.type || 'audio/wav',
+      audio_duration_sec:
+        prepared && typeof prepared.durationSeconds === 'number' ? prepared.durationSeconds : undefined
+    };
+
+    const user = window.user;
+    if (user && user.id !== undefined && user.id !== null && String(user.id).trim()) {
+      body.user_id = String(user.id).trim();
+    }
+    if (user && typeof user.name === 'string' && user.name.trim()) {
+      body.user_name = user.name.trim();
+    }
+    if (this.isSpeakDebugEnabled()) {
+      body.debug = 1;
+    }
+
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: this.buildAlignedTtsHeaders(),
+      body: JSON.stringify(body)
+    });
+
+    let payload = null;
+    try {
+      payload = await response.json();
+    } catch (err) {
+      payload = null;
+    }
+    if (payload) {
+      this.applyAdvancedAssessLimitStatusFromPayload(payload);
+    }
+    if (!response.ok) {
+      const errorCode =
+        payload && typeof payload.error === 'string' ? payload.error : `http_${response.status}`;
+      const errorMessage =
+        payload && typeof payload.message === 'string' ? payload.message : `HTTP ${response.status}`;
+      return {
+        ok: false,
+        error: errorCode,
+        error_message: errorMessage,
+        error_label:
+          errorCode === 'pronunciation_daily_seconds_limit'
+            ? 'Límite diario'
+            : errorCode === 'pronunciation_assess_not_configured'
+            ? 'No configurado'
+            : 'Error'
+      };
+    }
+    if (!payload || payload.ok !== true) return null;
+    return payload;
+  }
+
+  async runAdvancedAssessmentIfEnabled(recordingBlob, expectedText) {
+    if (!recordingBlob || !(recordingBlob instanceof Blob)) return;
+    if (this.getEffectiveFreeRideEvalMode() !== FREE_RIDE_EVAL_MODE_ADVANCED) return;
+    const expected = String(expectedText || '').trim();
+    if (!expected) return;
+
+    const requestToken = ++this.advancedAssessRequestToken;
+    this.setAdvancedAssessmentPending(true, { clearResult: true });
+
+    try {
+      const result = await this.fetchAdvancedPronunciationAssessment(expected, recordingBlob);
+      if (requestToken !== this.advancedAssessRequestToken) return;
+      if (!result) {
+        this.setAdvancedAssessmentResult(
+          { ok: false, error: 'empty_response', error_label: 'Sin respuesta' }
+        );
+        return;
+      }
+      this.setAdvancedAssessmentResult(result);
+    } catch (err) {
+      if (requestToken !== this.advancedAssessRequestToken) return;
+      this.setAdvancedAssessmentResult({
+        ok: false,
+        error: 'exception',
+        error_message: err && err.message ? err.message : String(err),
+        error_label: 'Error'
+      });
+    }
   }
 
   toNumberOrFallback(value, fallback = 0) {
@@ -1979,6 +2262,21 @@ class PageFreeRide extends HTMLElement {
     return this.audioBufferToWav(buffer, rate);
   }
 
+  async prepareAdvancedAssessmentAudio(blob) {
+    const decoded = await this.decodeAudioBlob(blob);
+    const resampled = await this.resampleAudioBuffer(decoded, FREE_RIDE_ADVANCED_AUDIO_SAMPLE_RATE);
+    const buffer = resampled || decoded;
+    if (!buffer) {
+      throw new Error('No se pudo preparar el audio para evaluación avanzada');
+    }
+    const wavBlob = this.audioBufferToWav(buffer, FREE_RIDE_ADVANCED_AUDIO_SAMPLE_RATE);
+    const durationSeconds = Number(Math.max(0, Number(buffer.duration) || 0).toFixed(3));
+    return {
+      blob: wavBlob,
+      durationSeconds
+    };
+  }
+
   getAudioExtension(mimeType) {
     const type = String(mimeType || '').toLowerCase();
     if (type.includes('mp4') || type.includes('aac') || type.includes('m4a')) return 'm4a';
@@ -2307,6 +2605,9 @@ class PageFreeRide extends HTMLElement {
     this.state.percent = null;
     this.state.recentReward = null;
     this.state.isTranscribing = false;
+    this.advancedAssessRequestToken += 1;
+    this.state.advancedAssessment = null;
+    this.state.advancedAssessmentPending = false;
 
     if (skipRender) {
       this.updatePhrasePreview(this.currentCopy);
@@ -2559,6 +2860,7 @@ class PageFreeRide extends HTMLElement {
 
     this.stopPlayback();
     this.resetSpeechState();
+    this.clearAdvancedAssessmentState({ skipRender: true });
     this.recordedChunks = [];
 
     try {
@@ -2616,17 +2918,17 @@ class PageFreeRide extends HTMLElement {
         this.render();
         this.transcribeNativeAudioBlob(blob)
           .then((text) => {
-            this.finalizeRecording(url, text);
+            this.finalizeRecording(url, text, blob);
           })
           .catch(() => {
-            this.finalizeRecording(url, '');
+            this.finalizeRecording(url, '', blob);
           });
         return;
       }
 
       const finish = () => {
         const transcript = this.speechTranscript || this.speechInterim || '';
-        this.finalizeRecording(url, transcript);
+        this.finalizeRecording(url, transcript, blob);
       };
 
       if (startedSpeechRecognition) {
@@ -2662,7 +2964,7 @@ class PageFreeRide extends HTMLElement {
     this.render();
   }
 
-  finalizeRecording(audioUrl, forcedTranscript) {
+  finalizeRecording(audioUrl, forcedTranscript, recordedBlob = null) {
     const transcript =
       typeof forcedTranscript === 'string'
         ? forcedTranscript.trim()
@@ -2677,6 +2979,7 @@ class PageFreeRide extends HTMLElement {
     this.state.isRecording = false;
     this.applyPracticeScore(percent, { skipRender: true });
     this.render();
+    this.runAdvancedAssessmentIfEnabled(recordedBlob, expected);
   }
 
   toggleLocaleFromFlag() {
@@ -2707,6 +3010,16 @@ class PageFreeRide extends HTMLElement {
     const percentText =
       typeof this.state.percent === 'number' ? `${Math.max(0, Math.min(100, Math.round(this.state.percent)))}%` : 'n/d';
     const audioMode = this.getFreeRideAudioMode();
+    const effectiveEvalMode = this.getEffectiveFreeRideEvalMode();
+    const advBlocked = this.isAdvancedAssessBlockedByLimit();
+    const advSummary = this.escapeHtml(this.getAdvancedAssessmentSummaryText());
+    const advTranscriptRaw =
+      this.state.advancedAssessment &&
+      this.state.advancedAssessment.ok === true &&
+      typeof this.state.advancedAssessment.transcript === 'string'
+        ? this.state.advancedAssessment.transcript.trim()
+        : '';
+    const advTranscript = this.escapeHtml(advTranscriptRaw || 'n/d');
 
     return `
       <div class="speak-voice-nav speak-voice-nav-debug">
@@ -2781,6 +3094,39 @@ class PageFreeRide extends HTMLElement {
                 ${controlsDisabledAttr}
               >Local</button>
             </div>
+          </div>
+          <div class="speak-debug-row">
+            <span class="speak-debug-label">Eval</span>
+            <div class="free-ride-debug-audio-toggle">
+              <button
+                class="free-ride-debug-audio-btn ${effectiveEvalMode === FREE_RIDE_EVAL_MODE_STANDARD ? 'is-active' : ''}"
+                type="button"
+                data-eval-mode="${FREE_RIDE_EVAL_MODE_STANDARD}"
+                aria-label="Evaluación estándar"
+                title="Evaluación estándar (STT + comparación textual)"
+                aria-pressed="${effectiveEvalMode === FREE_RIDE_EVAL_MODE_STANDARD ? 'true' : 'false'}"
+                ${controlsDisabledAttr}
+              >Standard</button>
+              <button
+                class="free-ride-debug-audio-btn ${effectiveEvalMode === FREE_RIDE_EVAL_MODE_ADVANCED ? 'is-active' : ''}"
+                type="button"
+                data-eval-mode="${FREE_RIDE_EVAL_MODE_ADVANCED}"
+                aria-label="${advBlocked ? 'Evaluación avanzada bloqueada por límite diario' : 'Evaluación avanzada de pronunciación'}"
+                title="${advBlocked ? 'Evaluación avanzada bloqueada por límite diario' : 'Evaluación avanzada (Azure Speech)'}"
+                aria-pressed="${effectiveEvalMode === FREE_RIDE_EVAL_MODE_ADVANCED ? 'true' : 'false'}"
+                ${(controlsDisabled || advBlocked) ? 'disabled' : ''}
+              >Advanced</button>
+            </div>
+          </div>
+          <div class="speak-debug-row">
+            <span class="speak-debug-label">Adv</span>
+            <span class="speak-debug-value" title="${this.escapeHtml(
+              advBlocked ? 'Límite diario de evaluación avanzada alcanzado' : ''
+            )}">${advSummary}</span>
+          </div>
+          <div class="speak-debug-row">
+            <span class="speak-debug-label">Adv txt</span>
+            <span class="speak-debug-value">${advTranscript}</span>
           </div>
         </div>
       </div>
@@ -2904,6 +3250,7 @@ class PageFreeRide extends HTMLElement {
     const transcriptEl = this.querySelector('#free-ride-transcript');
     const debugToggleBtn = this.querySelector('#free-ride-debug-toggle');
     const debugAudioModeButtons = Array.from(this.querySelectorAll('[data-audio-mode]'));
+    const debugEvalModeButtons = Array.from(this.querySelectorAll('[data-eval-mode]'));
 
     const expected = this.getExpectedTextTrimmed();
     const hasText = Boolean(expected);
@@ -3009,6 +3356,33 @@ class PageFreeRide extends HTMLElement {
         }
       });
     }
+    if (debugEvalModeButtons.length) {
+      const selectedEvalMode = this.getFreeRideEvalMode();
+      const effectiveEvalMode = this.getEffectiveFreeRideEvalMode();
+      const evalControlsDisabled = this.state.isRecording || this.state.isTranscribing;
+      const advancedBlockedByLimit = this.isAdvancedAssessBlockedByLimit();
+      debugEvalModeButtons.forEach((button) => {
+        const mode = String(button.dataset.evalMode || '');
+        const isActive = mode === effectiveEvalMode;
+        button.classList.toggle('is-active', isActive);
+        button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+        const disabledByLimit =
+          advancedBlockedByLimit && mode === FREE_RIDE_EVAL_MODE_ADVANCED;
+        button.disabled = evalControlsDisabled || disabledByLimit;
+        if (mode === FREE_RIDE_EVAL_MODE_ADVANCED) {
+          const title = advancedBlockedByLimit
+            ? 'Evaluación avanzada bloqueada por límite diario'
+            : 'Evaluación avanzada (pronunciación)';
+          button.title = title;
+          button.setAttribute('aria-label', title);
+        } else if (mode === FREE_RIDE_EVAL_MODE_STANDARD) {
+          button.title =
+            selectedEvalMode === FREE_RIDE_EVAL_MODE_ADVANCED && advancedBlockedByLimit
+              ? 'Evaluación estándar (activa por límite diario)'
+              : 'Evaluación estándar (STT + comparación textual)';
+        }
+      });
+    }
   }
 
   bindUi(copy) {
@@ -3020,6 +3394,7 @@ class PageFreeRide extends HTMLElement {
     const debugToggleBtn = this.querySelector('#free-ride-debug-toggle');
     const debugToneButtons = Array.from(this.querySelectorAll('[data-debug-tone]'));
     const debugAudioModeButtons = Array.from(this.querySelectorAll('[data-audio-mode]'));
+    const debugEvalModeButtons = Array.from(this.querySelectorAll('[data-eval-mode]'));
 
     if (inputEl) {
       inputEl.value = this.getExpectedText();
@@ -3068,6 +3443,23 @@ class PageFreeRide extends HTMLElement {
         }
         this.stopPlayback();
         this.setFreeRideAudioMode(nextMode);
+        this.updatePhrasePreview(copy);
+      });
+    });
+
+    debugEvalModeButtons.forEach((button) => {
+      button.addEventListener('click', () => {
+        if (this.state.isRecording || this.state.isTranscribing) return;
+        const nextMode = button.dataset.evalMode || '';
+        if (!nextMode) return;
+        if (
+          nextMode === FREE_RIDE_EVAL_MODE_ADVANCED &&
+          this.isAdvancedAssessBlockedByLimit()
+        ) {
+          this.updatePhrasePreview(copy);
+          return;
+        }
+        this.setFreeRideEvalMode(nextMode);
         this.updatePhrasePreview(copy);
       });
     });

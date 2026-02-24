@@ -21,8 +21,8 @@ app.use(
     credentials: true
   })
 );
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '12mb' }));
+app.use(express.urlencoded({ extended: true, limit: '2mb' }));
 
 const env = (key, fallback) => (process.env[key] ? process.env[key] : fallback);
 const provider = env('REALTIME_PROVIDER', 'soketi');
@@ -98,6 +98,18 @@ const ttsAlignedDefaultVoiceEsES = env('TTS_ALIGNED_VOICE_ES_ES', 'Lucia');
 const ttsPollyCostPerMillionCharsStandard = Number(env('TTS_POLLY_STANDARD_COST_PER_MILLION_CHARS', '4'));
 const ttsPollyCostPerMillionCharsNeural = Number(env('TTS_POLLY_NEURAL_COST_PER_MILLION_CHARS', '16'));
 const ttsPollyCostPerMillionCharsGenerative = Number(env('TTS_POLLY_GENERATIVE_COST_PER_MILLION_CHARS', '30'));
+const azureSpeechKey = env('AZURE_SPEECH_KEY', '');
+const azureSpeechRegion = env('AZURE_SPEECH_REGION', '');
+const azureSpeechHost = env('AZURE_SPEECH_HOST', '');
+const pronAssessTextMaxLen = Number(env('PRON_ASSESS_TEXT_MAX_LEN', '260'));
+const pronAssessAudioMaxBytes = Number(env('PRON_ASSESS_AUDIO_MAX_BYTES', '3145728'));
+const pronAssessMaxAudioSeconds = Number(env('PRON_ASSESS_MAX_AUDIO_SECONDS', '25'));
+const pronAssessRequestTimeoutMs = Number(env('PRON_ASSESS_TIMEOUT_MS', '15000'));
+const pronAssessDefaultLocale = env('PRON_ASSESS_DEFAULT_LOCALE', 'en-US');
+const pronAssessUsageDailyRetentionDays = Number(env('PRON_ASSESS_USAGE_DAILY_RETENTION_DAYS', '60'));
+const pronAssessDefaultSecondsLimitDay = Number(env('PRON_ASSESS_DEFAULT_SECONDS_LIMIT_DAY', '0'));
+const pronAssessAzureCostPerHourUsd = Number(env('PRON_ASSESS_AZURE_COST_PER_HOUR_USD', '0'));
+const pronAssessEnabled = Boolean(azureSpeechKey && (azureSpeechHost || azureSpeechRegion));
 
 if (provider !== 'pusher') {
   config.host = env('REALTIME_HOST', '127.0.0.1');
@@ -138,6 +150,8 @@ const ttsDailyUsageByUserDay = new Map();
 let ttsDailyUsageFlushTimer = null;
 const ttsDailyCharLimits = new Map();
 let ttsDailyLimitsFlushTimer = null;
+const pronAssessDailyUsageByUserDay = new Map();
+const pronAssessDailySecondsLimits = new Map();
 
 const formatUsageDay = (value) => {
   if (!value) return '';
@@ -979,6 +993,348 @@ const getTtsDailyLimitStatus = (userId, day) => {
     used_chars_day: usedChars,
     remaining_chars_day: remainingChars,
     limit_reached_today: Boolean(charLimit > 0 && usedChars >= charLimit)
+  };
+};
+
+const normalizePronAssessLocale = (value) => {
+  const raw = pickFirstString(value).toLowerCase();
+  if (!raw) return pronAssessDefaultLocale || 'en-US';
+  if (raw.startsWith('en-gb') || raw.startsWith('en_gb')) return 'en-GB';
+  if (raw.startsWith('es')) return 'es-ES';
+  if (raw.startsWith('en')) return 'en-US';
+  return pronAssessDefaultLocale || 'en-US';
+};
+
+const normalizePronAssessText = (value) => String(value || '').replace(/\s+/g, ' ').trim();
+
+const estimatePronAssessCostUsd = (audioSeconds) => {
+  if (!Number.isFinite(audioSeconds) || !Number.isFinite(pronAssessAzureCostPerHourUsd)) return 0;
+  if (pronAssessAzureCostPerHourUsd <= 0) return 0;
+  return (Math.max(0, audioSeconds) / 3600) * pronAssessAzureCostPerHourUsd;
+};
+
+const pronUsageRowSort = (a, b) => {
+  const dayCompare = String(b.day || '').localeCompare(String(a.day || ''));
+  if (dayCompare !== 0) return dayCompare;
+  const secondsCompare = toNonNegativeNumber(b.audio_seconds) - toNonNegativeNumber(a.audio_seconds);
+  if (secondsCompare !== 0) return secondsCompare;
+  return String(a.user_id || '').localeCompare(String(b.user_id || ''));
+};
+
+const prunePronAssessDailyUsage = () => {
+  if (!Number.isFinite(pronAssessUsageDailyRetentionDays) || pronAssessUsageDailyRetentionDays <= 0) return;
+  const cutoffMs = Date.now() - pronAssessUsageDailyRetentionDays * 24 * 60 * 60 * 1000;
+  const cutoffDay = new Date(cutoffMs).toISOString().slice(0, 10);
+  Array.from(pronAssessDailyUsageByUserDay.entries()).forEach(([key, row]) => {
+    if (!row || !row.day || row.day < cutoffDay) {
+      pronAssessDailyUsageByUserDay.delete(key);
+    }
+  });
+};
+
+const getPronAssessDailySecondsLimit = (userId) => {
+  const normalizedUserId = pickFirstString(userId);
+  if (normalizedUserId && pronAssessDailySecondsLimits.has(normalizedUserId)) {
+    return Math.max(
+      0,
+      Math.floor(toNonNegativeNumber(pronAssessDailySecondsLimits.get(normalizedUserId)?.seconds_limit_day, 0))
+    );
+  }
+  return Math.max(0, Math.floor(toNonNegativeNumber(pronAssessDefaultSecondsLimitDay, 0)));
+};
+
+const setPronAssessDailySecondsLimit = (userId, secondsLimit) => {
+  const normalizedUserId = pickFirstString(userId);
+  if (!normalizedUserId) return null;
+  const normalizedLimit = Math.floor(toNonNegativeNumber(secondsLimit, 0));
+  if (!normalizedLimit) {
+    pronAssessDailySecondsLimits.delete(normalizedUserId);
+    return null;
+  }
+  const row = {
+    user_id: normalizedUserId,
+    seconds_limit_day: normalizedLimit,
+    updated_at: new Date().toISOString()
+  };
+  pronAssessDailySecondsLimits.set(normalizedUserId, row);
+  return row;
+};
+
+const getPronAssessUsedSecondsForUserDay = (userId, day) => {
+  const normalizedUserId = pickFirstString(userId);
+  const normalizedDay = formatUsageDay(day) || new Date().toISOString().slice(0, 10);
+  if (!normalizedUserId) return 0;
+  const row = pronAssessDailyUsageByUserDay.get(`${normalizedDay}::${normalizedUserId}`);
+  if (!row) return 0;
+  return Number(toNonNegativeNumber(row.audio_seconds, 0).toFixed(3));
+};
+
+const getPronAssessDailyLimitStatus = (userId, day) => {
+  const normalizedUserId = pickFirstString(userId);
+  const resolvedDay = formatUsageDay(day) || new Date().toISOString().slice(0, 10);
+  const secondsLimit = getPronAssessDailySecondsLimit(normalizedUserId);
+  const usedSeconds = getPronAssessUsedSecondsForUserDay(normalizedUserId, resolvedDay);
+  const remainingSeconds = secondsLimit > 0 ? Math.max(0, Number((secondsLimit - usedSeconds).toFixed(3))) : null;
+  return {
+    user_id: normalizedUserId || '',
+    day: resolvedDay,
+    seconds_limit_day: secondsLimit,
+    used_seconds_day: Number(usedSeconds.toFixed(3)),
+    remaining_seconds_day: remainingSeconds,
+    limit_reached_today: Boolean(secondsLimit > 0 && usedSeconds >= secondsLimit)
+  };
+};
+
+const trackPronAssessDailyUsage = (entry) => {
+  if (!entry || typeof entry !== 'object') return;
+  const day = formatUsageDay(entry.timestamp) || new Date().toISOString().slice(0, 10);
+  const userId = pickFirstString(entry.user_id, entry.userId, 'unknown');
+  const userName = pickFirstString(entry.user_name, entry.userName, entry.name);
+  const locale = pickFirstString(entry.locale, entry.lang, entry.language);
+  const provider = pickFirstString(entry.provider, 'azure-speech');
+  const audioSeconds = Math.max(0, toNonNegativeNumber(entry.audio_seconds, entry.duration_seconds ?? 0));
+  const estimatedCost = toNonNegativeNumber(entry.estimated_cost_usd, estimatePronAssessCostUsd(audioSeconds));
+  const timestamp = pickFirstString(entry.timestamp, new Date().toISOString());
+  const key = `${day}::${userId}`;
+  const current = pronAssessDailyUsageByUserDay.get(key) || {
+    day,
+    user_id: userId,
+    user_name: userName || '',
+    requests: 0,
+    audio_seconds: 0,
+    estimated_cost_usd: 0,
+    locale: locale || '',
+    provider: provider || 'azure-speech',
+    first_request_at: timestamp,
+    last_request_at: timestamp
+  };
+  current.requests += 1;
+  current.audio_seconds = Number((toNonNegativeNumber(current.audio_seconds, 0) + audioSeconds).toFixed(3));
+  current.estimated_cost_usd = Number((toNonNegativeNumber(current.estimated_cost_usd, 0) + estimatedCost).toFixed(6));
+  if (userName) current.user_name = userName;
+  if (locale) current.locale = locale;
+  if (provider) current.provider = provider;
+  if (timestamp) {
+    if (!current.first_request_at || timestamp < current.first_request_at) current.first_request_at = timestamp;
+    if (!current.last_request_at || timestamp > current.last_request_at) current.last_request_at = timestamp;
+  }
+  pronAssessDailyUsageByUserDay.set(key, current);
+  prunePronAssessDailyUsage();
+};
+
+const summarizePronAssessUsageRows = (rows) =>
+  rows.reduce(
+    (acc, row) => {
+      acc.requests += toNonNegativeNumber(row.requests, 0);
+      acc.audio_seconds = Number((acc.audio_seconds + toNonNegativeNumber(row.audio_seconds, 0)).toFixed(3));
+      acc.estimated_cost_usd = Number(
+        (acc.estimated_cost_usd + toNonNegativeNumber(row.estimated_cost_usd, 0)).toFixed(6)
+      );
+      return acc;
+    },
+    { requests: 0, audio_seconds: 0, estimated_cost_usd: 0 }
+  );
+
+const getAzureSpeechHost = () => {
+  const explicit = pickFirstString(azureSpeechHost);
+  if (explicit) return explicit.replace(/^https?:\/\//i, '').replace(/\/+$/, '');
+  const region = pickFirstString(azureSpeechRegion);
+  if (!region) return '';
+  return `${region}.stt.speech.microsoft.com`;
+};
+
+const parseWavDurationSeconds = (buffer) => {
+  if (!Buffer.isBuffer(buffer) || buffer.length < 44) return null;
+  if (buffer.toString('ascii', 0, 4) !== 'RIFF' || buffer.toString('ascii', 8, 12) !== 'WAVE') return null;
+  let offset = 12;
+  let sampleRate = 0;
+  let channels = 0;
+  let bitsPerSample = 0;
+  let dataSize = 0;
+
+  while (offset + 8 <= buffer.length) {
+    const chunkId = buffer.toString('ascii', offset, offset + 4);
+    const chunkSize = buffer.readUInt32LE(offset + 4);
+    const chunkDataStart = offset + 8;
+    const chunkDataEnd = chunkDataStart + chunkSize;
+    if (chunkDataEnd > buffer.length) break;
+    if (chunkId === 'fmt ' && chunkSize >= 16) {
+      channels = buffer.readUInt16LE(chunkDataStart + 2);
+      sampleRate = buffer.readUInt32LE(chunkDataStart + 4);
+      bitsPerSample = buffer.readUInt16LE(chunkDataStart + 14);
+    } else if (chunkId === 'data') {
+      dataSize = chunkSize;
+      break;
+    }
+    offset = chunkDataEnd + (chunkSize % 2);
+  }
+  if (!sampleRate || !channels || !bitsPerSample || !dataSize) return null;
+  const bytesPerSecond = sampleRate * channels * (bitsPerSample / 8);
+  if (!bytesPerSecond) return null;
+  return Number((dataSize / bytesPerSecond).toFixed(3));
+};
+
+const buildPronAssessmentHeaderValue = (referenceText) =>
+  Buffer.from(
+    JSON.stringify({
+      ReferenceText: referenceText,
+      GradingSystem: 'HundredMark',
+      Granularity: 'Phoneme',
+      Dimension: 'Comprehensive',
+      EnableMiscue: true
+    }),
+    'utf8'
+  ).toString('base64');
+
+const requestAzurePronunciationAssessment = ({
+  audioBuffer,
+  locale,
+  expectedText,
+  timeoutMs = pronAssessRequestTimeoutMs
+}) => {
+  const host = getAzureSpeechHost();
+  if (!azureSpeechKey || !host) {
+    return Promise.reject(new Error('azure_speech_not_configured'));
+  }
+  const pathName = `/speech/recognition/conversation/cognitiveservices/v1?language=${encodeURIComponent(
+    locale
+  )}&format=detailed`;
+  const options = {
+    protocol: 'https:',
+    hostname: host,
+    port: 443,
+    method: 'POST',
+    path: pathName,
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'audio/wav; codecs=audio/pcm; samplerate=16000',
+      'Ocp-Apim-Subscription-Key': azureSpeechKey,
+      'Pronunciation-Assessment': buildPronAssessmentHeaderValue(expectedText),
+      'Content-Length': Buffer.byteLength(audioBuffer)
+    }
+  };
+
+  return new Promise((resolve, reject) => {
+    const req = https.request(options, (res) => {
+      const chunks = [];
+      res.on('data', (chunk) => chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)));
+      res.on('end', () => {
+        const bodyText = Buffer.concat(chunks).toString('utf8');
+        let parsed = null;
+        try {
+          parsed = bodyText ? JSON.parse(bodyText) : {};
+        } catch (err) {
+          reject(new Error(`Azure Speech JSON parse error: ${err.message}`));
+          return;
+        }
+        if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
+          resolve({ statusCode: res.statusCode, body: parsed || {} });
+          return;
+        }
+        const msg =
+          parsed && typeof parsed.error === 'string'
+            ? parsed.error
+            : parsed && parsed.error && parsed.error.message
+            ? parsed.error.message
+            : bodyText || `HTTP ${res.statusCode}`;
+        reject(new Error(`Azure Speech HTTP ${res.statusCode}: ${msg}`));
+      });
+    });
+    req.on('error', reject);
+    req.setTimeout(Math.max(1000, Number(timeoutMs) || 15000), () => {
+      req.destroy(new Error('Azure Speech timeout'));
+    });
+    req.write(audioBuffer);
+    req.end();
+  });
+};
+
+const mapAzureWordStatus = (errorType, score) => {
+  const raw = String(errorType || '').trim().toLowerCase();
+  if (!raw || raw === 'none') {
+    const numeric = Number(score);
+    if (Number.isFinite(numeric) && numeric < 45) return 'wrong';
+    return 'ok';
+  }
+  if (raw === 'omission') return 'missing';
+  if (raw === 'insertion') return 'extra';
+  if (raw === 'mispronunciation') return 'wrong';
+  return 'issue';
+};
+
+const ticksToMs = (ticks) => {
+  const n = Number(ticks);
+  if (!Number.isFinite(n)) return null;
+  return Math.max(0, Math.round(n / 10000));
+};
+
+const normalizeAzurePronunciationAssessment = (payload, expectedText) => {
+  if (!payload || typeof payload !== 'object') return null;
+  const nbest = Array.isArray(payload.NBest) ? payload.NBest : [];
+  const top = nbest[0] && typeof nbest[0] === 'object' ? nbest[0] : {};
+  const pa = top.PronunciationAssessment && typeof top.PronunciationAssessment === 'object'
+    ? top.PronunciationAssessment
+    : {};
+  const wordsSource = Array.isArray(top.Words) ? top.Words : [];
+
+  const words = wordsSource.map((word, index) => {
+    const obj = word && typeof word === 'object' ? word : {};
+    const wpa = obj.PronunciationAssessment && typeof obj.PronunciationAssessment === 'object'
+      ? obj.PronunciationAssessment
+      : {};
+    const accuracy = Number(wpa.AccuracyScore);
+    const errorType = pickFirstString(wpa.ErrorType, obj.ErrorType);
+    const startMs = ticksToMs(obj.Offset);
+    const durationMs = ticksToMs(obj.Duration);
+    const endMs =
+      startMs !== null
+        ? startMs + Math.max(40, Number.isFinite(durationMs) ? durationMs : 0)
+        : null;
+    return {
+      index,
+      expected: pickFirstString(obj.Word),
+      recognized: pickFirstString(obj.Word),
+      start_ms: startMs,
+      end_ms: endMs,
+      score: Number.isFinite(accuracy) ? Math.max(0, Math.min(100, Math.round(accuracy))) : null,
+      status: mapAzureWordStatus(errorType, accuracy),
+      error_type: errorType || '',
+      phonemes: Array.isArray(obj.Phonemes)
+        ? obj.Phonemes.map((phoneme) => {
+            const p = phoneme && typeof phoneme === 'object' ? phoneme : {};
+            const ppa = p.PronunciationAssessment && typeof p.PronunciationAssessment === 'object'
+              ? p.PronunciationAssessment
+              : {};
+            const pScore = Number(ppa.AccuracyScore);
+            return {
+              phoneme: pickFirstString(p.Phoneme),
+              score: Number.isFinite(pScore) ? Math.max(0, Math.min(100, Math.round(pScore))) : null,
+              offset_ms: ticksToMs(p.Offset),
+              duration_ms: ticksToMs(p.Duration)
+            };
+          })
+        : []
+    };
+  });
+
+  const scoreValue = (name) => {
+    const n = Number(pa[name]);
+    return Number.isFinite(n) ? Math.max(0, Math.min(100, Math.round(n))) : null;
+  };
+  const transcript = pickFirstString(top.Display, top.DisplayText, payload.DisplayText, payload.Text);
+
+  return {
+    recognition_status: pickFirstString(payload.RecognitionStatus),
+    expected_text: expectedText,
+    transcript: transcript || '',
+    scores: {
+      overall: scoreValue('PronScore'),
+      accuracy: scoreValue('AccuracyScore'),
+      fluency: scoreValue('FluencyScore'),
+      completeness: scoreValue('CompletenessScore'),
+      prosody: scoreValue('ProsodyScore')
+    },
+    words
   };
 };
 
@@ -2107,6 +2463,232 @@ app.post('/realtime/tts/aligned', async (req, res) => {
       message: err && err.message ? err.message : String(err)
     });
   }
+});
+
+app.post('/realtime/pronunciation/assess', async (req, res) => {
+  if (!authorizeUsage(req, res)) return;
+  if (!pronAssessEnabled) {
+    res.status(501).json({ ok: false, error: 'pronunciation_assess_not_configured' });
+    return;
+  }
+
+  const body = req.body && typeof req.body === 'object' ? req.body : {};
+  const expectedText = normalizePronAssessText(
+    pickFirstString(body.expected_text, body.expectedText, body.text, body.reference_text)
+  );
+  const locale = normalizePronAssessLocale(body.locale || body.lang || body.language);
+  const userId = pickFirstString(body.user_id, body.userId, body.id);
+  const userName = pickFirstString(body.user_name, body.userName, body.name);
+  const debug = String(body.debug || '').trim() === '1' || body.debug === true;
+  const audioBase64 = pickFirstString(body.audio_base64, body.audioBase64, body.audio);
+  const audioContentType = pickFirstString(body.audio_content_type, body.audioContentType, 'audio/wav');
+  const clientAudioSeconds = toNonNegativeNumber(body.audio_duration_sec, body.audioDurationSec ?? 0);
+  const maxTextLen = toPositiveInteger(pronAssessTextMaxLen, 260);
+
+  if (!expectedText) {
+    res.status(400).json({ ok: false, error: 'expected_text_required' });
+    return;
+  }
+  if (expectedText.length > maxTextLen) {
+    res.status(400).json({
+      ok: false,
+      error: `expected_text_too_long_max_${maxTextLen}`,
+      text_length: expectedText.length,
+      max_length: maxTextLen
+    });
+    return;
+  }
+  if (!audioBase64) {
+    res.status(400).json({ ok: false, error: 'audio_base64_required' });
+    return;
+  }
+
+  let audioBuffer;
+  try {
+    audioBuffer = Buffer.from(audioBase64, 'base64');
+  } catch (err) {
+    res.status(400).json({ ok: false, error: 'invalid_audio_base64' });
+    return;
+  }
+  if (!audioBuffer || !audioBuffer.length) {
+    res.status(400).json({ ok: false, error: 'empty_audio' });
+    return;
+  }
+  if (Number.isFinite(pronAssessAudioMaxBytes) && pronAssessAudioMaxBytes > 0 && audioBuffer.length > pronAssessAudioMaxBytes) {
+    res.status(400).json({
+      ok: false,
+      error: 'audio_too_large',
+      audio_bytes: audioBuffer.length,
+      max_bytes: Math.floor(pronAssessAudioMaxBytes)
+    });
+    return;
+  }
+
+  const wavDuration = parseWavDurationSeconds(audioBuffer);
+  const estimatedAudioSeconds = Number(
+    Math.max(0, wavDuration ?? clientAudioSeconds ?? 0).toFixed(3)
+  );
+  const maxAudioSeconds = toNonNegativeNumber(pronAssessMaxAudioSeconds, 25);
+  if (maxAudioSeconds > 0 && estimatedAudioSeconds > maxAudioSeconds) {
+    res.status(400).json({
+      ok: false,
+      error: 'audio_too_long',
+      audio_seconds: estimatedAudioSeconds,
+      max_audio_seconds: maxAudioSeconds
+    });
+    return;
+  }
+
+  if (userId) {
+    const limitStatus = getPronAssessDailyLimitStatus(userId);
+    const hasLimit = limitStatus.seconds_limit_day > 0;
+    const projected = estimatedAudioSeconds > 0 ? estimatedAudioSeconds : 1;
+    const alreadyReached = Boolean(hasLimit && limitStatus.used_seconds_day >= limitStatus.seconds_limit_day);
+    const wouldExceed = Boolean(
+      hasLimit && limitStatus.used_seconds_day + projected > limitStatus.seconds_limit_day
+    );
+    if (alreadyReached || wouldExceed) {
+      res.status(429).json({
+        ok: false,
+        error: 'pronunciation_daily_seconds_limit',
+        message: 'Daily pronunciation assessment limit reached',
+        provider: 'azure-speech',
+        projected_audio_seconds: projected,
+        would_exceed_today: wouldExceed,
+        ...limitStatus
+      });
+      return;
+    }
+  }
+
+  try {
+    const startedAt = Date.now();
+    const azureResponse = await requestAzurePronunciationAssessment({
+      audioBuffer,
+      locale,
+      expectedText
+    });
+    const normalized = normalizeAzurePronunciationAssessment(azureResponse.body, expectedText);
+    if (!normalized) {
+      res.status(502).json({ ok: false, error: 'pronunciation_assess_invalid_provider_response' });
+      return;
+    }
+    const actualAudioSeconds = Number(
+      Math.max(
+        0,
+        estimatedAudioSeconds || 0,
+        (Array.isArray(normalized.words) && normalized.words.length
+          ? toNonNegativeNumber(normalized.words[normalized.words.length - 1]?.end_ms, 0) / 1000
+          : 0)
+      ).toFixed(3)
+    );
+    trackPronAssessDailyUsage({
+      timestamp: new Date().toISOString(),
+      user_id: userId || 'unknown',
+      user_name: userName || '',
+      locale,
+      provider: 'azure-speech',
+      audio_seconds: actualAudioSeconds,
+      estimated_cost_usd: estimatePronAssessCostUsd(actualAudioSeconds)
+    });
+    const limitStatus = userId ? getPronAssessDailyLimitStatus(userId) : null;
+    res.json({
+      ok: true,
+      provider: 'azure-speech',
+      mode: 'advanced',
+      locale,
+      audio_content_type: audioContentType || 'audio/wav',
+      audio_seconds: actualAudioSeconds,
+      timing: {
+        total_ms: Date.now() - startedAt
+      },
+      usage: {
+        audio_seconds: actualAudioSeconds,
+        estimated_cost_usd: Number(estimatePronAssessCostUsd(actualAudioSeconds).toFixed(6))
+      },
+      limit_status: limitStatus,
+      ...normalized,
+      ...(debug ? { provider_payload: azureResponse.body } : {})
+    });
+  } catch (err) {
+    console.error('[realtime] pronunciation assess error', err.message || err);
+    res.status(500).json({
+      ok: false,
+      error: 'pronunciation_assess_failed',
+      message: err && err.message ? err.message : String(err)
+    });
+  }
+});
+
+app.get('/realtime/pronunciation/usage/daily', (req, res) => {
+  if (!authorizeUsage(req, res)) return;
+  const dayFilterRaw = pickFirstString(req.query.day);
+  const fromRaw = pickFirstString(req.query.from, req.query.date_from);
+  const toRaw = pickFirstString(req.query.to, req.query.date_to);
+  const userIdFilter = pickFirstString(req.query.user_id, req.query.userId);
+  const limitValue = Number(req.query.limit);
+  const limit = Number.isFinite(limitValue) && limitValue > 0 ? Math.min(Math.floor(limitValue), 5000) : 300;
+
+  const dayFilter = dayFilterRaw ? formatUsageDay(dayFilterRaw) : '';
+  const fromFilter = fromRaw ? formatUsageDay(fromRaw) : '';
+  const toFilter = toRaw ? formatUsageDay(toRaw) : '';
+  if ((dayFilterRaw && !dayFilter) || (fromRaw && !fromFilter) || (toRaw && !toFilter)) {
+    res.status(400).json({ error: 'invalid date format (expected YYYY-MM-DD)' });
+    return;
+  }
+  if (fromFilter && toFilter && fromFilter > toFilter) {
+    res.status(400).json({ error: '"from" must be before or equal to "to"' });
+    return;
+  }
+
+  prunePronAssessDailyUsage();
+  const rows = Array.from(pronAssessDailyUsageByUserDay.values())
+    .sort(pronUsageRowSort)
+    .filter((row) => {
+      if (dayFilter && row.day !== dayFilter) return false;
+      if (fromFilter && row.day < fromFilter) return false;
+      if (toFilter && row.day > toFilter) return false;
+      if (userIdFilter && row.user_id !== userIdFilter) return false;
+      return true;
+    });
+
+  res.json({
+    ok: true,
+    enabled: pronAssessEnabled,
+    count: rows.length,
+    returned: Math.min(rows.length, limit),
+    truncated: rows.length > limit,
+    limit_status: userIdFilter ? getPronAssessDailyLimitStatus(userIdFilter) : null,
+    totals: summarizePronAssessUsageRows(rows),
+    rows: rows.slice(0, limit)
+  });
+});
+
+app.get('/realtime/pronunciation/usage/limit', (req, res) => {
+  if (!authorizeUsage(req, res)) return;
+  const userId = pickFirstString(req.query.user_id, req.query.userId);
+  if (!userId) {
+    res.status(400).json({ error: 'user_id required' });
+    return;
+  }
+  res.json({ ok: true, ...getPronAssessDailyLimitStatus(userId) });
+});
+
+app.post('/realtime/pronunciation/usage/limit', (req, res) => {
+  if (!authorizeUsage(req, res)) return;
+  const body = req.body && typeof req.body === 'object' ? req.body : {};
+  const userId = pickFirstString(body.user_id, body.userId, req.query.user_id, req.query.userId);
+  if (!userId) {
+    res.status(400).json({ error: 'user_id required' });
+    return;
+  }
+  const requestedLimit = Number(body.seconds_limit_day ?? body.secondsLimitDay);
+  if (!Number.isFinite(requestedLimit)) {
+    res.status(400).json({ error: 'seconds_limit_day must be a number' });
+    return;
+  }
+  setPronAssessDailySecondsLimit(userId, requestedLimit);
+  res.json({ ok: true, updated: true, ...getPronAssessDailyLimitStatus(userId) });
 });
 
 app.get('/realtime/channels', (req, res) => {

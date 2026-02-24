@@ -3517,7 +3517,7 @@ page-premium ion-content::part(scroll) {
   height: 100%;
   margin: 0;
   object-fit: contain;
-  object-position: center top;
+  object-position: center bottom;
   display: block;
 }
 
@@ -3631,6 +3631,31 @@ page-premium ion-content::part(scroll) {
   white-space: pre-wrap;
 }
 
+.free-ride-sentence-row .speak-sentence.is-compare-diff {
+  white-space: pre-wrap;
+}
+
+.free-ride-diff-token {
+  display: inline;
+  border-radius: 10px;
+  padding: 0 0.18em;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  transition: background-color 120ms ease, color 120ms ease, box-shadow 120ms ease;
+}
+
+.free-ride-diff-token.is-ok {
+  color: #0b6b3a;
+  background: rgba(34, 197, 94, 0.15);
+  box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.18);
+}
+
+.free-ride-diff-token.is-miss {
+  color: #b42318;
+  background: rgba(239, 68, 68, 0.12);
+  box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.16);
+}
+
 .free-ride-local-speaking-pill {
   display: inline;
   color: #0f172a;
@@ -3666,6 +3691,36 @@ page-premium ion-content::part(scroll) {
   font-size: 0.82rem;
   color: #64748b;
   word-break: break-word;
+}
+
+.free-ride-transcript.is-compare-diff {
+  white-space: pre-wrap;
+}
+
+.free-ride-transcript-token {
+  display: inline;
+  border-radius: 8px;
+  padding: 0 0.12em;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+.free-ride-transcript-token.is-ok {
+  color: #0b6b3a;
+  background: rgba(34, 197, 94, 0.12);
+  box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.14);
+}
+
+.free-ride-transcript-token.is-miss {
+  color: #b42318;
+  background: rgba(239, 68, 68, 0.1);
+  box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.12);
+}
+
+.free-ride-transcript-token.is-extra {
+  color: #b45309;
+  background: rgba(245, 158, 11, 0.12);
+  box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.16);
 }
 
 .free-ride-earned-reward {
@@ -4084,7 +4139,7 @@ ion-select.training-pill.active::part(icon) {
   height: 100%;
   margin: 0;
   object-fit: contain;
-  object-position: center top;
+  object-position: center bottom;
   display: block;
 }
 
@@ -4094,7 +4149,7 @@ ion-select.training-pill.active::part(icon) {
   margin-top: 0;
   margin-left: 6px;
   display: inline-flex;
-  align-items: flex-start;
+  align-items: flex-end;
   justify-content: center;
   flex: 0 0 auto;
 }
@@ -4105,32 +4160,30 @@ ion-select.training-pill.active::part(icon) {
   line-height: 1.24;
   font-weight: 600;
   text-transform: none;
-  border: 1px solid transparent;
+  border: 1px solid rgba(255, 255, 255, 0.18);
   box-shadow: none;
-  transition: color 140ms ease, text-shadow 140ms ease, background 180ms ease, border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+  transition:
+    color 180ms ease,
+    text-shadow 180ms ease,
+    background 220ms ease,
+    border-color 220ms ease,
+    box-shadow 220ms ease;
 }
 
 .journey-plan-bubble.is-speaking {
-  color: #ffffff;
-  font-weight: 700;
-  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.28);
-  background: linear-gradient(180deg, #0d63ff 0%, #0046d9 100%);
-  border-color: rgba(255, 255, 255, 0.82);
-  box-shadow: 0 0 0 3px rgba(13, 99, 255, 0.24), 0 12px 22px rgba(0, 70, 217, 0.34);
-  transform: scale(1.01);
-  animation: journey-plan-bubble-speaking-pulse 0.9s ease-in-out infinite;
+  color: #18212c;
+  text-shadow: none;
+  background: linear-gradient(180deg, #f7fbff 0%, #eef5ff 100%);
+  border-color: rgba(80, 145, 255, 0.5);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 8px 16px rgba(11, 67, 171, 0.12),
+    0 0 0 2px rgba(80, 145, 255, 0.12);
+  animation: onboarding-hero-bubble-speaking-glow 1.65s ease-in-out infinite;
 }
 
-@keyframes journey-plan-bubble-speaking-pulse {
-  0%,
-  100% {
-    box-shadow: 0 0 0 3px rgba(13, 99, 255, 0.24), 0 12px 22px rgba(0, 70, 217, 0.34);
-    transform: scale(1.01);
-  }
-  50% {
-    box-shadow: 0 0 0 5px rgba(13, 99, 255, 0.34), 0 14px 24px rgba(0, 70, 217, 0.42);
-    transform: scale(1.02);
-  }
+.journey-plan-bubble.is-speaking strong {
+  color: #0f57d7;
 }
 
 .journey-plan-card + .journey-start {

@@ -932,11 +932,214 @@ class PageFreeRide extends HTMLElement {
     const phraseEl = this.querySelector('#free-ride-target');
     if (!phraseEl) return;
     phraseEl.classList.remove('is-word-timed');
+    phraseEl.classList.remove('is-compare-diff');
     delete phraseEl.dataset.localSpeakingActive;
     delete phraseEl.dataset.localSpeakingText;
     phraseEl.textContent = String(text || '');
     this.phraseHighlightTimeline = [];
     this.phraseHighlightTokenEls = [];
+  }
+
+  tokenizePhraseDisplayWords(text) {
+    const source = String(text || '');
+    const wordRegex = /[A-Za-z0-9\u00c0-\u024f]+/g;
+    const segments = [];
+    const words = [];
+    let cursor = 0;
+    let match;
+
+    while ((match = wordRegex.exec(source))) {
+      const start = match.index;
+      const rawWord = match[0] || '';
+      if (start > cursor) {
+        segments.push({ type: 'plain', text: source.slice(cursor, start) });
+      }
+      const normalized = this.normalizeText(rawWord);
+      const wordIndex = words.length;
+      words.push({ raw: rawWord, normalized });
+      segments.push({ type: 'word', text: rawWord, wordIndex });
+      cursor = start + rawWord.length;
+    }
+
+    if (cursor < source.length) {
+      segments.push({ type: 'plain', text: source.slice(cursor) });
+    }
+
+    return { segments, words };
+  }
+
+  getNormalizedWordList(value) {
+    const normalized = this.normalizeText(value);
+    return normalized ? normalized.split(' ') : [];
+  }
+
+  buildWordDiffComparison(expectedText, actualText) {
+    const expectedWords = this.getNormalizedWordList(expectedText);
+    const actualWords = this.getNormalizedWordList(actualText);
+    if (!expectedWords.length || !actualWords.length) return null;
+
+    const rows = expectedWords.length;
+    const cols = actualWords.length;
+    const costs = Array.from({ length: rows + 1 }, () => new Array(cols + 1).fill(0));
+    const ops = Array.from({ length: rows + 1 }, () => new Array(cols + 1).fill(''));
+
+    for (let i = 0; i <= rows; i += 1) {
+      costs[i][0] = i;
+      if (i > 0) ops[i][0] = 'delete';
+    }
+    for (let j = 0; j <= cols; j += 1) {
+      costs[0][j] = j;
+      if (j > 0) ops[0][j] = 'insert';
+    }
+
+    for (let i = 1; i <= rows; i += 1) {
+      for (let j = 1; j <= cols; j += 1) {
+        const same = expectedWords[i - 1] === actualWords[j - 1];
+        const diagCost = costs[i - 1][j - 1] + (same ? 0 : 1);
+        const delCost = costs[i - 1][j] + 1;
+        const insCost = costs[i][j - 1] + 1;
+
+        let bestCost = diagCost;
+        let bestOp = same ? 'match' : 'replace';
+
+        if (delCost < bestCost) {
+          bestCost = delCost;
+          bestOp = 'delete';
+        }
+        if (insCost < bestCost) {
+          bestCost = insCost;
+          bestOp = 'insert';
+        }
+
+        costs[i][j] = bestCost;
+        ops[i][j] = bestOp;
+      }
+    }
+
+    const expectedStatuses = new Array(rows).fill('missing');
+    const actualStatuses = new Array(cols).fill('extra');
+    let i = rows;
+    let j = cols;
+
+    while (i > 0 || j > 0) {
+      const op = ops[i] && ops[i][j] ? ops[i][j] : '';
+      if ((op === 'match' || op === 'replace') && i > 0 && j > 0) {
+        const expectedStatus = op === 'match' ? 'ok' : 'wrong';
+        const actualStatus = op === 'match' ? 'ok' : 'wrong';
+        expectedStatuses[i - 1] = expectedStatus;
+        actualStatuses[j - 1] = actualStatus;
+        i -= 1;
+        j -= 1;
+        continue;
+      }
+      if (op === 'delete' && i > 0) {
+        expectedStatuses[i - 1] = 'missing';
+        i -= 1;
+        continue;
+      }
+      if (op === 'insert' && j > 0) {
+        actualStatuses[j - 1] = 'extra';
+        j -= 1;
+        continue;
+      }
+      // Fallback for unexpected ties/empty op.
+      if (i > 0 && j > 0) {
+        const same = expectedWords[i - 1] === actualWords[j - 1];
+        expectedStatuses[i - 1] = same ? 'ok' : 'wrong';
+        actualStatuses[j - 1] = same ? 'ok' : 'wrong';
+        i -= 1;
+        j -= 1;
+      } else if (i > 0) {
+        expectedStatuses[i - 1] = 'missing';
+        i -= 1;
+      } else {
+        actualStatuses[j - 1] = 'extra';
+        j -= 1;
+      }
+    }
+
+    return { expectedStatuses, actualStatuses };
+  }
+
+  buildExpectedWordDiffStatuses(expectedText, actualText) {
+    const comparison = this.buildWordDiffComparison(expectedText, actualText);
+    return comparison && Array.isArray(comparison.expectedStatuses)
+      ? comparison.expectedStatuses
+      : null;
+  }
+
+  buildActualWordDiffStatuses(expectedText, actualText) {
+    const comparison = this.buildWordDiffComparison(expectedText, actualText);
+    return comparison && Array.isArray(comparison.actualStatuses)
+      ? comparison.actualStatuses
+      : null;
+  }
+
+  setPhraseTextCompared(expectedText, actualText) {
+    const phraseEl = this.querySelector('#free-ride-target');
+    if (!phraseEl) return;
+
+    const source = String(expectedText || '');
+    const transcript = String(actualText || '');
+    const tokenized = this.tokenizePhraseDisplayWords(source);
+    const statuses = this.buildExpectedWordDiffStatuses(source, transcript);
+
+    if (!source || !tokenized.segments.length || !Array.isArray(statuses)) {
+      this.setPhraseTextPlain(source);
+      return;
+    }
+
+    phraseEl.classList.remove('is-word-timed');
+    phraseEl.classList.add('is-compare-diff');
+    delete phraseEl.dataset.localSpeakingActive;
+    delete phraseEl.dataset.localSpeakingText;
+
+    phraseEl.innerHTML = tokenized.segments
+      .map((segment) => {
+        if (!segment || segment.type !== 'word') {
+          return this.escapeHtml(segment && segment.text ? segment.text : '');
+        }
+        const status = statuses[segment.wordIndex] === 'ok' ? 'ok' : 'miss';
+        return `<span class="free-ride-diff-token is-${status}">${this.escapeHtml(segment.text || '')}</span>`;
+      })
+      .join('');
+
+    this.phraseHighlightTimeline = [];
+    this.phraseHighlightTokenEls = [];
+  }
+
+  setTranscriptCompared(expectedText, actualText) {
+    const transcriptEl = this.querySelector('#free-ride-transcript');
+    if (!transcriptEl) return;
+
+    const transcript = String(actualText || '').trim();
+    if (!transcript) {
+      transcriptEl.classList.remove('has-text', 'is-compare-diff');
+      transcriptEl.textContent = ' ';
+      return;
+    }
+
+    const tokenized = this.tokenizePhraseDisplayWords(transcript);
+    const statuses = this.buildActualWordDiffStatuses(expectedText, transcript);
+    transcriptEl.classList.add('has-text');
+
+    if (!tokenized.segments.length || !Array.isArray(statuses)) {
+      transcriptEl.classList.remove('is-compare-diff');
+      transcriptEl.textContent = transcript;
+      return;
+    }
+
+    transcriptEl.classList.add('is-compare-diff');
+    transcriptEl.innerHTML = tokenized.segments
+      .map((segment) => {
+        if (!segment || segment.type !== 'word') {
+          return this.escapeHtml(segment && segment.text ? segment.text : '');
+        }
+        const rawStatus = String(statuses[segment.wordIndex] || 'wrong');
+        const status = rawStatus === 'ok' || rawStatus === 'extra' ? rawStatus : 'miss';
+        return `<span class="free-ride-transcript-token is-${status}">${this.escapeHtml(segment.text || '')}</span>`;
+      })
+      .join('');
   }
 
   setPhraseTextTimed(text, timedData) {
@@ -949,6 +1152,7 @@ class PageFreeRide extends HTMLElement {
     }
 
     phraseEl.classList.add('is-word-timed');
+    phraseEl.classList.remove('is-compare-diff');
     phraseEl.innerHTML = '';
     const tokenEls = [];
 
@@ -999,11 +1203,7 @@ class PageFreeRide extends HTMLElement {
     }
 
     if (phraseEl.dataset.localSpeakingActive === '1') {
-      const rawText =
-        typeof phraseEl.dataset.localSpeakingText === 'string'
-          ? phraseEl.dataset.localSpeakingText
-          : String(phraseEl.textContent || '');
-      phraseEl.textContent = rawText;
+      this.restorePhrasePreviewText();
     }
     delete phraseEl.dataset.localSpeakingActive;
     delete phraseEl.dataset.localSpeakingText;
@@ -1050,6 +1250,11 @@ class PageFreeRide extends HTMLElement {
 
   restorePhrasePreviewText(copy = this.currentCopy) {
     const expected = this.getExpectedTextTrimmed();
+    const transcript = String(this.state && this.state.transcript ? this.state.transcript : '').trim();
+    if (expected && transcript) {
+      this.setPhraseTextCompared(expected, transcript);
+      return;
+    }
     const text = expected || (copy && copy.emptyPhrase ? copy.emptyPhrase : '');
     this.setPhraseTextPlain(text);
   }
@@ -2704,7 +2909,7 @@ class PageFreeRide extends HTMLElement {
     const hasText = Boolean(expected);
 
     if (phraseEl) {
-      this.setPhraseTextPlain(hasText ? expected : copy.emptyPhrase || '');
+      this.restorePhrasePreviewText(copy);
     }
     if (playBtn) {
       playBtn.disabled = !hasText || this.state.isRecording || this.state.isTranscribing;
@@ -2759,8 +2964,13 @@ class PageFreeRide extends HTMLElement {
     }
     if (transcriptEl) {
       const transcript = String(this.state.transcript || '').trim();
-      transcriptEl.classList.toggle('has-text', Boolean(transcript));
-      transcriptEl.textContent = transcript || ' ';
+      if (transcript && expected) {
+        this.setTranscriptCompared(expected, transcript);
+      } else {
+        transcriptEl.classList.remove('is-compare-diff');
+        transcriptEl.classList.toggle('has-text', Boolean(transcript));
+        transcriptEl.textContent = transcript || ' ';
+      }
     }
     if (debugToggleBtn) {
       const active = this.isSpeakDebugEnabled() && this.debugPanelOpen;

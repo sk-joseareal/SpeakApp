@@ -231,6 +231,30 @@ class PageDiagnostics extends HTMLElement {
 		              <div class="diag-usage-list" id="diag-tts-usage-list"></div>
 		            </div>
 
+		            <h4 style="margin-top:16px;">Pronunciation advanced usage (usuario/dia)</h4>
+		            <div class="diag-actions">
+		              <ion-button size="small" fill="outline" id="diag-pron-usage-refresh">Refrescar</ion-button>
+		            </div>
+		            <div class="diag-speak-block">
+              <div class="pill">Segundos y coste</div>
+              <div class="diag-usage-status" id="diag-pron-usage-status">Cargando...</div>
+              <div class="diag-actions diag-usage-limit-actions">
+                <input
+                  id="diag-pron-usage-limit-input"
+                  class="chat-text-input diag-usage-limit-input"
+                  type="number"
+                  min="0"
+                  step="1"
+                  placeholder="Limite seg/dia"
+                />
+                <ion-button size="small" fill="outline" id="diag-pron-usage-limit-save">Guardar limite</ion-button>
+                <ion-button size="small" fill="outline" color="medium" id="diag-pron-usage-limit-clear">Sin limite</ion-button>
+              </div>
+              <div class="diag-usage-limit-status" id="diag-pron-usage-limit-status"></div>
+              <div class="diag-usage-totals" id="diag-pron-usage-totals" hidden></div>
+		              <div class="diag-usage-list" id="diag-pron-usage-list"></div>
+		            </div>
+
 		            <h4 style="margin-top:16px;">Prueba TTS navegador (aislada)</h4>
 		            <div class="diag-speak-block">
 	              <div class="pill">Web Speech API</div>
@@ -451,6 +475,7 @@ class PageDiagnostics extends HTMLElement {
       updateTalkPanels();
       refreshUserUsage();
       refreshTtsUserUsage();
+      refreshPronUserUsage();
     };
     window.addEventListener('app:user-change', this._userHandler);
 
@@ -473,6 +498,13 @@ class PageDiagnostics extends HTMLElement {
     const ttsUsageLimitClearBtn = this.querySelector('#diag-tts-usage-limit-clear');
     const ttsUsageTotalsEl = this.querySelector('#diag-tts-usage-totals');
     const ttsUsageListEl = this.querySelector('#diag-tts-usage-list');
+    const pronUsageStatusEl = this.querySelector('#diag-pron-usage-status');
+    const pronUsageLimitInputEl = this.querySelector('#diag-pron-usage-limit-input');
+    const pronUsageLimitStatusEl = this.querySelector('#diag-pron-usage-limit-status');
+    const pronUsageLimitSaveBtn = this.querySelector('#diag-pron-usage-limit-save');
+    const pronUsageLimitClearBtn = this.querySelector('#diag-pron-usage-limit-clear');
+    const pronUsageTotalsEl = this.querySelector('#diag-pron-usage-totals');
+    const pronUsageListEl = this.querySelector('#diag-pron-usage-list');
     const ttsInputEl = this.querySelector('#diag-tts-input');
     const ttsPlayBtn = this.querySelector('#diag-tts-play');
     const ttsStatusEl = this.querySelector('#diag-tts-status');
@@ -483,6 +515,7 @@ class PageDiagnostics extends HTMLElement {
     const TALK_STORAGE_PREFIX = 'appv5:talk-timelines:';
     let usageRequestSeq = 0;
     let ttsUsageRequestSeq = 0;
+    let pronUsageRequestSeq = 0;
     let ttsUtter = null;
     let ttsPlaying = false;
 
@@ -1126,6 +1159,267 @@ class PageDiagnostics extends HTMLElement {
       }
     };
 
+    const resolvePronUsageEndpoint = () => {
+      const cfg = window.realtimeConfig || {};
+      const direct = cfg.pronunciationUsageDailyEndpoint;
+      if (typeof direct === 'string' && direct.trim()) return direct.trim();
+      const emitEndpoint = cfg.emitEndpoint;
+      if (typeof emitEndpoint === 'string' && emitEndpoint.trim()) {
+        const trimmed = emitEndpoint.trim().replace(/\/+$/, '');
+        if (trimmed.endsWith('/emit')) {
+          return `${trimmed.slice(0, -5)}/pronunciation/usage/daily`;
+        }
+      }
+      return '';
+    };
+
+    const resolvePronUsageLimitEndpoint = () => {
+      const cfg = window.realtimeConfig || {};
+      const direct = cfg.pronunciationUsageLimitEndpoint;
+      if (typeof direct === 'string' && direct.trim()) return direct.trim();
+      const dailyEndpoint = resolvePronUsageEndpoint();
+      if (dailyEndpoint) {
+        return dailyEndpoint.replace(/\/daily$/, '/limit');
+      }
+      return '';
+    };
+
+    const updatePronUsageLimitStatus = (text) => {
+      if (!pronUsageLimitStatusEl) return;
+      pronUsageLimitStatusEl.textContent = text || '';
+    };
+
+    const renderPronUsageLimit = (status) => {
+      if (!pronUsageLimitInputEl) return;
+      const limit = Math.max(0, Math.round(toUsageNumber(status && status.seconds_limit_day, 0)));
+      pronUsageLimitInputEl.value = limit > 0 ? String(limit) : '';
+      const used = Math.max(0, Number(toUsageNumber(status && status.used_seconds_day, 0).toFixed(3)));
+      if (!limit) {
+        updatePronUsageLimitStatus(`Sin limite diario. Usados hoy: ${used.toFixed(1)} s.`);
+        return;
+      }
+      const reached = Boolean(status && status.limit_reached_today);
+      const remaining = Math.max(
+        0,
+        Number(toUsageNumber(status && status.remaining_seconds_day, limit - used).toFixed(3))
+      );
+      updatePronUsageLimitStatus(
+        reached
+          ? `Limite activo: ${usageIntFmt.format(limit)} s/dia. Alcanzado hoy (${used.toFixed(1)} s).`
+          : `Limite activo: ${usageIntFmt.format(limit)} s/dia. Restantes hoy: ${remaining.toFixed(1)} s.`
+      );
+    };
+
+    const fetchPronUsageLimitStatus = async (userId) => {
+      const endpoint = resolvePronUsageLimitEndpoint();
+      if (!endpoint) {
+        updatePronUsageLimitStatus('Endpoint de limite Pron no configurado.');
+        return null;
+      }
+      const url = new URL(endpoint, window.location.origin);
+      url.searchParams.set('user_id', userId);
+      const response = await fetch(url.toString(), {
+        headers: buildUsageHeaders()
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      return response.json();
+    };
+
+    const savePronUsageLimit = async (userId, limitSeconds) => {
+      const endpoint = resolvePronUsageLimitEndpoint();
+      if (!endpoint) {
+        updatePronUsageLimitStatus('Endpoint de limite Pron no configurado.');
+        return null;
+      }
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...buildUsageHeaders()
+        },
+        body: JSON.stringify({
+          user_id: userId,
+          seconds_limit_day: limitSeconds
+        })
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      return response.json();
+    };
+
+    const renderPronUsageRows = (rows) => {
+      if (!pronUsageListEl) return;
+      pronUsageListEl.innerHTML = '';
+      if (!Array.isArray(rows) || !rows.length) {
+        const emptyEl = document.createElement('div');
+        emptyEl.className = 'diag-usage-empty';
+        emptyEl.textContent = 'Sin consumo de evaluación avanzada registrado.';
+        pronUsageListEl.appendChild(emptyEl);
+        return;
+      }
+      rows.forEach((row) => {
+        const itemEl = document.createElement('div');
+        itemEl.className = 'diag-usage-row';
+
+        const dayEl = document.createElement('div');
+        dayEl.className = 'diag-usage-day';
+        dayEl.textContent = formatUsageDate(row.day) || '-';
+
+        const metaEl = document.createElement('div');
+        metaEl.className = 'diag-usage-meta';
+        const req = usageIntFmt.format(Math.round(toUsageNumber(row.requests, 0)));
+        const seconds = Number(toUsageNumber(row.audio_seconds, 0).toFixed(3));
+        const cost = usageMoneyFmt.format(toUsageNumber(row.estimated_cost_usd, 0));
+        metaEl.textContent = `${req} req · ${seconds.toFixed(1)} s · ${cost}`;
+
+        itemEl.appendChild(dayEl);
+        itemEl.appendChild(metaEl);
+        pronUsageListEl.appendChild(itemEl);
+      });
+    };
+
+    const renderPronUsageTotals = (totals, days) => {
+      if (!pronUsageTotalsEl) return;
+      const requests = usageIntFmt.format(Math.round(toUsageNumber(totals.requests, 0)));
+      const seconds = Number(toUsageNumber(totals.audio_seconds, 0).toFixed(3));
+      const cost = usageMoneyFmt.format(toUsageNumber(totals.estimated_cost_usd, 0));
+      const dayLabel = `${days} día${days === 1 ? '' : 's'}`;
+      pronUsageTotalsEl.hidden = false;
+      pronUsageTotalsEl.textContent = `Total (${dayLabel}): ${requests} req · ${seconds.toFixed(1)} s · ${cost}`;
+    };
+
+    const updatePronUsageStatus = (text) => {
+      if (!pronUsageStatusEl) return;
+      pronUsageStatusEl.textContent = text;
+    };
+
+    const refreshPronUserUsage = async () => {
+      if (!pronUsageStatusEl || !pronUsageTotalsEl || !pronUsageListEl) return;
+      const userId = getUsageUserId();
+      if (!userId) {
+        pronUsageTotalsEl.hidden = true;
+        pronUsageListEl.innerHTML = '';
+        updatePronUsageStatus('Inicia sesión para ver consumo de evaluación avanzada por usuario.');
+        if (pronUsageLimitInputEl) pronUsageLimitInputEl.value = '';
+        updatePronUsageLimitStatus('Inicia sesión para configurar limite diario.');
+        if (pronUsageLimitSaveBtn) pronUsageLimitSaveBtn.disabled = true;
+        if (pronUsageLimitClearBtn) pronUsageLimitClearBtn.disabled = true;
+        return;
+      }
+      if (pronUsageLimitSaveBtn) pronUsageLimitSaveBtn.disabled = false;
+      if (pronUsageLimitClearBtn) pronUsageLimitClearBtn.disabled = false;
+
+      const endpoint = resolvePronUsageEndpoint();
+      if (!endpoint) {
+        pronUsageTotalsEl.hidden = true;
+        pronUsageListEl.innerHTML = '';
+        updatePronUsageStatus('Endpoint de usage Pron no configurado.');
+        updatePronUsageLimitStatus('Endpoint de usage Pron no configurado.');
+        return;
+      }
+
+      let url;
+      try {
+        url = new URL(endpoint, window.location.origin);
+      } catch (err) {
+        pronUsageTotalsEl.hidden = true;
+        pronUsageListEl.innerHTML = '';
+        updatePronUsageStatus('Endpoint de usage Pron inválido.');
+        return;
+      }
+      url.searchParams.set('user_id', userId);
+      url.searchParams.set('limit', '30');
+
+      const requestId = pronUsageRequestSeq + 1;
+      pronUsageRequestSeq = requestId;
+      updatePronUsageStatus('Cargando consumo de evaluación avanzada...');
+      updatePronUsageLimitStatus('Cargando limite...');
+
+      try {
+        const [response, limitPayload] = await Promise.all([
+          fetch(url.toString(), {
+            headers: buildUsageHeaders()
+          }),
+          fetchPronUsageLimitStatus(userId).catch((err) => ({ _error: err }))
+        ]);
+        if (requestId !== pronUsageRequestSeq) return;
+        if (limitPayload && !limitPayload._error) {
+          renderPronUsageLimit(limitPayload);
+        } else if (limitPayload && limitPayload._error) {
+          updatePronUsageLimitStatus(
+            `No se pudo leer limite: ${limitPayload._error.message || String(limitPayload._error)}`
+          );
+        }
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        const payload = await response.json();
+        if (requestId !== pronUsageRequestSeq) return;
+        if (!payload || payload.enabled === false) {
+          pronUsageTotalsEl.hidden = true;
+          pronUsageListEl.innerHTML = '';
+          updatePronUsageStatus('Evaluación avanzada no configurada en servidor.');
+          return;
+        }
+        const rows = Array.isArray(payload.rows) ? payload.rows : [];
+        const totals = payload && typeof payload.totals === 'object' ? payload.totals : {};
+        renderPronUsageTotals(totals, rows.length);
+        renderPronUsageRows(rows);
+        if (payload && payload.limit_status && typeof payload.limit_status === 'object') {
+          renderPronUsageLimit(payload.limit_status);
+        }
+        if (rows.length) {
+          const now = new Date().toLocaleTimeString('es-ES');
+          updatePronUsageStatus(`Actualizado: ${now}`);
+        } else {
+          updatePronUsageStatus('Sin consumo de evaluación avanzada registrado para este usuario.');
+        }
+      } catch (err) {
+        if (requestId !== pronUsageRequestSeq) return;
+        pronUsageTotalsEl.hidden = true;
+        pronUsageListEl.innerHTML = '';
+        updatePronUsageStatus(`Error cargando usage Pron: ${err.message || String(err)}`);
+      }
+    };
+
+    const getPronUsageLimitInputValue = () => {
+      if (!pronUsageLimitInputEl) return NaN;
+      const raw = String(pronUsageLimitInputEl.value || '').trim();
+      if (!raw) return 0;
+      return Number(raw);
+    };
+
+    const submitPronUsageLimit = async (limitSeconds) => {
+      const userId = getUsageUserId();
+      if (!userId) {
+        updatePronUsageLimitStatus('Inicia sesión para configurar limite.');
+        return;
+      }
+      const normalized = Number.isFinite(limitSeconds) ? Math.max(0, Math.floor(limitSeconds)) : NaN;
+      if (!Number.isFinite(normalized)) {
+        updatePronUsageLimitStatus('Introduce un numero valido.');
+        return;
+      }
+      if (pronUsageLimitSaveBtn) pronUsageLimitSaveBtn.disabled = true;
+      if (pronUsageLimitClearBtn) pronUsageLimitClearBtn.disabled = true;
+      updatePronUsageLimitStatus('Guardando limite...');
+      try {
+        const payload = await savePronUsageLimit(userId, normalized);
+        if (payload && typeof payload === 'object') {
+          renderPronUsageLimit(payload);
+        }
+        await refreshPronUserUsage();
+      } catch (err) {
+        updatePronUsageLimitStatus(`Error guardando limite: ${err.message || String(err)}`);
+      } finally {
+        if (pronUsageLimitSaveBtn) pronUsageLimitSaveBtn.disabled = false;
+        if (pronUsageLimitClearBtn) pronUsageLimitClearBtn.disabled = false;
+      }
+    };
+
     const escapeHtml = (value) =>
       String(value ?? '')
         .replace(/&/g, '&amp;')
@@ -1261,6 +1555,7 @@ class PageDiagnostics extends HTMLElement {
     updateTalkPanels();
     refreshUserUsage();
     refreshTtsUserUsage();
+    refreshPronUserUsage();
     renderNotifyList();
     const initialFreeRideAudioMode = getStoredFreeRideAudioMode();
     updateFreeRideAudioModeUi(setFreeRideAudioMode(initialFreeRideAudioMode));
@@ -1403,6 +1698,15 @@ class PageDiagnostics extends HTMLElement {
     });
     ttsUsageLimitClearBtn?.addEventListener('click', () => {
       submitTtsUsageLimit(0);
+    });
+    this.querySelector('#diag-pron-usage-refresh')?.addEventListener('click', () => {
+      refreshPronUserUsage();
+    });
+    pronUsageLimitSaveBtn?.addEventListener('click', () => {
+      submitPronUsageLimit(getPronUsageLimitInputValue());
+    });
+    pronUsageLimitClearBtn?.addEventListener('click', () => {
+      submitPronUsageLimit(0);
     });
     this.querySelector('#diag-notify-generate')?.addEventListener('click', () => {
       generateDemoNotifications();

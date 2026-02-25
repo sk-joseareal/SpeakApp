@@ -1268,6 +1268,19 @@ const ticksToMs = (ticks) => {
   return Math.max(0, Math.round(n / 10000));
 };
 
+const readAzureScoreOrNull = (value) => {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : null;
+  }
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    const n = Number(trimmed);
+    return Number.isFinite(n) ? n : null;
+  }
+  return null;
+};
+
 const normalizeAzurePronunciationAssessment = (payload, expectedText) => {
   if (!payload || typeof payload !== 'object') return null;
   const nbest = Array.isArray(payload.NBest) ? payload.NBest : [];
@@ -1282,7 +1295,7 @@ const normalizeAzurePronunciationAssessment = (payload, expectedText) => {
     const wpa = obj.PronunciationAssessment && typeof obj.PronunciationAssessment === 'object'
       ? obj.PronunciationAssessment
       : {};
-    const accuracy = Number(wpa.AccuracyScore);
+    const accuracy = readAzureScoreOrNull(wpa.AccuracyScore);
     const errorType = pickFirstString(wpa.ErrorType, obj.ErrorType);
     const startMs = ticksToMs(obj.Offset);
     const durationMs = ticksToMs(obj.Duration);
@@ -1296,7 +1309,7 @@ const normalizeAzurePronunciationAssessment = (payload, expectedText) => {
       recognized: pickFirstString(obj.Word),
       start_ms: startMs,
       end_ms: endMs,
-      score: Number.isFinite(accuracy) ? Math.max(0, Math.min(100, Math.round(accuracy))) : null,
+      score: accuracy !== null ? Math.max(0, Math.min(100, Math.round(accuracy))) : null,
       status: mapAzureWordStatus(errorType, accuracy),
       error_type: errorType || '',
       phonemes: Array.isArray(obj.Phonemes)
@@ -1305,10 +1318,10 @@ const normalizeAzurePronunciationAssessment = (payload, expectedText) => {
             const ppa = p.PronunciationAssessment && typeof p.PronunciationAssessment === 'object'
               ? p.PronunciationAssessment
               : {};
-            const pScore = Number(ppa.AccuracyScore);
+            const pScore = readAzureScoreOrNull(ppa.AccuracyScore);
             return {
               phoneme: pickFirstString(p.Phoneme),
-              score: Number.isFinite(pScore) ? Math.max(0, Math.min(100, Math.round(pScore))) : null,
+              score: pScore !== null ? Math.max(0, Math.min(100, Math.round(pScore))) : null,
               offset_ms: ticksToMs(p.Offset),
               duration_ms: ticksToMs(p.Duration)
             };
@@ -1318,8 +1331,8 @@ const normalizeAzurePronunciationAssessment = (payload, expectedText) => {
   });
 
   const scoreValue = (name) => {
-    const n = Number(pa[name]);
-    return Number.isFinite(n) ? Math.max(0, Math.min(100, Math.round(n))) : null;
+    const n = readAzureScoreOrNull(pa[name]);
+    return n !== null ? Math.max(0, Math.min(100, Math.round(n))) : null;
   };
   const transcript = pickFirstString(top.Display, top.DisplayText, payload.DisplayText, payload.Text);
 

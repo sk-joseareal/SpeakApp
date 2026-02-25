@@ -82,6 +82,8 @@ class PageFreeRide extends HTMLElement {
     this.alignedTtsLimitStatus = null;
     this.advancedAssessLimitStatus = null;
     this.advancedAssessRequestToken = 0;
+    this.advancedPhraseWordMeta = [];
+    this.advancedSelectedPhraseWordIndex = -1;
     this.phraseHighlightRaf = null;
     this.phraseHighlightTimeline = [];
     this.phraseHighlightTokenEls = [];
@@ -185,6 +187,14 @@ class PageFreeRide extends HTMLElement {
     this.clearNarrationTimer();
     this.stopNarration().catch(() => {});
     this.clearRecordingUrl();
+    if (this._freeRideDetailsModal) {
+      try {
+        this._freeRideDetailsModal.dismiss().catch(() => {});
+      } catch (err) {
+        // no-op
+      }
+      this._freeRideDetailsModal = null;
+    }
 
     if (this._localeHandler) {
       window.removeEventListener('app:locale-change', this._localeHandler);
@@ -992,6 +1002,8 @@ class PageFreeRide extends HTMLElement {
     this.advancedAssessRequestToken += 1;
     this.state.advancedAssessment = null;
     this.state.advancedAssessmentPending = false;
+    this.advancedPhraseWordMeta = [];
+    this.advancedSelectedPhraseWordIndex = -1;
     if (!options.skipRender) {
       this.render();
     }
@@ -1002,6 +1014,10 @@ class PageFreeRide extends HTMLElement {
     if (!pending && options.clearResult) {
       this.state.advancedAssessment = null;
     }
+    if (pending) {
+      this.advancedPhraseWordMeta = [];
+      this.advancedSelectedPhraseWordIndex = -1;
+    }
     if (!options.skipRender) {
       this.render();
     }
@@ -1010,6 +1026,8 @@ class PageFreeRide extends HTMLElement {
   setAdvancedAssessmentResult(result, options = {}) {
     this.state.advancedAssessment = result && typeof result === 'object' ? result : null;
     this.state.advancedAssessmentPending = false;
+    this.advancedPhraseWordMeta = [];
+    this.advancedSelectedPhraseWordIndex = -1;
     if (!options.skipRender) {
       this.render();
     }
@@ -1039,6 +1057,492 @@ class PageFreeRide extends HTMLElement {
       return status || 'ok';
     }
     return parts.join(' · ');
+  }
+
+  getAdvancedAssessmentDisplayInfo() {
+    const effectiveMode = this.getEffectiveFreeRideEvalMode();
+    const blocked = this.isAdvancedAssessBlockedByLimit();
+    if (effectiveMode !== FREE_RIDE_EVAL_MODE_ADVANCED) {
+      if (blocked && this.getFreeRideEvalMode() === FREE_RIDE_EVAL_MODE_ADVANCED) {
+        return {
+          visible: true,
+          tone: 'warn',
+          text: 'Advanced bloqueado por límite diario · usando Standard'
+        };
+      }
+      return { visible: false, tone: '', text: '' };
+    }
+    if (this.state.advancedAssessmentPending) {
+      return { visible: true, tone: 'pending', text: 'Advanced: evaluando pronunciación...' };
+    }
+    const result = this.state.advancedAssessment;
+    if (!result) {
+      return { visible: false, tone: '', text: '' };
+    }
+    if (result.ok !== true) {
+      const label = String(result.error_label || result.error || 'Error').trim();
+      return { visible: true, tone: 'warn', text: `Advanced: ${label}` };
+    }
+    const summary = this.getAdvancedAssessmentSummaryText();
+    return {
+      visible: true,
+      tone: 'ok',
+      text: `Advanced · ${summary}`
+    };
+  }
+
+  clearAdvancedWordSelection(options = {}) {
+    this.advancedSelectedPhraseWordIndex = -1;
+    if (!options.skipRender) {
+      this.updatePhrasePreview(this.currentCopy);
+    }
+  }
+
+  setAdvancedWordSelection(index, options = {}) {
+    const numeric = Number(index);
+    if (!Number.isFinite(numeric)) {
+      this.clearAdvancedWordSelection(options);
+      return;
+    }
+    const normalized = Math.max(0, Math.floor(numeric));
+    this.advancedSelectedPhraseWordIndex =
+      this.advancedSelectedPhraseWordIndex === normalized && !options.allowToggleOff
+        ? normalized
+        : this.advancedSelectedPhraseWordIndex === normalized && options.allowToggleOff
+        ? -1
+        : normalized;
+    if (!options.skipRender) {
+      this.updatePhrasePreview(this.currentCopy);
+    }
+  }
+
+  getAdvancedSelectedWordMeta() {
+    const selectedIndex = Number(this.advancedSelectedPhraseWordIndex);
+    if (!Number.isFinite(selectedIndex) || selectedIndex < 0) return null;
+    const list = Array.isArray(this.advancedPhraseWordMeta) ? this.advancedPhraseWordMeta : [];
+    const meta = list[selectedIndex];
+    return meta && typeof meta === 'object' ? meta : null;
+  }
+
+  getAdvancedSelectedWordDetailInfo() {
+    const activeAdvanced = this.getActiveAdvancedAssessment();
+    if (!activeAdvanced) return { visible: false, tone: '', html: '' };
+    if (this.state.advancedAssessmentPending) {
+      return {
+        visible: true,
+        tone: 'pending',
+        html: 'Evaluación avanzada en curso...'
+      };
+    }
+    const selected = this.getAdvancedSelectedWordMeta();
+    if (!selected) {
+      return {
+        visible: true,
+        tone: 'hint',
+        html: 'Toca una palabra marcada para ver detalle.'
+      };
+    }
+
+    const expected = this.escapeHtml(selected.expected || 'n/d');
+    const recognized = this.escapeHtml(selected.recognized || '—');
+    const statusRaw = String(selected.status || '').trim().toLowerCase();
+    const statusLabelByKey = {
+      ok: 'OK',
+      wrong: 'Incorrecta',
+      missing: 'Omitida',
+      extra: 'Extra',
+      issue: 'Issue'
+    };
+    const statusLabel = this.escapeHtml(statusLabelByKey[statusRaw] || (selected.status || 'n/d'));
+    const scoreText =
+      typeof selected.score === 'number' && Number.isFinite(selected.score)
+        ? `${Math.round(selected.score)}%`
+        : 'n/d';
+    const errorType = this.escapeHtml(selected.error_type || '—');
+
+    let phonemeText = '';
+    if (Array.isArray(selected.phonemes) && selected.phonemes.length) {
+      const weak = this.getAdvancedDisplayablePhonemes(selected)
+        .slice()
+        .sort((a, b) => a.score - b.score)[0];
+      if (weak) {
+        phonemeText = ` · Fonema: ${this.escapeHtml(weak.phoneme)} (${Math.round(weak.score)}%)`;
+      } else {
+        phonemeText = ' · Fonema: n/d';
+      }
+    }
+
+    const tone =
+      statusRaw === 'ok'
+        ? 'ok'
+        : statusRaw === 'missing' || statusRaw === 'wrong' || statusRaw === 'issue'
+        ? 'warn'
+        : 'hint';
+
+    return {
+      visible: true,
+      tone,
+      html: `<strong>${expected}</strong> · score ${scoreText} · ${statusLabel} · rec: ${recognized} · err: ${errorType}${phonemeText}`
+    };
+  }
+
+  canOpenPhraseDetailsModal() {
+    if (this.getExpectedTextTrimmed()) return true;
+    if (String(this.state.transcript || '').trim()) return true;
+    if (this.state.advancedAssessmentPending) return true;
+    if (this.state.advancedAssessment) return true;
+    if (typeof this.state.percent === 'number') return true;
+    return false;
+  }
+
+  formatDurationMsForDetail(value) {
+    const n = Number(value);
+    if (!Number.isFinite(n) || n < 0) return '—';
+    return `${Math.round(n)} ms`;
+  }
+
+  isAdvancedPhonemeScoreUsable(wordLike, phonemeLike) {
+    const status = String(wordLike && wordLike.status ? wordLike.status : '')
+      .trim()
+      .toLowerCase();
+    if (status === 'missing' || status === 'extra') return false;
+    const wordScoreRaw = wordLike && wordLike.score;
+    if (typeof wordScoreRaw !== 'number' || !Number.isFinite(wordScoreRaw)) return false;
+    const phonemeScoreRaw = phonemeLike && phonemeLike.score;
+    return typeof phonemeScoreRaw === 'number' && Number.isFinite(phonemeScoreRaw);
+  }
+
+  getAdvancedDisplayablePhonemes(wordLike) {
+    const phonemes = Array.isArray(wordLike && wordLike.phonemes) ? wordLike.phonemes : [];
+    return phonemes
+      .map((phoneme) => {
+        const rawScore = phoneme && phoneme.score;
+        return {
+          phoneme: phoneme && phoneme.phoneme ? String(phoneme.phoneme) : '',
+          score: typeof rawScore === 'number' && Number.isFinite(rawScore) ? rawScore : null,
+          usable: this.isAdvancedPhonemeScoreUsable(wordLike, phoneme)
+        };
+      })
+      .filter((item) => item.phoneme && item.usable && item.score !== null);
+  }
+
+  getAdvancedStatusLabel(status) {
+    const key = String(status || '')
+      .trim()
+      .toLowerCase();
+    if (key === 'ok') return 'OK';
+    if (key === 'wrong') return 'Incorrecta';
+    if (key === 'missing') return 'Omitida';
+    if (key === 'extra') return 'Extra';
+    if (key === 'issue') return 'Issue';
+    return key || 'n/d';
+  }
+
+  getWordDiffKindLabel(kind) {
+    const key = String(kind || '')
+      .trim()
+      .toLowerCase();
+    if (key === 'match') return 'match';
+    if (key === 'replace') return 'replace';
+    if (key === 'missing') return 'missing';
+    if (key === 'extra') return 'extra';
+    return key || 'n/d';
+  }
+
+  getWordDiffKindTone(kind) {
+    const key = String(kind || '')
+      .trim()
+      .toLowerCase();
+    if (key === 'match') return 'ok';
+    if (key === 'replace') return 'warn';
+    if (key === 'missing' || key === 'extra') return 'bad';
+    return 'neutral';
+  }
+
+  buildPhraseDetailsModalHtml() {
+    const copy = this.currentCopy || {};
+    const expected = this.getExpectedTextTrimmed();
+    const transcript = String(this.state.transcript || '').trim();
+    const feedback = this.getFeedbackState(copy);
+    const diff = this.buildWordDiffDetailedComparison(expected, transcript);
+    const advanced = this.state.advancedAssessment;
+    const advancedOk = Boolean(advanced && typeof advanced === 'object' && advanced.ok === true);
+    const advancedWords = advancedOk && Array.isArray(advanced.words) ? advanced.words : [];
+    const advancedScores = advancedOk && advanced.scores && typeof advanced.scores === 'object' ? advanced.scores : {};
+    const selectedMeta = this.getAdvancedSelectedWordMeta();
+
+    const standardCards = [
+      { label: 'Expected', value: expected || 'n/d' },
+      { label: 'Transcript', value: transcript || 'n/d' },
+      {
+        label: 'Standard score',
+        value:
+          typeof this.state.percent === 'number'
+            ? `${Math.max(0, Math.min(100, Math.round(this.state.percent)))}% · ${feedback.label || ''}`
+            : `n/d · ${feedback.label || ''}`
+      }
+    ];
+
+    const diffSummary = diff
+      ? `match ${diff.counts.match} · replace ${diff.counts.replace} · missing ${diff.counts.missing} · extra ${diff.counts.extra} · distance ${diff.distance}`
+      : 'n/d';
+
+    const standardSection = `
+      <section class="free-ride-detail-section">
+        <h3>Standard</h3>
+        <div class="free-ride-detail-grid">
+          ${standardCards
+            .map(
+              (item) => `
+            <div class="free-ride-detail-card">
+              <div class="free-ride-detail-card-label">${this.escapeHtml(item.label)}</div>
+              <div class="free-ride-detail-card-value">${this.escapeHtml(item.value)}</div>
+            </div>`
+            )
+            .join('')}
+          <div class="free-ride-detail-card">
+            <div class="free-ride-detail-card-label">Diff summary</div>
+            <div class="free-ride-detail-card-value">${this.escapeHtml(diffSummary)}</div>
+          </div>
+        </div>
+        <div class="free-ride-detail-list">
+          ${
+            diff && Array.isArray(diff.pairs) && diff.pairs.length
+              ? diff.pairs
+                  .map((row, index) => {
+                    const tone = this.getWordDiffKindTone(row.kind);
+                    return `
+                  <div class="free-ride-detail-row is-${tone}">
+                    <div class="free-ride-detail-row-index">${index + 1}</div>
+                    <div class="free-ride-detail-row-main">
+                      <div class="free-ride-detail-row-top">
+                        <span class="free-ride-detail-badge is-${tone}">${this.escapeHtml(
+                          this.getWordDiffKindLabel(row.kind)
+                        )}</span>
+                        <span class="free-ride-detail-row-word"><b>${this.escapeHtml(
+                          row.expected_word || '—'
+                        )}</b> → ${this.escapeHtml(row.actual_word || '—')}</span>
+                      </div>
+                    </div>
+                  </div>`;
+                  })
+                  .join('')
+              : `<div class="free-ride-detail-empty">Sin datos de comparación todavía.</div>`
+          }
+        </div>
+      </section>
+    `;
+
+    const advancedScoresList = ['overall', 'accuracy', 'fluency', 'completeness', 'prosody']
+      .map((key) => {
+        const value = advancedScores[key];
+        const label =
+          key === 'overall'
+            ? 'Overall'
+            : key === 'accuracy'
+            ? 'Accuracy'
+            : key === 'fluency'
+            ? 'Fluency'
+            : key === 'completeness'
+            ? 'Completeness'
+            : 'Prosody';
+        return { label, value };
+      })
+      .filter((item) => typeof item.value === 'number' && Number.isFinite(item.value));
+
+    const advancedSection = `
+      <section class="free-ride-detail-section">
+        <h3>Advanced</h3>
+        ${
+          this.state.advancedAssessmentPending
+            ? `<div class="free-ride-detail-empty">Evaluación avanzada en curso...</div>`
+            : advancedOk
+            ? `
+          <div class="free-ride-detail-grid">
+            <div class="free-ride-detail-card">
+              <div class="free-ride-detail-card-label">Recognition</div>
+              <div class="free-ride-detail-card-value">${this.escapeHtml(
+                String(advanced.recognition_status || 'n/d')
+              )}</div>
+            </div>
+            <div class="free-ride-detail-card">
+              <div class="free-ride-detail-card-label">Transcript (Azure)</div>
+              <div class="free-ride-detail-card-value">${this.escapeHtml(
+                String(advanced.transcript || '').trim() || 'n/d'
+              )}</div>
+            </div>
+            ${advancedScoresList
+              .map(
+                (item) => `
+              <div class="free-ride-detail-card">
+                <div class="free-ride-detail-card-label">${this.escapeHtml(item.label)}</div>
+                <div class="free-ride-detail-card-value">${Math.round(item.value)}%</div>
+              </div>`
+              )
+              .join('')}
+          </div>
+          ${
+            selectedMeta
+              ? `<div class="free-ride-detail-selected">
+              <b>Selected word</b>: ${this.escapeHtml(selectedMeta.expected || 'n/d')} · score ${
+                  typeof selectedMeta.score === 'number' ? `${Math.round(selectedMeta.score)}%` : 'n/d'
+                } · ${this.escapeHtml(this.getAdvancedStatusLabel(selectedMeta.status))} · err: ${this.escapeHtml(
+                  selectedMeta.error_type || '—'
+                )}
+            </div>`
+              : ''
+          }
+          <div class="free-ride-detail-list">
+            ${
+              advancedWords.length
+                ? advancedWords
+                    .map((word, index) => {
+                      const status = String(word && word.status ? word.status : '').trim().toLowerCase();
+                      const tone =
+                        status === 'ok'
+                          ? 'ok'
+                          : status === 'wrong' || status === 'missing' || status === 'issue'
+                          ? 'warn'
+                          : status === 'extra'
+                          ? 'bad'
+                          : 'neutral';
+                      const phonemes = Array.isArray(word && word.phonemes) ? word.phonemes : [];
+                      const displayablePhonemes = this.getAdvancedDisplayablePhonemes(word);
+                      const phonemeInline = displayablePhonemes.length
+                        ? displayablePhonemes
+                            .slice()
+                            .sort((a, b) => {
+                              return a.score - b.score;
+                            })
+                            .slice(0, 4)
+                            .map((phoneme) => {
+                              const pv = phoneme && phoneme.phoneme ? String(phoneme.phoneme) : '?';
+                              return `${pv}:${Math.round(phoneme.score)}%`;
+                            })
+                            .join(' · ')
+                        : '';
+                      return `
+                    <div class="free-ride-detail-row is-${tone}">
+                      <div class="free-ride-detail-row-index">${index + 1}</div>
+                      <div class="free-ride-detail-row-main">
+                        <div class="free-ride-detail-row-top">
+                          <span class="free-ride-detail-badge is-${tone}">${this.escapeHtml(
+                            this.getAdvancedStatusLabel(status)
+                          )}</span>
+                          <span class="free-ride-detail-row-word"><b>${this.escapeHtml(
+                            String(word && word.expected ? word.expected : word && word.text ? word.text : '—')
+                          )}</b></span>
+                          <span class="free-ride-detail-row-score">${
+                            typeof word?.score === 'number' ? `${Math.round(word.score)}%` : 'n/d'
+                          }</span>
+                        </div>
+                        <div class="free-ride-detail-row-meta">
+                          rec: ${this.escapeHtml(String(word && word.recognized ? word.recognized : '—'))}
+                          · err: ${this.escapeHtml(String(word && word.error_type ? word.error_type : '—'))}
+                          · ${this.formatDurationMsForDetail(
+                            Number(word?.end_ms) - Number(word?.start_ms)
+                          )}
+                          ${
+                            phonemes.length
+                              ? phonemeInline
+                                ? ` · phonemes: ${this.escapeHtml(phonemeInline)}`
+                                : ' · phonemes: n/d'
+                              : ''
+                          }
+                        </div>
+                      </div>
+                    </div>`;
+                    })
+                    .join('')
+                : `<div class="free-ride-detail-empty">Sin detalle de palabras en la respuesta avanzada.</div>`
+            }
+          </div>
+          ${
+            advanced.provider_payload
+              ? `<details class="free-ride-detail-raw">
+              <summary>Raw provider payload (debug)</summary>
+              <pre>${this.escapeHtml(JSON.stringify(advanced.provider_payload, null, 2))}</pre>
+            </details>`
+              : ''
+          }
+        `
+            : advanced && typeof advanced === 'object'
+            ? `<div class="free-ride-detail-empty">Advanced: ${this.escapeHtml(
+                String(advanced.error_label || advanced.error || 'Error')
+              )}${advanced.error_message ? ` · ${this.escapeHtml(String(advanced.error_message))}` : ''}</div>`
+            : `<div class="free-ride-detail-empty">Sin datos advanced todavía.</div>`
+        }
+      </section>
+    `;
+
+    return `
+      <div class="free-ride-detail-modal-page">
+        <div class="free-ride-detail-modal-head">
+          <div>
+            <div class="free-ride-detail-modal-title">Phrase details</div>
+            <div class="free-ride-detail-modal-sub">Standard + Advanced (si disponible)</div>
+          </div>
+          <button class="free-ride-detail-close" type="button" data-close-detail aria-label="Cerrar">
+            <ion-icon name="close"></ion-icon>
+          </button>
+        </div>
+        <div class="free-ride-detail-modal-body">
+          ${standardSection}
+          ${advancedSection}
+        </div>
+      </div>
+    `;
+  }
+
+  async openPhraseDetailsModal() {
+    if (!this.canOpenPhraseDetailsModal()) return;
+    if (this._freeRideDetailsModal) {
+      try {
+        await this._freeRideDetailsModal.dismiss();
+      } catch (err) {
+        // no-op
+      }
+      this._freeRideDetailsModal = null;
+    }
+
+    const modal = document.createElement('ion-modal');
+    modal.classList.add('free-ride-detail-modal');
+    modal.backdropDismiss = true;
+    modal.canDismiss = true;
+    const presentingEl = document.querySelector('ion-router-outlet');
+    if (presentingEl) {
+      modal.presentingElement = presentingEl;
+    }
+    modal.innerHTML = `
+      <ion-content class="free-ride-detail-modal-content" fullscreen="true">
+        ${this.buildPhraseDetailsModalHtml()}
+      </ion-content>
+    `;
+    document.body.appendChild(modal);
+    this._freeRideDetailsModal = modal;
+
+    modal.addEventListener(
+      'didDismiss',
+      () => {
+        if (this._freeRideDetailsModal === modal) {
+          this._freeRideDetailsModal = null;
+        }
+        if (modal.parentNode) {
+          modal.parentNode.removeChild(modal);
+        }
+      },
+      { once: true }
+    );
+
+    const closeBtn = modal.querySelector('[data-close-detail]');
+    closeBtn?.addEventListener('click', () => {
+      modal.dismiss().catch(() => {});
+    });
+
+    if (document.activeElement && typeof document.activeElement.blur === 'function') {
+      document.activeElement.blur();
+    }
+    await modal.present();
   }
 
   async fetchAdvancedPronunciationAssessment(expectedText, recordingBlob) {
@@ -1219,6 +1723,139 @@ class PageFreeRide extends HTMLElement {
     delete phraseEl.dataset.localSpeakingActive;
     delete phraseEl.dataset.localSpeakingText;
     phraseEl.textContent = String(text || '');
+    this.advancedPhraseWordMeta = [];
+    this.phraseHighlightTimeline = [];
+    this.phraseHighlightTokenEls = [];
+  }
+
+  getActiveAdvancedAssessment() {
+    if (this.getEffectiveFreeRideEvalMode() !== FREE_RIDE_EVAL_MODE_ADVANCED) return null;
+    const result = this.state.advancedAssessment;
+    if (!result || typeof result !== 'object' || result.ok !== true) return null;
+    return result;
+  }
+
+  mapAdvancedWordStatusToPhraseTokenStatus(status) {
+    const normalized = String(status || '')
+      .trim()
+      .toLowerCase();
+    if (normalized === 'ok') return 'ok';
+    if (normalized === 'wrong' || normalized === 'issue') return 'miss';
+    if (normalized === 'missing') return 'miss';
+    return '';
+  }
+
+  buildExpectedStatusesFromAdvancedAssessment(expectedText, assessment) {
+    const source = String(expectedText || '');
+    const tokenized = this.tokenizePhraseDisplayWords(source);
+    const tokenCount = Array.isArray(tokenized.words) ? tokenized.words.length : 0;
+    if (!tokenCount) return null;
+    const words = assessment && Array.isArray(assessment.words) ? assessment.words : [];
+    if (!words.length) return null;
+
+    const statuses = new Array(tokenCount).fill('');
+    const meta = new Array(tokenCount).fill(null);
+    let tokenIndex = 0;
+
+    words.forEach((entry) => {
+      if (tokenIndex >= tokenCount) return;
+      const rawStatus = String(entry && entry.status ? entry.status : '')
+        .trim()
+        .toLowerCase();
+      if (!rawStatus) return;
+      if (rawStatus === 'extra') {
+        return;
+      }
+      const mapped = this.mapAdvancedWordStatusToPhraseTokenStatus(rawStatus);
+      if (mapped) {
+        statuses[tokenIndex] = mapped;
+      }
+      const expectedRaw =
+        entry && typeof entry.expected === 'string' && entry.expected.trim()
+          ? entry.expected.trim()
+          : tokenized.words[tokenIndex] && tokenized.words[tokenIndex].raw
+          ? tokenized.words[tokenIndex].raw
+          : '';
+      const recognizedRaw =
+        entry && typeof entry.recognized === 'string' && entry.recognized.trim()
+          ? entry.recognized.trim()
+          : '';
+      const scoreRaw = Number(entry && entry.score);
+      const errorTypeRaw =
+        entry && typeof entry.error_type === 'string' && entry.error_type.trim()
+          ? entry.error_type.trim()
+          : '';
+      meta[tokenIndex] = {
+        phrase_word_index: tokenIndex,
+        expected: expectedRaw,
+        recognized: recognizedRaw,
+        status: rawStatus || '',
+        score: Number.isFinite(scoreRaw) ? Math.max(0, Math.min(100, Math.round(scoreRaw))) : null,
+        error_type: errorTypeRaw,
+        phonemes: Array.isArray(entry && entry.phonemes) ? entry.phonemes : []
+      };
+      tokenIndex += 1;
+    });
+
+    while (tokenIndex < tokenCount) {
+      statuses[tokenIndex] = statuses[tokenIndex] || 'miss';
+      meta[tokenIndex] = meta[tokenIndex] || {
+        phrase_word_index: tokenIndex,
+        expected:
+          tokenized.words[tokenIndex] && tokenized.words[tokenIndex].raw
+            ? tokenized.words[tokenIndex].raw
+            : '',
+        recognized: '',
+        status: 'missing',
+        score: null,
+        error_type: 'Omission',
+        phonemes: []
+      };
+      tokenIndex += 1;
+    }
+
+    if (!statuses.some(Boolean)) return null;
+    return { statuses, meta };
+  }
+
+  setPhraseTextAdvancedAssessment(expectedText, assessment) {
+    const phraseEl = this.querySelector('#free-ride-target');
+    if (!phraseEl) return;
+
+    const source = String(expectedText || '');
+    const tokenized = this.tokenizePhraseDisplayWords(source);
+    const mapping = this.buildExpectedStatusesFromAdvancedAssessment(source, assessment);
+    const statuses = mapping && Array.isArray(mapping.statuses) ? mapping.statuses : null;
+
+    if (!source || !tokenized.segments.length || !Array.isArray(statuses)) {
+      this.setPhraseTextPlain(source);
+      return;
+    }
+
+    phraseEl.classList.remove('is-word-timed');
+    phraseEl.classList.add('is-compare-diff');
+    delete phraseEl.dataset.localSpeakingActive;
+    delete phraseEl.dataset.localSpeakingText;
+    this.advancedPhraseWordMeta =
+      mapping && Array.isArray(mapping.meta) ? mapping.meta : [];
+    const selectedIndex = Number(this.advancedSelectedPhraseWordIndex);
+
+    phraseEl.innerHTML = tokenized.segments
+      .map((segment) => {
+        if (!segment || segment.type !== 'word') {
+          return this.escapeHtml(segment && segment.text ? segment.text : '');
+        }
+        const status = statuses[segment.wordIndex] === 'ok' ? 'ok' : 'miss';
+        const hasMeta = Boolean(this.advancedPhraseWordMeta[segment.wordIndex]);
+        const selectableClass = hasMeta ? ' is-advanced-selectable' : '';
+        const selectedClass = selectedIndex === segment.wordIndex ? ' is-selected' : '';
+        const attrs = hasMeta ? ` data-adv-phrase-word-index="${segment.wordIndex}"` : '';
+        return `<span class="free-ride-diff-token is-${status}${selectableClass}${selectedClass}"${attrs}>${this.escapeHtml(
+          segment.text || ''
+        )}</span>`;
+      })
+      .join('');
+
     this.phraseHighlightTimeline = [];
     this.phraseHighlightTokenEls = [];
   }
@@ -1344,6 +1981,158 @@ class PageFreeRide extends HTMLElement {
     return { expectedStatuses, actualStatuses };
   }
 
+  buildWordDiffDetailedComparison(expectedText, actualText) {
+    const expectedWords = this.getNormalizedWordList(expectedText);
+    const actualWords = this.getNormalizedWordList(actualText);
+
+    const rows = expectedWords.length;
+    const cols = actualWords.length;
+    const costs = Array.from({ length: rows + 1 }, () => new Array(cols + 1).fill(0));
+    const ops = Array.from({ length: rows + 1 }, () => new Array(cols + 1).fill(''));
+
+    for (let i = 0; i <= rows; i += 1) {
+      costs[i][0] = i;
+      if (i > 0) ops[i][0] = 'delete';
+    }
+    for (let j = 0; j <= cols; j += 1) {
+      costs[0][j] = j;
+      if (j > 0) ops[0][j] = 'insert';
+    }
+
+    for (let i = 1; i <= rows; i += 1) {
+      for (let j = 1; j <= cols; j += 1) {
+        const same = expectedWords[i - 1] === actualWords[j - 1];
+        const diagCost = costs[i - 1][j - 1] + (same ? 0 : 1);
+        const delCost = costs[i - 1][j] + 1;
+        const insCost = costs[i][j - 1] + 1;
+
+        let bestCost = diagCost;
+        let bestOp = same ? 'match' : 'replace';
+
+        if (delCost < bestCost) {
+          bestCost = delCost;
+          bestOp = 'delete';
+        }
+        if (insCost < bestCost) {
+          bestCost = insCost;
+          bestOp = 'insert';
+        }
+
+        costs[i][j] = bestCost;
+        ops[i][j] = bestOp;
+      }
+    }
+
+    const expectedStatuses = new Array(rows).fill('missing');
+    const actualStatuses = new Array(cols).fill('extra');
+    const pairs = [];
+    let i = rows;
+    let j = cols;
+
+    while (i > 0 || j > 0) {
+      const op = ops[i] && ops[i][j] ? ops[i][j] : '';
+      if ((op === 'match' || op === 'replace') && i > 0 && j > 0) {
+        const expectedStatus = op === 'match' ? 'ok' : 'wrong';
+        const actualStatus = op === 'match' ? 'ok' : 'wrong';
+        expectedStatuses[i - 1] = expectedStatus;
+        actualStatuses[j - 1] = actualStatus;
+        pairs.push({
+          kind: op === 'match' ? 'match' : 'replace',
+          expected_word: expectedWords[i - 1] || '',
+          actual_word: actualWords[j - 1] || '',
+          expected_index: i - 1,
+          actual_index: j - 1
+        });
+        i -= 1;
+        j -= 1;
+        continue;
+      }
+      if (op === 'delete' && i > 0) {
+        expectedStatuses[i - 1] = 'missing';
+        pairs.push({
+          kind: 'missing',
+          expected_word: expectedWords[i - 1] || '',
+          actual_word: '',
+          expected_index: i - 1,
+          actual_index: null
+        });
+        i -= 1;
+        continue;
+      }
+      if (op === 'insert' && j > 0) {
+        actualStatuses[j - 1] = 'extra';
+        pairs.push({
+          kind: 'extra',
+          expected_word: '',
+          actual_word: actualWords[j - 1] || '',
+          expected_index: null,
+          actual_index: j - 1
+        });
+        j -= 1;
+        continue;
+      }
+      if (i > 0 && j > 0) {
+        const same = expectedWords[i - 1] === actualWords[j - 1];
+        const expectedStatus = same ? 'ok' : 'wrong';
+        const actualStatus = same ? 'ok' : 'wrong';
+        expectedStatuses[i - 1] = expectedStatus;
+        actualStatuses[j - 1] = actualStatus;
+        pairs.push({
+          kind: same ? 'match' : 'replace',
+          expected_word: expectedWords[i - 1] || '',
+          actual_word: actualWords[j - 1] || '',
+          expected_index: i - 1,
+          actual_index: j - 1
+        });
+        i -= 1;
+        j -= 1;
+      } else if (i > 0) {
+        expectedStatuses[i - 1] = 'missing';
+        pairs.push({
+          kind: 'missing',
+          expected_word: expectedWords[i - 1] || '',
+          actual_word: '',
+          expected_index: i - 1,
+          actual_index: null
+        });
+        i -= 1;
+      } else {
+        actualStatuses[j - 1] = 'extra';
+        pairs.push({
+          kind: 'extra',
+          expected_word: '',
+          actual_word: actualWords[j - 1] || '',
+          expected_index: null,
+          actual_index: j - 1
+        });
+        j -= 1;
+      }
+    }
+
+    const counts = {
+      match: 0,
+      replace: 0,
+      missing: 0,
+      extra: 0
+    };
+    pairs.forEach((entry) => {
+      if (!entry || !entry.kind) return;
+      if (Object.prototype.hasOwnProperty.call(counts, entry.kind)) {
+        counts[entry.kind] += 1;
+      }
+    });
+
+    return {
+      expectedWords,
+      actualWords,
+      expectedStatuses,
+      actualStatuses,
+      pairs: pairs.reverse(),
+      distance: costs[rows][cols],
+      counts
+    };
+  }
+
   buildExpectedWordDiffStatuses(expectedText, actualText) {
     const comparison = this.buildWordDiffComparison(expectedText, actualText);
     return comparison && Array.isArray(comparison.expectedStatuses)
@@ -1376,6 +2165,7 @@ class PageFreeRide extends HTMLElement {
     phraseEl.classList.add('is-compare-diff');
     delete phraseEl.dataset.localSpeakingActive;
     delete phraseEl.dataset.localSpeakingText;
+    this.advancedPhraseWordMeta = [];
 
     phraseEl.innerHTML = tokenized.segments
       .map((segment) => {
@@ -1437,6 +2227,7 @@ class PageFreeRide extends HTMLElement {
     phraseEl.classList.add('is-word-timed');
     phraseEl.classList.remove('is-compare-diff');
     phraseEl.innerHTML = '';
+    this.advancedPhraseWordMeta = [];
     const tokenEls = [];
 
     timed.segments.forEach((segment) => {
@@ -1534,6 +2325,11 @@ class PageFreeRide extends HTMLElement {
   restorePhrasePreviewText(copy = this.currentCopy) {
     const expected = this.getExpectedTextTrimmed();
     const transcript = String(this.state && this.state.transcript ? this.state.transcript : '').trim();
+    const advanced = expected ? this.getActiveAdvancedAssessment() : null;
+    if (expected && advanced) {
+      this.setPhraseTextAdvancedAssessment(expected, advanced);
+      return;
+    }
     if (expected && transcript) {
       this.setPhraseTextCompared(expected, transcript);
       return;
@@ -2608,6 +3404,8 @@ class PageFreeRide extends HTMLElement {
     this.advancedAssessRequestToken += 1;
     this.state.advancedAssessment = null;
     this.state.advancedAssessmentPending = false;
+    this.advancedPhraseWordMeta = [];
+    this.advancedSelectedPhraseWordIndex = -1;
 
     if (skipRender) {
       this.updatePhrasePreview(this.currentCopy);
@@ -3002,11 +3800,16 @@ class PageFreeRide extends HTMLElement {
   }
 
   renderDebugPanel() {
+    const copy = this.currentCopy || {};
+    const hasExpected = this.hasExpectedText();
     const expected = this.escapeHtml(this.getExpectedTextTrimmed() || 'n/d');
     const transcript = this.escapeHtml((this.state.transcript || '').trim() || 'n/d');
     const toneMax = this.getToneMaxValues();
     const controlsDisabled = this.state.isRecording || this.state.isTranscribing;
     const controlsDisabledAttr = controlsDisabled ? 'disabled' : '';
+    const recordControlDisabledAttr = (!hasExpected || this.state.isTranscribing) ? 'disabled' : '';
+    const voiceControlDisabledAttr =
+      (!this.state.recordingUrl || this.state.isRecording || this.state.isTranscribing) ? 'disabled' : '';
     const percentText =
       typeof this.state.percent === 'number' ? `${Math.max(0, Math.min(100, Math.round(this.state.percent)))}%` : 'n/d';
     const audioMode = this.getFreeRideAudioMode();
@@ -3024,6 +3827,33 @@ class PageFreeRide extends HTMLElement {
     return `
       <div class="speak-voice-nav speak-voice-nav-debug">
         <div class="speak-debug speak-debug-inline free-ride-debug-inline">
+          <div class="free-ride-debug-toolbar" aria-hidden="false">
+            <div class="free-ride-debug-actions free-ride-debug-actions-top">
+              <button
+                class="free-ride-debug-mini-btn free-ride-debug-mini-btn-record"
+                type="button"
+                id="free-ride-debug-record"
+                aria-pressed="${this.state.isRecording ? 'true' : 'false'}"
+                ${recordControlDisabledAttr}
+              >
+                <ion-icon name="${this.state.isRecording ? 'stop-circle' : 'mic'}" aria-hidden="true"></ion-icon>
+                <span id="free-ride-debug-record-label">${this.escapeHtml(
+                  this.state.isRecording
+                    ? copy.endLabel || 'End'
+                    : copy.sayLabel || 'Say'
+                )}</span>
+              </button>
+              <button
+                class="free-ride-debug-mini-btn"
+                type="button"
+                id="free-ride-debug-voice"
+                ${voiceControlDisabledAttr}
+              >
+                <ion-icon name="play-circle" aria-hidden="true"></ion-icon>
+                <span>Voice</span>
+              </button>
+            </div>
+          </div>
           <div class="speak-debug-row">
             <span class="speak-debug-label">Esperado</span>
             <span class="speak-debug-value">${expected}</span>
@@ -3242,10 +4072,15 @@ class PageFreeRide extends HTMLElement {
     const recordBtn = this.querySelector('#free-ride-record');
     const recordLabelEl = this.querySelector('#free-ride-record-label');
     const voiceBtn = this.querySelector('#free-ride-voice');
+    const debugRecordBtn = this.querySelector('#free-ride-debug-record');
+    const debugRecordLabelEl = this.querySelector('#free-ride-debug-record-label');
+    const debugVoiceBtn = this.querySelector('#free-ride-debug-voice');
     const inputEl = this.querySelector('#free-ride-input');
     const scoreLineEl = this.querySelector('#free-ride-score-line');
     const scoreValueEl = this.querySelector('#free-ride-score-value');
     const scoreTextEl = this.querySelector('#free-ride-score-text');
+    const advancedSummaryEl = this.querySelector('#free-ride-advanced-summary');
+    const advancedWordDetailEl = this.querySelector('#free-ride-advanced-word-detail');
     const rewardEl = this.querySelector('#free-ride-earned-reward');
     const transcriptEl = this.querySelector('#free-ride-transcript');
     const debugToggleBtn = this.querySelector('#free-ride-debug-toggle');
@@ -3274,6 +4109,19 @@ class PageFreeRide extends HTMLElement {
     if (voiceBtn) {
       voiceBtn.disabled = !this.state.recordingUrl || this.state.isRecording || this.state.isTranscribing;
     }
+    if (debugRecordBtn) {
+      debugRecordBtn.disabled = !hasText || this.state.isTranscribing;
+      debugRecordBtn.classList.toggle('is-recording', this.state.isRecording);
+      debugRecordBtn.setAttribute('aria-pressed', this.state.isRecording ? 'true' : 'false');
+    }
+    if (debugRecordLabelEl) {
+      debugRecordLabelEl.textContent = this.state.isRecording
+        ? copy.endLabel || 'End'
+        : copy.sayLabel || 'Say';
+    }
+    if (debugVoiceBtn) {
+      debugVoiceBtn.disabled = !this.state.recordingUrl || this.state.isRecording || this.state.isTranscribing;
+    }
     if (inputEl) {
       inputEl.disabled = this.state.isRecording || this.state.isTranscribing;
     }
@@ -3290,6 +4138,46 @@ class PageFreeRide extends HTMLElement {
         scoreTextEl.textContent = feedback.label;
       }
     }
+    if (advancedSummaryEl) {
+      const advancedInfo = this.getAdvancedAssessmentDisplayInfo();
+      advancedSummaryEl.hidden = !advancedInfo.visible;
+      advancedSummaryEl.classList.remove('is-pending', 'is-warn', 'is-ok');
+      if (advancedInfo.visible) {
+        if (advancedInfo.tone === 'pending') advancedSummaryEl.classList.add('is-pending');
+        else if (advancedInfo.tone === 'warn') advancedSummaryEl.classList.add('is-warn');
+        else if (advancedInfo.tone === 'ok') advancedSummaryEl.classList.add('is-ok');
+        advancedSummaryEl.textContent = advancedInfo.text || '';
+      } else {
+        advancedSummaryEl.textContent = '';
+      }
+    }
+    if (advancedWordDetailEl) {
+      const detail = this.getAdvancedSelectedWordDetailInfo();
+      advancedWordDetailEl.hidden = !detail.visible;
+      advancedWordDetailEl.classList.remove('is-pending', 'is-warn', 'is-ok', 'is-hint');
+      if (detail.visible) {
+        if (detail.tone === 'pending') advancedWordDetailEl.classList.add('is-pending');
+        else if (detail.tone === 'warn') advancedWordDetailEl.classList.add('is-warn');
+        else if (detail.tone === 'ok') advancedWordDetailEl.classList.add('is-ok');
+        else advancedWordDetailEl.classList.add('is-hint');
+        advancedWordDetailEl.innerHTML = detail.html || '';
+      } else {
+        advancedWordDetailEl.innerHTML = '';
+      }
+    }
+    const detailTriggerEls = [scoreLineEl, advancedSummaryEl, advancedWordDetailEl, transcriptEl];
+    const canOpenDetails = this.canOpenPhraseDetailsModal();
+    detailTriggerEls.forEach((el) => {
+      if (!el) return;
+      el.classList.toggle('free-ride-detail-trigger', canOpenDetails);
+      if (canOpenDetails) {
+        el.setAttribute('role', 'button');
+        el.setAttribute('tabindex', '0');
+      } else {
+        el.removeAttribute('role');
+        el.removeAttribute('tabindex');
+      }
+    });
     if (rewardEl) {
       const reward = this.state.recentReward;
       if (
@@ -3391,10 +4279,17 @@ class PageFreeRide extends HTMLElement {
     const playBtn = this.querySelector('#free-ride-play');
     const recordBtn = this.querySelector('#free-ride-record');
     const voiceBtn = this.querySelector('#free-ride-voice');
+    const debugRecordBtn = this.querySelector('#free-ride-debug-record');
+    const debugVoiceBtn = this.querySelector('#free-ride-debug-voice');
     const debugToggleBtn = this.querySelector('#free-ride-debug-toggle');
     const debugToneButtons = Array.from(this.querySelectorAll('[data-debug-tone]'));
     const debugAudioModeButtons = Array.from(this.querySelectorAll('[data-audio-mode]'));
     const debugEvalModeButtons = Array.from(this.querySelectorAll('[data-eval-mode]'));
+    const phraseTargetEl = this.querySelector('#free-ride-target');
+    const scoreLineEl = this.querySelector('#free-ride-score-line');
+    const advancedSummaryEl = this.querySelector('#free-ride-advanced-summary');
+    const advancedWordDetailEl = this.querySelector('#free-ride-advanced-word-detail');
+    const transcriptEl = this.querySelector('#free-ride-transcript');
 
     if (inputEl) {
       inputEl.value = this.getExpectedText();
@@ -3476,9 +4371,56 @@ class PageFreeRide extends HTMLElement {
       }
     });
 
+    debugRecordBtn?.addEventListener('click', () => {
+      if (this.state.isRecording) {
+        this.stopRecording();
+      } else {
+        this.startRecording();
+      }
+    });
+
     voiceBtn?.addEventListener('click', () => {
       this.playRecording(voiceBtn);
     });
+
+    debugVoiceBtn?.addEventListener('click', () => {
+      this.playRecording(debugVoiceBtn);
+    });
+
+    phraseTargetEl?.addEventListener('click', (event) => {
+      const target = event && event.target && typeof event.target.closest === 'function'
+        ? event.target.closest('[data-adv-phrase-word-index]')
+        : null;
+      if (!target) return;
+      const idx = Number(target.dataset.advPhraseWordIndex);
+      if (!Number.isFinite(idx)) return;
+      this.setAdvancedWordSelection(idx, { allowToggleOff: true });
+    });
+
+    const bindDetailsTrigger = (el) => {
+      if (!el) return;
+      const open = () => {
+        if (!this.canOpenPhraseDetailsModal()) return;
+        this.openPhraseDetailsModal().catch((err) => {
+          console.error('[free-ride] error abriendo detalles', err);
+        });
+      };
+      el.addEventListener('click', (event) => {
+        const target = event && event.target;
+        if (target && typeof target.closest === 'function' && target.closest('[data-adv-phrase-word-index]')) {
+          return;
+        }
+        open();
+      });
+      el.addEventListener('keydown', (event) => {
+        const key = event && event.key ? event.key : '';
+        if (key !== 'Enter' && key !== ' ') return;
+        event.preventDefault();
+        open();
+      });
+    };
+
+    [scoreLineEl, advancedSummaryEl, advancedWordDetailEl, transcriptEl].forEach(bindDetailsTrigger);
 
     this.updatePhrasePreview(copy);
   }
@@ -3589,6 +4531,8 @@ class PageFreeRide extends HTMLElement {
                 <div class="speak-score-line-value" id="free-ride-score-value">&nbsp;</div>
                 <div class="speak-score-line-text" id="free-ride-score-text">&nbsp;</div>
               </div>
+              <div class="free-ride-advanced-summary" id="free-ride-advanced-summary" hidden></div>
+              <div class="free-ride-advanced-word-detail" id="free-ride-advanced-word-detail" hidden></div>
               <div class="free-ride-earned-reward" id="free-ride-earned-reward" hidden></div>
               <div class="free-ride-transcript" id="free-ride-transcript"> </div>
             </div>

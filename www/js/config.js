@@ -81,6 +81,16 @@
       window.REALTIME_TTS_USAGE_LIMIT_ENDPOINT ||
       'https://realtime.curso-ingles.com/realtime/tts/usage/limit';
   }
+  if (window.realtimeConfig.pronunciationUsageDailyEndpoint === undefined) {
+    window.realtimeConfig.pronunciationUsageDailyEndpoint =
+      window.REALTIME_PRONUNCIATION_USAGE_DAILY_ENDPOINT ||
+      'https://realtime.curso-ingles.com/realtime/pronunciation/usage/daily';
+  }
+  if (window.realtimeConfig.pronunciationUsageLimitEndpoint === undefined) {
+    window.realtimeConfig.pronunciationUsageLimitEndpoint =
+      window.REALTIME_PRONUNCIATION_USAGE_LIMIT_ENDPOINT ||
+      'https://realtime.curso-ingles.com/realtime/pronunciation/usage/limit';
+  }
   if (window.realtimeConfig.stateEndpoint === undefined) {
     window.realtimeConfig.stateEndpoint =
       window.REALTIME_STATE_ENDPOINT || 'https://realtime.curso-ingles.com/realtime/state/sync';

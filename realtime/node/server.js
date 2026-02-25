@@ -1286,14 +1286,14 @@ const normalizeAzurePronunciationAssessment = (payload, expectedText) => {
   const top = nbest[0] && typeof nbest[0] === 'object' ? nbest[0] : {};
   const pa = top.PronunciationAssessment && typeof top.PronunciationAssessment === 'object'
     ? top.PronunciationAssessment
-    : {};
+    : top;
   const wordsSource = Array.isArray(top.Words) ? top.Words : [];
 
   const words = wordsSource.map((word, index) => {
     const obj = word && typeof word === 'object' ? word : {};
     const wpa = obj.PronunciationAssessment && typeof obj.PronunciationAssessment === 'object'
       ? obj.PronunciationAssessment
-      : {};
+      : obj;
     const accuracy = readAzureScoreOrNull(wpa.AccuracyScore);
     const errorType = pickFirstString(wpa.ErrorType, obj.ErrorType);
     const startMs = ticksToMs(obj.Offset);
@@ -1316,7 +1316,7 @@ const normalizeAzurePronunciationAssessment = (payload, expectedText) => {
             const p = phoneme && typeof phoneme === 'object' ? phoneme : {};
             const ppa = p.PronunciationAssessment && typeof p.PronunciationAssessment === 'object'
               ? p.PronunciationAssessment
-              : {};
+              : p;
             const pScore = readAzureScoreOrNull(ppa.AccuracyScore);
             return {
               phoneme: pickFirstString(p.Phoneme),

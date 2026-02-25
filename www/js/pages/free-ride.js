@@ -28,6 +28,7 @@ const FREE_RIDE_AUDIO_MODE_LOCAL = 'local';
 const FREE_RIDE_EVAL_MODE_KEY = 'appv5:free-ride-eval-mode';
 const FREE_RIDE_EVAL_MODE_STANDARD = 'standard';
 const FREE_RIDE_EVAL_MODE_ADVANCED = 'advanced';
+const FREE_RIDE_ADVANCED_ENABLED_KEY = 'appv5:free-ride-advanced-enabled';
 const FREE_RIDE_ADVANCED_AUDIO_SAMPLE_RATE = 16000;
 
 const DEFAULT_TONE_SCALE = [
@@ -135,6 +136,15 @@ class PageFreeRide extends HTMLElement {
     };
     window.addEventListener('app:free-ride-audio-mode-change', this._audioModeHandler);
 
+    this._advancedFeatureHandler = () => {
+      if (!this.isConnected) return;
+      if (!this.isAdvancedEvalFeatureEnabled()) {
+        this.clearAdvancedAssessmentState({ skipRender: true });
+      }
+      this.render();
+    };
+    window.addEventListener('app:free-ride-advanced-enabled-change', this._advancedFeatureHandler);
+
     this._tabsDidChangeHandler = (event) => {
       const tab = event && event.detail ? event.detail.tab : '';
       if (tab !== 'freeride') {
@@ -219,6 +229,11 @@ class PageFreeRide extends HTMLElement {
     if (this._audioModeHandler) {
       window.removeEventListener('app:free-ride-audio-mode-change', this._audioModeHandler);
       this._audioModeHandler = null;
+    }
+
+    if (this._advancedFeatureHandler) {
+      window.removeEventListener('app:free-ride-advanced-enabled-change', this._advancedFeatureHandler);
+      this._advancedFeatureHandler = null;
     }
 
     if (this._tabsDidChangeHandler) {
@@ -345,6 +360,26 @@ class PageFreeRide extends HTMLElement {
       // no-op
     }
     return normalized;
+  }
+
+  isAdvancedEvalFeatureEnabled() {
+    const globalValue =
+      window.r34lp0w3r && Object.prototype.hasOwnProperty.call(window.r34lp0w3r, 'freeRideAdvancedEnabled')
+        ? window.r34lp0w3r.freeRideAdvancedEnabled
+        : undefined;
+    if (typeof globalValue === 'boolean') return globalValue;
+    if (typeof globalValue === 'string') {
+      const normalized = globalValue.trim().toLowerCase();
+      if (normalized === '0' || normalized === 'false' || normalized === 'off') return false;
+      if (normalized === '1' || normalized === 'true' || normalized === 'on') return true;
+    }
+    try {
+      const raw = localStorage.getItem(FREE_RIDE_ADVANCED_ENABLED_KEY);
+      if (raw === null || raw === undefined || raw === '') return true;
+      return !['0', 'false', 'off'].includes(String(raw).trim().toLowerCase());
+    } catch (err) {
+      return true;
+    }
   }
 
   getCurrentUsageDayUtc() {
@@ -489,6 +524,9 @@ class PageFreeRide extends HTMLElement {
 
   getEffectiveFreeRideEvalMode() {
     const selectedMode = this.getFreeRideEvalMode();
+    if (!this.isAdvancedEvalFeatureEnabled() && selectedMode === FREE_RIDE_EVAL_MODE_ADVANCED) {
+      return FREE_RIDE_EVAL_MODE_STANDARD;
+    }
     if (
       selectedMode === FREE_RIDE_EVAL_MODE_ADVANCED &&
       this.isAdvancedAssessBlockedByLimit()
@@ -1060,6 +1098,9 @@ class PageFreeRide extends HTMLElement {
   }
 
   getAdvancedAssessmentDisplayInfo() {
+    if (!this.isAdvancedEvalFeatureEnabled()) {
+      return { visible: false, tone: '', text: '', html: '' };
+    }
     const effectiveMode = this.getEffectiveFreeRideEvalMode();
     const blocked = this.isAdvancedAssessBlockedByLimit();
     if (effectiveMode !== FREE_RIDE_EVAL_MODE_ADVANCED) {
@@ -1067,27 +1108,45 @@ class PageFreeRide extends HTMLElement {
         return {
           visible: true,
           tone: 'warn',
-          text: 'Advanced bloqueado por límite diario · usando Standard'
+          text: this.getFreeRideUiLabelText('advancedBlockedUsingStandard'),
+          html: this.renderFreeRideUiLabelHtml('advancedBlockedUsingStandard')
         };
       }
-      return { visible: false, tone: '', text: '' };
+      return { visible: false, tone: '', text: '', html: '' };
     }
     if (this.state.advancedAssessmentPending) {
-      return { visible: true, tone: 'pending', text: 'Advanced: evaluando pronunciación...' };
+      return {
+        visible: true,
+        tone: 'pending',
+        text: `${this.getFreeRideUiLabelText('advanced')}: ${this.getFreeRideUiLabelText('evaluatingPronunciation')}`,
+        html: `${this.renderFreeRideUiLabelHtml('advanced')} · ${this.renderFreeRideUiLabelHtml('evaluatingPronunciation', {
+          altClass: 'is-compact'
+        })}`
+      };
     }
     const result = this.state.advancedAssessment;
     if (!result) {
-      return { visible: false, tone: '', text: '' };
+      return { visible: false, tone: '', text: '', html: '' };
     }
     if (result.ok !== true) {
       const label = String(result.error_label || result.error || 'Error').trim();
-      return { visible: true, tone: 'warn', text: `Advanced: ${label}` };
+      return {
+        visible: true,
+        tone: 'warn',
+        text: `${this.getFreeRideUiLabelText('advanced')}: ${label}`,
+        html: `${this.renderFreeRideUiLabelHtml('advanced')} · ${this.escapeHtml(label)}`
+      };
     }
     const summary = this.getAdvancedAssessmentSummaryText();
+    const summaryHtml =
+      summary && /^[A-Za-z]+(?:[A-Za-z0-9_-]*)$/.test(summary)
+        ? this.renderRecognitionStatusBilingualHtml(summary, { altClass: 'is-compact' })
+        : this.escapeHtml(summary);
     return {
       visible: true,
       tone: 'ok',
-      text: `Advanced · ${summary}`
+      text: `${this.getFreeRideUiLabelText('advanced')} · ${summary}`,
+      html: `${this.renderFreeRideUiLabelHtml('advanced')} · ${summaryHtml}`
     };
   }
 
@@ -1125,13 +1184,14 @@ class PageFreeRide extends HTMLElement {
   }
 
   getAdvancedSelectedWordDetailInfo() {
+    if (!this.isAdvancedEvalFeatureEnabled()) return { visible: false, tone: '', html: '' };
     const activeAdvanced = this.getActiveAdvancedAssessment();
     if (!activeAdvanced) return { visible: false, tone: '', html: '' };
     if (this.state.advancedAssessmentPending) {
       return {
         visible: true,
         tone: 'pending',
-        html: 'Evaluación avanzada en curso...'
+        html: this.renderFreeRideUiLabelHtml('evaluatingPronunciation')
       };
     }
     const selected = this.getAdvancedSelectedWordMeta();
@@ -1139,21 +1199,25 @@ class PageFreeRide extends HTMLElement {
       return {
         visible: true,
         tone: 'hint',
-        html: 'Toca una palabra marcada para ver detalle.'
+        html: this.renderFreeRideUiLabelHtml('wordTapHint')
       };
     }
 
     const expected = this.escapeHtml(selected.expected || 'n/d');
     const recognized = this.escapeHtml(selected.recognized || '—');
     const statusRaw = String(selected.status || '').trim().toLowerCase();
-    const statusLabelByKey = {
-      ok: 'OK',
-      wrong: 'Incorrecta',
-      missing: 'Omitida',
-      extra: 'Extra',
-      issue: 'Issue'
-    };
-    const statusLabel = this.escapeHtml(statusLabelByKey[statusRaw] || (selected.status || 'n/d'));
+    const statusLabel =
+      statusRaw === 'ok'
+        ? this.renderFreeRideUiLabelHtml('ok', { altClass: 'is-mini' })
+        : statusRaw === 'wrong'
+        ? this.renderBilingualCopyHtml('Incorrecta', 'Incorrect', { altClass: 'is-mini' })
+        : statusRaw === 'missing'
+        ? this.renderBilingualCopyHtml('Omitida', 'Missing', { altClass: 'is-mini' })
+        : statusRaw === 'extra'
+        ? this.renderBilingualCopyHtml('Extra', 'Extra', { altClass: 'is-mini' })
+        : statusRaw === 'issue'
+        ? this.renderFreeRideUiLabelHtml('issue', { altClass: 'is-mini' })
+        : this.escapeHtml(selected.status || 'n/d');
     const scoreText =
       typeof selected.score === 'number' && Number.isFinite(selected.score)
         ? `${Math.round(selected.score)}%`
@@ -1166,9 +1230,11 @@ class PageFreeRide extends HTMLElement {
         .slice()
         .sort((a, b) => a.score - b.score)[0];
       if (weak) {
-        phonemeText = ` · Fonema: ${this.escapeHtml(weak.phoneme)} (${Math.round(weak.score)}%)`;
+        phonemeText = ` · ${this.renderFreeRideUiLabelHtml('phoneme', { altClass: 'is-mini' })}: ${this.escapeHtml(
+          weak.phoneme
+        )} (${Math.round(weak.score)}%)`;
       } else {
-        phonemeText = ' · Fonema: n/d';
+        phonemeText = ` · ${this.renderFreeRideUiLabelHtml('phoneme', { altClass: 'is-mini' })}: n/d`;
       }
     }
 
@@ -1182,7 +1248,10 @@ class PageFreeRide extends HTMLElement {
     return {
       visible: true,
       tone,
-      html: `<strong>${expected}</strong> · score ${scoreText} · ${statusLabel} · rec: ${recognized} · err: ${errorType}${phonemeText}`
+      html: `<strong>${expected}</strong> · ${this.renderFreeRideUiLabelHtml('score', { altClass: 'is-mini' })} ${scoreText} · ${statusLabel} · ${this.renderFreeRideUiLabelHtml(
+        'recognizedShort',
+        { altClass: 'is-mini' }
+      )}: ${recognized} · ${this.renderFreeRideUiLabelHtml('errorShort', { altClass: 'is-mini' })}: ${errorType}${phonemeText}`
     };
   }
 
@@ -1199,6 +1268,127 @@ class PageFreeRide extends HTMLElement {
     const n = Number(value);
     if (!Number.isFinite(n) || n < 0) return '—';
     return `${Math.round(n)} ms`;
+  }
+
+  renderBilingualCopyHtml(primaryText, secondaryText, options = {}) {
+    const primary = String(primaryText || '').trim();
+    const secondary = String(secondaryText || '').trim();
+    if (!primary && !secondary) return '';
+    if (!primary) return this.escapeHtml(secondary);
+    if (!secondary) return this.escapeHtml(primary);
+    if (primary.toLowerCase() === secondary.toLowerCase()) return this.escapeHtml(primary);
+    const altClass = options.altClass ? ` ${String(options.altClass).trim()}` : '';
+    return `${this.escapeHtml(primary)} <span class="free-ride-copy-alt${altClass}">(${this.escapeHtml(
+      secondary
+    )})</span>`;
+  }
+
+  getFreeRideCopyValueForLocale(key, locale, fallback = '') {
+    const source = getFreeRideCopy(locale) || {};
+    const raw = source && Object.prototype.hasOwnProperty.call(source, key) ? source[key] : fallback;
+    return String(raw || '').trim();
+  }
+
+  renderFreeRideCopyBilingualHtml(key, options = {}) {
+    const fallbackEs = Object.prototype.hasOwnProperty.call(options, 'fallbackEs') ? options.fallbackEs : '';
+    const fallbackEn = Object.prototype.hasOwnProperty.call(options, 'fallbackEn') ? options.fallbackEn : '';
+    const primary = this.getFreeRideCopyValueForLocale(key, 'es', fallbackEs);
+    const secondary = this.getFreeRideCopyValueForLocale(key, 'en', fallbackEn);
+    return this.renderBilingualCopyHtml(primary, secondary, options);
+  }
+
+  getFreeRideCopyBilingualPlainText(key, options = {}) {
+    const fallbackEs = Object.prototype.hasOwnProperty.call(options, 'fallbackEs') ? options.fallbackEs : '';
+    const fallbackEn = Object.prototype.hasOwnProperty.call(options, 'fallbackEn') ? options.fallbackEn : '';
+    const primary = this.getFreeRideCopyValueForLocale(key, 'es', fallbackEs);
+    const secondary = this.getFreeRideCopyValueForLocale(key, 'en', fallbackEn);
+    if (!primary && !secondary) return '';
+    if (!primary) return secondary;
+    if (!secondary) return primary;
+    if (primary.toLowerCase() === secondary.toLowerCase()) return primary;
+    return `${primary} (${secondary})`;
+  }
+
+  getFreeRideUiLabelPair(key) {
+    const labels = {
+      advanced: ['Avanzado', 'Advanced'],
+      standard: ['Estándar', 'Standard'],
+      evaluating: ['Evaluando...', 'Evaluating...'],
+      advancedBlockedUsingStandard: ['Avanzado bloqueado por límite diario, usando estándar', 'Advanced blocked by daily limit, using Standard'],
+      evaluatingPronunciation: ['Evaluando pronunciación...', 'Evaluating pronunciation...'],
+      wordTapHint: ['Toca una palabra marcada para ver detalle.', 'Tap a marked word to see details.'],
+      score: ['puntuación', 'score'],
+      recognizedShort: ['rec', 'rec'],
+      errorShort: ['err', 'err'],
+      phoneme: ['Fonema', 'Phoneme'],
+      expected: ['Esperado', 'Expected'],
+      transcript: ['Transcrito', 'Transcript'],
+      standardScore: ['Puntuación estándar', 'Standard score'],
+      diffSummary: ['Resumen diff', 'Diff summary'],
+      noComparisonDataYet: ['Sin datos de comparación todavía.', 'No comparison data yet.'],
+      recognition: ['Reconocimiento', 'Recognition'],
+      transcriptAzure: ['Transcrito (Azure)', 'Transcript (Azure)'],
+      overall: ['Global', 'Overall'],
+      accuracy: ['Precisión', 'Accuracy'],
+      fluency: ['Fluidez', 'Fluency'],
+      completeness: ['Completitud', 'Completeness'],
+      prosody: ['Prosodia', 'Prosody'],
+      selectedWord: ['Palabra seleccionada', 'Selected word'],
+      phonemes: ['Fonemas', 'Phonemes'],
+      noAdvancedWordDetail: ['Sin detalle de palabras en la respuesta avanzada.', 'No word-level detail in the advanced response.'],
+      rawProviderPayloadDebug: ['Payload bruto del proveedor (debug)', 'Raw provider payload (debug)'],
+      advancedErrorPrefix: ['Avanzado', 'Advanced'],
+      noAdvancedDataYet: ['Sin datos avanzados todavía.', 'No advanced data yet.'],
+      phraseDetails: ['Detalle de la frase', 'Phrase details'],
+      standardPlusAdvancedIfAvailable: ['Estándar + Avanzado (si disponible)', 'Standard + Advanced (if available)'],
+      match: ['Acierto', 'match'],
+      replace: ['Sustitución', 'replace'],
+      missing: ['Omitida', 'missing'],
+      extra: ['Extra', 'extra'],
+      distance: ['distancia', 'distance'],
+      ok: ['OK', 'OK'],
+      incorrecta: ['Incorrecta', 'Incorrect'],
+      issue: ['Incidencia', 'Issue']
+    };
+    return labels[key] || [String(key || ''), String(key || '')];
+  }
+
+  renderFreeRideUiLabelHtml(key, options = {}) {
+    const [es, en] = this.getFreeRideUiLabelPair(key);
+    return this.renderBilingualCopyHtml(es, en, options);
+  }
+
+  getFreeRideUiLabelText(key) {
+    const [es, en] = this.getFreeRideUiLabelPair(key);
+    if (!es && !en) return '';
+    if (!es) return en;
+    if (!en) return es;
+    if (String(es).toLowerCase() === String(en).toLowerCase()) return es;
+    return `${es} (${en})`;
+  }
+
+  getRecognitionStatusBilingualText(status) {
+    const raw = String(status || '').trim();
+    if (!raw) return 'n/d';
+    const normalized = raw.toLowerCase();
+    if (normalized === 'success') return 'Éxito (Success)';
+    if (normalized === 'nomatch') return 'Sin coincidencia (NoMatch)';
+    if (normalized === 'initialsilencetimeout') return 'Silencio inicial agotado (InitialSilenceTimeout)';
+    if (normalized === 'babbletimeout') return 'Ruido/Babble timeout (BabbleTimeout)';
+    return raw;
+  }
+
+  renderRecognitionStatusBilingualHtml(status, options = {}) {
+    const raw = String(status || '').trim();
+    if (!raw) return 'n/d';
+    const normalized = raw.toLowerCase();
+    if (normalized === 'success') return this.renderBilingualCopyHtml('Éxito', 'Success', options);
+    if (normalized === 'nomatch') return this.renderBilingualCopyHtml('Sin coincidencia', 'NoMatch', options);
+    if (normalized === 'initialsilencetimeout') {
+      return this.renderBilingualCopyHtml('Silencio inicial agotado', 'InitialSilenceTimeout', options);
+    }
+    if (normalized === 'babbletimeout') return this.renderBilingualCopyHtml('Ruido/Babble timeout', 'BabbleTimeout', options);
+    return this.escapeHtml(raw);
   }
 
   isAdvancedPhonemeScoreUsable(wordLike, phonemeLike) {
@@ -1238,6 +1428,18 @@ class PageFreeRide extends HTMLElement {
     return key || 'n/d';
   }
 
+  renderAdvancedStatusLabelHtml(status, options = {}) {
+    const key = String(status || '')
+      .trim()
+      .toLowerCase();
+    if (key === 'ok') return this.renderBilingualCopyHtml('OK', 'OK', options);
+    if (key === 'wrong') return this.renderBilingualCopyHtml('Incorrecta', 'Incorrect', options);
+    if (key === 'missing') return this.renderBilingualCopyHtml('Omitida', 'Missing', options);
+    if (key === 'extra') return this.renderBilingualCopyHtml('Extra', 'Extra', options);
+    if (key === 'issue') return this.renderBilingualCopyHtml('Incidencia', 'Issue', options);
+    return this.escapeHtml(this.getAdvancedStatusLabel(status));
+  }
+
   getWordDiffKindLabel(kind) {
     const key = String(kind || '')
       .trim()
@@ -1247,6 +1449,17 @@ class PageFreeRide extends HTMLElement {
     if (key === 'missing') return 'missing';
     if (key === 'extra') return 'extra';
     return key || 'n/d';
+  }
+
+  renderWordDiffKindLabelHtml(kind, options = {}) {
+    const key = String(kind || '')
+      .trim()
+      .toLowerCase();
+    if (key === 'match') return this.renderBilingualCopyHtml('Acierto', 'match', options);
+    if (key === 'replace') return this.renderBilingualCopyHtml('Sustitución', 'replace', options);
+    if (key === 'missing') return this.renderBilingualCopyHtml('Omitida', 'missing', options);
+    if (key === 'extra') return this.renderBilingualCopyHtml('Extra', 'extra', options);
+    return this.escapeHtml(this.getWordDiffKindLabel(kind));
   }
 
   getWordDiffKindTone(kind) {
@@ -1266,42 +1479,50 @@ class PageFreeRide extends HTMLElement {
     const feedback = this.getFeedbackState(copy);
     const diff = this.buildWordDiffDetailedComparison(expected, transcript);
     const advanced = this.state.advancedAssessment;
+    const advancedFeatureEnabled = this.isAdvancedEvalFeatureEnabled();
     const advancedOk = Boolean(advanced && typeof advanced === 'object' && advanced.ok === true);
     const advancedWords = advancedOk && Array.isArray(advanced.words) ? advanced.words : [];
     const advancedScores = advancedOk && advanced.scores && typeof advanced.scores === 'object' ? advanced.scores : {};
     const selectedMeta = this.getAdvancedSelectedWordMeta();
+    const feedbackDetailLabel = feedback.labelKey
+      ? this.getFreeRideCopyBilingualPlainText(feedback.labelKey, { fallbackEs: feedback.label, fallbackEn: feedback.label })
+      : (feedback.label || '');
 
     const standardCards = [
-      { label: 'Expected', value: expected || 'n/d' },
-      { label: 'Transcript', value: transcript || 'n/d' },
+      { labelHtml: this.renderFreeRideUiLabelHtml('expected'), value: expected || 'n/d' },
+      { labelHtml: this.renderFreeRideUiLabelHtml('transcript'), value: transcript || 'n/d' },
       {
-        label: 'Standard score',
+        labelHtml: this.renderFreeRideUiLabelHtml('standardScore'),
         value:
           typeof this.state.percent === 'number'
-            ? `${Math.max(0, Math.min(100, Math.round(this.state.percent)))}% · ${feedback.label || ''}`
-            : `n/d · ${feedback.label || ''}`
+            ? `${Math.max(0, Math.min(100, Math.round(this.state.percent)))}% · ${feedbackDetailLabel || ''}`
+            : `n/d · ${feedbackDetailLabel || ''}`
       }
     ];
 
     const diffSummary = diff
-      ? `match ${diff.counts.match} · replace ${diff.counts.replace} · missing ${diff.counts.missing} · extra ${diff.counts.extra} · distance ${diff.distance}`
+      ? `${this.getFreeRideUiLabelText('match')} ${diff.counts.match} · ${this.getFreeRideUiLabelText('replace')} ${
+          diff.counts.replace
+        } · ${this.getFreeRideUiLabelText('missing')} ${diff.counts.missing} · ${this.getFreeRideUiLabelText('extra')} ${
+          diff.counts.extra
+        } · ${this.getFreeRideUiLabelText('distance')} ${diff.distance}`
       : 'n/d';
 
     const standardSection = `
       <section class="free-ride-detail-section">
-        <h3>Standard</h3>
+        <h3>${this.renderFreeRideUiLabelHtml('standard')}</h3>
         <div class="free-ride-detail-grid">
           ${standardCards
             .map(
               (item) => `
             <div class="free-ride-detail-card">
-              <div class="free-ride-detail-card-label">${this.escapeHtml(item.label)}</div>
+              <div class="free-ride-detail-card-label">${item.labelHtml || ''}</div>
               <div class="free-ride-detail-card-value">${this.escapeHtml(item.value)}</div>
             </div>`
             )
             .join('')}
           <div class="free-ride-detail-card">
-            <div class="free-ride-detail-card-label">Diff summary</div>
+            <div class="free-ride-detail-card-label">${this.renderFreeRideUiLabelHtml('diffSummary')}</div>
             <div class="free-ride-detail-card-value">${this.escapeHtml(diffSummary)}</div>
           </div>
         </div>
@@ -1316,9 +1537,9 @@ class PageFreeRide extends HTMLElement {
                     <div class="free-ride-detail-row-index">${index + 1}</div>
                     <div class="free-ride-detail-row-main">
                       <div class="free-ride-detail-row-top">
-                        <span class="free-ride-detail-badge is-${tone}">${this.escapeHtml(
-                          this.getWordDiffKindLabel(row.kind)
-                        )}</span>
+                        <span class="free-ride-detail-badge is-${tone}">${this.renderWordDiffKindLabelHtml(row.kind, {
+                          altClass: 'is-mini'
+                        })}</span>
                         <span class="free-ride-detail-row-word"><b>${this.escapeHtml(
                           row.expected_word || '—'
                         )}</b> → ${this.escapeHtml(row.actual_word || '—')}</span>
@@ -1327,46 +1548,49 @@ class PageFreeRide extends HTMLElement {
                   </div>`;
                   })
                   .join('')
-              : `<div class="free-ride-detail-empty">Sin datos de comparación todavía.</div>`
-          }
-        </div>
+                : `<div class="free-ride-detail-empty">${this.renderFreeRideUiLabelHtml('noComparisonDataYet')}</div>`
+            }
+          </div>
       </section>
     `;
 
     const advancedScoresList = ['overall', 'accuracy', 'fluency', 'completeness', 'prosody']
       .map((key) => {
         const value = advancedScores[key];
-        const label =
+        const labelKey =
           key === 'overall'
-            ? 'Overall'
+            ? 'overall'
             : key === 'accuracy'
-            ? 'Accuracy'
+            ? 'accuracy'
             : key === 'fluency'
-            ? 'Fluency'
+            ? 'fluency'
             : key === 'completeness'
-            ? 'Completeness'
-            : 'Prosody';
-        return { label, value };
+            ? 'completeness'
+            : 'prosody';
+        return { labelKey, value };
       })
       .filter((item) => typeof item.value === 'number' && Number.isFinite(item.value));
 
-    const advancedSection = `
+    const advancedSection = !advancedFeatureEnabled
+      ? ''
+      : `
       <section class="free-ride-detail-section">
-        <h3>Advanced</h3>
+        <h3>${this.renderFreeRideUiLabelHtml('advanced')}</h3>
         ${
           this.state.advancedAssessmentPending
-            ? `<div class="free-ride-detail-empty">Evaluación avanzada en curso...</div>`
+            ? `<div class="free-ride-detail-empty">${this.renderFreeRideUiLabelHtml('evaluatingPronunciation')}</div>`
             : advancedOk
             ? `
           <div class="free-ride-detail-grid">
             <div class="free-ride-detail-card">
-              <div class="free-ride-detail-card-label">Recognition</div>
-              <div class="free-ride-detail-card-value">${this.escapeHtml(
-                String(advanced.recognition_status || 'n/d')
+              <div class="free-ride-detail-card-label">${this.renderFreeRideUiLabelHtml('recognition')}</div>
+              <div class="free-ride-detail-card-value">${this.renderRecognitionStatusBilingualHtml(
+                String(advanced.recognition_status || 'n/d'),
+                { altClass: 'is-compact' }
               )}</div>
             </div>
             <div class="free-ride-detail-card">
-              <div class="free-ride-detail-card-label">Transcript (Azure)</div>
+              <div class="free-ride-detail-card-label">${this.renderFreeRideUiLabelHtml('transcriptAzure')}</div>
               <div class="free-ride-detail-card-value">${this.escapeHtml(
                 String(advanced.transcript || '').trim() || 'n/d'
               )}</div>
@@ -1375,7 +1599,9 @@ class PageFreeRide extends HTMLElement {
               .map(
                 (item) => `
               <div class="free-ride-detail-card">
-                <div class="free-ride-detail-card-label">${this.escapeHtml(item.label)}</div>
+                <div class="free-ride-detail-card-label">${this.renderFreeRideUiLabelHtml(item.labelKey, {
+                  altClass: 'is-mini'
+                })}</div>
                 <div class="free-ride-detail-card-value">${Math.round(item.value)}%</div>
               </div>`
               )
@@ -1384,11 +1610,14 @@ class PageFreeRide extends HTMLElement {
           ${
             selectedMeta
               ? `<div class="free-ride-detail-selected">
-              <b>Selected word</b>: ${this.escapeHtml(selectedMeta.expected || 'n/d')} · score ${
+              <b>${this.renderFreeRideUiLabelHtml('selectedWord', { altClass: 'is-mini' })}</b>: ${this.escapeHtml(
+                  selectedMeta.expected || 'n/d'
+                )} · ${this.renderFreeRideUiLabelHtml('score', { altClass: 'is-mini' })} ${
                   typeof selectedMeta.score === 'number' ? `${Math.round(selectedMeta.score)}%` : 'n/d'
-                } · ${this.escapeHtml(this.getAdvancedStatusLabel(selectedMeta.status))} · err: ${this.escapeHtml(
-                  selectedMeta.error_type || '—'
-                )}
+                } · ${this.renderAdvancedStatusLabelHtml(selectedMeta.status, { altClass: 'is-mini' })} · ${this.renderFreeRideUiLabelHtml(
+                  'errorShort',
+                  { altClass: 'is-mini' }
+                )}: ${this.escapeHtml(selectedMeta.error_type || '—')}
             </div>`
               : ''
           }
@@ -1426,9 +1655,9 @@ class PageFreeRide extends HTMLElement {
                       <div class="free-ride-detail-row-index">${index + 1}</div>
                       <div class="free-ride-detail-row-main">
                         <div class="free-ride-detail-row-top">
-                          <span class="free-ride-detail-badge is-${tone}">${this.escapeHtml(
-                            this.getAdvancedStatusLabel(status)
-                          )}</span>
+                          <span class="free-ride-detail-badge is-${tone}">${this.renderAdvancedStatusLabelHtml(status, {
+                            altClass: 'is-mini'
+                          })}</span>
                           <span class="free-ride-detail-row-word"><b>${this.escapeHtml(
                             String(word && word.expected ? word.expected : word && word.text ? word.text : '—')
                           )}</b></span>
@@ -1437,16 +1666,22 @@ class PageFreeRide extends HTMLElement {
                           }</span>
                         </div>
                         <div class="free-ride-detail-row-meta">
-                          rec: ${this.escapeHtml(String(word && word.recognized ? word.recognized : '—'))}
-                          · err: ${this.escapeHtml(String(word && word.error_type ? word.error_type : '—'))}
+                          ${this.renderFreeRideUiLabelHtml('recognizedShort', { altClass: 'is-mini' })}: ${this.escapeHtml(
+                            String(word && word.recognized ? word.recognized : '—')
+                          )}
+                          · ${this.renderFreeRideUiLabelHtml('errorShort', { altClass: 'is-mini' })}: ${this.escapeHtml(
+                            String(word && word.error_type ? word.error_type : '—')
+                          )}
                           · ${this.formatDurationMsForDetail(
                             Number(word?.end_ms) - Number(word?.start_ms)
                           )}
                           ${
                             phonemes.length
                               ? phonemeInline
-                                ? ` · phonemes: ${this.escapeHtml(phonemeInline)}`
-                                : ' · phonemes: n/d'
+                                ? ` · ${this.renderFreeRideUiLabelHtml('phonemes', { altClass: 'is-mini' })}: ${this.escapeHtml(
+                                    phonemeInline
+                                  )}`
+                                : ` · ${this.renderFreeRideUiLabelHtml('phonemes', { altClass: 'is-mini' })}: n/d`
                               : ''
                           }
                         </div>
@@ -1454,23 +1689,23 @@ class PageFreeRide extends HTMLElement {
                     </div>`;
                     })
                     .join('')
-                : `<div class="free-ride-detail-empty">Sin detalle de palabras en la respuesta avanzada.</div>`
+                : `<div class="free-ride-detail-empty">${this.renderFreeRideUiLabelHtml('noAdvancedWordDetail')}</div>`
             }
           </div>
           ${
             advanced.provider_payload
               ? `<details class="free-ride-detail-raw">
-              <summary>Raw provider payload (debug)</summary>
+              <summary>${this.renderFreeRideUiLabelHtml('rawProviderPayloadDebug')}</summary>
               <pre>${this.escapeHtml(JSON.stringify(advanced.provider_payload, null, 2))}</pre>
             </details>`
               : ''
           }
         `
             : advanced && typeof advanced === 'object'
-            ? `<div class="free-ride-detail-empty">Advanced: ${this.escapeHtml(
+            ? `<div class="free-ride-detail-empty">${this.renderFreeRideUiLabelHtml('advancedErrorPrefix')}: ${this.escapeHtml(
                 String(advanced.error_label || advanced.error || 'Error')
               )}${advanced.error_message ? ` · ${this.escapeHtml(String(advanced.error_message))}` : ''}</div>`
-            : `<div class="free-ride-detail-empty">Sin datos advanced todavía.</div>`
+            : `<div class="free-ride-detail-empty">${this.renderFreeRideUiLabelHtml('noAdvancedDataYet')}</div>`
         }
       </section>
     `;
@@ -1479,10 +1714,10 @@ class PageFreeRide extends HTMLElement {
       <div class="free-ride-detail-modal-page">
         <div class="free-ride-detail-modal-head">
           <div>
-            <div class="free-ride-detail-modal-title">Phrase details</div>
-            <div class="free-ride-detail-modal-sub">Standard + Advanced (si disponible)</div>
+            <div class="free-ride-detail-modal-title">${this.renderFreeRideUiLabelHtml('phraseDetails')}</div>
+            <div class="free-ride-detail-modal-sub">${this.renderFreeRideUiLabelHtml('standardPlusAdvancedIfAvailable')}</div>
           </div>
-          <button class="free-ride-detail-close" type="button" data-close-detail aria-label="Cerrar">
+          <button class="free-ride-detail-close" type="button" data-close-detail aria-label="Cerrar (Close)">
             <ion-icon name="close"></ion-icon>
           </button>
         </div>
@@ -2584,17 +2819,26 @@ class PageFreeRide extends HTMLElement {
     return copy.feedbackKeep || 'Keep practicing';
   }
 
+  getFeedbackLabelKey(percent) {
+    const value = typeof percent === 'number' ? percent : 0;
+    if (value >= 85) return 'feedbackNative';
+    if (value >= 70) return 'feedbackGood';
+    if (value >= 60) return 'feedbackAlmost';
+    return 'feedbackKeep';
+  }
+
   getFeedbackState(copy = this.currentCopy) {
     if (this.state.isTranscribing) {
-      return { tone: 'hint', label: copy.transcribing || 'Transcribing...', hasScore: false };
+      return { tone: 'hint', label: copy.transcribing || 'Transcribing...', labelKey: 'transcribing', hasScore: false };
     }
     if (typeof this.state.percent !== 'number') {
-      return { tone: 'hint', label: copy.feedbackHint || 'Practice the phrase', hasScore: false };
+      return { tone: 'hint', label: copy.feedbackHint || 'Practice the phrase', labelKey: 'feedbackHint', hasScore: false };
     }
     const percent = Math.max(0, Math.min(100, Math.round(this.state.percent)));
     const tone = this.getScoreTone(percent);
+    const labelKey = this.getFeedbackLabelKey(percent);
     const label = this.getFeedbackLabel(percent, copy);
-    return { tone, label, percent, hasScore: true };
+    return { tone, label, labelKey, percent, hasScore: true };
   }
 
   normalizeText(value) {
@@ -3814,6 +4058,7 @@ class PageFreeRide extends HTMLElement {
       typeof this.state.percent === 'number' ? `${Math.max(0, Math.min(100, Math.round(this.state.percent)))}%` : 'n/d';
     const audioMode = this.getFreeRideAudioMode();
     const effectiveEvalMode = this.getEffectiveFreeRideEvalMode();
+    const advancedFeatureEnabled = this.isAdvancedEvalFeatureEnabled();
     const advBlocked = this.isAdvancedAssessBlockedByLimit();
     const advSummary = this.escapeHtml(this.getAdvancedAssessmentSummaryText());
     const advTranscriptRaw =
@@ -3925,7 +4170,9 @@ class PageFreeRide extends HTMLElement {
               >Local</button>
             </div>
           </div>
-          <div class="speak-debug-row">
+          ${
+            advancedFeatureEnabled
+              ? `<div class="speak-debug-row">
             <span class="speak-debug-label">Eval</span>
             <div class="free-ride-debug-audio-toggle">
               <button
@@ -3942,9 +4189,15 @@ class PageFreeRide extends HTMLElement {
                 type="button"
                 data-eval-mode="${FREE_RIDE_EVAL_MODE_ADVANCED}"
                 aria-label="${advBlocked ? 'Evaluación avanzada bloqueada por límite diario' : 'Evaluación avanzada de pronunciación'}"
-                title="${advBlocked ? 'Evaluación avanzada bloqueada por límite diario' : 'Evaluación avanzada (Azure Speech)'}"
+                title="${
+                  !advancedFeatureEnabled
+                    ? 'Evaluación avanzada desactivada en Diagnósticos'
+                    : advBlocked
+                    ? 'Evaluación avanzada bloqueada por límite diario'
+                    : 'Evaluación avanzada (Azure Speech)'
+                }"
                 aria-pressed="${effectiveEvalMode === FREE_RIDE_EVAL_MODE_ADVANCED ? 'true' : 'false'}"
-                ${(controlsDisabled || advBlocked) ? 'disabled' : ''}
+                ${(!advancedFeatureEnabled || controlsDisabled || advBlocked) ? 'disabled' : ''}
               >Advanced</button>
             </div>
           </div>
@@ -3957,7 +4210,9 @@ class PageFreeRide extends HTMLElement {
           <div class="speak-debug-row">
             <span class="speak-debug-label">Adv txt</span>
             <span class="speak-debug-value">${advTranscript}</span>
-          </div>
+          </div>`
+              : ''
+          }
         </div>
       </div>
     `;
@@ -3981,13 +4236,19 @@ class PageFreeRide extends HTMLElement {
               <span></span><span></span><span></span><span></span><span></span>
             </span>
           </span>
-          <span class="record-label" id="free-ride-record-label">${this.escapeHtml(
-            copy.sayLabel || 'Say'
-          )}</span>
+          <span class="record-label" id="free-ride-record-label">${this.renderFreeRideCopyBilingualHtml('sayLabel', {
+            fallbackEs: 'Habla',
+            fallbackEn: 'Say',
+            altClass: 'is-compact'
+          })}</span>
         </button>
         <button class="speak-circle-btn" id="free-ride-voice" type="button">
           <ion-icon name="ear"></ion-icon>
-          <span>${this.escapeHtml(copy.yourVoiceLabel || 'Your voice')}</span>
+          <span>${this.renderFreeRideCopyBilingualHtml('yourVoiceLabel', {
+            fallbackEs: 'Tu voz',
+            fallbackEn: 'Your voice',
+            altClass: 'is-compact'
+          })}</span>
         </button>
       </div>
     `;
@@ -4102,9 +4363,12 @@ class PageFreeRide extends HTMLElement {
       recordBtn.setAttribute('aria-pressed', this.state.isRecording ? 'true' : 'false');
     }
     if (recordLabelEl) {
-      recordLabelEl.textContent = this.state.isRecording
-        ? copy.endLabel || 'End'
-        : copy.sayLabel || 'Say';
+      const recordKey = this.state.isRecording ? 'endLabel' : 'sayLabel';
+      recordLabelEl.innerHTML = this.renderFreeRideCopyBilingualHtml(recordKey, {
+        fallbackEs: this.state.isRecording ? 'Fin' : 'Habla',
+        fallbackEn: this.state.isRecording ? 'End' : 'Say',
+        altClass: 'is-compact'
+      });
     }
     if (voiceBtn) {
       voiceBtn.disabled = !this.state.recordingUrl || this.state.isRecording || this.state.isTranscribing;
@@ -4115,9 +4379,12 @@ class PageFreeRide extends HTMLElement {
       debugRecordBtn.setAttribute('aria-pressed', this.state.isRecording ? 'true' : 'false');
     }
     if (debugRecordLabelEl) {
-      debugRecordLabelEl.textContent = this.state.isRecording
-        ? copy.endLabel || 'End'
-        : copy.sayLabel || 'Say';
+      const recordKey = this.state.isRecording ? 'endLabel' : 'sayLabel';
+      debugRecordLabelEl.innerHTML = this.renderFreeRideCopyBilingualHtml(recordKey, {
+        fallbackEs: this.state.isRecording ? 'Fin' : 'Habla',
+        fallbackEn: this.state.isRecording ? 'End' : 'Say',
+        altClass: 'is-mini'
+      });
     }
     if (debugVoiceBtn) {
       debugVoiceBtn.disabled = !this.state.recordingUrl || this.state.isRecording || this.state.isTranscribing;
@@ -4127,15 +4394,18 @@ class PageFreeRide extends HTMLElement {
     }
 
     const feedback = this.getFeedbackState(copy);
+    const feedbackHtml = feedback.labelKey
+      ? this.renderFreeRideCopyBilingualHtml(feedback.labelKey, { fallbackEs: feedback.label, fallbackEn: feedback.label })
+      : this.escapeHtml(feedback.label || '');
     if (scoreLineEl && scoreValueEl && scoreTextEl) {
       if (feedback.hasScore) {
         scoreLineEl.className = `speak-score-line ${feedback.tone}`;
         scoreValueEl.textContent = `${feedback.percent}%`;
-        scoreTextEl.textContent = feedback.label;
+        scoreTextEl.innerHTML = feedbackHtml;
       } else {
         scoreLineEl.className = 'speak-score-line hint';
         scoreValueEl.textContent = '';
-        scoreTextEl.textContent = feedback.label;
+        scoreTextEl.innerHTML = feedbackHtml;
       }
     }
     if (advancedSummaryEl) {
@@ -4146,9 +4416,9 @@ class PageFreeRide extends HTMLElement {
         if (advancedInfo.tone === 'pending') advancedSummaryEl.classList.add('is-pending');
         else if (advancedInfo.tone === 'warn') advancedSummaryEl.classList.add('is-warn');
         else if (advancedInfo.tone === 'ok') advancedSummaryEl.classList.add('is-ok');
-        advancedSummaryEl.textContent = advancedInfo.text || '';
+        advancedSummaryEl.innerHTML = advancedInfo.html || this.escapeHtml(advancedInfo.text || '');
       } else {
-        advancedSummaryEl.textContent = '';
+        advancedSummaryEl.innerHTML = '';
       }
     }
     if (advancedWordDetailEl) {
@@ -4439,6 +4709,10 @@ class PageFreeRide extends HTMLElement {
       '{lang}',
       nextLocaleMeta.label
     );
+    const bilingualPlaceholder = this.getFreeRideCopyBilingualPlainText('inputPlaceholder', {
+      fallbackEs: 'Ejemplo: I would like to order a coffee, please.',
+      fallbackEn: 'Example: I would like to order a coffee, please.'
+    });
 
     this.innerHTML = `
       <ion-header translucent="true">
@@ -4462,9 +4736,10 @@ class PageFreeRide extends HTMLElement {
       <ion-content fullscreen class="free-ride-content speak-content secret-content">
         <div class="speak-shell free-ride-shell">
           <div class="journey-title free-ride-title-wrap">
-            <h2 class="onboarding-intro-title free-ride-screen-title">${this.escapeHtml(
-              copy.title || 'Free ride'
-            )}</h2>
+            <h2 class="onboarding-intro-title free-ride-screen-title">${this.renderFreeRideCopyBilingualHtml('title', {
+              fallbackEs: 'Práctica libre',
+              fallbackEn: 'Free ride'
+            })}</h2>
           </div>
           <section class="free-ride-hero-card onboarding-intro-card">
             <span class="journey-plan-mascot-wrap free-ride-mascot-wrap" aria-hidden="true">
@@ -4475,9 +4750,10 @@ class PageFreeRide extends HTMLElement {
                 alt=""
               >
             </span>
-            <p class="onboarding-intro-bubble free-ride-hero-bubble journey-plan-bubble">${this.escapeHtml(
-              copy.subtitle || ''
-            )}</p>
+            <p class="onboarding-intro-bubble free-ride-hero-bubble journey-plan-bubble">${this.renderFreeRideCopyBilingualHtml('subtitle', {
+              fallbackEs: copy.subtitle || '',
+              fallbackEn: copy.subtitle || ''
+            })}</p>
             <div class="free-ride-hero-flag-wrap">
               ${
                 debugEnabled
@@ -4509,12 +4785,15 @@ class PageFreeRide extends HTMLElement {
           <section class="free-ride-card">
             <div class="free-ride-card-main">
               <div class="free-ride-input-wrap">
-                <label class="free-ride-label" for="free-ride-input">${this.escapeHtml(copy.inputLabel || '')}</label>
+                <label class="free-ride-label" for="free-ride-input">${this.renderFreeRideCopyBilingualHtml('inputLabel', {
+                  fallbackEs: 'Tu frase',
+                  fallbackEn: 'Your phrase'
+                })}</label>
                 <textarea
                   id="free-ride-input"
                   class="free-ride-input"
                   rows="3"
-                  placeholder="${this.escapeHtml(copy.inputPlaceholder || '')}"
+                  placeholder="${this.escapeHtml(bilingualPlaceholder || copy.inputPlaceholder || '')}"
                 ></textarea>
               </div>
 

@@ -21,6 +21,7 @@ class PageDiagnostics extends HTMLElement {
     const FREE_RIDE_AUDIO_MODE_KEY = 'appv5:free-ride-audio-mode';
     const FREE_RIDE_AUDIO_MODE_GENERATED = 'generated';
     const FREE_RIDE_AUDIO_MODE_LOCAL = 'local';
+    const FREE_RIDE_ADVANCED_ENABLED_KEY = 'appv5:free-ride-advanced-enabled';
     const normalizeFreeRideAudioMode = (value) => {
       const normalized = String(value || '')
         .trim()
@@ -39,6 +40,26 @@ class PageDiagnostics extends HTMLElement {
         return normalizeFreeRideAudioMode(localStorage.getItem(FREE_RIDE_AUDIO_MODE_KEY));
       } catch (err) {
         return FREE_RIDE_AUDIO_MODE_GENERATED;
+      }
+    };
+    const normalizeFreeRideAdvancedEnabled = (value) => {
+      if (typeof value === 'boolean') return value;
+      const normalized = String(value || '')
+        .trim()
+        .toLowerCase();
+      if (!normalized) return true;
+      return !['0', 'false', 'off'].includes(normalized);
+    };
+    const getStoredFreeRideAdvancedEnabled = () => {
+      const globalValue =
+        window.r34lp0w3r && Object.prototype.hasOwnProperty.call(window.r34lp0w3r, 'freeRideAdvancedEnabled')
+          ? window.r34lp0w3r.freeRideAdvancedEnabled
+          : undefined;
+      if (globalValue !== undefined) return normalizeFreeRideAdvancedEnabled(globalValue);
+      try {
+        return normalizeFreeRideAdvancedEnabled(localStorage.getItem(FREE_RIDE_ADVANCED_ENABLED_KEY));
+      } catch (err) {
+        return true;
       }
     };
 
@@ -146,7 +167,14 @@ class PageDiagnostics extends HTMLElement {
                     <ion-label>Local</ion-label>
                   </ion-segment-button>
                 </ion-segment>
-                <div class="diag-debug-sub" id="diag-free-ride-audio-sub"></div>
+	                <div class="diag-debug-sub" id="diag-free-ride-audio-sub"></div>
+              </div>
+              <div class="diag-debug-toggle" style="margin-top: 10px;">
+                <div class="diag-debug-text">
+                  <div class="diag-debug-title">Pronunciación avanzada (Free ride)</div>
+                  <div class="diag-debug-sub" id="diag-free-ride-advanced-sub"></div>
+                </div>
+                <ion-toggle id="diag-free-ride-advanced-toggle" ${getStoredFreeRideAdvancedEnabled() ? 'checked' : ''}></ion-toggle>
               </div>
             </div>
 
@@ -231,12 +259,13 @@ class PageDiagnostics extends HTMLElement {
 		              <div class="diag-usage-list" id="diag-tts-usage-list"></div>
 		            </div>
 
-		            <h4 style="margin-top:16px;">Pronunciation advanced usage (usuario/dia)</h4>
-		            <div class="diag-actions">
-		              <ion-button size="small" fill="outline" id="diag-pron-usage-refresh">Refrescar</ion-button>
-		            </div>
-		            <div class="diag-speak-block">
-              <div class="pill">Segundos y coste</div>
+			            <div id="diag-pron-advanced-usage-section" ${getStoredFreeRideAdvancedEnabled() ? '' : 'hidden'}>
+			            <h4 style="margin-top:16px;">Pronunciation advanced usage (usuario/dia)</h4>
+			            <div class="diag-actions">
+			              <ion-button size="small" fill="outline" id="diag-pron-usage-refresh">Refrescar</ion-button>
+			            </div>
+			            <div class="diag-speak-block">
+	              <div class="pill">Segundos y coste</div>
               <div class="diag-usage-status" id="diag-pron-usage-status">Cargando...</div>
               <div class="diag-actions diag-usage-limit-actions">
                 <input
@@ -249,7 +278,8 @@ class PageDiagnostics extends HTMLElement {
                 />
                 <ion-button size="small" fill="outline" id="diag-pron-usage-limit-save">Guardar limite</ion-button>
                 <ion-button size="small" fill="outline" color="medium" id="diag-pron-usage-limit-clear">Sin limite</ion-button>
-              </div>
+			            </div>
+                  </div>
               <div class="diag-usage-limit-status" id="diag-pron-usage-limit-status"></div>
               <div class="diag-usage-totals" id="diag-pron-usage-totals" hidden></div>
 		              <div class="diag-usage-list" id="diag-pron-usage-list"></div>
@@ -510,6 +540,9 @@ class PageDiagnostics extends HTMLElement {
     const ttsStatusEl = this.querySelector('#diag-tts-status');
     const freeRideAudioModeEl = this.querySelector('#diag-free-ride-audio-mode');
     const freeRideAudioSubEl = this.querySelector('#diag-free-ride-audio-sub');
+    const freeRideAdvancedToggleEl = this.querySelector('#diag-free-ride-advanced-toggle');
+    const freeRideAdvancedSubEl = this.querySelector('#diag-free-ride-advanced-sub');
+    const pronAdvancedUsageSectionEl = this.querySelector('#diag-pron-advanced-usage-section');
     const notifyListEl = this.querySelector('#diag-notify-list');
     const notifyEmptyEl = this.querySelector('#diag-notify-empty');
     const TALK_STORAGE_PREFIX = 'appv5:talk-timelines:';
@@ -547,6 +580,39 @@ class PageDiagnostics extends HTMLElement {
 	            ? 'Local (Free ride / chatbot audio): usa TTS nativo/web; en Free ride aplica realce global mientras suena.'
 	            : 'Alineado (Free ride / chatbot audio): usa backend alineado (audio + timings; en Free ride con highlighting progresivo por palabra).';
 	      }
+	      return normalized;
+	    };
+
+    const setFreeRideAdvancedEnabled = (enabled) => {
+      const normalized = normalizeFreeRideAdvancedEnabled(enabled);
+      window.r34lp0w3r = window.r34lp0w3r || {};
+      window.r34lp0w3r.freeRideAdvancedEnabled = normalized;
+      try {
+        localStorage.setItem(FREE_RIDE_ADVANCED_ENABLED_KEY, normalized ? '1' : '0');
+      } catch (err) {
+        // no-op
+      }
+      window.dispatchEvent(
+        new CustomEvent('app:free-ride-advanced-enabled-change', {
+          detail: { enabled: normalized }
+        })
+      );
+      return normalized;
+    };
+
+    const updateFreeRideAdvancedUi = (enabled) => {
+      const normalized = normalizeFreeRideAdvancedEnabled(enabled);
+      if (freeRideAdvancedToggleEl) {
+        freeRideAdvancedToggleEl.checked = normalized;
+      }
+      if (freeRideAdvancedSubEl) {
+        freeRideAdvancedSubEl.textContent = normalized
+          ? 'Activado: permite usar la evaluación Advanced (Azure Speech) en Free ride y mostrar su feedback.'
+          : 'Desactivado: Free ride fuerza evaluación Standard y oculta el feedback Advanced.';
+      }
+      if (pronAdvancedUsageSectionEl) {
+        pronAdvancedUsageSectionEl.hidden = !normalized;
+      }
       return normalized;
     };
 
@@ -1559,6 +1625,8 @@ class PageDiagnostics extends HTMLElement {
     renderNotifyList();
     const initialFreeRideAudioMode = getStoredFreeRideAudioMode();
     updateFreeRideAudioModeUi(setFreeRideAudioMode(initialFreeRideAudioMode));
+    const initialFreeRideAdvancedEnabled = getStoredFreeRideAdvancedEnabled();
+    updateFreeRideAdvancedUi(setFreeRideAdvancedEnabled(initialFreeRideAdvancedEnabled));
 
     this.querySelector('#diag-back')?.addEventListener('click', () => {
       ensureInitialHash();
@@ -1620,6 +1688,13 @@ class PageDiagnostics extends HTMLElement {
     freeRideAudioModeEl?.addEventListener('ionChange', (event) => {
       const nextMode = event && event.detail ? event.detail.value : freeRideAudioModeEl.value;
       updateFreeRideAudioModeUi(setFreeRideAudioMode(nextMode));
+    });
+    freeRideAdvancedToggleEl?.addEventListener('ionChange', (event) => {
+      const nextEnabled =
+        event && event.detail && event.detail.checked !== undefined
+          ? Boolean(event.detail.checked)
+          : Boolean(freeRideAdvancedToggleEl.checked);
+      updateFreeRideAdvancedUi(setFreeRideAdvancedEnabled(nextEnabled));
     });
 
     // Login

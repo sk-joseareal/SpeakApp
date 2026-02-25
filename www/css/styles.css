@@ -3597,6 +3597,24 @@ page-premium ion-content::part(scroll) {
   color: #0e0e10;
 }
 
+.free-ride-copy-alt {
+  display: inline;
+  font-size: 0.74em;
+  font-weight: 500;
+  opacity: 0.8;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.free-ride-copy-alt.is-compact {
+  font-size: 0.7em;
+}
+
+.free-ride-copy-alt.is-mini {
+  font-size: 0.66em;
+  opacity: 0.78;
+}
+
 .free-ride-hero-card {
   margin: 0;
   flex: 0 0 auto;
@@ -3688,6 +3706,17 @@ page-premium ion-content::part(scroll) {
   letter-spacing: 0.04em;
   font-weight: 700;
   color: #64748b;
+}
+
+.free-ride-label .free-ride-copy-alt {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 0.86em;
+  font-weight: 600;
+}
+
+.speak-score-line-text .free-ride-copy-alt {
+  opacity: 0.78;
 }
 
 .free-ride-input {

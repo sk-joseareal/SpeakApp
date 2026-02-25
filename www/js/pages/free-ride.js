@@ -1780,7 +1780,7 @@ class PageFreeRide extends HTMLElement {
         entry && typeof entry.recognized === 'string' && entry.recognized.trim()
           ? entry.recognized.trim()
           : '';
-      const scoreRaw = Number(entry && entry.score);
+      const scoreRaw = entry && typeof entry.score === 'number' && Number.isFinite(entry.score) ? entry.score : null;
       const errorTypeRaw =
         entry && typeof entry.error_type === 'string' && entry.error_type.trim()
           ? entry.error_type.trim()
@@ -1790,7 +1790,7 @@ class PageFreeRide extends HTMLElement {
         expected: expectedRaw,
         recognized: recognizedRaw,
         status: rawStatus || '',
-        score: Number.isFinite(scoreRaw) ? Math.max(0, Math.min(100, Math.round(scoreRaw))) : null,
+        score: scoreRaw !== null ? Math.max(0, Math.min(100, Math.round(scoreRaw))) : null,
         error_type: errorTypeRaw,
         phonemes: Array.isArray(entry && entry.phonemes) ? entry.phonemes : []
       };

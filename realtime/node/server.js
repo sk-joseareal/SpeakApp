@@ -1252,8 +1252,7 @@ const requestAzurePronunciationAssessment = ({
 const mapAzureWordStatus = (errorType, score) => {
   const raw = String(errorType || '').trim().toLowerCase();
   if (!raw || raw === 'none') {
-    const numeric = Number(score);
-    if (Number.isFinite(numeric) && numeric < 45) return 'wrong';
+    if (typeof score === 'number' && Number.isFinite(score) && score < 45) return 'wrong';
     return 'ok';
   }
   if (raw === 'omission') return 'missing';

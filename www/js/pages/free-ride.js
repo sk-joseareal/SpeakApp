@@ -25,11 +25,60 @@ const FREE_RIDE_ALIGNED_CACHE_MAX_ITEMS = 36;
 const FREE_RIDE_AUDIO_MODE_KEY = 'appv5:free-ride-audio-mode';
 const FREE_RIDE_AUDIO_MODE_GENERATED = 'generated';
 const FREE_RIDE_AUDIO_MODE_LOCAL = 'local';
+const FREE_RIDE_PLAYBACK_RATE_KEY = 'appv5:free-ride-playback-rate';
+const FREE_RIDE_PLAYBACK_RATE_MIN = 0.5;
+const FREE_RIDE_PLAYBACK_RATE_MAX = 1.5;
+const FREE_RIDE_PLAYBACK_RATE_STEP = 0.05;
+const FREE_RIDE_WORD_TAP_AUDIO_ENABLED_KEY = 'appv5:free-ride-word-tap-audio-enabled';
 const FREE_RIDE_EVAL_MODE_KEY = 'appv5:free-ride-eval-mode';
 const FREE_RIDE_EVAL_MODE_STANDARD = 'standard';
 const FREE_RIDE_EVAL_MODE_ADVANCED = 'advanced';
 const FREE_RIDE_ADVANCED_ENABLED_KEY = 'appv5:free-ride-advanced-enabled';
 const FREE_RIDE_ADVANCED_AUDIO_SAMPLE_RATE = 16000;
+const AZURE_PHONEME_IPA_MAP = {
+  aa: 'ɑ',
+  ae: 'æ',
+  ah: 'ʌ',
+  ao: 'ɔ',
+  aw: 'aʊ',
+  ax: 'ə',
+  axr: 'ɚ',
+  ay: 'aɪ',
+  b: 'b',
+  ch: 'tʃ',
+  d: 'd',
+  dh: 'ð',
+  eh: 'ɛ',
+  er: 'ɝ',
+  ey: 'eɪ',
+  f: 'f',
+  g: 'ɡ',
+  h: 'h',
+  hh: 'h',
+  ih: 'ɪ',
+  iy: 'iː',
+  jh: 'dʒ',
+  k: 'k',
+  l: 'l',
+  m: 'm',
+  n: 'n',
+  ng: 'ŋ',
+  ow: 'oʊ',
+  oy: 'ɔɪ',
+  p: 'p',
+  r: 'ɹ',
+  s: 's',
+  sh: 'ʃ',
+  t: 't',
+  th: 'θ',
+  uh: 'ʊ',
+  uw: 'uː',
+  v: 'v',
+  w: 'w',
+  y: 'j',
+  z: 'z',
+  zh: 'ʒ'
+};
 
 const DEFAULT_TONE_SCALE = [
   { min: 80, tone: 'good' },
@@ -88,6 +137,7 @@ class PageFreeRide extends HTMLElement {
     this.phraseHighlightRaf = null;
     this.phraseHighlightTimeline = [];
     this.phraseHighlightTokenEls = [];
+    this.phraseHighlightPlaybackMode = '';
     this.playbackRequestToken = 0;
   }
 
@@ -324,6 +374,62 @@ class PageFreeRide extends HTMLElement {
       })
     );
     return normalized;
+  }
+
+  normalizeFreeRidePlaybackRate(value) {
+    if (value === null || value === undefined) return 1;
+    if (typeof value === 'string' && !value.trim()) return 1;
+    const n = Number(value);
+    if (!Number.isFinite(n)) return 1;
+    const clamped = Math.max(FREE_RIDE_PLAYBACK_RATE_MIN, Math.min(FREE_RIDE_PLAYBACK_RATE_MAX, n));
+    return Math.round(clamped / FREE_RIDE_PLAYBACK_RATE_STEP) * FREE_RIDE_PLAYBACK_RATE_STEP;
+  }
+
+  getFreeRidePlaybackRate() {
+    const rateFromState =
+      window.r34lp0w3r && Number.isFinite(Number(window.r34lp0w3r.freeRidePlaybackRate))
+        ? Number(window.r34lp0w3r.freeRidePlaybackRate)
+        : null;
+    if (rateFromState !== null) {
+      return this.normalizeFreeRidePlaybackRate(rateFromState);
+    }
+    try {
+      return this.normalizeFreeRidePlaybackRate(localStorage.getItem(FREE_RIDE_PLAYBACK_RATE_KEY));
+    } catch (err) {
+      return 1;
+    }
+  }
+
+  setFreeRidePlaybackRate(value) {
+    const normalized = this.normalizeFreeRidePlaybackRate(value);
+    window.r34lp0w3r = window.r34lp0w3r || {};
+    window.r34lp0w3r.freeRidePlaybackRate = normalized;
+    try {
+      localStorage.setItem(FREE_RIDE_PLAYBACK_RATE_KEY, String(normalized));
+    } catch (err) {
+      // no-op
+    }
+    return normalized;
+  }
+
+  isFreeRideWordTapAudioEnabled() {
+    const globalValue =
+      window.r34lp0w3r && Object.prototype.hasOwnProperty.call(window.r34lp0w3r, 'freeRideWordTapAudioEnabled')
+        ? window.r34lp0w3r.freeRideWordTapAudioEnabled
+        : undefined;
+    if (typeof globalValue === 'boolean') return globalValue;
+    if (typeof globalValue === 'string') {
+      const normalized = globalValue.trim().toLowerCase();
+      if (!normalized) return false;
+      return ['1', 'true', 'on'].includes(normalized);
+    }
+    try {
+      const raw = localStorage.getItem(FREE_RIDE_WORD_TAP_AUDIO_ENABLED_KEY);
+      if (raw === null || raw === undefined || raw === '') return false;
+      return ['1', 'true', 'on'].includes(String(raw).trim().toLowerCase());
+    } catch (err) {
+      return false;
+    }
   }
 
   normalizeFreeRideEvalMode(value) {
@@ -1204,38 +1310,20 @@ class PageFreeRide extends HTMLElement {
     }
 
     const expected = this.escapeHtml(selected.expected || 'n/d');
-    const recognized = this.escapeHtml(selected.recognized || '—');
+    const recognizedRaw = String(selected.recognized || '—');
+    const recognized = this.renderAdvancedInlineValueHtml(recognizedRaw);
     const statusRaw = String(selected.status || '').trim().toLowerCase();
-    const statusLabel =
-      statusRaw === 'ok'
-        ? this.renderFreeRideUiLabelHtml('ok', { altClass: 'is-mini' })
-        : statusRaw === 'wrong'
-        ? this.renderBilingualCopyHtml('Incorrecta', 'Incorrect', { altClass: 'is-mini' })
-        : statusRaw === 'missing'
-        ? this.renderBilingualCopyHtml('Omitida', 'Missing', { altClass: 'is-mini' })
-        : statusRaw === 'extra'
-        ? this.renderBilingualCopyHtml('Extra', 'Extra', { altClass: 'is-mini' })
-        : statusRaw === 'issue'
-        ? this.renderFreeRideUiLabelHtml('issue', { altClass: 'is-mini' })
-        : this.escapeHtml(selected.status || 'n/d');
+    const statusLabel = this.renderAdvancedStatusLabelHtml(statusRaw, { altClass: 'is-mini' });
     const scoreText =
       typeof selected.score === 'number' && Number.isFinite(selected.score)
         ? `${Math.round(selected.score)}%`
         : 'n/d';
-    const errorType = this.escapeHtml(selected.error_type || '—');
+    const errorType = this.renderAdvancedInlineValueHtml(this.getAdvancedErrorTypeDisplayText(selected.error_type || '—'));
 
     let phonemeText = '';
     if (Array.isArray(selected.phonemes) && selected.phonemes.length) {
-      const weak = this.getAdvancedDisplayablePhonemes(selected)
-        .slice()
-        .sort((a, b) => a.score - b.score)[0];
-      if (weak) {
-        phonemeText = ` · ${this.renderFreeRideUiLabelHtml('phoneme', { altClass: 'is-mini' })}: ${this.escapeHtml(
-          weak.phoneme
-        )} (${Math.round(weak.score)}%)`;
-      } else {
-        phonemeText = ` · ${this.renderFreeRideUiLabelHtml('phoneme', { altClass: 'is-mini' })}: n/d`;
-      }
+      const phonemeListHtml = this.renderAdvancedPhonemeInlineListHtml(selected);
+      phonemeText = phonemeListHtml ? ` · Fonemas: ${phonemeListHtml}` : ' · Fonemas: n/d';
     }
 
     const tone =
@@ -1248,10 +1336,7 @@ class PageFreeRide extends HTMLElement {
     return {
       visible: true,
       tone,
-      html: `<strong>${expected}</strong> · ${this.renderFreeRideUiLabelHtml('score', { altClass: 'is-mini' })} ${scoreText} · ${statusLabel} · ${this.renderFreeRideUiLabelHtml(
-        'recognizedShort',
-        { altClass: 'is-mini' }
-      )}: ${recognized} · ${this.renderFreeRideUiLabelHtml('errorShort', { altClass: 'is-mini' })}: ${errorType}${phonemeText}`
+      html: `<strong>${expected}</strong> · ${this.renderFreeRideUiLabelHtml('score', { altClass: 'is-mini' })} ${scoreText} · ${statusLabel} · Grabado: ${recognized} · Error: ${errorType}${phonemeText}`
     };
   }
 
@@ -1268,6 +1353,23 @@ class PageFreeRide extends HTMLElement {
     const n = Number(value);
     if (!Number.isFinite(n) || n < 0) return '—';
     return `${Math.round(n)} ms`;
+  }
+
+  getAdvancedErrorTypeDisplayText(errorType) {
+    const raw = String(errorType || '').trim();
+    if (!raw) return '—';
+    const key = raw.toLowerCase();
+    if (key === 'none') return 'Ninguno';
+    if (key === 'mispronunciation') return 'Mala pronunciación';
+    if (key === 'omission') return 'Omisión';
+    if (key === 'insertion') return 'Inserción';
+    if (key === 'missingbreak') return 'Falta de pausa';
+    if (key === 'unexpectedbreak') return 'Pausa inesperada';
+    return raw;
+  }
+
+  renderAdvancedInlineValueHtml(value) {
+    return `<span class="free-ride-detail-inline-value">${this.escapeHtml(String(value || '—'))}</span>`;
   }
 
   renderBilingualCopyHtml(primaryText, secondaryText, options = {}) {
@@ -1378,6 +1480,30 @@ class PageFreeRide extends HTMLElement {
     return raw;
   }
 
+  getAzurePhonemeIpa(phoneme) {
+    const key = String(phoneme || '')
+      .trim()
+      .toLowerCase();
+    if (!key) return '';
+    return AZURE_PHONEME_IPA_MAP[key] || '';
+  }
+
+  formatAzurePhonemeWithIpa(phoneme) {
+    const arpa = String(phoneme || '').trim();
+    if (!arpa) return '';
+    const ipa = this.getAzurePhonemeIpa(arpa);
+    if (!ipa) return arpa;
+    return `${arpa}(/${ipa}/)`;
+  }
+
+  formatAzurePhonemeWithIpaHtml(phoneme) {
+    const arpa = String(phoneme || '').trim();
+    if (!arpa) return '';
+    const ipa = this.getAzurePhonemeIpa(arpa);
+    if (!ipa) return this.escapeHtml(arpa);
+    return `${this.escapeHtml(arpa)}(<span class="free-ride-phoneme-ipa">/${this.escapeHtml(ipa)}/</span>)`;
+  }
+
   renderRecognitionStatusBilingualHtml(status, options = {}) {
     const raw = String(status || '').trim();
     if (!raw) return 'n/d';
@@ -1405,15 +1531,59 @@ class PageFreeRide extends HTMLElement {
   getAdvancedDisplayablePhonemes(wordLike) {
     const phonemes = Array.isArray(wordLike && wordLike.phonemes) ? wordLike.phonemes : [];
     return phonemes
-      .map((phoneme) => {
+      .map((phoneme, index) => {
         const rawScore = phoneme && phoneme.score;
+        const rawOffset = phoneme && phoneme.offset_ms;
+        const rawDuration = phoneme && phoneme.duration_ms;
+        const offsetMs =
+          typeof rawOffset === 'number' && Number.isFinite(rawOffset)
+            ? Math.max(0, Math.round(rawOffset))
+            : null;
+        const durationMs =
+          typeof rawDuration === 'number' && Number.isFinite(rawDuration)
+            ? Math.max(0, Math.round(rawDuration))
+            : null;
+        const endMs = offsetMs !== null ? offsetMs + Math.max(20, durationMs || 0) : null;
         return {
           phoneme: phoneme && phoneme.phoneme ? String(phoneme.phoneme) : '',
           score: typeof rawScore === 'number' && Number.isFinite(rawScore) ? rawScore : null,
-          usable: this.isAdvancedPhonemeScoreUsable(wordLike, phoneme)
+          usable: this.isAdvancedPhonemeScoreUsable(wordLike, phoneme),
+          offset_ms: offsetMs,
+          end_ms: endMs,
+          order_index: index
         };
       })
       .filter((item) => item.phoneme && item.usable && item.score !== null);
+  }
+
+  sortAdvancedDisplayablePhonemes(phonemes) {
+    const list = Array.isArray(phonemes) ? phonemes.slice() : [];
+    return list.sort((a, b) => {
+      const aHasOffset = typeof a?.offset_ms === 'number' && Number.isFinite(a.offset_ms);
+      const bHasOffset = typeof b?.offset_ms === 'number' && Number.isFinite(b.offset_ms);
+      if (aHasOffset && bHasOffset && a.offset_ms !== b.offset_ms) return a.offset_ms - b.offset_ms;
+      if (aHasOffset !== bHasOffset) return aHasOffset ? -1 : 1;
+      return (a?.order_index || 0) - (b?.order_index || 0);
+    });
+  }
+
+  renderAdvancedPhonemeInlineListHtml(wordLike) {
+    const phonemes = this.sortAdvancedDisplayablePhonemes(this.getAdvancedDisplayablePhonemes(wordLike));
+    if (!phonemes.length) return '';
+    return phonemes
+      .map((phoneme) => {
+        const attrs = [];
+        if (typeof phoneme.offset_ms === 'number' && Number.isFinite(phoneme.offset_ms)) {
+          attrs.push(`data-adv-phoneme-offset-ms="${Math.max(0, Math.round(phoneme.offset_ms))}"`);
+        }
+        if (typeof phoneme.end_ms === 'number' && Number.isFinite(phoneme.end_ms)) {
+          attrs.push(`data-adv-phoneme-end-ms="${Math.max(0, Math.round(phoneme.end_ms))}"`);
+        }
+        return `<span class="free-ride-phoneme-inline"${attrs.length ? ` ${attrs.join(' ')}` : ''}>${this.formatAzurePhonemeWithIpaHtml(
+          phoneme.phoneme
+        )}:${Math.round(phoneme.score)}%</span>`;
+      })
+      .join(' · ');
   }
 
   getAdvancedStatusLabel(status) {
@@ -1424,7 +1594,7 @@ class PageFreeRide extends HTMLElement {
     if (key === 'wrong') return 'Incorrecta';
     if (key === 'missing') return 'Omitida';
     if (key === 'extra') return 'Extra';
-    if (key === 'issue') return 'Issue';
+    if (key === 'issue') return 'Incidencia';
     return key || 'n/d';
   }
 
@@ -1433,10 +1603,10 @@ class PageFreeRide extends HTMLElement {
       .trim()
       .toLowerCase();
     if (key === 'ok') return this.renderBilingualCopyHtml('OK', 'OK', options);
-    if (key === 'wrong') return this.renderBilingualCopyHtml('Incorrecta', 'Incorrect', options);
-    if (key === 'missing') return this.renderBilingualCopyHtml('Omitida', 'Missing', options);
+    if (key === 'wrong') return this.renderBilingualCopyHtml('Incorrecta', 'Incorrecta', options);
+    if (key === 'missing') return this.renderBilingualCopyHtml('Omitida', 'Omitida', options);
     if (key === 'extra') return this.renderBilingualCopyHtml('Extra', 'Extra', options);
-    if (key === 'issue') return this.renderBilingualCopyHtml('Incidencia', 'Issue', options);
+    if (key === 'issue') return this.renderBilingualCopyHtml('Incidencia', 'Incidencia', options);
     return this.escapeHtml(this.getAdvancedStatusLabel(status));
   }
 
@@ -1570,6 +1740,7 @@ class PageFreeRide extends HTMLElement {
         return { labelKey, value };
       })
       .filter((item) => typeof item.value === 'number' && Number.isFinite(item.value));
+    const selectedPhraseWordIndex = Number(selectedMeta && selectedMeta.phrase_word_index);
 
     const advancedSection = !advancedFeatureEnabled
       ? ''
@@ -1617,16 +1788,25 @@ class PageFreeRide extends HTMLElement {
                 } · ${this.renderAdvancedStatusLabelHtml(selectedMeta.status, { altClass: 'is-mini' })} · ${this.renderFreeRideUiLabelHtml(
                   'errorShort',
                   { altClass: 'is-mini' }
-                )}: ${this.escapeHtml(selectedMeta.error_type || '—')}
+                )}: ${this.renderAdvancedInlineValueHtml(this.getAdvancedErrorTypeDisplayText(selectedMeta.error_type || '—'))}
             </div>`
               : ''
           }
           <div class="free-ride-detail-list">
             ${
               advancedWords.length
-                ? advancedWords
+                ? (() => {
+                    let popupPhraseWordCursor = -1;
+                    return advancedWords
                     .map((word, index) => {
                       const status = String(word && word.status ? word.status : '').trim().toLowerCase();
+                      const isSelectable = status !== 'extra';
+                      const phraseWordIndex = isSelectable ? ++popupPhraseWordCursor : -1;
+                      const isSelected =
+                        isSelectable &&
+                        Number.isFinite(selectedPhraseWordIndex) &&
+                        selectedPhraseWordIndex >= 0 &&
+                        phraseWordIndex === selectedPhraseWordIndex;
                       const tone =
                         status === 'ok'
                           ? 'ok'
@@ -1636,22 +1816,18 @@ class PageFreeRide extends HTMLElement {
                           ? 'bad'
                           : 'neutral';
                       const phonemes = Array.isArray(word && word.phonemes) ? word.phonemes : [];
-                      const displayablePhonemes = this.getAdvancedDisplayablePhonemes(word);
-                      const phonemeInline = displayablePhonemes.length
-                        ? displayablePhonemes
-                            .slice()
-                            .sort((a, b) => {
-                              return a.score - b.score;
-                            })
-                            .slice(0, 4)
-                            .map((phoneme) => {
-                              const pv = phoneme && phoneme.phoneme ? String(phoneme.phoneme) : '?';
-                              return `${pv}:${Math.round(phoneme.score)}%`;
-                            })
-                            .join(' · ')
+                      const phonemeInlineHtml = this.renderAdvancedPhonemeInlineListHtml(word);
+                      const recognizedText = String(word && word.recognized ? word.recognized : '—');
+                      const errorTypeText = this.getAdvancedErrorTypeDisplayText(
+                        String(word && word.error_type ? word.error_type : '—')
+                      );
+                      const selectableClass = isSelectable ? ' is-selectable' : '';
+                      const selectedClass = isSelected ? ' is-selected' : '';
+                      const selectableAttrs = isSelectable
+                        ? ` data-adv-detail-word-index="${phraseWordIndex}" role="button" tabindex="0"`
                         : '';
                       return `
-                    <div class="free-ride-detail-row is-${tone}">
+                    <div class="free-ride-detail-row is-${tone}${selectableClass}${selectedClass}"${selectableAttrs}>
                       <div class="free-ride-detail-row-index">${index + 1}</div>
                       <div class="free-ride-detail-row-main">
                         <div class="free-ride-detail-row-top">
@@ -1666,29 +1842,24 @@ class PageFreeRide extends HTMLElement {
                           }</span>
                         </div>
                         <div class="free-ride-detail-row-meta">
-                          ${this.renderFreeRideUiLabelHtml('recognizedShort', { altClass: 'is-mini' })}: ${this.escapeHtml(
-                            String(word && word.recognized ? word.recognized : '—')
-                          )}
-                          · ${this.renderFreeRideUiLabelHtml('errorShort', { altClass: 'is-mini' })}: ${this.escapeHtml(
-                            String(word && word.error_type ? word.error_type : '—')
-                          )}
+                          Grabado: ${this.renderAdvancedInlineValueHtml(recognizedText)}
+                          · Error: ${this.renderAdvancedInlineValueHtml(errorTypeText)}
                           · ${this.formatDurationMsForDetail(
                             Number(word?.end_ms) - Number(word?.start_ms)
                           )}
                           ${
                             phonemes.length
-                              ? phonemeInline
-                                ? ` · ${this.renderFreeRideUiLabelHtml('phonemes', { altClass: 'is-mini' })}: ${this.escapeHtml(
-                                    phonemeInline
-                                  )}`
-                                : ` · ${this.renderFreeRideUiLabelHtml('phonemes', { altClass: 'is-mini' })}: n/d`
+                              ? phonemeInlineHtml
+                                ? ` · Fonemas: ${phonemeInlineHtml}`
+                                : ' · Fonemas: n/d'
                               : ''
                           }
                         </div>
                       </div>
                     </div>`;
                     })
-                    .join('')
+                    .join('');
+                  })()
                 : `<div class="free-ride-detail-empty">${this.renderFreeRideUiLabelHtml('noAdvancedWordDetail')}</div>`
             }
           </div>
@@ -1769,15 +1940,54 @@ class PageFreeRide extends HTMLElement {
       { once: true }
     );
 
-    const closeBtn = modal.querySelector('[data-close-detail]');
-    closeBtn?.addEventListener('click', () => {
-      modal.dismiss().catch(() => {});
-    });
+    this.bindPhraseDetailsModalUi(modal);
 
     if (document.activeElement && typeof document.activeElement.blur === 'function') {
       document.activeElement.blur();
     }
     await modal.present();
+  }
+
+  bindPhraseDetailsModalUi(modal) {
+    if (!modal) return;
+    const closeBtn = modal.querySelector('[data-close-detail]');
+    closeBtn?.addEventListener('click', () => {
+      modal.dismiss().catch(() => {});
+    });
+
+    const syncSelectionUi = () => {
+      const selectedIndex = Number(this.advancedSelectedPhraseWordIndex);
+      modal.querySelectorAll('[data-adv-detail-word-index]').forEach((el) => {
+        const idx = Number(el.getAttribute('data-adv-detail-word-index'));
+        const isSelected = Number.isFinite(idx) && Number.isFinite(selectedIndex) && idx === selectedIndex;
+        el.classList.toggle('is-selected', isSelected);
+      });
+    };
+
+    const onWordActivate = (targetEl) => {
+      if (!targetEl) return;
+      const idx = Number(targetEl.getAttribute('data-adv-detail-word-index'));
+      if (!Number.isFinite(idx)) return;
+      this.setAdvancedWordSelection(idx, { allowToggleOff: true });
+      syncSelectionUi();
+      if (this.isFreeRideWordTapAudioEnabled()) {
+        this.playAdvancedWordByPhraseIndex(idx);
+      }
+    };
+
+    modal.querySelectorAll('[data-adv-detail-word-index]').forEach((rowEl) => {
+      rowEl.addEventListener('click', () => {
+        onWordActivate(rowEl);
+      });
+      rowEl.addEventListener('keydown', (event) => {
+        const key = event && event.key ? event.key : '';
+        if (key !== 'Enter' && key !== ' ') return;
+        event.preventDefault();
+        onWordActivate(rowEl);
+      });
+    });
+
+    syncSelectionUi();
   }
 
   async fetchAdvancedPronunciationAssessment(expectedText, recordingBlob) {
@@ -1950,6 +2160,46 @@ class PageFreeRide extends HTMLElement {
     return { segments, timeline };
   }
 
+  buildTimedWordDataFromAdvancedAssessment(expectedText, assessment) {
+    const source = String(expectedText || '').trim();
+    if (!source) return null;
+    if (!assessment || typeof assessment !== 'object' || assessment.ok !== true) return null;
+    const words = Array.isArray(assessment.words) ? assessment.words : [];
+    if (!words.length) return null;
+
+    const timedWords = words
+      .map((entry) => {
+        const word = entry && typeof entry === 'object' ? entry : null;
+        if (!word) return null;
+        const status = String(word.status || '')
+          .trim()
+          .toLowerCase();
+        // Skip insertions (not in expected text) and omissions (no real audio span).
+        if (status === 'extra' || status === 'missing') return null;
+
+        const token = String(word.expected || word.text || word.word || '')
+          .replace(/\s+/g, ' ')
+          .trim();
+        if (!token) return null;
+
+        const startMsRaw = Number(word.start_ms);
+        const endMsRaw = Number(word.end_ms);
+        if (!Number.isFinite(startMsRaw) || !Number.isFinite(endMsRaw)) return null;
+
+        const startMs = Math.max(0, Math.round(startMsRaw));
+        const endMs = Math.max(startMs + 40, Math.round(endMsRaw));
+        return {
+          text: token,
+          start_ms: startMs,
+          end_ms: endMs
+        };
+      })
+      .filter(Boolean);
+
+    if (!timedWords.length) return null;
+    return this.buildTimedWordData(source, timedWords);
+  }
+
   setPhraseTextPlain(text) {
     const phraseEl = this.querySelector('#free-ride-target');
     if (!phraseEl) return;
@@ -2027,7 +2277,15 @@ class PageFreeRide extends HTMLElement {
         status: rawStatus || '',
         score: scoreRaw !== null ? Math.max(0, Math.min(100, Math.round(scoreRaw))) : null,
         error_type: errorTypeRaw,
-        phonemes: Array.isArray(entry && entry.phonemes) ? entry.phonemes : []
+        phonemes: Array.isArray(entry && entry.phonemes) ? entry.phonemes : [],
+        start_ms:
+          entry && typeof entry.start_ms === 'number' && Number.isFinite(entry.start_ms)
+            ? Math.max(0, Math.round(entry.start_ms))
+            : null,
+        end_ms:
+          entry && typeof entry.end_ms === 'number' && Number.isFinite(entry.end_ms)
+            ? Math.max(0, Math.round(entry.end_ms))
+            : null
       };
       tokenIndex += 1;
     });
@@ -2044,7 +2302,9 @@ class PageFreeRide extends HTMLElement {
         status: 'missing',
         score: null,
         error_type: 'Omission',
-        phonemes: []
+        phonemes: [],
+        start_ms: null,
+        end_ms: null
       };
       tokenIndex += 1;
     }
@@ -2489,12 +2749,25 @@ class PageFreeRide extends HTMLElement {
     });
   }
 
+  clearAdvancedPhonemeHighlightClasses() {
+    const roots = [this, this._freeRideDetailsModal].filter(Boolean);
+    roots.forEach((root) => {
+      if (!root || typeof root.querySelectorAll !== 'function') return;
+      root.querySelectorAll('.free-ride-phoneme-inline.is-active, .free-ride-phoneme-inline.is-past').forEach((el) => {
+        el.classList.remove('is-active');
+        el.classList.remove('is-past');
+      });
+    });
+  }
+
   stopPhraseHighlightLoop() {
     if (this.phraseHighlightRaf) {
       cancelAnimationFrame(this.phraseHighlightRaf);
       this.phraseHighlightRaf = null;
     }
+    this.phraseHighlightPlaybackMode = '';
     this.clearPhraseHighlightClasses();
+    this.clearAdvancedPhonemeHighlightClasses();
   }
 
   setPhraseLocalSpeaking(isSpeaking) {
@@ -2543,17 +2816,47 @@ class PageFreeRide extends HTMLElement {
     });
   }
 
-  startPhraseHighlightLoop(audioEl, playbackToken) {
+  updateAdvancedPhonemeHighlight(timeMs) {
+    const ms = Math.max(0, Number(timeMs) || 0);
+    const roots = [this, this._freeRideDetailsModal].filter(Boolean);
+    roots.forEach((root) => {
+      if (!root || typeof root.querySelectorAll !== 'function') return;
+      root.querySelectorAll('[data-adv-phoneme-offset-ms]').forEach((el) => {
+        const startMs = Number(el.getAttribute('data-adv-phoneme-offset-ms'));
+        const endMsRaw = Number(el.getAttribute('data-adv-phoneme-end-ms'));
+        if (!Number.isFinite(startMs)) {
+          el.classList.remove('is-active');
+          el.classList.remove('is-past');
+          return;
+        }
+        const endMs = Number.isFinite(endMsRaw) ? Math.max(startMs + 20, endMsRaw) : startMs + 120;
+        const isActive = ms >= startMs && ms <= endMs;
+        const isPast = ms > endMs;
+        el.classList.toggle('is-active', isActive);
+        el.classList.toggle('is-past', !isActive && isPast);
+      });
+    });
+  }
+
+  startPhraseHighlightLoop(audioEl, playbackToken, options = {}) {
     this.stopPhraseHighlightLoop();
     if (!audioEl) return;
+    this.phraseHighlightPlaybackMode = String(options && options.mode ? options.mode : '').trim();
     const step = () => {
       if (!this.isConnected) return;
       if (playbackToken !== this.playbackRequestToken) return;
       if (!audioEl || audioEl.paused || audioEl.ended) return;
-      this.updatePhraseHighlight(audioEl.currentTime * 1000);
+      const currentMs = audioEl.currentTime * 1000;
+      this.updatePhraseHighlight(currentMs);
+      if (this.phraseHighlightPlaybackMode === 'recording-azure') {
+        this.updateAdvancedPhonemeHighlight(currentMs);
+      }
       this.phraseHighlightRaf = requestAnimationFrame(step);
     };
     this.updatePhraseHighlight(0);
+    if (this.phraseHighlightPlaybackMode === 'recording-azure') {
+      this.updateAdvancedPhonemeHighlight(0);
+    }
     this.phraseHighlightRaf = requestAnimationFrame(step);
   }
 
@@ -2594,9 +2897,17 @@ class PageFreeRide extends HTMLElement {
 
     const audio = new Audio(audioUrl);
     audio.preload = 'auto';
+    try {
+      const playbackRate = this.getFreeRidePlaybackRate();
+      audio.playbackRate = playbackRate;
+      audio.defaultPlaybackRate = playbackRate;
+      if ('preservesPitch' in audio) audio.preservesPitch = true;
+    } catch (err) {
+      // no-op
+    }
     this.activeAudio = audio;
     if (timedData) {
-      this.startPhraseHighlightLoop(audio, playbackToken);
+      this.startPhraseHighlightLoop(audio, playbackToken, { mode: 'phrase-generated' });
     }
 
     const finish = () => {
@@ -3740,6 +4051,7 @@ class PageFreeRide extends HTMLElement {
     const onEnd = hooks && typeof hooks.onEnd === 'function' ? hooks.onEnd : null;
     const utter = new SpeechSynthesisUtterance(text);
     utter.lang = lang || this.getPracticeSpeechLocale();
+    utter.rate = this.getFreeRidePlaybackRate();
     let settled = false;
     const settle = () => {
       if (settled) return;
@@ -3786,6 +4098,7 @@ class PageFreeRide extends HTMLElement {
     const effectiveAudioMode = this.getEffectiveFreeRideAudioMode();
     const localMode = effectiveAudioMode === FREE_RIDE_AUDIO_MODE_LOCAL;
     const playbackToken = this.playbackRequestToken;
+    const playbackRate = this.getFreeRidePlaybackRate();
     const markLocalStart = () => {
       if (this.getEffectiveFreeRideAudioMode() !== FREE_RIDE_AUDIO_MODE_LOCAL) return;
       this.setPhraseLocalSpeaking(true);
@@ -3807,7 +4120,7 @@ class PageFreeRide extends HTMLElement {
           plugin.speak({
             text,
             lang,
-            rate: 1.0,
+            rate: playbackRate,
             pitch: 1.0,
             volume: 1.0,
             category: 'ambient',
@@ -3873,26 +4186,169 @@ class PageFreeRide extends HTMLElement {
   }
 
   playRecording(triggerBtn) {
-    if (!this.state.recordingUrl) return;
-    this.stopPlayback();
-    this.setActivePlayButton(triggerBtn || null);
-    const audio = new Audio(this.state.recordingUrl);
-    this.activeAudio = audio;
-    audio.play().catch(() => {
-      this.clearActivePlayButton();
+    this.playRecordedAudioWindow({
+      triggerBtn: triggerBtn || null
     });
-    audio.onended = () => {
+  }
+
+  playAdvancedWordByPhraseIndex(index) {
+    const idx = Number(index);
+    if (!Number.isFinite(idx) || idx < 0) return;
+    const list = Array.isArray(this.advancedPhraseWordMeta) ? this.advancedPhraseWordMeta : [];
+    const meta = list[idx];
+    if (!meta || typeof meta !== 'object') return;
+    const startMs = Number(meta.start_ms);
+    const endMs = Number(meta.end_ms);
+    if (!Number.isFinite(startMs) || !Number.isFinite(endMs) || endMs <= startMs) return;
+    this.playRecordedAudioWindow({
+      startMs,
+      endMs
+    });
+  }
+
+  playRecordedAudioWindow(options = {}) {
+    if (!this.state.recordingUrl) return;
+    const startMsRaw = Number(options.startMs);
+    const endMsRaw = Number(options.endMs);
+    const hasWindow =
+      Number.isFinite(startMsRaw) &&
+      Number.isFinite(endMsRaw) &&
+      endMsRaw > startMsRaw &&
+      startMsRaw >= 0;
+    const segmentStartMs = hasWindow ? Math.max(0, Math.round(startMsRaw)) : 0;
+    const segmentEndMs = hasWindow ? Math.max(segmentStartMs + 20, Math.round(endMsRaw)) : null;
+    const segmentDurationMs = Number.isFinite(segmentEndMs) ? Math.max(20, segmentEndMs - segmentStartMs) : null;
+    // Azure timings are usually more generous at the tail on short words than on longer segments.
+    const segmentTailTrimMs = Number.isFinite(segmentDurationMs)
+      ? (() => {
+          let ratio = 0.07;
+          if (segmentDurationMs <= 380) ratio = 0.18;
+          else if (segmentDurationMs <= 520) ratio = 0.14;
+          else if (segmentDurationMs <= 760) ratio = 0.1;
+          const minTrim = segmentDurationMs <= 520 ? 26 : 18;
+          const maxTrim = segmentDurationMs <= 380 ? 80 : segmentDurationMs <= 520 ? 72 : 60;
+          return Math.max(minTrim, Math.min(maxTrim, Math.round(segmentDurationMs * ratio)));
+        })()
+      : 0;
+    const segmentStopAtMs = Number.isFinite(segmentEndMs)
+      ? Math.max(segmentStartMs + 12, segmentEndMs - segmentTailTrimMs)
+      : null;
+
+    this.stopPlayback();
+    this.setActivePlayButton(options.triggerBtn || null);
+    const playbackToken = this.playbackRequestToken;
+    const expectedText = this.getExpectedTextTrimmed();
+    const advancedAssessment = this.getActiveAdvancedAssessment();
+    const timedData =
+      expectedText && advancedAssessment
+        ? this.buildTimedWordDataFromAdvancedAssessment(expectedText, advancedAssessment)
+        : null;
+    const audio = new Audio(this.state.recordingUrl);
+    audio.preload = 'auto';
+    try {
+      const playbackRate = this.getFreeRidePlaybackRate();
+      audio.playbackRate = playbackRate;
+      audio.defaultPlaybackRate = playbackRate;
+      if ('preservesPitch' in audio) audio.preservesPitch = true;
+    } catch (err) {
+      // no-op
+    }
+    this.activeAudio = audio;
+
+    let settled = false;
+    let beginCalled = false;
+    let segmentTimer = null;
+
+    const clearSegmentTimer = () => {
+      if (segmentTimer) {
+        clearInterval(segmentTimer);
+        segmentTimer = null;
+      }
+    };
+
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      clearSegmentTimer();
       if (this.activeAudio === audio) {
         this.activeAudio = null;
       }
-      this.clearActivePlayButton();
-    };
-    audio.onerror = () => {
-      if (this.activeAudio === audio) {
-        this.activeAudio = null;
+      this.stopPhraseHighlightLoop();
+      this.restorePhrasePreviewText();
+      if (playbackToken === this.playbackRequestToken) {
+        this.clearActivePlayButton();
       }
-      this.clearActivePlayButton();
     };
+
+    const startSegmentMonitor = () => {
+      if (!Number.isFinite(segmentStopAtMs)) return;
+      clearSegmentTimer();
+      segmentTimer = setInterval(() => {
+        if (settled) {
+          clearSegmentTimer();
+          return;
+        }
+        if (playbackToken !== this.playbackRequestToken) {
+          clearSegmentTimer();
+          return;
+        }
+        if (!audio || audio.paused || audio.ended) return;
+        if (audio.currentTime * 1000 >= segmentStopAtMs - 4) {
+          try {
+            audio.pause();
+          } catch (err) {
+            // no-op
+          }
+          finish();
+        }
+      }, 10);
+    };
+
+    const beginPlayback = () => {
+      if (beginCalled || settled) return;
+      beginCalled = true;
+      try {
+        if (segmentStartMs > 0) {
+          audio.currentTime = segmentStartMs / 1000;
+        }
+      } catch (err) {
+        // no-op
+      }
+      if (timedData && timedData.segments && timedData.segments.length) {
+        this.setPhraseTextTimed(expectedText, timedData);
+        this.startPhraseHighlightLoop(audio, playbackToken, { mode: 'recording-azure' });
+      }
+      audio.play()
+        .then(() => {
+          if (settled) return;
+          if (playbackToken !== this.playbackRequestToken) {
+            finish();
+            return;
+          }
+          startSegmentMonitor();
+        })
+        .catch(() => {
+          finish();
+        });
+    };
+
+    audio.onended = finish;
+    audio.onerror = finish;
+
+    if (audio.readyState >= 1) {
+      beginPlayback();
+    } else {
+      audio.addEventListener('loadedmetadata', beginPlayback, { once: true });
+      audio.addEventListener('canplay', beginPlayback, { once: true });
+      try {
+        audio.load();
+      } catch (err) {
+        // no-op
+      }
+      setTimeout(() => {
+        beginPlayback();
+      }, 220);
+    }
   }
 
   async startRecording() {
@@ -4057,6 +4513,7 @@ class PageFreeRide extends HTMLElement {
     const percentText =
       typeof this.state.percent === 'number' ? `${Math.max(0, Math.min(100, Math.round(this.state.percent)))}%` : 'n/d';
     const audioMode = this.getFreeRideAudioMode();
+    const playbackRate = this.getFreeRidePlaybackRate();
     const effectiveEvalMode = this.getEffectiveFreeRideEvalMode();
     const advancedFeatureEnabled = this.isAdvancedEvalFeatureEnabled();
     const advBlocked = this.isAdvancedAssessBlockedByLimit();
@@ -4168,6 +4625,26 @@ class PageFreeRide extends HTMLElement {
                 aria-pressed="${audioMode === FREE_RIDE_AUDIO_MODE_LOCAL ? 'true' : 'false'}"
                 ${controlsDisabledAttr}
               >Local</button>
+            </div>
+          </div>
+          <div class="speak-debug-row">
+            <span class="speak-debug-label">Vel.</span>
+            <div class="free-ride-debug-speed">
+              <input
+                id="free-ride-debug-playback-rate"
+                class="free-ride-debug-speed-slider"
+                type="range"
+                min="${FREE_RIDE_PLAYBACK_RATE_MIN}"
+                max="${FREE_RIDE_PLAYBACK_RATE_MAX}"
+                step="${FREE_RIDE_PLAYBACK_RATE_STEP}"
+                value="${playbackRate.toFixed(2)}"
+                aria-label="Velocidad de reproducción"
+                title="Velocidad de reproducción del audio"
+                ${controlsDisabledAttr}
+              >
+              <span id="free-ride-debug-playback-rate-value" class="free-ride-debug-speed-value">${playbackRate.toFixed(
+                2
+              )}x</span>
             </div>
           </div>
           ${
@@ -4554,6 +5031,8 @@ class PageFreeRide extends HTMLElement {
     const debugToggleBtn = this.querySelector('#free-ride-debug-toggle');
     const debugToneButtons = Array.from(this.querySelectorAll('[data-debug-tone]'));
     const debugAudioModeButtons = Array.from(this.querySelectorAll('[data-audio-mode]'));
+    const debugPlaybackRateInput = this.querySelector('#free-ride-debug-playback-rate');
+    const debugPlaybackRateValueEl = this.querySelector('#free-ride-debug-playback-rate-value');
     const debugEvalModeButtons = Array.from(this.querySelectorAll('[data-eval-mode]'));
     const phraseTargetEl = this.querySelector('#free-ride-target');
     const scoreLineEl = this.querySelector('#free-ride-score-line');
@@ -4612,6 +5091,22 @@ class PageFreeRide extends HTMLElement {
       });
     });
 
+    debugPlaybackRateInput?.addEventListener('input', () => {
+      const value = this.setFreeRidePlaybackRate(debugPlaybackRateInput.value);
+      if (debugPlaybackRateValueEl) {
+        debugPlaybackRateValueEl.textContent = `${value.toFixed(2)}x`;
+      }
+      if (this.activeAudio) {
+        try {
+          this.activeAudio.playbackRate = value;
+          this.activeAudio.defaultPlaybackRate = value;
+          if ('preservesPitch' in this.activeAudio) this.activeAudio.preservesPitch = true;
+        } catch (err) {
+          // no-op
+        }
+      }
+    });
+
     debugEvalModeButtons.forEach((button) => {
       button.addEventListener('click', () => {
         if (this.state.isRecording || this.state.isTranscribing) return;
@@ -4665,6 +5160,9 @@ class PageFreeRide extends HTMLElement {
       const idx = Number(target.dataset.advPhraseWordIndex);
       if (!Number.isFinite(idx)) return;
       this.setAdvancedWordSelection(idx, { allowToggleOff: true });
+      if (this.isFreeRideWordTapAudioEnabled()) {
+        this.playAdvancedWordByPhraseIndex(idx);
+      }
     });
 
     const bindDetailsTrigger = (el) => {

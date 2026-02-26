@@ -22,6 +22,7 @@ class PageDiagnostics extends HTMLElement {
     const FREE_RIDE_AUDIO_MODE_GENERATED = 'generated';
     const FREE_RIDE_AUDIO_MODE_LOCAL = 'local';
     const FREE_RIDE_ADVANCED_ENABLED_KEY = 'appv5:free-ride-advanced-enabled';
+    const FREE_RIDE_WORD_TAP_AUDIO_ENABLED_KEY = 'appv5:free-ride-word-tap-audio-enabled';
     const normalizeFreeRideAudioMode = (value) => {
       const normalized = String(value || '')
         .trim()
@@ -60,6 +61,26 @@ class PageDiagnostics extends HTMLElement {
         return normalizeFreeRideAdvancedEnabled(localStorage.getItem(FREE_RIDE_ADVANCED_ENABLED_KEY));
       } catch (err) {
         return true;
+      }
+    };
+    const normalizeFreeRideWordTapAudioEnabled = (value) => {
+      if (typeof value === 'boolean') return value;
+      const normalized = String(value || '')
+        .trim()
+        .toLowerCase();
+      if (!normalized) return false;
+      return ['1', 'true', 'on'].includes(normalized);
+    };
+    const getStoredFreeRideWordTapAudioEnabled = () => {
+      const globalValue =
+        window.r34lp0w3r && Object.prototype.hasOwnProperty.call(window.r34lp0w3r, 'freeRideWordTapAudioEnabled')
+          ? window.r34lp0w3r.freeRideWordTapAudioEnabled
+          : undefined;
+      if (globalValue !== undefined) return normalizeFreeRideWordTapAudioEnabled(globalValue);
+      try {
+        return normalizeFreeRideWordTapAudioEnabled(localStorage.getItem(FREE_RIDE_WORD_TAP_AUDIO_ENABLED_KEY));
+      } catch (err) {
+        return false;
       }
     };
 
@@ -175,6 +196,13 @@ class PageDiagnostics extends HTMLElement {
                   <div class="diag-debug-sub" id="diag-free-ride-advanced-sub"></div>
                 </div>
                 <ion-toggle id="diag-free-ride-advanced-toggle" ${getStoredFreeRideAdvancedEnabled() ? 'checked' : ''}></ion-toggle>
+              </div>
+              <div class="diag-debug-toggle" style="margin-top: 10px;">
+                <div class="diag-debug-text">
+                  <div class="diag-debug-title">Audio por palabra (Free ride)</div>
+                  <div class="diag-debug-sub" id="diag-free-ride-word-tap-audio-sub"></div>
+                </div>
+                <ion-toggle id="diag-free-ride-word-tap-audio-toggle" ${getStoredFreeRideWordTapAudioEnabled() ? 'checked' : ''}></ion-toggle>
               </div>
             </div>
 
@@ -542,6 +570,8 @@ class PageDiagnostics extends HTMLElement {
     const freeRideAudioSubEl = this.querySelector('#diag-free-ride-audio-sub');
     const freeRideAdvancedToggleEl = this.querySelector('#diag-free-ride-advanced-toggle');
     const freeRideAdvancedSubEl = this.querySelector('#diag-free-ride-advanced-sub');
+    const freeRideWordTapAudioToggleEl = this.querySelector('#diag-free-ride-word-tap-audio-toggle');
+    const freeRideWordTapAudioSubEl = this.querySelector('#diag-free-ride-word-tap-audio-sub');
     const pronAdvancedUsageSectionEl = this.querySelector('#diag-pron-advanced-usage-section');
     const notifyListEl = this.querySelector('#diag-notify-list');
     const notifyEmptyEl = this.querySelector('#diag-notify-empty');
@@ -612,6 +642,36 @@ class PageDiagnostics extends HTMLElement {
       }
       if (pronAdvancedUsageSectionEl) {
         pronAdvancedUsageSectionEl.hidden = !normalized;
+      }
+      return normalized;
+    };
+
+    const setFreeRideWordTapAudioEnabled = (enabled) => {
+      const normalized = normalizeFreeRideWordTapAudioEnabled(enabled);
+      window.r34lp0w3r = window.r34lp0w3r || {};
+      window.r34lp0w3r.freeRideWordTapAudioEnabled = normalized;
+      try {
+        localStorage.setItem(FREE_RIDE_WORD_TAP_AUDIO_ENABLED_KEY, normalized ? '1' : '0');
+      } catch (err) {
+        // no-op
+      }
+      window.dispatchEvent(
+        new CustomEvent('app:free-ride-word-tap-audio-enabled-change', {
+          detail: { enabled: normalized }
+        })
+      );
+      return normalized;
+    };
+
+    const updateFreeRideWordTapAudioUi = (enabled) => {
+      const normalized = normalizeFreeRideWordTapAudioEnabled(enabled);
+      if (freeRideWordTapAudioToggleEl) {
+        freeRideWordTapAudioToggleEl.checked = normalized;
+      }
+      if (freeRideWordTapAudioSubEl) {
+        freeRideWordTapAudioSubEl.textContent = normalized
+          ? 'Activado: al tocar palabras en Free ride (frase y popup) reproduce el fragmento correspondiente del audio grabado.'
+          : 'Desactivado: tocar palabras solo selecciona/inspecciona, sin reproducir fragmentos.';
       }
       return normalized;
     };
@@ -1627,6 +1687,8 @@ class PageDiagnostics extends HTMLElement {
     updateFreeRideAudioModeUi(setFreeRideAudioMode(initialFreeRideAudioMode));
     const initialFreeRideAdvancedEnabled = getStoredFreeRideAdvancedEnabled();
     updateFreeRideAdvancedUi(setFreeRideAdvancedEnabled(initialFreeRideAdvancedEnabled));
+    const initialFreeRideWordTapAudioEnabled = getStoredFreeRideWordTapAudioEnabled();
+    updateFreeRideWordTapAudioUi(setFreeRideWordTapAudioEnabled(initialFreeRideWordTapAudioEnabled));
 
     this.querySelector('#diag-back')?.addEventListener('click', () => {
       ensureInitialHash();
@@ -1695,6 +1757,13 @@ class PageDiagnostics extends HTMLElement {
           ? Boolean(event.detail.checked)
           : Boolean(freeRideAdvancedToggleEl.checked);
       updateFreeRideAdvancedUi(setFreeRideAdvancedEnabled(nextEnabled));
+    });
+    freeRideWordTapAudioToggleEl?.addEventListener('ionChange', (event) => {
+      const nextEnabled =
+        event && event.detail && event.detail.checked !== undefined
+          ? Boolean(event.detail.checked)
+          : Boolean(freeRideWordTapAudioToggleEl.checked);
+      updateFreeRideWordTapAudioUi(setFreeRideWordTapAudioEnabled(nextEnabled));
     });
 
     // Login

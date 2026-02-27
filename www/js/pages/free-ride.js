@@ -30,6 +30,8 @@ const FREE_RIDE_PLAYBACK_RATE_MIN = 0.5;
 const FREE_RIDE_PLAYBACK_RATE_MAX = 1.5;
 const FREE_RIDE_PLAYBACK_RATE_STEP = 0.05;
 const FREE_RIDE_WORD_TAP_AUDIO_ENABLED_KEY = 'appv5:free-ride-word-tap-audio-enabled';
+const FREE_RIDE_SAVED_PHRASES_PREFIX = 'appv5:lab-saved-phrases:';
+const FREE_RIDE_SAVED_PHRASES_MAX_ITEMS = 120;
 const FREE_RIDE_EVAL_MODE_KEY = 'appv5:free-ride-eval-mode';
 const FREE_RIDE_EVAL_MODE_STANDARD = 'standard';
 const FREE_RIDE_EVAL_MODE_ADVANCED = 'advanced';
@@ -165,6 +167,9 @@ class PageFreeRide extends HTMLElement {
       this.clearAlignedTtsLimitStatus();
       this.clearAdvancedAssessLimitStatus();
       this.clearAdvancedAssessmentState({ skipRender: true });
+      if (this._freeRideSavedPhrasesModal) {
+        this.refreshSavedPhrasesModalList(this._freeRideSavedPhrasesModal);
+      }
       this.updatePhrasePreview(this.currentCopy);
     };
     window.addEventListener('app:user-change', this._userHandler);
@@ -254,6 +259,14 @@ class PageFreeRide extends HTMLElement {
         // no-op
       }
       this._freeRideDetailsModal = null;
+    }
+    if (this._freeRideSavedPhrasesModal) {
+      try {
+        this._freeRideSavedPhrasesModal.dismiss().catch(() => {});
+      } catch (err) {
+        // no-op
+      }
+      this._freeRideSavedPhrasesModal = null;
     }
 
     if (this._localeHandler) {
@@ -881,6 +894,216 @@ class PageFreeRide extends HTMLElement {
     }
   }
 
+  getSavedPhrasesOwnerKey() {
+    const user = window.user;
+    if (user && user.id !== undefined && user.id !== null) {
+      const value = String(user.id).trim();
+      if (value) return value;
+    }
+    return 'guest';
+  }
+
+  getSavedPhrasesStorageKey(ownerKey = this.getSavedPhrasesOwnerKey()) {
+    return `${FREE_RIDE_SAVED_PHRASES_PREFIX}${String(ownerKey || 'guest').trim() || 'guest'}`;
+  }
+
+  normalizeSavedPhraseComparableText(text) {
+    return String(text || '')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .toLowerCase();
+  }
+
+  createSavedPhraseId() {
+    return `lab_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+  }
+
+  sanitizeSavedPhraseItem(raw) {
+    if (!raw || typeof raw !== 'object') return null;
+    const id = String(raw.id || '').trim();
+    const text = String(raw.text || '').trim();
+    if (!id || !text) return null;
+    const createdAt = Number(raw.created_at);
+    const updatedAt = Number(raw.updated_at);
+    const lastPracticedAt = Number(raw.last_practiced_at);
+    const useCount = Number(raw.use_count);
+    return {
+      id,
+      text,
+      locale: String(raw.locale || this.getPracticeSpeechLocale()).trim() || this.getPracticeSpeechLocale(),
+      ui_locale: this.normalizeLocale(raw.ui_locale) || this.getUiLocale(),
+      created_at: Number.isFinite(createdAt) ? createdAt : Date.now(),
+      updated_at: Number.isFinite(updatedAt) ? updatedAt : Number.isFinite(createdAt) ? createdAt : Date.now(),
+      last_practiced_at: Number.isFinite(lastPracticedAt) ? lastPracticedAt : 0,
+      use_count: Number.isFinite(useCount) ? Math.max(0, Math.round(useCount)) : 0
+    };
+  }
+
+  readSavedPhrasesList() {
+    try {
+      const raw = localStorage.getItem(this.getSavedPhrasesStorageKey());
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return [];
+      return parsed.map((item) => this.sanitizeSavedPhraseItem(item)).filter(Boolean);
+    } catch (err) {
+      return [];
+    }
+  }
+
+  writeSavedPhrasesList(items) {
+    try {
+      localStorage.setItem(this.getSavedPhrasesStorageKey(), JSON.stringify(Array.isArray(items) ? items : []));
+    } catch (err) {
+      // no-op
+    }
+  }
+
+  getSavedPhrasesListSorted() {
+    return this.readSavedPhrasesList().sort((a, b) => {
+      const aSort = Math.max(Number(a.last_practiced_at) || 0, Number(a.updated_at) || 0, Number(a.created_at) || 0);
+      const bSort = Math.max(Number(b.last_practiced_at) || 0, Number(b.updated_at) || 0, Number(b.created_at) || 0);
+      if (aSort !== bSort) return bSort - aSort;
+      return String(a.text || '').localeCompare(String(b.text || ''), undefined, { sensitivity: 'base' });
+    });
+  }
+
+  getSavedPhraseById(id) {
+    const targetId = String(id || '').trim();
+    if (!targetId) return null;
+    return this.readSavedPhrasesList().find((item) => item.id === targetId) || null;
+  }
+
+  savePhraseToLibrary(text) {
+    const nextText = String(text || '').trim();
+    if (!nextText) return { ok: false, reason: 'empty' };
+    const comparable = this.normalizeSavedPhraseComparableText(nextText);
+    if (!comparable) return { ok: false, reason: 'empty' };
+    const now = Date.now();
+    const items = this.readSavedPhrasesList();
+    const existing = items.find(
+      (item) =>
+        item &&
+        this.normalizeSavedPhraseComparableText(item.text) === comparable &&
+        String(item.locale || '') === String(this.getPracticeSpeechLocale())
+    );
+    let savedItem = null;
+    let action = 'created';
+    if (existing) {
+      existing.text = nextText;
+      existing.updated_at = now;
+      existing.ui_locale = this.getUiLocale();
+      savedItem = existing;
+      action = 'updated';
+    } else {
+      savedItem = {
+        id: this.createSavedPhraseId(),
+        text: nextText,
+        locale: this.getPracticeSpeechLocale(),
+        ui_locale: this.getUiLocale(),
+        created_at: now,
+        updated_at: now,
+        last_practiced_at: 0,
+        use_count: 0
+      };
+      items.push(savedItem);
+    }
+    const sorted = items
+      .map((item) => this.sanitizeSavedPhraseItem(item))
+      .filter(Boolean)
+      .sort((a, b) => (Number(b.updated_at) || 0) - (Number(a.updated_at) || 0))
+      .slice(0, FREE_RIDE_SAVED_PHRASES_MAX_ITEMS);
+    this.writeSavedPhrasesList(sorted);
+    return { ok: true, action, item: savedItem };
+  }
+
+  saveCurrentPhraseToLibrary() {
+    if (this.state.isRecording || this.state.isTranscribing) return;
+    const result = this.savePhraseToLibrary(this.getExpectedText());
+    if (!result || result.ok !== true) return;
+    if (this._freeRideSavedPhrasesModal) {
+      this.refreshSavedPhrasesModalList(this._freeRideSavedPhrasesModal);
+    }
+    const toastLabel =
+      result.action === 'updated'
+        ? this.getFreeRideUiLabelText('savedPhraseUpdatedToast')
+        : this.getFreeRideUiLabelText('savedPhraseSavedToast');
+    this.presentFreeRideToast(toastLabel);
+  }
+
+  removeSavedPhraseById(id) {
+    const targetId = String(id || '').trim();
+    if (!targetId) return false;
+    const items = this.readSavedPhrasesList();
+    const next = items.filter((item) => item.id !== targetId);
+    if (next.length === items.length) return false;
+    this.writeSavedPhrasesList(next);
+    return true;
+  }
+
+  markSavedPhraseUsedById(id) {
+    const targetId = String(id || '').trim();
+    if (!targetId) return null;
+    const now = Date.now();
+    const items = this.readSavedPhrasesList();
+    let updatedItem = null;
+    items.forEach((item) => {
+      if (!item || item.id !== targetId) return;
+      item.last_practiced_at = now;
+      item.use_count = Math.max(0, Number(item.use_count) || 0) + 1;
+      updatedItem = item;
+    });
+    if (!updatedItem) return null;
+    this.writeSavedPhrasesList(items);
+    return this.sanitizeSavedPhraseItem(updatedItem);
+  }
+
+  applySavedPhraseText(text) {
+    if (this.state.isRecording || this.state.isTranscribing) return;
+    this.stopPlayback();
+    this.state.expectedText = String(text || '');
+    this.persistPhrase(this.state.expectedText, this.currentUiLocale);
+    this.clearPracticeResult({ skipRender: false, clearRecording: true });
+  }
+
+  formatSavedPhraseDate(ts) {
+    const value = Number(ts);
+    if (!Number.isFinite(value) || value <= 0) return '—';
+    try {
+      return new Date(value).toLocaleString();
+    } catch (err) {
+      return new Date(value).toISOString();
+    }
+  }
+
+  formatSavedPhrasePreview(text, maxLen = 160) {
+    const normalized = String(text || '').replace(/\s+/g, ' ').trim();
+    if (normalized.length <= maxLen) return normalized;
+    return `${normalized.slice(0, Math.max(0, maxLen - 1)).trimEnd()}…`;
+  }
+
+  presentFreeRideToast(message) {
+    const text = String(message || '').trim();
+    if (!text) return;
+    try {
+      const toast = document.createElement('ion-toast');
+      toast.message = text;
+      toast.duration = 1800;
+      toast.position = 'top';
+      document.body.appendChild(toast);
+      toast.present().catch(() => {});
+      toast.addEventListener(
+        'didDismiss',
+        () => {
+          toast.remove();
+        },
+        { once: true }
+      );
+    } catch (err) {
+      // no-op
+    }
+  }
+
   normalizeHeroMascotFrameIndex(frameIndex) {
     const value = Number(frameIndex);
     if (!Number.isFinite(value)) return HERO_MASCOT_REST_FRAME;
@@ -1443,6 +1666,21 @@ class PageFreeRide extends HTMLElement {
       noAdvancedDataYet: ['Sin datos avanzados todavía.', 'No advanced data yet.'],
       phraseDetails: ['Detalle de la frase', 'Phrase details'],
       standardPlusAdvancedIfAvailable: ['Estándar + Avanzado (si disponible)', 'Standard + Advanced (if available)'],
+      savePhrase: ['Guardar frase', 'Save phrase'],
+      myPhrases: ['Mis frases', 'My phrases'],
+      savedPhrasesTitle: ['Frases guardadas', 'Saved phrases'],
+      savedPhrasesSub: ['Recupera una frase para practicarla de nuevo', 'Load a phrase to practice it again'],
+      noSavedPhrasesYet: ['No tienes frases guardadas todavía.', 'You do not have saved phrases yet.'],
+      savedPhrasesHint: ['Guarda una frase desde Lab y aparecerá aquí.', 'Save a phrase from Lab and it will appear here.'],
+      usePhrase: ['Usar', 'Use'],
+      deletePhrase: ['Eliminar', 'Delete'],
+      savedAt: ['Guardada', 'Saved'],
+      lastUsed: ['Último uso', 'Last used'],
+      usesCount: ['Usos', 'Uses'],
+      savedPhraseSavedToast: ['Frase guardada', 'Phrase saved'],
+      savedPhraseUpdatedToast: ['Frase actualizada', 'Phrase updated'],
+      savedPhraseDeletedToast: ['Frase eliminada', 'Phrase deleted'],
+      savedPhraseLoadedToast: ['Frase cargada', 'Phrase loaded'],
       match: ['Acierto', 'match'],
       replace: ['Sustitución', 'replace'],
       missing: ['Omitida', 'missing'],
@@ -1898,6 +2136,169 @@ class PageFreeRide extends HTMLElement {
         </div>
       </div>
     `;
+  }
+
+  buildSavedPhrasesModalListHtml() {
+    const items = this.getSavedPhrasesListSorted();
+    if (!items.length) {
+      return `
+        <div class="free-ride-library-empty">
+          <div class="free-ride-library-empty-title">${this.renderFreeRideUiLabelHtml('noSavedPhrasesYet')}</div>
+          <div class="free-ride-library-empty-sub">${this.renderFreeRideUiLabelHtml('savedPhrasesHint')}</div>
+        </div>
+      `;
+    }
+    const controlsDisabled = this.state.isRecording || this.state.isTranscribing;
+    const disabledAttr = controlsDisabled ? 'disabled' : '';
+    return `
+      <div class="free-ride-library-list">
+        ${items
+          .map((item, index) => {
+            const id = this.escapeHtml(item.id);
+            const preview = this.escapeHtml(this.formatSavedPhrasePreview(item.text, 220));
+            const savedAt = this.escapeHtml(this.formatSavedPhraseDate(item.created_at));
+            const lastUsedAt = item.last_practiced_at ? this.escapeHtml(this.formatSavedPhraseDate(item.last_practiced_at)) : '—';
+            const uses = Number.isFinite(Number(item.use_count)) ? Math.max(0, Math.round(Number(item.use_count))) : 0;
+            return `
+              <div class="free-ride-library-row">
+                <button
+                  class="free-ride-library-row-main"
+                  type="button"
+                  data-load-saved-phrase-id="${id}"
+                  aria-label="${this.escapeHtml(this.getFreeRideUiLabelText('usePhrase'))}: ${preview}"
+                  ${disabledAttr}
+                >
+                  <div class="free-ride-library-row-top">
+                    <span class="free-ride-library-row-index">${index + 1}</span>
+                    <span class="free-ride-library-row-text">${preview}</span>
+                  </div>
+                  <div class="free-ride-library-row-meta">
+                    <span><b>${this.renderFreeRideUiLabelHtml('savedAt', { altClass: 'is-mini' })}</b>: ${savedAt}</span>
+                    <span><b>${this.renderFreeRideUiLabelHtml('lastUsed', { altClass: 'is-mini' })}</b>: ${lastUsedAt}</span>
+                    <span><b>${this.renderFreeRideUiLabelHtml('usesCount', { altClass: 'is-mini' })}</b>: ${uses}</span>
+                  </div>
+                </button>
+                <div class="free-ride-library-row-actions">
+                  <button
+                    class="free-ride-library-row-btn is-use"
+                    type="button"
+                    data-load-saved-phrase-id="${id}"
+                    ${disabledAttr}
+                  >${this.renderFreeRideUiLabelHtml('usePhrase')}</button>
+                  <button
+                    class="free-ride-library-row-btn is-delete"
+                    type="button"
+                    data-delete-saved-phrase-id="${id}"
+                    ${disabledAttr}
+                  >${this.renderFreeRideUiLabelHtml('deletePhrase')}</button>
+                </div>
+              </div>
+            `;
+          })
+          .join('')}
+      </div>
+    `;
+  }
+
+  buildSavedPhrasesModalHtml() {
+    return `
+      <div class="free-ride-library-modal-page">
+        <div class="free-ride-detail-modal-head">
+          <div>
+            <div class="free-ride-detail-modal-title">${this.renderFreeRideUiLabelHtml('savedPhrasesTitle')}</div>
+            <div class="free-ride-detail-modal-sub">${this.renderFreeRideUiLabelHtml('savedPhrasesSub')}</div>
+          </div>
+          <button class="free-ride-detail-close" type="button" data-close-library aria-label="Cerrar (Close)">
+            <ion-icon name="close"></ion-icon>
+          </button>
+        </div>
+        <div class="free-ride-library-modal-body" data-saved-phrases-list>
+          ${this.buildSavedPhrasesModalListHtml()}
+        </div>
+      </div>
+    `;
+  }
+
+  refreshSavedPhrasesModalList(modal = this._freeRideSavedPhrasesModal) {
+    if (!modal) return;
+    const container = modal.querySelector('[data-saved-phrases-list]');
+    if (!container) return;
+    container.innerHTML = this.buildSavedPhrasesModalListHtml();
+  }
+
+  async openSavedPhrasesModal() {
+    if (this._freeRideSavedPhrasesModal) {
+      try {
+        await this._freeRideSavedPhrasesModal.dismiss();
+      } catch (err) {
+        // no-op
+      }
+      this._freeRideSavedPhrasesModal = null;
+    }
+    const modal = document.createElement('ion-modal');
+    modal.classList.add('free-ride-library-modal');
+    modal.backdropDismiss = true;
+    modal.canDismiss = true;
+    const presentingEl = document.querySelector('ion-router-outlet');
+    if (presentingEl) {
+      modal.presentingElement = presentingEl;
+    }
+    modal.innerHTML = `
+      <ion-content class="free-ride-library-modal-content" fullscreen="true">
+        ${this.buildSavedPhrasesModalHtml()}
+      </ion-content>
+    `;
+    document.body.appendChild(modal);
+    this._freeRideSavedPhrasesModal = modal;
+    modal.addEventListener(
+      'didDismiss',
+      () => {
+        if (this._freeRideSavedPhrasesModal === modal) {
+          this._freeRideSavedPhrasesModal = null;
+        }
+        if (modal.parentNode) {
+          modal.parentNode.removeChild(modal);
+        }
+      },
+      { once: true }
+    );
+    this.bindSavedPhrasesModalUi(modal);
+    if (document.activeElement && typeof document.activeElement.blur === 'function') {
+      document.activeElement.blur();
+    }
+    await modal.present();
+  }
+
+  bindSavedPhrasesModalUi(modal) {
+    if (!modal) return;
+    modal.querySelector('[data-close-library]')?.addEventListener('click', () => {
+      modal.dismiss().catch(() => {});
+    });
+    modal.addEventListener('click', (event) => {
+      const target = event && event.target instanceof Element ? event.target : null;
+      if (!target) return;
+      const deleteBtn = target.closest('[data-delete-saved-phrase-id]');
+      if (deleteBtn) {
+        const phraseId = deleteBtn.getAttribute('data-delete-saved-phrase-id');
+        if (!phraseId) return;
+        if (this.removeSavedPhraseById(phraseId)) {
+          this.refreshSavedPhrasesModalList(modal);
+          this.presentFreeRideToast(this.getFreeRideUiLabelText('savedPhraseDeletedToast'));
+        }
+        return;
+      }
+      const loadBtn = target.closest('[data-load-saved-phrase-id]');
+      if (!loadBtn) return;
+      if (this.state.isRecording || this.state.isTranscribing) return;
+      const phraseId = loadBtn.getAttribute('data-load-saved-phrase-id');
+      if (!phraseId) return;
+      const item = this.getSavedPhraseById(phraseId);
+      if (!item || !item.text) return;
+      this.markSavedPhraseUsedById(phraseId);
+      modal.dismiss().catch(() => {});
+      this.applySavedPhraseText(item.text);
+      this.presentFreeRideToast(this.getFreeRideUiLabelText('savedPhraseLoadedToast'));
+    });
   }
 
   async openPhraseDetailsModal() {
@@ -3711,6 +4112,27 @@ class PageFreeRide extends HTMLElement {
       .trim();
   }
 
+  extractNarrationLines(value) {
+    const raw = String(value || '');
+    if (!raw.trim()) return [];
+    const normalized = raw
+      .replace(/<\s*br\s*\/?>/gi, '\n')
+      .replace(/<\/p>\s*<p>/gi, '\n')
+      .replace(/<\/li>\s*<li>/gi, '\n');
+    const lines = normalized
+      .split(/\r?\n+/)
+      .map((part) => {
+        const html = String(part || '').trim();
+        const text = this.extractSpeechText(html);
+        if (!text) return null;
+        return { text, html };
+      })
+      .filter(Boolean);
+    if (lines.length) return lines;
+    const fallback = this.extractSpeechText(raw);
+    return fallback ? [{ text: fallback, html: '' }] : [];
+  }
+
   waitForWebVoices(timeoutMs = 1200) {
     if (!this.canSpeak()) return Promise.resolve([]);
     const synth = window.speechSynthesis;
@@ -3810,13 +4232,13 @@ class PageFreeRide extends HTMLElement {
     if (!this.isTabActive('freeride')) {
       return Promise.resolve(false);
     }
-    const text = this.extractSpeechText(this.currentCopy && this.currentCopy.subtitle);
-    if (!text) {
+    const lines = this.extractNarrationLines(this.currentCopy && this.currentCopy.subtitle);
+    if (!lines.length) {
       this.stopNarration().catch(() => {});
       return Promise.resolve(false);
     }
     const locale = this.getUiLocale(this.currentUiLocale);
-    return this.speakNarration(text, locale)
+    return this.speakNarration(lines, locale, { bubbleEl: this.getHeroBubbleEl() })
       .then((started) => {
         if (started && !this.initialHeroNarrationStarted) {
           this.initialHeroNarrationStarted = true;
@@ -3889,20 +4311,126 @@ class PageFreeRide extends HTMLElement {
     });
   }
 
-  async speakNarration(text, locale) {
+  async speakNarration(linesOrText, locale, options = {}) {
+    const lines = Array.isArray(linesOrText)
+      ? linesOrText.filter((line) => line && typeof line.text === 'string' && line.text.trim())
+      : this.extractNarrationLines(linesOrText);
+    if (!lines.length) return false;
     const normalizedLocale = this.normalizeLocale(locale) || 'en';
     const lang = this.getFlagSpeechLocale(normalizedLocale);
     const token = ++this.narrationToken;
+    const bubbleEl = options && options.bubbleEl ? options.bubbleEl : this.getHeroBubbleEl();
+    const hasMultipleLines = lines.length > 1;
+    const originalBubbleHtml = bubbleEl ? bubbleEl.innerHTML : '';
+    const originalBubbleMinHeight = bubbleEl ? bubbleEl.style.minHeight : '';
+    const restLine = lines[0] || null;
 
     await this.stopNarrationPlayback();
     if (token !== this.narrationToken) return false;
 
+    if (bubbleEl) {
+      bubbleEl.dataset.narrationToken = String(token);
+    }
+
+    const applyLine = (line) => {
+      if (!bubbleEl) return;
+      if (bubbleEl.dataset.narrationToken !== String(token)) return;
+      const lineHtml = line && typeof line.html === 'string' ? line.html.trim() : '';
+      if (lineHtml) {
+        bubbleEl.innerHTML = lineHtml;
+      } else {
+        bubbleEl.textContent = line && line.text ? line.text : '';
+      }
+    };
+
+    const measureMaxLineHeight = () => {
+      if (!bubbleEl || !hasMultipleLines) return 0;
+      const width =
+        Math.ceil(
+          bubbleEl.getBoundingClientRect().width || bubbleEl.clientWidth || bubbleEl.offsetWidth || 0
+        ) || 0;
+      if (!width) return 0;
+      const probe = document.createElement('div');
+      probe.className = bubbleEl.className;
+      probe.setAttribute('aria-hidden', 'true');
+      probe.style.position = 'absolute';
+      probe.style.visibility = 'hidden';
+      probe.style.pointerEvents = 'none';
+      probe.style.left = '-99999px';
+      probe.style.top = '0';
+      probe.style.width = `${width}px`;
+      probe.style.minHeight = '0';
+      probe.style.height = 'auto';
+      const parent = bubbleEl.parentElement || this;
+      parent.appendChild(probe);
+      let maxHeight = 0;
+      lines.forEach((line) => {
+        const html = line && typeof line.html === 'string' ? line.html.trim() : '';
+        if (html) probe.innerHTML = html;
+        else probe.textContent = line && line.text ? line.text : '';
+        const nextHeight = Math.ceil(
+          Math.max(probe.scrollHeight || 0, probe.getBoundingClientRect().height || 0)
+        );
+        if (nextHeight > maxHeight) maxHeight = nextHeight;
+      });
+      probe.remove();
+      return maxHeight;
+    };
+
+    if (bubbleEl) {
+      if (restLine) applyLine(restLine);
+      if (hasMultipleLines) {
+        const maxHeight = measureMaxLineHeight();
+        if (maxHeight > 0) {
+          bubbleEl.style.minHeight = `${maxHeight}px`;
+        }
+      } else {
+        bubbleEl.style.minHeight = originalBubbleMinHeight;
+      }
+    }
+
+    const restoreBubble = () => {
+      if (!bubbleEl) return;
+      if (bubbleEl.dataset.narrationToken !== String(token)) return;
+      if (restLine) {
+        applyLine(restLine);
+      } else {
+        bubbleEl.innerHTML = originalBubbleHtml;
+      }
+      if (!hasMultipleLines) {
+        bubbleEl.style.minHeight = originalBubbleMinHeight;
+      }
+      delete bubbleEl.dataset.narrationToken;
+    };
+
+    const waitMs = (ms) =>
+      new Promise((resolve) => {
+        setTimeout(resolve, Math.max(0, Number(ms) || 0));
+      });
+
+    const estimateLinePlaybackMs = (lineText) => {
+      const chars = String(lineText || '').trim().length;
+      return Math.min(9500, Math.max(900, Math.round(chars * 72)));
+    };
+
+    const waitWebSpeechIdle = async (maxMs = 7000) => {
+      if (!this.canSpeak() || typeof window === 'undefined' || !window.speechSynthesis) return;
+      const synth = window.speechSynthesis;
+      const startedAt = Date.now();
+      while (token === this.narrationToken && Date.now() - startedAt < maxMs) {
+        if (!synth.speaking && !synth.pending && !synth.paused) return;
+        await waitMs(60);
+      }
+    };
+
     const plugin = this.getNativeTtsPlugin();
-    if (plugin && typeof plugin.speak === 'function') {
+    const speakLineWithPlugin = async (lineText) => {
+      if (!plugin || typeof plugin.speak !== 'function') return false;
       this.startHeroMascotTalk();
+      const startedAt = Date.now();
       try {
         await plugin.speak({
-          text,
+          text: lineText,
           lang,
           rate: 1.0,
           pitch: 1.0,
@@ -3910,35 +4438,80 @@ class PageFreeRide extends HTMLElement {
           category: 'ambient',
           queueStrategy: 1
         });
+        const minMs = estimateLinePlaybackMs(lineText);
+        const elapsed = Date.now() - startedAt;
+        if (elapsed < minMs && token === this.narrationToken) {
+          await waitMs(minMs - elapsed);
+        }
         return true;
       } catch (err) {
-        // fallback below
+        return false;
       } finally {
         if (token === this.narrationToken) {
           this.stopHeroMascotTalk({ settle: true });
         }
       }
-    }
-
-    const hooks = {
-      onPlaybackStart: () => {
-        if (token !== this.narrationToken) return;
-        this.startHeroMascotTalk();
-      },
-      onPlaybackEnd: () => {
-        if (token !== this.narrationToken) return;
-        this.stopHeroMascotTalk({ settle: true });
-      }
     };
 
-    const started = await this.speakNarrationWeb(text, lang, token, 1500, hooks);
-    if (started || token !== this.narrationToken) return started;
+    const speakLineWebWithRetry = async (lineText) => {
+      const hooks = {
+        onPlaybackStart: () => {
+          if (token !== this.narrationToken) return;
+          this.startHeroMascotTalk();
+        },
+        onPlaybackEnd: () => {
+          if (token !== this.narrationToken) return;
+          this.stopHeroMascotTalk({ settle: true });
+        }
+      };
 
-    await new Promise((resolve) => setTimeout(resolve, 450));
-    if (token !== this.narrationToken) return false;
-    await this.stopNarrationPlayback();
-    if (token !== this.narrationToken) return false;
-    return this.speakNarrationWeb(text, lang, token, 3200, hooks);
+      let started = await this.speakNarrationWeb(lineText, lang, token, 1500, hooks);
+      if (started && token === this.narrationToken) {
+        const maxWait = Math.min(11000, estimateLinePlaybackMs(lineText) + 2400);
+        await waitWebSpeechIdle(maxWait);
+      }
+      if (started || token !== this.narrationToken) return started;
+
+      await waitMs(450);
+      if (token !== this.narrationToken) return false;
+      await this.stopNarrationPlayback();
+      if (token !== this.narrationToken) return false;
+      started = await this.speakNarrationWeb(lineText, lang, token, 3200, hooks);
+      if (started && token === this.narrationToken) {
+        const maxWait = Math.min(12000, estimateLinePlaybackMs(lineText) + 3000);
+        await waitWebSpeechIdle(maxWait);
+      }
+      return started;
+    };
+
+    let startedAny = false;
+    try {
+      for (let index = 0; index < lines.length; index += 1) {
+        if (token !== this.narrationToken) return startedAny;
+        const line = lines[index];
+        const lineText = String(line.text || '').trim();
+        if (!lineText) continue;
+        if (hasMultipleLines) {
+          applyLine(line);
+        }
+
+        let started = await speakLineWithPlugin(lineText);
+        if (!started && token === this.narrationToken) {
+          started = await speakLineWebWithRetry(lineText);
+        }
+        startedAny = startedAny || started;
+
+        if (index < lines.length - 1 && token === this.narrationToken) {
+          await waitMs(130);
+        }
+      }
+      return startedAny;
+    } finally {
+      if (token === this.narrationToken) {
+        this.stopHeroMascotTalk({ settle: true });
+      }
+      restoreBubble();
+    }
   }
 
   clearRecordingUrl() {
@@ -4719,7 +5292,7 @@ class PageFreeRide extends HTMLElement {
             altClass: 'is-compact'
           })}</span>
         </button>
-        <button class="speak-circle-btn" id="free-ride-voice" type="button">
+        <button class="speak-circle-btn speak-voice-btn" id="free-ride-voice" type="button">
           <ion-icon name="ear"></ion-icon>
           <span>${this.renderFreeRideCopyBilingualHtml('yourVoiceLabel', {
             fallbackEs: 'Tu voz',
@@ -4871,6 +5444,13 @@ class PageFreeRide extends HTMLElement {
     }
 
     const feedback = this.getFeedbackState(copy);
+    const voiceTone = feedback.hasScore ? feedback.tone : '';
+    if (voiceBtn) {
+      voiceBtn.classList.remove('tone-good', 'tone-okay', 'tone-bad');
+      if (voiceTone === 'good' || voiceTone === 'okay' || voiceTone === 'bad') {
+        voiceBtn.classList.add(`tone-${voiceTone}`);
+      }
+    }
     const feedbackHtml = feedback.labelKey
       ? this.renderFreeRideCopyBilingualHtml(feedback.labelKey, { fallbackEs: feedback.label, fallbackEn: feedback.label })
       : this.escapeHtml(feedback.label || '');
@@ -5034,6 +5614,8 @@ class PageFreeRide extends HTMLElement {
     const debugPlaybackRateInput = this.querySelector('#free-ride-debug-playback-rate');
     const debugPlaybackRateValueEl = this.querySelector('#free-ride-debug-playback-rate-value');
     const debugEvalModeButtons = Array.from(this.querySelectorAll('[data-eval-mode]'));
+    const savePhraseBtn = this.querySelector('#free-ride-save-phrase');
+    const openSavedPhrasesBtn = this.querySelector('#free-ride-open-saved-phrases');
     const phraseTargetEl = this.querySelector('#free-ride-target');
     const scoreLineEl = this.querySelector('#free-ride-score-line');
     const advancedSummaryEl = this.querySelector('#free-ride-advanced-summary');
@@ -5056,8 +5638,28 @@ class PageFreeRide extends HTMLElement {
       });
     }
 
+    savePhraseBtn?.addEventListener('click', () => {
+      this.saveCurrentPhraseToLibrary();
+    });
+
+    openSavedPhrasesBtn?.addEventListener('click', () => {
+      if (this.state.isRecording || this.state.isTranscribing) return;
+      this.openSavedPhrasesModal().catch((err) => {
+        console.error('[free-ride] error abriendo frases guardadas', err);
+      });
+    });
+
     flagBtn?.addEventListener('click', () => {
       this.toggleLocaleFromFlag();
+    });
+
+    const heroCardEl = this.querySelector('.free-ride-hero-card');
+    heroCardEl?.addEventListener('click', (event) => {
+      const target = event && event.target && typeof event.target.closest === 'function'
+        ? event.target.closest('button, [data-action], a, input, textarea, select')
+        : null;
+      if (target) return;
+      this.playHeroNarration();
     });
 
     debugToggleBtn?.addEventListener('click', () => {
@@ -5211,6 +5813,9 @@ class PageFreeRide extends HTMLElement {
       fallbackEs: 'Ejemplo: I would like to order a coffee, please.',
       fallbackEn: 'Example: I would like to order a coffee, please.'
     });
+    const hasExpectedText = this.hasExpectedText();
+    const libraryActionsDisabled = this.state.isRecording || this.state.isTranscribing;
+    const savePhraseDisabled = !hasExpectedText || libraryActionsDisabled;
 
     this.innerHTML = `
       <ion-header translucent="true">
@@ -5293,6 +5898,20 @@ class PageFreeRide extends HTMLElement {
                   rows="3"
                   placeholder="${this.escapeHtml(bilingualPlaceholder || copy.inputPlaceholder || '')}"
                 ></textarea>
+                <div class="free-ride-input-actions">
+                  <button
+                    id="free-ride-save-phrase"
+                    class="free-ride-input-action-btn is-primary"
+                    type="button"
+                    ${savePhraseDisabled ? 'disabled' : ''}
+                  >${this.renderFreeRideUiLabelHtml('savePhrase')}</button>
+                  <button
+                    id="free-ride-open-saved-phrases"
+                    class="free-ride-input-action-btn"
+                    type="button"
+                    ${libraryActionsDisabled ? 'disabled' : ''}
+                  >${this.renderFreeRideUiLabelHtml('myPhrases')}</button>
+                </div>
               </div>
 
               <div class="speak-sentence-row free-ride-sentence-row">

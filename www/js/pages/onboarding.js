@@ -206,6 +206,13 @@ class PageOnboarding extends HTMLElement {
   renderBody(step, copy) {
     if (step.hero) {
       const slideCopy = this.getSlideCopy(step, copy);
+      const bubbleLines = this.extractNarrationLines(slideCopy.messageHtml || '');
+      const bubbleRest = bubbleLines[0] || null;
+      const bubbleRestHtml = bubbleRest
+        ? bubbleRest.html && bubbleRest.html.trim()
+          ? bubbleRest.html
+          : bubbleRest.text
+        : slideCopy.messageHtml || '';
       const uiLocale = this.getUiLocale();
       const currentLocaleMeta = getLocaleMeta(uiLocale);
       const nextLocaleCode = uiLocale === 'en' ? 'es' : 'en';
@@ -261,7 +268,7 @@ class PageOnboarding extends HTMLElement {
               <img class="onboarding-intro-cat onboarding-hero-mascot" id="onboarding-hero-mascot" src="${heroMascotSrc}" alt="">
             </span>
             <p class="onboarding-intro-bubble onboarding-hero-bubble">
-              ${slideCopy.messageHtml || ''}
+              ${bubbleRestHtml}
             </p>
           </section>
           ${extraMarkup}
@@ -276,6 +283,16 @@ class PageOnboarding extends HTMLElement {
     const toggleLanguageBtn = this.querySelector('[data-action="toggle-language"]');
     toggleLanguageBtn?.addEventListener('click', () => {
       this.toggleLocaleFromFlag();
+    });
+
+    const heroCardEl = this.querySelector('.onboarding-intro-card');
+    heroCardEl?.addEventListener('click', (event) => {
+      const target = event && event.target && typeof event.target.closest === 'function'
+        ? event.target.closest('button, [data-action], a, input, textarea, select')
+        : null;
+      if (target) return;
+      const copy = this.getCopy();
+      this.playSlideNarration(step, copy);
     });
 
     if (this.isLocaleSelectionStep(step)) {
@@ -465,6 +482,27 @@ class PageOnboarding extends HTMLElement {
       .trim();
   }
 
+  extractNarrationLines(value) {
+    const raw = String(value || '');
+    if (!raw.trim()) return [];
+    const normalized = raw
+      .replace(/<\s*br\s*\/?>/gi, '\n')
+      .replace(/<\/p>\s*<p>/gi, '\n')
+      .replace(/<\/li>\s*<li>/gi, '\n');
+    const lines = normalized
+      .split(/\r?\n+/)
+      .map((part) => {
+        const html = String(part || '').trim();
+        const text = this.extractSpeechText(html);
+        if (!text) return null;
+        return { text, html };
+      })
+      .filter(Boolean);
+    if (lines.length) return lines;
+    const fallback = this.extractSpeechText(raw);
+    return fallback ? [{ text: fallback, html: '' }] : [];
+  }
+
   async stopNarrationPlayback() {
     const plugin = this.getNativeTtsPlugin();
     if (plugin && typeof plugin.stop === 'function') {
@@ -567,13 +605,13 @@ class PageOnboarding extends HTMLElement {
       return Promise.resolve(false);
     }
     const slideCopy = this.getSlideCopy(step, copy);
-    const text = this.extractSpeechText(slideCopy.messageHtml);
-    if (!text) {
+    const lines = this.extractNarrationLines(slideCopy.messageHtml);
+    if (!lines.length) {
       this.stopNarration().catch(() => {});
       return Promise.resolve(false);
     }
     const locale = this.getUiLocale();
-    return this.speakNarration(text, locale)
+    return this.speakNarration(lines, locale, { bubbleEl: this.getHeroBubbleEl() })
       .then((started) => {
         if (started && this.currentStep === 0) {
           this.firstSlideNarrationStarted = true;
@@ -649,20 +687,126 @@ class PageOnboarding extends HTMLElement {
     });
   }
 
-  async speakNarration(text, locale) {
+  async speakNarration(linesOrText, locale, options = {}) {
+    const lines = Array.isArray(linesOrText)
+      ? linesOrText.filter((line) => line && typeof line.text === 'string' && line.text.trim())
+      : this.extractNarrationLines(linesOrText);
+    if (!lines.length) return false;
     const normalizedLocale = this.normalizeLocale(locale) || 'en';
     const lang = TTS_LANG_BY_LOCALE[normalizedLocale] || 'en-US';
     const token = ++this.narrationToken;
+    const bubbleEl = options && options.bubbleEl ? options.bubbleEl : this.getHeroBubbleEl();
+    const hasMultipleLines = lines.length > 1;
+    const originalBubbleHtml = bubbleEl ? bubbleEl.innerHTML : '';
+    const originalBubbleMinHeight = bubbleEl ? bubbleEl.style.minHeight : '';
+    const restLine = lines[0] || null;
 
     await this.stopNarrationPlayback();
     if (token !== this.narrationToken) return false;
 
     const plugin = this.getNativeTtsPlugin();
-    if (plugin && typeof plugin.speak === 'function') {
+    if (bubbleEl) {
+      bubbleEl.dataset.narrationToken = String(token);
+    }
+
+    const applyLine = (line) => {
+      if (!bubbleEl) return;
+      if (bubbleEl.dataset.narrationToken !== String(token)) return;
+      const lineHtml = line && typeof line.html === 'string' ? line.html.trim() : '';
+      if (lineHtml) {
+        bubbleEl.innerHTML = lineHtml;
+      } else {
+        bubbleEl.textContent = line && line.text ? line.text : '';
+      }
+    };
+
+    const measureMaxLineHeight = () => {
+      if (!bubbleEl || !hasMultipleLines) return 0;
+      const width =
+        Math.ceil(
+          bubbleEl.getBoundingClientRect().width || bubbleEl.clientWidth || bubbleEl.offsetWidth || 0
+        ) || 0;
+      if (!width) return 0;
+      const probe = document.createElement('div');
+      probe.className = bubbleEl.className;
+      probe.setAttribute('aria-hidden', 'true');
+      probe.style.position = 'absolute';
+      probe.style.visibility = 'hidden';
+      probe.style.pointerEvents = 'none';
+      probe.style.left = '-99999px';
+      probe.style.top = '0';
+      probe.style.width = `${width}px`;
+      probe.style.minHeight = '0';
+      probe.style.height = 'auto';
+      const parent = bubbleEl.parentElement || this.bodyEl || this;
+      parent.appendChild(probe);
+      let maxHeight = 0;
+      lines.forEach((line) => {
+        const html = line && typeof line.html === 'string' ? line.html.trim() : '';
+        if (html) probe.innerHTML = html;
+        else probe.textContent = line && line.text ? line.text : '';
+        const nextHeight = Math.ceil(
+          Math.max(probe.scrollHeight || 0, probe.getBoundingClientRect().height || 0)
+        );
+        if (nextHeight > maxHeight) maxHeight = nextHeight;
+      });
+      probe.remove();
+      return maxHeight;
+    };
+
+    if (bubbleEl) {
+      if (restLine) applyLine(restLine);
+      if (hasMultipleLines) {
+        const maxHeight = measureMaxLineHeight();
+        if (maxHeight > 0) {
+          bubbleEl.style.minHeight = `${maxHeight}px`;
+        }
+      } else {
+        bubbleEl.style.minHeight = originalBubbleMinHeight;
+      }
+    }
+
+    const restoreBubble = () => {
+      if (!bubbleEl) return;
+      if (bubbleEl.dataset.narrationToken !== String(token)) return;
+      if (restLine) {
+        applyLine(restLine);
+      } else {
+        bubbleEl.innerHTML = originalBubbleHtml;
+      }
+      if (!hasMultipleLines) {
+        bubbleEl.style.minHeight = originalBubbleMinHeight;
+      }
+      delete bubbleEl.dataset.narrationToken;
+    };
+
+    const waitMs = (ms) =>
+      new Promise((resolve) => {
+        setTimeout(resolve, Math.max(0, Number(ms) || 0));
+      });
+
+    const estimateLinePlaybackMs = (lineText) => {
+      const chars = String(lineText || '').trim().length;
+      return Math.min(9500, Math.max(900, Math.round(chars * 72)));
+    };
+
+    const waitWebSpeechIdle = async (maxMs = 7000) => {
+      if (!this.canWebSpeak() || typeof window === 'undefined' || !window.speechSynthesis) return;
+      const synth = window.speechSynthesis;
+      const startedAt = Date.now();
+      while (token === this.narrationToken && Date.now() - startedAt < maxMs) {
+        if (!synth.speaking && !synth.pending && !synth.paused) return;
+        await waitMs(60);
+      }
+    };
+
+    const speakLineWithPlugin = async (lineText) => {
+      if (!plugin || typeof plugin.speak !== 'function') return false;
       this.startHeroMascotTalk();
+      const startedAt = Date.now();
       try {
         await plugin.speak({
-          text,
+          text: lineText,
           lang,
           rate: 1.0,
           pitch: 1.0,
@@ -670,35 +814,80 @@ class PageOnboarding extends HTMLElement {
           category: 'ambient',
           queueStrategy: 1
         });
+        const minMs = estimateLinePlaybackMs(lineText);
+        const elapsed = Date.now() - startedAt;
+        if (elapsed < minMs && token === this.narrationToken) {
+          await waitMs(minMs - elapsed);
+        }
         return true;
       } catch (err) {
-        // fallback below
+        return false;
       } finally {
         if (token === this.narrationToken) {
           this.stopHeroMascotTalk({ settle: true });
         }
       }
-    }
-
-    const hooks = {
-      onPlaybackStart: () => {
-        if (token !== this.narrationToken) return;
-        this.startHeroMascotTalk();
-      },
-      onPlaybackEnd: () => {
-        if (token !== this.narrationToken) return;
-        this.stopHeroMascotTalk({ settle: true });
-      }
     };
 
-    const started = await this.speakNarrationWeb(text, lang, token, 1500, hooks);
-    if (started || token !== this.narrationToken) return started;
+    const speakLineWebWithRetry = async (lineText) => {
+      const hooks = {
+        onPlaybackStart: () => {
+          if (token !== this.narrationToken) return;
+          this.startHeroMascotTalk();
+        },
+        onPlaybackEnd: () => {
+          if (token !== this.narrationToken) return;
+          this.stopHeroMascotTalk({ settle: true });
+        }
+      };
 
-    await new Promise((resolve) => setTimeout(resolve, 450));
-    if (token !== this.narrationToken) return false;
-    await this.stopNarrationPlayback();
-    if (token !== this.narrationToken) return false;
-    return this.speakNarrationWeb(text, lang, token, 3200, hooks);
+      let started = await this.speakNarrationWeb(lineText, lang, token, 1500, hooks);
+      if (started && token === this.narrationToken) {
+        const maxWait = Math.min(11000, estimateLinePlaybackMs(lineText) + 2400);
+        await waitWebSpeechIdle(maxWait);
+      }
+      if (started || token !== this.narrationToken) return started;
+
+      await waitMs(450);
+      if (token !== this.narrationToken) return false;
+      await this.stopNarrationPlayback();
+      if (token !== this.narrationToken) return false;
+      started = await this.speakNarrationWeb(lineText, lang, token, 3200, hooks);
+      if (started && token === this.narrationToken) {
+        const maxWait = Math.min(12000, estimateLinePlaybackMs(lineText) + 3000);
+        await waitWebSpeechIdle(maxWait);
+      }
+      return started;
+    };
+
+    let startedAny = false;
+    try {
+      for (let index = 0; index < lines.length; index += 1) {
+        if (token !== this.narrationToken) return startedAny;
+        const line = lines[index];
+        const lineText = String(line.text || '').trim();
+        if (!lineText) continue;
+        if (hasMultipleLines) {
+          applyLine(line);
+        }
+
+        let started = await speakLineWithPlugin(lineText);
+        if (!started && token === this.narrationToken) {
+          started = await speakLineWebWithRetry(lineText);
+        }
+        startedAny = startedAny || started;
+
+        if (index < lines.length - 1 && token === this.narrationToken) {
+          await waitMs(130);
+        }
+      }
+      return startedAny;
+    } finally {
+      if (token === this.narrationToken) {
+        this.stopHeroMascotTalk({ settle: true });
+      }
+      restoreBubble();
+    }
   }
 
   applyLocaleSetting(locale, options = {}) {

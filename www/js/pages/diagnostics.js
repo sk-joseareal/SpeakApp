@@ -1,6 +1,12 @@
 import { ensureInitialHash } from '../nav.js';
-import { clearNotifications, generateDemoNotifications, getNotifications } from '../notifications-store.js';
+import {
+  addNotification,
+  clearNotifications,
+  generateDemoNotifications,
+  getNotifications
+} from '../notifications-store.js';
 import { clearOnboardingDone } from '../state.js';
+import { ensureTrainingData, getRoutes } from '../data/training-data.js';
 
 class PageDiagnostics extends HTMLElement {
   connectedCallback() {
@@ -23,6 +29,7 @@ class PageDiagnostics extends HTMLElement {
     const FREE_RIDE_AUDIO_MODE_LOCAL = 'local';
     const FREE_RIDE_ADVANCED_ENABLED_KEY = 'appv5:free-ride-advanced-enabled';
     const FREE_RIDE_WORD_TAP_AUDIO_ENABLED_KEY = 'appv5:free-ride-word-tap-audio-enabled';
+    const SPEAK_SESSION_PERCENTAGES_VISIBLE_KEY = 'appv5:speak-session-percentages-visible';
     const normalizeFreeRideAudioMode = (value) => {
       const normalized = String(value || '')
         .trim()
@@ -83,6 +90,26 @@ class PageDiagnostics extends HTMLElement {
         return false;
       }
     };
+    const normalizeSpeakSessionPercentagesVisible = (value) => {
+      if (typeof value === 'boolean') return value;
+      const normalized = String(value || '')
+        .trim()
+        .toLowerCase();
+      if (!normalized) return true;
+      return !['0', 'false', 'off'].includes(normalized);
+    };
+    const getStoredSpeakSessionPercentagesVisible = () => {
+      const globalValue =
+        window.r34lp0w3r && Object.prototype.hasOwnProperty.call(window.r34lp0w3r, 'speakSessionPercentagesVisible')
+          ? window.r34lp0w3r.speakSessionPercentagesVisible
+          : undefined;
+      if (globalValue !== undefined) return normalizeSpeakSessionPercentagesVisible(globalValue);
+      try {
+        return normalizeSpeakSessionPercentagesVisible(localStorage.getItem(SPEAK_SESSION_PERCENTAGES_VISIBLE_KEY));
+      } catch (err) {
+        return true;
+      }
+    };
 
     this.innerHTML = `
       <ion-header translucent="true">
@@ -105,6 +132,13 @@ class PageDiagnostics extends HTMLElement {
                 <div class="diag-debug-sub">Permite acceder a cualquier ruta.</div>
               </div>
               <ion-toggle id="diag-debug-toggle"></ion-toggle>
+            </div>
+            <div class="diag-debug-toggle" style="margin-top: 10px;">
+              <div class="diag-debug-text">
+                <div class="diag-debug-title">Porcentajes en sesión (Training)</div>
+                <div class="diag-debug-sub" id="diag-speak-session-percentages-sub"></div>
+              </div>
+              <ion-toggle id="diag-speak-session-percentages-toggle" ${getStoredSpeakSessionPercentagesVisible() ? 'checked' : ''}></ion-toggle>
             </div>
             <div id="diag-user" style="display:none; margin-bottom:12px;">
               <div class="pill">Usuario</div>
@@ -223,6 +257,12 @@ class PageDiagnostics extends HTMLElement {
             <div class="diag-speak-block">
               <div class="pill">Rewards</div>
               <pre class="diag-json" id="diag-speak-rewards"></pre>
+            </div>
+            <div class="diag-speak-block">
+              <div class="pill">Badges (test)</div>
+              <div class="diag-badges-picker" id="diag-badges-picker"></div>
+              <div class="diag-debug-sub" id="diag-badges-sub"></div>
+              <pre class="diag-json" id="diag-speak-badges"></pre>
             </div>
 
             <h4 style="margin-top:16px;">Talk timelines</h4>
@@ -540,6 +580,9 @@ class PageDiagnostics extends HTMLElement {
     const wordsEl = this.querySelector('#diag-speak-words');
     const phraseEl = this.querySelector('#diag-speak-phrase');
     const rewardsEl = this.querySelector('#diag-speak-rewards');
+    const badgesEl = this.querySelector('#diag-speak-badges');
+    const badgesPickerEl = this.querySelector('#diag-badges-picker');
+    const badgesSubEl = this.querySelector('#diag-badges-sub');
     const talkCatEl = this.querySelector('#diag-talk-catbot');
     const talkBotEl = this.querySelector('#diag-talk-chatbot');
     const usageStatusEl = this.querySelector('#diag-usage-status');
@@ -572,6 +615,8 @@ class PageDiagnostics extends HTMLElement {
     const freeRideAdvancedSubEl = this.querySelector('#diag-free-ride-advanced-sub');
     const freeRideWordTapAudioToggleEl = this.querySelector('#diag-free-ride-word-tap-audio-toggle');
     const freeRideWordTapAudioSubEl = this.querySelector('#diag-free-ride-word-tap-audio-sub');
+    const speakSessionPercentagesToggleEl = this.querySelector('#diag-speak-session-percentages-toggle');
+    const speakSessionPercentagesSubEl = this.querySelector('#diag-speak-session-percentages-sub');
     const pronAdvancedUsageSectionEl = this.querySelector('#diag-pron-advanced-usage-section');
     const notifyListEl = this.querySelector('#diag-notify-list');
     const notifyEmptyEl = this.querySelector('#diag-notify-empty');
@@ -676,6 +721,36 @@ class PageDiagnostics extends HTMLElement {
       return normalized;
     };
 
+    const setSpeakSessionPercentagesVisible = (visible) => {
+      const normalized = normalizeSpeakSessionPercentagesVisible(visible);
+      window.r34lp0w3r = window.r34lp0w3r || {};
+      window.r34lp0w3r.speakSessionPercentagesVisible = normalized;
+      try {
+        localStorage.setItem(SPEAK_SESSION_PERCENTAGES_VISIBLE_KEY, normalized ? '1' : '0');
+      } catch (err) {
+        // no-op
+      }
+      window.dispatchEvent(
+        new CustomEvent('app:speak-session-percentages-visible-change', {
+          detail: { visible: normalized }
+        })
+      );
+      return normalized;
+    };
+
+    const updateSpeakSessionPercentagesUi = (visible) => {
+      const normalized = normalizeSpeakSessionPercentagesVisible(visible);
+      if (speakSessionPercentagesToggleEl) {
+        speakSessionPercentagesToggleEl.checked = normalized;
+      }
+      if (speakSessionPercentagesSubEl) {
+        speakSessionPercentagesSubEl.textContent = normalized
+          ? 'Activado: muestra los porcentajes (%) en las pantallas de la sesión.'
+          : 'Desactivado: oculta los porcentajes en la sesión; el color sigue indicando el resultado.';
+      }
+      return normalized;
+    };
+
     const getTalkStorageKey = () => {
       const user = window.user;
       const userId = user && user.id !== undefined && user.id !== null ? String(user.id) : 'anon';
@@ -694,9 +769,90 @@ class PageDiagnostics extends HTMLElement {
       const words = window.r34lp0w3r && window.r34lp0w3r.speakWordScores ? window.r34lp0w3r.speakWordScores : {};
       const phrase = window.r34lp0w3r && window.r34lp0w3r.speakPhraseScores ? window.r34lp0w3r.speakPhraseScores : {};
       const rewards = window.r34lp0w3r && window.r34lp0w3r.speakSessionRewards ? window.r34lp0w3r.speakSessionRewards : {};
+      const badges = window.r34lp0w3r && window.r34lp0w3r.speakBadges ? window.r34lp0w3r.speakBadges : {};
       if (wordsEl) wordsEl.textContent = formatJson(words);
       if (phraseEl) phraseEl.textContent = formatJson(phrase);
       if (rewardsEl) rewardsEl.textContent = formatJson(rewards);
+      if (badgesEl) badgesEl.textContent = formatJson(badges);
+    };
+
+    const getBadgeStore = () => {
+      window.r34lp0w3r = window.r34lp0w3r || {};
+      if (!window.r34lp0w3r.speakBadges || typeof window.r34lp0w3r.speakBadges !== 'object') {
+        window.r34lp0w3r.speakBadges = {};
+      }
+      return window.r34lp0w3r.speakBadges;
+    };
+
+    const buildBadgeCatalog = () => {
+      const routes = Array.isArray(getRoutes()) ? getRoutes() : [];
+      if (!routes.length) {
+        return Array.from({ length: 5 }, (_, idx) => ({
+          id: `route:badge-${idx + 1}`,
+          routeId: `badge-${idx + 1}`,
+          routeTitle: `Ruta ${idx + 1}`,
+          badgeIndex: idx + 1,
+          image: `assets/badges/badge${idx + 1}.png`,
+          title: `Badge ${idx + 1}`
+        }));
+      }
+      return routes.slice(0, 5).map((route, idx) => ({
+        id: `route:${route.id}`,
+        routeId: route.id,
+        routeTitle: route.title || `Ruta ${idx + 1}`,
+        badgeIndex: idx + 1,
+        image: `assets/badges/badge${idx + 1}.png`,
+        title: `Badge ${idx + 1}`
+      }));
+    };
+
+    let badgeCatalog = buildBadgeCatalog();
+
+    const notifyBadgeUnlocked = (badgeId, badgeEntry) => {
+      if (!badgeId || !badgeEntry) return;
+      try {
+        addNotification({
+          type: 'reward',
+          tone: 'good',
+          icon: 'ribbon-outline',
+          image: badgeEntry.image || '',
+          title: 'Nuevo badge desbloqueado',
+          text: badgeEntry.routeTitle || 'Ruta completada',
+          action: {
+            label: 'Ver badge',
+            tab: 'tu',
+            profileTab: 'prefs',
+            callback: 'openSpeakBadgeFromNotification',
+            badgeId,
+            complete: true
+          }
+        });
+      } catch (err) {
+        // no-op
+      }
+    };
+
+    const renderBadgePicker = () => {
+      if (!badgesPickerEl) return;
+      const badges = getBadgeStore();
+      if (badgesSubEl) {
+        badgesSubEl.textContent = 'Pulsa para activar/desactivar badges del usuario en esta sesión.';
+      }
+      badgesPickerEl.innerHTML = badgeCatalog
+        .map((badge) => {
+          const active = Boolean(badges[badge.id]);
+          return `
+            <button
+              class="diag-badge-btn ${active ? 'is-active' : ''}"
+              type="button"
+              data-badge-id="${escapeHtml(badge.id)}"
+            >
+              <img src="${escapeHtml(badge.image)}" alt="${escapeHtml(badge.title)}">
+              <span>${escapeHtml(badge.title)}</span>
+            </button>
+          `;
+        })
+        .join('');
     };
 
     const readTalkTimelines = () => {
@@ -1582,10 +1738,14 @@ class PageDiagnostics extends HTMLElement {
           const meta = `${item.status === 'unread' ? 'Nueva' : 'Leida'} · ${formatElapsed(item.created_at)}`;
           const tone = item.tone === 'good' || item.tone === 'warn' ? item.tone : '';
           const icon = escapeHtml(item.icon || 'notifications-outline');
+          const image = escapeHtml(item.image || '');
+          const iconMarkup = image
+            ? `<img class="notify-thumb" src="${image}" alt="">`
+            : `<ion-icon name="${icon}"></ion-icon>`;
           return `
             <div class="notify-item">
               <div class="notify-icon ${tone}">
-                <ion-icon name="${icon}"></ion-icon>
+                ${iconMarkup}
               </div>
               <div class="notify-content">
                 <div class="notify-text">${escapeHtml(item.title)}</div>
@@ -1648,6 +1808,16 @@ class PageDiagnostics extends HTMLElement {
       window.r34lp0w3r.speakSessionRewards = {
         'session-p': { rewardQty: 2, rewardLabel: 'diamonds', rewardIcon: 'diamond' }
       };
+      window.r34lp0w3r.speakBadges = {
+        'route:sound': {
+          routeId: 'sound',
+          routeTitle: 'Sound Journey',
+          badgeIndex: 1,
+          image: 'assets/badges/badge1.png',
+          title: 'Badge 1',
+          ts: Date.now()
+        }
+      };
       if (typeof window.persistSpeakStores === 'function') {
         window.persistSpeakStores();
       }
@@ -1665,6 +1835,7 @@ class PageDiagnostics extends HTMLElement {
         window.r34lp0w3r.speakWordScores = {};
         window.r34lp0w3r.speakPhraseScores = {};
         window.r34lp0w3r.speakSessionRewards = {};
+        window.r34lp0w3r.speakBadges = {};
         if (typeof window.persistSpeakStores === 'function') {
           window.persistSpeakStores();
         }
@@ -1673,7 +1844,10 @@ class PageDiagnostics extends HTMLElement {
       updateSpeakPanels();
     };
 
-    this._speakStoresHandler = updateSpeakPanels;
+    this._speakStoresHandler = () => {
+      updateSpeakPanels();
+      renderBadgePicker();
+    };
     window.addEventListener('app:speak-stores-change', this._speakStoresHandler);
     this._notifyHandler = renderNotifyList;
     window.addEventListener('app:notifications-change', this._notifyHandler);
@@ -1683,12 +1857,23 @@ class PageDiagnostics extends HTMLElement {
     refreshTtsUserUsage();
     refreshPronUserUsage();
     renderNotifyList();
+    renderBadgePicker();
+    ensureTrainingData()
+      .then(() => {
+        badgeCatalog = buildBadgeCatalog();
+        renderBadgePicker();
+      })
+      .catch(() => {
+        // no-op
+      });
     const initialFreeRideAudioMode = getStoredFreeRideAudioMode();
     updateFreeRideAudioModeUi(setFreeRideAudioMode(initialFreeRideAudioMode));
     const initialFreeRideAdvancedEnabled = getStoredFreeRideAdvancedEnabled();
     updateFreeRideAdvancedUi(setFreeRideAdvancedEnabled(initialFreeRideAdvancedEnabled));
     const initialFreeRideWordTapAudioEnabled = getStoredFreeRideWordTapAudioEnabled();
     updateFreeRideWordTapAudioUi(setFreeRideWordTapAudioEnabled(initialFreeRideWordTapAudioEnabled));
+    const initialSpeakSessionPercentagesVisible = getStoredSpeakSessionPercentagesVisible();
+    updateSpeakSessionPercentagesUi(setSpeakSessionPercentagesVisible(initialSpeakSessionPercentagesVisible));
 
     this.querySelector('#diag-back')?.addEventListener('click', () => {
       ensureInitialHash();
@@ -1747,6 +1932,41 @@ class PageDiagnostics extends HTMLElement {
       window.location.hash = '#/onboarding';
     });
 
+    badgesPickerEl?.addEventListener('click', (event) => {
+      const target = event.target instanceof Element ? event.target : null;
+      const button = target ? target.closest('[data-badge-id]') : null;
+      if (!button) return;
+      const badgeId = String(button.dataset.badgeId || '').trim();
+      if (!badgeId) return;
+      const badge = badgeCatalog.find((item) => item.id === badgeId);
+      if (!badge) return;
+      const store = getBadgeStore();
+      if (store[badgeId]) {
+        delete store[badgeId];
+      } else {
+        const entry = {
+          routeId: badge.routeId,
+          routeTitle: badge.routeTitle,
+          badgeIndex: badge.badgeIndex,
+          image: badge.image,
+          title: badge.title,
+          ts: Date.now()
+        };
+        store[badgeId] = entry;
+        notifyBadgeUnlocked(badgeId, entry);
+      }
+      if (typeof window.persistSpeakStores === 'function') {
+        window.persistSpeakStores();
+      }
+      if (typeof window.notifySpeakStoresChange === 'function') {
+        window.notifySpeakStoresChange();
+      } else {
+        window.dispatchEvent(new CustomEvent('app:speak-stores-change'));
+      }
+      updateSpeakPanels();
+      renderBadgePicker();
+    });
+
     freeRideAudioModeEl?.addEventListener('ionChange', (event) => {
       const nextMode = event && event.detail ? event.detail.value : freeRideAudioModeEl.value;
       updateFreeRideAudioModeUi(setFreeRideAudioMode(nextMode));
@@ -1764,6 +1984,13 @@ class PageDiagnostics extends HTMLElement {
           ? Boolean(event.detail.checked)
           : Boolean(freeRideWordTapAudioToggleEl.checked);
       updateFreeRideWordTapAudioUi(setFreeRideWordTapAudioEnabled(nextEnabled));
+    });
+    speakSessionPercentagesToggleEl?.addEventListener('ionChange', (event) => {
+      const nextVisible =
+        event && event.detail && event.detail.checked !== undefined
+          ? Boolean(event.detail.checked)
+          : Boolean(speakSessionPercentagesToggleEl.checked);
+      updateSpeakSessionPercentagesUi(setSpeakSessionPercentagesVisible(nextVisible));
     });
 
     // Login

@@ -1,4 +1,11 @@
-import { ensureTrainingData, getSelection, resolveSelection, setSelection } from '../data/training-data.js';
+import {
+  ensureTrainingData,
+  getRoutes,
+  getSelection,
+  resolveSelection,
+  setSelection
+} from '../data/training-data.js';
+import { addNotification } from '../notifications-store.js';
 import { goToHome } from '../nav.js';
 
 class PageSpeak extends HTMLElement {
@@ -30,7 +37,15 @@ class PageSpeak extends HTMLElement {
               <img class="onboarding-intro-flag" src="assets/flags/eeuu.png" alt="English">
             </button>
             <div class="speak-hero-head">
-              <img class="onboarding-intro-cat speak-hero-cat" src="assets/mascot/mascot-cat.png" alt="" aria-hidden="true">
+              <span class="speak-hero-mascot-wrap" aria-hidden="true">
+                <img
+                  class="onboarding-intro-cat speak-hero-cat"
+                  id="speak-hero-mascot"
+                  src="assets/mascot/mascota-boca-08.png"
+                  alt=""
+                  aria-hidden="true"
+                >
+              </span>
               <p class="speak-hero-step-title" id="speak-hero-step-title"></p>
             </div>
             <p class="onboarding-intro-bubble speak-hero-bubble" id="speak-hero-hint"></p>
@@ -70,6 +85,15 @@ class PageSpeak extends HTMLElement {
     const SWIPE_EDGE_GUARD = 16;
     const SWIPE_VERTICAL_RATIO = 1.2;
     const DEBUG_PANEL_OPEN_KEY = 'appv5:speak-debug-panel-open';
+    const SPEAK_SESSION_PERCENTAGES_VISIBLE_KEY = 'appv5:speak-session-percentages-visible';
+    const SESSION_DIAMOND_REWARD_QTY = 1;
+    const SESSION_DIAMOND_REWARD_LABEL = 'diamonds';
+    const SESSION_DIAMOND_REWARD_ICON = 'diamond';
+    const MAX_ROUTE_BADGE_COUNT = 5;
+    const HERO_TTS_LANG = 'en-US';
+    const HERO_MASCOT_FRAME_COUNT = 9;
+    const HERO_MASCOT_REST_FRAME = HERO_MASCOT_FRAME_COUNT - 1;
+    const HERO_MASCOT_FRAME_INTERVAL_MS = 150;
     const swipeSurface = this.querySelector('.speak-sheet');
 
     const stepOrder = ['sound', 'spelling', 'sentence'];
@@ -81,6 +105,7 @@ class PageSpeak extends HTMLElement {
     let currentSessionId = '';
     let showSummary = false;
     let summaryState = null;
+    let progressUpdatedThisRun = false;
     let debugPanelOpen = false;
 
     const DEFAULT_SCORES = {
@@ -135,6 +160,14 @@ class PageSpeak extends HTMLElement {
     let swipeCurrentX = 0;
     let swipeAnimating = false;
     let heroCardLockedHeight = 0;
+    let lastHeroNarratedStepKey = '';
+    let heroNarrationToken = 0;
+    let heroNarrationTimer = null;
+    let heroMascotFrameIndex = HERO_MASCOT_REST_FRAME;
+    let heroMascotFrameTimer = null;
+    let heroMascotIsTalking = false;
+    let heroNarrationInProgress = false;
+    let heroFirstRenderAt = 0;
 
     const stepState = {
       sound: { recordingUrl: '', transcript: '', percent: null },
@@ -368,6 +401,410 @@ class PageSpeak extends HTMLElement {
       typeof window !== 'undefined' &&
       typeof window.speechSynthesis !== 'undefined' &&
       typeof window.SpeechSynthesisUtterance !== 'undefined';
+
+    const getNativeTtsPlugin = () =>
+      window.Capacitor && window.Capacitor.Plugins ? window.Capacitor.Plugins.TextToSpeech : null;
+
+    const waitMs = (ms) =>
+      new Promise((resolve) => {
+        setTimeout(resolve, Math.max(0, Number(ms) || 0));
+      });
+
+    const waitForDocumentVisible = (timeoutMs = 1600) => {
+      if (typeof document === 'undefined') return Promise.resolve();
+      if (document.visibilityState === 'visible') return Promise.resolve();
+      return new Promise((resolve) => {
+        let done = false;
+        const finish = () => {
+          if (done) return;
+          done = true;
+          document.removeEventListener('visibilitychange', onChange);
+          resolve();
+        };
+        const onChange = () => {
+          if (document.visibilityState === 'visible') finish();
+        };
+        document.addEventListener('visibilitychange', onChange);
+        setTimeout(finish, Math.max(0, timeoutMs));
+      });
+    };
+
+    const waitForWebVoices = (timeoutMs = 1200) => {
+      if (!canSpeak()) return Promise.resolve([]);
+      const synth = window.speechSynthesis;
+      const voicesNow = typeof synth.getVoices === 'function' ? synth.getVoices() : [];
+      if (voicesNow.length) return Promise.resolve(voicesNow);
+      return new Promise((resolve) => {
+        let done = false;
+        const finish = () => {
+          if (done) return;
+          done = true;
+          if (typeof synth.removeEventListener === 'function') {
+            synth.removeEventListener('voiceschanged', onVoicesChanged);
+          } else {
+            synth.onvoiceschanged = null;
+          }
+          const voices = typeof synth.getVoices === 'function' ? synth.getVoices() : [];
+          resolve(voices);
+        };
+        const onVoicesChanged = () => finish();
+        if (typeof synth.addEventListener === 'function') {
+          synth.addEventListener('voiceschanged', onVoicesChanged, { once: true });
+        } else {
+          synth.onvoiceschanged = onVoicesChanged;
+        }
+        setTimeout(finish, Math.max(0, timeoutMs));
+      });
+    };
+
+    const waitWebSpeechIdle = async (token, maxMs = 7000) => {
+      if (!canSpeak()) return;
+      const synth = window.speechSynthesis;
+      const startedAt = Date.now();
+      while (token === heroNarrationToken && Date.now() - startedAt < maxMs) {
+        if (!synth.speaking && !synth.pending && !synth.paused) return;
+        await waitMs(60);
+      }
+    };
+
+    const estimateHeroLinePlaybackMs = (lineText) => {
+      const chars = String(lineText || '').trim().length;
+      return Math.min(9500, Math.max(900, Math.round(chars * 72)));
+    };
+
+    const normalizeHeroMascotFrameIndex = (frameIndex) => {
+      const value = Number(frameIndex);
+      if (!Number.isFinite(value)) return HERO_MASCOT_REST_FRAME;
+      const rounded = Math.round(value);
+      return Math.min(Math.max(rounded, 0), HERO_MASCOT_FRAME_COUNT - 1);
+    };
+
+    const getHeroMascotFramePath = (frameIndex = HERO_MASCOT_REST_FRAME) => {
+      const normalized = normalizeHeroMascotFrameIndex(frameIndex);
+      const padded = String(normalized).padStart(2, '0');
+      return `assets/mascot/mascota-boca-${padded}.png`;
+    };
+
+    const getHeroMascotImageEl = () => this.querySelector('#speak-hero-mascot');
+
+    const setHeroBubbleSpeaking = (isSpeaking) => {
+      if (!heroHintEl) return;
+      heroHintEl.classList.toggle('is-speaking', Boolean(isSpeaking));
+    };
+
+    const renderHeroMascotFrame = (frameIndex) => {
+      const normalized = normalizeHeroMascotFrameIndex(frameIndex);
+      heroMascotFrameIndex = normalized;
+      const imgEl = getHeroMascotImageEl();
+      if (!imgEl) return;
+      const nextSrc = getHeroMascotFramePath(normalized);
+      if (imgEl.getAttribute('src') !== nextSrc) {
+        imgEl.setAttribute('src', nextSrc);
+      }
+    };
+
+    const startHeroMascotTalk = () => {
+      if (heroMascotIsTalking) return;
+      heroMascotIsTalking = true;
+      setHeroBubbleSpeaking(true);
+      if (heroMascotFrameTimer) {
+        clearInterval(heroMascotFrameTimer);
+        heroMascotFrameTimer = null;
+      }
+      let frame = 0;
+      renderHeroMascotFrame(frame);
+      heroMascotFrameTimer = setInterval(() => {
+        if (!heroMascotIsTalking) return;
+        frame = (frame + 1) % (HERO_MASCOT_FRAME_COUNT - 1);
+        renderHeroMascotFrame(frame);
+      }, HERO_MASCOT_FRAME_INTERVAL_MS);
+    };
+
+    const stopHeroMascotTalk = (options = {}) => {
+      const settle = options.settle !== false;
+      heroMascotIsTalking = false;
+      setHeroBubbleSpeaking(false);
+      if (heroMascotFrameTimer) {
+        clearInterval(heroMascotFrameTimer);
+        heroMascotFrameTimer = null;
+      }
+      if (settle) {
+        renderHeroMascotFrame(HERO_MASCOT_REST_FRAME);
+      }
+    };
+
+    const clearHeroNarrationTimer = () => {
+      if (!heroNarrationTimer) return;
+      clearTimeout(heroNarrationTimer);
+      heroNarrationTimer = null;
+    };
+
+    const extractHeroSpeechText = (value) =>
+      String(value || '')
+        .replace(/<\s*br\s*\/?>/gi, '\n')
+        .split(/\r?\n+/)
+        .map((part) => String(part || '').trim())
+        .filter(Boolean)
+        .join(' ');
+
+    const extractHeroNarrationLines = (value) => {
+      const raw = String(value || '');
+      if (!raw.trim()) return [];
+      const normalized = raw
+        .replace(/<\s*br\s*\/?>/gi, '\n')
+        .replace(/<\/p>\s*<p>/gi, '\n')
+        .replace(/<\/li>\s*<li>/gi, '\n');
+      const lines = normalized
+        .split(/\r?\n+/)
+        .map((part) => {
+          const text = extractHeroSpeechText(part);
+          return text ? { text } : null;
+        })
+        .filter(Boolean);
+      if (lines.length) return lines;
+      const fallback = extractHeroSpeechText(raw);
+      return fallback ? [{ text: fallback }] : [];
+    };
+
+    const measureHeroHintMaxHeight = (lines) => {
+      if (!heroHintEl || !Array.isArray(lines) || lines.length < 2) return 0;
+      const width =
+        Math.ceil(
+          heroHintEl.getBoundingClientRect().width || heroHintEl.clientWidth || heroHintEl.offsetWidth || 0
+        ) || 0;
+      if (!width) return 0;
+      const probe = document.createElement('div');
+      probe.className = heroHintEl.className;
+      probe.setAttribute('aria-hidden', 'true');
+      probe.style.position = 'absolute';
+      probe.style.visibility = 'hidden';
+      probe.style.pointerEvents = 'none';
+      probe.style.left = '-99999px';
+      probe.style.top = '0';
+      probe.style.width = `${width}px`;
+      probe.style.minHeight = '0';
+      probe.style.height = 'auto';
+      const parent = heroHintEl.parentElement || heroCardEl || this;
+      parent.appendChild(probe);
+      let maxHeight = 0;
+      lines.forEach((line) => {
+        probe.textContent = line && line.text ? String(line.text).trim() : '';
+        const nextHeight = Math.ceil(
+          Math.max(probe.scrollHeight || 0, probe.getBoundingClientRect().height || 0)
+        );
+        if (nextHeight > maxHeight) maxHeight = nextHeight;
+      });
+      probe.remove();
+      return maxHeight;
+    };
+
+    const stopHeroNarrationPlayback = async () => {
+      const plugin = getNativeTtsPlugin();
+      if (plugin && typeof plugin.stop === 'function') {
+        try {
+          await plugin.stop();
+        } catch (err) {
+          // no-op
+        }
+      }
+      if (canSpeak()) {
+        if (typeof window.cancelWebSpeech === 'function') {
+          window.cancelWebSpeech();
+        } else {
+          window.speechSynthesis.cancel();
+        }
+      }
+      stopHeroMascotTalk({ settle: true });
+    };
+
+    const stopHeroNarration = async () => {
+      clearHeroNarrationTimer();
+      heroNarrationToken += 1;
+      await stopHeroNarrationPlayback();
+    };
+
+    const speakHeroLineWebWithRetry = async (lineText, token) => {
+      if (!canSpeak()) return false;
+      await waitForDocumentVisible(1800);
+      if (token !== heroNarrationToken) return false;
+      await waitForWebVoices(1500);
+      if (token !== heroNarrationToken) return false;
+
+      const run = async () => {
+        const utter = new SpeechSynthesisUtterance(lineText);
+        utter.lang = HERO_TTS_LANG;
+        return new Promise((resolve) => {
+          let settled = false;
+          const settle = (started) => {
+            if (settled) return;
+            settled = true;
+            clearTimeout(startTimeout);
+            resolve(started);
+          };
+          const startTimeout = setTimeout(() => settle(false), 1800);
+          utter.onstart = () => {
+            if (token !== heroNarrationToken) return;
+            startHeroMascotTalk();
+            settle(true);
+          };
+          utter.onend = () => {
+            if (token !== heroNarrationToken) return;
+            stopHeroMascotTalk({ settle: true });
+          };
+          utter.onerror = () => {
+            if (token !== heroNarrationToken) return;
+            stopHeroMascotTalk({ settle: true });
+            settle(false);
+          };
+          try {
+            const started =
+              typeof window.speakWebUtterance === 'function'
+                ? window.speakWebUtterance(utter)
+                : (() => {
+                    window.speechSynthesis.speak(utter);
+                    return true;
+                  })();
+            if (!started) {
+              stopHeroMascotTalk({ settle: true });
+              settle(false);
+            }
+          } catch (err) {
+            stopHeroMascotTalk({ settle: true });
+            settle(false);
+          }
+        });
+      };
+
+      let started = await run();
+      if (started && token === heroNarrationToken) {
+        const maxWait = Math.min(11000, estimateHeroLinePlaybackMs(lineText) + 2400);
+        await waitWebSpeechIdle(token, maxWait);
+      }
+      if (started || token !== heroNarrationToken) return started;
+
+      await waitMs(450);
+      if (token !== heroNarrationToken) return false;
+      await stopHeroNarrationPlayback();
+      if (token !== heroNarrationToken) return false;
+      started = await run();
+      if (started && token === heroNarrationToken) {
+        const maxWait = Math.min(12000, estimateHeroLinePlaybackMs(lineText) + 3000);
+        await waitWebSpeechIdle(token, maxWait);
+      }
+      return started;
+    };
+
+    const speakHeroNarrationFromSource = async (source) => {
+      if (heroNarrationInProgress) return false;
+      const hint = source && source.hint ? source.hint : '';
+      const lines = extractHeroNarrationLines(hint);
+      if (!lines.length || !heroHintEl || showSummary) {
+        await stopHeroNarration().catch(() => {});
+        return false;
+      }
+
+      const token = ++heroNarrationToken;
+      const hasMultipleLines = lines.length > 1;
+      const restLineText = String(lines[0] && lines[0].text ? lines[0].text : '').trim();
+      const originalHintText = hint;
+      const originalHintMinHeight = heroHintEl.style.minHeight;
+      const plugin = getNativeTtsPlugin();
+
+      await stopHeroNarrationPlayback();
+      if (token !== heroNarrationToken) return false;
+
+      heroHintEl.dataset.narrationToken = String(token);
+      if (restLineText) {
+        heroHintEl.textContent = restLineText;
+      }
+      if (hasMultipleLines) {
+        const maxHeight = measureHeroHintMaxHeight(lines);
+        if (maxHeight > 0) {
+          heroHintEl.style.minHeight = `${maxHeight}px`;
+        }
+      } else {
+        heroHintEl.style.minHeight = originalHintMinHeight;
+      }
+      const renderLine = (lineText) => {
+        if (!hasMultipleLines) return;
+        if (heroHintEl.dataset.narrationToken !== String(token)) return;
+        heroHintEl.textContent = lineText;
+      };
+      const restoreHint = () => {
+        if (heroHintEl.dataset.narrationToken !== String(token)) return;
+        heroHintEl.textContent = restLineText || originalHintText;
+        if (!hasMultipleLines) {
+          heroHintEl.style.minHeight = originalHintMinHeight;
+        }
+        delete heroHintEl.dataset.narrationToken;
+      };
+
+      let startedAny = false;
+      heroNarrationInProgress = true;
+      try {
+        for (let index = 0; index < lines.length; index += 1) {
+          if (token !== heroNarrationToken) return startedAny;
+          const lineText = String(lines[index].text || '').trim();
+          if (!lineText) continue;
+          renderLine(lineText);
+
+          let started = false;
+          if (plugin && typeof plugin.speak === 'function') {
+            startHeroMascotTalk();
+            const startedAt = Date.now();
+            try {
+              await plugin.speak({
+                text: lineText,
+                lang: HERO_TTS_LANG,
+                rate: 1.0,
+                pitch: 1.0,
+                volume: 1.0,
+                category: 'ambient',
+                queueStrategy: 1
+              });
+              const minMs = estimateHeroLinePlaybackMs(lineText);
+              const elapsed = Date.now() - startedAt;
+              if (elapsed < minMs && token === heroNarrationToken) {
+                await waitMs(minMs - elapsed);
+              }
+              started = true;
+            } catch (err) {
+              started = false;
+            } finally {
+              if (token === heroNarrationToken) {
+                stopHeroMascotTalk({ settle: true });
+              }
+            }
+          }
+          if (!started && token === heroNarrationToken) {
+            started = await speakHeroLineWebWithRetry(lineText, token);
+          }
+          startedAny = startedAny || started;
+
+          if (index < lines.length - 1 && token === heroNarrationToken) {
+            await waitMs(130);
+          }
+        }
+        return startedAny;
+      } finally {
+        heroNarrationInProgress = false;
+        if (token === heroNarrationToken) {
+          stopHeroMascotTalk({ settle: true });
+        }
+        restoreHint();
+      }
+    };
+
+    const scheduleHeroNarration = (source, delayMs = 90) => {
+      clearHeroNarrationTimer();
+      const hint = source && source.hint ? source.hint : '';
+      if (!hint || showSummary) return;
+      heroNarrationTimer = setTimeout(() => {
+        heroNarrationTimer = null;
+        if (!this.isConnected || showSummary) return;
+        speakHeroNarrationFromSource(source).catch(() => {});
+      }, Math.max(0, Number(delayMs) || 0));
+    };
 
     const normalizeText = (value) =>
       String(value || '')
@@ -654,17 +1091,10 @@ class PageSpeak extends HTMLElement {
 
     const getSummaryConfig = () => {
       const config = window.speakSummaryConfig || {};
-      const range = config.range || {};
-      const min = typeof range.min === 'number' ? range.min : 55;
-      const max = typeof range.max === 'number' ? range.max : 98;
       const phrases = config.phrases || {};
-      const rewards = Array.isArray(config.rewards) ? config.rewards : [];
       const labelPrefix = config.labelPrefix || 'YOU WIN';
       return {
-        minPercent: Math.max(0, Math.min(100, min)),
-        maxPercent: Math.max(0, Math.min(100, max)),
         phrases,
-        rewards,
         labelPrefix
       };
     };
@@ -704,13 +1134,6 @@ class PageSpeak extends HTMLElement {
 
     const clampPercent = (value) => Math.max(0, Math.min(100, value));
 
-    const getRandomInt = (min, max) => {
-      const low = Math.ceil(min);
-      const high = Math.floor(max);
-      if (high <= low) return low;
-      return Math.floor(Math.random() * (high - low + 1)) + low;
-    };
-
     const pickRandom = (items) => {
       if (!items || !items.length) return '';
       const idx = Math.floor(Math.random() * items.length);
@@ -718,33 +1141,26 @@ class PageSpeak extends HTMLElement {
     };
 
     const rollSummaryOutcome = () => {
-      const { phrases, rewards, labelPrefix } = getSummaryConfig();
+      const { phrases, labelPrefix } = getSummaryConfig();
       const percent = clampPercent(getSessionPercent());
       const tone = getScoreTone(percent);
       const phraseList = phrases && phrases[tone] ? phrases[tone] : [];
       const phraseFallback = getScoreLabel(percent);
       const phrase = pickRandom(phraseList) || phraseFallback;
-      const storedReward = getStoredSessionReward(currentSessionId);
-      let rewardQty = storedReward && typeof storedReward.rewardQty === 'number' ? storedReward.rewardQty : null;
-      let rewardLabel = storedReward && storedReward.rewardLabel ? storedReward.rewardLabel : '';
-      let rewardIcon = storedReward && storedReward.rewardIcon ? storedReward.rewardIcon : '';
-      if (rewardQty === null) {
-        const reward = rewards.length ? pickRandom(rewards) : { icon: 'diamond', label: 'diamonds', min: 1, max: 1 };
-        const rewardMin = reward && typeof reward.min === 'number' ? reward.min : 1;
-        const rewardMax = reward && typeof reward.max === 'number' ? reward.max : rewardMin;
-        rewardQty = getRandomInt(Math.min(rewardMin, rewardMax), Math.max(rewardMin, rewardMax));
-        rewardLabel = reward && reward.label ? reward.label : 'reward';
-        rewardIcon = reward && reward.icon ? reward.icon : 'diamond';
-        setStoredSessionReward(currentSessionId, { rewardQty, rewardLabel, rewardIcon });
-      }
+      const canGrantReward = progressUpdatedThisRun === true;
+      const reward =
+        tone === 'good' && canGrantReward ? awardDiamondForSession(currentSessionId) : null;
+      const awardedBadge = canGrantReward ? awardBadgeForCurrentRouteIfEligible() : null;
+      progressUpdatedThisRun = false;
       return {
         percent,
         tone,
         phrase,
-        rewardQty,
-        rewardLabel,
-        rewardIcon,
-        labelPrefix
+        rewardQty: reward ? reward.rewardQty : 0,
+        rewardLabel: reward ? reward.rewardLabel : '',
+        rewardIcon: reward ? reward.rewardIcon : 'diamond',
+        labelPrefix,
+        awardedBadge
       };
     };
 
@@ -756,6 +1172,27 @@ class PageSpeak extends HTMLElement {
         return localStorage.getItem('appv5:speak-debug') === '1';
       } catch (err) {
         return false;
+      }
+    };
+
+    const areSpeakSessionPercentagesVisible = () => {
+      const globalValue =
+        window.r34lp0w3r &&
+        Object.prototype.hasOwnProperty.call(window.r34lp0w3r, 'speakSessionPercentagesVisible')
+          ? window.r34lp0w3r.speakSessionPercentagesVisible
+          : undefined;
+      if (typeof globalValue === 'boolean') return globalValue;
+      if (typeof globalValue === 'string') {
+        const normalized = globalValue.trim().toLowerCase();
+        if (!normalized) return true;
+        return !['0', 'false', 'off'].includes(normalized);
+      }
+      try {
+        const raw = localStorage.getItem(SPEAK_SESSION_PERCENTAGES_VISIBLE_KEY);
+        if (raw === null || raw === undefined || raw === '') return true;
+        return !['0', 'false', 'off'].includes(String(raw).trim().toLowerCase());
+      } catch (err) {
+        return true;
       }
     };
 
@@ -844,6 +1281,7 @@ class PageSpeak extends HTMLElement {
       const now = Date.now();
       const prev = sessionScores[word];
       const next = { ...payload, ts: now };
+      progressUpdatedThisRun = true;
       if (prev && prev.percent === next.percent && prev.transcript === next.transcript) return;
       sessionScores[word] = next;
       persistSpeakStores();
@@ -879,6 +1317,7 @@ class PageSpeak extends HTMLElement {
       const now = Date.now();
       const prev = store[sessionId];
       const next = { ...payload, ts: now };
+      progressUpdatedThisRun = true;
       if (prev && prev.percent === next.percent && prev.transcript === next.transcript) return;
       store[sessionId] = next;
       persistSpeakStores();
@@ -933,6 +1372,181 @@ class PageSpeak extends HTMLElement {
           ts: now
         });
       }
+    };
+
+    const getBadgeStore = () => {
+      if (!window.r34lp0w3r) window.r34lp0w3r = {};
+      if (!window.r34lp0w3r.speakBadges || typeof window.r34lp0w3r.speakBadges !== 'object') {
+        window.r34lp0w3r.speakBadges = {};
+      }
+      return window.r34lp0w3r.speakBadges;
+    };
+
+    const getSessionPercentForRouteChecks = (session) => {
+      if (!session || !session.id) return 0;
+      const words =
+        session && session.speak && session.speak.spelling && Array.isArray(session.speak.spelling.words)
+          ? session.speak.spelling.words
+          : [];
+      const wordStore = getWordScoreStore();
+      const phraseStore = getPhraseScoreStore();
+      const sessionWordScores =
+        wordStore && session.id && wordStore[session.id] && typeof wordStore[session.id] === 'object'
+          ? wordStore[session.id]
+          : {};
+      const wordsPercent = words.length
+        ? Math.round(
+            words.reduce((sum, word) => {
+              const stored = sessionWordScores[word];
+              const value = stored && typeof stored.percent === 'number' ? stored.percent : 0;
+              return sum + value;
+            }, 0) / words.length
+          )
+        : 0;
+      const phrase = phraseStore && session.id ? phraseStore[session.id] : null;
+      const phrasePercent = phrase && typeof phrase.percent === 'number' ? phrase.percent : 0;
+      return Math.round((wordsPercent + phrasePercent) / 2);
+    };
+
+    const hasSessionAttemptsForRouteChecks = (session) => {
+      if (!session || !session.id) return false;
+      const wordStore = getWordScoreStore();
+      const phraseStore = getPhraseScoreStore();
+      const wordScores =
+        wordStore && session.id && wordStore[session.id] && typeof wordStore[session.id] === 'object'
+          ? wordStore[session.id]
+          : {};
+      const hasWord = Object.values(wordScores).some(
+        (entry) => entry && typeof entry.percent === 'number'
+      );
+      if (hasWord) return true;
+      const phrase = phraseStore && session.id ? phraseStore[session.id] : null;
+      return Boolean(phrase && typeof phrase.percent === 'number');
+    };
+
+    const getRouteProgressForBadges = (route) => {
+      const modules = route && Array.isArray(route.modules) ? route.modules : [];
+      if (!modules.length) return { started: false, percent: 0, tone: 'neutral' };
+      const moduleProgress = modules.map((module) => {
+        const sessions = module && Array.isArray(module.sessions) ? module.sessions : [];
+        if (!sessions.length) return { started: false, percent: 0 };
+        const started = sessions.some((session) => hasSessionAttemptsForRouteChecks(session));
+        if (!started) return { started: false, percent: 0 };
+        const total = sessions.reduce(
+          (sum, session) => sum + getSessionPercentForRouteChecks(session),
+          0
+        );
+        const percent = Math.round(total / sessions.length);
+        return { started: true, percent };
+      });
+      const started = moduleProgress.some((entry) => entry.started);
+      if (!started) return { started: false, percent: 0, tone: 'neutral' };
+      const total = moduleProgress.reduce((sum, entry) => sum + (entry.started ? entry.percent : 0), 0);
+      const percent = Math.round(total / modules.length);
+      return { started: true, percent, tone: getScoreTone(percent) };
+    };
+
+    const resolveRouteBadgeMeta = (route) => {
+      if (!route || !route.id) return null;
+      const routes = Array.isArray(getRoutes()) ? getRoutes() : [];
+      const indexInRoutes = routes.findIndex((item) => item && item.id === route.id);
+      const badgeIndex = indexInRoutes >= 0 ? indexInRoutes + 1 : 0;
+      if (!badgeIndex || badgeIndex > MAX_ROUTE_BADGE_COUNT) return null;
+      return {
+        id: `route:${route.id}`,
+        routeId: route.id,
+        routeTitle: route.title || `Ruta ${badgeIndex}`,
+        badgeIndex,
+        image: `assets/badges/badge${badgeIndex}.png`,
+        title: `Badge ${badgeIndex}`
+      };
+    };
+
+    const showBadgePopupSoon = (badgeId) => {
+      const id = String(badgeId || '').trim();
+      if (!id) return;
+      setTimeout(() => {
+        if (typeof window.openSpeakBadgePopup === 'function') {
+          window.openSpeakBadgePopup(id).catch(() => {});
+        }
+      }, 80);
+    };
+
+    const addBadgeNotification = (badgeEntry) => {
+      if (!badgeEntry || !badgeEntry.id) return;
+      try {
+        addNotification({
+          type: 'reward',
+          tone: 'good',
+          icon: 'ribbon-outline',
+          image: badgeEntry.image || '',
+          title: 'Nuevo badge desbloqueado',
+          text: badgeEntry.routeTitle || 'Ruta completada',
+          action: {
+            label: 'Ver badge',
+            tab: 'tu',
+            profileTab: 'prefs',
+            callback: 'openSpeakBadgeFromNotification',
+            badgeId: badgeEntry.id,
+            complete: true
+          }
+        });
+      } catch (err) {
+        // no-op
+      }
+    };
+
+    const awardDiamondForSession = (sessionId) => {
+      if (!sessionId) return null;
+      const previous = getStoredSessionReward(sessionId);
+      const prevQty =
+        previous && typeof previous.rewardQty === 'number' ? Math.max(0, previous.rewardQty) : 0;
+      const nextQty = prevQty + SESSION_DIAMOND_REWARD_QTY;
+      setStoredSessionReward(sessionId, {
+        rewardQty: nextQty,
+        rewardLabel: SESSION_DIAMOND_REWARD_LABEL,
+        rewardIcon: SESSION_DIAMOND_REWARD_ICON
+      });
+      return {
+        rewardQty: SESSION_DIAMOND_REWARD_QTY,
+        totalQty: nextQty,
+        rewardLabel: SESSION_DIAMOND_REWARD_LABEL,
+        rewardIcon: SESSION_DIAMOND_REWARD_ICON
+      };
+    };
+
+    const awardBadgeForCurrentRouteIfEligible = () => {
+      const { route } = resolveSelection(getSelection());
+      if (!route) return null;
+      const routeProgress = getRouteProgressForBadges(route);
+      if (!routeProgress.started || routeProgress.tone !== 'good') return null;
+      const meta = resolveRouteBadgeMeta(route);
+      if (!meta) return null;
+      const badgeStore = getBadgeStore();
+      if (badgeStore[meta.id]) return null;
+      const now = Date.now();
+      const entry = {
+        routeId: meta.routeId,
+        routeTitle: meta.routeTitle,
+        badgeIndex: meta.badgeIndex,
+        image: meta.image,
+        title: meta.title,
+        ts: now
+      };
+      badgeStore[meta.id] = entry;
+      persistSpeakStores();
+      if (typeof window.queueSpeakEvent === 'function') {
+        window.queueSpeakEvent({
+          type: 'badge_unlock',
+          badge_id: meta.id,
+          route_id: meta.routeId,
+          badgeIndex: meta.badgeIndex,
+          ts: now
+        });
+      }
+      addBadgeNotification({ id: meta.id, ...entry });
+      showBadgePopupSoon(meta.id);
+      return { id: meta.id, ...entry };
     };
 
     const syncSpellingStateFromStore = (word) => {
@@ -1084,6 +1698,8 @@ class PageSpeak extends HTMLElement {
 
     const renderBottomPanel = (key, options = {}) => {
       const hasVoiceRecording = Boolean(options.hasVoiceRecording);
+      const voiceToneRaw = String(options.voiceTone || '').toLowerCase().trim();
+      const voiceTone = ['good', 'okay', 'bad'].includes(voiceToneRaw) ? voiceToneRaw : '';
       if (isSpeakDebugEnabled() && debugPanelOpen) {
         return `
           <div class="speak-step-bottom">
@@ -1109,7 +1725,12 @@ class PageSpeak extends HTMLElement {
                 </span>
                 <span class="record-label">${isRecording ? 'End' : 'Say'}</span>
               </button>
-              <button class="speak-circle-btn" id="speak-voice" type="button" ${hasVoiceRecording ? '' : 'disabled'}>
+              <button
+                class="speak-circle-btn speak-voice-btn${voiceTone ? ` tone-${voiceTone}` : ''}"
+                id="speak-voice"
+                type="button"
+                ${hasVoiceRecording ? '' : 'disabled'}
+              >
                 <ion-icon name="ear"></ion-icon>
                 <span>Your voice</span>
               </button>
@@ -1176,6 +1797,7 @@ class PageSpeak extends HTMLElement {
           window.speechSynthesis.cancel();
         }
       }
+      stopHeroNarrationPlayback().catch(() => {});
       if (activePlayButton) {
         activePlayButton.classList.remove('is-playing');
         activePlayButton = null;
@@ -1923,8 +2545,16 @@ class PageSpeak extends HTMLElement {
       if (!heroStepTitleEl || !heroHintEl) return;
       heroStepTitleEl.textContent = source && source.title ? source.title : '';
       const hint = source && source.hint ? source.hint : '';
-      heroHintEl.textContent = hint;
-      heroHintEl.hidden = !hint;
+      const lines = extractHeroNarrationLines(hint);
+      const restLineText = String(lines[0] && lines[0].text ? lines[0].text : '').trim();
+      heroHintEl.textContent = restLineText || hint;
+      heroHintEl.hidden = !(restLineText || hint);
+      if (lines.length > 1) {
+        const maxHeight = measureHeroHintMaxHeight(lines);
+        heroHintEl.style.minHeight = maxHeight > 0 ? `${maxHeight}px` : '';
+      } else {
+        heroHintEl.style.minHeight = '';
+      }
     };
 
     const lockHeroCardHeight = () => {
@@ -1938,6 +2568,7 @@ class PageSpeak extends HTMLElement {
       const prevTitle = heroStepTitleEl.textContent;
       const prevHint = heroHintEl.textContent;
       const prevHintHidden = heroHintEl.hidden;
+      const prevHintMinHeight = heroHintEl.style.minHeight;
       const prevMinHeight = heroCardEl.style.minHeight;
 
       heroCardEl.hidden = false;
@@ -1959,6 +2590,7 @@ class PageSpeak extends HTMLElement {
       heroStepTitleEl.textContent = prevTitle;
       heroHintEl.textContent = prevHint;
       heroHintEl.hidden = prevHintHidden;
+      heroHintEl.style.minHeight = prevHintMinHeight;
       heroCardEl.hidden = prevHidden;
       heroCardEl.style.visibility = prevVisibility;
       heroCardEl.style.pointerEvents = prevPointerEvents;
@@ -1974,6 +2606,7 @@ class PageSpeak extends HTMLElement {
     const applySessionData = (nextSelection = getSelection()) => {
       const { session } = resolveSelection(nextSelection);
       if (!session || !session.speak) return;
+      heroFirstRenderAt = Date.now();
       currentSessionId = session.id;
       sessionTitle = session.title || '';
       if (sessionTitleEl) {
@@ -1996,8 +2629,11 @@ class PageSpeak extends HTMLElement {
       const matchedWord = resolveStartWord(startWord, spellingWords);
       selectedWord = matchedWord || (spellingWords.length ? spellingWords[0] : '');
       stepIndex = startStep !== null ? resolveStartStepIndex(startStep) : 0;
+      lastHeroNarratedStepKey = '';
       showSummary = false;
       summaryState = null;
+      progressUpdatedThisRun = false;
+      stopHeroNarration().catch(() => {});
       resetStepState();
       syncSpellingStateFromStore(selectedWord);
       syncSentenceStateFromStore();
@@ -2013,9 +2649,13 @@ class PageSpeak extends HTMLElement {
       const score = getScoreForStep('sound');
       const hasRecording = Boolean(stepState.sound.recordingUrl);
       const transcribing = isTranscribingStep('sound');
+      const showPercentages = areSpeakSessionPercentagesVisible();
       const percent = transcribing ? '' : score && hasRecording ? score.percent : '';
       const tone = transcribing ? 'hint' : score && hasRecording ? score.tone : 'hint';
+      const voiceTone = !transcribing && score && hasRecording ? tone : '';
       const label = transcribing ? 'Transcribiendo...' : score && hasRecording ? score.label : 'Practice the sound';
+      const percentMarkup = showPercentages && percent !== '' ? `${percent}%` : '';
+      const noPercentClass = !showPercentages ? ' speak-score-no-percent' : '';
       const displayText = getSoundDisplayText();
 
       return `
@@ -2050,13 +2690,13 @@ class PageSpeak extends HTMLElement {
               </span>
             </div>
 
-            <div class="speak-score speak-score-${tone}">
+            <div class="speak-score speak-score-${tone}${noPercentClass}">
               <div class="speak-score-label">${label}</div>
-              <div class="speak-score-value">${percent !== '' ? percent + '%' : ''}</div>
+              <div class="speak-score-value">${percentMarkup}</div>
             </div>
           </div>
 
-          ${renderBottomPanel('sound', { hasVoiceRecording: hasRecording })}
+          ${renderBottomPanel('sound', { hasVoiceRecording: hasRecording, voiceTone })}
         </div>
       `;
     };
@@ -2065,10 +2705,14 @@ class PageSpeak extends HTMLElement {
       const stored = getStoredWordResult(currentSessionId, selectedWord);
       const hasScore = stored && typeof stored.percent === 'number';
       const transcribing = isTranscribingStep('spelling');
+      const showPercentages = areSpeakSessionPercentagesVisible();
+      const hasRecording = Boolean(stepState.spelling.recordingUrl);
       const percent = transcribing ? null : hasScore ? stored.percent : null;
       const tone = transcribing ? 'hint' : hasScore ? getScoreTone(percent) : 'hint';
+      const voiceTone = !transcribing && hasRecording && hasScore ? tone : '';
       const label = transcribing ? 'Transcribiendo...' : hasScore ? getScoreLabel(percent) : 'Practice the words';
-      const hasRecording = Boolean(stepState.spelling.recordingUrl);
+      const percentMarkup = showPercentages && percent !== null ? `${percent}%` : '';
+      const noPercentClass = !showPercentages ? ' speak-score-no-percent' : '';
 
       const words = spellingStep.words
         .map((word) => {
@@ -2094,13 +2738,13 @@ class PageSpeak extends HTMLElement {
               </button>
             </div>
 
-            <div class="speak-score speak-score-${tone}">
+            <div class="speak-score speak-score-${tone}${noPercentClass}">
               <div class="speak-score-label">${label}</div>
-              <div class="speak-score-value">${percent !== null ? percent + '%' : ''}</div>
+              <div class="speak-score-value">${percentMarkup}</div>
             </div>
           </div>
 
-          ${renderBottomPanel('spelling', { hasVoiceRecording: hasRecording })}
+          ${renderBottomPanel('spelling', { hasVoiceRecording: hasRecording, voiceTone })}
         </div>
       `;
     };
@@ -2109,14 +2753,17 @@ class PageSpeak extends HTMLElement {
       const score = getScoreForStep('sentence');
       const hasScore = score && typeof score.percent === 'number';
       const transcribing = isTranscribingStep('sentence');
+      const showPercentages = areSpeakSessionPercentagesVisible();
+      const hasRecordingUrl = Boolean(stepState.sentence.recordingUrl);
       const percent = transcribing ? '' : hasScore ? score.percent : '';
       const tone = transcribing ? 'hint' : hasScore ? score.tone : 'hint';
+      const voiceTone = !transcribing && hasRecordingUrl && hasScore ? tone : '';
       const label = transcribing ? 'Transcribiendo...' : hasScore ? score.label : 'Practice the phrase';
-      const hasRecordingUrl = Boolean(stepState.sentence.recordingUrl);
+      const sentenceScorePercentMarkup = showPercentages ? `${percent}%` : '';
       const scoreLine = hasScore && !transcribing
         ? `
           <div class="speak-score-line ${tone}">
-            <div class="speak-score-line-value">${percent}%</div>
+            <div class="speak-score-line-value">${sentenceScorePercentMarkup}</div>
             <div class="speak-score-line-text">Good! Continue practicing</div>
           </div>
         `
@@ -2142,7 +2789,7 @@ class PageSpeak extends HTMLElement {
             ${scoreLine}
           </div>
 
-          ${renderBottomPanel('sentence', { hasVoiceRecording: hasRecordingUrl })}
+          ${renderBottomPanel('sentence', { hasVoiceRecording: hasRecordingUrl, voiceTone })}
         </div>
       `;
     };
@@ -2153,10 +2800,23 @@ class PageSpeak extends HTMLElement {
       const percent = summary.percent;
       const tone = summary.tone;
       const phrase = summary.phrase;
-      const rewardLabel = `${summary.labelPrefix} ${summary.rewardQty} ${summary.rewardLabel}`;
+      const showPercentages = areSpeakSessionPercentagesVisible();
+      const hasReward =
+        typeof summary.rewardQty === 'number' &&
+        summary.rewardQty > 0 &&
+        typeof summary.rewardLabel === 'string' &&
+        summary.rewardLabel.trim();
+      const rewardLabel = hasReward
+        ? `${summary.labelPrefix} ${summary.rewardQty} ${summary.rewardLabel}`
+        : '';
+      const badgeLabel =
+        summary.awardedBadge && summary.awardedBadge.routeTitle
+          ? `Badge desbloqueado: ${summary.awardedBadge.routeTitle}`
+          : '';
       const summaryTitle = getSummaryTitle(tone, sessionTitle);
       const showConfetti = tone === 'good';
       const mascotToneClass = showConfetti ? 'mascot-confetti' : '';
+      const summaryPercentMarkup = showPercentages ? `<span>${percent}%</span>` : '';
       return `
         <div class="speak-step speak-step-summary">
           ${
@@ -2171,13 +2831,18 @@ class PageSpeak extends HTMLElement {
           <div class="summary-title">${summaryTitle}</div>
           <div class="summary-score ${tone}">
             <ion-icon name="checkmark-circle"></ion-icon>
-            <span>${percent}%</span>
+            ${summaryPercentMarkup}
           </div>
           <div class="summary-feedback ${tone}">${phrase}</div>
-          <div class="summary-reward">
+          ${
+            hasReward
+              ? `<div class="summary-reward">
             <div class="summary-reward-label">${rewardLabel}</div>
             <ion-icon name="${summary.rewardIcon}"></ion-icon>
-          </div>
+          </div>`
+              : ''
+          }
+          ${badgeLabel ? `<div class="summary-badge-earned">${badgeLabel}</div>` : ''}
           <button class="speak-next-btn" id="speak-next-step" type="button">Continue</button>
         </div>
       `;
@@ -2194,6 +2859,8 @@ class PageSpeak extends HTMLElement {
       if (!heroCardEl || !heroStepTitleEl || !heroHintEl) return;
       if (showSummary) {
         heroCardEl.hidden = true;
+        lastHeroNarratedStepKey = '';
+        stopHeroNarration().catch(() => {});
         if (debugToggleBtn) {
           debugToggleBtn.hidden = true;
           debugToggleBtn.classList.remove('is-active');
@@ -2202,15 +2869,21 @@ class PageSpeak extends HTMLElement {
         return;
       }
       heroCardEl.hidden = false;
+      const source = getHeroSourceByStepKey(stepKey);
       const debugEnabled = isSpeakDebugEnabled();
       if (debugToggleBtn) {
         debugToggleBtn.hidden = !debugEnabled;
         debugToggleBtn.classList.toggle('is-active', debugEnabled && debugPanelOpen);
         debugToggleBtn.setAttribute('aria-pressed', debugEnabled && debugPanelOpen ? 'true' : 'false');
       }
-      applyHeroSource(getHeroSourceByStepKey(stepKey));
+      applyHeroSource(source);
       if (sessionTitleEl) {
         sessionTitleEl.textContent = sessionTitle || '';
+      }
+      if (stepKey !== lastHeroNarratedStepKey) {
+        const isInitialStepNarration = !lastHeroNarratedStepKey;
+        lastHeroNarratedStepKey = stepKey;
+        scheduleHeroNarration(source, isInitialStepNarration ? 1000 : 120);
       }
     };
 
@@ -2381,6 +3054,12 @@ class PageSpeak extends HTMLElement {
           selectedWord = word;
           syncSpellingStateFromStore(word);
           renderStep();
+          const nextPlayWordBtn = stepRoot.querySelector('#speak-play-word');
+          playReferenceAudio({
+            text: selectedWord,
+            withVisemes: false,
+            triggerBtn: nextPlayWordBtn || null
+          });
         });
       });
 
@@ -2646,23 +3325,7 @@ class PageSpeak extends HTMLElement {
       stopAvatarPlayback();
       stopRecording();
       if (showSummary) {
-        if (window.r34lp0w3r && window.r34lp0w3r.speakReturnToReview) {
-          const returnSessionId = window.r34lp0w3r.speakReturnSessionId;
-          if (!returnSessionId || returnSessionId === currentSessionId) {
-            window.r34lp0w3r.speakReturnToReview = false;
-            window.r34lp0w3r.speakReturnSessionId = null;
-            window.r34lp0w3r.profileForceTab = 'review';
-            try {
-              localStorage.setItem('appv5:active-tab', 'tu');
-            } catch (err) {
-              // no-op
-            }
-            goToHome('back');
-            return;
-          }
-          window.r34lp0w3r.speakReturnToReview = false;
-          window.r34lp0w3r.speakReturnSessionId = null;
-        }
+        if (goBackToReviewIfNeeded()) return;
         const { route, module, session } = resolveSelection(getSelection());
         if (route && module && session) {
           setSelection({
@@ -2691,7 +3354,25 @@ class PageSpeak extends HTMLElement {
       renderStep();
     };
 
+    const goBackToReviewIfNeeded = () => {
+      if (!window.r34lp0w3r || !window.r34lp0w3r.speakReturnToReview) return false;
+      const returnSessionId = window.r34lp0w3r.speakReturnSessionId;
+      const canReturn = !returnSessionId || returnSessionId === currentSessionId;
+      window.r34lp0w3r.speakReturnToReview = false;
+      window.r34lp0w3r.speakReturnSessionId = null;
+      if (!canReturn) return false;
+      window.r34lp0w3r.profileForceTab = 'review';
+      try {
+        localStorage.setItem('appv5:active-tab', 'tu');
+      } catch (err) {
+        // no-op
+      }
+      goToHome('back');
+      return true;
+    };
+
     const goBackToRoutes = () => {
+      if (goBackToReviewIfNeeded()) return;
       try {
         localStorage.setItem('appv5:active-tab', 'home');
       } catch (err) {
@@ -2710,6 +3391,20 @@ class PageSpeak extends HTMLElement {
         stopAvatarPlayback();
       }
       renderStep();
+    };
+
+    const handleHeroCardReplayClick = (event) => {
+      if (showSummary || !heroCardEl || heroCardEl.hidden) return;
+      const target = event && event.target instanceof Element ? event.target : null;
+      if (!target) return;
+      if (target.closest('button, a, input, textarea, select, label, [role="button"]')) {
+        return;
+      }
+      const source = getHeroSourceByStepKey(getStepKey());
+      if (!source || !source.hint) return;
+      if (heroNarrationInProgress) return;
+      if (Date.now() - heroFirstRenderAt < 1000) return;
+      speakHeroNarrationFromSource(source).catch(() => {});
     };
 
     const prevStep = () => {
@@ -2761,6 +3456,15 @@ class PageSpeak extends HTMLElement {
     this._handleSpeakDebug = handleDebugToggle;
     window.addEventListener('app:speak-debug', handleDebugToggle);
 
+    const handleSessionPercentagesVisibilityChange = () => {
+      renderStep();
+    };
+    this._handleSpeakSessionPercentagesVisibility = handleSessionPercentagesVisibilityChange;
+    window.addEventListener(
+      'app:speak-session-percentages-visible-change',
+      handleSessionPercentagesVisibilityChange
+    );
+
     const handleViewportResize = () => {
       if (!this.isConnected) return;
       lockHeroCardHeight();
@@ -2769,12 +3473,15 @@ class PageSpeak extends HTMLElement {
     window.addEventListener('resize', handleViewportResize);
 
     ensureTrainingData().then(() => {
+      heroFirstRenderAt = Date.now();
       applySessionData(getSelection());
     });
 
+    heroCardEl?.addEventListener('click', handleHeroCardReplayClick);
     debugToggleBtn?.addEventListener('click', toggleDebugPanel);
 
     this._cleanupSpeak = () => {
+      stopHeroNarration().catch(() => {});
       stopPlayback();
       stopAvatarPlayback();
       stopRecording();
@@ -2785,11 +3492,20 @@ class PageSpeak extends HTMLElement {
       if (this._handleSpeakDebug) {
         window.removeEventListener('app:speak-debug', this._handleSpeakDebug);
       }
+      if (this._handleSpeakSessionPercentagesVisibility) {
+        window.removeEventListener(
+          'app:speak-session-percentages-visible-change',
+          this._handleSpeakSessionPercentagesVisibility
+        );
+      }
       if (this._handleSpeakResize) {
         window.removeEventListener('resize', this._handleSpeakResize);
       }
       if (debugToggleBtn) {
         debugToggleBtn.removeEventListener('click', toggleDebugPanel);
+      }
+      if (heroCardEl) {
+        heroCardEl.removeEventListener('click', handleHeroCardReplayClick);
       }
       if (swipeSurface) {
         swipeSurface.removeEventListener('touchstart', handleSwipeStart);

@@ -38,7 +38,15 @@ class PagePremium extends HTMLElement {
                   Graba tu frase, escucha tu audio y recibe una respuesta simulada.
                 </p>
               </div>
-              <div class="coach-avatar coach-avatar-cat" id="premium-coach-avatar" aria-label="Coach"></div>
+              <div class="coach-avatar coach-avatar-cat" id="premium-coach-avatar" aria-label="Coach">
+                <img
+                  class="coach-avatar-mascot"
+                  id="premium-coach-avatar-mascot"
+                  src="/assets/mascot/mascota-boca-08.png"
+                  alt=""
+                  aria-hidden="true"
+                >
+              </div>
             </div>
             <div class="premium-access" id="premium-access">
               <div class="premium-access-panel premium-loading-panel" id="premium-loading-panel" hidden>
@@ -138,6 +146,7 @@ class PagePremium extends HTMLElement {
     const loginBtn = this.querySelector('#premium-login-btn');
     const modeToggle = this.querySelector('#premium-mode-toggle');
     const coachAvatar = this.querySelector('#premium-coach-avatar');
+    const coachAvatarMascot = this.querySelector('#premium-coach-avatar-mascot');
     const coachTitleEl = this.querySelector('#premium-coach-title');
     const coachSubtitleEl = this.querySelector('#premium-coach-subtitle');
     const composerRow = this.querySelector('#premium-composer-row');
@@ -196,6 +205,34 @@ class PagePremium extends HTMLElement {
     const TALK_STATE_IDLE = 'idle';
     const TALK_STATE_RECORDING = 'recording';
     const TALK_STATE_REVIEW = 'review';
+    const COACH_MASCOT_SEQUENCES = {
+      catbot: {
+        framePaths: [
+          '/assets/mascot/mascota-boca-00.png',
+          '/assets/mascot/mascota-boca-01.png',
+          '/assets/mascot/mascota-boca-02.png',
+          '/assets/mascot/mascota-boca-03.png',
+          '/assets/mascot/mascota-boca-04.png',
+          '/assets/mascot/mascota-boca-05.png',
+          '/assets/mascot/mascota-boca-06.png',
+          '/assets/mascot/mascota-boca-07.png',
+          '/assets/mascot/mascota-boca-08.png'
+        ],
+        restFrame: 8
+      },
+      chatbot: {
+        framePaths: [
+          '/assets/mascot/robot1.png',
+          '/assets/mascot/robot2.png',
+          '/assets/mascot/robot3.png',
+          '/assets/mascot/robot4.png',
+          '/assets/mascot/robot5.png'
+        ],
+        restFrame: 0
+      }
+    };
+    const COACH_MASCOT_FRAME_INTERVAL_MS = 150;
+    const COACH_MASCOT_AUDIO_START_DELAY_MS = 140;
     const RECORDING_TIMESLICE = 500;
     const VOSK_SAMPLE_RATE_DEFAULT = 16000;
 	    const TALK_STORAGE_PREFIX = 'appv5:talk-timelines:';
@@ -211,6 +248,9 @@ class PagePremium extends HTMLElement {
     const typingState = { catbot: false, chatbot: false };
     const chatThreads = { catbot: [], chatbot: [] };
     let talkState = TALK_STATE_IDLE;
+    let coachMascotFrameIndex = COACH_MASCOT_SEQUENCES.catbot.restFrame;
+    let coachMascotFrameTimer = null;
+    let coachMascotTalkRefs = 0;
     let recordingStartedAt = 0;
     let recordingDurationMs = 0;
     let recordingTimer = null;
@@ -219,12 +259,20 @@ class PagePremium extends HTMLElement {
     let waveContext = null;
     let waveAnalyser = null;
 	    let waveSource = null;
-	    let waveFrame = null;
-	    let waveData = null;
-	    let playbackRequestToken = 0;
-	    const chatbotAlignedTtsCache = new Map();
-	    let chatbotAlignedTtsLimitStatus = null;
-	    const recordingBars = recordingWave
+    let waveFrame = null;
+    let waveData = null;
+    let playbackRequestToken = 0;
+    const chatbotAlignedTtsCache = new Map();
+    let chatbotAlignedTtsLimitStatus = null;
+    const coachMascotFramePaths = Array.from(
+      new Set(
+        Object.values(COACH_MASCOT_SEQUENCES).flatMap((sequence) =>
+          Array.isArray(sequence.framePaths) ? sequence.framePaths : []
+        )
+      )
+    );
+    let coachMascotFramesPreloaded = false;
+    const recordingBars = recordingWave
       ? Array.from(recordingWave.querySelectorAll('.talk-wave-bar'))
       : [];
     const reviewBars = reviewWave
@@ -1130,6 +1178,124 @@ class PagePremium extends HTMLElement {
       }
     };
 
+    const getCoachMascotSequenceKey = () => (chatMode === 'chatbot' ? 'chatbot' : 'catbot');
+
+    const getCoachMascotSequence = (mode = chatMode) => {
+      const key = mode === 'chatbot' ? 'chatbot' : 'catbot';
+      return COACH_MASCOT_SEQUENCES[key] || COACH_MASCOT_SEQUENCES.catbot;
+    };
+
+    const normalizeCoachMascotFrameIndex = (frameIndex, frameCount, fallbackIndex = 0) => {
+      const value = Number(frameIndex);
+      const safeCount = Math.max(1, Number(frameCount) || 0);
+      const safeFallback = Math.min(Math.max(Number(fallbackIndex) || 0, 0), safeCount - 1);
+      if (!Number.isFinite(value)) return safeFallback;
+      const rounded = Math.round(value);
+      return Math.min(Math.max(rounded, 0), safeCount - 1);
+    };
+
+    const getCoachMascotFramePath = (frameIndex, sequence = getCoachMascotSequence()) => {
+      const framePaths =
+        sequence && Array.isArray(sequence.framePaths) && sequence.framePaths.length
+          ? sequence.framePaths
+          : COACH_MASCOT_SEQUENCES.catbot.framePaths;
+      const restFrame = Number.isFinite(sequence && sequence.restFrame)
+        ? sequence.restFrame
+        : framePaths.length - 1;
+      const normalized = normalizeCoachMascotFrameIndex(frameIndex, framePaths.length, restFrame);
+      return (
+        framePaths[normalized] ||
+        framePaths[Math.min(Math.max(restFrame, 0), Math.max(0, framePaths.length - 1))]
+      );
+    };
+
+    const preloadCoachMascotFrames = () => {
+      if (coachMascotFramesPreloaded) return;
+      coachMascotFramesPreloaded = true;
+      if (typeof Image === 'undefined') return;
+      coachMascotFramePaths.forEach((path) => {
+        const img = new Image();
+        img.src = path;
+      });
+    };
+
+    const renderCoachMascotFrame = (frameIndex, sequence = getCoachMascotSequence()) => {
+      const frameCount =
+        sequence && Array.isArray(sequence.framePaths) && sequence.framePaths.length
+          ? sequence.framePaths.length
+          : 1;
+      const restFrame = Number.isFinite(sequence && sequence.restFrame) ? sequence.restFrame : 0;
+      coachMascotFrameIndex = normalizeCoachMascotFrameIndex(frameIndex, frameCount, restFrame);
+      if (!coachAvatar) return;
+      if (!coachAvatarMascot) return;
+      const nextSrc = getCoachMascotFramePath(coachMascotFrameIndex, sequence);
+      if (coachAvatarMascot.getAttribute('src') !== nextSrc) {
+        coachAvatarMascot.setAttribute('src', nextSrc);
+      }
+    };
+
+    const startCoachMascotTalk = () => {
+      if (chatMode !== 'chatbot' && chatMode !== 'catbot') return;
+      preloadCoachMascotFrames();
+      coachMascotTalkRefs += 1;
+      if (coachMascotTalkRefs > 1) return;
+      if (coachAvatar) coachAvatar.classList.add('is-speaking');
+      if (coachMascotFrameTimer) {
+        clearInterval(coachMascotFrameTimer);
+        coachMascotFrameTimer = null;
+      }
+      const sequence = getCoachMascotSequence();
+      const framePaths = Array.isArray(sequence.framePaths) ? sequence.framePaths : [];
+      const restFrame = Number.isFinite(sequence.restFrame)
+        ? sequence.restFrame
+        : Math.max(0, framePaths.length - 1);
+      const talkFrameIndexes = framePaths
+        .map((_, idx) => idx)
+        .filter((idx) => idx !== restFrame);
+      if (!talkFrameIndexes.length) {
+        renderCoachMascotFrame(restFrame, sequence);
+        return;
+      }
+      let talkFramePos = 0;
+      renderCoachMascotFrame(talkFrameIndexes[talkFramePos], sequence);
+      coachMascotFrameTimer = setInterval(() => {
+        if (coachMascotTalkRefs <= 0) return;
+        const liveSequence = getCoachMascotSequence();
+        const liveFramePaths = Array.isArray(liveSequence.framePaths) ? liveSequence.framePaths : [];
+        const liveRestFrame = Number.isFinite(liveSequence.restFrame)
+          ? liveSequence.restFrame
+          : Math.max(0, liveFramePaths.length - 1);
+        const liveTalkFrameIndexes = liveFramePaths
+          .map((_, idx) => idx)
+          .filter((idx) => idx !== liveRestFrame);
+        if (!liveTalkFrameIndexes.length) return;
+        talkFramePos = (talkFramePos + 1) % liveTalkFrameIndexes.length;
+        renderCoachMascotFrame(liveTalkFrameIndexes[talkFramePos], liveSequence);
+      }, COACH_MASCOT_FRAME_INTERVAL_MS);
+    };
+
+    const stopCoachMascotTalk = (options = {}) => {
+      const { settle = true, all = false } = options;
+      if (all) {
+        coachMascotTalkRefs = 0;
+      } else {
+        coachMascotTalkRefs = Math.max(0, coachMascotTalkRefs - 1);
+      }
+      if (coachMascotTalkRefs > 0) return;
+      if (coachMascotFrameTimer) {
+        clearInterval(coachMascotFrameTimer);
+        coachMascotFrameTimer = null;
+      }
+      if (coachAvatar) coachAvatar.classList.remove('is-speaking');
+      if (settle) {
+        const sequence = getCoachMascotSequence();
+        const restFrame = Number.isFinite(sequence.restFrame)
+          ? sequence.restFrame
+          : Math.max(0, (Array.isArray(sequence.framePaths) ? sequence.framePaths.length : 1) - 1);
+        renderCoachMascotFrame(restFrame, sequence);
+      }
+    };
+
     const setTalkState = (state) => {
       talkState = state;
       if (chatControls) {
@@ -1734,6 +1900,7 @@ class PagePremium extends HTMLElement {
 
 	    const stopPlayback = () => {
 	      playbackRequestToken += 1;
+	      stopCoachMascotTalk({ settle: true, all: true });
 	      const ttsPlugin = getNativeTtsPlugin();
       if (ttsPlugin && typeof ttsPlugin.stop === 'function') {
         try {
@@ -1770,16 +1937,50 @@ class PagePremium extends HTMLElement {
 	      if (!skipStop) {
 	        stopPlayback();
 	      }
+	      let startedTalk = false;
+	      let startTalkTimer = null;
+	      const clearStartTalkTimer = () => {
+	        if (!startTalkTimer) return;
+	        clearTimeout(startTalkTimer);
+	        startTalkTimer = null;
+	      };
+	      const startTalk = () => {
+	        clearStartTalkTimer();
+	        if (startedTalk) return;
+	        startedTalk = true;
+	        startCoachMascotTalk();
+	      };
+	      const startTalkOnAudible = () => {
+	        clearStartTalkTimer();
+	        startTalkTimer = setTimeout(startTalk, COACH_MASCOT_AUDIO_START_DELAY_MS);
+	      };
+	      let releasedTalk = false;
+	      const releaseTalk = () => {
+	        if (releasedTalk) return;
+	        releasedTalk = true;
+	        clearStartTalkTimer();
+	        stopCoachMascotTalk({ settle: true });
+	      };
 	      const audio = new Audio(url);
 	      activeAudio = audio;
-	      audio.play().catch((err) => {
-	        console.warn('[premium] audio play error', err);
-	      });
+	      audio.onplaying = startTalkOnAudible;
+	      const playPromise = audio.play();
+	      if (playPromise && typeof playPromise.then === 'function') {
+	        playPromise
+	          .then(() => {})
+	          .catch((err) => {
+	            console.warn('[premium] audio play error', err);
+	            if (activeAudio === audio) activeAudio = null;
+	            releaseTalk();
+	          });
+	      }
 	      audio.onended = () => {
 	        if (activeAudio === audio) activeAudio = null;
+	        releaseTalk();
 	      };
 	      audio.onerror = () => {
 	        if (activeAudio === audio) activeAudio = null;
+	        releaseTalk();
 	      };
 	      return true;
 	    };
@@ -1790,12 +1991,29 @@ class PagePremium extends HTMLElement {
       if (!skipStop) {
         stopPlayback();
       }
+      let startedTalk = false;
+      const startTalk = () => {
+        if (startedTalk) return;
+        startedTalk = true;
+        startCoachMascotTalk();
+      };
+      let releasedTalk = false;
+      const releaseTalk = () => {
+        if (releasedTalk) return;
+        releasedTalk = true;
+        stopCoachMascotTalk({ settle: true });
+      };
       const utter = new SpeechSynthesisUtterance(text);
       utter.lang = 'en-US';
+      utter.onstart = () => {
+        startTalk();
+      };
       utter.onend = () => {
+        releaseTalk();
         if (typeof onEnd === 'function') onEnd();
       };
       utter.onerror = (err) => {
+        releaseTalk();
         if (typeof onError === 'function') onError(err);
       };
       try {
@@ -1826,6 +2044,27 @@ class PagePremium extends HTMLElement {
 
       const ttsPlugin = getNativeTtsPlugin();
       if (ttsPlugin && typeof ttsPlugin.speak === 'function') {
+        let startedTalk = false;
+        let startTalkTimer = null;
+        const clearStartTalkTimer = () => {
+          if (!startTalkTimer) return;
+          clearTimeout(startTalkTimer);
+          startTalkTimer = null;
+        };
+        const startTalk = () => {
+          clearStartTalkTimer();
+          if (startedTalk) return;
+          startedTalk = true;
+          startCoachMascotTalk();
+        };
+        let releasedTalk = false;
+        const releaseTalk = () => {
+          if (releasedTalk) return;
+          releasedTalk = true;
+          clearStartTalkTimer();
+          stopCoachMascotTalk({ settle: true });
+        };
+        startTalkTimer = setTimeout(startTalk, 240);
         Promise.resolve(
           ttsPlugin.speak({
             text,
@@ -1838,9 +2077,11 @@ class PagePremium extends HTMLElement {
           })
         )
           .then(() => {
+            releaseTalk();
             if (typeof onEnd === 'function') onEnd();
           })
           .catch((err) => {
+            releaseTalk();
             const startedWeb = playSpeechWeb(text, {
               onEnd,
               onError,
@@ -1862,18 +2103,59 @@ class PagePremium extends HTMLElement {
       }
       if (audioUrl) {
         stopPlayback();
+        let startedTalk = false;
+        let startTalkTimer = null;
+        const clearStartTalkTimer = () => {
+          if (!startTalkTimer) return;
+          clearTimeout(startTalkTimer);
+          startTalkTimer = null;
+        };
+        const startTalk = () => {
+          clearStartTalkTimer();
+          if (startedTalk) return;
+          startedTalk = true;
+          startCoachMascotTalk();
+        };
+        const startTalkOnAudible = () => {
+          clearStartTalkTimer();
+          startTalkTimer = setTimeout(startTalk, COACH_MASCOT_AUDIO_START_DELAY_MS);
+        };
+        let releasedTalk = false;
+        const releaseTalk = () => {
+          if (releasedTalk) return;
+          releasedTalk = true;
+          clearStartTalkTimer();
+          stopCoachMascotTalk({ settle: true });
+        };
         const audio = new Audio(audioUrl);
         activeAudio = audio;
         previewAudio = audio;
         setPreviewPlaying(true);
-        audio.play().catch((err) => {
-          console.warn('[premium] audio play error', err);
+        audio.onplaying = startTalkOnAudible;
+        const playPromise = audio.play();
+        if (playPromise && typeof playPromise.then === 'function') {
+          playPromise
+            .then(() => {})
+            .catch((err) => {
+              console.warn('[premium] audio play error', err);
+              releaseTalk();
+              if (previewAudio === audio) {
+                previewAudio = null;
+                setPreviewPlaying(false);
+              }
+              if (activeAudio === audio) activeAudio = null;
+            });
+        }
+        audio.onended = () => {
+          releaseTalk();
           if (previewAudio === audio) {
             previewAudio = null;
             setPreviewPlaying(false);
           }
-        });
-        audio.onended = () => {
+          if (activeAudio === audio) activeAudio = null;
+        };
+        audio.onerror = () => {
+          releaseTalk();
           if (previewAudio === audio) {
             previewAudio = null;
             setPreviewPlaying(false);
@@ -2816,15 +3098,20 @@ class PagePremium extends HTMLElement {
 
     const updateCoachAvatar = () => {
       if (!coachAvatar) return;
+      stopCoachMascotTalk({ settle: false, all: true });
       if (chatMode === 'chatbot') {
-        coachAvatar.textContent = '';
         coachAvatar.classList.remove('coach-avatar-cat');
         coachAvatar.classList.add('coach-avatar-bot');
       } else {
-        coachAvatar.textContent = '';
         coachAvatar.classList.remove('coach-avatar-bot');
         coachAvatar.classList.add('coach-avatar-cat');
       }
+      preloadCoachMascotFrames();
+      const sequence = getCoachMascotSequence();
+      const restFrame = Number.isFinite(sequence.restFrame)
+        ? sequence.restFrame
+        : Math.max(0, (Array.isArray(sequence.framePaths) ? sequence.framePaths.length : 1) - 1);
+      renderCoachMascotFrame(restFrame, sequence);
     };
 
     const updateCoachCopy = () => {

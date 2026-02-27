@@ -504,6 +504,111 @@ window.r34lp0w3r.speakBadges = loadSpeakStore(
   window.r34lp0w3r.speakBadges || {}
 );
 
+const SPEAK_BADGE_IMAGE_FALLBACK = 'assets/badges/badge1.png';
+
+const escapeBadgeHtml = (value) =>
+  String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/\"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
+const resolveBadgeEntry = (badgeOrId) => {
+  if (!badgeOrId) return null;
+  const badges =
+    window.r34lp0w3r && window.r34lp0w3r.speakBadges && typeof window.r34lp0w3r.speakBadges === 'object'
+      ? window.r34lp0w3r.speakBadges
+      : {};
+  if (typeof badgeOrId === 'string') {
+    const key = badgeOrId.trim();
+    if (!key) return null;
+    const entry = badges[key];
+    if (!entry || typeof entry !== 'object') return null;
+    return { id: key, ...entry };
+  }
+  if (badgeOrId && typeof badgeOrId === 'object') {
+    const id = badgeOrId.id || badgeOrId.badgeId || badgeOrId.key || '';
+    return { id, ...badgeOrId };
+  }
+  return null;
+};
+
+window.openSpeakBadgePopup = async (badgeOrId) => {
+  const badge = resolveBadgeEntry(badgeOrId);
+  if (!badge) return false;
+  const image = String(badge.image || '').trim() || SPEAK_BADGE_IMAGE_FALLBACK;
+  const routeTitle = String(badge.routeTitle || '').trim();
+  const title = routeTitle || String(badge.title || badge.label || '').trim() || 'Ruta completada';
+  const subtitle = String(badge.subtitle || '').trim();
+
+  const closeExisting = () => {
+    const current = document.querySelector('.speak-badge-overlay');
+    if (!current) return;
+    const onKey = current.__onKeyDown;
+    if (typeof onKey === 'function') {
+      document.removeEventListener('keydown', onKey);
+    }
+    current.remove();
+  };
+
+  closeExisting();
+
+  const overlay = document.createElement('div');
+  overlay.className = 'speak-badge-overlay';
+  overlay.innerHTML = `
+    <div class="speak-badge-overlay-backdrop" data-close="1"></div>
+    <div class="speak-badge-overlay-card" role="dialog" aria-modal="true" aria-label="${escapeBadgeHtml(title)}">
+      <button class="speak-badge-overlay-close" type="button" aria-label="Cerrar" data-close="1">&times;</button>
+      <img class="speak-badge-overlay-image" src="${escapeBadgeHtml(image)}" alt="${escapeBadgeHtml(title)}">
+      <div class="speak-badge-overlay-title">${escapeBadgeHtml(title)}</div>
+      ${subtitle ? `<div class="speak-badge-overlay-subtitle">${escapeBadgeHtml(subtitle)}</div>` : ''}
+    </div>
+  `;
+  const removeOverlay = () => {
+    const onKey = overlay.__onKeyDown;
+    if (typeof onKey === 'function') {
+      document.removeEventListener('keydown', onKey);
+    }
+    overlay.classList.remove('is-visible');
+    setTimeout(() => {
+      if (overlay.isConnected) overlay.remove();
+    }, 120);
+  };
+  overlay.addEventListener('click', (event) => {
+    const target = event.target instanceof Element ? event.target : null;
+    if (!target) return;
+    if (target.closest('[data-close="1"]')) {
+      removeOverlay();
+    }
+  });
+  overlay.__onKeyDown = (event) => {
+    if (event.key === 'Escape') {
+      removeOverlay();
+    }
+  };
+  document.addEventListener('keydown', overlay.__onKeyDown);
+  document.body.appendChild(overlay);
+  requestAnimationFrame(() => {
+    overlay.classList.add('is-visible');
+  });
+  if (!window.closeSpeakBadgePopup || typeof window.closeSpeakBadgePopup !== 'function') {
+    window.closeSpeakBadgePopup = () => {
+      closeExisting();
+    };
+  }
+  return true;
+};
+
+window.openSpeakBadgeFromNotification = (action = {}) => {
+  const payload = action && typeof action === 'object' ? action : {};
+  const badgeId = String(
+    payload.badgeId || payload.badge_id || payload.id || payload.badge || ''
+  ).trim();
+  if (!badgeId) return;
+  window.openSpeakBadgePopup(badgeId).catch(() => {});
+};
+
 updateSpeakLocalOwner();
 
 window.persistSpeakStores = () => {

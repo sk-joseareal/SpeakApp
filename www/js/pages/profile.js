@@ -7,17 +7,7 @@ class PageProfile extends HTMLElement {
   connectedCallback() {
     this.classList.add('ion-page');
     if (!this.activeTab) {
-      let storedTab = '';
-      if (window.r34lp0w3r && window.r34lp0w3r.profileActiveTab) {
-        storedTab = window.r34lp0w3r.profileActiveTab;
-      } else {
-        try {
-          storedTab = localStorage.getItem('appv5:profile-tab') || '';
-        } catch (err) {
-          storedTab = '';
-        }
-      }
-      this.activeTab = storedTab === 'review' || storedTab === 'prefs' ? storedTab : 'prefs';
+      this.activeTab = 'review';
     }
     if (!this.reviewTone) {
       const storedTone = window.r34lp0w3r && window.r34lp0w3r.profileReviewTone;
@@ -66,28 +56,13 @@ class PageProfile extends HTMLElement {
         // no-op
       }
     };
-    const readStoredTab = () => {
-      if (window.r34lp0w3r && window.r34lp0w3r.profileActiveTab) {
-        return window.r34lp0w3r.profileActiveTab;
-      }
-      try {
-        return localStorage.getItem('appv5:profile-tab') || '';
-      } catch (err) {
-        return '';
-      }
-    };
     if (window.r34lp0w3r && window.r34lp0w3r.profileForceTab) {
       this.activeTab = window.r34lp0w3r.profileForceTab;
       persistProfileTab(this.activeTab);
       window.r34lp0w3r.profileForceTab = null;
-    } else {
-      const storedTab = readStoredTab();
-      if (storedTab === 'review' || storedTab === 'prefs') {
-        this.activeTab = storedTab;
-      }
     }
     if (this.activeTab !== 'review' && this.activeTab !== 'prefs') {
-      this.activeTab = 'prefs';
+      this.activeTab = 'review';
     }
     const storedReviewTone = window.r34lp0w3r && window.r34lp0w3r.profileReviewTone;
     if (storedReviewTone === 'okay' || storedReviewTone === 'bad') {
@@ -436,6 +411,52 @@ class PageProfile extends HTMLElement {
           .join('')}</div>`
       : `<div class="review-empty">No hay frases en ${reviewToneLabel}.</div>`;
 
+    const badgeStore =
+      window.r34lp0w3r && window.r34lp0w3r.speakBadges && typeof window.r34lp0w3r.speakBadges === 'object'
+        ? window.r34lp0w3r.speakBadges
+        : {};
+    const routeBadgeOrder = new Map(
+      routes.map((route, idx) => [route && route.id ? route.id : '', idx + 1])
+    );
+    const resolveBadgeView = (badgeId, entry) => {
+      if (!badgeId || !entry || typeof entry !== 'object') return null;
+      const routeId = String(entry.routeId || '').trim();
+      const routeTitle = String(entry.routeTitle || '').trim();
+      let badgeIndex = Number(entry.badgeIndex);
+      if (!Number.isFinite(badgeIndex) || badgeIndex <= 0) {
+        badgeIndex = routeId && routeBadgeOrder.has(routeId) ? routeBadgeOrder.get(routeId) : NaN;
+      }
+      if (!Number.isFinite(badgeIndex) || badgeIndex <= 0 || badgeIndex > 5) {
+        return null;
+      }
+      const image = String(entry.image || '').trim() || `assets/badges/badge${badgeIndex}.png`;
+      const title = String(entry.title || '').trim() || `Badge ${badgeIndex}`;
+      return {
+        id: badgeId,
+        badgeIndex,
+        image,
+        title,
+        routeTitle
+      };
+    };
+    const earnedBadges = Object.entries(badgeStore)
+      .map(([badgeId, entry]) => resolveBadgeView(badgeId, entry))
+      .filter(Boolean)
+      .sort((a, b) => a.badgeIndex - b.badgeIndex);
+    const earnedBadgesMarkup = earnedBadges.length
+      ? earnedBadges
+          .map(
+            (badge) => `
+              <button class="profile-earned-badge-btn" type="button" data-badge-id="${escapeHtml(badge.id)}">
+                <img class="profile-earned-badge-img" src="${escapeHtml(badge.image)}" alt="${escapeHtml(
+              badge.title
+            )}">
+              </button>
+            `
+          )
+          .join('')
+      : `<div class="profile-earned-badges-empty">Aún no has desbloqueado badges.</div>`;
+
     this.innerHTML = `
       <ion-header translucent="true">
         <ion-toolbar class="secret-title">
@@ -490,6 +511,12 @@ class PageProfile extends HTMLElement {
                     <span class="profile-locale-name">${escapeHtml(profileLocaleUi.label)}</span>
                   </button>
                 </div>
+              </div>
+            </div>
+            <div class="card profile-earned-badges-card">
+              <div class="pill">Badges</div>
+              <div class="profile-earned-badges" id="profile-earned-badges">
+                ${earnedBadgesMarkup}
               </div>
             </div>
             <div class="profile-tabs">
@@ -629,6 +656,7 @@ class PageProfile extends HTMLElement {
     const profileSaveBtn = this.querySelector('#profile-save-btn');
     const profileSaveNote = this.querySelector('#profile-save-note');
     const profileLocaleToggle = this.querySelector('#profile-locale-toggle');
+    const profileEarnedBadgesEl = this.querySelector('#profile-earned-badges');
 
     const updateProfileState = (nextUser) => {
       const nextUserId =
@@ -729,6 +757,17 @@ class PageProfile extends HTMLElement {
       }
       window.dispatchEvent(new CustomEvent('app:locale-change', { detail: { locale: nextLocale } }));
       this.render();
+    });
+
+    profileEarnedBadgesEl?.addEventListener('click', (event) => {
+      const target = event.target instanceof Element ? event.target : null;
+      const button = target ? target.closest('[data-badge-id]') : null;
+      if (!button) return;
+      const badgeId = String(button.dataset.badgeId || '').trim();
+      if (!badgeId) return;
+      if (typeof window.openSpeakBadgePopup === 'function') {
+        window.openSpeakBadgePopup(badgeId).catch(() => {});
+      }
     });
 
     logoutBtn?.addEventListener('click', this._logoutUser);

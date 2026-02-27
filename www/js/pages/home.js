@@ -22,6 +22,7 @@ const TTS_LANG_BY_LOCALE = {
 const PLAN_MASCOT_FRAME_COUNT = 9;
 const PLAN_MASCOT_REST_FRAME = PLAN_MASCOT_FRAME_COUNT - 1;
 const PLAN_MASCOT_FRAME_INTERVAL_MS = 150;
+const SPEAK_SESSION_PERCENTAGES_VISIBLE_KEY = 'appv5:speak-session-percentages-visible';
 
 class PageHome extends HTMLElement {
   constructor() {
@@ -135,6 +136,14 @@ class PageHome extends HTMLElement {
       this.render();
     };
     window.addEventListener('app:locale-change', this._localeHandler);
+    this._sessionPercentagesVisibilityHandler = () => {
+      if (!this.isConnected) return;
+      this.render();
+    };
+    window.addEventListener(
+      'app:speak-session-percentages-visible-change',
+      this._sessionPercentagesVisibilityHandler
+    );
     this._tabsDidChangeHandler = (event) => {
       const tab = event && event.detail ? event.detail.tab : '';
       if (tab !== 'home') {
@@ -178,6 +187,12 @@ class PageHome extends HTMLElement {
     }
     if (this._localeHandler) {
       window.removeEventListener('app:locale-change', this._localeHandler);
+    }
+    if (this._sessionPercentagesVisibilityHandler) {
+      window.removeEventListener(
+        'app:speak-session-percentages-visible-change',
+        this._sessionPercentagesVisibilityHandler
+      );
     }
     if (this._tabsDidChangeHandler) {
       if (this._tabsEl) {
@@ -404,6 +419,13 @@ class PageHome extends HTMLElement {
     );
     this.currentUiLocale = uiLocale;
     this.currentPlanMessage = copy.planMessage || '';
+    const planLines = this.extractNarrationLines(this.currentPlanMessage);
+    const planRestLine = planLines[0] || null;
+    const planRestHtml = planRestLine
+      ? planRestLine.html && planRestLine.html.trim()
+        ? planRestLine.html
+        : planRestLine.text
+      : copy.planMessage || '';
     const planMascotSrc = this.getPlanMascotFramePath(this.planMascotFrameIndex);
 
     const routes = getRoutes();
@@ -445,7 +467,7 @@ class PageHome extends HTMLElement {
                 >
               </span>
               <p class="onboarding-intro-bubble journey-plan-bubble">
-                ${copy.planMessage}
+                ${planRestHtml}
               </p>
             </section>
           </div>
@@ -594,6 +616,37 @@ class PageHome extends HTMLElement {
       return { started: true, percent, tone: getScoreTone(percent) };
     };
 
+    const showSessionPercentages = this.areSessionPercentagesVisible();
+
+    const clampProgress = (value) => {
+      const numeric = Number(value);
+      if (!Number.isFinite(numeric)) return 0;
+      return Math.max(0, Math.min(100, Math.round(numeric)));
+    };
+
+    const getProgressBarFills = (percent) => {
+      const normalized = clampProgress(percent);
+      const segment = 100 / 3;
+      return [0, 1, 2].map((index) => {
+        const start = index * segment;
+        const fill = ((normalized - start) / segment) * 100;
+        return Math.max(0, Math.min(100, fill));
+      });
+    };
+
+    const renderProgressBars = (percent, tone, contextClass = '') => {
+      const fills = getProgressBarFills(percent);
+      const label = `${clampProgress(percent)}%`;
+      return `<span class="training-progress-bars ${contextClass} is-${tone}" role="img" aria-label="${label}">
+        ${fills
+          .map(
+            (fill, index) =>
+              `<span class="training-progress-bar bar-${index + 1}" style="--bar-fill:${fill.toFixed(2)}%"></span>`
+          )
+          .join('')}
+      </span>`;
+    };
+
     const rewardsStore =
       window.r34lp0w3r && window.r34lp0w3r.speakSessionRewards
         ? window.r34lp0w3r.speakSessionRewards
@@ -695,7 +748,9 @@ class PageHome extends HTMLElement {
           : '';
         const routePercentMarkup =
           routeProgress && routeProgress.started
-            ? `<span class="route-progress ${routeProgress.tone}">${routeProgress.percent}%</span>`
+            ? showSessionPercentages
+              ? `<span class="route-progress ${routeProgress.tone}">${routeProgress.percent}%</span>`
+              : renderProgressBars(routeProgress.percent, routeProgress.tone, 'is-route')
             : '';
         const modulesMarkup = route.modules
           .map((module) => {
@@ -705,7 +760,9 @@ class PageHome extends HTMLElement {
             const moduleClass = progress.started ? '' : 'module-item-neutral';
             const lockedClass = routeUnlocked ? '' : 'module-item-locked';
             const progressMarkup = progress.started
-              ? `<span class="module-progress ${progress.tone}">${progress.percent}%</span>`
+              ? showSessionPercentages
+                ? `<span class="module-progress ${progress.tone}">${progress.percent}%</span>`
+                : renderProgressBars(progress.percent, progress.tone, 'is-module')
               : '';
             const sessionsMarkup =
               routeUnlocked && isModuleOpen
@@ -716,7 +773,9 @@ class PageHome extends HTMLElement {
                       const started = hasSessionAttempts(item);
                       const sessionPercent = started ? getSessionPercent(item) : null;
                       const labelText =
-                        started && sessionPercent !== null ? getScoreLabel(sessionPercent) : '';
+                        showSessionPercentages && started && sessionPercent !== null
+                          ? getScoreLabel(sessionPercent)
+                          : '';
                       const tone =
                         started && sessionPercent !== null ? getScoreTone(sessionPercent) : 'neutral';
                       const toneClass =
@@ -727,7 +786,8 @@ class PageHome extends HTMLElement {
                             : tone === 'bad'
                               ? 'bad'
                               : 'neutral';
-                      const scoreText = started && sessionPercent !== null ? `${sessionPercent}%` : '';
+                      const scoreText =
+                        showSessionPercentages && started && sessionPercent !== null ? `${sessionPercent}%` : '';
                       const reward = rewardsStore[item.id];
                       const rewardIcon = reward && reward.rewardIcon ? reward.rewardIcon : 'diamond';
                       const rewardQty =
@@ -857,14 +917,14 @@ class PageHome extends HTMLElement {
               >
             </span>
             <p class="onboarding-intro-bubble journey-plan-bubble">
-              ${copy.planMessage}
+              ${planRestHtml}
             </p>
           </section>
 
           <div class="journey-start">
             <div class="journey-start-pill">${expandedRoute.title}</div>
             <button class="journey-start-btn ${expandedRouteUnlocked ? '' : 'is-locked'}" type="button">
-              Start
+              go
             </button>
           </div>
 
@@ -1025,6 +1085,14 @@ class PageHome extends HTMLElement {
     toggleLanguageBtn?.addEventListener('click', () => {
       this.toggleLocaleFromFlag();
     });
+    const planCardEl = this.querySelector('.journey-plan-card');
+    planCardEl?.addEventListener('click', (event) => {
+      const target = event && event.target && typeof event.target.closest === 'function'
+        ? event.target.closest('button, [data-action], a, input, textarea, select')
+        : null;
+      if (target) return;
+      this.playPlanNarration();
+    });
     if (options.skipNarration) {
       this.clearNarrationTimer();
       return;
@@ -1037,6 +1105,27 @@ class PageHome extends HTMLElement {
 
   normalizeLocale(locale) {
     return normalizeCopyLocale(locale);
+  }
+
+  areSessionPercentagesVisible() {
+    const globalValue =
+      window.r34lp0w3r &&
+      Object.prototype.hasOwnProperty.call(window.r34lp0w3r, 'speakSessionPercentagesVisible')
+        ? window.r34lp0w3r.speakSessionPercentagesVisible
+        : undefined;
+    if (typeof globalValue === 'boolean') return globalValue;
+    if (typeof globalValue === 'string') {
+      const normalized = globalValue.trim().toLowerCase();
+      if (!normalized) return true;
+      return !['0', 'false', 'off'].includes(normalized);
+    }
+    try {
+      const raw = localStorage.getItem(SPEAK_SESSION_PERCENTAGES_VISIBLE_KEY);
+      if (raw === null || raw === undefined || raw === '') return true;
+      return !['0', 'false', 'off'].includes(String(raw).trim().toLowerCase());
+    } catch (err) {
+      return true;
+    }
   }
 
   getBaseLocale() {
@@ -1169,6 +1258,27 @@ class PageHome extends HTMLElement {
       .trim();
   }
 
+  extractNarrationLines(value) {
+    const raw = String(value || '');
+    if (!raw.trim()) return [];
+    const normalized = raw
+      .replace(/<\s*br\s*\/?>/gi, '\n')
+      .replace(/<\/p>\s*<p>/gi, '\n')
+      .replace(/<\/li>\s*<li>/gi, '\n');
+    const lines = normalized
+      .split(/\r?\n+/)
+      .map((part) => {
+        const html = String(part || '').trim();
+        const text = this.extractSpeechText(html);
+        if (!text) return null;
+        return { text, html };
+      })
+      .filter(Boolean);
+    if (lines.length) return lines;
+    const fallback = this.extractSpeechText(raw);
+    return fallback ? [{ text: fallback, html: '' }] : [];
+  }
+
   async stopNarrationPlayback() {
     const plugin = this.getNativeTtsPlugin();
     if (plugin && typeof plugin.stop === 'function') {
@@ -1282,13 +1392,13 @@ class PageHome extends HTMLElement {
     if (!this.isTabActive('home')) {
       return Promise.resolve(false);
     }
-    const text = this.extractSpeechText(this.currentPlanMessage);
-    if (!text) {
+    const lines = this.extractNarrationLines(this.currentPlanMessage);
+    if (!lines.length) {
       this.stopNarration().catch(() => {});
       return Promise.resolve(false);
     }
     const locale = this.getUiLocale(this.currentUiLocale);
-    return this.speakNarration(text, locale)
+    return this.speakNarration(lines, locale, { bubbleEl: this.getPlanBubbleEl() })
       .then((started) => {
         if (started && !this.initialPlanNarrationStarted) {
           this.initialPlanNarrationStarted = true;
@@ -1365,20 +1475,126 @@ class PageHome extends HTMLElement {
     });
   }
 
-  async speakNarration(text, locale) {
+  async speakNarration(linesOrText, locale, options = {}) {
+    const lines = Array.isArray(linesOrText)
+      ? linesOrText.filter((line) => line && typeof line.text === 'string' && line.text.trim())
+      : this.extractNarrationLines(linesOrText);
+    if (!lines.length) return false;
     const normalizedLocale = this.normalizeLocale(locale) || 'en';
     const lang = TTS_LANG_BY_LOCALE[normalizedLocale] || 'en-US';
     const token = ++this.narrationToken;
+    const bubbleEl = options && options.bubbleEl ? options.bubbleEl : this.getPlanBubbleEl();
+    const hasMultipleLines = lines.length > 1;
+    const originalBubbleHtml = bubbleEl ? bubbleEl.innerHTML : '';
+    const originalBubbleMinHeight = bubbleEl ? bubbleEl.style.minHeight : '';
+    const restLine = lines[0] || null;
 
     await this.stopNarrationPlayback();
-    if (token !== this.narrationToken) return;
+    if (token !== this.narrationToken) return false;
+
+    if (bubbleEl) {
+      bubbleEl.dataset.narrationToken = String(token);
+    }
+
+    const applyLine = (line) => {
+      if (!bubbleEl) return;
+      if (bubbleEl.dataset.narrationToken !== String(token)) return;
+      const lineHtml = line && typeof line.html === 'string' ? line.html.trim() : '';
+      if (lineHtml) {
+        bubbleEl.innerHTML = lineHtml;
+      } else {
+        bubbleEl.textContent = line && line.text ? line.text : '';
+      }
+    };
+
+    const measureMaxLineHeight = () => {
+      if (!bubbleEl || !hasMultipleLines) return 0;
+      const width =
+        Math.ceil(
+          bubbleEl.getBoundingClientRect().width || bubbleEl.clientWidth || bubbleEl.offsetWidth || 0
+        ) || 0;
+      if (!width) return 0;
+      const probe = document.createElement('div');
+      probe.className = bubbleEl.className;
+      probe.setAttribute('aria-hidden', 'true');
+      probe.style.position = 'absolute';
+      probe.style.visibility = 'hidden';
+      probe.style.pointerEvents = 'none';
+      probe.style.left = '-99999px';
+      probe.style.top = '0';
+      probe.style.width = `${width}px`;
+      probe.style.minHeight = '0';
+      probe.style.height = 'auto';
+      const parent = bubbleEl.parentElement || this;
+      parent.appendChild(probe);
+      let maxHeight = 0;
+      lines.forEach((line) => {
+        const html = line && typeof line.html === 'string' ? line.html.trim() : '';
+        if (html) probe.innerHTML = html;
+        else probe.textContent = line && line.text ? line.text : '';
+        const nextHeight = Math.ceil(
+          Math.max(probe.scrollHeight || 0, probe.getBoundingClientRect().height || 0)
+        );
+        if (nextHeight > maxHeight) maxHeight = nextHeight;
+      });
+      probe.remove();
+      return maxHeight;
+    };
+
+    if (bubbleEl) {
+      if (restLine) applyLine(restLine);
+      if (hasMultipleLines) {
+        const maxHeight = measureMaxLineHeight();
+        if (maxHeight > 0) {
+          bubbleEl.style.minHeight = `${maxHeight}px`;
+        }
+      } else {
+        bubbleEl.style.minHeight = originalBubbleMinHeight;
+      }
+    }
+
+    const restoreBubble = () => {
+      if (!bubbleEl) return;
+      if (bubbleEl.dataset.narrationToken !== String(token)) return;
+      if (restLine) {
+        applyLine(restLine);
+      } else {
+        bubbleEl.innerHTML = originalBubbleHtml;
+      }
+      if (!hasMultipleLines) {
+        bubbleEl.style.minHeight = originalBubbleMinHeight;
+      }
+      delete bubbleEl.dataset.narrationToken;
+    };
+
+    const waitMs = (ms) =>
+      new Promise((resolve) => {
+        setTimeout(resolve, Math.max(0, Number(ms) || 0));
+      });
+
+    const estimateLinePlaybackMs = (lineText) => {
+      const chars = String(lineText || '').trim().length;
+      return Math.min(9500, Math.max(900, Math.round(chars * 72)));
+    };
+
+    const waitWebSpeechIdle = async (maxMs = 7000) => {
+      if (!this.canWebSpeak() || typeof window === 'undefined' || !window.speechSynthesis) return;
+      const synth = window.speechSynthesis;
+      const startedAt = Date.now();
+      while (token === this.narrationToken && Date.now() - startedAt < maxMs) {
+        if (!synth.speaking && !synth.pending && !synth.paused) return;
+        await waitMs(60);
+      }
+    };
 
     const plugin = this.getNativeTtsPlugin();
-    if (plugin && typeof plugin.speak === 'function') {
+    const speakLineWithPlugin = async (lineText) => {
+      if (!plugin || typeof plugin.speak !== 'function') return false;
       this.startPlanMascotTalk();
+      const startedAt = Date.now();
       try {
         await plugin.speak({
-          text,
+          text: lineText,
           lang,
           rate: 1.0,
           pitch: 1.0,
@@ -1386,41 +1602,80 @@ class PageHome extends HTMLElement {
           category: 'ambient',
           queueStrategy: 1
         });
+        const minMs = estimateLinePlaybackMs(lineText);
+        const elapsed = Date.now() - startedAt;
+        if (elapsed < minMs && token === this.narrationToken) {
+          await waitMs(minMs - elapsed);
+        }
         return true;
       } catch (err) {
-        // fallback below
+        return false;
       } finally {
         if (token === this.narrationToken) {
           this.stopPlanMascotTalk({ settle: true });
         }
       }
-    }
-
-    const hooks = {
-      onPlaybackStart: () => {
-        if (token !== this.narrationToken) return;
-        this.startPlanMascotTalk();
-      },
-      onPlaybackEnd: () => {
-        if (token !== this.narrationToken) return;
-        this.stopPlanMascotTalk({ settle: true });
-      }
     };
 
-    const started = await this.speakNarrationWeb(
-      text,
-      lang,
-      token,
-      1500,
-      hooks
-    );
-    if (started || token !== this.narrationToken) return started;
+    const speakLineWebWithRetry = async (lineText) => {
+      const hooks = {
+        onPlaybackStart: () => {
+          if (token !== this.narrationToken) return;
+          this.startPlanMascotTalk();
+        },
+        onPlaybackEnd: () => {
+          if (token !== this.narrationToken) return;
+          this.stopPlanMascotTalk({ settle: true });
+        }
+      };
 
-    await new Promise((resolve) => setTimeout(resolve, 450));
-    if (token !== this.narrationToken) return false;
-    await this.stopNarrationPlayback();
-    if (token !== this.narrationToken) return false;
-    return this.speakNarrationWeb(text, lang, token, 3200, hooks);
+      let started = await this.speakNarrationWeb(lineText, lang, token, 1500, hooks);
+      if (started && token === this.narrationToken) {
+        const maxWait = Math.min(11000, estimateLinePlaybackMs(lineText) + 2400);
+        await waitWebSpeechIdle(maxWait);
+      }
+      if (started || token !== this.narrationToken) return started;
+
+      await waitMs(450);
+      if (token !== this.narrationToken) return false;
+      await this.stopNarrationPlayback();
+      if (token !== this.narrationToken) return false;
+      started = await this.speakNarrationWeb(lineText, lang, token, 3200, hooks);
+      if (started && token === this.narrationToken) {
+        const maxWait = Math.min(12000, estimateLinePlaybackMs(lineText) + 3000);
+        await waitWebSpeechIdle(maxWait);
+      }
+      return started;
+    };
+
+    let startedAny = false;
+    try {
+      for (let index = 0; index < lines.length; index += 1) {
+        if (token !== this.narrationToken) return startedAny;
+        const line = lines[index];
+        const lineText = String(line.text || '').trim();
+        if (!lineText) continue;
+        if (hasMultipleLines) {
+          applyLine(line);
+        }
+
+        let started = await speakLineWithPlugin(lineText);
+        if (!started && token === this.narrationToken) {
+          started = await speakLineWebWithRetry(lineText);
+        }
+        startedAny = startedAny || started;
+
+        if (index < lines.length - 1 && token === this.narrationToken) {
+          await waitMs(130);
+        }
+      }
+      return startedAny;
+    } finally {
+      if (token === this.narrationToken) {
+        this.stopPlanMascotTalk({ settle: true });
+      }
+      restoreBubble();
+    }
   }
 }
 

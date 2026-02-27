@@ -56,12 +56,17 @@ class PageNotifications extends HTMLElement {
   }
 
   handleListClick(event) {
-    const button = event.target && event.target.closest('button[data-action]');
-    if (!button) return;
-    const itemEl = button.closest('.notify-item');
+    const target = event.target instanceof Element ? event.target : null;
+    const button = target ? target.closest('button[data-action]') : null;
+    const itemEl = button
+      ? button.closest('.notify-item')
+      : target
+      ? target.closest('.notify-item')
+      : null;
+    if (!itemEl) return;
     const id = itemEl ? itemEl.dataset.id : '';
     if (!id) return;
-    const action = button.dataset.action;
+    const action = button ? button.dataset.action : 'open';
     if (action === 'delete') {
       removeNotification(id);
       return;
@@ -102,7 +107,7 @@ class PageNotifications extends HTMLElement {
       }
       if (action.callback && typeof window[action.callback] === 'function') {
         try {
-          window[action.callback]();
+          window[action.callback](action);
         } catch (err) {
           console.error('[notifications] error en callback', err);
         }
@@ -129,10 +134,13 @@ class PageNotifications extends HTMLElement {
         const hasAction = item.action && item.action.label;
         const actionLabel = hasAction ? item.action.label : '';
         const readClass = item.status !== 'unread' ? 'is-read' : '';
+        const iconMarkup = item.image
+          ? `<img class="notify-thumb" src="${escapeHtml(item.image)}" alt="">`
+          : `<ion-icon name="${escapeHtml(icon)}"></ion-icon>`;
         return `
           <div class="notify-item ${readClass}" data-id="${escapeHtml(item.id)}">
             <div class="${iconClass}">
-              <ion-icon name="${escapeHtml(icon)}"></ion-icon>
+              ${iconMarkup}
             </div>
             <div class="notify-content">
               <div class="notify-text">${escapeHtml(item.title)}</div>

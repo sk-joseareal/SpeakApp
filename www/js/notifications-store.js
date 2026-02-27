@@ -59,11 +59,17 @@ const parsePushAction = (data) => {
   );
   const hash = pickString(source.hash, source.action_hash, source.actionHash);
   const callback = pickString(source.callback, source.action_callback, source.actionCallback);
+  const badgeId = pickString(
+    source.badgeId,
+    source.badge_id,
+    source.action_badge_id,
+    source.actionBadgeId
+  );
   const completeValue = parseBool(
     source.complete ?? source.action_complete ?? source.actionComplete
   );
 
-  if (!label && !tab && !profileTab && !hash && !callback) return null;
+  if (!label && !tab && !profileTab && !hash && !callback && !badgeId) return null;
   const action = {
     label: label || 'Abrir'
   };
@@ -71,6 +77,7 @@ const parsePushAction = (data) => {
   if (profileTab) action.profileTab = profileTab;
   if (hash) action.hash = hash;
   if (callback) action.callback = callback;
+  if (badgeId) action.badgeId = badgeId;
   if (completeValue !== null) action.complete = completeValue;
   return action;
 };
@@ -107,6 +114,14 @@ const extractPushPayload = (rawEntry) => {
   );
   const type = pickString(data.type, data.notification_type, data.kind) || 'push';
   const icon = pickString(data.icon);
+  const image = pickString(
+    push.image,
+    raw.image,
+    data.image,
+    data.image_url,
+    data.thumb,
+    data.thumbnail
+  );
   const toneRaw = pickString(data.tone).toLowerCase();
   const tone = toneRaw === 'good' || toneRaw === 'warn' ? toneRaw : '';
   const action = parsePushAction(data);
@@ -122,6 +137,7 @@ const extractPushPayload = (rawEntry) => {
     created_at: createdAt,
     action,
     icon,
+    image,
     tone
   };
 };
@@ -162,6 +178,7 @@ const normalizeNotification = (entry) => {
     created_at: created,
     action,
     icon: entry.icon || '',
+    image: entry.image || '',
     tone: entry.tone || ''
   };
 };
@@ -231,6 +248,7 @@ export const addPushNotification = (rawEntry) => {
     created_at: push.created_at || Date.now(),
     action: push.action || null,
     icon: push.icon || 'notifications-outline',
+    image: push.image || '',
     tone: push.tone || ''
   };
 

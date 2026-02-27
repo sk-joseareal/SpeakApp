@@ -48,12 +48,13 @@ const APP_COPY = {
     },
     home: {
       planTitle: 'Tu plan',
-      planMessage: 'Este es tu plan para sonar como nativo.',
+      planMessage:
+        'Este es tu plan para sonar como nativo.<br>Toca esta tarjeta para escucharlo otra vez.',
       toggleLanguage: 'Cambiar idioma a {lang}'
     },
     freeRide: {
       tabLabel: 'Free ride',
-      title: 'Práctica libre',
+      title: 'Lab',
       subtitle: 'Escribe tu frase o texto y practica pronunciacion libre.',
       inputLabel: 'Tu frase',
       inputPlaceholder: 'Ejemplo: I would like to order a coffee, please.',
@@ -101,12 +102,13 @@ const APP_COPY = {
     },
     home: {
       planTitle: 'Your plan',
-      planMessage: 'This is your plan to sound like a native.',
+      planMessage:
+        'This is your plan to sound like a native.<br>Tap this card to hear it again.',
       toggleLanguage: 'Switch language to {lang}'
     },
     freeRide: {
       tabLabel: 'Free ride',
-      title: 'Free ride',
+      title: 'Lab',
       subtitle: 'Write your own phrase or longer text and practice freely.',
       inputLabel: 'Your phrase',
       inputPlaceholder: 'Example: I would like to order a coffee, please.',

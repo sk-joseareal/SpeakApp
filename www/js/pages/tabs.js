@@ -21,12 +21,12 @@ class TabsPage extends HTMLElement {
         </ion-tab>
         <ion-tab-bar slot="bottom" class="app-tab-bar">
           <ion-tab-button tab="home">
-            <ion-icon name="mic-outline"></ion-icon>
-            <ion-label>Routes</ion-label>
+            <ion-icon name="barbell-outline"></ion-icon>
+            <ion-label>Training</ion-label>
           </ion-tab-button>
           <ion-tab-button tab="freeride">
-            <ion-icon name="paper-plane-outline"></ion-icon>
-            <ion-label>Free ride</ion-label>
+            <ion-icon name="flask-outline"></ion-icon>
+            <ion-label>Lab</ion-label>
           </ion-tab-button>
           <ion-tab-button tab="tu">
             <ion-icon name="person-circle-outline"></ion-icon>
@@ -34,7 +34,7 @@ class TabsPage extends HTMLElement {
           </ion-tab-button>
           <ion-tab-button tab="premium">
             <img class="tab-mascot-icon" src="assets/mascot/mascot-cat.png" alt="">
-            <ion-label>Talk</ion-label>
+            <ion-label>Chat</ion-label>
           </ion-tab-button>
         </ion-tab-bar>
       </ion-tabs>
@@ -43,6 +43,7 @@ class TabsPage extends HTMLElement {
     const tabsEl = this.querySelector('ion-tabs');
     const tabBarEl = this.querySelector('ion-tab-bar');
     let forcingTab = false;
+    let wasLoggedIn = false;
 
     const readStoredTab = () => {
       try {
@@ -64,6 +65,7 @@ class TabsPage extends HTMLElement {
       const user = window.user;
       return Boolean(user && user.id !== undefined && user.id !== null);
     };
+    wasLoggedIn = isLoggedIn();
 
     const isTabsLocked = () => hasLoginTabsLock() && !isLoggedIn();
 
@@ -156,7 +158,14 @@ class TabsPage extends HTMLElement {
     window.addEventListener('app:tabs-lock-change', this._tabsLockChangeHandler);
 
     this._userChangeHandler = () => {
+      const nowLoggedIn = isLoggedIn();
+      const justLoggedIn = !wasLoggedIn && nowLoggedIn;
+      wasLoggedIn = nowLoggedIn;
       enforceLoginTabsLock(false);
+      if (justLoggedIn) {
+        writeStoredTab('home');
+        forceTab('home');
+      }
     };
     window.addEventListener('app:user-change', this._userChangeHandler);
 

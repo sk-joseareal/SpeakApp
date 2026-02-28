@@ -26,6 +26,13 @@ const uniqStrings = (items) => {
   return out;
 };
 
+const parseBooleanLoose = (value, fallback = false) => {
+  if (value === undefined || value === null || value === '') return fallback;
+  if (typeof value === 'boolean') return value;
+  const normalized = String(value).trim().toLowerCase();
+  return ['1', 'true', 'yes', 'y', 'on'].includes(normalized);
+};
+
 const normalizeTrainingEndpoint = (raw) => {
   const value = typeof raw === 'string' ? raw.trim() : '';
   if (!value) return '';
@@ -57,7 +64,46 @@ const getConfiguredTrainingDataUrls = () => {
   ];
 
   const configured = uniqStrings(globals.map((item) => normalizeTrainingEndpoint(item)));
+  const hasConfiguredRemote = configured.some((url) => url !== localUrl);
+
+  const host = window.location && window.location.hostname ? String(window.location.hostname) : '';
+  const isLocalHost =
+    host === 'localhost' ||
+    host === '127.0.0.1' ||
+    host === '::1' ||
+    host.endsWith('.local');
+  const allowLocalFallbackConfig =
+    window.contentConfig && window.contentConfig.allowLocalFallback !== undefined
+      ? window.contentConfig.allowLocalFallback
+      : undefined;
+  const allowLocalFallback = parseBooleanLoose(
+    allowLocalFallbackConfig !== undefined ? allowLocalFallbackConfig : isLocalHost,
+    isLocalHost
+  );
+
+  if (hasConfiguredRemote && !allowLocalFallback) return configured;
   return [...configured, localUrl];
+};
+
+const getTrainingDataToken = () => {
+  if (typeof window === 'undefined') return '';
+  const fromContentConfig =
+    window.contentConfig && typeof window.contentConfig.trainingDataToken === 'string'
+      ? window.contentConfig.trainingDataToken.trim()
+      : '';
+  if (fromContentConfig) return fromContentConfig;
+  const fromGlobal =
+    typeof window.CONTENT_TRAINING_DATA_TOKEN === 'string'
+      ? window.CONTENT_TRAINING_DATA_TOKEN.trim()
+      : '';
+  if (fromGlobal) return fromGlobal;
+  return '';
+};
+
+const buildTrainingDataRequestHeaders = () => {
+  const token = getTrainingDataToken();
+  if (!token) return {};
+  return { 'x-content-read-token': token };
 };
 
 const unwrapTrainingPayload = (raw) => {
@@ -165,7 +211,9 @@ const loadTrainingData = async () => {
 
       for (const url of urls) {
         try {
-          const res = await fetch(url);
+          const headers = buildTrainingDataRequestHeaders();
+          const fetchOpts = Object.keys(headers).length ? { headers } : undefined;
+          const res = await fetch(url, fetchOpts);
           if (!res.ok) throw new Error(`training data: ${res.status}`);
           const raw = await res.json();
           const parsed = unwrapTrainingPayload(raw);

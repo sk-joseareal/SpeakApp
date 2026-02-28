@@ -128,6 +128,22 @@
       window.SPEAK_CONTENT_URL ||
       'https://content.speakapp.curso-ingles.com/content/training-data';
   }
+  if (window.contentConfig.trainingDataToken === undefined) {
+    window.contentConfig.trainingDataToken = window.CONTENT_TRAINING_DATA_TOKEN || '';
+  }
+  if (window.contentConfig.allowLocalFallback === undefined) {
+    const fallbackRaw = window.CONTENT_ALLOW_LOCAL_FALLBACK;
+    if (typeof fallbackRaw === 'string') {
+      window.contentConfig.allowLocalFallback =
+        fallbackRaw.toLowerCase() === '1' ||
+        fallbackRaw.toLowerCase() === 'true' ||
+        fallbackRaw.toLowerCase() === 'yes';
+    } else if (typeof fallbackRaw === 'boolean') {
+      window.contentConfig.allowLocalFallback = fallbackRaw;
+    } else {
+      window.contentConfig.allowLocalFallback = false;
+    }
+  }
 
   window.speakSummaryConfig = window.speakSummaryConfig || {};
   if (!window.speakSummaryConfig.range) {

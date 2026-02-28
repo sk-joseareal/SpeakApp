@@ -63,6 +63,7 @@ Si `CONTENT_ADMIN_TOKEN` está activo, introduce el token en el campo “Admin t
 - `GET /content/training-data`
   - Devuelve release publicada.
   - Si no hay release publicada, devuelve borrador live.
+  - Si `CONTENT_READ_TOKEN` está definido, requiere token de lectura.
   - `?preview=1` devuelve live preview (requiere token admin si está habilitado).
 
 ### Admin (requiere token si `CONTENT_ADMIN_TOKEN` no está vacío)
@@ -91,6 +92,15 @@ Si `CONTENT_ADMIN_TOKEN` está activo, introduce el token en el campo “Admin t
 Enviar token en uno de estos formatos:
 
 - Header `x-content-token: <token>`
+- Header `Authorization: Bearer <token>`
+
+## Auth lectura (opcional)
+
+Si defines `CONTENT_READ_TOKEN`, el endpoint público `GET /content/training-data` exigirá uno de:
+
+- Header `x-content-read-token: <token>`
+- Header `x-content-token: <token>`
+- Header `x-rt-token: <token>`
 - Header `Authorization: Bearer <token>`
 
 ## Ejemplos

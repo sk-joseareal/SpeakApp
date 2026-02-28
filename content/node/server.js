@@ -10,6 +10,7 @@ const Database = require('better-sqlite3');
 const env = (key, fallback) => (process.env[key] ? process.env[key] : fallback);
 const port = Number(env('CONTENT_PORT', '8791'));
 const adminToken = String(env('CONTENT_ADMIN_TOKEN', '') || '').trim();
+const readToken = String(env('CONTENT_READ_TOKEN', '') || '').trim();
 const contentRoot = path.join(__dirname, '..');
 const dbPathInput = String(env('CONTENT_DB_PATH', './node/data/content.db'));
 const dbPath = path.isAbsolute(dbPathInput)
@@ -153,7 +154,7 @@ const parseJsonSafe = (value, fallback) => {
   }
 };
 
-const getRequestToken = (req) => {
+const getAdminRequestToken = (req) => {
   const header = req.get('x-content-token');
   if (header) return String(header).trim();
   const auth = req.get('authorization');
@@ -162,15 +163,48 @@ const getRequestToken = (req) => {
   return m ? String(m[1]).trim() : '';
 };
 
+const hasValidAdminRequestToken = (req) => {
+  if (!adminToken) return false;
+  const incoming = getAdminRequestToken(req);
+  return Boolean(incoming && incoming === adminToken);
+};
+
 const isAdminAuthorized = (req) => {
   if (!adminToken) return true;
-  const incoming = getRequestToken(req);
-  return Boolean(incoming && incoming === adminToken);
+  return hasValidAdminRequestToken(req);
+};
+
+const getReadRequestToken = (req) => {
+  const byHeader = req.get('x-content-read-token');
+  if (byHeader) return String(byHeader).trim();
+  const byContentHeader = req.get('x-content-token');
+  if (byContentHeader) return String(byContentHeader).trim();
+  const rtHeader = req.get('x-rt-token');
+  if (rtHeader) return String(rtHeader).trim();
+  const auth = req.get('authorization');
+  if (!auth) return '';
+  const m = String(auth).match(/^Bearer\s+(.+)$/i);
+  return m ? String(m[1]).trim() : '';
+};
+
+const isReadAuthorized = (req) => {
+  if (hasValidAdminRequestToken(req)) return true;
+  if (!readToken) return true;
+  const incoming = getReadRequestToken(req);
+  return Boolean(incoming && incoming === readToken);
 };
 
 const requireAdmin = (req, res, next) => {
   if (!isAdminAuthorized(req)) {
     res.status(401).json({ ok: false, error: 'unauthorized' });
+    return;
+  }
+  next();
+};
+
+const requireRead = (req, res, next) => {
+  if (!isReadAuthorized(req)) {
+    res.status(401).json({ ok: false, error: 'unauthorized_read' });
     return;
   }
   next();
@@ -674,6 +708,7 @@ app.get('/content/health', (req, res) => {
     service: 'speakapp-content-service',
     db_path: dbPath,
     admin_auth_enabled: Boolean(adminToken),
+    read_auth_enabled: Boolean(readToken),
     counts: {
       routes: Number(countByTable.routes.get() || 0),
       modules: Number(countByTable.modules.get() || 0),
@@ -686,7 +721,7 @@ app.get('/content/health', (req, res) => {
   });
 });
 
-app.get('/content/training-data', (req, res) => {
+app.get('/content/training-data', requireRead, (req, res) => {
   const preview = parseBoolean(req.query.preview, false);
   if (preview && !isAdminAuthorized(req)) {
     res.status(401).json({ ok: false, error: 'unauthorized_preview' });
@@ -894,5 +929,10 @@ app.listen(port, () => {
     console.log('[content] admin auth: enabled');
   } else {
     console.log('[content] admin auth: disabled (set CONTENT_ADMIN_TOKEN)');
+  }
+  if (readToken) {
+    console.log('[content] read auth: enabled');
+  } else {
+    console.log('[content] read auth: disabled (set CONTENT_READ_TOKEN)');
   }
 });

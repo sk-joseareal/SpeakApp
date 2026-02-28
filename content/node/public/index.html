@@ -138,6 +138,21 @@
               <span>Focus</span>
               <input id="sessionFocusInput" type="text" autocomplete="off" />
             </label>
+            <div class="row row-wrap gap-sm">
+              <button id="saveSessionBtn" class="btn btn-primary">Guardar</button>
+              <button id="moveSessionUpBtn" class="btn">↑</button>
+              <button id="moveSessionDownBtn" class="btn">↓</button>
+              <button id="deleteSessionBtn" class="btn btn-danger">Eliminar</button>
+            </div>
+          </div>
+        </article>
+
+        <article class="guided-col">
+          <div class="row between center">
+            <h3>Contenido sesión</h3>
+          </div>
+          <p id="selectedSessionLabel" class="hint"></p>
+          <div class="entity-form">
             <div class="form-section-title">Progress / Status</div>
             <div class="row row-wrap gap-sm">
               <label class="field grow">
@@ -219,12 +234,6 @@
               <span>Sentence expected</span>
               <textarea id="sessionSentenceExpectedInput" rows="3"></textarea>
             </label>
-            <div class="row row-wrap gap-sm">
-              <button id="saveSessionBtn" class="btn btn-primary">Guardar</button>
-              <button id="moveSessionUpBtn" class="btn">↑</button>
-              <button id="moveSessionDownBtn" class="btn">↓</button>
-              <button id="deleteSessionBtn" class="btn btn-danger">Eliminar</button>
-            </div>
           </div>
         </article>
       </div>

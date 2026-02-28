@@ -52,6 +52,7 @@
     deleteModuleBtn: document.getElementById('deleteModuleBtn'),
 
     selectedModuleLabel: document.getElementById('selectedModuleLabel'),
+    selectedSessionLabel: document.getElementById('selectedSessionLabel'),
     sessionIdInput: document.getElementById('sessionIdInput'),
     sessionTitleInput: document.getElementById('sessionTitleInput'),
     sessionFocusInput: document.getElementById('sessionFocusInput'),
@@ -497,6 +498,7 @@
 
     if (session) {
       setSessionFormDisabled(false);
+      el.selectedSessionLabel.textContent = `Sesión actual: ${session.title} (${session.id})`;
       el.sessionIdInput.value = session.id;
       el.sessionTitleInput.value = session.title;
       el.sessionFocusInput.value = session.speak && typeof session.speak === 'object' ? session.speak.focus || '' : '';
@@ -541,6 +543,7 @@
       el.sessionSentenceExpectedInput.value = sentence.expected || '';
     } else {
       setSessionFormDisabled(true);
+      el.selectedSessionLabel.textContent = 'Selecciona o crea una sesión.';
       el.sessionIdInput.value = '';
       el.sessionTitleInput.value = '';
       el.sessionFocusInput.value = '';

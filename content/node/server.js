@@ -44,6 +44,12 @@ app.use(express.urlencoded({ extended: true, limit: '5mb' }));
 const dashboardDir = path.join(__dirname, 'public');
 if (fs.existsSync(dashboardDir)) {
   app.use('/dashboard', express.static(dashboardDir, { redirect: false }));
+  app.get('/styles.css', (req, res) => {
+    res.sendFile(path.join(dashboardDir, 'styles.css'));
+  });
+  app.get('/app.js', (req, res) => {
+    res.sendFile(path.join(dashboardDir, 'app.js'));
+  });
   app.get('/dashboard', (req, res) => {
     res.sendFile(path.join(dashboardDir, 'index.html'));
   });

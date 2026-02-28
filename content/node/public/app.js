@@ -56,11 +56,6 @@
     sessionIdInput: document.getElementById('sessionIdInput'),
     sessionTitleInput: document.getElementById('sessionTitleInput'),
     sessionFocusInput: document.getElementById('sessionFocusInput'),
-    sessionProgressDoneInput: document.getElementById('sessionProgressDoneInput'),
-    sessionProgressTotalInput: document.getElementById('sessionProgressTotalInput'),
-    sessionStatusScoreInput: document.getElementById('sessionStatusScoreInput'),
-    sessionStatusLabelInput: document.getElementById('sessionStatusLabelInput'),
-    sessionStatusToneInput: document.getElementById('sessionStatusToneInput'),
     sessionSoundTitleInput: document.getElementById('sessionSoundTitleInput'),
     sessionSoundHintInput: document.getElementById('sessionSoundHintInput'),
     sessionSoundPhoneticInput: document.getElementById('sessionSoundPhoneticInput'),
@@ -68,7 +63,6 @@
     sessionSpellingTitleInput: document.getElementById('sessionSpellingTitleInput'),
     sessionSpellingHintInput: document.getElementById('sessionSpellingHintInput'),
     sessionSpellingWordsInput: document.getElementById('sessionSpellingWordsInput'),
-    sessionSpellingExpectedInput: document.getElementById('sessionSpellingExpectedInput'),
     sessionSentenceTitleInput: document.getElementById('sessionSentenceTitleInput'),
     sessionSentenceHintInput: document.getElementById('sessionSentenceHintInput'),
     sessionSentenceTextInput: document.getElementById('sessionSentenceTextInput'),
@@ -100,12 +94,6 @@
   };
 
   const deepClone = (value) => JSON.parse(JSON.stringify(value));
-
-  const toIntOr = (value, fallback) => {
-    const num = Number(value);
-    if (!Number.isFinite(num)) return fallback;
-    return Math.round(num);
-  };
 
   const parseWordsInput = (value) =>
     uniqStrings(
@@ -404,11 +392,6 @@
       el.sessionIdInput,
       el.sessionTitleInput,
       el.sessionFocusInput,
-      el.sessionProgressDoneInput,
-      el.sessionProgressTotalInput,
-      el.sessionStatusScoreInput,
-      el.sessionStatusLabelInput,
-      el.sessionStatusToneInput,
       el.sessionSoundTitleInput,
       el.sessionSoundHintInput,
       el.sessionSoundPhoneticInput,
@@ -416,7 +399,6 @@
       el.sessionSpellingTitleInput,
       el.sessionSpellingHintInput,
       el.sessionSpellingWordsInput,
-      el.sessionSpellingExpectedInput,
       el.sessionSentenceTitleInput,
       el.sessionSentenceHintInput,
       el.sessionSentenceTextInput,
@@ -502,20 +484,6 @@
       el.sessionIdInput.value = session.id;
       el.sessionTitleInput.value = session.title;
       el.sessionFocusInput.value = session.speak && typeof session.speak === 'object' ? session.speak.focus || '' : '';
-      el.sessionProgressDoneInput.value = String(
-        session.progress && Number.isFinite(Number(session.progress.done)) ? Number(session.progress.done) : 0
-      );
-      el.sessionProgressTotalInput.value = String(
-        session.progress && Number.isFinite(Number(session.progress.total)) ? Number(session.progress.total) : 10
-      );
-      el.sessionStatusScoreInput.value =
-        session.status && session.status.score !== null && session.status.score !== undefined
-          ? String(session.status.score)
-          : '';
-      el.sessionStatusLabelInput.value =
-        session.status && typeof session.status === 'object' ? session.status.label || '' : '';
-      el.sessionStatusToneInput.value =
-        session.status && typeof session.status === 'object' ? session.status.tone || '' : '';
 
       const sound = session.speak && session.speak.sound && typeof session.speak.sound === 'object'
         ? session.speak.sound
@@ -535,7 +503,6 @@
       el.sessionSpellingTitleInput.value = spelling.title || '';
       el.sessionSpellingHintInput.value = spelling.hint || '';
       el.sessionSpellingWordsInput.value = Array.isArray(spelling.words) ? spelling.words.join('\n') : '';
-      el.sessionSpellingExpectedInput.value = spelling.expected || '';
 
       el.sessionSentenceTitleInput.value = sentence.title || '';
       el.sessionSentenceHintInput.value = sentence.hint || '';
@@ -547,11 +514,6 @@
       el.sessionIdInput.value = '';
       el.sessionTitleInput.value = '';
       el.sessionFocusInput.value = '';
-      el.sessionProgressDoneInput.value = '';
-      el.sessionProgressTotalInput.value = '';
-      el.sessionStatusScoreInput.value = '';
-      el.sessionStatusLabelInput.value = '';
-      el.sessionStatusToneInput.value = '';
       el.sessionSoundTitleInput.value = '';
       el.sessionSoundHintInput.value = '';
       el.sessionSoundPhoneticInput.value = '';
@@ -559,7 +521,6 @@
       el.sessionSpellingTitleInput.value = '';
       el.sessionSpellingHintInput.value = '';
       el.sessionSpellingWordsInput.value = '';
-      el.sessionSpellingExpectedInput.value = '';
       el.sessionSentenceTitleInput.value = '';
       el.sessionSentenceHintInput.value = '';
       el.sessionSentenceTextInput.value = '';
@@ -714,8 +675,6 @@
       {
         id,
         title: `Session ${contentState.sessions.length + 1}`,
-        progress: { done: 0, total: 10 },
-        status: { score: null, label: '', tone: 'neutral' },
         speak: {
           focus: '',
           sound: { title: 'THE WAY', hint: '', phonetic: '', expected: '' },
@@ -739,12 +698,6 @@
     const nextId = asText(el.sessionIdInput.value);
     const nextTitle = asText(el.sessionTitleInput.value);
     const nextFocus = asText(el.sessionFocusInput.value);
-    const nextProgressDone = Math.max(0, toIntOr(el.sessionProgressDoneInput.value, 0));
-    const nextProgressTotal = Math.max(0, toIntOr(el.sessionProgressTotalInput.value, 10));
-    const nextStatusScoreRaw = asText(el.sessionStatusScoreInput.value);
-    const nextStatusScore = nextStatusScoreRaw === '' ? null : Math.max(0, Math.min(100, toIntOr(nextStatusScoreRaw, 0)));
-    const nextStatusLabel = asText(el.sessionStatusLabelInput.value);
-    const nextStatusTone = asText(el.sessionStatusToneInput.value) || 'neutral';
 
     const nextSoundTitle = asText(el.sessionSoundTitleInput.value);
     const nextSoundHint = asText(el.sessionSoundHintInput.value);
@@ -754,7 +707,6 @@
     const nextSpellingTitle = asText(el.sessionSpellingTitleInput.value);
     const nextSpellingHint = asText(el.sessionSpellingHintInput.value);
     const nextSpellingWords = parseWordsInput(el.sessionSpellingWordsInput.value);
-    const nextSpellingExpected = asText(el.sessionSpellingExpectedInput.value);
 
     const nextSentenceTitle = asText(el.sessionSentenceTitleInput.value);
     const nextSentenceHint = asText(el.sessionSentenceHintInput.value);
@@ -778,14 +730,6 @@
     const prevId = session.id;
     session.id = nextId;
     session.title = nextTitle;
-    session.progress = session.progress && typeof session.progress === 'object' ? session.progress : {};
-    session.progress.done = nextProgressDone;
-    session.progress.total = nextProgressTotal;
-
-    session.status = session.status && typeof session.status === 'object' ? session.status : {};
-    session.status.score = nextStatusScore;
-    session.status.label = nextStatusLabel;
-    session.status.tone = nextStatusTone;
 
     session.speak = session.speak && typeof session.speak === 'object' ? session.speak : {};
     session.speak.focus = nextFocus;
@@ -800,7 +744,6 @@
     session.speak.spelling.title = nextSpellingTitle;
     session.speak.spelling.hint = nextSpellingHint;
     session.speak.spelling.words = nextSpellingWords;
-    session.speak.spelling.expected = nextSpellingExpected;
 
     session.speak.sentence =
       session.speak.sentence && typeof session.speak.sentence === 'object' ? session.speak.sentence : {};

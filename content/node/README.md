@@ -44,6 +44,7 @@ Funciones incluidas:
 
 - Cargar draft actual (`GET /content/admin/training-data`)
 - Editor guiado (MVP): alta/edición/reordenación de `routes`, `modules` y `sessions`
+  - En sesiones: edición de `focus`, `progress`, `status`, `sound`, `spelling(words)` y `sentence`
 - Modo JSON avanzado para edición completa `{ routes, modules, sessions }`
 - Validar estructura básica del JSON en cliente
 - Guardar draft (`PUT /content/admin/training-data`)

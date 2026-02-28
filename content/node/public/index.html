@@ -138,6 +138,87 @@
               <span>Focus</span>
               <input id="sessionFocusInput" type="text" autocomplete="off" />
             </label>
+            <div class="form-section-title">Progress / Status</div>
+            <div class="row row-wrap gap-sm">
+              <label class="field grow">
+                <span>Progress done</span>
+                <input id="sessionProgressDoneInput" type="number" min="0" step="1" autocomplete="off" />
+              </label>
+              <label class="field grow">
+                <span>Progress total</span>
+                <input id="sessionProgressTotalInput" type="number" min="0" step="1" autocomplete="off" />
+              </label>
+            </div>
+            <div class="row row-wrap gap-sm">
+              <label class="field grow">
+                <span>Status score</span>
+                <input id="sessionStatusScoreInput" type="number" min="0" max="100" step="1" autocomplete="off" />
+              </label>
+              <label class="field grow">
+                <span>Status label</span>
+                <input id="sessionStatusLabelInput" type="text" autocomplete="off" />
+              </label>
+              <label class="field grow">
+                <span>Status tone</span>
+                <input id="sessionStatusToneInput" type="text" autocomplete="off" placeholder="neutral / good / warn / bad" />
+              </label>
+            </div>
+
+            <div class="form-section-title">Sound (práctica 1)</div>
+            <label class="field">
+              <span>Sound title</span>
+              <input id="sessionSoundTitleInput" type="text" autocomplete="off" />
+            </label>
+            <label class="field">
+              <span>Sound hint</span>
+              <textarea id="sessionSoundHintInput" rows="2"></textarea>
+            </label>
+            <div class="row row-wrap gap-sm">
+              <label class="field grow">
+                <span>Sound phonetic</span>
+                <input id="sessionSoundPhoneticInput" type="text" autocomplete="off" />
+              </label>
+              <label class="field grow">
+                <span>Sound expected</span>
+                <input id="sessionSoundExpectedInput" type="text" autocomplete="off" />
+              </label>
+            </div>
+
+            <div class="form-section-title">Spelling (palabras)</div>
+            <label class="field">
+              <span>Spelling title</span>
+              <input id="sessionSpellingTitleInput" type="text" autocomplete="off" />
+            </label>
+            <label class="field">
+              <span>Spelling hint</span>
+              <textarea id="sessionSpellingHintInput" rows="2"></textarea>
+            </label>
+            <label class="field">
+              <span>Words (una por línea)</span>
+              <textarea id="sessionSpellingWordsInput" rows="5"></textarea>
+            </label>
+            <label class="field">
+              <span>Spelling expected</span>
+              <input id="sessionSpellingExpectedInput" type="text" autocomplete="off" />
+            </label>
+
+            <div class="form-section-title">Sentence (frase)</div>
+            <label class="field">
+              <span>Sentence title</span>
+              <input id="sessionSentenceTitleInput" type="text" autocomplete="off" />
+            </label>
+            <label class="field">
+              <span>Sentence hint</span>
+              <textarea id="sessionSentenceHintInput" rows="2"></textarea>
+            </label>
+            <label class="field">
+              <span>Sentence text</span>
+              <textarea id="sessionSentenceTextInput" rows="3"></textarea>
+            </label>
+            <label class="field">
+              <span>Sentence expected</span>
+              <textarea id="sessionSentenceExpectedInput" rows="3"></textarea>
+            </label>
             <div class="row row-wrap gap-sm">
               <button id="saveSessionBtn" class="btn btn-primary">Guardar</button>
               <button id="moveSessionUpBtn" class="btn">↑</button>

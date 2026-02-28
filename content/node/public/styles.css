@@ -215,6 +215,15 @@ h2 {
   gap: 8px;
 }
 
+.form-section-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  margin-top: 6px;
+}
+
 .entity-form textarea {
   min-height: 74px;
   font-family: inherit;

@@ -1,8 +1,78 @@
-const DATA_URL = new URL('./training-data.json', import.meta.url);
+const LOCAL_DATA_URL = new URL('./training-data.json', import.meta.url);
 const SELECTION_STORAGE_KEY = 'appv5:training-selection';
 
 let dataCache = null;
 let dataPromise = null;
+let dataLoadInfo = {
+  status: 'idle',
+  loadedAt: null,
+  requestUrl: '',
+  transport: '',
+  source: '',
+  release: null,
+  triedUrls: [],
+  errors: []
+};
+
+const uniqStrings = (items) => {
+  const seen = new Set();
+  const out = [];
+  items.forEach((item) => {
+    const value = typeof item === 'string' ? item.trim() : '';
+    if (!value || seen.has(value)) return;
+    seen.add(value);
+    out.push(value);
+  });
+  return out;
+};
+
+const normalizeTrainingEndpoint = (raw) => {
+  const value = typeof raw === 'string' ? raw.trim() : '';
+  if (!value) return '';
+  try {
+    const base = typeof window !== 'undefined' && window.location ? window.location.href : undefined;
+    const parsed = base ? new URL(value, base) : new URL(value);
+    const pathname = parsed.pathname || '';
+    if (pathname.endsWith('/content/training-data')) {
+      return parsed.toString();
+    }
+    parsed.pathname = pathname.replace(/\/+$/, '') + '/content/training-data';
+    return parsed.toString();
+  } catch (err) {
+    return '';
+  }
+};
+
+const getConfiguredTrainingDataUrls = () => {
+  const localUrl = LOCAL_DATA_URL.toString();
+  if (typeof window === 'undefined') return [localUrl];
+
+  const globals = [
+    window.SPEAK_CONTENT_URL,
+    window.CONTENT_URL,
+    window.CONTENT_TRAINING_DATA_URL,
+    window.CONTENT_TRAINING_DATA_ENDPOINT,
+    window.contentConfig && window.contentConfig.trainingDataEndpoint,
+    window.contentConfig && window.contentConfig.baseUrl
+  ];
+
+  const configured = uniqStrings(globals.map((item) => normalizeTrainingEndpoint(item)));
+  return [...configured, localUrl];
+};
+
+const unwrapTrainingPayload = (raw) => {
+  if (!raw || typeof raw !== 'object') {
+    return { payload: {}, source: '', release: null };
+  }
+  if (raw.data && typeof raw.data === 'object') {
+    return {
+      payload: raw.data,
+      source: typeof raw.source === 'string' ? raw.source : '',
+      release: raw.release && typeof raw.release === 'object' ? raw.release : null
+    };
+  }
+  return { payload: raw, source: 'plain', release: null };
+};
 
 const readStoredSelection = () => {
   if (typeof window === 'undefined') return null;
@@ -78,22 +148,66 @@ const hydrateData = (raw) => {
 const loadTrainingData = async () => {
   if (dataCache) return dataCache;
   if (!dataPromise) {
-    dataPromise = fetch(DATA_URL)
-      .then((res) => {
-        if (!res.ok) throw new Error(`training data: ${res.status}`);
-        return res.json();
-      })
-      .then((raw) => {
-        dataCache = hydrateData(raw);
-        dataPromise = null;
-        return dataCache;
-      })
-      .catch((err) => {
-        console.error('[training-data] failed to load', err);
-        dataCache = { routes: [] };
-        dataPromise = null;
-        return dataCache;
-      });
+    dataPromise = (async () => {
+      const urls = getConfiguredTrainingDataUrls();
+      const localUrl = LOCAL_DATA_URL.toString();
+      const errors = [];
+      dataLoadInfo = {
+        status: 'loading',
+        loadedAt: null,
+        requestUrl: '',
+        transport: '',
+        source: '',
+        release: null,
+        triedUrls: urls.slice(),
+        errors: []
+      };
+
+      for (const url of urls) {
+        try {
+          const res = await fetch(url);
+          if (!res.ok) throw new Error(`training data: ${res.status}`);
+          const raw = await res.json();
+          const parsed = unwrapTrainingPayload(raw);
+          dataCache = hydrateData(parsed.payload);
+          dataLoadInfo = {
+            status: 'ok',
+            loadedAt: new Date().toISOString(),
+            requestUrl: url,
+            transport: url === localUrl ? 'local' : 'remote',
+            source: parsed.source || (url === localUrl ? 'local-json' : 'remote'),
+            release: parsed.release || null,
+            triedUrls: urls.slice(),
+            errors: errors.map((entry) => ({
+              url: entry.url,
+              message: entry.message
+            }))
+          };
+          dataPromise = null;
+          return dataCache;
+        } catch (err) {
+          errors.push({
+            url,
+            message: err && err.message ? err.message : String(err)
+          });
+        }
+      }
+
+      console.error('[training-data] failed to load from all sources', errors);
+      dataCache = { routes: [] };
+      dataLoadInfo = {
+        status: 'error',
+        loadedAt: new Date().toISOString(),
+        requestUrl: '',
+        transport: '',
+        source: '',
+        release: null,
+        triedUrls: urls.slice(),
+        errors: errors.slice()
+      };
+      dataPromise = null;
+      return dataCache;
+    })();
   }
   return dataPromise;
 };
@@ -155,4 +269,20 @@ const setSelection = (next) => {
 
 const getSelection = () => ({ ...selection });
 
-export { ensureTrainingData, getRoutes, getSelection, resolveSelection, setSelection };
+const getTrainingDataLoadInfo = () => ({
+  ...dataLoadInfo,
+  release: dataLoadInfo.release ? { ...dataLoadInfo.release } : null,
+  triedUrls: Array.isArray(dataLoadInfo.triedUrls) ? dataLoadInfo.triedUrls.slice() : [],
+  errors: Array.isArray(dataLoadInfo.errors)
+    ? dataLoadInfo.errors.map((item) => ({ ...item }))
+    : []
+});
+
+export {
+  ensureTrainingData,
+  getRoutes,
+  getSelection,
+  getTrainingDataLoadInfo,
+  resolveSelection,
+  setSelection
+};

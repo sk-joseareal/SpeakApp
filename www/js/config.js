@@ -121,6 +121,14 @@
     window.realtimeConfig.channelPrefix = 'coach';
   }
 
+  window.contentConfig = window.contentConfig || {};
+  if (window.contentConfig.trainingDataEndpoint === undefined) {
+    window.contentConfig.trainingDataEndpoint =
+      window.CONTENT_TRAINING_DATA_ENDPOINT ||
+      window.SPEAK_CONTENT_URL ||
+      'https://content.speakapp.curso-ingles.com/content/training-data';
+  }
+
   window.speakSummaryConfig = window.speakSummaryConfig || {};
   if (!window.speakSummaryConfig.range) {
     window.speakSummaryConfig.range = { min: 55, max: 98 };

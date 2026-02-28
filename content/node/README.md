@@ -34,6 +34,25 @@ npm start
 
 Por defecto escucha en `:8791`.
 
+## Dashboard
+
+- URL local: `http://localhost:8791/`
+- URL alternativa: `http://localhost:8791/dashboard`
+- En producción: `https://content.speakapp.curso-ingles.com/`
+
+Funciones incluidas:
+
+- Cargar draft actual (`GET /content/admin/training-data`)
+- Editar JSON completo `{ routes, modules, sessions }`
+- Validar estructura básica del JSON en cliente
+- Guardar draft (`PUT /content/admin/training-data`)
+- Publicar draft con nombre de release (`POST /content/admin/publish`)
+- Ver releases y ejecutar:
+  - publicar release existente
+  - restaurar draft desde release
+
+Si `CONTENT_ADMIN_TOKEN` está activo, introduce el token en el campo “Admin token”; el dashboard lo enviará como header `x-content-token`.
+
 ## Endpoints
 
 ### Público

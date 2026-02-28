@@ -6,7 +6,7 @@ import {
   getNotifications
 } from '../notifications-store.js';
 import { clearOnboardingDone } from '../state.js';
-import { ensureTrainingData, getRoutes } from '../data/training-data.js';
+import { ensureTrainingData, getRoutes, getTrainingDataLoadInfo } from '../data/training-data.js';
 
 class PageDiagnostics extends HTMLElement {
   connectedCallback() {
@@ -210,6 +210,14 @@ class PageDiagnostics extends HTMLElement {
             <h4 style="margin-top:16px;">Onboarding</h4>
             <div class="diag-actions">
               <ion-button size="small" fill="outline" id="diag-onboarding-repeat">Repetir onboarding</ion-button>
+            </div>
+            <h4 style="margin-top:16px;">Training content</h4>
+            <div class="diag-actions">
+              <ion-button size="small" fill="outline" id="diag-content-source-refresh">Refrescar</ion-button>
+            </div>
+            <div class="diag-speak-block">
+              <div class="pill">Training data source</div>
+              <pre class="diag-json" id="diag-content-source"></pre>
             </div>
 	            <div class="diag-speak-block">
 	              <div class="pill">Free ride / chatbot audio</div>
@@ -620,6 +628,7 @@ class PageDiagnostics extends HTMLElement {
     const pronAdvancedUsageSectionEl = this.querySelector('#diag-pron-advanced-usage-section');
     const notifyListEl = this.querySelector('#diag-notify-list');
     const notifyEmptyEl = this.querySelector('#diag-notify-empty');
+    const contentSourceEl = this.querySelector('#diag-content-source');
     const TALK_STORAGE_PREFIX = 'appv5:talk-timelines:';
     let usageRequestSeq = 0;
     let ttsUsageRequestSeq = 0;
@@ -763,6 +772,41 @@ class PageDiagnostics extends HTMLElement {
       } catch (err) {
         return '{}';
       }
+    };
+
+    const updateContentSourcePanel = () => {
+      if (!contentSourceEl) return;
+      const info = getTrainingDataLoadInfo && typeof getTrainingDataLoadInfo === 'function'
+        ? getTrainingDataLoadInfo()
+        : {};
+      const routes = Array.isArray(getRoutes()) ? getRoutes() : [];
+      let modulesCount = 0;
+      let sessionsCount = 0;
+      routes.forEach((route) => {
+        const modules = route && Array.isArray(route.modules) ? route.modules : [];
+        modulesCount += modules.length;
+        modules.forEach((module) => {
+          const sessions = module && Array.isArray(module.sessions) ? module.sessions : [];
+          sessionsCount += sessions.length;
+        });
+      });
+
+      const payload = {
+        status: info.status || 'n/a',
+        source: info.source || 'n/a',
+        transport: info.transport || 'n/a',
+        request_url: info.requestUrl || 'n/a',
+        loaded_at: info.loadedAt || null,
+        release: info.release || null,
+        counts: {
+          routes: routes.length,
+          modules: modulesCount,
+          sessions: sessionsCount
+        },
+        tried_urls: Array.isArray(info.triedUrls) ? info.triedUrls : [],
+        errors: Array.isArray(info.errors) ? info.errors : []
+      };
+      contentSourceEl.textContent = formatJson(payload);
     };
 
     const updateSpeakPanels = () => {
@@ -1852,6 +1896,7 @@ class PageDiagnostics extends HTMLElement {
     this._notifyHandler = renderNotifyList;
     window.addEventListener('app:notifications-change', this._notifyHandler);
     updateSpeakPanels();
+    updateContentSourcePanel();
     updateTalkPanels();
     refreshUserUsage();
     refreshTtsUserUsage();
@@ -1862,9 +1907,10 @@ class PageDiagnostics extends HTMLElement {
       .then(() => {
         badgeCatalog = buildBadgeCatalog();
         renderBadgePicker();
+        updateContentSourcePanel();
       })
       .catch(() => {
-        // no-op
+        updateContentSourcePanel();
       });
     const initialFreeRideAudioMode = getStoredFreeRideAudioMode();
     updateFreeRideAudioModeUi(setFreeRideAudioMode(initialFreeRideAudioMode));
@@ -1930,6 +1976,9 @@ class PageDiagnostics extends HTMLElement {
     this.querySelector('#diag-onboarding-repeat')?.addEventListener('click', () => {
       clearOnboardingDone();
       window.location.hash = '#/onboarding';
+    });
+    this.querySelector('#diag-content-source-refresh')?.addEventListener('click', () => {
+      updateContentSourcePanel();
     });
 
     badgesPickerEl?.addEventListener('click', (event) => {
@@ -2039,6 +2088,7 @@ class PageDiagnostics extends HTMLElement {
 
     this.querySelector('#diag-speak-refresh')?.addEventListener('click', () => {
       updateSpeakPanels();
+      updateContentSourcePanel();
     });
     this.querySelector('#diag-speak-seed')?.addEventListener('click', () => {
       seedSpeakStores();

@@ -41,6 +41,16 @@ app.use(
 );
 app.use(express.json({ limit: '25mb' }));
 app.use(express.urlencoded({ extended: true, limit: '5mb' }));
+const dashboardDir = path.join(__dirname, 'public');
+if (fs.existsSync(dashboardDir)) {
+  app.use('/dashboard', express.static(dashboardDir, { redirect: false }));
+  app.get('/dashboard', (req, res) => {
+    res.sendFile(path.join(dashboardDir, 'index.html'));
+  });
+  app.get('/', (req, res) => {
+    res.sendFile(path.join(dashboardDir, 'index.html'));
+  });
+}
 
 const nowIso = () => new Date().toISOString();
 

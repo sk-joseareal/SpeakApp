@@ -12,7 +12,6 @@ const bcrypt = require('bcryptjs');
 
 const env = (key, fallback) => (process.env[key] ? process.env[key] : fallback);
 const port = Number(env('CONTENT_PORT', '8791'));
-const adminToken = String(env('CONTENT_ADMIN_TOKEN', '') || '').trim();
 const readToken = String(env('CONTENT_READ_TOKEN', '') || '').trim();
 const jwtSecret = String(env('CONTENT_JWT_SECRET', '') || '').trim();
 const jwtTtlSeconds = Math.max(300, Number(env('CONTENT_JWT_TTL_SECONDS', '43200')) || 43200);
@@ -189,23 +188,9 @@ const getBearerToken = (req) => {
   return m ? String(m[1]).trim() : '';
 };
 
-const getAdminRequestToken = (req) => {
-  const header = req.get('x-content-token');
-  if (header) return String(header).trim();
-  return getBearerToken(req);
-};
-
-const hasValidAdminRequestToken = (req) => {
-  if (!adminToken) return false;
-  const incoming = getAdminRequestToken(req);
-  return Boolean(incoming && incoming === adminToken);
-};
-
 const getReadRequestToken = (req) => {
   const byHeader = req.get('x-content-read-token');
   if (byHeader) return String(byHeader).trim();
-  const byContentHeader = req.get('x-content-token');
-  if (byContentHeader) return String(byContentHeader).trim();
   const rtHeader = req.get('x-rt-token');
   if (rtHeader) return String(rtHeader).trim();
   return getBearerToken(req);
@@ -216,8 +201,6 @@ const getEditorJwtCandidate = (req) => {
   if (bearer) return bearer;
   const byHeader = req.get('x-content-jwt');
   if (byHeader) return String(byHeader).trim();
-  const byContent = req.get('x-content-token');
-  if (byContent) return String(byContent).trim();
   return '';
 };
 
@@ -230,29 +213,8 @@ const buildGuestAuth = () => ({
   displayName: ''
 });
 
-const buildLegacyAdminAuth = () => ({
-  mode: 'legacy-admin',
-  authorized: true,
-  role: 'admin',
-  editorId: null,
-  email: 'legacy-admin',
-  displayName: 'Legacy Admin'
-});
-
 const resolveRequestAuth = (req) => {
-  if (hasValidAdminRequestToken(req)) return buildLegacyAdminAuth();
-
   if (!editorAuthEnabled) {
-    if (!adminToken) {
-      return {
-        mode: 'open',
-        authorized: true,
-        role: 'admin',
-        editorId: null,
-        email: 'open-mode',
-        displayName: 'Open Mode'
-      };
-    }
     return buildGuestAuth();
   }
 
@@ -1047,7 +1009,6 @@ app.get('/content/health', (req, res) => {
     ok: true,
     service: 'speakapp-content-service',
     db_path: dbPath,
-    admin_auth_enabled: Boolean(adminToken),
     read_auth_enabled: Boolean(readToken),
     editor_auth_enabled: editorAuthEnabled,
     jwt_ttl_seconds: jwtTtlSeconds,
@@ -1506,11 +1467,6 @@ app.use((err, req, res, _next) => {
 app.listen(port, () => {
   console.log(`[content] listening on :${port}`);
   console.log(`[content] db: ${dbPath}`);
-  if (adminToken) {
-    console.log('[content] admin auth: enabled');
-  } else {
-    console.log('[content] admin auth: disabled (set CONTENT_ADMIN_TOKEN)');
-  }
   if (readToken) {
     console.log('[content] read auth: enabled');
   } else {

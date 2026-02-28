@@ -1,19 +1,15 @@
 (() => {
-  const TOKEN_KEY = 'speakapp:content-dashboard:token';
   const JWT_KEY = 'speakapp:content-dashboard:jwt';
   const LOGIN_EMAIL_KEY = 'speakapp:content-dashboard:login-email';
   const MODE_GUIDED = 'guided';
   const MODE_JSON = 'json';
 
   const el = {
-    tokenInput: document.getElementById('tokenInput'),
     loginEmailInput: document.getElementById('loginEmailInput'),
     loginPasswordInput: document.getElementById('loginPasswordInput'),
     loginBtn: document.getElementById('loginBtn'),
     logoutBtn: document.getElementById('logoutBtn'),
     authSummary: document.getElementById('authSummary'),
-    showToken: document.getElementById('showToken'),
-    saveTokenBtn: document.getElementById('saveTokenBtn'),
     healthBtn: document.getElementById('healthBtn'),
     loadDraftBtn: document.getElementById('loadDraftBtn'),
     loadPublicBtn: document.getElementById('loadPublicBtn'),
@@ -204,8 +200,6 @@
     return { routes, modules, sessions };
   };
 
-  const getToken = () => asText(el.tokenInput.value);
-
   const setStatus = (message, payload) => {
     const text = payload ? `${message}\n${JSON.stringify(payload, null, 2)}` : message;
     el.statusBox.textContent = text;
@@ -237,12 +231,7 @@
 
   const headers = (withBody = false) => {
     const result = {};
-    if (sessionJwt) {
-      result.Authorization = `Bearer ${sessionJwt}`;
-    } else {
-      const token = getToken();
-      if (token) result['x-content-token'] = token;
-    }
+    if (sessionJwt) result.Authorization = `Bearer ${sessionJwt}`;
     if (withBody) result['Content-Type'] = 'application/json';
     return result;
   };
@@ -820,7 +809,6 @@
   };
 
   const renderAuthSummary = () => {
-    const token = getToken();
     if (currentAuth && currentAuth.authorized) {
       const who =
         (currentEditor && currentEditor.display_name) ||
@@ -831,8 +819,6 @@
       el.authSummary.textContent = `Sesión: ${who} (${currentRole()})${mode}`;
     } else if (sessionJwt) {
       el.authSummary.textContent = 'JWT guardado pero inválido/caducado.';
-    } else if (token) {
-      el.authSummary.textContent = 'Sin JWT. Usando token legacy manual.';
     } else {
       el.authSummary.textContent = 'Sin sesión JWT.';
     }
@@ -1000,7 +986,7 @@
 
       const actions = document.createElement('div');
       actions.className = 'row gap-sm top-md row-wrap';
-      const canPublishAction = hasRoleAtLeast(currentRole(), 'publisher') || Boolean(getToken());
+      const canPublishAction = hasRoleAtLeast(currentRole(), 'publisher');
 
       const publishBtn = document.createElement('button');
       publishBtn.className = 'btn';
@@ -1117,7 +1103,7 @@
   };
 
   const refreshLock = async ({ silent = false } = {}) => {
-    if (!isAuthenticated() && !getToken()) {
+    if (!isAuthenticated()) {
       currentLock = null;
       renderLockInfo();
       return;
@@ -1324,18 +1310,6 @@
     }
   };
 
-  const saveToken = async () => {
-    const token = getToken();
-    try {
-      localStorage.setItem(TOKEN_KEY, token);
-      await loadMe({ silent: true });
-      await refreshLock({ silent: true });
-      setStatus('Token guardado localmente.');
-    } catch (err) {
-      setStatus('No se pudo guardar token.', { error: err.message || String(err) });
-    }
-  };
-
   const bindGuidedEditorEvents = () => {
     el.modeGuidedBtn.addEventListener('click', () => setEditorMode(MODE_GUIDED));
     el.modeJsonBtn.addEventListener('click', () => setEditorMode(MODE_JSON));
@@ -1386,10 +1360,6 @@
 
   const bootstrap = async () => {
     try {
-      const token = localStorage.getItem(TOKEN_KEY);
-      if (token) {
-        el.tokenInput.value = token;
-      }
       const jwtStored = localStorage.getItem(JWT_KEY);
       if (jwtStored) {
         sessionJwt = String(jwtStored);
@@ -1405,9 +1375,6 @@
     renderAuthSummary();
     renderLockInfo();
 
-    el.showToken.addEventListener('change', () => {
-      el.tokenInput.type = el.showToken.checked ? 'text' : 'password';
-    });
     el.loginBtn.addEventListener('click', login);
     el.logoutBtn.addEventListener('click', logout);
     el.loginPasswordInput.addEventListener('keydown', (event) => {
@@ -1418,7 +1385,6 @@
     el.refreshLockBtn.addEventListener('click', () => refreshLock({ silent: false }));
     el.refreshEditorsBtn.addEventListener('click', () => loadEditors({ silent: false }));
     el.createEditorBtn.addEventListener('click', createEditor);
-    el.saveTokenBtn.addEventListener('click', saveToken);
     el.healthBtn.addEventListener('click', loadHealth);
     el.loadDraftBtn.addEventListener('click', loadDraft);
     el.loadPublicBtn.addEventListener('click', loadPublic);

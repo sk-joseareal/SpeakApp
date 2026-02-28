@@ -30,10 +30,6 @@ Configuración recomendada para edición multiusuario:
 - `CONTENT_EDITOR_SEED_EMAIL` + `CONTENT_EDITOR_SEED_PASSWORD` (crea primer admin automáticamente si no hay usuarios)
 - `CONTENT_READ_TOKEN` para proteger lectura pública de contenido
 
-Compatibilidad legacy:
-
-- `CONTENT_ADMIN_TOKEN` sigue funcionando como token único de admin (fallback).
-
 ## Run
 
 ```bash
@@ -64,8 +60,7 @@ Funciones incluidas:
   - publicar release existente
   - restaurar draft desde release
 
-Si `CONTENT_JWT_SECRET` está activo, usa login en el dashboard (email/password).
-Si además defines `CONTENT_ADMIN_TOKEN`, también puedes usar token legacy en el campo de token.
+El dashboard usa login por editor (JWT).
 
 ## Endpoints
 
@@ -76,9 +71,9 @@ Si además defines `CONTENT_ADMIN_TOKEN`, también puedes usar token legacy en e
   - Devuelve release publicada.
   - Si no hay release publicada, devuelve borrador live.
   - Si `CONTENT_READ_TOKEN` está definido, requiere token de lectura.
-  - `?preview=1` devuelve live preview (requiere token admin si está habilitado).
+  - `?preview=1` devuelve live preview (requiere JWT de editor).
 
-### Admin (requiere token si `CONTENT_ADMIN_TOKEN` no está vacío)
+### Admin (requiere JWT de editor)
 
 Auth/usuarios:
 
@@ -114,13 +109,6 @@ Lock de draft:
 - `POST /content/admin/releases/:id/restore-draft`
   - Restaura borrador actual a partir de una release.
 
-## Auth admin
-
-Enviar token en uno de estos formatos:
-
-- Header `x-content-token: <token>`
-- Header `Authorization: Bearer <token>`
-
 ## Auth editores (JWT)
 
 Si defines `CONTENT_JWT_SECRET`, el flujo recomendado es:
@@ -142,7 +130,6 @@ En endpoints de escritura, si existe lock activo de otro editor, el servidor dev
 Si defines `CONTENT_READ_TOKEN`, el endpoint público `GET /content/training-data` exigirá uno de:
 
 - Header `x-content-read-token: <token>`
-- Header `x-content-token: <token>`
 - Header `x-rt-token: <token>`
 - Header `Authorization: Bearer <token>`
 
@@ -153,7 +140,7 @@ Importar JSON actual y publicar:
 ```bash
 curl -X POST 'http://localhost:8791/content/admin/import/training-json' \
   -H 'Content-Type: application/json' \
-  -H 'x-content-token: YOUR_TOKEN' \
+  -H 'Authorization: Bearer YOUR_JWT' \
   -d '{"publish":true,"releaseName":"initial-import"}'
 ```
 
@@ -167,7 +154,7 @@ Publicar un release existente:
 
 ```bash
 curl -X POST 'http://localhost:8791/content/admin/releases/3/publish' \
-  -H 'x-content-token: YOUR_TOKEN'
+  -H 'Authorization: Bearer YOUR_JWT'
 ```
 
 ## Notas operativas

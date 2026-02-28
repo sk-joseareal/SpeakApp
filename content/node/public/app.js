@@ -94,6 +94,8 @@
   let selectedModuleId = '';
   let selectedSessionId = '';
   let editorMode = MODE_GUIDED;
+  let jsonDirty = false;
+  let syncingJsonEditor = false;
   let sessionJwt = '';
   let currentAuth = null;
   let currentEditor = null;
@@ -262,6 +264,7 @@
     el.modeJsonBtn.classList.toggle('btn-primary', !guided);
     el.guidedSection.classList.toggle('hidden', !guided);
     el.jsonSection.classList.toggle('hidden', guided);
+    updateSyncFromJsonButtonState();
   };
 
   const getRouteById = (id) => contentState.routes.find((route) => route.id === id) || null;
@@ -287,8 +290,18 @@
   };
 
   const syncJsonFromState = () => {
+    syncingJsonEditor = true;
     el.jsonEditor.value = JSON.stringify(contentState, null, 2);
+    syncingJsonEditor = false;
+    jsonDirty = false;
+    updateSyncFromJsonButtonState();
     updateCounts(contentState);
+  };
+
+  const updateSyncFromJsonButtonState = () => {
+    const shouldShow = editorMode === MODE_JSON && jsonDirty;
+    el.syncFromJsonBtn.classList.toggle('hidden', !shouldShow);
+    el.syncFromJsonBtn.disabled = !shouldShow;
   };
 
   const setContentState = (payload, options = {}) => {
@@ -801,6 +814,8 @@
     try {
       const payload = tryParseEditor();
       setContentState(payload, { syncJson: true, preserveSelection: true });
+      jsonDirty = false;
+      updateSyncFromJsonButtonState();
       setStatus('JSON aplicado al editor guiado.');
       setEditorMode(MODE_GUIDED);
     } catch (err) {
@@ -1314,6 +1329,11 @@
     el.modeGuidedBtn.addEventListener('click', () => setEditorMode(MODE_GUIDED));
     el.modeJsonBtn.addEventListener('click', () => setEditorMode(MODE_JSON));
     el.syncFromJsonBtn.addEventListener('click', applyJsonToGuided);
+    el.jsonEditor.addEventListener('input', () => {
+      if (syncingJsonEditor) return;
+      jsonDirty = true;
+      updateSyncFromJsonButtonState();
+    });
 
     el.routesList.addEventListener('click', (event) => {
       const button = event.target.closest('[data-route-id]');
@@ -1396,6 +1416,7 @@
     bindGuidedEditorEvents();
     setEditorMode(MODE_GUIDED);
     setContentState({ routes: [], modules: [], sessions: [] }, { syncJson: true, preserveSelection: false });
+    updateSyncFromJsonButtonState();
 
     await loadHealth();
     await loadMe({ silent: true });

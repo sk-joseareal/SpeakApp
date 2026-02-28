@@ -43,7 +43,8 @@ Por defecto escucha en `:8791`.
 Funciones incluidas:
 
 - Cargar draft actual (`GET /content/admin/training-data`)
-- Editar JSON completo `{ routes, modules, sessions }`
+- Editor guiado (MVP): alta/edición/reordenación de `routes`, `modules` y `sessions`
+- Modo JSON avanzado para edición completa `{ routes, modules, sessions }`
 - Validar estructura básica del JSON en cliente
 - Guardar draft (`PUT /content/admin/training-data`)
 - Publicar draft con nombre de release (`POST /content/admin/publish`)

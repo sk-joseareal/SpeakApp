@@ -47,6 +47,109 @@
     </section>
 
     <section class="card">
+      <div class="row row-wrap gap-sm">
+        <button id="modeGuidedBtn" class="btn btn-primary">Editor guiado</button>
+        <button id="modeJsonBtn" class="btn">JSON avanzado</button>
+        <button id="syncFromJsonBtn" class="btn">Aplicar JSON al guiado</button>
+      </div>
+    </section>
+
+    <section id="guidedSection" class="card">
+      <div class="row between center">
+        <h2>Editor guiado</h2>
+        <small id="guidedCountsBox" class="muted"></small>
+      </div>
+
+      <div class="guided-grid">
+        <article class="guided-col">
+          <div class="row between center">
+            <h3>Routes</h3>
+            <button id="addRouteBtn" class="btn">+ Route</button>
+          </div>
+          <div id="routesList" class="entity-list"></div>
+          <div class="entity-form">
+            <label class="field">
+              <span>Route ID</span>
+              <input id="routeIdInput" type="text" autocomplete="off" />
+            </label>
+            <label class="field">
+              <span>Título</span>
+              <input id="routeTitleInput" type="text" autocomplete="off" />
+            </label>
+            <label class="field">
+              <span>Nota</span>
+              <textarea id="routeNoteInput" rows="3"></textarea>
+            </label>
+            <div class="row row-wrap gap-sm">
+              <button id="saveRouteBtn" class="btn btn-primary">Guardar</button>
+              <button id="moveRouteUpBtn" class="btn">↑</button>
+              <button id="moveRouteDownBtn" class="btn">↓</button>
+              <button id="deleteRouteBtn" class="btn btn-danger">Eliminar</button>
+            </div>
+          </div>
+        </article>
+
+        <article class="guided-col">
+          <div class="row between center">
+            <h3>Módulos</h3>
+            <button id="addModuleBtn" class="btn">+ Módulo</button>
+          </div>
+          <p id="selectedRouteLabel" class="hint"></p>
+          <div id="modulesList" class="entity-list"></div>
+          <div class="entity-form">
+            <label class="field">
+              <span>Módulo ID</span>
+              <input id="moduleIdInput" type="text" autocomplete="off" />
+            </label>
+            <label class="field">
+              <span>Título</span>
+              <input id="moduleTitleInput" type="text" autocomplete="off" />
+            </label>
+            <label class="field">
+              <span>Subtítulo</span>
+              <input id="moduleSubtitleInput" type="text" autocomplete="off" />
+            </label>
+            <div class="row row-wrap gap-sm">
+              <button id="saveModuleBtn" class="btn btn-primary">Guardar</button>
+              <button id="moveModuleUpBtn" class="btn">↑</button>
+              <button id="moveModuleDownBtn" class="btn">↓</button>
+              <button id="deleteModuleBtn" class="btn btn-danger">Eliminar</button>
+            </div>
+          </div>
+        </article>
+
+        <article class="guided-col">
+          <div class="row between center">
+            <h3>Sesiones</h3>
+            <button id="addSessionBtn" class="btn">+ Sesión</button>
+          </div>
+          <p id="selectedModuleLabel" class="hint"></p>
+          <div id="sessionsList" class="entity-list"></div>
+          <div class="entity-form">
+            <label class="field">
+              <span>Session ID</span>
+              <input id="sessionIdInput" type="text" autocomplete="off" />
+            </label>
+            <label class="field">
+              <span>Título</span>
+              <input id="sessionTitleInput" type="text" autocomplete="off" />
+            </label>
+            <label class="field">
+              <span>Focus</span>
+              <input id="sessionFocusInput" type="text" autocomplete="off" />
+            </label>
+            <div class="row row-wrap gap-sm">
+              <button id="saveSessionBtn" class="btn btn-primary">Guardar</button>
+              <button id="moveSessionUpBtn" class="btn">↑</button>
+              <button id="moveSessionDownBtn" class="btn">↓</button>
+              <button id="deleteSessionBtn" class="btn btn-danger">Eliminar</button>
+            </div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section id="jsonSection" class="card">
       <div class="row between center">
         <h2>Editor JSON (draft)</h2>
         <small id="countsBox" class="muted"></small>

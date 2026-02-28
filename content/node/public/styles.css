@@ -81,6 +81,7 @@ textarea {
 .btn-primary { background: #e9f0ff; border-color: #bfd3ff; }
 .btn-success { background: #e3f8ee; border-color: #b8e8d2; color: #0a6a46; }
 .btn-danger { background: #ffecef; border-color: #f0c3cb; color: #8b2335; }
+.btn.is-active { border-color: #7fa7ff; box-shadow: 0 0 0 2px rgba(45, 111, 247, 0.15) inset; }
 
 .checkbox {
   display: inline-flex;
@@ -143,6 +144,92 @@ h2 {
   margin: 0;
 }
 
+.guided-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.guided-col {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px;
+  background: #fafcff;
+}
+
+.guided-col h3 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.entity-list {
+  margin-top: 10px;
+  max-height: 220px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.entity-item {
+  display: block;
+  width: 100%;
+  border: 0;
+  border-bottom: 1px solid #edf1f8;
+  background: transparent;
+  text-align: left;
+  padding: 8px 10px;
+  cursor: pointer;
+}
+
+.entity-item:last-child {
+  border-bottom: 0;
+}
+
+.entity-item:hover {
+  background: #f3f7ff;
+}
+
+.entity-item.is-selected {
+  background: #e9f0ff;
+}
+
+.entity-item-title {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.entity-item-meta {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+.entity-form {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.entity-form textarea {
+  min-height: 74px;
+  font-family: inherit;
+}
+
+.hidden {
+  display: none !important;
+}
+
 @media (max-width: 900px) {
   textarea { min-height: 320px; }
+  .guided-grid {
+    grid-template-columns: 1fr;
+  }
+  .entity-list {
+    max-height: 180px;
+  }
 }

@@ -106,22 +106,8 @@
     const base = session && typeof session === 'object' ? deepClone(session) : {};
     base.id = asText(base.id) || `session-${idx + 1}`;
     base.title = asText(base.title) || `Session ${idx + 1}`;
-
-    base.progress = base.progress && typeof base.progress === 'object' ? base.progress : {};
-    base.progress.done = Number.isFinite(Number(base.progress.done)) ? Math.max(0, Math.round(Number(base.progress.done))) : 0;
-    base.progress.total = Number.isFinite(Number(base.progress.total))
-      ? Math.max(0, Math.round(Number(base.progress.total)))
-      : 10;
-
-    base.status = base.status && typeof base.status === 'object' ? base.status : {};
-    if (base.status.score !== null && base.status.score !== undefined && base.status.score !== '') {
-      const score = Number(base.status.score);
-      base.status.score = Number.isFinite(score) ? Math.round(score) : null;
-    } else {
-      base.status.score = null;
-    }
-    base.status.label = asText(base.status.label);
-    base.status.tone = asText(base.status.tone) || 'neutral';
+    delete base.progress;
+    delete base.status;
 
     base.speak = base.speak && typeof base.speak === 'object' ? base.speak : {};
     base.speak.focus = asText(base.speak.focus);
@@ -134,7 +120,7 @@
     base.speak.spelling.title = asText(base.speak.spelling.title);
     base.speak.spelling.hint = asText(base.speak.spelling.hint);
     base.speak.spelling.words = uniqStrings(base.speak.spelling.words);
-    base.speak.spelling.expected = asText(base.speak.spelling.expected);
+    delete base.speak.spelling.expected;
     base.speak.sentence = base.speak.sentence && typeof base.speak.sentence === 'object' ? base.speak.sentence : {};
     base.speak.sentence.title = asText(base.speak.sentence.title);
     base.speak.sentence.hint = asText(base.speak.sentence.hint);

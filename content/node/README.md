@@ -122,3 +122,4 @@ curl -X POST 'http://localhost:8791/content/admin/releases/3/publish' \
 - SQLite está en `content/node/data/content.db` (por defecto).
 - Usa `WAL` para mejorar concurrencia de lectura.
 - Para producción: backup periódico del `.db` (por ejemplo a S3).
+- El contenido de sesión ya no usa `progress/status`; al arrancar, el servidor migra automáticamente columnas legacy si existen.

@@ -213,15 +213,6 @@
     {
       "id": "session-meeting-friend",
       "title": "Meeting a new friend",
-      "progress": {
-        "done": 0,
-        "total": 10
-      },
-      "status": {
-        "score": null,
-        "label": "",
-        "tone": "neutral"
-      },
       "speak": {
         "focus": "Hello!",
         "sound": {
@@ -239,8 +230,7 @@
             "YOU",
             "DOING",
             "TODAY"
-          ],
-          "expected": "How are you?"
+          ]
         },
         "sentence": {
           "title": "RESPONSE",
@@ -253,15 +243,6 @@
     {
       "id": "session-coffee-shop",
       "title": "At the Coffee Shop",
-      "progress": {
-        "done": 0,
-        "total": 10
-      },
-      "status": {
-        "score": null,
-        "label": "",
-        "tone": "neutral"
-      },
       "speak": {
         "focus": "Coffee",
         "sound": {
@@ -278,8 +259,7 @@
             "MEDIUM",
             "LARGE",
             "PLEASE"
-          ],
-          "expected": "A large one, please"
+          ]
         },
         "sentence": {
           "title": "PAYING",
@@ -292,15 +272,6 @@
     {
       "id": "session-p",
       "title": "El sonido P de PEN",
-      "progress": {
-        "done": 0,
-        "total": 10
-      },
-      "status": {
-        "score": 40,
-        "label": "Repeat",
-        "tone": "warn"
-      },
       "speak": {
         "focus": "p",
         "sound": {
@@ -319,8 +290,7 @@
             "HAPPY",
             "STOP",
             "PINK"
-          ],
-          "expected": "pen"
+          ]
         },
         "sentence": {
           "title": "WHOLE SENTENCE",
@@ -333,15 +303,6 @@
     {
       "id": "session-b",
       "title": "El sonido B de baby",
-      "progress": {
-        "done": 5,
-        "total": 10
-      },
-      "status": {
-        "score": null,
-        "label": "",
-        "tone": "neutral"
-      },
       "speak": {
         "focus": "b",
         "sound": {
@@ -360,8 +321,7 @@
             "ABOUT",
             "TABLE",
             "BIRD"
-          ],
-          "expected": "baby"
+          ]
         },
         "sentence": {
           "title": "WHOLE SENTENCE",
@@ -374,15 +334,6 @@
     {
       "id": "session-w",
       "title": "El sonido W de water",
-      "progress": {
-        "done": 5,
-        "total": 10
-      },
-      "status": {
-        "score": null,
-        "label": "",
-        "tone": "neutral"
-      },
       "speak": {
         "focus": "w",
         "sound": {
@@ -401,8 +352,7 @@
             "ONCE",
             "WAY",
             "QUEEN"
-          ],
-          "expected": "water"
+          ]
         },
         "sentence": {
           "title": "WHOLE SENTENCE",
@@ -415,15 +365,6 @@
     {
       "id": "session-f",
       "title": "El sonido F de famous",
-      "progress": {
-        "done": 5,
-        "total": 10
-      },
-      "status": {
-        "score": null,
-        "label": "",
-        "tone": "neutral"
-      },
       "speak": {
         "focus": "f",
         "sound": {
@@ -442,8 +383,7 @@
             "OFTEN",
             "SOFT",
             "HALF"
-          ],
-          "expected": "famous"
+          ]
         },
         "sentence": {
           "title": "WHOLE SENTENCE",
@@ -456,15 +396,6 @@
     {
       "id": "session-v",
       "title": "El sonido V de vampire",
-      "progress": {
-        "done": 8,
-        "total": 10
-      },
-      "status": {
-        "score": 80,
-        "label": "Good",
-        "tone": "good"
-      },
       "speak": {
         "focus": "v",
         "sound": {
@@ -483,8 +414,7 @@
             "LOVE",
             "VERY",
             "GIVE"
-          ],
-          "expected": "vampire"
+          ]
         },
         "sentence": {
           "title": "WHOLE SENTENCE",
@@ -497,15 +427,6 @@
     {
       "id": "session-a",
       "title": "El sonido A de APPLE",
-      "progress": {
-        "done": 0,
-        "total": 10
-      },
-      "status": {
-        "score": null,
-        "label": "",
-        "tone": "neutral"
-      },
       "speak": {
         "focus": "a",
         "sound": {
@@ -524,8 +445,7 @@
             "SAND",
             "DANCE",
             "MAP"
-          ],
-          "expected": "apple"
+          ]
         },
         "sentence": {
           "title": "WHOLE SENTENCE",
@@ -538,15 +458,6 @@
     {
       "id": "session-e",
       "title": "El sonido E de EGG",
-      "progress": {
-        "done": 0,
-        "total": 10
-      },
-      "status": {
-        "score": null,
-        "label": "",
-        "tone": "neutral"
-      },
       "speak": {
         "focus": "e",
         "sound": {
@@ -565,8 +476,7 @@
             "TELL",
             "NEXT",
             "HELP"
-          ],
-          "expected": "egg"
+          ]
         },
         "sentence": {
           "title": "WHOLE SENTENCE",
@@ -579,15 +489,6 @@
     {
       "id": "session-i",
       "title": "El sonido I de ICE",
-      "progress": {
-        "done": 0,
-        "total": 10
-      },
-      "status": {
-        "score": null,
-        "label": "",
-        "tone": "neutral"
-      },
       "speak": {
         "focus": "i",
         "sound": {
@@ -606,8 +507,7 @@
             "LION",
             "LIGHT",
             "RIDE"
-          ],
-          "expected": "ice"
+          ]
         },
         "sentence": {
           "title": "WHOLE SENTENCE",
@@ -620,15 +520,6 @@
     {
       "id": "session-o",
       "title": "El sonido O de ORANGE",
-      "progress": {
-        "done": 0,
-        "total": 10
-      },
-      "status": {
-        "score": null,
-        "label": "",
-        "tone": "neutral"
-      },
       "speak": {
         "focus": "o",
         "sound": {
@@ -647,8 +538,7 @@
             "HOME",
             "ROSE",
             "SNOW"
-          ],
-          "expected": "orange"
+          ]
         },
         "sentence": {
           "title": "WHOLE SENTENCE",
@@ -661,15 +551,6 @@
     {
       "id": "session-u",
       "title": "El sonido U de UMBRELLA",
-      "progress": {
-        "done": 0,
-        "total": 10
-      },
-      "status": {
-        "score": null,
-        "label": "",
-        "tone": "neutral"
-      },
       "speak": {
         "focus": "u",
         "sound": {
@@ -688,8 +569,7 @@
             "BUS",
             "RUN",
             "CLOUD"
-          ],
-          "expected": "umbrella"
+          ]
         },
         "sentence": {
           "title": "WHOLE SENTENCE",
@@ -702,15 +582,6 @@
     {
       "id": "session-t",
       "title": "El sonido T de TIME",
-      "progress": {
-        "done": 0,
-        "total": 10
-      },
-      "status": {
-        "score": null,
-        "label": "",
-        "tone": "neutral"
-      },
       "speak": {
         "focus": "t",
         "sound": {
@@ -729,8 +600,7 @@
             "TAKE",
             "TOP",
             "TICKET"
-          ],
-          "expected": "time"
+          ]
         },
         "sentence": {
           "title": "WHOLE SENTENCE",
@@ -743,15 +613,6 @@
     {
       "id": "session-s",
       "title": "El sonido S de SUN",
-      "progress": {
-        "done": 0,
-        "total": 10
-      },
-      "status": {
-        "score": null,
-        "label": "",
-        "tone": "neutral"
-      },
       "speak": {
         "focus": "s",
         "sound": {
@@ -770,8 +631,7 @@
             "SISTER",
             "SOUND",
             "SILVER"
-          ],
-          "expected": "sun"
+          ]
         },
         "sentence": {
           "title": "WHOLE SENTENCE",
@@ -784,15 +644,6 @@
     {
       "id": "session-r",
       "title": "El sonido R de RABBIT",
-      "progress": {
-        "done": 0,
-        "total": 10
-      },
-      "status": {
-        "score": null,
-        "label": "",
-        "tone": "neutral"
-      },
       "speak": {
         "focus": "r",
         "sound": {
@@ -811,8 +662,7 @@
             "READ",
             "ROUND",
             "BRIGHT"
-          ],
-          "expected": "rabbit"
+          ]
         },
         "sentence": {
           "title": "WHOLE SENTENCE",
@@ -825,15 +675,6 @@
     {
       "id": "session-l",
       "title": "El sonido L de LION",
-      "progress": {
-        "done": 0,
-        "total": 10
-      },
-      "status": {
-        "score": null,
-        "label": "",
-        "tone": "neutral"
-      },
       "speak": {
         "focus": "l",
         "sound": {
@@ -852,8 +693,7 @@
             "LIGHT",
             "PLAY",
             "CLOUD"
-          ],
-          "expected": "lion"
+          ]
         },
         "sentence": {
           "title": "WHOLE SENTENCE",
@@ -866,15 +706,6 @@
     {
       "id": "session-k",
       "title": "El sonido K de KITE",
-      "progress": {
-        "done": 0,
-        "total": 10
-      },
-      "status": {
-        "score": null,
-        "label": "",
-        "tone": "neutral"
-      },
       "speak": {
         "focus": "k",
         "sound": {
@@ -893,8 +724,7 @@
             "KIND",
             "KNOCK",
             "SKY"
-          ],
-          "expected": "kite"
+          ]
         },
         "sentence": {
           "title": "WHOLE SENTENCE",
@@ -907,15 +737,6 @@
     {
       "id": "session-ship-sheep",
       "title": "Ship vs Sheep",
-      "progress": {
-        "done": 0,
-        "total": 10
-      },
-      "status": {
-        "score": null,
-        "label": "",
-        "tone": "neutral"
-      },
       "speak": {
         "focus": "i vs i:",
         "sound": {
@@ -934,8 +755,7 @@
             "FEET",
             "SIT",
             "SEAT"
-          ],
-          "expected": "Sheep"
+          ]
         },
         "sentence": {
           "title": "PRACTICE SENTENCE",
@@ -948,15 +768,6 @@
     {
       "id": "session-tree-three",
       "title": "Tree vs Three",
-      "progress": {
-        "done": 0,
-        "total": 10
-      },
-      "status": {
-        "score": null,
-        "label": "",
-        "tone": "neutral"
-      },
       "speak": {
         "focus": "t vs th",
         "sound": {
@@ -975,8 +786,7 @@
             "THANK",
             "TIN",
             "THIN"
-          ],
-          "expected": "Three"
+          ]
         },
         "sentence": {
           "title": "PRACTICE SENTENCE",
@@ -989,15 +799,6 @@
     {
       "id": "session-formal-informal",
       "title": "Formal vs Informal",
-      "progress": {
-        "done": 0,
-        "total": 10
-      },
-      "status": {
-        "score": null,
-        "label": "",
-        "tone": "neutral"
-      },
       "speak": {
         "focus": "Tone",
         "sound": {
@@ -1014,8 +815,7 @@
             "HEY",
             "HELLO",
             "GOOD MORNING"
-          ],
-          "expected": "Good morning"
+          ]
         },
         "sentence": {
           "title": "CONVERSATION",
@@ -1028,15 +828,6 @@
     {
       "id": "session-goodbyes",
       "title": "Saying Goodbye",
-      "progress": {
-        "done": 0,
-        "total": 10
-      },
-      "status": {
-        "score": null,
-        "label": "",
-        "tone": "neutral"
-      },
       "speak": {
         "focus": "Bye",
         "sound": {
@@ -1052,8 +843,7 @@
             "LATER",
             "SOON",
             "TOMORROW"
-          ],
-          "expected": "See you later"
+          ]
         },
         "sentence": {
           "title": "CONVERSATION",
@@ -1066,15 +856,6 @@
     {
       "id": "session-booking-table",
       "title": "Booking a Table",
-      "progress": {
-        "done": 0,
-        "total": 10
-      },
-      "status": {
-        "score": null,
-        "label": "",
-        "tone": "neutral"
-      },
       "speak": {
         "focus": "Booking",
         "sound": {
@@ -1091,8 +872,7 @@
             "TWO",
             "THREE",
             "FOUR"
-          ],
-          "expected": "Table for two"
+          ]
         },
         "sentence": {
           "title": "FULL REQUEST",
@@ -1105,15 +885,6 @@
     {
       "id": "session-asking-bill",
       "title": "Asking for the Bill",
-      "progress": {
-        "done": 0,
-        "total": 10
-      },
-      "status": {
-        "score": null,
-        "label": "",
-        "tone": "neutral"
-      },
       "speak": {
         "focus": "Bill",
         "sound": {
@@ -1129,8 +900,7 @@
             "CHECK",
             "RECEIPT",
             "TOTAL"
-          ],
-          "expected": "The check"
+          ]
         },
         "sentence": {
           "title": "FULL REQUEST",
@@ -1143,15 +913,6 @@
     {
       "id": "session-hotel-checkin",
       "title": "Hotel Check-in",
-      "progress": {
-        "done": 0,
-        "total": 10
-      },
-      "status": {
-        "score": null,
-        "label": "",
-        "tone": "neutral"
-      },
       "speak": {
         "focus": "Check-in",
         "sound": {
@@ -1167,8 +928,7 @@
             "NAME",
             "RESERVATION",
             "BOOKING"
-          ],
-          "expected": "Reservation"
+          ]
         },
         "sentence": {
           "title": "FULL PHRASE",
@@ -1181,15 +941,6 @@
     {
       "id": "session-asking-directions",
       "title": "Asking Directions",
-      "progress": {
-        "done": 0,
-        "total": 10
-      },
-      "status": {
-        "score": null,
-        "label": "",
-        "tone": "neutral"
-      },
       "speak": {
         "focus": "Where",
         "sound": {
@@ -1205,8 +956,7 @@
             "STATION",
             "BANK",
             "HOTEL"
-          ],
-          "expected": "Station"
+          ]
         },
         "sentence": {
           "title": "FULL QUESTION",
@@ -1219,15 +969,6 @@
     {
       "id": "session-buying-tickets",
       "title": "Buying Tickets",
-      "progress": {
-        "done": 0,
-        "total": 10
-      },
-      "status": {
-        "score": null,
-        "label": "",
-        "tone": "neutral"
-      },
       "speak": {
         "focus": "Ticket",
         "sound": {
@@ -1243,8 +984,7 @@
             "LONDON",
             "PARIS",
             "NEW YORK"
-          ],
-          "expected": "London"
+          ]
         },
         "sentence": {
           "title": "FULL REQUEST",
@@ -1257,15 +997,6 @@
     {
       "id": "session-full-fool",
       "title": "Full vs Fool",
-      "progress": {
-        "done": 0,
-        "total": 10
-      },
-      "status": {
-        "score": null,
-        "label": "",
-        "tone": "neutral"
-      },
       "speak": {
         "focus": "u vs u:",
         "sound": {
@@ -1282,8 +1013,7 @@
             "POOL",
             "FULL",
             "FOOL"
-          ],
-          "expected": "Pool"
+          ]
         },
         "sentence": {
           "title": "SENTENCE",
@@ -1296,17 +1026,8 @@
     {
       "id": "session-pen-pan",
       "title": "Pen vs Pan",
-      "progress": {
-        "done": 0,
-        "total": 10
-      },
-      "status": {
-        "score": null,
-        "label": "",
-        "tone": "neutral"
-      },
       "speak": {
-        "focus": "e vs æ",
+        "focus": "e vs \u00e6",
         "sound": {
           "title": "THE SOUND",
           "hint": "Mouth width.",
@@ -1321,8 +1042,7 @@
             "MAN",
             "PEN",
             "PAN"
-          ],
-          "expected": "Man"
+          ]
         },
         "sentence": {
           "title": "SENTENCE",
@@ -1335,17 +1055,8 @@
     {
       "id": "session-day-they",
       "title": "Day vs They",
-      "progress": {
-        "done": 0,
-        "total": 10
-      },
-      "status": {
-        "score": null,
-        "label": "",
-        "tone": "neutral"
-      },
       "speak": {
-        "focus": "d vs ð",
+        "focus": "d vs \u00f0",
         "sound": {
           "title": "THE SOUND",
           "hint": "Tongue position.",
@@ -1360,8 +1071,7 @@
             "THERE",
             "DAY",
             "THEY"
-          ],
-          "expected": "There"
+          ]
         },
         "sentence": {
           "title": "SENTENCE",
@@ -1374,17 +1084,8 @@
     {
       "id": "session-sea-she",
       "title": "Sea vs She",
-      "progress": {
-        "done": 0,
-        "total": 10
-      },
-      "status": {
-        "score": null,
-        "label": "",
-        "tone": "neutral"
-      },
       "speak": {
-        "focus": "s vs ʃ",
+        "focus": "s vs \u0283",
         "sound": {
           "title": "THE SOUND",
           "hint": "Hiss vs Hush.",
@@ -1399,8 +1100,7 @@
             "SHOE",
             "SEA",
             "SHE"
-          ],
-          "expected": "Shoe"
+          ]
         },
         "sentence": {
           "title": "SENTENCE",
@@ -1413,15 +1113,6 @@
     {
       "id": "session-silent-k",
       "title": "Silent K",
-      "progress": {
-        "done": 0,
-        "total": 10
-      },
-      "status": {
-        "score": null,
-        "label": "",
-        "tone": "neutral"
-      },
       "speak": {
         "focus": "Silent K",
         "sound": {
@@ -1437,8 +1128,7 @@
             "KNEE",
             "KNOW",
             "KNOCK"
-          ],
-          "expected": "Knee"
+          ]
         },
         "sentence": {
           "title": "SENTENCE",
@@ -1451,15 +1141,6 @@
     {
       "id": "session-silent-w",
       "title": "Silent W",
-      "progress": {
-        "done": 0,
-        "total": 10
-      },
-      "status": {
-        "score": null,
-        "label": "",
-        "tone": "neutral"
-      },
       "speak": {
         "focus": "Silent W",
         "sound": {
@@ -1475,8 +1156,7 @@
             "WRONG",
             "WRIST",
             "WRAP"
-          ],
-          "expected": "Wrong"
+          ]
         },
         "sentence": {
           "title": "SENTENCE",
@@ -1489,15 +1169,6 @@
     {
       "id": "session-silent-l",
       "title": "Silent L",
-      "progress": {
-        "done": 0,
-        "total": 10
-      },
-      "status": {
-        "score": null,
-        "label": "",
-        "tone": "neutral"
-      },
       "speak": {
         "focus": "Silent L",
         "sound": {
@@ -1513,8 +1184,7 @@
             "TALK",
             "HALF",
             "CALM"
-          ],
-          "expected": "Talk"
+          ]
         },
         "sentence": {
           "title": "SENTENCE",
@@ -1527,15 +1197,6 @@
     {
       "id": "session-stress-2",
       "title": "Two Syllables",
-      "progress": {
-        "done": 0,
-        "total": 10
-      },
-      "status": {
-        "score": null,
-        "label": "",
-        "tone": "neutral"
-      },
       "speak": {
         "focus": "Stress",
         "sound": {
@@ -1551,8 +1212,7 @@
             "WA-TER",
             "O-PEN",
             "TA-BLE"
-          ],
-          "expected": "Water"
+          ]
         },
         "sentence": {
           "title": "PHRASE",
@@ -1565,15 +1225,6 @@
     {
       "id": "session-stress-3",
       "title": "Three Syllables",
-      "progress": {
-        "done": 0,
-        "total": 10
-      },
-      "status": {
-        "score": null,
-        "label": "",
-        "tone": "neutral"
-      },
       "speak": {
         "focus": "Stress",
         "sound": {
@@ -1589,8 +1240,7 @@
             "TO-MA-TO",
             "PO-TA-TO",
             "BA-NA-NA"
-          ],
-          "expected": "Banana"
+          ]
         },
         "sentence": {
           "title": "PHRASE",
@@ -1603,15 +1253,6 @@
     {
       "id": "session-stress-shift",
       "title": "Shifting Stress",
-      "progress": {
-        "done": 0,
-        "total": 10
-      },
-      "status": {
-        "score": null,
-        "label": "",
-        "tone": "neutral"
-      },
       "speak": {
         "focus": "Shift",
         "sound": {
@@ -1627,8 +1268,7 @@
             "PHO-TO-GRAPH",
             "PHO-TO-GRA-PHY",
             "PHO-TO-GRA-PHIC"
-          ],
-          "expected": "Photography"
+          ]
         },
         "sentence": {
           "title": "SENTENCE",
@@ -1641,15 +1281,6 @@
     {
       "id": "session-link-cv",
       "title": "Consonant to Vowel",
-      "progress": {
-        "done": 0,
-        "total": 10
-      },
-      "status": {
-        "score": null,
-        "label": "",
-        "tone": "neutral"
-      },
       "speak": {
         "focus": "Link",
         "sound": {
@@ -1665,8 +1296,7 @@
             "TURN_ON",
             "GET_UP",
             "LOOK_AT"
-          ],
-          "expected": "Get up"
+          ]
         },
         "sentence": {
           "title": "SENTENCE",
@@ -1679,15 +1309,6 @@
     {
       "id": "session-link-vv",
       "title": "Vowel to Vowel",
-      "progress": {
-        "done": 0,
-        "total": 10
-      },
-      "status": {
-        "score": null,
-        "label": "",
-        "tone": "neutral"
-      },
       "speak": {
         "focus": "Glide",
         "sound": {
@@ -1703,8 +1324,7 @@
             "GO_OUT",
             "DO_IT",
             "SEE_IT"
-          ],
-          "expected": "Do it"
+          ]
         },
         "sentence": {
           "title": "SENTENCE",
@@ -1717,15 +1337,6 @@
     {
       "id": "session-link-ty",
       "title": "Y Fusion",
-      "progress": {
-        "done": 0,
-        "total": 10
-      },
-      "status": {
-        "score": null,
-        "label": "",
-        "tone": "neutral"
-      },
       "speak": {
         "focus": "Fusion",
         "sound": {
@@ -1741,8 +1352,7 @@
             "NICE TO MEET YOU",
             "DON'T YOU",
             "WON'T YOU"
-          ],
-          "expected": "Don't you"
+          ]
         },
         "sentence": {
           "title": "SENTENCE",
@@ -1755,15 +1365,6 @@
     {
       "id": "session-schwa",
       "title": "The Schwa",
-      "progress": {
-        "done": 0,
-        "total": 10
-      },
-      "status": {
-        "score": null,
-        "label": "",
-        "tone": "neutral"
-      },
       "speak": {
         "focus": "Weak",
         "sound": {
@@ -1779,8 +1380,7 @@
             "ROCK N ROLL",
             "SALT N PEPPER",
             "BLACK N WHITE"
-          ],
-          "expected": "Rock and roll"
+          ]
         },
         "sentence": {
           "title": "SENTENCE",
@@ -1793,15 +1393,6 @@
     {
       "id": "session-focus-words",
       "title": "Focus Words",
-      "progress": {
-        "done": 0,
-        "total": 10
-      },
-      "status": {
-        "score": null,
-        "label": "",
-        "tone": "neutral"
-      },
       "speak": {
         "focus": "Focus",
         "sound": {
@@ -1817,8 +1408,7 @@
             "I love IT",
             "I LOVE it",
             "SHE loves it"
-          ],
-          "expected": "I love it"
+          ]
         },
         "sentence": {
           "title": "SENTENCE",
@@ -1831,15 +1421,6 @@
     {
       "id": "session-natural-flow",
       "title": "Natural Flow",
-      "progress": {
-        "done": 0,
-        "total": 10
-      },
-      "status": {
-        "score": null,
-        "label": "",
-        "tone": "neutral"
-      },
       "speak": {
         "focus": "Flow",
         "sound": {
@@ -1855,8 +1436,7 @@
             "GONNA",
             "WANNA",
             "GOTTA"
-          ],
-          "expected": "Wanna"
+          ]
         },
         "sentence": {
           "title": "SENTENCE",
@@ -1869,15 +1449,6 @@
     {
       "id": "session-strengths",
       "title": "Strengths",
-      "progress": {
-        "done": 0,
-        "total": 10
-      },
-      "status": {
-        "score": null,
-        "label": "",
-        "tone": "neutral"
-      },
       "speak": {
         "focus": "Skills",
         "sound": {
@@ -1893,8 +1464,7 @@
             "LAZY",
             "TEAM PLAYER",
             "SOLO"
-          ],
-          "expected": "Team player"
+          ]
         },
         "sentence": {
           "title": "INTERVIEW",
@@ -1907,15 +1477,6 @@
     {
       "id": "session-experience",
       "title": "Experience",
-      "progress": {
-        "done": 0,
-        "total": 10
-      },
-      "status": {
-        "score": null,
-        "label": "",
-        "tone": "neutral"
-      },
       "speak": {
         "focus": "History",
         "sound": {
@@ -1931,8 +1492,7 @@
             "ONE",
             "FIVE",
             "TEN"
-          ],
-          "expected": "Five years"
+          ]
         },
         "sentence": {
           "title": "INTERVIEW",
@@ -1945,15 +1505,6 @@
     {
       "id": "session-why-us",
       "title": "Why Us?",
-      "progress": {
-        "done": 0,
-        "total": 10
-      },
-      "status": {
-        "score": null,
-        "label": "",
-        "tone": "neutral"
-      },
       "speak": {
         "focus": "Fit",
         "sound": {
@@ -1969,8 +1520,7 @@
             "SALARY",
             "CULTURE",
             "LOCATION"
-          ],
-          "expected": "Culture"
+          ]
         },
         "sentence": {
           "title": "INTERVIEW",
@@ -1983,15 +1533,6 @@
     {
       "id": "session-meeting-open",
       "title": "Opening a Meeting",
-      "progress": {
-        "done": 0,
-        "total": 10
-      },
-      "status": {
-        "score": null,
-        "label": "",
-        "tone": "neutral"
-      },
       "speak": {
         "focus": "Start",
         "sound": {
@@ -2007,8 +1548,7 @@
             "BEGIN",
             "START",
             "WAIT"
-          ],
-          "expected": "Shall we"
+          ]
         },
         "sentence": {
           "title": "MEETING",
@@ -2021,15 +1561,6 @@
     {
       "id": "session-agreeing",
       "title": "Agreeing",
-      "progress": {
-        "done": 0,
-        "total": 10
-      },
-      "status": {
-        "score": null,
-        "label": "",
-        "tone": "neutral"
-      },
       "speak": {
         "focus": "Yes",
         "sound": {
@@ -2045,8 +1576,7 @@
             "PARTLY",
             "TOTALLY",
             "NOT"
-          ],
-          "expected": "Totally"
+          ]
         },
         "sentence": {
           "title": "MEETING",
@@ -2059,15 +1589,6 @@
     {
       "id": "session-polite-disagreement",
       "title": "Civil Disagreement",
-      "progress": {
-        "done": 0,
-        "total": 10
-      },
-      "status": {
-        "score": null,
-        "label": "",
-        "tone": "neutral"
-      },
       "speak": {
         "focus": "But...",
         "sound": {
@@ -2083,8 +1604,7 @@
             "YOU'RE WRONG",
             "I SEE",
             "NO WAY"
-          ],
-          "expected": "I see"
+          ]
         },
         "sentence": {
           "title": "MEETING",
@@ -2097,15 +1617,6 @@
     {
       "id": "session-call-intro",
       "title": "Call Introduction",
-      "progress": {
-        "done": 0,
-        "total": 10
-      },
-      "status": {
-        "score": null,
-        "label": "",
-        "tone": "neutral"
-      },
       "speak": {
         "focus": "Hello",
         "sound": {
@@ -2121,8 +1632,7 @@
             "THIS IS",
             "I AM",
             "IT IS"
-          ],
-          "expected": "This is"
+          ]
         },
         "sentence": {
           "title": "CALL",
@@ -2135,15 +1645,6 @@
     {
       "id": "session-clarifying",
       "title": "Clarifying",
-      "progress": {
-        "done": 0,
-        "total": 10
-      },
-      "status": {
-        "score": null,
-        "label": "",
-        "tone": "neutral"
-      },
       "speak": {
         "focus": "Repeat",
         "sound": {
@@ -2159,8 +1660,7 @@
             "COULD YOU",
             "HEY YOU",
             "SAY WHAT"
-          ],
-          "expected": "Could you"
+          ]
         },
         "sentence": {
           "title": "CALL",
@@ -2173,15 +1673,6 @@
     {
       "id": "session-call-closing",
       "title": "Call Closing",
-      "progress": {
-        "done": 0,
-        "total": 10
-      },
-      "status": {
-        "score": null,
-        "label": "",
-        "tone": "neutral"
-      },
       "speak": {
         "focus": "End",
         "sound": {
@@ -2197,8 +1688,7 @@
             "BYE",
             "THANKS",
             "LATER"
-          ],
-          "expected": "Thank you"
+          ]
         },
         "sentence": {
           "title": "CALL",

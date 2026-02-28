@@ -19,11 +19,6 @@ CREATE TABLE IF NOT EXISTS modules (
 CREATE TABLE IF NOT EXISTS sessions (
   id TEXT PRIMARY KEY,
   title TEXT NOT NULL,
-  progress_done INTEGER NOT NULL DEFAULT 0,
-  progress_total INTEGER NOT NULL DEFAULT 10,
-  status_score INTEGER,
-  status_label TEXT DEFAULT '',
-  status_tone TEXT DEFAULT 'neutral',
   speak_focus TEXT DEFAULT '',
   speak_sound_json TEXT NOT NULL DEFAULT '{}',
   speak_spelling_json TEXT NOT NULL DEFAULT '{}',

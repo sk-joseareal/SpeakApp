@@ -32,6 +32,71 @@ db.pragma('busy_timeout = 5000');
 const schemaSql = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8');
 db.exec(schemaSql);
 
+const hasSessionLegacyColumns = () => {
+  const rows = db.prepare(`PRAGMA table_info('sessions')`).all();
+  const names = new Set(rows.map((row) => String(row.name || '').trim()));
+  return (
+    names.has('progress_done') ||
+    names.has('progress_total') ||
+    names.has('status_score') ||
+    names.has('status_label') ||
+    names.has('status_tone')
+  );
+};
+
+const migrateSessionsTableIfNeeded = () => {
+  if (!hasSessionLegacyColumns()) return false;
+
+  const tx = db.transaction(() => {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS sessions_new (
+        id TEXT PRIMARY KEY,
+        title TEXT NOT NULL,
+        speak_focus TEXT DEFAULT '',
+        speak_sound_json TEXT NOT NULL DEFAULT '{}',
+        speak_spelling_json TEXT NOT NULL DEFAULT '{}',
+        speak_sentence_json TEXT NOT NULL DEFAULT '{}',
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        is_active INTEGER NOT NULL DEFAULT 1,
+        updated_at TEXT NOT NULL
+      )
+    `);
+
+    db.exec(`
+      INSERT INTO sessions_new(
+        id, title, speak_focus, speak_sound_json, speak_spelling_json, speak_sentence_json, sort_order, is_active, updated_at
+      )
+      SELECT
+        id,
+        title,
+        COALESCE(speak_focus, ''),
+        COALESCE(speak_sound_json, '{}'),
+        COALESCE(speak_spelling_json, '{}'),
+        COALESCE(speak_sentence_json, '{}'),
+        COALESCE(sort_order, 0),
+        COALESCE(is_active, 1),
+        COALESCE(updated_at, '')
+      FROM sessions
+    `);
+
+    db.exec('DROP TABLE sessions');
+    db.exec('ALTER TABLE sessions_new RENAME TO sessions');
+  });
+
+  db.pragma('foreign_keys = OFF');
+  try {
+    tx();
+  } finally {
+    db.pragma('foreign_keys = ON');
+  }
+  return true;
+};
+
+const migratedSessionsTable = migrateSessionsTableIfNeeded();
+if (migratedSessionsTable) {
+  console.log('[content] migrated sessions table: removed legacy progress/status columns');
+}
+
 const app = express();
 app.use(
   cors({
@@ -65,6 +130,19 @@ const parseBoolean = (value, fallback = false) => {
   if (typeof value === 'boolean') return value;
   const normalized = String(value).trim().toLowerCase();
   return ['1', 'true', 'yes', 'y', 'on'].includes(normalized);
+};
+
+const normalizeStringArray = (value) => {
+  if (!Array.isArray(value)) return [];
+  const out = [];
+  const seen = new Set();
+  value.forEach((item) => {
+    const text = String(item === undefined || item === null ? '' : item).trim();
+    if (!text || seen.has(text)) return;
+    seen.add(text);
+    out.push(text);
+  });
+  return out;
 };
 
 const parseJsonSafe = (value, fallback) => {
@@ -138,11 +216,6 @@ const upsertSession = db.prepare(`
   INSERT INTO sessions(
     id,
     title,
-    progress_done,
-    progress_total,
-    status_score,
-    status_label,
-    status_tone,
     speak_focus,
     speak_sound_json,
     speak_spelling_json,
@@ -154,11 +227,6 @@ const upsertSession = db.prepare(`
   VALUES (
     @id,
     @title,
-    @progress_done,
-    @progress_total,
-    @status_score,
-    @status_label,
-    @status_tone,
     @speak_focus,
     @speak_sound_json,
     @speak_spelling_json,
@@ -169,11 +237,6 @@ const upsertSession = db.prepare(`
   )
   ON CONFLICT(id) DO UPDATE SET
     title = excluded.title,
-    progress_done = excluded.progress_done,
-    progress_total = excluded.progress_total,
-    status_score = excluded.status_score,
-    status_label = excluded.status_label,
-    status_tone = excluded.status_tone,
     speak_focus = excluded.speak_focus,
     speak_sound_json = excluded.speak_sound_json,
     speak_spelling_json = excluded.speak_spelling_json,
@@ -298,29 +361,32 @@ const normalizeTrainingPayload = (rawPayload) => {
     const title = String(session.title || '').trim();
     if (!title) throw new Error(`session ${id} is missing title`);
 
-    const progress = session.progress && typeof session.progress === 'object' ? session.progress : {};
-    const status = session.status && typeof session.status === 'object' ? session.status : {};
     const speak = session.speak && typeof session.speak === 'object' ? session.speak : {};
 
-    const sound = speak.sound && typeof speak.sound === 'object' ? speak.sound : {};
-    const spelling = speak.spelling && typeof speak.spelling === 'object' ? speak.spelling : {};
-    const sentence = speak.sentence && typeof speak.sentence === 'object' ? speak.sentence : {};
-
-    const progressDoneRaw = Number(progress.done);
-    const progressTotalRaw = Number(progress.total);
+    const soundRaw = speak.sound && typeof speak.sound === 'object' ? speak.sound : {};
+    const spellingRaw = speak.spelling && typeof speak.spelling === 'object' ? speak.spelling : {};
+    const sentenceRaw = speak.sentence && typeof speak.sentence === 'object' ? speak.sentence : {};
+    const sound = {
+      title: String(soundRaw.title || ''),
+      hint: String(soundRaw.hint || ''),
+      phonetic: String(soundRaw.phonetic || ''),
+      expected: String(soundRaw.expected || '')
+    };
+    const spelling = {
+      title: String(spellingRaw.title || ''),
+      hint: String(spellingRaw.hint || ''),
+      words: normalizeStringArray(spellingRaw.words)
+    };
+    const sentence = {
+      title: String(sentenceRaw.title || ''),
+      hint: String(sentenceRaw.hint || ''),
+      sentence: String(sentenceRaw.sentence || ''),
+      expected: String(sentenceRaw.expected || '')
+    };
 
     return {
       id,
       title,
-      progressDone: Number.isFinite(progressDoneRaw) ? Math.max(0, Math.round(progressDoneRaw)) : 0,
-      progressTotal: Number.isFinite(progressTotalRaw) ? Math.max(0, Math.round(progressTotalRaw)) : 10,
-      statusScore: status.score === null || status.score === undefined || status.score === ''
-        ? null
-        : Number.isFinite(Number(status.score))
-        ? Math.round(Number(status.score))
-        : null,
-      statusLabel: String(status.label || ''),
-      statusTone: String(status.tone || 'neutral'),
       speakFocus: String(speak.focus || ''),
       sound,
       spelling,
@@ -331,6 +397,33 @@ const normalizeTrainingPayload = (rawPayload) => {
 
   return { routes, modules, sessions };
 };
+
+const toTrainingPayload = (normalized) => ({
+  routes: normalized.routes.map((route) => ({
+    id: route.id,
+    title: route.title,
+    note: route.note || '',
+    moduleIds: Array.isArray(route.moduleIds) ? route.moduleIds.slice() : []
+  })),
+  modules: normalized.modules.map((module) => ({
+    id: module.id,
+    title: module.title,
+    subtitle: module.subtitle || '',
+    sessionIds: Array.isArray(module.sessionIds) ? module.sessionIds.slice() : []
+  })),
+  sessions: normalized.sessions.map((session) => ({
+    id: session.id,
+    title: session.title,
+    speak: {
+      focus: session.speakFocus || '',
+      sound: session.sound || {},
+      spelling: session.spelling || {},
+      sentence: session.sentence || {}
+    }
+  }))
+});
+
+const sanitizeTrainingPayload = (payload) => toTrainingPayload(normalizeTrainingPayload(payload));
 
 const importTrainingNormalized = (normalized, options = {}) => {
   const replace = options.replace !== false;
@@ -371,11 +464,6 @@ const importTrainingNormalized = (normalized, options = {}) => {
       upsertSession.run({
         id: session.id,
         title: session.title,
-        progress_done: session.progressDone,
-        progress_total: session.progressTotal,
-        status_score: session.statusScore,
-        status_label: session.statusLabel,
-        status_tone: session.statusTone,
         speak_focus: session.speakFocus,
         speak_sound_json: JSON.stringify(session.sound || {}),
         speak_spelling_json: JSON.stringify(session.spelling || {}),
@@ -421,11 +509,6 @@ const selectSessions = db.prepare(
   `SELECT
     id,
     title,
-    progress_done,
-    progress_total,
-    status_score,
-    status_label,
-    status_tone,
     speak_focus,
     speak_sound_json,
     speak_spelling_json,
@@ -485,15 +568,6 @@ const buildTrainingDataFromLive = () => {
   const sessions = sessionsRows.map((row) => ({
     id: row.id,
     title: row.title,
-    progress: {
-      done: Number(row.progress_done) || 0,
-      total: Number(row.progress_total) || 10
-    },
-    status: {
-      score: row.status_score === null || row.status_score === undefined ? null : Number(row.status_score),
-      label: row.status_label || '',
-      tone: row.status_tone || 'neutral'
-    },
     speak: {
       focus: row.speak_focus || '',
       sound: parseJsonSafe(row.speak_sound_json, {}),
@@ -502,7 +576,7 @@ const buildTrainingDataFromLive = () => {
     }
   }));
 
-  return { routes, modules, sessions };
+  return sanitizeTrainingPayload({ routes, modules, sessions });
 };
 
 const getPublishedReleaseRow = db.prepare(
@@ -629,17 +703,25 @@ app.get('/content/training-data', (req, res) => {
   if (published && published.snapshot_json) {
     const payload = parseJsonSafe(published.snapshot_json, null);
     if (payload && typeof payload === 'object') {
-      res.json({
-        ok: true,
-        source: 'published',
-        release: {
-          id: Number(published.id),
-          name: published.name || '',
-          published_at: published.published_at || null
-        },
-        data: payload
-      });
-      return;
+      let sanitized = null;
+      try {
+        sanitized = sanitizeTrainingPayload(payload);
+      } catch (err) {
+        console.warn('[content] ignoring invalid published snapshot, falling back to live:', err.message);
+      }
+      if (sanitized) {
+        res.json({
+          ok: true,
+          source: 'published',
+          release: {
+            id: Number(published.id),
+            name: published.name || '',
+            published_at: published.published_at || null
+          },
+          data: sanitized
+        });
+        return;
+      }
     }
   }
 
@@ -650,7 +732,15 @@ app.get('/content/training-data', (req, res) => {
 app.get('/content/admin/training-data', requireAdmin, (req, res) => {
   const live = buildTrainingDataFromLive();
   const published = getPublishedReleaseRow.get();
-  const publishedData = published && published.snapshot_json ? parseJsonSafe(published.snapshot_json, null) : null;
+  const publishedRaw = published && published.snapshot_json ? parseJsonSafe(published.snapshot_json, null) : null;
+  let publishedData = null;
+  if (publishedRaw && typeof publishedRaw === 'object') {
+    try {
+      publishedData = sanitizeTrainingPayload(publishedRaw);
+    } catch (err) {
+      console.warn('[content] invalid published snapshot in admin view:', err.message);
+    }
+  }
 
   res.json({
     ok: true,

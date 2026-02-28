@@ -59,6 +59,15 @@ input, textarea {
   font-size: 14px;
 }
 
+select {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px;
+  font-size: 14px;
+  background: #fff;
+}
+
 textarea {
   min-height: 460px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
@@ -115,6 +124,37 @@ textarea {
   border-radius: 10px;
   padding: 10px;
   background: #fbfcff;
+}
+
+.editor-item {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px;
+  background: #fbfcff;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.editor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.editor-email {
+  margin: 0;
+  font-weight: 600;
+}
+
+.editor-role {
+  border-radius: 99px;
+  border: 1px solid #bfd3ff;
+  background: #e9f0ff;
+  color: #23468f;
+  font-size: 11px;
+  padding: 2px 8px;
 }
 
 .release-meta {

@@ -24,7 +24,15 @@ Crear env:
 cp ../.env.example ../.env
 ```
 
-Opcional: definir token admin (`CONTENT_ADMIN_TOKEN`) para proteger endpoints de edición.
+Configuración recomendada para edición multiusuario:
+
+- `CONTENT_JWT_SECRET` (obligatorio para login de editores por email/password)
+- `CONTENT_EDITOR_SEED_EMAIL` + `CONTENT_EDITOR_SEED_PASSWORD` (crea primer admin automáticamente si no hay usuarios)
+- `CONTENT_READ_TOKEN` para proteger lectura pública de contenido
+
+Compatibilidad legacy:
+
+- `CONTENT_ADMIN_TOKEN` sigue funcionando como token único de admin (fallback).
 
 ## Run
 
@@ -49,11 +57,15 @@ Funciones incluidas:
 - Validar estructura básica del JSON en cliente
 - Guardar draft (`PUT /content/admin/training-data`)
 - Publicar draft con nombre de release (`POST /content/admin/publish`)
+- Login JWT para editores (`POST /content/admin/login`)
+- Gestión de lock de draft (claim/release) para evitar pisados entre editores
+- Gestión de editores (solo rol `admin`)
 - Ver releases y ejecutar:
   - publicar release existente
   - restaurar draft desde release
 
-Si `CONTENT_ADMIN_TOKEN` está activo, introduce el token en el campo “Admin token”; el dashboard lo enviará como header `x-content-token`.
+Si `CONTENT_JWT_SECRET` está activo, usa login en el dashboard (email/password).
+Si además defines `CONTENT_ADMIN_TOKEN`, también puedes usar token legacy en el campo de token.
 
 ## Endpoints
 
@@ -67,6 +79,21 @@ Si `CONTENT_ADMIN_TOKEN` está activo, introduce el token en el campo “Admin t
   - `?preview=1` devuelve live preview (requiere token admin si está habilitado).
 
 ### Admin (requiere token si `CONTENT_ADMIN_TOKEN` no está vacío)
+
+Auth/usuarios:
+
+- `POST /content/admin/login`
+- `GET /content/admin/me`
+- `GET /content/admin/editors` (admin)
+- `POST /content/admin/editors` (admin)
+- `PUT /content/admin/editors/:id` (admin)
+- `GET /content/admin/audit?limit=100` (admin)
+
+Lock de draft:
+
+- `GET /content/admin/draft-lock`
+- `POST /content/admin/draft-lock/claim`
+- `POST /content/admin/draft-lock/release`
 
 - `GET /content/admin/training-data`
 - `PUT /content/admin/training-data`
@@ -93,6 +120,22 @@ Enviar token en uno de estos formatos:
 
 - Header `x-content-token: <token>`
 - Header `Authorization: Bearer <token>`
+
+## Auth editores (JWT)
+
+Si defines `CONTENT_JWT_SECRET`, el flujo recomendado es:
+
+1. Crear primer admin con variables seed (`CONTENT_EDITOR_SEED_*`) o vía SQL.
+2. Login: `POST /content/admin/login` con `email` y `password`.
+3. Usar `Authorization: Bearer <jwt>` en endpoints admin.
+
+Roles:
+
+- `editor`: leer/editar draft.
+- `publisher`: además publicar/restaurar releases.
+- `admin`: además gestión de editores/auditoría.
+
+En endpoints de escritura, si existe lock activo de otro editor, el servidor devuelve `409 draft_locked_by_other`.
 
 ## Auth lectura (opcional)
 
@@ -133,3 +176,8 @@ curl -X POST 'http://localhost:8791/content/admin/releases/3/publish' \
 - Usa `WAL` para mejorar concurrencia de lectura.
 - Para producción: backup periódico del `.db` (por ejemplo a S3).
 - El contenido de sesión ya no usa `progress/status`; al arrancar, el servidor migra automáticamente columnas legacy si existen.
+- Recomendado para 2-3 editores:
+  1. cada editor hace login con su usuario,
+  2. toma lock antes de editar (`Tomar lock`),
+  3. guarda/publica,
+  4. libera lock al terminar.

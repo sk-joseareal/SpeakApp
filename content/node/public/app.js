@@ -1,10 +1,17 @@
 (() => {
   const TOKEN_KEY = 'speakapp:content-dashboard:token';
+  const JWT_KEY = 'speakapp:content-dashboard:jwt';
+  const LOGIN_EMAIL_KEY = 'speakapp:content-dashboard:login-email';
   const MODE_GUIDED = 'guided';
   const MODE_JSON = 'json';
 
   const el = {
     tokenInput: document.getElementById('tokenInput'),
+    loginEmailInput: document.getElementById('loginEmailInput'),
+    loginPasswordInput: document.getElementById('loginPasswordInput'),
+    loginBtn: document.getElementById('loginBtn'),
+    logoutBtn: document.getElementById('logoutBtn'),
+    authSummary: document.getElementById('authSummary'),
     showToken: document.getElementById('showToken'),
     saveTokenBtn: document.getElementById('saveTokenBtn'),
     healthBtn: document.getElementById('healthBtn'),
@@ -15,6 +22,19 @@
     publishBtn: document.getElementById('publishBtn'),
     releaseNameInput: document.getElementById('releaseNameInput'),
     refreshReleasesBtn: document.getElementById('refreshReleasesBtn'),
+    lockInfo: document.getElementById('lockInfo'),
+    claimLockBtn: document.getElementById('claimLockBtn'),
+    releaseLockBtn: document.getElementById('releaseLockBtn'),
+    refreshLockBtn: document.getElementById('refreshLockBtn'),
+    editorsSection: document.getElementById('editorsSection'),
+    refreshEditorsBtn: document.getElementById('refreshEditorsBtn'),
+    newEditorEmailInput: document.getElementById('newEditorEmailInput'),
+    newEditorNameInput: document.getElementById('newEditorNameInput'),
+    newEditorRoleInput: document.getElementById('newEditorRoleInput'),
+    newEditorPasswordInput: document.getElementById('newEditorPasswordInput'),
+    newEditorActiveInput: document.getElementById('newEditorActiveInput'),
+    createEditorBtn: document.getElementById('createEditorBtn'),
+    editorsList: document.getElementById('editorsList'),
     statusBox: document.getElementById('statusBox'),
     countsBox: document.getElementById('countsBox'),
     guidedCountsBox: document.getElementById('guidedCountsBox'),
@@ -78,8 +98,21 @@
   let selectedModuleId = '';
   let selectedSessionId = '';
   let editorMode = MODE_GUIDED;
+  let sessionJwt = '';
+  let currentAuth = null;
+  let currentEditor = null;
+  let currentLock = null;
 
   const asText = (value) => String(value === undefined || value === null ? '' : value).trim();
+  const roleRank = { editor: 1, publisher: 2, admin: 3 };
+  const normalizeRole = (value) => {
+    const role = asText(value).toLowerCase();
+    return roleRank[role] ? role : 'editor';
+  };
+  const hasRoleAtLeast = (role, minRole) => (roleRank[normalizeRole(role)] || 0) >= (roleRank[normalizeRole(minRole)] || 0);
+  const isAuthenticated = () => Boolean(currentAuth && currentAuth.authorized);
+  const currentRole = () => normalizeRole(currentAuth && currentAuth.role ? currentAuth.role : '');
+  const canManageEditors = () => isAuthenticated() && hasRoleAtLeast(currentRole(), 'admin');
 
   const uniqStrings = (items) => {
     const seen = new Set();
@@ -204,8 +237,12 @@
 
   const headers = (withBody = false) => {
     const result = {};
-    const token = getToken();
-    if (token) result['x-content-token'] = token;
+    if (sessionJwt) {
+      result.Authorization = `Bearer ${sessionJwt}`;
+    } else {
+      const token = getToken();
+      if (token) result['x-content-token'] = token;
+    }
     if (withBody) result['Content-Type'] = 'application/json';
     return result;
   };
@@ -782,6 +819,159 @@
     }
   };
 
+  const renderAuthSummary = () => {
+    const token = getToken();
+    if (currentAuth && currentAuth.authorized) {
+      const who =
+        (currentEditor && currentEditor.display_name) ||
+        currentAuth.displayName ||
+        currentAuth.email ||
+        'editor';
+      const mode = currentAuth.mode ? ` · ${currentAuth.mode}` : '';
+      el.authSummary.textContent = `Sesión: ${who} (${currentRole()})${mode}`;
+    } else if (sessionJwt) {
+      el.authSummary.textContent = 'JWT guardado pero inválido/caducado.';
+    } else if (token) {
+      el.authSummary.textContent = 'Sin JWT. Usando token legacy manual.';
+    } else {
+      el.authSummary.textContent = 'Sin sesión JWT.';
+    }
+
+    if (el.editorsSection) {
+      el.editorsSection.classList.toggle('hidden', !canManageEditors());
+    }
+  };
+
+  const renderLockInfo = () => {
+    if (!isAuthenticated()) {
+      currentLock = null;
+      el.lockInfo.textContent = 'Lock: inicia sesión para ver/gestionar lock.';
+      return;
+    }
+    if (!currentLock) {
+      el.lockInfo.textContent = 'Lock: sin lock activo.';
+      return;
+    }
+    const me =
+      currentAuth &&
+      currentAuth.editorId !== null &&
+      currentAuth.editorId !== undefined &&
+      Number(currentAuth.editorId) === Number(currentLock.owner_id);
+    const who = currentLock.owner_email || `editor:${currentLock.owner_id || '?'}`;
+    el.lockInfo.textContent = `Lock: ${me ? 'tuyo' : `de ${who}`} · expira: ${
+      currentLock.expires_at || 'n/d'
+    }`;
+  };
+
+  const renderEditors = (items) => {
+    if (!el.editorsList) return;
+    el.editorsList.innerHTML = '';
+    const list = Array.isArray(items) ? items : [];
+    if (!list.length) {
+      el.editorsList.textContent = 'No hay editores.';
+      return;
+    }
+
+    list.forEach((item) => {
+      const card = document.createElement('div');
+      card.className = 'editor-item';
+
+      const header = document.createElement('div');
+      header.className = 'editor-header';
+
+      const email = document.createElement('p');
+      email.className = 'editor-email';
+      email.textContent = item.email || `editor-${item.id}`;
+
+      const roleTag = document.createElement('span');
+      roleTag.className = 'editor-role';
+      roleTag.textContent = item.role || 'editor';
+
+      header.appendChild(email);
+      header.appendChild(roleTag);
+
+      const row = document.createElement('div');
+      row.className = 'row row-wrap gap-sm';
+
+      const nameField = document.createElement('label');
+      nameField.className = 'field grow';
+      const nameLabel = document.createElement('span');
+      nameLabel.textContent = 'Nombre';
+      const nameInput = document.createElement('input');
+      nameInput.type = 'text';
+      nameInput.value = item.display_name || '';
+      nameField.appendChild(nameLabel);
+      nameField.appendChild(nameInput);
+
+      const roleField = document.createElement('label');
+      roleField.className = 'field';
+      const roleLabel = document.createElement('span');
+      roleLabel.textContent = 'Rol';
+      const roleSelect = document.createElement('select');
+      ['editor', 'publisher', 'admin'].forEach((role) => {
+        const opt = document.createElement('option');
+        opt.value = role;
+        opt.textContent = role;
+        if (normalizeRole(item.role) === role) opt.selected = true;
+        roleSelect.appendChild(opt);
+      });
+      roleField.appendChild(roleLabel);
+      roleField.appendChild(roleSelect);
+
+      const passwordField = document.createElement('label');
+      passwordField.className = 'field grow';
+      const passwordLabel = document.createElement('span');
+      passwordLabel.textContent = 'Nueva password (opcional)';
+      const passwordInput = document.createElement('input');
+      passwordInput.type = 'password';
+      passwordInput.placeholder = 'mínimo 8';
+      passwordField.appendChild(passwordLabel);
+      passwordField.appendChild(passwordInput);
+
+      const activeLabel = document.createElement('label');
+      activeLabel.className = 'checkbox';
+      const activeInput = document.createElement('input');
+      activeInput.type = 'checkbox';
+      activeInput.checked = Boolean(item.is_active);
+      activeLabel.appendChild(activeInput);
+      activeLabel.append('Activo');
+
+      const saveBtn = document.createElement('button');
+      saveBtn.className = 'btn btn-primary';
+      saveBtn.textContent = 'Guardar editor';
+      saveBtn.addEventListener('click', async () => {
+        try {
+          const body = {
+            display_name: asText(nameInput.value),
+            role: asText(roleSelect.value),
+            is_active: Boolean(activeInput.checked)
+          };
+          const nextPassword = asText(passwordInput.value);
+          if (nextPassword) body.password = nextPassword;
+          const out = await api(`/content/admin/editors/${item.id}`, {
+            method: 'PUT',
+            headers: headers(true),
+            body: JSON.stringify(body)
+          });
+          setStatus('Editor actualizado.', out);
+          await loadEditors();
+        } catch (err) {
+          setStatus('Error actualizando editor.', err.response || { error: err.message });
+        }
+      });
+
+      row.appendChild(nameField);
+      row.appendChild(roleField);
+      row.appendChild(passwordField);
+      row.appendChild(activeLabel);
+      row.appendChild(saveBtn);
+
+      card.appendChild(header);
+      card.appendChild(row);
+      el.editorsList.appendChild(card);
+    });
+  };
+
   const renderReleases = (items) => {
     el.releasesBox.innerHTML = '';
     const releases = Array.isArray(items) ? items : [];
@@ -810,10 +1000,12 @@
 
       const actions = document.createElement('div');
       actions.className = 'row gap-sm top-md row-wrap';
+      const canPublishAction = hasRoleAtLeast(currentRole(), 'publisher') || Boolean(getToken());
 
       const publishBtn = document.createElement('button');
       publishBtn.className = 'btn';
       publishBtn.textContent = 'Publicar esta release';
+      publishBtn.disabled = !canPublishAction;
       publishBtn.addEventListener('click', async () => {
         try {
           const out = await api(`/content/admin/releases/${item.id}/publish`, {
@@ -822,14 +1014,17 @@
           });
           setStatus('Release publicada.', out);
           await loadReleases();
+          await refreshLock({ silent: true });
         } catch (err) {
           setStatus('Error publicando release.', err.response || { error: err.message });
+          await refreshLock({ silent: true });
         }
       });
 
       const restoreBtn = document.createElement('button');
       restoreBtn.className = 'btn';
       restoreBtn.textContent = 'Restaurar a draft';
+      restoreBtn.disabled = !canPublishAction;
       restoreBtn.addEventListener('click', async () => {
         try {
           const out = await api(`/content/admin/releases/${item.id}/restore-draft`, {
@@ -839,8 +1034,10 @@
           setStatus('Draft restaurado desde release.', out);
           await loadDraft();
           await loadReleases();
+          await refreshLock({ silent: true });
         } catch (err) {
           setStatus('Error restaurando release.', err.response || { error: err.message });
+          await refreshLock({ silent: true });
         }
       });
 
@@ -852,6 +1049,172 @@
       div.appendChild(actions);
       el.releasesBox.appendChild(div);
     });
+  };
+
+  const loadMe = async ({ silent = false } = {}) => {
+    try {
+      const out = await api('/content/admin/me', { headers: headers(false) });
+      currentAuth = out.auth || null;
+      currentEditor = out.editor || null;
+      renderAuthSummary();
+      return true;
+    } catch (err) {
+      currentAuth = { authorized: false, role: 'guest' };
+      currentEditor = null;
+      renderAuthSummary();
+      if (!silent) {
+        setStatus('Sesión no válida.', err.response || { error: err.message });
+      }
+      return false;
+    }
+  };
+
+  const login = async () => {
+    try {
+      const email = asText(el.loginEmailInput.value).toLowerCase();
+      const password = String(el.loginPasswordInput.value || '');
+      if (!email || !password) {
+        setStatus('Email y password son obligatorios para login.');
+        return;
+      }
+      const out = await api('/content/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      sessionJwt = asText(out && out.token);
+      if (!sessionJwt) {
+        setStatus('Login inválido: token vacío.', out || {});
+        return;
+      }
+      localStorage.setItem(JWT_KEY, sessionJwt);
+      localStorage.setItem(LOGIN_EMAIL_KEY, email);
+      el.loginPasswordInput.value = '';
+      await loadMe({ silent: true });
+      await refreshLock({ silent: true });
+      await loadDraft();
+      await loadReleases();
+      await loadEditors({ silent: true });
+      setStatus('Login OK.', {
+        editor: out.editor || null,
+        expires_in: out.expires_in || null
+      });
+    } catch (err) {
+      setStatus('Error en login.', err.response || { error: err.message });
+    }
+  };
+
+  const logout = async () => {
+    sessionJwt = '';
+    currentAuth = { authorized: false, role: 'guest' };
+    currentEditor = null;
+    currentLock = null;
+    localStorage.removeItem(JWT_KEY);
+    renderAuthSummary();
+    renderLockInfo();
+    renderEditors([]);
+    setStatus('Sesión cerrada.');
+  };
+
+  const refreshLock = async ({ silent = false } = {}) => {
+    if (!isAuthenticated() && !getToken()) {
+      currentLock = null;
+      renderLockInfo();
+      return;
+    }
+    try {
+      const out = await api('/content/admin/draft-lock', { headers: headers(false) });
+      currentLock = out && out.lock ? out.lock : null;
+      renderLockInfo();
+    } catch (err) {
+      currentLock = null;
+      renderLockInfo();
+      if (!silent) {
+        setStatus('Error obteniendo lock.', err.response || { error: err.message });
+      }
+    }
+  };
+
+  const claimLock = async () => {
+    try {
+      const out = await api('/content/admin/draft-lock/claim', {
+        method: 'POST',
+        headers: headers(true),
+        body: JSON.stringify({})
+      });
+      currentLock = out && out.lock ? out.lock : null;
+      renderLockInfo();
+      setStatus('Lock tomado.', out);
+    } catch (err) {
+      setStatus('No se pudo tomar lock.', err.response || { error: err.message });
+      await refreshLock({ silent: true });
+    }
+  };
+
+  const releaseLock = async () => {
+    try {
+      const out = await api('/content/admin/draft-lock/release', {
+        method: 'POST',
+        headers: headers(true),
+        body: JSON.stringify({})
+      });
+      currentLock = null;
+      renderLockInfo();
+      setStatus('Lock liberado.', out);
+    } catch (err) {
+      setStatus('No se pudo liberar lock.', err.response || { error: err.message });
+      await refreshLock({ silent: true });
+    }
+  };
+
+  const loadEditors = async ({ silent = false } = {}) => {
+    if (!canManageEditors()) {
+      renderEditors([]);
+      return;
+    }
+    try {
+      const out = await api('/content/admin/editors', { headers: headers(false) });
+      renderEditors(out && out.editors ? out.editors : []);
+    } catch (err) {
+      renderEditors([]);
+      if (!silent) {
+        setStatus('Error cargando editores.', err.response || { error: err.message });
+      }
+    }
+  };
+
+  const createEditor = async () => {
+    try {
+      const email = asText(el.newEditorEmailInput.value).toLowerCase();
+      const displayName = asText(el.newEditorNameInput.value);
+      const role = asText(el.newEditorRoleInput.value).toLowerCase();
+      const password = asText(el.newEditorPasswordInput.value);
+      const isActive = Boolean(el.newEditorActiveInput.checked);
+      if (!email || !password) {
+        setStatus('Email y password son obligatorios para crear editor.');
+        return;
+      }
+      const out = await api('/content/admin/editors', {
+        method: 'POST',
+        headers: headers(true),
+        body: JSON.stringify({
+          email,
+          display_name: displayName,
+          role,
+          password,
+          is_active: isActive
+        })
+      });
+      el.newEditorEmailInput.value = '';
+      el.newEditorNameInput.value = '';
+      el.newEditorPasswordInput.value = '';
+      el.newEditorRoleInput.value = 'editor';
+      el.newEditorActiveInput.checked = true;
+      setStatus('Editor creado.', out);
+      await loadEditors({ silent: true });
+    } catch (err) {
+      setStatus('Error creando editor.', err.response || { error: err.message });
+    }
   };
 
   const loadHealth = async () => {
@@ -894,6 +1257,7 @@
               }
             : null
       });
+      await refreshLock({ silent: true });
     } catch (err) {
       setStatus('Error cargando draft (token requerido).', err.response || { error: err.message });
     }
@@ -909,8 +1273,10 @@
       });
       setContentState(payload, { syncJson: true, preserveSelection: true });
       setStatus('Draft guardado.', out);
+      await refreshLock({ silent: true });
     } catch (err) {
       setStatus('Error guardando draft.', err.response || { error: err.message });
+      await refreshLock({ silent: true });
     }
   };
 
@@ -924,8 +1290,10 @@
       });
       setStatus('Draft publicado.', out);
       await loadReleases();
+      await refreshLock({ silent: true });
     } catch (err) {
       setStatus('Error publicando draft.', err.response || { error: err.message });
+      await refreshLock({ silent: true });
     }
   };
 
@@ -956,10 +1324,12 @@
     }
   };
 
-  const saveToken = () => {
+  const saveToken = async () => {
     const token = getToken();
     try {
       localStorage.setItem(TOKEN_KEY, token);
+      await loadMe({ silent: true });
+      await refreshLock({ silent: true });
       setStatus('Token guardado localmente.');
     } catch (err) {
       setStatus('No se pudo guardar token.', { error: err.message || String(err) });
@@ -1020,13 +1390,34 @@
       if (token) {
         el.tokenInput.value = token;
       }
+      const jwtStored = localStorage.getItem(JWT_KEY);
+      if (jwtStored) {
+        sessionJwt = String(jwtStored);
+      }
+      const lastEmail = localStorage.getItem(LOGIN_EMAIL_KEY);
+      if (lastEmail) {
+        el.loginEmailInput.value = String(lastEmail);
+      }
     } catch (_err) {
       // no-op
     }
 
+    renderAuthSummary();
+    renderLockInfo();
+
     el.showToken.addEventListener('change', () => {
       el.tokenInput.type = el.showToken.checked ? 'text' : 'password';
     });
+    el.loginBtn.addEventListener('click', login);
+    el.logoutBtn.addEventListener('click', logout);
+    el.loginPasswordInput.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') login();
+    });
+    el.claimLockBtn.addEventListener('click', claimLock);
+    el.releaseLockBtn.addEventListener('click', releaseLock);
+    el.refreshLockBtn.addEventListener('click', () => refreshLock({ silent: false }));
+    el.refreshEditorsBtn.addEventListener('click', () => loadEditors({ silent: false }));
+    el.createEditorBtn.addEventListener('click', createEditor);
     el.saveTokenBtn.addEventListener('click', saveToken);
     el.healthBtn.addEventListener('click', loadHealth);
     el.loadDraftBtn.addEventListener('click', loadDraft);
@@ -1041,8 +1432,11 @@
     setContentState({ routes: [], modules: [], sessions: [] }, { syncJson: true, preserveSelection: false });
 
     await loadHealth();
+    await loadMe({ silent: true });
     await loadDraft();
     await loadReleases();
+    await refreshLock({ silent: true });
+    await loadEditors({ silent: true });
   };
 
   bootstrap();

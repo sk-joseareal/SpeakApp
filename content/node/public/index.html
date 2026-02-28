@@ -16,7 +16,21 @@
     <section class="card">
       <div class="row row-wrap gap-sm">
         <label class="field grow">
-          <span>Admin token</span>
+          <span>Email editor</span>
+          <input id="loginEmailInput" type="email" autocomplete="username" placeholder="editor@speakapp.com" />
+        </label>
+        <label class="field grow">
+          <span>Password</span>
+          <input id="loginPasswordInput" type="password" autocomplete="current-password" placeholder="••••••••" />
+        </label>
+        <button id="loginBtn" class="btn btn-primary">Login</button>
+        <button id="logoutBtn" class="btn">Logout</button>
+      </div>
+      <p id="authSummary" class="hint">Sin sesión JWT.</p>
+
+      <div class="row row-wrap gap-sm top-md">
+        <label class="field grow">
+          <span>Token admin legacy (opcional)</span>
           <input id="tokenInput" type="password" autocomplete="off" placeholder="x-content-token" />
         </label>
         <label class="checkbox">
@@ -43,7 +57,48 @@
         </label>
         <button id="publishBtn" class="btn btn-success">Publicar draft</button>
       </div>
+      <div class="row row-wrap gap-sm top-md">
+        <p id="lockInfo" class="hint grow">Lock: sin lock activo.</p>
+        <button id="claimLockBtn" class="btn">Tomar lock</button>
+        <button id="releaseLockBtn" class="btn">Liberar lock</button>
+        <button id="refreshLockBtn" class="btn">Refrescar lock</button>
+      </div>
       <pre id="statusBox" class="status">Listo.</pre>
+    </section>
+
+    <section id="editorsSection" class="card hidden">
+      <div class="row between center">
+        <h2>Editors</h2>
+        <button id="refreshEditorsBtn" class="btn">Refrescar</button>
+      </div>
+      <div class="row row-wrap gap-sm top-md">
+        <label class="field grow">
+          <span>Email</span>
+          <input id="newEditorEmailInput" type="email" autocomplete="off" placeholder="nuevo@speakapp.com" />
+        </label>
+        <label class="field grow">
+          <span>Nombre</span>
+          <input id="newEditorNameInput" type="text" autocomplete="off" placeholder="Nombre editor" />
+        </label>
+        <label class="field">
+          <span>Rol</span>
+          <select id="newEditorRoleInput">
+            <option value="editor">editor</option>
+            <option value="publisher">publisher</option>
+            <option value="admin">admin</option>
+          </select>
+        </label>
+        <label class="field grow">
+          <span>Password inicial</span>
+          <input id="newEditorPasswordInput" type="password" autocomplete="new-password" placeholder="mínimo 8" />
+        </label>
+        <label class="checkbox">
+          <input id="newEditorActiveInput" type="checkbox" checked />
+          Activo
+        </label>
+        <button id="createEditorBtn" class="btn btn-primary">Crear editor</button>
+      </div>
+      <div id="editorsList" class="releases top-md"></div>
     </section>
 
     <section class="card">

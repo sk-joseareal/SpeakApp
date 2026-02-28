@@ -61,6 +61,40 @@ CREATE TABLE IF NOT EXISTS settings (
   updated_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS editor_users (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  email TEXT NOT NULL UNIQUE,
+  display_name TEXT DEFAULT '',
+  password_hash TEXT NOT NULL,
+  role TEXT NOT NULL DEFAULT 'editor',
+  is_active INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS audit_log (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  actor_id INTEGER,
+  actor_email TEXT DEFAULT '',
+  actor_role TEXT DEFAULT '',
+  action TEXT NOT NULL,
+  target TEXT DEFAULT '',
+  details_json TEXT NOT NULL DEFAULT '{}',
+  created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS draft_locks (
+  lock_key TEXT PRIMARY KEY,
+  owner_id INTEGER,
+  owner_email TEXT DEFAULT '',
+  lock_token TEXT NOT NULL,
+  acquired_at TEXT NOT NULL,
+  expires_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
 CREATE INDEX IF NOT EXISTS idx_route_modules_route ON route_modules(route_id, sort_order);
 CREATE INDEX IF NOT EXISTS idx_module_sessions_module ON module_sessions(module_id, sort_order);
 CREATE INDEX IF NOT EXISTS idx_releases_published ON releases(published, published_at);
+CREATE INDEX IF NOT EXISTS idx_editor_users_email ON editor_users(email);
+CREATE INDEX IF NOT EXISTS idx_audit_log_created_at ON audit_log(created_at);

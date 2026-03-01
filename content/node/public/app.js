@@ -816,10 +816,10 @@
       setContentState(payload, { syncJson: true, preserveSelection: true });
       jsonDirty = false;
       updateSyncFromJsonButtonState();
-      setStatus('JSON aplicado al editor guiado.');
+      setStatus('JSON aplicado al Editor.');
       setEditorMode(MODE_GUIDED);
     } catch (err) {
-      setStatus('Error aplicando JSON al editor guiado.', { error: err.message });
+      setStatus('Error aplicando JSON al Editor.', { error: err.message });
     }
   };
 

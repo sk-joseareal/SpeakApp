@@ -36,6 +36,8 @@
     guidedCountsBox: document.getElementById('guidedCountsBox'),
     jsonEditor: document.getElementById('jsonEditor'),
     releasesBox: document.getElementById('releasesBox'),
+    editorModeSection: document.getElementById('editorModeSection'),
+    releasesSection: document.getElementById('releasesSection'),
 
     modeGuidedBtn: document.getElementById('modeGuidedBtn'),
     modeJsonBtn: document.getElementById('modeJsonBtn'),
@@ -262,8 +264,7 @@
     el.modeJsonBtn.classList.toggle('is-active', !guided);
     el.modeGuidedBtn.classList.toggle('btn-primary', guided);
     el.modeJsonBtn.classList.toggle('btn-primary', !guided);
-    el.guidedSection.classList.toggle('hidden', !guided);
-    el.jsonSection.classList.toggle('hidden', guided);
+    renderEditorVisibility();
     updateSyncFromJsonButtonState();
   };
 
@@ -299,9 +300,26 @@
   };
 
   const updateSyncFromJsonButtonState = () => {
-    const shouldShow = editorMode === MODE_JSON && jsonDirty;
+    const shouldShow = isAuthenticated() && editorMode === MODE_JSON && jsonDirty;
     el.syncFromJsonBtn.classList.toggle('hidden', !shouldShow);
     el.syncFromJsonBtn.disabled = !shouldShow;
+  };
+
+  const renderEditorVisibility = () => {
+    const canAccessEditor = isAuthenticated();
+    const guided = editorMode === MODE_GUIDED;
+    if (el.editorModeSection) {
+      el.editorModeSection.classList.toggle('hidden', !canAccessEditor);
+    }
+    if (el.guidedSection) {
+      el.guidedSection.classList.toggle('hidden', !canAccessEditor || !guided);
+    }
+    if (el.jsonSection) {
+      el.jsonSection.classList.toggle('hidden', !canAccessEditor || guided);
+    }
+    if (el.releasesSection) {
+      el.releasesSection.classList.toggle('hidden', !canAccessEditor);
+    }
   };
 
   const setContentState = (payload, options = {}) => {
@@ -841,6 +859,7 @@
     if (el.editorsSection) {
       el.editorsSection.classList.toggle('hidden', !canManageEditors());
     }
+    renderEditorVisibility();
   };
 
   const renderLockInfo = () => {

@@ -32,10 +32,6 @@
     <section class="card">
       <div class="row row-wrap gap-sm">
         <button id="healthBtn" class="btn">Health</button>
-        <button id="loadDraftBtn" class="btn btn-primary">Cargar draft</button>
-        <button id="loadPublicBtn" class="btn">Cargar público</button>
-        <button id="validateBtn" class="btn">Validar JSON</button>
-        <button id="saveDraftBtn" class="btn btn-primary">Guardar draft</button>
       </div>
       <div class="row row-wrap gap-sm top-md">
         <label class="field grow">
@@ -89,7 +85,16 @@
     </section>
 
     <section id="editorModeSection" class="card">
-      <div class="row row-wrap gap-sm">
+      <div class="row between center">
+        <h2>Editor</h2>
+      </div>
+      <div class="row row-wrap gap-sm top-md">
+        <button id="loadDraftBtn" class="btn btn-primary">Cargar draft</button>
+        <button id="loadPublicBtn" class="btn">Cargar público</button>
+        <button id="validateBtn" class="btn">Validar JSON</button>
+        <button id="saveDraftBtn" class="btn btn-primary">Guardar draft</button>
+      </div>
+      <div class="row row-wrap gap-sm top-md">
         <button id="modeGuidedBtn" class="btn btn-primary">Editor</button>
         <button id="modeJsonBtn" class="btn">JSON</button>
         <button id="syncFromJsonBtn" class="btn hidden">Aplicar JSON</button>

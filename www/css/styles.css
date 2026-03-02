@@ -476,7 +476,7 @@ ion-modal.login-modal page-login .page-shell {
   display: grid;
   place-items: center;
   opacity: 0;
-  transition: opacity 120ms ease;
+  transition: opacity 180ms ease;
 }
 
 .speak-badge-overlay.is-visible {
@@ -487,6 +487,7 @@ ion-modal.login-modal page-login .page-shell {
   position: absolute;
   inset: 0;
   background: rgba(15, 23, 42, 0.42);
+  z-index: 1;
 }
 
 .speak-badge-overlay-card {
@@ -502,6 +503,13 @@ ion-modal.login-modal page-login .page-shell {
   align-items: center;
   gap: 10px;
   text-align: center;
+  opacity: 0;
+  transform: translateY(14px) scale(0.82);
+  z-index: 3;
+}
+
+.speak-badge-overlay.is-visible .speak-badge-overlay-card {
+  animation: speak-badge-pop 420ms cubic-bezier(0.2, 0.82, 0.22, 1.2) both;
 }
 
 .speak-badge-overlay-close {
@@ -518,11 +526,38 @@ ion-modal.login-modal page-login .page-shell {
   line-height: 1;
 }
 
+.speak-badge-overlay-media {
+  position: relative;
+  width: min(72vw, 260px);
+  max-width: 260px;
+  display: grid;
+  place-items: center;
+}
+
+.speak-badge-overlay-halo {
+  position: absolute;
+  width: min(58vw, 220px);
+  height: min(58vw, 220px);
+  max-width: 220px;
+  max-height: 220px;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(99, 167, 255, 0.58) 0%, rgba(99, 167, 255, 0.16) 45%, rgba(99, 167, 255, 0) 72%);
+  opacity: 0;
+  transform: scale(0.35);
+  pointer-events: none;
+}
+
+.speak-badge-overlay.is-visible .speak-badge-overlay-halo {
+  animation: speak-badge-halo 680ms ease-out both;
+}
+
 .speak-badge-overlay-image {
   width: min(72vw, 260px);
   max-width: 260px;
   height: auto;
   object-fit: contain;
+  position: relative;
+  z-index: 1;
 }
 
 .speak-badge-overlay-title {
@@ -534,6 +569,98 @@ ion-modal.login-modal page-login .page-shell {
 .speak-badge-overlay-subtitle {
   font-size: 0.85rem;
   color: #64748b;
+}
+
+.speak-badge-overlay-confetti {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 4;
+}
+
+.speak-badge-confetti-piece {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: var(--size, 8px);
+  height: calc(var(--size, 8px) * 1.15);
+  border-radius: 2px;
+  background: var(--color, #60a5fa);
+  transform: translate(-50%, -50%) rotate(0deg) scale(0.65);
+  opacity: 0;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.22) inset;
+}
+
+.speak-badge-overlay.is-visible .speak-badge-confetti-piece {
+  animation: speak-badge-confetti var(--dur, 720ms) ease-out var(--delay, 0ms) 1 both;
+}
+
+@keyframes speak-badge-pop {
+  0% {
+    opacity: 0;
+    transform: translateY(14px) scale(0.78);
+  }
+  58% {
+    opacity: 1;
+    transform: translateY(-2px) scale(1.06);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes speak-badge-halo {
+  0% {
+    opacity: 0;
+    transform: scale(0.35);
+  }
+  28% {
+    opacity: 0.62;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.24);
+  }
+}
+
+@keyframes speak-badge-confetti {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(0deg) scale(0.65);
+  }
+  12% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc(-50% + var(--dx, 0px)), calc(-50% + var(--dy, 0px)))
+      rotate(var(--rot, 0deg))
+      scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .speak-badge-overlay {
+    transition: none;
+  }
+
+  .speak-badge-overlay-card {
+    opacity: 1;
+    transform: none;
+  }
+
+  .speak-badge-overlay.is-visible .speak-badge-overlay-card,
+  .speak-badge-overlay.is-visible .speak-badge-overlay-halo,
+  .speak-badge-overlay.is-visible .speak-badge-confetti-piece {
+    animation: none;
+  }
+
+  .speak-badge-overlay-halo,
+  .speak-badge-overlay-confetti {
+    display: none;
+  }
 }
 
 .profile-settings {

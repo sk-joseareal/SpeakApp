@@ -505,6 +505,7 @@ window.r34lp0w3r.speakBadges = loadSpeakStore(
 );
 
 const SPEAK_BADGE_IMAGE_FALLBACK = 'assets/badges/badge1.png';
+const BADGE_CONFETTI_COLORS = ['#60a5fa', '#34d399', '#f472b6', '#f59e0b', '#818cf8', '#22d3ee'];
 
 const escapeBadgeHtml = (value) =>
   String(value ?? '')
@@ -534,6 +535,29 @@ const resolveBadgeEntry = (badgeOrId) => {
   return null;
 };
 
+const buildBadgeConfettiHtml = () => {
+  const pieces = [];
+  const total = 18;
+  for (let idx = 0; idx < total; idx += 1) {
+    const angleDeg = (360 / total) * idx - 90 + (Math.random() * 26 - 13);
+    const angleRad = (angleDeg * Math.PI) / 180;
+    const distance = 90 + Math.random() * 110;
+    const dx = Math.cos(angleRad) * distance;
+    const dy = Math.sin(angleRad) * distance;
+    const delay = Math.round(Math.random() * 120);
+    const duration = 680 + Math.round(Math.random() * 300);
+    const rotate = -170 + Math.round(Math.random() * 340);
+    const size = 8 + Math.round(Math.random() * 5);
+    const color = BADGE_CONFETTI_COLORS[idx % BADGE_CONFETTI_COLORS.length];
+    pieces.push(
+      `<span class="speak-badge-confetti-piece" style="--dx:${dx.toFixed(1)}px;--dy:${dy.toFixed(
+        1
+      )}px;--delay:${delay}ms;--dur:${duration}ms;--rot:${rotate}deg;--size:${size}px;--color:${color};"></span>`
+    );
+  }
+  return pieces.join('');
+};
+
 window.openSpeakBadgePopup = async (badgeOrId) => {
   const badge = resolveBadgeEntry(badgeOrId);
   if (!badge) return false;
@@ -554,13 +578,18 @@ window.openSpeakBadgePopup = async (badgeOrId) => {
 
   closeExisting();
 
+  const confettiHtml = buildBadgeConfettiHtml();
   const overlay = document.createElement('div');
   overlay.className = 'speak-badge-overlay';
   overlay.innerHTML = `
     <div class="speak-badge-overlay-backdrop" data-close="1"></div>
+    <div class="speak-badge-overlay-confetti" aria-hidden="true">${confettiHtml}</div>
     <div class="speak-badge-overlay-card" role="dialog" aria-modal="true" aria-label="${escapeBadgeHtml(title)}">
       <button class="speak-badge-overlay-close" type="button" aria-label="Cerrar" data-close="1">&times;</button>
-      <img class="speak-badge-overlay-image" src="${escapeBadgeHtml(image)}" alt="${escapeBadgeHtml(title)}">
+      <div class="speak-badge-overlay-media">
+        <div class="speak-badge-overlay-halo" aria-hidden="true"></div>
+        <img class="speak-badge-overlay-image" src="${escapeBadgeHtml(image)}" alt="${escapeBadgeHtml(title)}">
+      </div>
       <div class="speak-badge-overlay-title">${escapeBadgeHtml(title)}</div>
       ${subtitle ? `<div class="speak-badge-overlay-subtitle">${escapeBadgeHtml(subtitle)}</div>` : ''}
     </div>
@@ -573,7 +602,7 @@ window.openSpeakBadgePopup = async (badgeOrId) => {
     overlay.classList.remove('is-visible');
     setTimeout(() => {
       if (overlay.isConnected) overlay.remove();
-    }, 120);
+    }, 220);
   };
   overlay.addEventListener('click', (event) => {
     const target = event.target instanceof Element ? event.target : null;

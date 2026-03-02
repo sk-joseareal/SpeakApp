@@ -261,7 +261,18 @@ class PageListas extends HTMLElement {
           </div>
         </ion-content>
       `;
-      ensureTrainingData().then(() => this.render());
+      if (!this._loadingTrainingData && !this._trainingDataLoadAttempted) {
+        this._loadingTrainingData = true;
+        this._trainingDataLoadAttempted = true;
+        ensureTrainingData()
+          .catch((err) => {
+            console.warn('[training] training data load failed', err);
+          })
+          .finally(() => {
+            this._loadingTrainingData = false;
+            if (this.isConnected) this.render();
+          });
+      }
       this.updateHeaderUser(window.user);
       this.updateHeaderRewards();
       return;

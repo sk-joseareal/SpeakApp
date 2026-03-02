@@ -70,12 +70,17 @@ class PageProfile extends HTMLElement {
     }
 
     const routes = getRoutes();
-    if (!routes.length && !this._loadingData) {
+    if (!routes.length && !this._loadingData && !this._trainingDataLoadAttempted) {
       this._loadingData = true;
-      ensureTrainingData().then(() => {
-        this._loadingData = false;
-        this.render();
-      });
+      this._trainingDataLoadAttempted = true;
+      ensureTrainingData()
+        .catch((err) => {
+          console.warn('[profile] training data load failed', err);
+        })
+        .finally(() => {
+          this._loadingData = false;
+          if (this.isConnected) this.render();
+        });
     }
 
     const getUserDisplayName = (user) => {

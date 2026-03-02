@@ -1,5 +1,6 @@
 const LOCAL_DATA_URL = new URL('./training-data.json', import.meta.url);
 const SELECTION_STORAGE_KEY = 'appv5:training-selection';
+const DEFAULT_REMOTE_FETCH_TIMEOUT_MS = 7000;
 
 let dataCache = null;
 let dataPromise = null;
@@ -104,6 +105,30 @@ const buildTrainingDataRequestHeaders = () => {
   const token = getTrainingDataToken();
   if (!token) return {};
   return { 'x-content-read-token': token };
+};
+
+const getTrainingDataFetchTimeoutMs = () => {
+  if (typeof window === 'undefined') return DEFAULT_REMOTE_FETCH_TIMEOUT_MS;
+  const configured =
+    window.contentConfig && window.contentConfig.trainingDataTimeoutMs !== undefined
+      ? Number(window.contentConfig.trainingDataTimeoutMs)
+      : Number(window.CONTENT_TRAINING_DATA_TIMEOUT_MS);
+  if (!Number.isFinite(configured) || configured <= 0) return DEFAULT_REMOTE_FETCH_TIMEOUT_MS;
+  return Math.max(1000, Math.round(configured));
+};
+
+const fetchWithTimeout = async (url, options = {}, timeoutMs = DEFAULT_REMOTE_FETCH_TIMEOUT_MS) => {
+  if (typeof AbortController !== 'function') {
+    return fetch(url, options);
+  }
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), Math.max(1000, Number(timeoutMs) || 0));
+  try {
+    const merged = { ...options, signal: controller.signal };
+    return await fetch(url, merged);
+  } finally {
+    clearTimeout(timer);
+  }
 };
 
 const unwrapTrainingPayload = (raw) => {
@@ -213,7 +238,12 @@ const loadTrainingData = async () => {
         try {
           const headers = buildTrainingDataRequestHeaders();
           const fetchOpts = Object.keys(headers).length ? { headers } : undefined;
-          const res = await fetch(url, fetchOpts);
+          const isLocalUrl = url === localUrl;
+          const timeoutMs = isLocalUrl ? 0 : getTrainingDataFetchTimeoutMs();
+          const res =
+            timeoutMs > 0
+              ? await fetchWithTimeout(url, fetchOpts, timeoutMs)
+              : await fetch(url, fetchOpts);
           if (!res.ok) throw new Error(`training data: ${res.status}`);
           const raw = await res.json();
           const parsed = unwrapTrainingPayload(raw);
@@ -234,9 +264,15 @@ const loadTrainingData = async () => {
           dataPromise = null;
           return dataCache;
         } catch (err) {
+          const errorMessage =
+            err && err.name === 'AbortError'
+              ? `training data timeout after ${getTrainingDataFetchTimeoutMs()}ms`
+              : err && err.message
+              ? err.message
+              : String(err);
           errors.push({
             url,
-            message: err && err.message ? err.message : String(err)
+            message: errorMessage
           });
         }
       }

@@ -1229,7 +1229,9 @@
 
   const loadPublic = async () => {
     try {
-      const out = await api('/content/training-data');
+      const out = await api('/content/training-data', {
+        headers: headers(false)
+      });
       const payload = out && out.data ? out.data : out;
       setContentState(payload, { syncJson: true, preserveSelection: false });
       setStatus('Contenido público cargado.', {

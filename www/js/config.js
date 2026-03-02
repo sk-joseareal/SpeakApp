@@ -141,7 +141,8 @@
     } else if (typeof fallbackRaw === 'boolean') {
       window.contentConfig.allowLocalFallback = fallbackRaw;
     } else {
-      window.contentConfig.allowLocalFallback = false;
+      // Remote-first, but fallback to bundled local JSON if remote fails.
+      window.contentConfig.allowLocalFallback = true;
     }
   }
 

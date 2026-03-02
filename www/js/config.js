@@ -8,8 +8,8 @@
   window.user_id = window.user_id || null;
 
   window.appMeta = window.appMeta || {
-    version: window.APP_VERSION || '1.0.0',
-    build: window.APP_BUILD || '8'
+    version: window.APP_VERSION || '1.0.1',
+    build: window.APP_BUILD || '11'
   };
 
   const emitAppMeta = () => {

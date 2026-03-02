@@ -315,6 +315,10 @@ const updateEditorPasswordStmt = db.prepare(`
   SET password_hash = @password_hash, updated_at = @updated_at
   WHERE id = @id
 `);
+const deleteEditorByIdStmt = db.prepare('DELETE FROM editor_users WHERE id = ?');
+const countActiveAdminsStmt = db.prepare(
+  "SELECT COUNT(*) AS n FROM editor_users WHERE role = 'admin' AND is_active = 1"
+).pluck();
 
 const insertAuditLogStmt = db.prepare(`
   INSERT INTO audit_log(actor_id, actor_email, actor_role, action, target, details_json, created_at)
@@ -924,6 +928,7 @@ const getReleaseByIdStmt = db.prepare(
 );
 const unpublishAllStmt = db.prepare('UPDATE releases SET published = 0 WHERE published = 1');
 const publishByIdStmt = db.prepare('UPDATE releases SET published = 1, published_at = ? WHERE id = ?');
+const deleteReleaseByIdStmt = db.prepare('DELETE FROM releases WHERE id = ?');
 const createReleaseStmt = db.prepare(
   'INSERT INTO releases(name, snapshot_json, published, created_at, published_at) VALUES (?, ?, ?, ?, ?)'
 );
@@ -1162,6 +1167,61 @@ app.put('/content/admin/editors/:id', requireAdmin, (req, res, next) => {
       password_changed: Boolean(nextPassword)
     });
     res.json({ ok: true, editor: updated });
+  } catch (err) {
+    next(err);
+  }
+});
+
+app.delete('/content/admin/editors/:id', requireAdmin, (req, res, next) => {
+  try {
+    const editorId = Number(req.params.id);
+    if (!Number.isFinite(editorId) || editorId <= 0) {
+      res.status(400).json({ ok: false, error: 'invalid_editor_id' });
+      return;
+    }
+    const row = selectEditorById.get(editorId);
+    if (!row) {
+      res.status(404).json({ ok: false, error: 'editor_not_found' });
+      return;
+    }
+
+    const selfId =
+      req.auth && req.auth.editorId !== null && req.auth.editorId !== undefined
+        ? Number(req.auth.editorId)
+        : null;
+    if (selfId !== null && selfId === editorId) {
+      res.status(400).json({ ok: false, error: 'editor_delete_self_forbidden' });
+      return;
+    }
+
+    const role = normalizeRole(row.role);
+    const isActive = Boolean(row.is_active);
+    if (role === 'admin' && isActive) {
+      const activeAdmins = Number(countActiveAdminsStmt.get() || 0);
+      if (activeAdmins <= 1) {
+        res.status(400).json({ ok: false, error: 'last_active_admin_forbidden' });
+        return;
+      }
+    }
+
+    const lock = getLockState('draft');
+    const hadDraftLock =
+      lock &&
+      lock.owner_id !== null &&
+      lock.owner_id !== undefined &&
+      Number(lock.owner_id) === editorId;
+    if (hadDraftLock) {
+      deleteDraftLockStmt.run('draft');
+    }
+
+    deleteEditorByIdStmt.run(editorId);
+    writeAuditLog(req, 'editor.delete', `editor:${editorId}`, {
+      email: String(row.email || ''),
+      role,
+      is_active: isActive,
+      released_draft_lock: Boolean(hadDraftLock)
+    });
+    res.json({ ok: true, deleted: true, editor_id: editorId, released_draft_lock: Boolean(hadDraftLock) });
   } catch (err) {
     next(err);
   }
@@ -1449,6 +1509,33 @@ app.post(
   }
   }
 );
+
+app.delete('/content/admin/releases/:id', requirePublisher, (req, res, next) => {
+  try {
+    const releaseId = Number(req.params.id);
+    if (!Number.isFinite(releaseId) || releaseId <= 0) {
+      res.status(400).json({ ok: false, error: 'invalid_release_id' });
+      return;
+    }
+    const row = getReleaseByIdStmt.get(releaseId);
+    if (!row) {
+      res.status(404).json({ ok: false, error: 'release_not_found' });
+      return;
+    }
+    if (Boolean(row.published)) {
+      res.status(400).json({ ok: false, error: 'cannot_delete_published_release' });
+      return;
+    }
+
+    deleteReleaseByIdStmt.run(releaseId);
+    writeAuditLog(req, 'training.delete_release', `release:${releaseId}`, {
+      name: row.name || ''
+    });
+    res.json({ ok: true, deleted: true, release_id: releaseId });
+  } catch (err) {
+    next(err);
+  }
+});
 
 app.use((err, req, res, _next) => {
   const message = err && err.message ? String(err.message) : 'internal_error';

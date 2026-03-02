@@ -961,11 +961,46 @@
         }
       });
 
+      const deleteBtn = document.createElement('button');
+      deleteBtn.className = 'btn btn-danger';
+      deleteBtn.textContent = 'Eliminar editor';
+      const isSelf =
+        currentAuth &&
+        currentAuth.editorId !== undefined &&
+        currentAuth.editorId !== null &&
+        Number(currentAuth.editorId) === Number(item.id);
+      deleteBtn.disabled = Boolean(isSelf);
+      if (isSelf) {
+        deleteBtn.title = 'No puedes eliminar tu propio usuario.';
+      }
+      deleteBtn.addEventListener('click', async () => {
+        if (isSelf) {
+          setStatus('No puedes eliminar tu propio usuario.');
+          return;
+        }
+        const ok = window.confirm(
+          `¿Eliminar el editor ${item.email || `#${item.id}`}? Esta acción no se puede deshacer.`
+        );
+        if (!ok) return;
+        try {
+          const out = await api(`/content/admin/editors/${item.id}`, {
+            method: 'DELETE',
+            headers: headers(false)
+          });
+          setStatus('Editor eliminado.', out);
+          await loadEditors();
+          await refreshLock({ silent: true });
+        } catch (err) {
+          setStatus('Error eliminando editor.', err.response || { error: err.message });
+        }
+      });
+
       row.appendChild(nameField);
       row.appendChild(roleField);
       row.appendChild(passwordField);
       row.appendChild(activeLabel);
       row.appendChild(saveBtn);
+      row.appendChild(deleteBtn);
 
       card.appendChild(header);
       card.appendChild(row);
@@ -1042,8 +1077,37 @@
         }
       });
 
+      const deleteBtn = document.createElement('button');
+      deleteBtn.className = 'btn btn-danger';
+      deleteBtn.textContent = 'Eliminar release';
+      deleteBtn.disabled = !canPublishAction || Boolean(item.published);
+      if (item.published) {
+        deleteBtn.title = 'No se puede eliminar la release publicada.';
+      }
+      deleteBtn.addEventListener('click', async () => {
+        if (item.published) {
+          setStatus('No se puede eliminar la release publicada.');
+          return;
+        }
+        const ok = window.confirm(
+          `¿Eliminar la release #${item.id} (${item.name || 'sin nombre'})? Esta acción no se puede deshacer.`
+        );
+        if (!ok) return;
+        try {
+          const out = await api(`/content/admin/releases/${item.id}`, {
+            method: 'DELETE',
+            headers: headers(false)
+          });
+          setStatus('Release eliminada.', out);
+          await loadReleases();
+        } catch (err) {
+          setStatus('Error eliminando release.', err.response || { error: err.message });
+        }
+      });
+
       actions.appendChild(publishBtn);
       actions.appendChild(restoreBtn);
+      actions.appendChild(deleteBtn);
 
       div.appendChild(title);
       div.appendChild(meta);

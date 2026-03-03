@@ -217,13 +217,19 @@
         "focus": "Hello!",
         "sound": {
           "title": "GREETING",
-          "hint": "Start with a friendly greeting.",
+          "hint_en_line1": "Start with a friendly greeting.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Comience con un saludo amistoso.",
+          "hint_es_line2": "",
           "phonetic": "Hello! / Hi!",
           "expected": "Hello"
         },
         "spelling": {
           "title": "POLITE QUESTION",
-          "hint": "Ask how they are.",
+          "hint_en_line1": "Ask how they are.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Pregunta c\u00f3mo est\u00e1n.",
+          "hint_es_line2": "",
           "words": [
             "HOW",
             "ARE",
@@ -234,7 +240,10 @@
         },
         "sentence": {
           "title": "RESPONSE",
-          "hint": "Answer and ask back.",
+          "hint_en_line1": "Answer and ask back.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Responde y vuelve a preguntar.",
+          "hint_es_line2": "",
           "sentence": "I'm great, thanks! And you?",
           "expected": "I'm great, thanks! And you?"
         }
@@ -247,13 +256,19 @@
         "focus": "Coffee",
         "sound": {
           "title": "ORDERING",
-          "hint": "Politely ask for what you want.",
+          "hint_en_line1": "Politely ask for what you want.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Pide educadamente lo que quieras.",
+          "hint_es_line2": "",
           "phonetic": "I'd like a...",
           "expected": "I'd like a coffee"
         },
         "spelling": {
           "title": "SIZE",
-          "hint": "Specify the size.",
+          "hint_en_line1": "Specify the size.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Especifique el tama\u00f1o.",
+          "hint_es_line2": "",
           "words": [
             "SMALL",
             "MEDIUM",
@@ -263,7 +278,10 @@
         },
         "sentence": {
           "title": "PAYING",
-          "hint": "Ask for the price.",
+          "hint_en_line1": "Ask for the price.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Pregunta por el precio.",
+          "hint_es_line2": "",
           "sentence": "How much is that?",
           "expected": "How much is that?"
         }
@@ -276,13 +294,19 @@
         "focus": "p",
         "sound": {
           "title": "THE WAY",
-          "hint": "Este sonido se hace redondeando con los labios y haciendo una U con la boca pequena.",
+          "hint_en_line1": "This sound is made by rounding the lips and making a U shape with the small mouth.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Este sonido se hace redondeando con los labios y haciendo una U con la boca pequena.",
+          "hint_es_line2": "",
           "phonetic": "/P/ \u2192 pen",
           "expected": "pen"
         },
         "spelling": {
           "title": "THE SPELLING",
-          "hint": "Estas son palabras donde puedes encontrar este sonido.",
+          "hint_en_line1": "These are words where you can find this sound.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Estas son palabras donde puedes encontrar este sonido.",
+          "hint_es_line2": "",
           "words": [
             "PEN",
             "PAPER",
@@ -294,7 +318,10 @@
         },
         "sentence": {
           "title": "WHOLE SENTENCE",
-          "hint": "Ahora pronuncia la frase entera.",
+          "hint_en_line1": "Now say the entire sentence.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Ahora pronuncia la frase entera.",
+          "hint_es_line2": "",
           "sentence": "The pink pen is on the paper.",
           "expected": "The pink pen is on the paper."
         }
@@ -307,13 +334,19 @@
         "focus": "b",
         "sound": {
           "title": "THE WAY",
-          "hint": "Este sonido se hace redondeando con los labios y haciendo una U con la boca pequena.",
+          "hint_en_line1": "This sound is made by rounding the lips and making a U shape with the small mouth.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Este sonido se hace redondeando con los labios y haciendo una U con la boca pequena.",
+          "hint_es_line2": "",
           "phonetic": "/B/ \u2192 ba-by",
           "expected": "baby"
         },
         "spelling": {
           "title": "THE SPELLING",
-          "hint": "Estas son palabras donde puedes encontrar este sonido.",
+          "hint_en_line1": "These are words where you can find this sound.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Estas son palabras donde puedes encontrar este sonido.",
+          "hint_es_line2": "",
           "words": [
             "BABY",
             "BOOK",
@@ -325,7 +358,10 @@
         },
         "sentence": {
           "title": "WHOLE SENTENCE",
-          "hint": "Ahora pronuncia la frase entera.",
+          "hint_en_line1": "Now say the entire sentence.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Ahora pronuncia la frase entera.",
+          "hint_es_line2": "",
           "sentence": "The baby has a blue book.",
           "expected": "The baby has a blue book."
         }
@@ -338,13 +374,19 @@
         "focus": "w",
         "sound": {
           "title": "THE WAY",
-          "hint": "Este sonido se hace redondeando con los labios y haciendo una U con la boca pequena.",
+          "hint_en_line1": "This sound is made by rounding the lips and making a U shape with the small mouth.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Este sonido se hace redondeando con los labios y haciendo una U con la boca pequena.",
+          "hint_es_line2": "",
           "phonetic": "/W/ \u2192 wa-ter",
           "expected": "water"
         },
         "spelling": {
           "title": "THE SPELLING",
-          "hint": "Estas son palabras donde puedes encontrar este sonido.",
+          "hint_en_line1": "These are words where you can find this sound.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Estas son palabras donde puedes encontrar este sonido.",
+          "hint_es_line2": "",
           "words": [
             "WATER",
             "WHITE",
@@ -356,7 +398,10 @@
         },
         "sentence": {
           "title": "WHOLE SENTENCE",
-          "hint": "Ahora pronuncia la frase entera.",
+          "hint_en_line1": "Now say the entire sentence.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Ahora pronuncia la frase entera.",
+          "hint_es_line2": "",
           "sentence": "Once, the queen found water and a new way in the white world.",
           "expected": "Once, the queen found water and a new way in the white world."
         }
@@ -369,13 +414,19 @@
         "focus": "f",
         "sound": {
           "title": "THE WAY",
-          "hint": "Este sonido se hace redondeando con los labios y haciendo una U con la boca pequena.",
+          "hint_en_line1": "This sound is made by rounding the lips and making a U shape with the small mouth.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Este sonido se hace redondeando con los labios y haciendo una U con la boca pequena.",
+          "hint_es_line2": "",
           "phonetic": "/F/ \u2192 fa-mous",
           "expected": "famous"
         },
         "spelling": {
           "title": "THE SPELLING",
-          "hint": "Estas son palabras donde puedes encontrar este sonido.",
+          "hint_en_line1": "These are words where you can find this sound.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Estas son palabras donde puedes encontrar este sonido.",
+          "hint_es_line2": "",
           "words": [
             "FAMOUS",
             "FOOD",
@@ -387,7 +438,10 @@
         },
         "sentence": {
           "title": "WHOLE SENTENCE",
-          "hint": "Ahora pronuncia la frase entera.",
+          "hint_en_line1": "Now say the entire sentence.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Ahora pronuncia la frase entera.",
+          "hint_es_line2": "",
           "sentence": "My friend is famous for her food.",
           "expected": "My friend is famous for her food."
         }
@@ -400,13 +454,19 @@
         "focus": "v",
         "sound": {
           "title": "THE WAY",
-          "hint": "Este sonido se hace redondeando con los labios y haciendo una U con la boca pequena.",
+          "hint_en_line1": "This sound is made by rounding the lips and making a U shape with the small mouth.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Este sonido se hace redondeando con los labios y haciendo una U con la boca pequena.",
+          "hint_es_line2": "",
           "phonetic": "/V/ \u2192 vam-pire",
           "expected": "vampire"
         },
         "spelling": {
           "title": "THE SPELLING",
-          "hint": "Estas son palabras donde puedes encontrar este sonido.",
+          "hint_en_line1": "These are words where you can find this sound.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Estas son palabras donde puedes encontrar este sonido.",
+          "hint_es_line2": "",
           "words": [
             "VAMPIRE",
             "VOICE",
@@ -418,7 +478,10 @@
         },
         "sentence": {
           "title": "WHOLE SENTENCE",
-          "hint": "Ahora pronuncia la frase entera.",
+          "hint_en_line1": "Now say the entire sentence.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Ahora pronuncia la frase entera.",
+          "hint_es_line2": "",
           "sentence": "The vampire has a very loud voice.",
           "expected": "The vampire has a very loud voice."
         }
@@ -431,13 +494,19 @@
         "focus": "a",
         "sound": {
           "title": "THE WAY",
-          "hint": "Este sonido se hace con la boca abierta y relajada.",
+          "hint_en_line1": "This sound is made with the mouth open and relaxed.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Este sonido se hace con la boca abierta y relajada.",
+          "hint_es_line2": "",
           "phonetic": "/A/ \u2192 a-pple",
           "expected": "apple"
         },
         "spelling": {
           "title": "THE SPELLING",
-          "hint": "Estas son palabras donde puedes encontrar este sonido.",
+          "hint_en_line1": "These are words where you can find this sound.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Estas son palabras donde puedes encontrar este sonido.",
+          "hint_es_line2": "",
           "words": [
             "APPLE",
             "CAT",
@@ -449,7 +518,10 @@
         },
         "sentence": {
           "title": "WHOLE SENTENCE",
-          "hint": "Ahora pronuncia la frase entera.",
+          "hint_en_line1": "Now say the entire sentence.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Ahora pronuncia la frase entera.",
+          "hint_es_line2": "",
           "sentence": "An apple and a cat sit on a mat.",
           "expected": "An apple and a cat sit on a mat."
         }
@@ -462,13 +534,19 @@
         "focus": "e",
         "sound": {
           "title": "THE WAY",
-          "hint": "Este sonido se hace con la boca abierta y relajada.",
+          "hint_en_line1": "This sound is made with the mouth open and relaxed.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Este sonido se hace con la boca abierta y relajada.",
+          "hint_es_line2": "",
           "phonetic": "/E/ \u2192 e-gg",
           "expected": "egg"
         },
         "spelling": {
           "title": "THE SPELLING",
-          "hint": "Estas son palabras donde puedes encontrar este sonido.",
+          "hint_en_line1": "These are words where you can find this sound.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Estas son palabras donde puedes encontrar este sonido.",
+          "hint_es_line2": "",
           "words": [
             "EGG",
             "RED",
@@ -480,7 +558,10 @@
         },
         "sentence": {
           "title": "WHOLE SENTENCE",
-          "hint": "Ahora pronuncia la frase entera.",
+          "hint_en_line1": "Now say the entire sentence.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Ahora pronuncia la frase entera.",
+          "hint_es_line2": "",
           "sentence": "The red hen left the nest.",
           "expected": "The red hen left the nest."
         }
@@ -493,13 +574,19 @@
         "focus": "i",
         "sound": {
           "title": "THE WAY",
-          "hint": "Este sonido se hace con la boca abierta y relajada.",
+          "hint_en_line1": "This sound is made with the mouth open and relaxed.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Este sonido se hace con la boca abierta y relajada.",
+          "hint_es_line2": "",
           "phonetic": "/I/ \u2192 i-ce",
           "expected": "ice"
         },
         "spelling": {
           "title": "THE SPELLING",
-          "hint": "Estas son palabras donde puedes encontrar este sonido.",
+          "hint_en_line1": "These are words where you can find this sound.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Estas son palabras donde puedes encontrar este sonido.",
+          "hint_es_line2": "",
           "words": [
             "ICE",
             "TIME",
@@ -511,7 +598,10 @@
         },
         "sentence": {
           "title": "WHOLE SENTENCE",
-          "hint": "Ahora pronuncia la frase entera.",
+          "hint_en_line1": "Now say the entire sentence.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Ahora pronuncia la frase entera.",
+          "hint_es_line2": "",
           "sentence": "The white light is bright at night.",
           "expected": "The white light is bright at night."
         }
@@ -524,13 +614,19 @@
         "focus": "o",
         "sound": {
           "title": "THE WAY",
-          "hint": "Este sonido se hace con la boca abierta y relajada.",
+          "hint_en_line1": "This sound is made with the mouth open and relaxed.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Este sonido se hace con la boca abierta y relajada.",
+          "hint_es_line2": "",
           "phonetic": "/O/ \u2192 o-range",
           "expected": "orange"
         },
         "spelling": {
           "title": "THE SPELLING",
-          "hint": "Estas son palabras donde puedes encontrar este sonido.",
+          "hint_en_line1": "These are words where you can find this sound.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Estas son palabras donde puedes encontrar este sonido.",
+          "hint_es_line2": "",
           "words": [
             "ORANGE",
             "OPEN",
@@ -542,7 +638,10 @@
         },
         "sentence": {
           "title": "WHOLE SENTENCE",
-          "hint": "Ahora pronuncia la frase entera.",
+          "hint_en_line1": "Now say the entire sentence.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Ahora pronuncia la frase entera.",
+          "hint_es_line2": "",
           "sentence": "The orange rose is at home.",
           "expected": "The orange rose is at home."
         }
@@ -555,13 +654,19 @@
         "focus": "u",
         "sound": {
           "title": "THE WAY",
-          "hint": "Este sonido se hace con la boca abierta y relajada.",
+          "hint_en_line1": "This sound is made with the mouth open and relaxed.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Este sonido se hace con la boca abierta y relajada.",
+          "hint_es_line2": "",
           "phonetic": "/U/ \u2192 um-brella",
           "expected": "umbrella"
         },
         "spelling": {
           "title": "THE SPELLING",
-          "hint": "Estas son palabras donde puedes encontrar este sonido.",
+          "hint_en_line1": "These are words where you can find this sound.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Estas son palabras donde puedes encontrar este sonido.",
+          "hint_es_line2": "",
           "words": [
             "UMBRELLA",
             "SUN",
@@ -573,7 +678,10 @@
         },
         "sentence": {
           "title": "WHOLE SENTENCE",
-          "hint": "Ahora pronuncia la frase entera.",
+          "hint_en_line1": "Now say the entire sentence.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Ahora pronuncia la frase entera.",
+          "hint_es_line2": "",
           "sentence": "The sun is up above the bus.",
           "expected": "The sun is up above the bus."
         }
@@ -586,13 +694,19 @@
         "focus": "t",
         "sound": {
           "title": "THE WAY",
-          "hint": "Este sonido se hace con la boca abierta y relajada.",
+          "hint_en_line1": "This sound is made with the mouth open and relaxed.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Este sonido se hace con la boca abierta y relajada.",
+          "hint_es_line2": "",
           "phonetic": "/T/ \u2192 ti-me",
           "expected": "time"
         },
         "spelling": {
           "title": "THE SPELLING",
-          "hint": "Estas son palabras donde puedes encontrar este sonido.",
+          "hint_en_line1": "These are words where you can find this sound.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Estas son palabras donde puedes encontrar este sonido.",
+          "hint_es_line2": "",
           "words": [
             "TIME",
             "TELL",
@@ -604,7 +718,10 @@
         },
         "sentence": {
           "title": "WHOLE SENTENCE",
-          "hint": "Ahora pronuncia la frase entera.",
+          "hint_en_line1": "Now say the entire sentence.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Ahora pronuncia la frase entera.",
+          "hint_es_line2": "",
           "sentence": "Take the ticket to the train.",
           "expected": "Take the ticket to the train."
         }
@@ -617,13 +734,19 @@
         "focus": "s",
         "sound": {
           "title": "THE WAY",
-          "hint": "Este sonido se hace con la boca abierta y relajada.",
+          "hint_en_line1": "This sound is made with the mouth open and relaxed.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Este sonido se hace con la boca abierta y relajada.",
+          "hint_es_line2": "",
           "phonetic": "/S/ \u2192 su-n",
           "expected": "sun"
         },
         "spelling": {
           "title": "THE SPELLING",
-          "hint": "Estas son palabras donde puedes encontrar este sonido.",
+          "hint_en_line1": "These are words where you can find this sound.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Estas son palabras donde puedes encontrar este sonido.",
+          "hint_es_line2": "",
           "words": [
             "SUN",
             "SING",
@@ -635,7 +758,10 @@
         },
         "sentence": {
           "title": "WHOLE SENTENCE",
-          "hint": "Ahora pronuncia la frase entera.",
+          "hint_en_line1": "Now say the entire sentence.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Ahora pronuncia la frase entera.",
+          "hint_es_line2": "",
           "sentence": "The sun shines over the sea.",
           "expected": "The sun shines over the sea."
         }
@@ -648,13 +774,19 @@
         "focus": "r",
         "sound": {
           "title": "THE WAY",
-          "hint": "Este sonido se hace con la boca abierta y relajada.",
+          "hint_en_line1": "This sound is made with the mouth open and relaxed.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Este sonido se hace con la boca abierta y relajada.",
+          "hint_es_line2": "",
           "phonetic": "/R/ \u2192 ra-bbit",
           "expected": "rabbit"
         },
         "spelling": {
           "title": "THE SPELLING",
-          "hint": "Estas son palabras donde puedes encontrar este sonido.",
+          "hint_en_line1": "These are words where you can find this sound.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Estas son palabras donde puedes encontrar este sonido.",
+          "hint_es_line2": "",
           "words": [
             "RABBIT",
             "RIVER",
@@ -666,7 +798,10 @@
         },
         "sentence": {
           "title": "WHOLE SENTENCE",
-          "hint": "Ahora pronuncia la frase entera.",
+          "hint_en_line1": "Now say the entire sentence.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Ahora pronuncia la frase entera.",
+          "hint_es_line2": "",
           "sentence": "The rabbit ran down the road.",
           "expected": "The rabbit ran down the road."
         }
@@ -679,13 +814,19 @@
         "focus": "l",
         "sound": {
           "title": "THE WAY",
-          "hint": "Este sonido se hace con la boca abierta y relajada.",
+          "hint_en_line1": "This sound is made with the mouth open and relaxed.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Este sonido se hace con la boca abierta y relajada.",
+          "hint_es_line2": "",
           "phonetic": "/L/ \u2192 li-on",
           "expected": "lion"
         },
         "spelling": {
           "title": "THE SPELLING",
-          "hint": "Estas son palabras donde puedes encontrar este sonido.",
+          "hint_en_line1": "These are words where you can find this sound.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Estas son palabras donde puedes encontrar este sonido.",
+          "hint_es_line2": "",
           "words": [
             "LION",
             "LAMP",
@@ -697,7 +838,10 @@
         },
         "sentence": {
           "title": "WHOLE SENTENCE",
-          "hint": "Ahora pronuncia la frase entera.",
+          "hint_en_line1": "Now say the entire sentence.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Ahora pronuncia la frase entera.",
+          "hint_es_line2": "",
           "sentence": "The little lion plays near the lamp.",
           "expected": "The little lion plays near the lamp."
         }
@@ -710,13 +854,19 @@
         "focus": "k",
         "sound": {
           "title": "THE WAY",
-          "hint": "Este sonido se hace con la boca abierta y relajada.",
+          "hint_en_line1": "This sound is made with the mouth open and relaxed.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Este sonido se hace con la boca abierta y relajada.",
+          "hint_es_line2": "",
           "phonetic": "/K/ \u2192 ki-te",
           "expected": "kite"
         },
         "spelling": {
           "title": "THE SPELLING",
-          "hint": "Estas son palabras donde puedes encontrar este sonido.",
+          "hint_en_line1": "These are words where you can find this sound.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Estas son palabras donde puedes encontrar este sonido.",
+          "hint_es_line2": "",
           "words": [
             "KITE",
             "KING",
@@ -728,7 +878,10 @@
         },
         "sentence": {
           "title": "WHOLE SENTENCE",
-          "hint": "Ahora pronuncia la frase entera.",
+          "hint_en_line1": "Now say the entire sentence.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Ahora pronuncia la frase entera.",
+          "hint_es_line2": "",
           "sentence": "The king keeps a kite in the sky.",
           "expected": "The king keeps a kite in the sky."
         }
@@ -741,13 +894,19 @@
         "focus": "i vs i:",
         "sound": {
           "title": "THE SOUND",
-          "hint": "Distinguish between short /I/ and long /i:/.",
+          "hint_en_line1": "Distinguish between short /I/ and long /i:/.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Distinga entre /I/ corta y /i:/ larga.",
+          "hint_es_line2": "",
           "phonetic": "Ship / Sheep",
           "expected": "Sheep"
         },
         "spelling": {
           "title": "MINIMAL PAIRS",
-          "hint": "Listen to the difference.",
+          "hint_en_line1": "Listen to the difference.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Escuche la diferencia.",
+          "hint_es_line2": "",
           "words": [
             "SHIP",
             "SHEEP",
@@ -759,7 +918,10 @@
         },
         "sentence": {
           "title": "PRACTICE SENTENCE",
-          "hint": "Say the full sentence.",
+          "hint_en_line1": "Say the full sentence.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Di la frase completa.",
+          "hint_es_line2": "",
           "sentence": "The sheep is on the ship.",
           "expected": "The sheep is on the ship."
         }
@@ -772,13 +934,19 @@
         "focus": "t vs th",
         "sound": {
           "title": "THE SOUND",
-          "hint": "Place tongue between teeth for TH.",
+          "hint_en_line1": "Place tongue between teeth for TH.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Coloque la lengua entre los dientes para TH.",
+          "hint_es_line2": "",
           "phonetic": "Tree / Three",
           "expected": "Three"
         },
         "spelling": {
           "title": "MINIMAL PAIRS",
-          "hint": "Listen to the difference.",
+          "hint_en_line1": "Listen to the difference.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Escuche la diferencia.",
+          "hint_es_line2": "",
           "words": [
             "TREE",
             "THREE",
@@ -790,7 +958,10 @@
         },
         "sentence": {
           "title": "PRACTICE SENTENCE",
-          "hint": "Say the full sentence.",
+          "hint_en_line1": "Say the full sentence.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Di la frase completa.",
+          "hint_es_line2": "",
           "sentence": "Three trees fell down.",
           "expected": "Three trees fell down."
         }
@@ -803,13 +974,19 @@
         "focus": "Tone",
         "sound": {
           "title": "GREETING",
-          "hint": "Formal setting.",
+          "hint_en_line1": "Formal setting.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Entorno formal.",
+          "hint_es_line2": "",
           "phonetic": "Good morning",
           "expected": "Good morning"
         },
         "spelling": {
           "title": "OPTIONS",
-          "hint": "Choose the formal one.",
+          "hint_en_line1": "Choose the formal one.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Elige el formal.",
+          "hint_es_line2": "",
           "words": [
             "HI",
             "HEY",
@@ -819,7 +996,10 @@
         },
         "sentence": {
           "title": "CONVERSATION",
-          "hint": "Ask politely.",
+          "hint_en_line1": "Ask politely.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Pregunta cort\u00e9smente.",
+          "hint_es_line2": "",
           "sentence": "Good morning, how do you do?",
           "expected": "Good morning, how do you do?"
         }
@@ -832,13 +1012,19 @@
         "focus": "Bye",
         "sound": {
           "title": "FAREWELL",
-          "hint": "Casual parting.",
+          "hint_en_line1": "Casual parting.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Despedida casual.",
+          "hint_es_line2": "",
           "phonetic": "See you!",
           "expected": "See you"
         },
         "spelling": {
           "title": "OPTIONS",
-          "hint": "Complete the phrase.",
+          "hint_en_line1": "Complete the phrase.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Completa la frase.",
+          "hint_es_line2": "",
           "words": [
             "LATER",
             "SOON",
@@ -847,7 +1033,10 @@
         },
         "sentence": {
           "title": "CONVERSATION",
-          "hint": "Be friendly.",
+          "hint_en_line1": "Be friendly.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Sea amigable.",
+          "hint_es_line2": "",
           "sentence": "See you later, have a nice day!",
           "expected": "See you later, have a nice day!"
         }
@@ -860,13 +1049,19 @@
         "focus": "Booking",
         "sound": {
           "title": "REQUEST",
-          "hint": "I would like...",
+          "hint_en_line1": "I would like...",
+          "hint_en_line2": "",
+          "hint_es_line1": "Me gustar\u00eda...",
+          "hint_es_line2": "",
           "phonetic": "I'd like to book",
           "expected": "I'd like to book"
         },
         "spelling": {
           "title": "DETAILS",
-          "hint": "Number of people.",
+          "hint_en_line1": "Number of people.",
+          "hint_en_line2": "",
+          "hint_es_line1": "N\u00famero de personas.",
+          "hint_es_line2": "",
           "words": [
             "ONE",
             "TWO",
@@ -876,7 +1071,10 @@
         },
         "sentence": {
           "title": "FULL REQUEST",
-          "hint": "Time and people.",
+          "hint_en_line1": "Time and people.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Tiempo y personas.",
+          "hint_es_line2": "",
           "sentence": "I'd like a table for two at eight.",
           "expected": "I'd like a table for two at eight."
         }
@@ -889,13 +1087,19 @@
         "focus": "Bill",
         "sound": {
           "title": "REQUEST",
-          "hint": "Polite request.",
+          "hint_en_line1": "Polite request.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Petici\u00f3n educada.",
+          "hint_es_line2": "",
           "phonetic": "The bill, please",
           "expected": "The bill please"
         },
         "spelling": {
           "title": "VARIATIONS",
-          "hint": "Another word for bill.",
+          "hint_en_line1": "Another word for bill.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Otra palabra para factura.",
+          "hint_es_line2": "",
           "words": [
             "CHECK",
             "RECEIPT",
@@ -904,7 +1108,10 @@
         },
         "sentence": {
           "title": "FULL REQUEST",
-          "hint": "Ask politely.",
+          "hint_en_line1": "Ask politely.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Pregunta cort\u00e9smente.",
+          "hint_es_line2": "",
           "sentence": "Could we have the bill, please?",
           "expected": "Could we have the bill, please?"
         }
@@ -917,13 +1124,19 @@
         "focus": "Check-in",
         "sound": {
           "title": "ARRIVAL",
-          "hint": "State your intent.",
+          "hint_en_line1": "State your intent.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Expresa tu intenci\u00f3n.",
+          "hint_es_line2": "",
           "phonetic": "Check in",
           "expected": "Check in"
         },
         "spelling": {
           "title": "DETAILS",
-          "hint": "Your name.",
+          "hint_en_line1": "Your name.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Su nombre.",
+          "hint_es_line2": "",
           "words": [
             "NAME",
             "RESERVATION",
@@ -932,7 +1145,10 @@
         },
         "sentence": {
           "title": "FULL PHRASE",
-          "hint": "Give your name.",
+          "hint_en_line1": "Give your name.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Da tu nombre.",
+          "hint_es_line2": "",
           "sentence": "I have a reservation under Smith.",
           "expected": "I have a reservation under Smith."
         }
@@ -945,13 +1161,19 @@
         "focus": "Where",
         "sound": {
           "title": "QUESTION",
-          "hint": "Start politely.",
+          "hint_en_line1": "Start politely.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Empiece cort\u00e9smente.",
+          "hint_es_line2": "",
           "phonetic": "Excuse me",
           "expected": "Excuse me"
         },
         "spelling": {
           "title": "DESTINATION",
-          "hint": "Where are you going?",
+          "hint_en_line1": "Where are you going?",
+          "hint_en_line2": "",
+          "hint_es_line1": "\u00bfAd\u00f3nde vas?",
+          "hint_es_line2": "",
           "words": [
             "STATION",
             "BANK",
@@ -960,7 +1182,10 @@
         },
         "sentence": {
           "title": "FULL QUESTION",
-          "hint": "Ask for location.",
+          "hint_en_line1": "Ask for location.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Pregunta por la ubicaci\u00f3n.",
+          "hint_es_line2": "",
           "sentence": "Excuse me, where is the train station?",
           "expected": "Excuse me, where is the train station?"
         }
@@ -973,13 +1198,19 @@
         "focus": "Ticket",
         "sound": {
           "title": "REQUEST",
-          "hint": "I want...",
+          "hint_en_line1": "I want...",
+          "hint_en_line2": "",
+          "hint_es_line1": "Deseo...",
+          "hint_es_line2": "",
           "phonetic": "One ticket",
           "expected": "One ticket"
         },
         "spelling": {
           "title": "DESTINATION",
-          "hint": "Place.",
+          "hint_en_line1": "Place.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Lugar.",
+          "hint_es_line2": "",
           "words": [
             "LONDON",
             "PARIS",
@@ -988,7 +1219,10 @@
         },
         "sentence": {
           "title": "FULL REQUEST",
-          "hint": "Be polite.",
+          "hint_en_line1": "Be polite.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Sea cort\u00e9s.",
+          "hint_es_line2": "",
           "sentence": "I'd like one ticket to London, please.",
           "expected": "I'd like one ticket to London, please."
         }
@@ -1001,13 +1235,19 @@
         "focus": "u vs u:",
         "sound": {
           "title": "THE SOUND",
-          "hint": "Short vs Long U.",
+          "hint_en_line1": "Short vs Long U.",
+          "hint_en_line2": "",
+          "hint_es_line1": "U corta vs larga.",
+          "hint_es_line2": "",
           "phonetic": "Full / Fool",
           "expected": "Fool"
         },
         "spelling": {
           "title": "MINIMAL PAIRS",
-          "hint": "Listen.",
+          "hint_en_line1": "Listen.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Escuchar.",
+          "hint_es_line2": "",
           "words": [
             "PULL",
             "POOL",
@@ -1017,7 +1257,10 @@
         },
         "sentence": {
           "title": "SENTENCE",
-          "hint": "Mix them.",
+          "hint_en_line1": "Mix them.",
+          "hint_en_line2": "",
+          "hint_es_line1": "M\u00e9zclalos.",
+          "hint_es_line2": "",
           "sentence": "The fool is full of food.",
           "expected": "The fool is full of food."
         }
@@ -1030,13 +1273,19 @@
         "focus": "e vs \u00e6",
         "sound": {
           "title": "THE SOUND",
-          "hint": "Mouth width.",
+          "hint_en_line1": "Mouth width.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Ancho de boca.",
+          "hint_es_line2": "",
           "phonetic": "Pen / Pan",
           "expected": "Pan"
         },
         "spelling": {
           "title": "MINIMAL PAIRS",
-          "hint": "Listen.",
+          "hint_en_line1": "Listen.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Escuchar.",
+          "hint_es_line2": "",
           "words": [
             "MEN",
             "MAN",
@@ -1046,7 +1295,10 @@
         },
         "sentence": {
           "title": "SENTENCE",
-          "hint": "Mix them.",
+          "hint_en_line1": "Mix them.",
+          "hint_en_line2": "",
+          "hint_es_line1": "M\u00e9zclalos.",
+          "hint_es_line2": "",
           "sentence": "The man has a pen in the pan.",
           "expected": "The man has a pen in the pan."
         }
@@ -1059,13 +1311,19 @@
         "focus": "d vs \u00f0",
         "sound": {
           "title": "THE SOUND",
-          "hint": "Tongue position.",
+          "hint_en_line1": "Tongue position.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Posici\u00f3n de la lengua.",
+          "hint_es_line2": "",
           "phonetic": "Day / They",
           "expected": "They"
         },
         "spelling": {
           "title": "MINIMAL PAIRS",
-          "hint": "Listen.",
+          "hint_en_line1": "Listen.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Escuchar.",
+          "hint_es_line2": "",
           "words": [
             "DARE",
             "THERE",
@@ -1075,7 +1333,10 @@
         },
         "sentence": {
           "title": "SENTENCE",
-          "hint": "Mix them.",
+          "hint_en_line1": "Mix them.",
+          "hint_en_line2": "",
+          "hint_es_line1": "M\u00e9zclalos.",
+          "hint_es_line2": "",
           "sentence": "They went there for the day.",
           "expected": "They went there for the day."
         }
@@ -1088,13 +1349,19 @@
         "focus": "s vs \u0283",
         "sound": {
           "title": "THE SOUND",
-          "hint": "Hiss vs Hush.",
+          "hint_en_line1": "Hiss vs Hush.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Silbido versus silencio.",
+          "hint_es_line2": "",
           "phonetic": "Sea / She",
           "expected": "She"
         },
         "spelling": {
           "title": "MINIMAL PAIRS",
-          "hint": "Listen.",
+          "hint_en_line1": "Listen.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Escuchar.",
+          "hint_es_line2": "",
           "words": [
             "SUE",
             "SHOE",
@@ -1104,7 +1371,10 @@
         },
         "sentence": {
           "title": "SENTENCE",
-          "hint": "Tongue twister.",
+          "hint_en_line1": "Tongue twister.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Trabalenguas.",
+          "hint_es_line2": "",
           "sentence": "She sells sea shells.",
           "expected": "She sells sea shells."
         }
@@ -1117,13 +1387,19 @@
         "focus": "Silent K",
         "sound": {
           "title": "THE SOUND",
-          "hint": "Don't pronounce K.",
+          "hint_en_line1": "Don't pronounce K.",
+          "hint_en_line2": "",
+          "hint_es_line1": "No pronuncie K.",
+          "hint_es_line2": "",
           "phonetic": "Knife",
           "expected": "Knife"
         },
         "spelling": {
           "title": "WORDS",
-          "hint": "Silent K.",
+          "hint_en_line1": "Silent K.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Silencioso k.",
+          "hint_es_line2": "",
           "words": [
             "KNEE",
             "KNOW",
@@ -1132,7 +1408,10 @@
         },
         "sentence": {
           "title": "SENTENCE",
-          "hint": "Context.",
+          "hint_en_line1": "Context.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Contexto.",
+          "hint_es_line2": "",
           "sentence": "I know how to use a knife.",
           "expected": "I know how to use a knife."
         }
@@ -1145,13 +1424,19 @@
         "focus": "Silent W",
         "sound": {
           "title": "THE SOUND",
-          "hint": "Don't pronounce W.",
+          "hint_en_line1": "Don't pronounce W.",
+          "hint_en_line2": "",
+          "hint_es_line1": "No pronuncies W.",
+          "hint_es_line2": "",
           "phonetic": "Write",
           "expected": "Write"
         },
         "spelling": {
           "title": "WORDS",
-          "hint": "Silent W.",
+          "hint_en_line1": "Silent W.",
+          "hint_en_line2": "",
+          "hint_es_line1": "W silencioso.",
+          "hint_es_line2": "",
           "words": [
             "WRONG",
             "WRIST",
@@ -1160,7 +1445,10 @@
         },
         "sentence": {
           "title": "SENTENCE",
-          "hint": "Context.",
+          "hint_en_line1": "Context.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Contexto.",
+          "hint_es_line2": "",
           "sentence": "Don't write the wrong answer.",
           "expected": "Don't write the wrong answer."
         }
@@ -1173,13 +1461,19 @@
         "focus": "Silent L",
         "sound": {
           "title": "THE SOUND",
-          "hint": "Don't pronounce L.",
+          "hint_en_line1": "Don't pronounce L.",
+          "hint_en_line2": "",
+          "hint_es_line1": "No pronuncies L.",
+          "hint_es_line2": "",
           "phonetic": "Walk",
           "expected": "Walk"
         },
         "spelling": {
           "title": "WORDS",
-          "hint": "Silent L.",
+          "hint_en_line1": "Silent L.",
+          "hint_en_line2": "",
+          "hint_es_line1": "L silencioso.",
+          "hint_es_line2": "",
           "words": [
             "TALK",
             "HALF",
@@ -1188,7 +1482,10 @@
         },
         "sentence": {
           "title": "SENTENCE",
-          "hint": "Context.",
+          "hint_en_line1": "Context.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Contexto.",
+          "hint_es_line2": "",
           "sentence": "We can walk and talk.",
           "expected": "We can walk and talk."
         }
@@ -1201,13 +1498,19 @@
         "focus": "Stress",
         "sound": {
           "title": "RHYTHM",
-          "hint": "Strong-Weak.",
+          "hint_en_line1": "Strong-Weak.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Fuerte-D\u00e9bil.",
+          "hint_es_line2": "",
           "phonetic": "WA-ter",
           "expected": "Water"
         },
         "spelling": {
           "title": "PATTERN",
-          "hint": "Listen to the beat.",
+          "hint_en_line1": "Listen to the beat.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Escuche el ritmo.",
+          "hint_es_line2": "",
           "words": [
             "WA-TER",
             "O-PEN",
@@ -1216,7 +1519,10 @@
         },
         "sentence": {
           "title": "PHRASE",
-          "hint": "Stress the first.",
+          "hint_en_line1": "Stress the first.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Destaca lo primero.",
+          "hint_es_line2": "",
           "sentence": "Water the flowers.",
           "expected": "Water the flowers."
         }
@@ -1229,13 +1535,19 @@
         "focus": "Stress",
         "sound": {
           "title": "RHYTHM",
-          "hint": "Strong middle.",
+          "hint_en_line1": "Strong middle.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Medio fuerte.",
+          "hint_es_line2": "",
           "phonetic": "to-MO-rrow",
           "expected": "Tomorrow"
         },
         "spelling": {
           "title": "PATTERN",
-          "hint": "Listen.",
+          "hint_en_line1": "Listen.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Escuchar.",
+          "hint_es_line2": "",
           "words": [
             "TO-MA-TO",
             "PO-TA-TO",
@@ -1244,7 +1556,10 @@
         },
         "sentence": {
           "title": "PHRASE",
-          "hint": "Rhythm.",
+          "hint_en_line1": "Rhythm.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Ritmo.",
+          "hint_es_line2": "",
           "sentence": "See you tomorrow.",
           "expected": "See you tomorrow."
         }
@@ -1257,13 +1572,19 @@
         "focus": "Shift",
         "sound": {
           "title": "COMPARE",
-          "hint": "Noun vs Verb.",
+          "hint_en_line1": "Noun vs Verb.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Sustantivo vs Verbo.",
+          "hint_es_line2": "",
           "phonetic": "PHO-to-graph",
           "expected": "Photograph"
         },
         "spelling": {
           "title": "CHANGE",
-          "hint": "Stress moves.",
+          "hint_en_line1": "Stress moves.",
+          "hint_en_line2": "",
+          "hint_es_line1": "El estr\u00e9s se mueve.",
+          "hint_es_line2": "",
           "words": [
             "PHO-TO-GRAPH",
             "PHO-TO-GRA-PHY",
@@ -1272,7 +1593,10 @@
         },
         "sentence": {
           "title": "SENTENCE",
-          "hint": "Feel the shift.",
+          "hint_en_line1": "Feel the shift.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Siente el cambio.",
+          "hint_es_line2": "",
           "sentence": "Take a photograph of photography.",
           "expected": "Take a photograph of photography."
         }
@@ -1285,13 +1609,19 @@
         "focus": "Link",
         "sound": {
           "title": "CONNECT",
-          "hint": "Don't stop.",
+          "hint_en_line1": "Don't stop.",
+          "hint_en_line2": "",
+          "hint_es_line1": "No pares.",
+          "hint_es_line2": "",
           "phonetic": "Turn_on",
           "expected": "Turn on"
         },
         "spelling": {
           "title": "FLOW",
-          "hint": "Sounds like one word.",
+          "hint_en_line1": "Sounds like one word.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Suena como una palabra.",
+          "hint_es_line2": "",
           "words": [
             "TURN_ON",
             "GET_UP",
@@ -1300,7 +1630,10 @@
         },
         "sentence": {
           "title": "SENTENCE",
-          "hint": "Flow.",
+          "hint_en_line1": "Flow.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Fluir.",
+          "hint_es_line2": "",
           "sentence": "Turn on the light.",
           "expected": "Turn on the light."
         }
@@ -1313,13 +1646,19 @@
         "focus": "Glide",
         "sound": {
           "title": "CONNECT",
-          "hint": "Add a W sound.",
+          "hint_en_line1": "Add a W sound.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Agrega un sonido W.",
+          "hint_es_line2": "",
           "phonetic": "Go_w_out",
           "expected": "Go out"
         },
         "spelling": {
           "title": "FLOW",
-          "hint": "Smooth.",
+          "hint_en_line1": "Smooth.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Liso.",
+          "hint_es_line2": "",
           "words": [
             "GO_OUT",
             "DO_IT",
@@ -1328,7 +1667,10 @@
         },
         "sentence": {
           "title": "SENTENCE",
-          "hint": "Smoothly.",
+          "hint_en_line1": "Smoothly.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Suavemente.",
+          "hint_es_line2": "",
           "sentence": "Go out and do it.",
           "expected": "Go out and do it."
         }
@@ -1341,13 +1683,19 @@
         "focus": "Fusion",
         "sound": {
           "title": "CONNECT",
-          "hint": "T+Y = CH.",
+          "hint_en_line1": "T+Y = CH.",
+          "hint_en_line2": "",
+          "hint_es_line1": "T+Y = CH.",
+          "hint_es_line2": "",
           "phonetic": "Meet_ch_you",
           "expected": "Meet you"
         },
         "spelling": {
           "title": "FLOW",
-          "hint": "Combine sounds.",
+          "hint_en_line1": "Combine sounds.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Combina sonidos.",
+          "hint_es_line2": "",
           "words": [
             "NICE TO MEET YOU",
             "DON'T YOU",
@@ -1356,7 +1704,10 @@
         },
         "sentence": {
           "title": "SENTENCE",
-          "hint": "Informal flow.",
+          "hint_en_line1": "Informal flow.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Flujo informal.",
+          "hint_es_line2": "",
           "sentence": "Nice to meet you.",
           "expected": "Nice to meet you."
         }
@@ -1369,13 +1720,19 @@
         "focus": "Weak",
         "sound": {
           "title": "REDUCE",
-          "hint": "Make it short.",
+          "hint_en_line1": "Make it short.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Hazlo breve.",
+          "hint_es_line2": "",
           "phonetic": "Fish-n-chips",
           "expected": "Fish and chips"
         },
         "spelling": {
           "title": "RHYTHM",
-          "hint": "Shorten 'and'.",
+          "hint_en_line1": "Shorten 'and'.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Acortar 'y'.",
+          "hint_es_line2": "",
           "words": [
             "ROCK N ROLL",
             "SALT N PEPPER",
@@ -1384,7 +1741,10 @@
         },
         "sentence": {
           "title": "SENTENCE",
-          "hint": "Fast 'and'.",
+          "hint_en_line1": "Fast 'and'.",
+          "hint_en_line2": "",
+          "hint_es_line1": "R\u00e1pido 'y'.",
+          "hint_es_line2": "",
           "sentence": "I'd like fish and chips.",
           "expected": "I'd like fish and chips."
         }
@@ -1397,13 +1757,19 @@
         "focus": "Focus",
         "sound": {
           "title": "EMPHASIS",
-          "hint": "Stress the meaning.",
+          "hint_en_line1": "Stress the meaning.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Subraya el significado.",
+          "hint_es_line2": "",
           "phonetic": "I LOVE it",
           "expected": "I love it"
         },
         "spelling": {
           "title": "CHANGE",
-          "hint": "Change meaning.",
+          "hint_en_line1": "Change meaning.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Cambiar de significado.",
+          "hint_es_line2": "",
           "words": [
             "I love IT",
             "I LOVE it",
@@ -1412,7 +1778,10 @@
         },
         "sentence": {
           "title": "SENTENCE",
-          "hint": "Emphasize emotion.",
+          "hint_en_line1": "Emphasize emotion.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Enfatiza la emoci\u00f3n.",
+          "hint_es_line2": "",
           "sentence": "I absolutely love it.",
           "expected": "I absolutely love it."
         }
@@ -1425,13 +1794,19 @@
         "focus": "Flow",
         "sound": {
           "title": "REDUCE",
-          "hint": "Informal.",
+          "hint_en_line1": "Informal.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Informal.",
+          "hint_es_line2": "",
           "phonetic": "Whaddaya-wannado",
           "expected": "What do you want to do"
         },
         "spelling": {
           "title": "CASUAL",
-          "hint": "Common reductions.",
+          "hint_en_line1": "Common reductions.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Reducciones comunes.",
+          "hint_es_line2": "",
           "words": [
             "GONNA",
             "WANNA",
@@ -1440,7 +1815,10 @@
         },
         "sentence": {
           "title": "SENTENCE",
-          "hint": "Fast speech.",
+          "hint_en_line1": "Fast speech.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Discurso r\u00e1pido.",
+          "hint_es_line2": "",
           "sentence": "What do you want to do?",
           "expected": "What do you want to do?"
         }
@@ -1453,13 +1831,19 @@
         "focus": "Skills",
         "sound": {
           "title": "KEYWORD",
-          "hint": "Positive trait.",
+          "hint_en_line1": "Positive trait.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Rasgo positivo.",
+          "hint_es_line2": "",
           "phonetic": "Team player",
           "expected": "Team player"
         },
         "spelling": {
           "title": "VOCAB",
-          "hint": "Select best fit.",
+          "hint_en_line1": "Select best fit.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Seleccione el mejor ajuste.",
+          "hint_es_line2": "",
           "words": [
             "LAZY",
             "TEAM PLAYER",
@@ -1468,7 +1852,10 @@
         },
         "sentence": {
           "title": "INTERVIEW",
-          "hint": "Sell yourself.",
+          "hint_en_line1": "Sell yourself.",
+          "hint_en_line2": "",
+          "hint_es_line1": "V\u00e9ndete a ti mismo.",
+          "hint_es_line2": "",
           "sentence": "I am a team player.",
           "expected": "I am a team player."
         }
@@ -1481,13 +1868,19 @@
         "focus": "History",
         "sound": {
           "title": "FACTS",
-          "hint": "State clearly.",
+          "hint_en_line1": "State clearly.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Indique claramente.",
+          "hint_es_line2": "",
           "phonetic": "Five years",
           "expected": "Five years"
         },
         "spelling": {
           "title": "DETAILS",
-          "hint": "How long?",
+          "hint_en_line1": "How long?",
+          "hint_en_line2": "",
+          "hint_es_line1": "\u00bfCu\u00e1nto tiempo?",
+          "hint_es_line2": "",
           "words": [
             "ONE",
             "FIVE",
@@ -1496,7 +1889,10 @@
         },
         "sentence": {
           "title": "INTERVIEW",
-          "hint": "Your background.",
+          "hint_en_line1": "Your background.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Tu experiencia.",
+          "hint_es_line2": "",
           "sentence": "I have five years of experience.",
           "expected": "I have five years of experience."
         }
@@ -1509,13 +1905,19 @@
         "focus": "Fit",
         "sound": {
           "title": "REASON",
-          "hint": "The cause.",
+          "hint_en_line1": "The cause.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Causa.",
+          "hint_es_line2": "",
           "phonetic": "Culture",
           "expected": "Culture"
         },
         "spelling": {
           "title": "KEYWORD",
-          "hint": "Why them?",
+          "hint_en_line1": "Why them?",
+          "hint_en_line2": "",
+          "hint_es_line1": "\u00bfPor qu\u00e9 ellos?",
+          "hint_es_line2": "",
           "words": [
             "SALARY",
             "CULTURE",
@@ -1524,7 +1926,10 @@
         },
         "sentence": {
           "title": "INTERVIEW",
-          "hint": "Flattery.",
+          "hint_en_line1": "Flattery.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Adulaci\u00f3n.",
+          "hint_es_line2": "",
           "sentence": "I admire the company culture.",
           "expected": "I admire the company culture."
         }
@@ -1537,13 +1942,19 @@
         "focus": "Start",
         "sound": {
           "title": "LEAD",
-          "hint": "Take charge.",
+          "hint_en_line1": "Take charge.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Hazte cargo.",
+          "hint_es_line2": "",
           "phonetic": "Get started",
           "expected": "Get started"
         },
         "spelling": {
           "title": "PHRASE",
-          "hint": "Begin.",
+          "hint_en_line1": "Begin.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Comenzar.",
+          "hint_es_line2": "",
           "words": [
             "BEGIN",
             "START",
@@ -1552,7 +1963,10 @@
         },
         "sentence": {
           "title": "MEETING",
-          "hint": "Polite start.",
+          "hint_en_line1": "Polite start.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Comienzo educado.",
+          "hint_es_line2": "",
           "sentence": "Shall we get started?",
           "expected": "Shall we get started?"
         }
@@ -1565,13 +1979,19 @@
         "focus": "Yes",
         "sound": {
           "title": "AGREE",
-          "hint": "Strong yes.",
+          "hint_en_line1": "Strong yes.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Fuerte si.",
+          "hint_es_line2": "",
           "phonetic": "Totally",
           "expected": "Totally"
         },
         "spelling": {
           "title": "DEGREE",
-          "hint": "How much?",
+          "hint_en_line1": "How much?",
+          "hint_en_line2": "",
+          "hint_es_line1": "\u00bfCu\u00e1nto cuesta?",
+          "hint_es_line2": "",
           "words": [
             "PARTLY",
             "TOTALLY",
@@ -1580,7 +2000,10 @@
         },
         "sentence": {
           "title": "MEETING",
-          "hint": "Support.",
+          "hint_en_line1": "Support.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Apoyo.",
+          "hint_es_line2": "",
           "sentence": "I totally agree with you.",
           "expected": "I totally agree with you."
         }
@@ -1593,13 +2016,19 @@
         "focus": "But...",
         "sound": {
           "title": "SOFTEN",
-          "hint": "Don't be rude.",
+          "hint_en_line1": "Don't be rude.",
+          "hint_en_line2": "",
+          "hint_es_line1": "No seas grosero.",
+          "hint_es_line2": "",
           "phonetic": "I see your point",
           "expected": "I see your point"
         },
         "spelling": {
           "title": "PHRASE",
-          "hint": "Acknowledge.",
+          "hint_en_line1": "Acknowledge.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Reconocer.",
+          "hint_es_line2": "",
           "words": [
             "YOU'RE WRONG",
             "I SEE",
@@ -1608,7 +2037,10 @@
         },
         "sentence": {
           "title": "MEETING",
-          "hint": "Pivot.",
+          "hint_en_line1": "Pivot.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Pivote.",
+          "hint_es_line2": "",
           "sentence": "I see your point, but I disagree.",
           "expected": "I see your point, but I disagree."
         }
@@ -1621,13 +2053,19 @@
         "focus": "Hello",
         "sound": {
           "title": "INTRO",
-          "hint": "Identify yourself.",
+          "hint_en_line1": "Identify yourself.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Identif\u00edcate.",
+          "hint_es_line2": "",
           "phonetic": "This is...",
           "expected": "This is"
         },
         "spelling": {
           "title": "NAME",
-          "hint": "Say name.",
+          "hint_en_line1": "Say name.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Di nombre.",
+          "hint_es_line2": "",
           "words": [
             "THIS IS",
             "I AM",
@@ -1636,7 +2074,10 @@
         },
         "sentence": {
           "title": "CALL",
-          "hint": "Standard intro.",
+          "hint_en_line1": "Standard intro.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Introducci\u00f3n est\u00e1ndar.",
+          "hint_es_line2": "",
           "sentence": "Hello, this is John speaking.",
           "expected": "Hello, this is John speaking."
         }
@@ -1649,13 +2090,19 @@
         "focus": "Repeat",
         "sound": {
           "title": "ISSUE",
-          "hint": "Volume.",
+          "hint_en_line1": "Volume.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Volumen.",
+          "hint_es_line2": "",
           "phonetic": "Speak up",
           "expected": "Speak up"
         },
         "spelling": {
           "title": "POLITE",
-          "hint": "Request.",
+          "hint_en_line1": "Request.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Pedido.",
+          "hint_es_line2": "",
           "words": [
             "COULD YOU",
             "HEY YOU",
@@ -1664,7 +2111,10 @@
         },
         "sentence": {
           "title": "CALL",
-          "hint": "Bad line.",
+          "hint_en_line1": "Bad line.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Mala l\u00ednea.",
+          "hint_es_line2": "",
           "sentence": "Could you speak up, please?",
           "expected": "Could you speak up, please?"
         }
@@ -1677,13 +2127,19 @@
         "focus": "End",
         "sound": {
           "title": "THANKS",
-          "hint": "Gratitude.",
+          "hint_en_line1": "Gratitude.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Gratitud.",
+          "hint_es_line2": "",
           "phonetic": "Your time",
           "expected": "Your time"
         },
         "spelling": {
           "title": "POLITE",
-          "hint": "Wrap up.",
+          "hint_en_line1": "Wrap up.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Envolver.",
+          "hint_es_line2": "",
           "words": [
             "BYE",
             "THANKS",
@@ -1692,7 +2148,10 @@
         },
         "sentence": {
           "title": "CALL",
-          "hint": "Professional exit.",
+          "hint_en_line1": "Professional exit.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Salida profesional.",
+          "hint_es_line2": "",
           "sentence": "Thank you for your time.",
           "expected": "Thank you for your time."
         }

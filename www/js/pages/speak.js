@@ -5,6 +5,8 @@ import {
   resolveSelection,
   setSelection
 } from '../data/training-data.js';
+import { getLocaleMeta, getNextLocaleCode, resolveLocale as resolveCopyLocale } from '../content/copy.js';
+import { getAppLocale } from '../state.js';
 import { addNotification } from '../notifications-store.js';
 import { goToHome } from '../nav.js';
 
@@ -67,6 +69,10 @@ class PageSpeak extends HTMLElement {
     const heroCardEl = this.querySelector('#speak-hero-card');
     const heroStepTitleEl = this.querySelector('#speak-hero-step-title');
     const heroHintEl = this.querySelector('#speak-hero-hint');
+    const heroFlagBtn = this.querySelector('.speak-hero-flag-btn');
+    const heroFlagImgEl = heroFlagBtn
+      ? heroFlagBtn.querySelector('.onboarding-intro-flag')
+      : null;
     const debugToggleBtn = this.querySelector('#speak-debug-toggle');
 
     const AVATAR_BASE = 'assets/speak/avatar';
@@ -90,7 +96,6 @@ class PageSpeak extends HTMLElement {
     const SESSION_DIAMOND_REWARD_LABEL = 'diamonds';
     const SESSION_DIAMOND_REWARD_ICON = 'diamond';
     const MAX_ROUTE_BADGE_COUNT = 5;
-    const HERO_TTS_LANG = 'en-US';
     const HERO_MASCOT_FRAME_COUNT = 9;
     const HERO_MASCOT_REST_FRAME = HERO_MASCOT_FRAME_COUNT - 1;
     const HERO_MASCOT_FRAME_INTERVAL_MS = 150;
@@ -169,6 +174,7 @@ class PageSpeak extends HTMLElement {
     let heroMascotIsTalking = false;
     let heroNarrationInProgress = false;
     let heroFirstRenderAt = 0;
+    let hintLocaleOverride = '';
 
     const stepState = {
       sound: { recordingUrl: '', transcript: '', percent: null },
@@ -624,7 +630,7 @@ class PageSpeak extends HTMLElement {
       await stopHeroNarrationPlayback();
     };
 
-    const speakHeroLineWebWithRetry = async (lineText, token) => {
+    const speakHeroLineWebWithRetry = async (lineText, token, locale = 'en') => {
       if (!canSpeak()) return false;
       await waitForDocumentVisible(1800);
       if (token !== heroNarrationToken) return false;
@@ -633,7 +639,7 @@ class PageSpeak extends HTMLElement {
 
       const run = async () => {
         const utter = new SpeechSynthesisUtterance(lineText);
-        utter.lang = HERO_TTS_LANG;
+        utter.lang = getHintSpeechLocale(locale);
         return new Promise((resolve) => {
           let settled = false;
           const settle = (started) => {
@@ -695,9 +701,10 @@ class PageSpeak extends HTMLElement {
       return started;
     };
 
-    const speakHeroNarrationFromSource = async (source) => {
+    const speakHeroNarrationFromSource = async (source, options = {}) => {
       if (heroNarrationInProgress) return false;
-      const hint = source && source.hint ? source.hint : '';
+      const locale = normalizeHintLocale(options.locale) || getHintUiLocale();
+      const hint = resolveHeroHintText(source, locale);
       const lines = extractHeroNarrationLines(hint);
       if (!lines.length || !heroHintEl || showSummary) {
         await stopHeroNarration().catch(() => {});
@@ -756,7 +763,7 @@ class PageSpeak extends HTMLElement {
             try {
               await plugin.speak({
                 text: lineText,
-                lang: HERO_TTS_LANG,
+                lang: getHintSpeechLocale(locale),
                 rate: 1.0,
                 pitch: 1.0,
                 volume: 1.0,
@@ -778,7 +785,7 @@ class PageSpeak extends HTMLElement {
             }
           }
           if (!started && token === heroNarrationToken) {
-            started = await speakHeroLineWebWithRetry(lineText, token);
+            started = await speakHeroLineWebWithRetry(lineText, token, locale);
           }
           startedAny = startedAny || started;
 
@@ -798,12 +805,13 @@ class PageSpeak extends HTMLElement {
 
     const scheduleHeroNarration = (source, delayMs = 90) => {
       clearHeroNarrationTimer();
-      const hint = source && source.hint ? source.hint : '';
+      const locale = getHintUiLocale();
+      const hint = resolveHeroHintText(source, locale);
       if (!hint || showSummary) return;
       heroNarrationTimer = setTimeout(() => {
         heroNarrationTimer = null;
         if (!this.isConnected || showSummary) return;
-        speakHeroNarrationFromSource(source).catch(() => {});
+        speakHeroNarrationFromSource(source, { locale }).catch(() => {});
       }, Math.max(0, Number(delayMs) || 0));
     };
 
@@ -2548,6 +2556,61 @@ class PageSpeak extends HTMLElement {
       return words.find((word) => String(word).toLowerCase() === target) || null;
     };
 
+    const normalizeHintLocale = (locale) => {
+      const normalized = String(locale || '').trim().toLowerCase();
+      return normalized === 'es' || normalized === 'en' ? normalized : '';
+    };
+
+    const getBaseHintLocale = () => {
+      const fromState = getAppLocale() || (window.varGlobal && window.varGlobal.locale) || 'en';
+      return normalizeHintLocale(resolveCopyLocale(fromState)) || 'en';
+    };
+
+    const getHintUiLocale = (baseLocale = getBaseHintLocale()) => {
+      const override = normalizeHintLocale(hintLocaleOverride);
+      if (override) return override;
+      return normalizeHintLocale(baseLocale) || 'en';
+    };
+
+    const getHintSpeechLocale = (locale = getHintUiLocale()) => {
+      return normalizeHintLocale(locale) === 'es' ? 'es-ES' : 'en-US';
+    };
+
+    const readHintLineByLocale = (source, locale, lineIndex) => {
+      if (!source || typeof source !== 'object') return '';
+      const safeLocale = normalizeHintLocale(locale) || 'en';
+      const line = Number(lineIndex) === 2 ? '2' : '1';
+      return String(
+        source[`hint_${safeLocale}_line${line}`] ||
+          source[`hint_${safeLocale}_${line}`] ||
+          source[`hint_${safeLocale}_line_${line}`] ||
+          ''
+      ).trim();
+    };
+
+    const getHintTextForLocale = (source, locale) => {
+      const localeCode = normalizeHintLocale(locale) || 'en';
+      const line1 = readHintLineByLocale(source, localeCode, 1);
+      const line2 = readHintLineByLocale(source, localeCode, 2);
+      const parts = [line1, line2].filter(Boolean);
+      return parts.join('\n');
+    };
+
+    const getLegacyHintText = (source) => {
+      if (!source || typeof source !== 'object') return '';
+      return String(source.hint || '').trim();
+    };
+
+    const resolveHeroHintText = (source, locale = getHintUiLocale()) => {
+      const localeCode = normalizeHintLocale(locale) || 'en';
+      const primary = getHintTextForLocale(source, localeCode);
+      if (primary) return primary;
+      const fallbackLocale = localeCode === 'en' ? 'es' : 'en';
+      const fallback = getHintTextForLocale(source, fallbackLocale);
+      if (fallback) return fallback;
+      return getLegacyHintText(source);
+    };
+
     const getHeroSourceByStepKey = (stepKey) => {
       if (stepKey === 'sound') return soundStep;
       if (stepKey === 'spelling') return spellingStep;
@@ -2555,10 +2618,49 @@ class PageSpeak extends HTMLElement {
       return null;
     };
 
+    const renderHeroFlagButton = () => {
+      if (!heroFlagBtn || !heroFlagImgEl) return;
+      const baseLocale = getBaseHintLocale();
+      const currentLocale = getHintUiLocale(baseLocale);
+      const currentMeta = getLocaleMeta(currentLocale);
+      const nextLocaleCode = getNextLocaleCode(currentLocale);
+      const nextMeta = getLocaleMeta(nextLocaleCode);
+      const toggleLabel = `Switch language to ${nextMeta.label}`;
+      heroFlagImgEl.setAttribute('src', currentMeta.flag);
+      heroFlagImgEl.setAttribute('alt', currentMeta.alt);
+      heroFlagBtn.setAttribute('aria-label', toggleLabel);
+      heroFlagBtn.setAttribute('title', toggleLabel);
+    };
+
+    const toggleHintLocaleFromFlag = () => {
+      const baseLocale = getBaseHintLocale();
+      const currentLocale = getHintUiLocale(baseLocale);
+      const nextLocale = getNextLocaleCode(currentLocale);
+      hintLocaleOverride = nextLocale === baseLocale ? '' : nextLocale;
+      renderHeroFlagButton();
+      if (showSummary || !heroCardEl || heroCardEl.hidden) return;
+      const source = getHeroSourceByStepKey(getStepKey());
+      applyHeroSource(source);
+      clearHeroNarrationTimer();
+      stopHeroNarration()
+        .catch(() => {})
+        .finally(() => {
+          const replay = () => {
+            if (!this.isConnected || showSummary) return;
+            if (heroNarrationInProgress) {
+              setTimeout(replay, 120);
+              return;
+            }
+            speakHeroNarrationFromSource(source, { locale: getHintUiLocale() }).catch(() => {});
+          };
+          replay();
+        });
+    };
+
     const applyHeroSource = (source) => {
       if (!heroStepTitleEl || !heroHintEl) return;
       heroStepTitleEl.textContent = source && source.title ? source.title : '';
-      const hint = source && source.hint ? source.hint : '';
+      const hint = resolveHeroHintText(source, getHintUiLocale());
       const lines = extractHeroNarrationLines(hint);
       const restLineText = String(lines[0] && lines[0].text ? lines[0].text : '').trim();
       heroHintEl.textContent = restLineText || hint;
@@ -2906,6 +3008,7 @@ class PageSpeak extends HTMLElement {
         return;
       }
       heroCardEl.hidden = false;
+      renderHeroFlagButton();
       const source = getHeroSourceByStepKey(stepKey);
       const debugEnabled = isSpeakDebugEnabled();
       if (debugToggleBtn) {
@@ -3440,10 +3543,11 @@ class PageSpeak extends HTMLElement {
         return;
       }
       const source = getHeroSourceByStepKey(getStepKey());
-      if (!source || !source.hint) return;
+      const hint = resolveHeroHintText(source, getHintUiLocale());
+      if (!source || !hint) return;
       if (heroNarrationInProgress) return;
       if (Date.now() - heroFirstRenderAt < 1000) return;
-      speakHeroNarrationFromSource(source).catch(() => {});
+      speakHeroNarrationFromSource(source, { locale: getHintUiLocale() }).catch(() => {});
     };
 
     const prevStep = () => {
@@ -3505,6 +3609,21 @@ class PageSpeak extends HTMLElement {
       handleSessionPercentagesVisibilityChange
     );
 
+    const handleAppLocaleChange = () => {
+      const baseLocale = getBaseHintLocale();
+      if (normalizeHintLocale(hintLocaleOverride) === baseLocale) {
+        hintLocaleOverride = '';
+      }
+      if (showSummary || !heroCardEl || heroCardEl.hidden) return;
+      renderHeroFlagButton();
+      const source = getHeroSourceByStepKey(getStepKey());
+      applyHeroSource(source);
+      clearHeroNarrationTimer();
+      scheduleHeroNarration(source, 90);
+    };
+    this._handleSpeakLocaleChange = handleAppLocaleChange;
+    window.addEventListener('app:locale-change', handleAppLocaleChange);
+
     const handleViewportResize = () => {
       if (!this.isConnected) return;
       lockHeroCardHeight();
@@ -3517,6 +3636,7 @@ class PageSpeak extends HTMLElement {
       applySessionData(getSelection());
     });
 
+    heroFlagBtn?.addEventListener('click', toggleHintLocaleFromFlag);
     heroCardEl?.addEventListener('click', handleHeroCardReplayClick);
     debugToggleBtn?.addEventListener('click', toggleDebugPanel);
 
@@ -3538,11 +3658,17 @@ class PageSpeak extends HTMLElement {
           this._handleSpeakSessionPercentagesVisibility
         );
       }
+      if (this._handleSpeakLocaleChange) {
+        window.removeEventListener('app:locale-change', this._handleSpeakLocaleChange);
+      }
       if (this._handleSpeakResize) {
         window.removeEventListener('resize', this._handleSpeakResize);
       }
       if (debugToggleBtn) {
         debugToggleBtn.removeEventListener('click', toggleDebugPanel);
+      }
+      if (heroFlagBtn) {
+        heroFlagBtn.removeEventListener('click', toggleHintLocaleFromFlag);
       }
       if (heroCardEl) {
         heroCardEl.removeEventListener('click', handleHeroCardReplayClick);

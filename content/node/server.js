@@ -632,6 +632,76 @@ const ensureUniqueIds = (items, fieldName, collectionName) => {
   });
 };
 
+const splitHintLines = (value) =>
+  String(value || '')
+    .replace(/<\s*br\s*\/?>/gi, '\n')
+    .split(/\r?\n+/)
+    .map((line) => String(line || '').trim())
+    .filter(Boolean)
+    .slice(0, 2);
+
+const firstHintText = (...values) => {
+  for (const value of values) {
+    const normalized = String(value === undefined || value === null ? '' : value).trim();
+    if (normalized) return normalized;
+  }
+  return '';
+};
+
+const normalizeHintI18n = (rawStep) => {
+  const step = rawStep && typeof rawStep === 'object' ? rawStep : {};
+  const legacyLines = splitHintLines(step.hint);
+
+  let hintEnLine1 = firstHintText(
+    step.hint_en_line1,
+    step.hint_en_1,
+    step.hint_en_line_1,
+    step.hint_en_linea_1
+  );
+  let hintEnLine2 = firstHintText(
+    step.hint_en_line2,
+    step.hint_en_2,
+    step.hint_en_line_2,
+    step.hint_en_linea_2
+  );
+  let hintEsLine1 = firstHintText(
+    step.hint_es_line1,
+    step.hint_es_1,
+    step.hint_es_line_1,
+    step.hint_es_linea_1
+  );
+  let hintEsLine2 = firstHintText(
+    step.hint_es_line2,
+    step.hint_es_2,
+    step.hint_es_line_2,
+    step.hint_es_linea_2
+  );
+
+  const hasExplicitHints = Boolean(hintEnLine1 || hintEnLine2 || hintEsLine1 || hintEsLine2);
+  if (!hasExplicitHints && legacyLines.length) {
+    hintEnLine1 = legacyLines[0] || '';
+    hintEnLine2 = legacyLines[1] || '';
+    hintEsLine1 = legacyLines[0] || '';
+    hintEsLine2 = legacyLines[1] || '';
+  }
+
+  if ((!hintEnLine1 && !hintEnLine2) && (hintEsLine1 || hintEsLine2)) {
+    hintEnLine1 = hintEsLine1;
+    hintEnLine2 = hintEsLine2;
+  }
+  if ((!hintEsLine1 && !hintEsLine2) && (hintEnLine1 || hintEnLine2)) {
+    hintEsLine1 = hintEnLine1;
+    hintEsLine2 = hintEnLine2;
+  }
+
+  return {
+    hint_en_line1: hintEnLine1,
+    hint_en_line2: hintEnLine2,
+    hint_es_line1: hintEsLine1,
+    hint_es_line2: hintEsLine2
+  };
+};
+
 const normalizeTrainingPayload = (rawPayload) => {
   if (!rawPayload || typeof rawPayload !== 'object') {
     throw new Error('payload must be an object');
@@ -704,20 +774,23 @@ const normalizeTrainingPayload = (rawPayload) => {
     const soundRaw = speak.sound && typeof speak.sound === 'object' ? speak.sound : {};
     const spellingRaw = speak.spelling && typeof speak.spelling === 'object' ? speak.spelling : {};
     const sentenceRaw = speak.sentence && typeof speak.sentence === 'object' ? speak.sentence : {};
+    const soundHints = normalizeHintI18n(soundRaw);
+    const spellingHints = normalizeHintI18n(spellingRaw);
+    const sentenceHints = normalizeHintI18n(sentenceRaw);
     const sound = {
       title: String(soundRaw.title || ''),
-      hint: String(soundRaw.hint || ''),
+      ...soundHints,
       phonetic: String(soundRaw.phonetic || ''),
       expected: String(soundRaw.expected || '')
     };
     const spelling = {
       title: String(spellingRaw.title || ''),
-      hint: String(spellingRaw.hint || ''),
+      ...spellingHints,
       words: normalizeStringArray(spellingRaw.words)
     };
     const sentence = {
       title: String(sentenceRaw.title || ''),
-      hint: String(sentenceRaw.hint || ''),
+      ...sentenceHints,
       sentence: String(sentenceRaw.sentence || ''),
       expected: String(sentenceRaw.expected || '')
     };

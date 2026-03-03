@@ -75,14 +75,23 @@
     sessionTitleInput: document.getElementById('sessionTitleInput'),
     sessionFocusInput: document.getElementById('sessionFocusInput'),
     sessionSoundTitleInput: document.getElementById('sessionSoundTitleInput'),
-    sessionSoundHintInput: document.getElementById('sessionSoundHintInput'),
+    sessionSoundHintEnLine1Input: document.getElementById('sessionSoundHintEnLine1Input'),
+    sessionSoundHintEnLine2Input: document.getElementById('sessionSoundHintEnLine2Input'),
+    sessionSoundHintEsLine1Input: document.getElementById('sessionSoundHintEsLine1Input'),
+    sessionSoundHintEsLine2Input: document.getElementById('sessionSoundHintEsLine2Input'),
     sessionSoundPhoneticInput: document.getElementById('sessionSoundPhoneticInput'),
     sessionSoundExpectedInput: document.getElementById('sessionSoundExpectedInput'),
     sessionSpellingTitleInput: document.getElementById('sessionSpellingTitleInput'),
-    sessionSpellingHintInput: document.getElementById('sessionSpellingHintInput'),
+    sessionSpellingHintEnLine1Input: document.getElementById('sessionSpellingHintEnLine1Input'),
+    sessionSpellingHintEnLine2Input: document.getElementById('sessionSpellingHintEnLine2Input'),
+    sessionSpellingHintEsLine1Input: document.getElementById('sessionSpellingHintEsLine1Input'),
+    sessionSpellingHintEsLine2Input: document.getElementById('sessionSpellingHintEsLine2Input'),
     sessionSpellingWordsInput: document.getElementById('sessionSpellingWordsInput'),
     sessionSentenceTitleInput: document.getElementById('sessionSentenceTitleInput'),
-    sessionSentenceHintInput: document.getElementById('sessionSentenceHintInput'),
+    sessionSentenceHintEnLine1Input: document.getElementById('sessionSentenceHintEnLine1Input'),
+    sessionSentenceHintEnLine2Input: document.getElementById('sessionSentenceHintEnLine2Input'),
+    sessionSentenceHintEsLine1Input: document.getElementById('sessionSentenceHintEsLine1Input'),
+    sessionSentenceHintEsLine2Input: document.getElementById('sessionSentenceHintEsLine2Input'),
     sessionSentenceTextInput: document.getElementById('sessionSentenceTextInput'),
     sessionSentenceExpectedInput: document.getElementById('sessionSentenceExpectedInput'),
     saveSessionBtn: document.getElementById('saveSessionBtn'),
@@ -135,6 +144,80 @@
         .map((item) => asText(item))
     );
 
+  const splitHintLines = (value) =>
+    String(value || '')
+      .replace(/<\s*br\s*\/?>/gi, '\n')
+      .split(/\r?\n+/)
+      .map((line) => asText(line))
+      .filter(Boolean)
+      .slice(0, 2);
+
+  const getFirstText = (...values) => {
+    for (const value of values) {
+      const normalized = asText(value);
+      if (normalized) return normalized;
+    }
+    return '';
+  };
+
+  const normalizeHintI18n = (rawStep) => {
+    const step = rawStep && typeof rawStep === 'object' ? rawStep : {};
+    const legacyLines = splitHintLines(step.hint);
+
+    let hintEnLine1 = getFirstText(
+      step.hint_en_line1,
+      step.hint_en_1,
+      step.hint_en_line_1,
+      step.hint_en_linea_1
+    );
+    let hintEnLine2 = getFirstText(
+      step.hint_en_line2,
+      step.hint_en_2,
+      step.hint_en_line_2,
+      step.hint_en_linea_2
+    );
+    let hintEsLine1 = getFirstText(
+      step.hint_es_line1,
+      step.hint_es_1,
+      step.hint_es_line_1,
+      step.hint_es_linea_1
+    );
+    let hintEsLine2 = getFirstText(
+      step.hint_es_line2,
+      step.hint_es_2,
+      step.hint_es_line_2,
+      step.hint_es_linea_2
+    );
+
+    const hasExplicitHints = Boolean(
+      hintEnLine1 || hintEnLine2 || hintEsLine1 || hintEsLine2
+    );
+
+    if (!hasExplicitHints && legacyLines.length) {
+      hintEnLine1 = legacyLines[0] || '';
+      hintEnLine2 = legacyLines[1] || '';
+      hintEsLine1 = legacyLines[0] || '';
+      hintEsLine2 = legacyLines[1] || '';
+    }
+
+    if ((!hintEnLine1 && !hintEnLine2) && (hintEsLine1 || hintEsLine2)) {
+      hintEnLine1 = hintEsLine1;
+      hintEnLine2 = hintEsLine2;
+    }
+
+    if ((!hintEsLine1 && !hintEsLine2) && (hintEnLine1 || hintEnLine2)) {
+      hintEsLine1 = hintEnLine1;
+      hintEsLine2 = hintEnLine2;
+    }
+
+    return {
+      hint_en_line1: hintEnLine1,
+      hint_en_line2: hintEnLine2,
+      hint_es_line1: hintEsLine1,
+      hint_es_line2: hintEsLine2
+    };
+  };
+
   const normalizeSession = (session, idx) => {
     const base = session && typeof session === 'object' ? deepClone(session) : {};
     base.id = asText(base.id) || `session-${idx + 1}`;
@@ -146,17 +229,32 @@
     base.speak.focus = asText(base.speak.focus);
     base.speak.sound = base.speak.sound && typeof base.speak.sound === 'object' ? base.speak.sound : {};
     base.speak.sound.title = asText(base.speak.sound.title);
-    base.speak.sound.hint = asText(base.speak.sound.hint);
+    Object.assign(base.speak.sound, normalizeHintI18n(base.speak.sound));
+    delete base.speak.sound.hint;
+    delete base.speak.sound.hint_en_1;
+    delete base.speak.sound.hint_en_2;
+    delete base.speak.sound.hint_es_1;
+    delete base.speak.sound.hint_es_2;
     base.speak.sound.phonetic = asText(base.speak.sound.phonetic);
     base.speak.sound.expected = asText(base.speak.sound.expected);
     base.speak.spelling = base.speak.spelling && typeof base.speak.spelling === 'object' ? base.speak.spelling : {};
     base.speak.spelling.title = asText(base.speak.spelling.title);
-    base.speak.spelling.hint = asText(base.speak.spelling.hint);
+    Object.assign(base.speak.spelling, normalizeHintI18n(base.speak.spelling));
+    delete base.speak.spelling.hint;
+    delete base.speak.spelling.hint_en_1;
+    delete base.speak.spelling.hint_en_2;
+    delete base.speak.spelling.hint_es_1;
+    delete base.speak.spelling.hint_es_2;
     base.speak.spelling.words = uniqStrings(base.speak.spelling.words);
     delete base.speak.spelling.expected;
     base.speak.sentence = base.speak.sentence && typeof base.speak.sentence === 'object' ? base.speak.sentence : {};
     base.speak.sentence.title = asText(base.speak.sentence.title);
-    base.speak.sentence.hint = asText(base.speak.sentence.hint);
+    Object.assign(base.speak.sentence, normalizeHintI18n(base.speak.sentence));
+    delete base.speak.sentence.hint;
+    delete base.speak.sentence.hint_en_1;
+    delete base.speak.sentence.hint_en_2;
+    delete base.speak.sentence.hint_es_1;
+    delete base.speak.sentence.hint_es_2;
     base.speak.sentence.sentence = asText(base.speak.sentence.sentence);
     base.speak.sentence.expected = asText(base.speak.sentence.expected);
 
@@ -436,14 +534,23 @@
       el.sessionTitleInput,
       el.sessionFocusInput,
       el.sessionSoundTitleInput,
-      el.sessionSoundHintInput,
+      el.sessionSoundHintEnLine1Input,
+      el.sessionSoundHintEnLine2Input,
+      el.sessionSoundHintEsLine1Input,
+      el.sessionSoundHintEsLine2Input,
       el.sessionSoundPhoneticInput,
       el.sessionSoundExpectedInput,
       el.sessionSpellingTitleInput,
-      el.sessionSpellingHintInput,
+      el.sessionSpellingHintEnLine1Input,
+      el.sessionSpellingHintEnLine2Input,
+      el.sessionSpellingHintEsLine1Input,
+      el.sessionSpellingHintEsLine2Input,
       el.sessionSpellingWordsInput,
       el.sessionSentenceTitleInput,
-      el.sessionSentenceHintInput,
+      el.sessionSentenceHintEnLine1Input,
+      el.sessionSentenceHintEnLine2Input,
+      el.sessionSentenceHintEsLine1Input,
+      el.sessionSentenceHintEsLine2Input,
       el.sessionSentenceTextInput,
       el.sessionSentenceExpectedInput,
       el.saveSessionBtn,
@@ -539,16 +646,25 @@
         : {};
 
       el.sessionSoundTitleInput.value = sound.title || '';
-      el.sessionSoundHintInput.value = sound.hint || '';
+      el.sessionSoundHintEnLine1Input.value = sound.hint_en_line1 || '';
+      el.sessionSoundHintEnLine2Input.value = sound.hint_en_line2 || '';
+      el.sessionSoundHintEsLine1Input.value = sound.hint_es_line1 || '';
+      el.sessionSoundHintEsLine2Input.value = sound.hint_es_line2 || '';
       el.sessionSoundPhoneticInput.value = sound.phonetic || '';
       el.sessionSoundExpectedInput.value = sound.expected || '';
 
       el.sessionSpellingTitleInput.value = spelling.title || '';
-      el.sessionSpellingHintInput.value = spelling.hint || '';
+      el.sessionSpellingHintEnLine1Input.value = spelling.hint_en_line1 || '';
+      el.sessionSpellingHintEnLine2Input.value = spelling.hint_en_line2 || '';
+      el.sessionSpellingHintEsLine1Input.value = spelling.hint_es_line1 || '';
+      el.sessionSpellingHintEsLine2Input.value = spelling.hint_es_line2 || '';
       el.sessionSpellingWordsInput.value = Array.isArray(spelling.words) ? spelling.words.join('\n') : '';
 
       el.sessionSentenceTitleInput.value = sentence.title || '';
-      el.sessionSentenceHintInput.value = sentence.hint || '';
+      el.sessionSentenceHintEnLine1Input.value = sentence.hint_en_line1 || '';
+      el.sessionSentenceHintEnLine2Input.value = sentence.hint_en_line2 || '';
+      el.sessionSentenceHintEsLine1Input.value = sentence.hint_es_line1 || '';
+      el.sessionSentenceHintEsLine2Input.value = sentence.hint_es_line2 || '';
       el.sessionSentenceTextInput.value = sentence.sentence || '';
       el.sessionSentenceExpectedInput.value = sentence.expected || '';
     } else {
@@ -558,14 +674,23 @@
       el.sessionTitleInput.value = '';
       el.sessionFocusInput.value = '';
       el.sessionSoundTitleInput.value = '';
-      el.sessionSoundHintInput.value = '';
+      el.sessionSoundHintEnLine1Input.value = '';
+      el.sessionSoundHintEnLine2Input.value = '';
+      el.sessionSoundHintEsLine1Input.value = '';
+      el.sessionSoundHintEsLine2Input.value = '';
       el.sessionSoundPhoneticInput.value = '';
       el.sessionSoundExpectedInput.value = '';
       el.sessionSpellingTitleInput.value = '';
-      el.sessionSpellingHintInput.value = '';
+      el.sessionSpellingHintEnLine1Input.value = '';
+      el.sessionSpellingHintEnLine2Input.value = '';
+      el.sessionSpellingHintEsLine1Input.value = '';
+      el.sessionSpellingHintEsLine2Input.value = '';
       el.sessionSpellingWordsInput.value = '';
       el.sessionSentenceTitleInput.value = '';
-      el.sessionSentenceHintInput.value = '';
+      el.sessionSentenceHintEnLine1Input.value = '';
+      el.sessionSentenceHintEnLine2Input.value = '';
+      el.sessionSentenceHintEsLine1Input.value = '';
+      el.sessionSentenceHintEsLine2Input.value = '';
       el.sessionSentenceTextInput.value = '';
       el.sessionSentenceExpectedInput.value = '';
     }
@@ -720,9 +845,33 @@
         title: `Session ${contentState.sessions.length + 1}`,
         speak: {
           focus: '',
-          sound: { title: 'THE WAY', hint: '', phonetic: '', expected: '' },
-          spelling: { title: 'THE SPELLING', hint: '', words: [], expected: '' },
-          sentence: { title: 'WHOLE SENTENCE', hint: '', sentence: '', expected: '' }
+          sound: {
+            title: 'THE WAY',
+            hint_en_line1: '',
+            hint_en_line2: '',
+            hint_es_line1: '',
+            hint_es_line2: '',
+            phonetic: '',
+            expected: ''
+          },
+          spelling: {
+            title: 'THE SPELLING',
+            hint_en_line1: '',
+            hint_en_line2: '',
+            hint_es_line1: '',
+            hint_es_line2: '',
+            words: [],
+            expected: ''
+          },
+          sentence: {
+            title: 'WHOLE SENTENCE',
+            hint_en_line1: '',
+            hint_en_line2: '',
+            hint_es_line1: '',
+            hint_es_line2: '',
+            sentence: '',
+            expected: ''
+          }
         }
       },
       contentState.sessions.length
@@ -743,16 +892,25 @@
     const nextFocus = asText(el.sessionFocusInput.value);
 
     const nextSoundTitle = asText(el.sessionSoundTitleInput.value);
-    const nextSoundHint = asText(el.sessionSoundHintInput.value);
+    const nextSoundHintEnLine1 = asText(el.sessionSoundHintEnLine1Input.value);
+    const nextSoundHintEnLine2 = asText(el.sessionSoundHintEnLine2Input.value);
+    const nextSoundHintEsLine1 = asText(el.sessionSoundHintEsLine1Input.value);
+    const nextSoundHintEsLine2 = asText(el.sessionSoundHintEsLine2Input.value);
     const nextSoundPhonetic = asText(el.sessionSoundPhoneticInput.value);
     const nextSoundExpected = asText(el.sessionSoundExpectedInput.value);
 
     const nextSpellingTitle = asText(el.sessionSpellingTitleInput.value);
-    const nextSpellingHint = asText(el.sessionSpellingHintInput.value);
+    const nextSpellingHintEnLine1 = asText(el.sessionSpellingHintEnLine1Input.value);
+    const nextSpellingHintEnLine2 = asText(el.sessionSpellingHintEnLine2Input.value);
+    const nextSpellingHintEsLine1 = asText(el.sessionSpellingHintEsLine1Input.value);
+    const nextSpellingHintEsLine2 = asText(el.sessionSpellingHintEsLine2Input.value);
     const nextSpellingWords = parseWordsInput(el.sessionSpellingWordsInput.value);
 
     const nextSentenceTitle = asText(el.sessionSentenceTitleInput.value);
-    const nextSentenceHint = asText(el.sessionSentenceHintInput.value);
+    const nextSentenceHintEnLine1 = asText(el.sessionSentenceHintEnLine1Input.value);
+    const nextSentenceHintEnLine2 = asText(el.sessionSentenceHintEnLine2Input.value);
+    const nextSentenceHintEsLine1 = asText(el.sessionSentenceHintEsLine1Input.value);
+    const nextSentenceHintEsLine2 = asText(el.sessionSentenceHintEsLine2Input.value);
     const nextSentenceText = asText(el.sessionSentenceTextInput.value);
     const nextSentenceExpected = asText(el.sessionSentenceExpectedInput.value);
 
@@ -778,20 +936,32 @@
     session.speak.focus = nextFocus;
     session.speak.sound = session.speak.sound && typeof session.speak.sound === 'object' ? session.speak.sound : {};
     session.speak.sound.title = nextSoundTitle;
-    session.speak.sound.hint = nextSoundHint;
+    session.speak.sound.hint_en_line1 = nextSoundHintEnLine1;
+    session.speak.sound.hint_en_line2 = nextSoundHintEnLine2;
+    session.speak.sound.hint_es_line1 = nextSoundHintEsLine1;
+    session.speak.sound.hint_es_line2 = nextSoundHintEsLine2;
+    delete session.speak.sound.hint;
     session.speak.sound.phonetic = nextSoundPhonetic;
     session.speak.sound.expected = nextSoundExpected;
 
     session.speak.spelling =
       session.speak.spelling && typeof session.speak.spelling === 'object' ? session.speak.spelling : {};
     session.speak.spelling.title = nextSpellingTitle;
-    session.speak.spelling.hint = nextSpellingHint;
+    session.speak.spelling.hint_en_line1 = nextSpellingHintEnLine1;
+    session.speak.spelling.hint_en_line2 = nextSpellingHintEnLine2;
+    session.speak.spelling.hint_es_line1 = nextSpellingHintEsLine1;
+    session.speak.spelling.hint_es_line2 = nextSpellingHintEsLine2;
+    delete session.speak.spelling.hint;
     session.speak.spelling.words = nextSpellingWords;
 
     session.speak.sentence =
       session.speak.sentence && typeof session.speak.sentence === 'object' ? session.speak.sentence : {};
     session.speak.sentence.title = nextSentenceTitle;
-    session.speak.sentence.hint = nextSentenceHint;
+    session.speak.sentence.hint_en_line1 = nextSentenceHintEnLine1;
+    session.speak.sentence.hint_en_line2 = nextSentenceHintEnLine2;
+    session.speak.sentence.hint_es_line1 = nextSentenceHintEsLine1;
+    session.speak.sentence.hint_es_line2 = nextSentenceHintEsLine2;
+    delete session.speak.sentence.hint;
     session.speak.sentence.sentence = nextSentenceText;
     session.speak.sentence.expected = nextSentenceExpected;
 

@@ -87,6 +87,7 @@ textarea {
 
 .btn:hover { filter: brightness(0.98); }
 .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.btn.is-busy { cursor: progress; opacity: 0.72; }
 .btn-primary { background: #e9f0ff; border-color: #bfd3ff; }
 .btn-success { background: #e3f8ee; border-color: #b8e8d2; color: #0a6a46; }
 .btn-danger { background: #ffecef; border-color: #f0c3cb; color: #8b2335; }

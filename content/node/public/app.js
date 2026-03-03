@@ -1257,13 +1257,48 @@
       const actions = document.createElement('div');
       actions.className = 'row gap-sm top-md row-wrap';
       const canPublishAction = hasRoleAtLeast(currentRole(), 'publisher');
+      const baseDisabled = {
+        publish: !canPublishAction,
+        restore: !canPublishAction,
+        verify: !canPublishAction,
+        generate: !canPublishAction || !Boolean(item.published),
+        delete: !canPublishAction || Boolean(item.published)
+      };
+      let actionBusy = false;
+
+      const applyActionDisabledState = () => {
+        if (actionBusy) {
+          publishBtn.disabled = true;
+          restoreBtn.disabled = true;
+          verifyTtsBtn.disabled = true;
+          generateTtsBtn.disabled = true;
+          deleteBtn.disabled = true;
+          return;
+        }
+        publishBtn.disabled = baseDisabled.publish;
+        restoreBtn.disabled = baseDisabled.restore;
+        verifyTtsBtn.disabled = baseDisabled.verify;
+        generateTtsBtn.disabled = baseDisabled.generate;
+        deleteBtn.disabled = baseDisabled.delete;
+      };
+
+      const setActionBusy = (busy) => {
+        actionBusy = Boolean(busy);
+        [publishBtn, restoreBtn, verifyTtsBtn, generateTtsBtn, deleteBtn].forEach((btn) => {
+          if (!btn) return;
+          btn.classList.toggle('is-busy', actionBusy);
+        });
+        applyActionDisabledState();
+      };
 
       const publishBtn = document.createElement('button');
       publishBtn.className = 'btn';
       publishBtn.textContent = 'Publicar esta release';
-      publishBtn.disabled = !canPublishAction;
       publishBtn.addEventListener('click', async () => {
+        if (actionBusy) return;
+        setActionBusy(true);
         try {
+          setStatus('Publicando release...');
           const out = await api(`/content/admin/releases/${item.id}/publish`, {
             method: 'POST',
             headers: headers(false)
@@ -1274,15 +1309,19 @@
         } catch (err) {
           setStatus('Error publicando release.', err.response || { error: err.message });
           await refreshLock({ silent: true });
+        } finally {
+          setActionBusy(false);
         }
       });
 
       const restoreBtn = document.createElement('button');
       restoreBtn.className = 'btn';
       restoreBtn.textContent = 'Restaurar a draft';
-      restoreBtn.disabled = !canPublishAction;
       restoreBtn.addEventListener('click', async () => {
+        if (actionBusy) return;
+        setActionBusy(true);
         try {
+          setStatus('Restaurando draft desde release...');
           const out = await api(`/content/admin/releases/${item.id}/restore-draft`, {
             method: 'POST',
             headers: headers(false)
@@ -1294,58 +1333,76 @@
         } catch (err) {
           setStatus('Error restaurando release.', err.response || { error: err.message });
           await refreshLock({ silent: true });
+        } finally {
+          setActionBusy(false);
         }
       });
 
       const verifyTtsBtn = document.createElement('button');
       verifyTtsBtn.className = 'btn';
       verifyTtsBtn.textContent = 'Verificar audios';
-      verifyTtsBtn.disabled = !canPublishAction;
       verifyTtsBtn.addEventListener('click', async () => {
+        if (actionBusy) return;
+        const originalLabel = verifyTtsBtn.textContent;
+        setActionBusy(true);
+        verifyTtsBtn.textContent = 'Verificando...';
         try {
+          setStatus('Verificando audios...');
           const out = await api(`/content/admin/releases/${item.id}/tts/verify`, {
             method: 'POST',
             headers: headers(true),
             body: JSON.stringify({ checkRemote: true })
           });
           setStatus('Audios verificados.', out);
+          await loadReleases();
         } catch (err) {
           setStatus('Error verificando audios.', err.response || { error: err.message });
+        } finally {
+          verifyTtsBtn.textContent = originalLabel;
+          setActionBusy(false);
         }
       });
 
       const generateTtsBtn = document.createElement('button');
       generateTtsBtn.className = 'btn btn-primary';
       generateTtsBtn.textContent = 'Generar audios';
-      generateTtsBtn.disabled = !canPublishAction || !Boolean(item.published);
       if (!item.published) {
         generateTtsBtn.title = 'Solo se generan audios para releases publicadas.';
       }
       generateTtsBtn.addEventListener('click', async () => {
+        if (actionBusy) return;
         if (!item.published) {
           setStatus('Solo se generan audios para releases publicadas.');
           return;
         }
+        const originalLabel = generateTtsBtn.textContent;
+        setActionBusy(true);
+        generateTtsBtn.textContent = 'Generando...';
         try {
+          setStatus('Generando audios...');
           const out = await api(`/content/admin/releases/${item.id}/tts/generate`, {
             method: 'POST',
             headers: headers(true),
             body: JSON.stringify({})
           });
           setStatus('Generación de audios finalizada.', out);
+          await loadReleases();
         } catch (err) {
           setStatus('Error generando audios.', err.response || { error: err.message });
+        } finally {
+          generateTtsBtn.textContent = originalLabel;
+          setActionBusy(false);
         }
       });
 
       const deleteBtn = document.createElement('button');
       deleteBtn.className = 'btn btn-danger';
       deleteBtn.textContent = 'Eliminar release';
-      deleteBtn.disabled = !canPublishAction || Boolean(item.published);
       if (item.published) {
         deleteBtn.title = 'No se puede eliminar la release publicada.';
       }
       deleteBtn.addEventListener('click', async () => {
+        if (actionBusy) return;
         if (item.published) {
           setStatus('No se puede eliminar la release publicada.');
           return;
@@ -1354,7 +1411,9 @@
           `¿Eliminar la release #${item.id} (${item.name || 'sin nombre'})? Esta acción no se puede deshacer.`
         );
         if (!ok) return;
+        setActionBusy(true);
         try {
+          setStatus('Eliminando release...');
           const out = await api(`/content/admin/releases/${item.id}`, {
             method: 'DELETE',
             headers: headers(false)
@@ -1363,8 +1422,12 @@
           await loadReleases();
         } catch (err) {
           setStatus('Error eliminando release.', err.response || { error: err.message });
+        } finally {
+          setActionBusy(false);
         }
       });
+
+      applyActionDisabledState();
 
       actions.appendChild(publishBtn);
       actions.appendChild(restoreBtn);

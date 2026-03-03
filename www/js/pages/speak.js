@@ -2809,6 +2809,27 @@ class PageSpeak extends HTMLElement {
       `;
     };
 
+    const buildSummaryConfettiHtml = (count = 34) => {
+      const palette = ['#22c55e', '#3b82f6', '#f59e0b', '#fb7185', '#a855f7', '#0ea5e9', '#14b8a6'];
+      return Array.from({ length: count }, (_, index) => {
+        const left = 3 + Math.random() * 94;
+        const drift = -54 + Math.random() * 108;
+        const delay = Math.random() * 380;
+        const duration = 720 + Math.random() * 720;
+        const size = 6 + Math.random() * 7;
+        const angleStart = -34 + Math.random() * 68;
+        const angleEnd = angleStart + (-180 + Math.random() * 360);
+        const color = palette[index % palette.length];
+        return `<span class="summary-confetti-piece" style="--left:${left.toFixed(
+          2
+        )}%;--dx:${drift.toFixed(1)}px;--delay:${delay.toFixed(0)}ms;--dur:${duration.toFixed(
+          0
+        )}ms;--size:${size.toFixed(1)}px;--rot0:${angleStart.toFixed(1)}deg;--rot1:${angleEnd.toFixed(
+          1
+        )}deg;--h:${color};"></span>`;
+      }).join('');
+    };
+
     const renderSummaryStep = () => {
       const summary = summaryState || rollSummaryOutcome();
       summaryState = summary;
@@ -2833,33 +2854,33 @@ class PageSpeak extends HTMLElement {
       const showConfetti = tone === 'good';
       const mascotToneClass = showConfetti ? 'mascot-confetti' : '';
       const summaryPercentMarkup = showPercentages ? `<span>${percent}%</span>` : '';
+      const confettiMarkup = showConfetti ? buildSummaryConfettiHtml(40) : '';
       return `
         <div class="speak-step speak-step-summary">
-          ${
-            showConfetti
-              ? `<div class="summary-confetti">
-            <span></span><span></span><span></span><span></span><span></span>
-            <span></span><span></span><span></span><span></span><span></span>
-          </div>`
-              : ''
-          }
-          <div class="mascot-cat mascot-large ${mascotToneClass}"></div>
-          <div class="summary-title">${summaryTitle}</div>
-          <div class="summary-score ${tone}">
-            <ion-icon name="checkmark-circle"></ion-icon>
-            ${summaryPercentMarkup}
+          <div class="summary-stage ${showConfetti ? 'is-tone-good' : ''}">
+            ${showConfetti ? `<div class="summary-confetti" aria-hidden="true">${confettiMarkup}</div>` : ''}
+            <div class="summary-panel summary-panel-${tone}">
+              <div class="summary-panel-inner">
+                <div class="mascot-cat mascot-large ${mascotToneClass}"></div>
+                <div class="summary-title">${summaryTitle}</div>
+                <div class="summary-score ${tone}">
+                  <ion-icon name="checkmark-circle"></ion-icon>
+                  ${summaryPercentMarkup}
+                </div>
+                <div class="summary-feedback ${tone}">${phrase}</div>
+                ${
+                  hasReward
+                    ? `<div class="summary-reward">
+                  <div class="summary-reward-label">${rewardLabel}</div>
+                  <ion-icon name="${summary.rewardIcon}"></ion-icon>
+                </div>`
+                    : ''
+                }
+                ${badgeLabel ? `<div class="summary-badge-earned">${badgeLabel}</div>` : ''}
+                <button class="speak-next-btn" id="speak-next-step" type="button">Continue</button>
+              </div>
+            </div>
           </div>
-          <div class="summary-feedback ${tone}">${phrase}</div>
-          ${
-            hasReward
-              ? `<div class="summary-reward">
-            <div class="summary-reward-label">${rewardLabel}</div>
-            <ion-icon name="${summary.rewardIcon}"></ion-icon>
-          </div>`
-              : ''
-          }
-          ${badgeLabel ? `<div class="summary-badge-earned">${badgeLabel}</div>` : ''}
-          <button class="speak-next-btn" id="speak-next-step" type="button">Continue</button>
         </div>
       `;
     };

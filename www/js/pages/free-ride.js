@@ -1617,21 +1617,18 @@ class PageFreeRide extends HTMLElement {
   renderFreeRideCopyBilingualHtml(key, options = {}) {
     const fallbackEs = Object.prototype.hasOwnProperty.call(options, 'fallbackEs') ? options.fallbackEs : '';
     const fallbackEn = Object.prototype.hasOwnProperty.call(options, 'fallbackEn') ? options.fallbackEn : '';
-    const primary = this.getFreeRideCopyValueForLocale(key, 'es', fallbackEs);
-    const secondary = this.getFreeRideCopyValueForLocale(key, 'en', fallbackEn);
-    return this.renderBilingualCopyHtml(primary, secondary, options);
+    const locale = this.getUiLocale(this.currentUiLocale);
+    const fallback = locale === 'es' ? fallbackEs : fallbackEn;
+    const value = this.getFreeRideCopyValueForLocale(key, locale, fallback);
+    return this.escapeHtml(value);
   }
 
   getFreeRideCopyBilingualPlainText(key, options = {}) {
     const fallbackEs = Object.prototype.hasOwnProperty.call(options, 'fallbackEs') ? options.fallbackEs : '';
     const fallbackEn = Object.prototype.hasOwnProperty.call(options, 'fallbackEn') ? options.fallbackEn : '';
-    const primary = this.getFreeRideCopyValueForLocale(key, 'es', fallbackEs);
-    const secondary = this.getFreeRideCopyValueForLocale(key, 'en', fallbackEn);
-    if (!primary && !secondary) return '';
-    if (!primary) return secondary;
-    if (!secondary) return primary;
-    if (primary.toLowerCase() === secondary.toLowerCase()) return primary;
-    return `${primary} (${secondary})`;
+    const locale = this.getUiLocale(this.currentUiLocale);
+    const fallback = locale === 'es' ? fallbackEs : fallbackEn;
+    return this.getFreeRideCopyValueForLocale(key, locale, fallback);
   }
 
   getFreeRideUiLabelPair(key) {
@@ -4378,7 +4375,7 @@ class PageFreeRide extends HTMLElement {
     };
 
     if (bubbleEl) {
-      if (restLine) applyLine(restLine);
+      if (hasMultipleLines && restLine) applyLine(restLine);
       if (hasMultipleLines) {
         const maxHeight = measureMaxLineHeight();
         if (maxHeight > 0) {
@@ -4392,14 +4389,14 @@ class PageFreeRide extends HTMLElement {
     const restoreBubble = () => {
       if (!bubbleEl) return;
       if (bubbleEl.dataset.narrationToken !== String(token)) return;
-      if (restLine) {
-        applyLine(restLine);
-      } else {
+      if (originalBubbleHtml) {
         bubbleEl.innerHTML = originalBubbleHtml;
+      } else if (restLine) {
+        bubbleEl.textContent = restLine.text || '';
+      } else {
+        bubbleEl.textContent = '';
       }
-      if (!hasMultipleLines) {
-        bubbleEl.style.minHeight = originalBubbleMinHeight;
-      }
+      bubbleEl.style.minHeight = originalBubbleMinHeight;
       delete bubbleEl.dataset.narrationToken;
     };
 

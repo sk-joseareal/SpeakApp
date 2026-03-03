@@ -2810,15 +2810,19 @@ page-premium ion-content::part(scroll) {
 .speak-content::part(scroll) {
   display: flex;
   flex-direction: column;
+  align-items: stretch;
 }
 
 .speak-shell {
   padding: 20px 16px max(16px, env(safe-area-inset-bottom));
   display: flex;
   flex-direction: column;
+  align-items: stretch;
   gap: 14px;
   flex: 1 1 auto;
   min-height: 100%;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .speak-session-title-wrap {
@@ -2838,6 +2842,9 @@ page-premium ion-content::part(scroll) {
 .speak-hero-card {
   min-height: 0;
   padding: 14px;
+  width: 100%;
+  align-self: stretch;
+  box-sizing: border-box;
 }
 
 .speak-hero-flag-btn {
@@ -2872,6 +2879,8 @@ page-premium ion-content::part(scroll) {
   align-items: center;
   gap: 10px;
   padding-right: 48px;
+  width: 100%;
+  min-width: 0;
 }
 
 .speak-hero-mascot-wrap {
@@ -2902,6 +2911,7 @@ page-premium ion-content::part(scroll) {
   font-size: clamp(1.02rem, 4.2vw, 1.22rem);
   line-height: 1.15;
   text-align: left;
+  min-width: 0;
 }
 
 .speak-hero-bubble {
@@ -2911,6 +2921,9 @@ page-premium ion-content::part(scroll) {
   font-weight: 600;
   text-transform: none;
   letter-spacing: 0;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .speak-sheet {
@@ -2922,6 +2935,9 @@ page-premium ion-content::part(scroll) {
   flex-direction: column;
   flex: 1;
   min-height: 0;
+  width: 100%;
+  align-self: stretch;
+  box-sizing: border-box;
 }
 
 .speak-swipe-stage {
@@ -2932,6 +2948,7 @@ page-premium ion-content::part(scroll) {
   flex-direction: column;
   flex: 1;
   min-height: 0;
+  width: 100%;
 }
 
 .speak-swipe-active,
@@ -2940,6 +2957,9 @@ page-premium ion-content::part(scroll) {
   display: flex;
   flex-direction: column;
   min-height: 100%;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .speak-swipe-active {
@@ -2961,11 +2981,13 @@ page-premium ion-content::part(scroll) {
   text-align: center;
   flex: 1 1 auto;
   width: 100%;
+  max-width: 100%;
   min-height: 0;
 }
 
 .speak-step-main {
   width: 100%;
+  max-width: 100%;
   flex: 1 1 auto;
   min-height: 0;
   display: flex;

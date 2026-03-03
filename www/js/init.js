@@ -6,6 +6,72 @@ const initState = {
 };
 
 window.r34lp0w3r = window.r34lp0w3r || {};
+window.r34lp0w3r.__uiSfxPlayers = window.r34lp0w3r.__uiSfxPlayers || {};
+window.r34lp0w3r.__uiSfxLastPlayedAt = window.r34lp0w3r.__uiSfxLastPlayedAt || {};
+
+const UI_SFX_SOURCES = {
+  green: 'assets/sounds/green.mp3',
+  yellow: 'assets/sounds/yellow.mp3',
+  red: 'assets/sounds/red.mp3',
+  notification: 'assets/sounds/notification.mp3'
+};
+
+const normalizeUiSfxKey = (value) => {
+  const key = String(value || '')
+    .trim()
+    .toLowerCase();
+  if (Object.prototype.hasOwnProperty.call(UI_SFX_SOURCES, key)) return key;
+  if (key === 'good') return 'green';
+  if (key === 'okay' || key === 'warn') return 'yellow';
+  if (key === 'bad') return 'red';
+  return '';
+};
+
+window.playSpeakUiSound = async (key, options = {}) => {
+  try {
+    const normalized = normalizeUiSfxKey(key);
+    if (!normalized) return false;
+    const src = UI_SFX_SOURCES[normalized];
+    if (!src) return false;
+
+    const minGapRaw = Number(options && options.minGapMs);
+    const minGapMs = Number.isFinite(minGapRaw) && minGapRaw >= 0 ? minGapRaw : 120;
+    const now = Date.now();
+    const lastAt = Number(window.r34lp0w3r.__uiSfxLastPlayedAt[normalized] || 0);
+    if (now - lastAt < minGapMs) return false;
+    window.r34lp0w3r.__uiSfxLastPlayedAt[normalized] = now;
+
+    let player = window.r34lp0w3r.__uiSfxPlayers[normalized];
+    if (!player) {
+      player = new Audio(src);
+      player.preload = 'auto';
+      player.playsInline = true;
+      window.r34lp0w3r.__uiSfxPlayers[normalized] = player;
+    }
+
+    const forceRestart = options && options.forceRestart !== false;
+    const volumeRaw = Number(options && options.volume);
+    const volume = Number.isFinite(volumeRaw) ? Math.max(0, Math.min(1, volumeRaw)) : 1;
+    player.volume = volume;
+
+    if (forceRestart) {
+      try {
+        player.pause();
+      } catch (_err) {
+        // no-op
+      }
+      player.currentTime = 0;
+    }
+
+    const playResult = player.play();
+    if (playResult && typeof playResult.then === 'function') {
+      await playResult;
+    }
+    return true;
+  } catch (_err) {
+    return false;
+  }
+};
 
 const isChromeTtsBrowser = () => {
   if (typeof navigator === 'undefined') return false;
@@ -505,7 +571,11 @@ window.r34lp0w3r.speakBadges = loadSpeakStore(
 );
 
 const SPEAK_BADGE_IMAGE_FALLBACK = 'assets/badges/badge1.png';
+const BADGE_POPUP_AUDIO_SRC = 'assets/sounds/congrats.wav';
 const BADGE_CONFETTI_COLORS = ['#60a5fa', '#34d399', '#f472b6', '#f59e0b', '#818cf8', '#22d3ee'];
+let badgePopupChimeCtx = null;
+let badgePopupChimeLastAt = 0;
+let badgePopupAudioEl = null;
 
 const escapeBadgeHtml = (value) =>
   String(value ?? '')
@@ -556,6 +626,125 @@ const buildBadgeConfettiHtml = () => {
     );
   }
   return pieces.join('');
+};
+
+const playBadgePopupChimeWeb = () => {
+  try {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return;
+    const nowMs = Date.now();
+    if (nowMs - badgePopupChimeLastAt < 160) return;
+    badgePopupChimeLastAt = nowMs;
+
+    const ctx = badgePopupChimeCtx || (badgePopupChimeCtx = new Ctx());
+    const render = () => {
+      const now = ctx.currentTime + 0.006;
+      const master = ctx.createGain();
+      master.connect(ctx.destination);
+      master.gain.setValueAtTime(0.0001, now);
+      master.gain.exponentialRampToValueAtTime(0.16, now + 0.02);
+      master.gain.exponentialRampToValueAtTime(0.0001, now + 0.82);
+
+      const playTone = (freq, offset, dur, gain = 1) => {
+        const osc = ctx.createOscillator();
+        const g = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, now + offset);
+        g.gain.setValueAtTime(0.0001, now + offset);
+        g.gain.exponentialRampToValueAtTime(Math.max(0.001, 0.48 * gain), now + offset + 0.018);
+        g.gain.exponentialRampToValueAtTime(0.0001, now + offset + dur);
+        osc.connect(g);
+        g.connect(master);
+        osc.start(now + offset);
+        osc.stop(now + offset + dur + 0.02);
+      };
+
+      // Mini fanfarria en 3 notas (C6-E6-G6) + remate agudo.
+      playTone(1046.5, 0.0, 0.22, 0.92);  // C6
+      playTone(1318.5, 0.09, 0.24, 0.95); // E6
+      playTone(1568.0, 0.19, 0.32, 1.0);  // G6
+      playTone(2093.0, 0.39, 0.22, 0.72); // C7
+
+      // Sparkle brillante muy corto para reforzar el efecto "badge unlock".
+      const sparkle = ctx.createOscillator();
+      const sparkleGain = ctx.createGain();
+      sparkle.type = 'sine';
+      sparkle.frequency.setValueAtTime(2800, now + 0.14);
+      sparkle.frequency.exponentialRampToValueAtTime(3800, now + 0.28);
+      sparkleGain.gain.setValueAtTime(0.0001, now + 0.14);
+      sparkleGain.gain.exponentialRampToValueAtTime(0.11, now + 0.165);
+      sparkleGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.42);
+      sparkle.connect(sparkleGain);
+      sparkleGain.connect(master);
+      sparkle.start(now + 0.14);
+      sparkle.stop(now + 0.44);
+    };
+
+    if (ctx.state === 'suspended') {
+      ctx.resume().then(render).catch(() => {});
+      return;
+    }
+    render();
+  } catch (_err) {
+    // no-op
+  }
+};
+
+const playBadgePopupAudioFile = async () => {
+  try {
+    const nowMs = Date.now();
+    if (nowMs - badgePopupChimeLastAt < 160) return true;
+    badgePopupChimeLastAt = nowMs;
+
+    if (!badgePopupAudioEl) {
+      const audio = new Audio(BADGE_POPUP_AUDIO_SRC);
+      audio.preload = 'auto';
+      audio.playsInline = true;
+      badgePopupAudioEl = audio;
+    }
+
+    const audio = badgePopupAudioEl;
+    if (!audio) return false;
+
+    try {
+      audio.pause();
+    } catch (_err) {
+      // no-op
+    }
+    audio.currentTime = 0;
+    const playPromise = audio.play();
+    if (playPromise && typeof playPromise.then === 'function') {
+      await playPromise;
+    }
+    return true;
+  } catch (_err) {
+    return false;
+  }
+};
+
+const playBadgePopupChime = () => {
+  playBadgePopupAudioFile().then((played) => {
+    if (played) return;
+    try {
+      const plugin = window.Capacitor?.Plugins?.P4w4Plugin;
+      if (plugin && typeof plugin.playNotificationBell === 'function') {
+        plugin
+          .playNotificationBell({ durationMs: 320, vibrate: false })
+          .then((result) => {
+            if (result && result.started === false) {
+              playBadgePopupChimeWeb();
+            }
+          })
+          .catch(() => {
+            playBadgePopupChimeWeb();
+          });
+        return;
+      }
+    } catch (_err) {
+      // no-op
+    }
+    playBadgePopupChimeWeb();
+  });
 };
 
 window.openSpeakBadgePopup = async (badgeOrId) => {
@@ -620,6 +809,9 @@ window.openSpeakBadgePopup = async (badgeOrId) => {
   document.body.appendChild(overlay);
   requestAnimationFrame(() => {
     overlay.classList.add('is-visible');
+    setTimeout(() => {
+      playBadgePopupChime();
+    }, 36);
   });
   if (!window.closeSpeakBadgePopup || typeof window.closeSpeakBadgePopup !== 'function') {
     window.closeSpeakBadgePopup = () => {

@@ -105,6 +105,7 @@ class PageSpeak extends HTMLElement {
     let currentSessionId = '';
     let showSummary = false;
     let summaryState = null;
+    let lastSummaryAudioCue = '';
     let progressUpdatedThisRun = false;
     let debugPanelOpen = false;
 
@@ -1162,6 +1163,19 @@ class PageSpeak extends HTMLElement {
         labelPrefix,
         awardedBadge
       };
+    };
+
+    const playSummaryToneSound = (summary) => {
+      if (!summary || typeof summary !== 'object') return;
+      const tone = String(summary.tone || '').toLowerCase().trim();
+      const soundKey = tone === 'good' ? 'green' : tone === 'okay' ? 'yellow' : tone === 'bad' ? 'red' : '';
+      if (!soundKey) return;
+      const cueKey = `${currentSessionId}:${tone}:${Math.round(Number(summary.percent) || 0)}`;
+      if (cueKey === lastSummaryAudioCue) return;
+      lastSummaryAudioCue = cueKey;
+      if (typeof window.playSpeakUiSound === 'function') {
+        window.playSpeakUiSound(soundKey, { minGapMs: 150, forceRestart: true }).catch(() => {});
+      }
     };
 
     const isSpeakDebugEnabled = () => {
@@ -2632,6 +2646,7 @@ class PageSpeak extends HTMLElement {
       lastHeroNarratedStepKey = '';
       showSummary = false;
       summaryState = null;
+      lastSummaryAudioCue = '';
       progressUpdatedThisRun = false;
       stopHeroNarration().catch(() => {});
       resetStepState();
@@ -2797,6 +2812,7 @@ class PageSpeak extends HTMLElement {
     const renderSummaryStep = () => {
       const summary = summaryState || rollSummaryOutcome();
       summaryState = summary;
+      playSummaryToneSound(summary);
       const percent = summary.percent;
       const tone = summary.tone;
       const phrase = summary.phrase;
@@ -3336,6 +3352,7 @@ class PageSpeak extends HTMLElement {
         }
         showSummary = false;
         summaryState = null;
+        lastSummaryAudioCue = '';
         try {
           localStorage.setItem('appv5:active-tab', 'home');
         } catch (err) {
@@ -3351,6 +3368,7 @@ class PageSpeak extends HTMLElement {
       }
       showSummary = true;
       summaryState = rollSummaryOutcome();
+      lastSummaryAudioCue = '';
       renderStep();
     };
 
@@ -3414,6 +3432,7 @@ class PageSpeak extends HTMLElement {
       if (showSummary) {
         showSummary = false;
         summaryState = null;
+        lastSummaryAudioCue = '';
         renderStep();
         return;
       }

@@ -362,7 +362,7 @@ class PageDiagnostics extends HTMLElement {
 		            </div>
 
 		            <h4 style="margin-top:16px;">Prueba TTS navegador (aislada)</h4>
-		            <div class="diag-speak-block">
+	            <div class="diag-speak-block">
 	              <div class="pill">Web Speech API</div>
 	              <textarea
 	                id="diag-tts-input"
@@ -375,6 +375,15 @@ class PageDiagnostics extends HTMLElement {
 	              </div>
 	              <div class="diag-tts-status" id="diag-tts-status">Listo.</div>
 	            </div>
+
+              <h4 style="margin-top:16px;">Audio UI (SFX)</h4>
+              <div class="diag-actions">
+                <ion-button size="small" fill="outline" id="diag-sfx-green">Green</ion-button>
+                <ion-button size="small" fill="outline" id="diag-sfx-yellow">Yellow</ion-button>
+                <ion-button size="small" fill="outline" id="diag-sfx-red">Red</ion-button>
+                <ion-button size="small" fill="outline" id="diag-sfx-notification">Notification</ion-button>
+              </div>
+              <div class="diag-tts-status" id="diag-sfx-status">Listo.</div>
 
 	            <h4 style="margin-top:16px;">Notificaciones demo</h4>
 	            <div class="diag-actions">
@@ -617,6 +626,11 @@ class PageDiagnostics extends HTMLElement {
     const ttsInputEl = this.querySelector('#diag-tts-input');
     const ttsPlayBtn = this.querySelector('#diag-tts-play');
     const ttsStatusEl = this.querySelector('#diag-tts-status');
+    const sfxGreenBtn = this.querySelector('#diag-sfx-green');
+    const sfxYellowBtn = this.querySelector('#diag-sfx-yellow');
+    const sfxRedBtn = this.querySelector('#diag-sfx-red');
+    const sfxNotificationBtn = this.querySelector('#diag-sfx-notification');
+    const sfxStatusEl = this.querySelector('#diag-sfx-status');
     const freeRideAudioModeEl = this.querySelector('#diag-free-ride-audio-mode');
     const freeRideAudioSubEl = this.querySelector('#diag-free-ride-audio-sub');
     const freeRideAdvancedToggleEl = this.querySelector('#diag-free-ride-advanced-toggle');
@@ -764,6 +778,28 @@ class PageDiagnostics extends HTMLElement {
       const user = window.user;
       const userId = user && user.id !== undefined && user.id !== null ? String(user.id) : 'anon';
       return `${TALK_STORAGE_PREFIX}${userId}`;
+    };
+
+    const setSfxStatus = (text) => {
+      if (!sfxStatusEl) return;
+      sfxStatusEl.textContent = text || '';
+    };
+
+    const playSfx = async (key, label) => {
+      if (typeof window.playSpeakUiSound !== 'function') {
+        setSfxStatus('playSpeakUiSound no disponible en este entorno.');
+        return;
+      }
+      setSfxStatus(`Reproduciendo ${label}...`);
+      try {
+        const ok = await window.playSpeakUiSound(key, {
+          forceRestart: true,
+          minGapMs: 0
+        });
+        setSfxStatus(ok ? `OK: ${label}` : `No se pudo reproducir: ${label}`);
+      } catch (err) {
+        setSfxStatus(`Error ${label}: ${err && err.message ? err.message : String(err)}`);
+      }
     };
 
     const formatJson = (value) => {
@@ -2128,6 +2164,18 @@ class PageDiagnostics extends HTMLElement {
     });
     pronUsageLimitClearBtn?.addEventListener('click', () => {
       submitPronUsageLimit(0);
+    });
+    sfxGreenBtn?.addEventListener('click', () => {
+      playSfx('green', 'Green');
+    });
+    sfxYellowBtn?.addEventListener('click', () => {
+      playSfx('yellow', 'Yellow');
+    });
+    sfxRedBtn?.addEventListener('click', () => {
+      playSfx('red', 'Red');
+    });
+    sfxNotificationBtn?.addEventListener('click', () => {
+      playSfx('notification', 'Notification');
     });
     this.querySelector('#diag-notify-generate')?.addEventListener('click', () => {
       generateDemoNotifications();

@@ -157,12 +157,17 @@ function setupSecretDiagnostics(router) {
 
 function setupNotificationsModal() {
   let modal = null;
-  const updateNotifyBadge = () => {
+  let lastUnread = getUnreadCount();
+  const updateNotifyBadge = ({ silent = false } = {}) => {
     const unread = getUnreadCount();
     document.body.classList.toggle('has-unread-notify', unread > 0);
+    if (!silent && unread > lastUnread && typeof window.playSpeakUiSound === 'function') {
+      window.playSpeakUiSound('notification', { minGapMs: 450, forceRestart: true }).catch(() => {});
+    }
+    lastUnread = unread;
   };
-  updateNotifyBadge();
-  window.addEventListener('app:notifications-change', updateNotifyBadge);
+  updateNotifyBadge({ silent: true });
+  window.addEventListener('app:notifications-change', () => updateNotifyBadge());
 
   const openNotificationsModal = async () => {
     markAllNotificationsRead();

@@ -23,6 +23,25 @@ html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); f
   font-size: 24px;
 }
 
+.quick-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin: 8px 0 0 0;
+  font-size: 13px;
+}
+
+.quick-links a {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.quick-links a:hover {
+  text-decoration: underline;
+}
+
 .muted { color: var(--muted); }
 .hint { color: var(--muted); margin: 8px 0 0 0; font-size: 13px; }
 

@@ -30,6 +30,7 @@ Configuración recomendada para edición multiusuario:
 - `CONTENT_EDITOR_SEED_EMAIL` + `CONTENT_EDITOR_SEED_PASSWORD` (crea primer admin automáticamente si no hay usuarios)
 - `CONTENT_READ_TOKEN` para proteger lectura pública de contenido
 - `CONTENT_TTS_ALIGNED_ENDPOINT` + `CONTENT_TTS_ALIGNED_TOKEN` para generar/verificar audios Polly por release
+- Ajuste de ráfaga/reintentos en generación: `CONTENT_TTS_ALIGNED_CONCURRENCY`, `CONTENT_TTS_ALIGNED_RETRY_MAX_ATTEMPTS`, `CONTENT_TTS_ALIGNED_RETRY_BASE_DELAY_MS`, `CONTENT_TTS_ALIGNED_RETRY_MAX_DELAY_MS`
 
 ## Run
 

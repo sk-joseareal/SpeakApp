@@ -39,6 +39,18 @@ const ttsAlignedConcurrency = Math.min(
   8,
   Math.max(1, Number(env('CONTENT_TTS_ALIGNED_CONCURRENCY', '3')) || 3)
 );
+const ttsAlignedRetryMaxAttempts = Math.min(
+  10,
+  Math.max(1, Number(env('CONTENT_TTS_ALIGNED_RETRY_MAX_ATTEMPTS', '4')) || 4)
+);
+const ttsAlignedRetryBaseDelayMs = Math.max(
+  100,
+  Number(env('CONTENT_TTS_ALIGNED_RETRY_BASE_DELAY_MS', '350')) || 350
+);
+const ttsAlignedRetryMaxDelayMs = Math.max(
+  ttsAlignedRetryBaseDelayMs,
+  Number(env('CONTENT_TTS_ALIGNED_RETRY_MAX_DELAY_MS', '6000')) || 6000
+);
 const ttsAlignedPollyEngine = String(env('CONTENT_TTS_ALIGNED_POLLY_ENGINE', 'neural') || 'neural').trim() || 'neural';
 const ttsAlignedVoiceEnUS = String(env('CONTENT_TTS_ALIGNED_VOICE_EN_US', 'Danielle') || 'Danielle').trim() || 'Danielle';
 const ttsAlignedVoiceEnGB = String(env('CONTENT_TTS_ALIGNED_VOICE_EN_GB', 'Amy') || 'Amy').trim() || 'Amy';
@@ -275,6 +287,46 @@ const mapWithConcurrency = async (items, limit, worker) => {
   }
   await Promise.all(runners);
   return out;
+};
+
+const sleep = (ms) =>
+  new Promise((resolve) => {
+    setTimeout(resolve, Math.max(0, Number(ms) || 0));
+  });
+
+const isRetriableTtsError = (error) => {
+  const message = String(error && error.message ? error.message : '')
+    .trim()
+    .toLowerCase();
+  const status = Number(error && error.httpStatus);
+  if (status === 429 || status === 408 || status === 425 || status === 502 || status === 503 || status === 504) {
+    return true;
+  }
+  if (status >= 500 && status < 600) return true;
+  if (!message) return false;
+  return (
+    message.includes('rate exceeded') ||
+    message.includes('too many requests') ||
+    message.includes('throttl') ||
+    message.includes('timeout') ||
+    message.includes('timed out') ||
+    message.includes('fetch failed') ||
+    message.includes('network') ||
+    message.includes('socket hang up') ||
+    message.includes('econnreset') ||
+    message.includes('http_429') ||
+    message.includes('http_502') ||
+    message.includes('http_503') ||
+    message.includes('http_504')
+  );
+};
+
+const computeRetryDelayMs = (attempt) => {
+  const safeAttempt = Math.max(1, Number(attempt) || 1);
+  const exp = Math.min(safeAttempt - 1, 8);
+  const raw = Math.min(ttsAlignedRetryMaxDelayMs, ttsAlignedRetryBaseDelayMs * 2 ** exp);
+  const jitter = 0.8 + Math.random() * 0.4;
+  return Math.round(raw * jitter);
 };
 
 const readHintLine = (source, locale, lineNumber) => {
@@ -1418,31 +1470,47 @@ const requestAlignedTts = async ({ text, locale, voice, engine, force = false })
   if (ttsAlignedToken) {
     headers['x-rt-token'] = ttsAlignedToken;
   }
-  const response = await withTimeout(
-    ({ signal }) =>
-      fetch(ttsAlignedEndpoint, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(body),
-        signal
-      }),
-    ttsAlignedTimeoutMs
-  );
-  const raw = await response.text();
-  let payload = null;
-  try {
-    payload = raw ? JSON.parse(raw) : null;
-  } catch (_err) {
-    payload = { ok: false, error: 'invalid_json_response', raw };
+  const attempts = ttsAlignedRetryMaxAttempts;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      const response = await withTimeout(
+        ({ signal }) =>
+          fetch(ttsAlignedEndpoint, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(body),
+            signal
+          }),
+        ttsAlignedTimeoutMs
+      );
+      const raw = await response.text();
+      let payload = null;
+      try {
+        payload = raw ? JSON.parse(raw) : null;
+      } catch (_err) {
+        payload = { ok: false, error: 'invalid_json_response', raw };
+      }
+      if (!response.ok || !payload || payload.ok === false) {
+        const message =
+          payload && (payload.message || payload.error)
+            ? String(payload.message || payload.error)
+            : `http_${response.status}`;
+        const err = new Error(message);
+        err.httpStatus = Number(response.status) || 0;
+        err.code = payload && payload.error ? String(payload.error) : '';
+        throw err;
+      }
+      return payload;
+    } catch (err) {
+      const retryable = isRetriableTtsError(err);
+      if (!retryable || attempt >= attempts) {
+        throw err;
+      }
+      const waitMs = computeRetryDelayMs(attempt);
+      await sleep(waitMs);
+    }
   }
-  if (!response.ok || !payload || payload.ok === false) {
-    const message =
-      payload && (payload.message || payload.error)
-        ? String(payload.message || payload.error)
-        : `http_${response.status}`;
-    throw new Error(message);
-  }
-  return payload;
+  throw new Error('tts_aligned_retry_exhausted');
 };
 
 const summarizeTargetStatuses = (targets) => {
@@ -1552,7 +1620,29 @@ const generateReleaseTtsAssets = async (releaseRow, options = {}) => {
   }
 
   const failures = [];
-  const generated = await mapWithConcurrency(candidates, ttsAlignedConcurrency, async (target) => {
+  const groupedCandidates = new Map();
+  candidates.forEach((target) => {
+    const key =
+      String(target && target.hash ? target.hash : '').trim() ||
+      buildTtsCacheHash({
+        text: target.text,
+        locale: target.aligned_locale,
+        voice: target.voice,
+        engine: target.engine
+      });
+    if (!groupedCandidates.has(key)) {
+      groupedCandidates.set(key, []);
+    }
+    groupedCandidates.get(key).push(target);
+  });
+  const uniqueCandidates = Array.from(groupedCandidates.entries()).map(([key, targets]) => ({
+    key,
+    target: targets[0],
+    targets
+  }));
+
+  const generated = await mapWithConcurrency(uniqueCandidates, ttsAlignedConcurrency, async (group) => {
+    const target = group.target;
     try {
       const out = await requestAlignedTts({
         text: target.text,
@@ -1575,26 +1665,36 @@ const generateReleaseTtsAssets = async (releaseRow, options = {}) => {
       if (!entry) {
         throw new Error('aligned_tts_invalid_response');
       }
-      setStepTtsEntry(target._stepRef, target.locale, target.line, entry);
-      target.existing = entry;
-      target.status = 'ready';
+      group.targets.forEach((item) => {
+        setStepTtsEntry(item._stepRef, item.locale, item.line, entry);
+        item.existing = entry;
+        item.status = 'ready';
+      });
       return {
         ok: true,
-        target,
-        cached: Boolean(out.cached)
+        key: group.key,
+        cached: Boolean(out.cached),
+        affected: group.targets.length
       };
     } catch (err) {
-      target.status = 'error';
       const reason = err && err.message ? String(err.message) : 'tts_generate_failed';
-      failures.push({
-        session_id: target.session_id,
-        step: target.step,
-        locale: target.locale,
-        line: target.line,
-        text: target.text,
-        error: reason
+      group.targets.forEach((item) => {
+        item.status = 'error';
+        failures.push({
+          session_id: item.session_id,
+          step: item.step,
+          locale: item.locale,
+          line: item.line,
+          text: item.text,
+          error: reason
+        });
       });
-      return { ok: false, target, error: reason };
+      return {
+        ok: false,
+        key: group.key,
+        error: reason,
+        affected: group.targets.length
+      };
     }
   });
 
@@ -1604,8 +1704,11 @@ const generateReleaseTtsAssets = async (releaseRow, options = {}) => {
   }
 
   const summary = summarizeTargetStatuses(verified.targets);
-  const generatedCount = generated.filter((item) => item && item.ok).length;
-  const cachedCount = generated.filter((item) => item && item.ok && item.cached).length;
+  const generatedCount = candidates.filter((item) => item && item.status === 'ready').length;
+  const cachedCount = generated.reduce((acc, item) => {
+    if (!item || !item.ok || !item.cached) return acc;
+    return acc + (Number(item.affected) || 0);
+  }, 0);
 
   return {
     payload: verified.payload,
@@ -1613,6 +1716,7 @@ const generateReleaseTtsAssets = async (releaseRow, options = {}) => {
     summary: {
       ...summary,
       requested_generation: candidates.length,
+      requested_unique_generation: uniqueCandidates.length,
       generated: generatedCount,
       cached: cachedCount,
       failed: failures.length

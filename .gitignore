@@ -57,3 +57,5 @@ ios/**/.DS_Store
 
 *.keystore
 *.jks
+
+publicar.sh

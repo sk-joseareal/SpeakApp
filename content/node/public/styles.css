@@ -163,6 +163,19 @@ textarea {
   font-size: 12px;
 }
 
+.release-tts-summary {
+  margin-top: 6px;
+  font-weight: 600;
+}
+
+.release-tts-summary.is-ok {
+  color: #0a6a46;
+}
+
+.release-tts-summary.is-warn {
+  color: #8b5a1c;
+}
+
 .release-name {
   font-weight: 600;
   margin: 0 0 4px 0;

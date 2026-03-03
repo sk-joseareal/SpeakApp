@@ -173,6 +173,7 @@ class PageSpeak extends HTMLElement {
     let heroMascotFrameTimer = null;
     let heroMascotIsTalking = false;
     let heroNarrationInProgress = false;
+    let heroRemoteAudioEl = null;
     let heroFirstRenderAt = 0;
     let hintLocaleOverride = '';
     let activeHintLocale = 'en';
@@ -614,7 +615,153 @@ class PageSpeak extends HTMLElement {
       return maxHeight;
     };
 
+    const stopHeroRemoteAudio = () => {
+      if (!heroRemoteAudioEl) return;
+      try {
+        heroRemoteAudioEl.pause();
+      } catch (err) {
+        // no-op
+      }
+      heroRemoteAudioEl.src = '';
+      heroRemoteAudioEl = null;
+    };
+
+    const normalizeSpeechComparable = (value) =>
+      extractHeroSpeechText(value)
+        .toLowerCase()
+        .replace(/\s+/g, ' ')
+        .trim();
+
+    const resolveHeroRemoteAudioEntry = (source, locale, lineNumber, lineText) => {
+      if (!source || typeof source !== 'object') return null;
+      const ttsMap = source.tts && typeof source.tts === 'object' ? source.tts : {};
+      if (!Object.keys(ttsMap).length) return null;
+      const normalizedLocale = normalizeHintLocale(locale) || 'en';
+      const localeCandidates =
+        normalizedLocale === 'es'
+          ? ['es', 'es-ES', 'es_es', 'es-es']
+          : ['en', 'en-US', 'en_us', 'en-us'];
+      let localeNode = null;
+      for (let i = 0; i < localeCandidates.length; i += 1) {
+        const key = localeCandidates[i];
+        if (ttsMap[key] && typeof ttsMap[key] === 'object') {
+          localeNode = ttsMap[key];
+          break;
+        }
+      }
+      if (!localeNode) return null;
+      const lineKey = Number(lineNumber) === 2 ? 'line2' : 'line1';
+      const rawEntry = localeNode[lineKey] || localeNode[String(Number(lineNumber) === 2 ? 2 : 1)];
+      if (!rawEntry || typeof rawEntry !== 'object') return null;
+      const audioUrl = String(rawEntry.audio_url || rawEntry.audioUrl || '').trim();
+      if (!audioUrl) return null;
+      const expectedText = normalizeSpeechComparable(lineText);
+      const entryText = normalizeSpeechComparable(rawEntry.text || '');
+      if (entryText && expectedText && entryText !== expectedText) return null;
+      return {
+        text: String(rawEntry.text || lineText || ''),
+        audio_url: audioUrl,
+        words_url: String(rawEntry.words_url || rawEntry.wordsUrl || '').trim(),
+        duration_ms: Number(rawEntry.duration_ms || rawEntry.durationMs || 0) || 0,
+        hash: String(rawEntry.hash || '').trim(),
+        voice: String(rawEntry.voice || '').trim(),
+        engine: String(rawEntry.engine || '').trim()
+      };
+    };
+
+    const playHeroRemoteAudioLine = async (entry, token) => {
+      const audioUrl = entry && typeof entry.audio_url === 'string' ? entry.audio_url.trim() : '';
+      if (!audioUrl) return false;
+      if (token !== heroNarrationToken) return false;
+      await waitForDocumentVisible(1800);
+      if (token !== heroNarrationToken) return false;
+
+      return new Promise((resolve) => {
+        let settled = false;
+        let started = false;
+        let audio = null;
+        const text = entry && entry.text ? String(entry.text) : '';
+        const expectedMs = Number(entry && entry.duration_ms ? entry.duration_ms : 0);
+        const maxMs = Math.min(
+          18000,
+          Math.max(2600, (Number.isFinite(expectedMs) && expectedMs > 0
+            ? expectedMs + 1800
+            : estimateHeroLinePlaybackMs(text) + 2600))
+        );
+        const startTimer = setTimeout(() => {
+          if (!started) finish(false);
+        }, 2200);
+        const safetyTimer = setTimeout(() => finish(started), maxMs);
+
+        const cleanup = () => {
+          clearTimeout(startTimer);
+          clearTimeout(safetyTimer);
+          if (audio) {
+            audio.removeEventListener('playing', onPlaying);
+            audio.removeEventListener('ended', onEnded);
+            audio.removeEventListener('error', onError);
+            audio.removeEventListener('pause', onPause);
+          }
+          if (heroRemoteAudioEl === audio) {
+            heroRemoteAudioEl = null;
+          }
+        };
+
+        const finish = (ok) => {
+          if (settled) return;
+          settled = true;
+          cleanup();
+          if (token === heroNarrationToken) {
+            stopHeroMascotTalk({ settle: true });
+          }
+          resolve(Boolean(ok));
+        };
+
+        const onPlaying = () => {
+          if (token !== heroNarrationToken) {
+            finish(false);
+            return;
+          }
+          started = true;
+          startHeroMascotTalk();
+        };
+        const onEnded = () => finish(started || true);
+        const onError = () => finish(false);
+        const onPause = () => {
+          if (audio.ended) return;
+          finish(started);
+        };
+
+        try {
+          audio = new Audio(audioUrl);
+        } catch (err) {
+          finish(false);
+          return;
+        }
+        heroRemoteAudioEl = audio;
+        audio.preload = 'auto';
+        audio.addEventListener('playing', onPlaying);
+        audio.addEventListener('ended', onEnded);
+        audio.addEventListener('error', onError);
+        audio.addEventListener('pause', onPause);
+
+        let playPromise = null;
+        try {
+          playPromise = audio.play();
+        } catch (err) {
+          finish(false);
+          return;
+        }
+        if (playPromise && typeof playPromise.then === 'function') {
+          playPromise.catch(() => {
+            finish(false);
+          });
+        }
+      });
+    };
+
     const stopHeroNarrationPlayback = async () => {
+      stopHeroRemoteAudio();
       const plugin = getNativeTtsPlugin();
       if (plugin && typeof plugin.stop === 'function') {
         try {
@@ -772,7 +919,11 @@ class PageSpeak extends HTMLElement {
           renderLine(lineText);
 
           let started = false;
-          if (plugin && typeof plugin.speak === 'function') {
+          const remoteEntry = resolveHeroRemoteAudioEntry(source, locale, index + 1, lineText);
+          if (remoteEntry && token === heroNarrationToken) {
+            started = await playHeroRemoteAudioLine(remoteEntry, token);
+          }
+          if (!started && plugin && typeof plugin.speak === 'function') {
             startHeroMascotTalk();
             const startedAt = Date.now();
             try {

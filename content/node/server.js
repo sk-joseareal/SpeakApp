@@ -27,6 +27,26 @@ const dbPathInput = String(env('CONTENT_DB_PATH', './node/data/content.db'));
 const dbPath = path.isAbsolute(dbPathInput)
   ? dbPathInput
   : path.resolve(contentRoot, dbPathInput);
+const ttsAlignedEndpoint = String(
+  env('CONTENT_TTS_ALIGNED_ENDPOINT', 'https://realtime.curso-ingles.com/realtime/tts/aligned') || ''
+).trim();
+const ttsAlignedToken = String(env('CONTENT_TTS_ALIGNED_TOKEN', '') || '').trim();
+const ttsAlignedTimeoutMs = Math.max(
+  3000,
+  Number(env('CONTENT_TTS_ALIGNED_TIMEOUT_MS', '20000')) || 20000
+);
+const ttsAlignedConcurrency = Math.min(
+  8,
+  Math.max(1, Number(env('CONTENT_TTS_ALIGNED_CONCURRENCY', '3')) || 3)
+);
+const ttsAlignedPollyEngine = String(env('CONTENT_TTS_ALIGNED_POLLY_ENGINE', 'neural') || 'neural').trim() || 'neural';
+const ttsAlignedVoiceEnUS = String(env('CONTENT_TTS_ALIGNED_VOICE_EN_US', 'Danielle') || 'Danielle').trim() || 'Danielle';
+const ttsAlignedVoiceEnGB = String(env('CONTENT_TTS_ALIGNED_VOICE_EN_GB', 'Amy') || 'Amy').trim() || 'Amy';
+const ttsAlignedVoiceEsES = String(env('CONTENT_TTS_ALIGNED_VOICE_ES_ES', 'Lucia') || 'Lucia').trim() || 'Lucia';
+const ttsVerifyHeadTimeoutMs = Math.max(
+  1000,
+  Number(env('CONTENT_TTS_VERIFY_HEAD_TIMEOUT_MS', '4000')) || 4000
+);
 
 const ensureDir = (filepath) => {
   const dir = path.dirname(filepath);
@@ -179,6 +199,144 @@ const parseJsonSafe = (value, fallback) => {
   } catch (err) {
     return fallback;
   }
+};
+
+const isPlainObject = (value) => Boolean(value && typeof value === 'object' && !Array.isArray(value));
+
+const hasOwnKeys = (value) => isPlainObject(value) && Object.keys(value).length > 0;
+
+const normalizeHintLocale = (value) => {
+  const normalized = String(value || '')
+    .trim()
+    .toLowerCase();
+  if (normalized === 'en' || normalized === 'en-us' || normalized === 'en_us') return 'en';
+  if (normalized === 'es' || normalized === 'es-es' || normalized === 'es_es') return 'es';
+  return '';
+};
+
+const normalizeAlignedLocale = (value) => {
+  const normalized = String(value || '')
+    .trim()
+    .toLowerCase();
+  if (normalized === 'es' || normalized === 'es-es' || normalized === 'es_es') return 'es-ES';
+  if (normalized === 'en-gb' || normalized === 'en_gb') return 'en-GB';
+  return 'en-US';
+};
+
+const selectDefaultTtsVoice = (alignedLocale) => {
+  if (alignedLocale === 'es-ES') return ttsAlignedVoiceEsES;
+  if (alignedLocale === 'en-GB') return ttsAlignedVoiceEnGB;
+  return ttsAlignedVoiceEnUS;
+};
+
+const stripSpeechMarkup = (value) =>
+  String(value || '')
+    .replace(/<\s*br\s*\/?>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+const buildTtsCacheHash = ({ text, locale, voice, engine }) =>
+  crypto
+    .createHash('sha1')
+    .update([String(text || ''), String(locale || ''), String(voice || ''), String(engine || ''), 'v1'].join('|'))
+    .digest('hex');
+
+const withTimeout = async (task, timeoutMs) => {
+  const timeout = Math.max(1000, Number(timeoutMs) || 0);
+  if (typeof AbortController !== 'function') {
+    return task({});
+  }
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeout);
+  try {
+    return await task({ signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+};
+
+const mapWithConcurrency = async (items, limit, worker) => {
+  const list = Array.isArray(items) ? items : [];
+  const max = Math.max(1, Number(limit) || 1);
+  const out = new Array(list.length);
+  let cursor = 0;
+  const run = async () => {
+    while (cursor < list.length) {
+      const index = cursor;
+      cursor += 1;
+      out[index] = await worker(list[index], index);
+    }
+  };
+  const runners = [];
+  for (let i = 0; i < Math.min(max, list.length || 1); i += 1) {
+    runners.push(run());
+  }
+  await Promise.all(runners);
+  return out;
+};
+
+const readHintLine = (source, locale, lineNumber) => {
+  if (!isPlainObject(source)) return '';
+  const safeLocale = normalizeHintLocale(locale) || 'en';
+  const line = Number(lineNumber) === 2 ? '2' : '1';
+  return firstHintText(
+    source[`hint_${safeLocale}_line${line}`],
+    source[`hint_${safeLocale}_${line}`],
+    source[`hint_${safeLocale}_line_${line}`],
+    source[`hint_${safeLocale}_linea_${line}`]
+  );
+};
+
+const normalizeTtsLineEntry = (value) => {
+  if (!isPlainObject(value)) return null;
+  const text = String(value.text || '').trim();
+  const hash = String(value.hash || '').trim();
+  const audioUrl = String(value.audio_url || value.audioUrl || '').trim();
+  const wordsUrl = String(value.words_url || value.wordsUrl || '').trim();
+  const voice = String(value.voice || '').trim();
+  const engine = String(value.engine || '').trim();
+  const provider = String(value.provider || '').trim();
+  const generatedAt = String(value.generated_at || value.generatedAt || '').trim();
+  const durationRaw = Number(value.duration_ms !== undefined ? value.duration_ms : value.durationMs);
+  const durationMs = Number.isFinite(durationRaw) && durationRaw > 0 ? Math.round(durationRaw) : 0;
+  if (!audioUrl) return null;
+  return {
+    text,
+    hash,
+    audio_url: audioUrl,
+    words_url: wordsUrl,
+    voice,
+    engine,
+    provider,
+    duration_ms: durationMs,
+    generated_at: generatedAt
+  };
+};
+
+const normalizeStepTtsMap = (value) => {
+  if (!isPlainObject(value)) return {};
+  const out = {};
+  const rawByLocale = {};
+  Object.keys(value).forEach((key) => {
+    const locale = normalizeHintLocale(key);
+    if (!locale) return;
+    rawByLocale[locale] = value[key];
+  });
+
+  ['en', 'es'].forEach((locale) => {
+    const localeNode = isPlainObject(rawByLocale[locale]) ? rawByLocale[locale] : null;
+    if (!localeNode) return;
+    const line1 = normalizeTtsLineEntry(localeNode.line1 || localeNode['1']);
+    const line2 = normalizeTtsLineEntry(localeNode.line2 || localeNode['2']);
+    if (!line1 && !line2) return;
+    out[locale] = {};
+    if (line1) out[locale].line1 = line1;
+    if (line2) out[locale].line2 = line2;
+  });
+
+  return out;
 };
 
 const getBearerToken = (req) => {
@@ -777,6 +935,9 @@ const normalizeTrainingPayload = (rawPayload) => {
     const soundHints = normalizeHintI18n(soundRaw);
     const spellingHints = normalizeHintI18n(spellingRaw);
     const sentenceHints = normalizeHintI18n(sentenceRaw);
+    const soundTts = normalizeStepTtsMap(soundRaw.tts || soundRaw.audio || {});
+    const spellingTts = normalizeStepTtsMap(spellingRaw.tts || spellingRaw.audio || {});
+    const sentenceTts = normalizeStepTtsMap(sentenceRaw.tts || sentenceRaw.audio || {});
     const sound = {
       title: String(soundRaw.title || ''),
       ...soundHints,
@@ -794,6 +955,9 @@ const normalizeTrainingPayload = (rawPayload) => {
       sentence: String(sentenceRaw.sentence || ''),
       expected: String(sentenceRaw.expected || '')
     };
+    if (hasOwnKeys(soundTts)) sound.tts = soundTts;
+    if (hasOwnKeys(spellingTts)) spelling.tts = spellingTts;
+    if (hasOwnKeys(sentenceTts)) sentence.tts = sentenceTts;
 
     return {
       id,
@@ -827,9 +991,9 @@ const toTrainingPayload = (normalized) => ({
     title: session.title,
     speak: {
       focus: session.speakFocus || '',
-      sound: session.sound || {},
-      spelling: session.spelling || {},
-      sentence: session.sentence || {}
+      sound: session.sound && typeof session.sound === 'object' ? { ...session.sound } : {},
+      spelling: session.spelling && typeof session.spelling === 'object' ? { ...session.spelling } : {},
+      sentence: session.sentence && typeof session.sentence === 'object' ? { ...session.sentence } : {}
     }
   }))
 });
@@ -996,12 +1160,16 @@ const getPublishedReleaseRow = db.prepare(
 const listReleasesStmt = db.prepare(
   'SELECT id, name, published, created_at, published_at FROM releases ORDER BY id DESC LIMIT ?'
 );
+const listReleasesWithSnapshotStmt = db.prepare(
+  'SELECT id, name, published, created_at, published_at, snapshot_json FROM releases ORDER BY id DESC LIMIT ?'
+);
 const getReleaseByIdStmt = db.prepare(
   'SELECT id, name, snapshot_json, created_at, published, published_at FROM releases WHERE id = ?'
 );
 const unpublishAllStmt = db.prepare('UPDATE releases SET published = 0 WHERE published = 1');
 const publishByIdStmt = db.prepare('UPDATE releases SET published = 1, published_at = ? WHERE id = ?');
 const deleteReleaseByIdStmt = db.prepare('DELETE FROM releases WHERE id = ?');
+const updateReleaseSnapshotByIdStmt = db.prepare('UPDATE releases SET snapshot_json = ? WHERE id = ?');
 const createReleaseStmt = db.prepare(
   'INSERT INTO releases(name, snapshot_json, published, created_at, published_at) VALUES (?, ?, ?, ?, ?)'
 );
@@ -1061,6 +1229,395 @@ const restoreDraftFromRelease = (releaseId) => {
     releaseId: Number(releaseId),
     name: row.name || '',
     restoredAt: nowIso()
+  };
+};
+
+const parseReleaseSnapshotPayload = (releaseRow) => {
+  if (!releaseRow || !releaseRow.snapshot_json) {
+    const err = new Error('release_snapshot_invalid');
+    err.code = 'release_snapshot_invalid';
+    throw err;
+  }
+  const parsed = parseJsonSafe(releaseRow.snapshot_json, null);
+  if (!parsed || typeof parsed !== 'object') {
+    const err = new Error('release_snapshot_invalid');
+    err.code = 'release_snapshot_invalid';
+    throw err;
+  }
+  return sanitizeTrainingPayload(parsed);
+};
+
+const persistReleaseSnapshotPayload = (releaseId, payload) => {
+  const safeId = Number(releaseId);
+  if (!Number.isFinite(safeId) || safeId <= 0) {
+    throw new Error('invalid_release_id');
+  }
+  const normalized = sanitizeTrainingPayload(payload);
+  const now = nowIso();
+  const tx = db.transaction(() => {
+    updateReleaseSnapshotByIdStmt.run(JSON.stringify(normalized), safeId);
+    const row = getReleaseByIdStmt.get(safeId);
+    if (row && Boolean(row.published)) {
+      setSetting.run({ key: 'published_release_id', value: String(safeId), updated_at: now });
+      setSetting.run({ key: 'published_updated_at', value: now, updated_at: now });
+    }
+  });
+  tx();
+  return normalized;
+};
+
+const parseRequestedHintLocales = (value) => {
+  const list = Array.isArray(value)
+    ? value
+    : typeof value === 'string'
+    ? value.split(',')
+    : [];
+  const out = [];
+  const seen = new Set();
+  list.forEach((item) => {
+    const locale = normalizeHintLocale(item);
+    if (!locale || seen.has(locale)) return;
+    seen.add(locale);
+    out.push(locale);
+  });
+  if (!out.length) return ['en', 'es'];
+  return out;
+};
+
+const getStepByKey = (session, stepKey) => {
+  if (!isPlainObject(session) || !isPlainObject(session.speak)) return null;
+  const step = session.speak[stepKey];
+  return isPlainObject(step) ? step : null;
+};
+
+const getStepTtsEntry = (step, locale, lineNumber) => {
+  if (!isPlainObject(step)) return null;
+  const safeLocale = normalizeHintLocale(locale) || 'en';
+  const lineKey = Number(lineNumber) === 2 ? 'line2' : 'line1';
+  const tts = normalizeStepTtsMap(step.tts || step.audio || {});
+  const localeNode = tts[safeLocale];
+  if (!isPlainObject(localeNode)) return null;
+  return normalizeTtsLineEntry(localeNode[lineKey]);
+};
+
+const setStepTtsEntry = (step, locale, lineNumber, value) => {
+  if (!isPlainObject(step)) return;
+  const safeLocale = normalizeHintLocale(locale) || 'en';
+  const lineKey = Number(lineNumber) === 2 ? 'line2' : 'line1';
+  const normalized = normalizeTtsLineEntry(value);
+  if (!normalized) return;
+  if (!isPlainObject(step.tts)) {
+    step.tts = {};
+  }
+  if (!isPlainObject(step.tts[safeLocale])) {
+    step.tts[safeLocale] = {};
+  }
+  step.tts[safeLocale][lineKey] = normalized;
+};
+
+const collectReleaseTtsTargets = (payload, options = {}) => {
+  const safePayload = payload && typeof payload === 'object' ? payload : { sessions: [] };
+  const sessions = Array.isArray(safePayload.sessions) ? safePayload.sessions : [];
+  const locales = parseRequestedHintLocales(options.locales);
+  const engine = String(options.engine || ttsAlignedPollyEngine || 'neural').trim() || 'neural';
+  const targets = [];
+  const stepKeys = ['sound', 'spelling', 'sentence'];
+
+  sessions.forEach((session) => {
+    const sessionId = String(session && session.id ? session.id : '').trim();
+    const sessionTitle = String(session && session.title ? session.title : '').trim();
+    stepKeys.forEach((stepKey) => {
+      const step = getStepByKey(session, stepKey);
+      if (!step) return;
+      locales.forEach((locale) => {
+        [1, 2].forEach((lineNumber) => {
+          const rawText = readHintLine(step, locale, lineNumber);
+          const text = stripSpeechMarkup(rawText);
+          if (!text) return;
+          const alignedLocale = normalizeAlignedLocale(locale);
+          const voice = selectDefaultTtsVoice(alignedLocale);
+          const hash = buildTtsCacheHash({
+            text,
+            locale: alignedLocale,
+            voice,
+            engine
+          });
+          const existing = getStepTtsEntry(step, locale, lineNumber);
+          let status = 'missing';
+          if (existing && existing.audio_url && existing.hash) {
+            status = existing.hash === hash ? 'ready' : 'outdated';
+          }
+          targets.push({
+            session_id: sessionId,
+            session_title: sessionTitle,
+            step: stepKey,
+            locale,
+            aligned_locale: alignedLocale,
+            line: lineNumber,
+            line_key: lineNumber === 2 ? 'line2' : 'line1',
+            text,
+            voice,
+            engine,
+            hash,
+            existing,
+            status,
+            _stepRef: step
+          });
+        });
+      });
+    });
+  });
+
+  return targets;
+};
+
+const checkRemoteAudioUrl = async (url) => {
+  const target = String(url || '').trim();
+  if (!target) return false;
+  if (typeof fetch !== 'function') return false;
+  const tryRequest = async (method, extraHeaders = {}) =>
+    withTimeout(
+      ({ signal }) =>
+        fetch(target, {
+          method,
+          headers: { ...extraHeaders },
+          signal
+        }),
+      ttsVerifyHeadTimeoutMs
+    );
+  try {
+    const head = await tryRequest('HEAD');
+    if (head && head.ok) return true;
+    if (head && (head.status === 403 || head.status === 405 || head.status === 501)) {
+      const probe = await tryRequest('GET', { Range: 'bytes=0-0' });
+      return Boolean(probe && (probe.ok || probe.status === 206));
+    }
+    return false;
+  } catch (_err) {
+    return false;
+  }
+};
+
+const requestAlignedTts = async ({ text, locale, voice, engine, force = false }) => {
+  if (!ttsAlignedEndpoint) {
+    throw new Error('tts_aligned_endpoint_not_configured');
+  }
+  if (typeof fetch !== 'function') {
+    throw new Error('fetch_not_available');
+  }
+  const body = {
+    text: String(text || ''),
+    locale: normalizeAlignedLocale(locale),
+    voice: String(voice || '').trim() || selectDefaultTtsVoice(normalizeAlignedLocale(locale)),
+    engine: String(engine || ttsAlignedPollyEngine || 'neural').trim() || 'neural'
+  };
+  if (parseBoolean(force, false)) {
+    body.force = true;
+  }
+  const headers = { 'Content-Type': 'application/json' };
+  if (ttsAlignedToken) {
+    headers['x-rt-token'] = ttsAlignedToken;
+  }
+  const response = await withTimeout(
+    ({ signal }) =>
+      fetch(ttsAlignedEndpoint, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(body),
+        signal
+      }),
+    ttsAlignedTimeoutMs
+  );
+  const raw = await response.text();
+  let payload = null;
+  try {
+    payload = raw ? JSON.parse(raw) : null;
+  } catch (_err) {
+    payload = { ok: false, error: 'invalid_json_response', raw };
+  }
+  if (!response.ok || !payload || payload.ok === false) {
+    const message =
+      payload && (payload.message || payload.error)
+        ? String(payload.message || payload.error)
+        : `http_${response.status}`;
+    throw new Error(message);
+  }
+  return payload;
+};
+
+const summarizeTargetStatuses = (targets) => {
+  const list = Array.isArray(targets) ? targets : [];
+  const summary = {
+    total: list.length,
+    ready: 0,
+    missing: 0,
+    outdated: 0,
+    remote_missing: 0,
+    errors: 0
+  };
+  list.forEach((item) => {
+    const status = String(item && item.status ? item.status : 'missing');
+    if (status === 'ready') summary.ready += 1;
+    else if (status === 'outdated') summary.outdated += 1;
+    else if (status === 'remote_missing') summary.remote_missing += 1;
+    else if (status === 'error') summary.errors += 1;
+    else summary.missing += 1;
+  });
+  summary.pending = summary.total - summary.ready;
+  return summary;
+};
+
+const serializeTtsTarget = (target) => ({
+  session_id: target.session_id || '',
+  session_title: target.session_title || '',
+  step: target.step || '',
+  locale: target.locale || '',
+  aligned_locale: target.aligned_locale || '',
+  line: target.line || 1,
+  line_key: target.line_key || 'line1',
+  text: target.text || '',
+  voice: target.voice || '',
+  engine: target.engine || '',
+  expected_hash: target.hash || '',
+  status: target.status || 'missing',
+  current_hash: target.existing && target.existing.hash ? target.existing.hash : '',
+  audio_url: target.existing && target.existing.audio_url ? target.existing.audio_url : '',
+  words_url: target.existing && target.existing.words_url ? target.existing.words_url : ''
+});
+
+const buildReleaseTtsSummary = (releaseRow) => {
+  try {
+    const payload = parseReleaseSnapshotPayload(releaseRow);
+    const targets = collectReleaseTtsTargets(payload, {
+      locales: ['en', 'es'],
+      engine: ttsAlignedPollyEngine
+    });
+    const summary = summarizeTargetStatuses(targets);
+    const coveragePercent = summary.total > 0 ? Math.round((summary.ready / summary.total) * 100) : 100;
+    return {
+      ...summary,
+      coverage_percent: coveragePercent
+    };
+  } catch (err) {
+    return {
+      total: 0,
+      ready: 0,
+      missing: 0,
+      outdated: 0,
+      remote_missing: 0,
+      errors: 0,
+      pending: 0,
+      coverage_percent: 0,
+      invalid_snapshot: true
+    };
+  }
+};
+
+const verifyReleaseTtsAssets = async (releaseRow, options = {}) => {
+  const payload = parseReleaseSnapshotPayload(releaseRow);
+  const checkRemote = parseBoolean(options.checkRemote, false);
+  const targets = collectReleaseTtsTargets(payload, options);
+
+  if (checkRemote) {
+    const readyTargets = targets.filter((target) => target.status === 'ready' && target.existing && target.existing.audio_url);
+    await mapWithConcurrency(readyTargets, Math.min(ttsAlignedConcurrency, 4), async (target) => {
+      const exists = await checkRemoteAudioUrl(target.existing.audio_url);
+      if (!exists) {
+        target.status = 'remote_missing';
+      }
+    });
+  }
+
+  return {
+    payload,
+    targets,
+    summary: summarizeTargetStatuses(targets)
+  };
+};
+
+const generateReleaseTtsAssets = async (releaseRow, options = {}) => {
+  const force = parseBoolean(options.force, false);
+  const maxItemsRaw = Number(options.maxItems);
+  const maxItems = Number.isFinite(maxItemsRaw) && maxItemsRaw > 0 ? Math.min(Math.round(maxItemsRaw), 5000) : 0;
+
+  const verified = await verifyReleaseTtsAssets(releaseRow, {
+    locales: options.locales,
+    engine: options.engine,
+    checkRemote: options.checkRemote
+  });
+
+  let candidates = verified.targets.filter((item) => force || item.status !== 'ready');
+  if (maxItems > 0) {
+    candidates = candidates.slice(0, maxItems);
+  }
+
+  const failures = [];
+  const generated = await mapWithConcurrency(candidates, ttsAlignedConcurrency, async (target) => {
+    try {
+      const out = await requestAlignedTts({
+        text: target.text,
+        locale: target.aligned_locale,
+        voice: target.voice,
+        engine: target.engine,
+        force
+      });
+      const entry = normalizeTtsLineEntry({
+        text: target.text,
+        hash: String(out.hash || target.hash || '').trim(),
+        audio_url: String(out.audio_url || '').trim(),
+        words_url: String(out.words_url || '').trim(),
+        voice: String(out.voice || target.voice || '').trim(),
+        engine: String(out.engine || target.engine || '').trim(),
+        provider: String(out.provider || 'aws-polly').trim(),
+        duration_ms: Number(out.duration_ms || 0) || 0,
+        generated_at: nowIso()
+      });
+      if (!entry) {
+        throw new Error('aligned_tts_invalid_response');
+      }
+      setStepTtsEntry(target._stepRef, target.locale, target.line, entry);
+      target.existing = entry;
+      target.status = 'ready';
+      return {
+        ok: true,
+        target,
+        cached: Boolean(out.cached)
+      };
+    } catch (err) {
+      target.status = 'error';
+      const reason = err && err.message ? String(err.message) : 'tts_generate_failed';
+      failures.push({
+        session_id: target.session_id,
+        step: target.step,
+        locale: target.locale,
+        line: target.line,
+        text: target.text,
+        error: reason
+      });
+      return { ok: false, target, error: reason };
+    }
+  });
+
+  const anySuccess = generated.some((item) => item && item.ok);
+  if (anySuccess) {
+    persistReleaseSnapshotPayload(releaseRow.id, verified.payload);
+  }
+
+  const summary = summarizeTargetStatuses(verified.targets);
+  const generatedCount = generated.filter((item) => item && item.ok).length;
+  const cachedCount = generated.filter((item) => item && item.ok && item.cached).length;
+
+  return {
+    payload: verified.payload,
+    targets: verified.targets,
+    summary: {
+      ...summary,
+      requested_generation: candidates.length,
+      generated: generatedCount,
+      cached: cachedCount,
+      failed: failures.length
+    },
+    failures
   };
 };
 
@@ -1524,13 +2081,21 @@ app.post('/content/admin/publish', requirePublisher, blockIfDraftLockedByOther, 
 
 app.get('/content/admin/releases', requireEditor, (req, res) => {
   const limit = Math.min(Math.max(Number(req.query.limit) || 30, 1), 200);
-  const items = listReleasesStmt.all(limit).map((row) => ({
-    id: Number(row.id),
-    name: row.name || '',
-    published: Boolean(row.published),
-    created_at: row.created_at || null,
-    published_at: row.published_at || null
-  }));
+  const includeTtsSummary = parseBoolean(req.query.include_tts_summary, false);
+  const rows = includeTtsSummary ? listReleasesWithSnapshotStmt.all(limit) : listReleasesStmt.all(limit);
+  const items = rows.map((row) => {
+    const base = {
+      id: Number(row.id),
+      name: row.name || '',
+      published: Boolean(row.published),
+      created_at: row.created_at || null,
+      published_at: row.published_at || null
+    };
+    if (includeTtsSummary) {
+      base.tts_summary = buildReleaseTtsSummary(row);
+    }
+    return base;
+  });
   res.json({ ok: true, releases: items });
 });
 
@@ -1582,6 +2147,102 @@ app.post(
   }
   }
 );
+
+app.post('/content/admin/releases/:id/tts/verify', requirePublisher, async (req, res, next) => {
+  try {
+    const releaseId = Number(req.params.id);
+    if (!Number.isFinite(releaseId) || releaseId <= 0) {
+      res.status(400).json({ ok: false, error: 'invalid_release_id' });
+      return;
+    }
+    const release = getReleaseByIdStmt.get(releaseId);
+    if (!release) {
+      res.status(404).json({ ok: false, error: 'release_not_found' });
+      return;
+    }
+    const locales = parseRequestedHintLocales(req.body && req.body.locales);
+    const engine = String((req.body && req.body.engine) || ttsAlignedPollyEngine).trim() || ttsAlignedPollyEngine;
+    const checkRemote = parseBoolean(req.body && req.body.checkRemote, false);
+    const verified = await verifyReleaseTtsAssets(release, { locales, engine, checkRemote });
+    const preview = verified.targets.slice(0, 120).map(serializeTtsTarget);
+    writeAuditLog(req, 'release.tts.verify', `release:${releaseId}`, {
+      locales,
+      check_remote: checkRemote,
+      summary: verified.summary
+    });
+    res.json({
+      ok: true,
+      release: {
+        id: Number(release.id),
+        name: release.name || '',
+        published: Boolean(release.published),
+        created_at: release.created_at || null,
+        published_at: release.published_at || null
+      },
+      summary: verified.summary,
+      items_preview: preview,
+      items_total: verified.targets.length
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+app.post('/content/admin/releases/:id/tts/generate', requirePublisher, async (req, res, next) => {
+  try {
+    const releaseId = Number(req.params.id);
+    if (!Number.isFinite(releaseId) || releaseId <= 0) {
+      res.status(400).json({ ok: false, error: 'invalid_release_id' });
+      return;
+    }
+    const release = getReleaseByIdStmt.get(releaseId);
+    if (!release) {
+      res.status(404).json({ ok: false, error: 'release_not_found' });
+      return;
+    }
+    if (!Boolean(release.published)) {
+      res.status(400).json({ ok: false, error: 'release_not_published' });
+      return;
+    }
+    const locales = parseRequestedHintLocales(req.body && req.body.locales);
+    const engine = String((req.body && req.body.engine) || ttsAlignedPollyEngine).trim() || ttsAlignedPollyEngine;
+    const force = parseBoolean(req.body && req.body.force, false);
+    const checkRemote = parseBoolean(req.body && req.body.checkRemote, true);
+    const maxItems = Number(req.body && req.body.maxItems);
+    const generated = await generateReleaseTtsAssets(release, {
+      locales,
+      engine,
+      force,
+      checkRemote,
+      maxItems
+    });
+    const preview = generated.targets.slice(0, 120).map(serializeTtsTarget);
+    writeAuditLog(req, 'release.tts.generate', `release:${releaseId}`, {
+      locales,
+      force,
+      check_remote: checkRemote,
+      max_items: Number.isFinite(maxItems) ? maxItems : null,
+      summary: generated.summary,
+      failures: generated.failures.length
+    });
+    res.json({
+      ok: true,
+      release: {
+        id: Number(release.id),
+        name: release.name || '',
+        published: Boolean(release.published),
+        created_at: release.created_at || null,
+        published_at: release.published_at || null
+      },
+      summary: generated.summary,
+      failures: generated.failures,
+      items_preview: preview,
+      items_total: generated.targets.length
+    });
+  } catch (err) {
+    next(err);
+  }
+});
 
 app.delete('/content/admin/releases/:id', requirePublisher, (req, res, next) => {
   try {
@@ -1636,5 +2297,10 @@ app.listen(port, () => {
     console.log('[content] editor auth: enabled (JWT)');
   } else {
     console.log('[content] editor auth: disabled (set CONTENT_JWT_SECRET)');
+  }
+  if (ttsAlignedEndpoint) {
+    console.log(`[content] tts aligned endpoint: ${ttsAlignedEndpoint}`);
+  } else {
+    console.log('[content] tts aligned endpoint: disabled');
   }
 });

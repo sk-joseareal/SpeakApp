@@ -29,6 +29,7 @@ Configuración recomendada para edición multiusuario:
 - `CONTENT_JWT_SECRET` (obligatorio para login de editores por email/password)
 - `CONTENT_EDITOR_SEED_EMAIL` + `CONTENT_EDITOR_SEED_PASSWORD` (crea primer admin automáticamente si no hay usuarios)
 - `CONTENT_READ_TOKEN` para proteger lectura pública de contenido
+- `CONTENT_TTS_ALIGNED_ENDPOINT` + `CONTENT_TTS_ALIGNED_TOKEN` para generar/verificar audios Polly por release
 
 ## Run
 
@@ -60,6 +61,8 @@ Funciones incluidas:
 - Ver releases y ejecutar:
   - publicar release existente
   - restaurar draft desde release
+  - verificar audios por release
+  - generar audios por release publicada
 
 El dashboard usa login por editor (JWT).
 
@@ -105,10 +108,17 @@ Lock de draft:
 - `POST /content/admin/publish`
   - Crea release desde borrador y la publica.
 - `GET /content/admin/releases?limit=30`
+  - Query opcional: `include_tts_summary=1` para incluir cobertura de audios por release.
 - `POST /content/admin/releases/:id/publish`
   - Publica release existente (rollback rápido).
 - `POST /content/admin/releases/:id/restore-draft`
   - Restaura borrador actual a partir de una release.
+- `POST /content/admin/releases/:id/tts/verify`
+  - Verifica cobertura de audios TTS para hints EN/ES de la release.
+  - Body opcional: `locales` (`["en","es"]`), `engine`, `checkRemote` (`true|false`).
+- `POST /content/admin/releases/:id/tts/generate`
+  - Genera audios TTS faltantes/desactualizados para una release publicada.
+  - Body opcional: `locales`, `engine`, `force`, `checkRemote`, `maxItems`.
 
 ## Auth editores (JWT)
 
@@ -156,6 +166,24 @@ Publicar un release existente:
 ```bash
 curl -X POST 'http://localhost:8791/content/admin/releases/3/publish' \
   -H 'Authorization: Bearer YOUR_JWT'
+```
+
+Verificar audios de una release:
+
+```bash
+curl -X POST 'http://localhost:8791/content/admin/releases/3/tts/verify' \
+  -H 'Authorization: Bearer YOUR_JWT' \
+  -H 'Content-Type: application/json' \
+  -d '{"checkRemote":true}'
+```
+
+Generar audios de una release publicada:
+
+```bash
+curl -X POST 'http://localhost:8791/content/admin/releases/3/tts/generate' \
+  -H 'Authorization: Bearer YOUR_JWT' \
+  -H 'Content-Type: application/json' \
+  -d '{}'
 ```
 
 ## Notas operativas

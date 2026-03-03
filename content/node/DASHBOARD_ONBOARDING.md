@@ -91,6 +91,8 @@ Vista en 4 columnas:
 - Lista de releases recientes.
 - `Publicar esta release`.
 - `Restaurar a draft` (rollback de contenido de trabajo).
+- `Verificar audios` (cobertura TTS EN/ES de la release).
+- `Generar audios` (solo release publicada).
 
 ## Bloque Editors (solo admin)
 
@@ -115,7 +117,7 @@ Vista en 4 columnas:
 3. `Cargar draft`.
 4. Revisión final.
 5. `Publicar draft` (pon nombre de release claro).
-6. Confirmar en bloque `Releases`.
+6. En bloque `Releases`: `Verificar audios` y después `Generar audios`.
 7. `Liberar lock`.
 
 ## Flujo admin (gestión de usuarios)
@@ -148,6 +150,7 @@ Regla práctica:
 - Estructura route → módulo → sesión coherente.
 - Contenido de sesiones revisado.
 - Release name claro (ejemplo: `release-1.1.0-content-fixes`).
+- Tras publicar: verificar/generar audios TTS de la release publicada.
 
 ## 9) Incidencias comunes y solución rápida
 
@@ -185,4 +188,3 @@ No aparece `Aplicar JSON`
 - Publicar: `publisher`
 - Gestionar usuarios: `admin`
 - Siempre con JWT + lock
-

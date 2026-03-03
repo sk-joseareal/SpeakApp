@@ -1223,6 +1223,37 @@
       meta.className = 'release-meta';
       meta.textContent = `created: ${item.created_at || '-'} · published: ${item.published_at || '-'}`;
 
+      const ttsSummary = item && item.tts_summary && typeof item.tts_summary === 'object' ? item.tts_summary : null;
+      const ttsSummaryEl = document.createElement('p');
+      ttsSummaryEl.className = 'release-meta release-tts-summary';
+      if (ttsSummary) {
+        if (ttsSummary.invalid_snapshot) {
+          ttsSummaryEl.textContent = 'Audios: snapshot inválido.';
+          ttsSummaryEl.classList.add('is-warn');
+        } else {
+          const total = Number(ttsSummary.total) || 0;
+          const ready = Number(ttsSummary.ready) || 0;
+          const pending = Number(ttsSummary.pending) || 0;
+          const outdated = Number(ttsSummary.outdated) || 0;
+          const remoteMissing = Number(ttsSummary.remote_missing) || 0;
+          const coverage = Number.isFinite(Number(ttsSummary.coverage_percent))
+            ? Math.max(0, Math.min(100, Math.round(Number(ttsSummary.coverage_percent))))
+            : 0;
+          if (total <= 0) {
+            ttsSummaryEl.textContent = 'Audios: sin hints para generar.';
+            ttsSummaryEl.classList.add('is-ok');
+          } else {
+            ttsSummaryEl.textContent = `Audios: ${ready}/${total} (${coverage}%) · pendientes ${pending} · outdated ${outdated}${
+              remoteMissing > 0 ? ` · remote missing ${remoteMissing}` : ''
+            }`;
+            if (pending === 0 && outdated === 0 && remoteMissing === 0) ttsSummaryEl.classList.add('is-ok');
+            else ttsSummaryEl.classList.add('is-warn');
+          }
+        }
+      } else {
+        ttsSummaryEl.textContent = 'Audios: resumen no disponible.';
+      }
+
       const actions = document.createElement('div');
       actions.className = 'row gap-sm top-md row-wrap';
       const canPublishAction = hasRoleAtLeast(currentRole(), 'publisher');
@@ -1266,6 +1297,47 @@
         }
       });
 
+      const verifyTtsBtn = document.createElement('button');
+      verifyTtsBtn.className = 'btn';
+      verifyTtsBtn.textContent = 'Verificar audios';
+      verifyTtsBtn.disabled = !canPublishAction;
+      verifyTtsBtn.addEventListener('click', async () => {
+        try {
+          const out = await api(`/content/admin/releases/${item.id}/tts/verify`, {
+            method: 'POST',
+            headers: headers(true),
+            body: JSON.stringify({ checkRemote: true })
+          });
+          setStatus('Audios verificados.', out);
+        } catch (err) {
+          setStatus('Error verificando audios.', err.response || { error: err.message });
+        }
+      });
+
+      const generateTtsBtn = document.createElement('button');
+      generateTtsBtn.className = 'btn btn-primary';
+      generateTtsBtn.textContent = 'Generar audios';
+      generateTtsBtn.disabled = !canPublishAction || !Boolean(item.published);
+      if (!item.published) {
+        generateTtsBtn.title = 'Solo se generan audios para releases publicadas.';
+      }
+      generateTtsBtn.addEventListener('click', async () => {
+        if (!item.published) {
+          setStatus('Solo se generan audios para releases publicadas.');
+          return;
+        }
+        try {
+          const out = await api(`/content/admin/releases/${item.id}/tts/generate`, {
+            method: 'POST',
+            headers: headers(true),
+            body: JSON.stringify({})
+          });
+          setStatus('Generación de audios finalizada.', out);
+        } catch (err) {
+          setStatus('Error generando audios.', err.response || { error: err.message });
+        }
+      });
+
       const deleteBtn = document.createElement('button');
       deleteBtn.className = 'btn btn-danger';
       deleteBtn.textContent = 'Eliminar release';
@@ -1296,10 +1368,13 @@
 
       actions.appendChild(publishBtn);
       actions.appendChild(restoreBtn);
+      actions.appendChild(verifyTtsBtn);
+      actions.appendChild(generateTtsBtn);
       actions.appendChild(deleteBtn);
 
       div.appendChild(title);
       div.appendChild(meta);
+      div.appendChild(ttsSummaryEl);
       div.appendChild(actions);
       el.releasesBox.appendChild(div);
     });
@@ -1570,7 +1645,7 @@
 
   const loadReleases = async () => {
     try {
-      const out = await api('/content/admin/releases?limit=50', {
+      const out = await api('/content/admin/releases?limit=50&include_tts_summary=1', {
         headers: headers(false)
       });
       renderReleases(out.releases || []);

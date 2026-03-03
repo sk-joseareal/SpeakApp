@@ -175,6 +175,7 @@ class PageSpeak extends HTMLElement {
     let heroNarrationInProgress = false;
     let heroFirstRenderAt = 0;
     let hintLocaleOverride = '';
+    let activeHintLocale = 'en';
 
     const stepState = {
       sound: { recordingUrl: '', transcript: '', percent: null },
@@ -474,6 +475,14 @@ class PageSpeak extends HTMLElement {
       }
     };
 
+    const waitForHeroNarrationIdle = async (maxMs = 2400) => {
+      const startedAt = Date.now();
+      while (heroNarrationInProgress && Date.now() - startedAt < Math.max(0, Number(maxMs) || 0)) {
+        await waitMs(60);
+      }
+      return !heroNarrationInProgress;
+    };
+
     const estimateHeroLinePlaybackMs = (lineText) => {
       const chars = String(lineText || '').trim().length;
       return Math.min(9500, Math.max(900, Math.round(chars * 72)));
@@ -627,6 +636,9 @@ class PageSpeak extends HTMLElement {
     const stopHeroNarration = async () => {
       clearHeroNarrationTimer();
       heroNarrationToken += 1;
+      if (heroHintEl && heroHintEl.dataset) {
+        delete heroHintEl.dataset.narrationToken;
+      }
       await stopHeroNarrationPlayback();
     };
 
@@ -702,8 +714,11 @@ class PageSpeak extends HTMLElement {
     };
 
     const speakHeroNarrationFromSource = async (source, options = {}) => {
-      if (heroNarrationInProgress) return false;
-      const locale = normalizeHintLocale(options.locale) || getHintUiLocale();
+      if (heroNarrationInProgress) {
+        await waitForHeroNarrationIdle(2600);
+        if (heroNarrationInProgress) return false;
+      }
+      const locale = normalizeHintLocale(options.locale) || activeHintLocale || getHintUiLocale();
       const hint = resolveHeroHintText(source, locale);
       const lines = extractHeroNarrationLines(hint);
       if (!lines.length || !heroHintEl || showSummary) {
@@ -803,16 +818,29 @@ class PageSpeak extends HTMLElement {
       }
     };
 
-    const scheduleHeroNarration = (source, delayMs = 90) => {
+    const scheduleHeroNarration = (source, delayMs = 90, options = {}) => {
       clearHeroNarrationTimer();
-      const locale = getHintUiLocale();
+      const locale = normalizeHintLocale(options.locale) || activeHintLocale || getHintUiLocale();
       const hint = resolveHeroHintText(source, locale);
       if (!hint || showSummary) return;
-      heroNarrationTimer = setTimeout(() => {
+
+      const scheduleStart = Date.now();
+      const run = async () => {
         heroNarrationTimer = null;
         if (!this.isConnected || showSummary) return;
-        speakHeroNarrationFromSource(source, { locale }).catch(() => {});
-      }, Math.max(0, Number(delayMs) || 0));
+        if (heroNarrationInProgress) {
+          if (Date.now() - scheduleStart < 2600) {
+            heroNarrationTimer = setTimeout(run, 120);
+          }
+          return;
+        }
+        const started = await speakHeroNarrationFromSource(source, { locale }).catch(() => false);
+        if (!started && this.isConnected && !showSummary && Date.now() - scheduleStart < 2600) {
+          heroNarrationTimer = setTimeout(run, 160);
+        }
+      };
+
+      heroNarrationTimer = setTimeout(run, Math.max(0, Number(delayMs) || 0));
     };
 
     const normalizeText = (value) =>
@@ -2618,10 +2646,9 @@ class PageSpeak extends HTMLElement {
       return null;
     };
 
-    const renderHeroFlagButton = () => {
+    const renderHeroFlagButton = (locale = getHintUiLocale()) => {
       if (!heroFlagBtn || !heroFlagImgEl) return;
-      const baseLocale = getBaseHintLocale();
-      const currentLocale = getHintUiLocale(baseLocale);
+      const currentLocale = normalizeHintLocale(locale) || getHintUiLocale();
       const currentMeta = getLocaleMeta(currentLocale);
       const nextLocaleCode = getNextLocaleCode(currentLocale);
       const nextMeta = getLocaleMeta(nextLocaleCode);
@@ -2637,30 +2664,29 @@ class PageSpeak extends HTMLElement {
       const currentLocale = getHintUiLocale(baseLocale);
       const nextLocale = getNextLocaleCode(currentLocale);
       hintLocaleOverride = nextLocale === baseLocale ? '' : nextLocale;
-      renderHeroFlagButton();
+      const uiLocale = getHintUiLocale(baseLocale);
+      activeHintLocale = uiLocale;
+      renderHeroFlagButton(uiLocale);
       if (showSummary || !heroCardEl || heroCardEl.hidden) return;
       const source = getHeroSourceByStepKey(getStepKey());
-      applyHeroSource(source);
       clearHeroNarrationTimer();
       stopHeroNarration()
         .catch(() => {})
         .finally(() => {
-          const replay = () => {
-            if (!this.isConnected || showSummary) return;
-            if (heroNarrationInProgress) {
-              setTimeout(replay, 120);
-              return;
-            }
-            speakHeroNarrationFromSource(source, { locale: getHintUiLocale() }).catch(() => {});
-          };
-          replay();
+          if (!this.isConnected || showSummary || !heroCardEl || heroCardEl.hidden) return;
+          applyHeroSource(source, { locale: uiLocale });
+          scheduleHeroNarration(source, 80, { locale: uiLocale });
         });
     };
 
-    const applyHeroSource = (source) => {
+    const applyHeroSource = (source, options = {}) => {
       if (!heroStepTitleEl || !heroHintEl) return;
+      if (heroHintEl.dataset) {
+        delete heroHintEl.dataset.narrationToken;
+      }
       heroStepTitleEl.textContent = source && source.title ? source.title : '';
-      const hint = resolveHeroHintText(source, getHintUiLocale());
+      const locale = normalizeHintLocale(options.locale) || activeHintLocale || getHintUiLocale();
+      const hint = resolveHeroHintText(source, locale);
       const lines = extractHeroNarrationLines(hint);
       const restLineText = String(lines[0] && lines[0].text ? lines[0].text : '').trim();
       heroHintEl.textContent = restLineText || hint;
@@ -2729,6 +2755,8 @@ class PageSpeak extends HTMLElement {
         sessionTitleEl.textContent = sessionTitle;
       }
       focusKey = session.focus || (session.speak && session.speak.focus) || '';
+      hintLocaleOverride = '';
+      activeHintLocale = getHintUiLocale(getBaseHintLocale());
       soundStep = session.speak.sound;
       spellingStep = session.speak.spelling;
       sentenceStep = session.speak.sentence;
@@ -3008,7 +3036,9 @@ class PageSpeak extends HTMLElement {
         return;
       }
       heroCardEl.hidden = false;
-      renderHeroFlagButton();
+      const uiLocale = getHintUiLocale(getBaseHintLocale());
+      activeHintLocale = uiLocale;
+      renderHeroFlagButton(uiLocale);
       const source = getHeroSourceByStepKey(stepKey);
       const debugEnabled = isSpeakDebugEnabled();
       if (debugToggleBtn) {
@@ -3016,14 +3046,16 @@ class PageSpeak extends HTMLElement {
         debugToggleBtn.classList.toggle('is-active', debugEnabled && debugPanelOpen);
         debugToggleBtn.setAttribute('aria-pressed', debugEnabled && debugPanelOpen ? 'true' : 'false');
       }
-      applyHeroSource(source);
+      applyHeroSource(source, { locale: uiLocale });
       if (sessionTitleEl) {
         sessionTitleEl.textContent = sessionTitle || '';
       }
       if (stepKey !== lastHeroNarratedStepKey) {
         const isInitialStepNarration = !lastHeroNarratedStepKey;
         lastHeroNarratedStepKey = stepKey;
-        scheduleHeroNarration(source, isInitialStepNarration ? 1000 : 120);
+        scheduleHeroNarration(source, isInitialStepNarration ? 1000 : 120, {
+          locale: uiLocale
+        });
       }
     };
 
@@ -3543,11 +3575,12 @@ class PageSpeak extends HTMLElement {
         return;
       }
       const source = getHeroSourceByStepKey(getStepKey());
-      const hint = resolveHeroHintText(source, getHintUiLocale());
+      const locale = activeHintLocale || getHintUiLocale();
+      const hint = resolveHeroHintText(source, locale);
       if (!source || !hint) return;
       if (heroNarrationInProgress) return;
       if (Date.now() - heroFirstRenderAt < 1000) return;
-      speakHeroNarrationFromSource(source, { locale: getHintUiLocale() }).catch(() => {});
+      speakHeroNarrationFromSource(source, { locale }).catch(() => {});
     };
 
     const prevStep = () => {
@@ -3614,12 +3647,20 @@ class PageSpeak extends HTMLElement {
       if (normalizeHintLocale(hintLocaleOverride) === baseLocale) {
         hintLocaleOverride = '';
       }
+      const nextLocale = getHintUiLocale(baseLocale);
+      if (nextLocale === activeHintLocale) return;
+      activeHintLocale = nextLocale;
       if (showSummary || !heroCardEl || heroCardEl.hidden) return;
-      renderHeroFlagButton();
       const source = getHeroSourceByStepKey(getStepKey());
-      applyHeroSource(source);
       clearHeroNarrationTimer();
-      scheduleHeroNarration(source, 90);
+      stopHeroNarration()
+        .catch(() => {})
+        .finally(() => {
+          if (!this.isConnected || showSummary || !heroCardEl || heroCardEl.hidden) return;
+          renderHeroFlagButton(nextLocale);
+          applyHeroSource(source, { locale: nextLocale });
+          scheduleHeroNarration(source, 90, { locale: nextLocale });
+        });
     };
     this._handleSpeakLocaleChange = handleAppLocaleChange;
     window.addEventListener('app:locale-change', handleAppLocaleChange);

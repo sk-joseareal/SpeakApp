@@ -1226,32 +1226,53 @@
       const ttsSummary = item && item.tts_summary && typeof item.tts_summary === 'object' ? item.tts_summary : null;
       const ttsSummaryEl = document.createElement('p');
       ttsSummaryEl.className = 'release-meta release-tts-summary';
+      const ttsProgressEl = document.createElement('div');
+      ttsProgressEl.className = 'release-tts-progress';
+      const ttsProgressFillEl = document.createElement('span');
+      ttsProgressFillEl.className = 'release-tts-progress-fill';
+      ttsProgressEl.appendChild(ttsProgressFillEl);
       if (ttsSummary) {
+        ttsProgressEl.classList.remove('hidden', 'is-ok', 'is-warn', 'is-error');
         if (ttsSummary.invalid_snapshot) {
           ttsSummaryEl.textContent = 'Audios: snapshot inválido.';
           ttsSummaryEl.classList.add('is-warn');
+          ttsProgressEl.classList.add('is-error');
+          ttsProgressFillEl.style.width = '0%';
         } else {
           const total = Number(ttsSummary.total) || 0;
           const ready = Number(ttsSummary.ready) || 0;
           const pending = Number(ttsSummary.pending) || 0;
           const outdated = Number(ttsSummary.outdated) || 0;
           const remoteMissing = Number(ttsSummary.remote_missing) || 0;
+          const errors = Number(ttsSummary.errors) || 0;
           const coverage = Number.isFinite(Number(ttsSummary.coverage_percent))
             ? Math.max(0, Math.min(100, Math.round(Number(ttsSummary.coverage_percent))))
             : 0;
           if (total <= 0) {
             ttsSummaryEl.textContent = 'Audios: sin hints para generar.';
             ttsSummaryEl.classList.add('is-ok');
+            ttsProgressEl.classList.add('is-ok');
+            ttsProgressFillEl.style.width = '100%';
           } else {
             ttsSummaryEl.textContent = `Audios: ${ready}/${total} (${coverage}%) · pendientes ${pending} · outdated ${outdated}${
               remoteMissing > 0 ? ` · remote missing ${remoteMissing}` : ''
             }`;
-            if (pending === 0 && outdated === 0 && remoteMissing === 0) ttsSummaryEl.classList.add('is-ok');
-            else ttsSummaryEl.classList.add('is-warn');
+            ttsProgressFillEl.style.width = `${coverage}%`;
+            if (pending === 0 && outdated === 0 && remoteMissing === 0 && errors === 0) {
+              ttsSummaryEl.classList.add('is-ok');
+              ttsProgressEl.classList.add('is-ok');
+            } else if (errors > 0 || remoteMissing > 0) {
+              ttsSummaryEl.classList.add('is-warn');
+              ttsProgressEl.classList.add('is-error');
+            } else {
+              ttsSummaryEl.classList.add('is-warn');
+              ttsProgressEl.classList.add('is-warn');
+            }
           }
         }
       } else {
         ttsSummaryEl.textContent = 'Audios: resumen no disponible.';
+        ttsProgressEl.classList.add('hidden');
       }
 
       const actions = document.createElement('div');
@@ -1438,6 +1459,7 @@
       div.appendChild(title);
       div.appendChild(meta);
       div.appendChild(ttsSummaryEl);
+      div.appendChild(ttsProgressEl);
       div.appendChild(actions);
       el.releasesBox.appendChild(div);
     });

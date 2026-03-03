@@ -177,6 +177,39 @@ textarea {
   color: #8b5a1c;
 }
 
+.release-tts-progress {
+  margin-top: 6px;
+  height: 8px;
+  border-radius: 999px;
+  border: 1px solid #d4ddee;
+  background: #eef2fb;
+  overflow: hidden;
+}
+
+.release-tts-progress.hidden {
+  display: none;
+}
+
+.release-tts-progress-fill {
+  display: block;
+  height: 100%;
+  width: 0;
+  transition: width 220ms ease;
+  background: linear-gradient(90deg, #8fb6ff 0%, #2d6ff7 100%);
+}
+
+.release-tts-progress.is-ok .release-tts-progress-fill {
+  background: linear-gradient(90deg, #6fd7a4 0%, #18a86c 100%);
+}
+
+.release-tts-progress.is-warn .release-tts-progress-fill {
+  background: linear-gradient(90deg, #f7c97a 0%, #dd9a34 100%);
+}
+
+.release-tts-progress.is-error .release-tts-progress-fill {
+  background: linear-gradient(90deg, #f4a4a4 0%, #dc5f5f 100%);
+}
+
 .release-name {
   font-weight: 600;
   margin: 0 0 4px 0;

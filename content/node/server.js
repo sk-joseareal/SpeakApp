@@ -88,6 +88,12 @@ const hasSessionLegacyColumns = () => {
   );
 };
 
+const hasTableColumn = (tableName, columnName) => {
+  const rows = db.prepare(`PRAGMA table_info('${String(tableName)}')`).all();
+  const names = new Set(rows.map((row) => String(row.name || '').trim()));
+  return names.has(String(columnName || '').trim());
+};
+
 const migrateSessionsTableIfNeeded = () => {
   if (!hasSessionLegacyColumns()) return false;
 
@@ -139,6 +145,33 @@ const migrateSessionsTableIfNeeded = () => {
 const migratedSessionsTable = migrateSessionsTableIfNeeded();
 if (migratedSessionsTable) {
   console.log('[content] migrated sessions table: removed legacy progress/status columns');
+}
+
+const ensureI18nColumns = () => {
+  const mutations = [];
+  if (!hasTableColumn('routes', 'title_i18n_json')) {
+    mutations.push("ALTER TABLE routes ADD COLUMN title_i18n_json TEXT NOT NULL DEFAULT '{}'");
+  }
+  if (!hasTableColumn('routes', 'note_i18n_json')) {
+    mutations.push("ALTER TABLE routes ADD COLUMN note_i18n_json TEXT NOT NULL DEFAULT '{}'");
+  }
+  if (!hasTableColumn('modules', 'title_i18n_json')) {
+    mutations.push("ALTER TABLE modules ADD COLUMN title_i18n_json TEXT NOT NULL DEFAULT '{}'");
+  }
+  if (!hasTableColumn('modules', 'subtitle_i18n_json')) {
+    mutations.push("ALTER TABLE modules ADD COLUMN subtitle_i18n_json TEXT NOT NULL DEFAULT '{}'");
+  }
+  if (!hasTableColumn('sessions', 'title_i18n_json')) {
+    mutations.push("ALTER TABLE sessions ADD COLUMN title_i18n_json TEXT NOT NULL DEFAULT '{}'");
+  }
+  if (!mutations.length) return false;
+  mutations.forEach((sql) => db.exec(sql));
+  return true;
+};
+
+const migratedI18nColumns = ensureI18nColumns();
+if (migratedI18nColumns) {
+  console.log('[content] migrated tables: added i18n json columns');
 }
 
 const app = express();
@@ -739,22 +772,26 @@ const seedEditorIfNeeded = () => {
 };
 
 const upsertRoute = db.prepare(`
-  INSERT INTO routes(id, title, note, sort_order, is_active, updated_at)
-  VALUES (@id, @title, @note, @sort_order, @is_active, @updated_at)
+  INSERT INTO routes(id, title, title_i18n_json, note, note_i18n_json, sort_order, is_active, updated_at)
+  VALUES (@id, @title, @title_i18n_json, @note, @note_i18n_json, @sort_order, @is_active, @updated_at)
   ON CONFLICT(id) DO UPDATE SET
     title = excluded.title,
+    title_i18n_json = excluded.title_i18n_json,
     note = excluded.note,
+    note_i18n_json = excluded.note_i18n_json,
     sort_order = excluded.sort_order,
     is_active = excluded.is_active,
     updated_at = excluded.updated_at
 `);
 
 const upsertModule = db.prepare(`
-  INSERT INTO modules(id, title, subtitle, sort_order, is_active, updated_at)
-  VALUES (@id, @title, @subtitle, @sort_order, @is_active, @updated_at)
+  INSERT INTO modules(id, title, title_i18n_json, subtitle, subtitle_i18n_json, sort_order, is_active, updated_at)
+  VALUES (@id, @title, @title_i18n_json, @subtitle, @subtitle_i18n_json, @sort_order, @is_active, @updated_at)
   ON CONFLICT(id) DO UPDATE SET
     title = excluded.title,
+    title_i18n_json = excluded.title_i18n_json,
     subtitle = excluded.subtitle,
+    subtitle_i18n_json = excluded.subtitle_i18n_json,
     sort_order = excluded.sort_order,
     is_active = excluded.is_active,
     updated_at = excluded.updated_at
@@ -764,6 +801,7 @@ const upsertSession = db.prepare(`
   INSERT INTO sessions(
     id,
     title,
+    title_i18n_json,
     speak_focus,
     speak_sound_json,
     speak_spelling_json,
@@ -775,6 +813,7 @@ const upsertSession = db.prepare(`
   VALUES (
     @id,
     @title,
+    @title_i18n_json,
     @speak_focus,
     @speak_sound_json,
     @speak_spelling_json,
@@ -785,6 +824,7 @@ const upsertSession = db.prepare(`
   )
   ON CONFLICT(id) DO UPDATE SET
     title = excluded.title,
+    title_i18n_json = excluded.title_i18n_json,
     speak_focus = excluded.speak_focus,
     speak_sound_json = excluded.speak_sound_json,
     speak_spelling_json = excluded.speak_spelling_json,
@@ -912,6 +952,29 @@ const normalizeHintI18n = (rawStep) => {
   };
 };
 
+const normalizeTextI18n = (input, fallbackValue = '') => {
+  const source = isPlainObject(input) ? input : {};
+  const fallback = String(fallbackValue || '').trim();
+  let en = firstHintText(source.en, source['en-US'], source.en_us);
+  let es = firstHintText(source.es, source['es-ES'], source.es_es);
+  if (!en && fallback) en = fallback;
+  if (!es && fallback) es = fallback;
+  if (!en && es) en = es;
+  if (!es && en) es = en;
+  return { en, es };
+};
+
+const extractTextI18n = (rawEntity, fieldName, fallbackValue = '') => {
+  const entity = rawEntity && typeof rawEntity === 'object' ? rawEntity : {};
+  const direct = entity[`${fieldName}_i18n`];
+  const legacy = {
+    en: entity[`${fieldName}_en`],
+    es: entity[`${fieldName}_es`]
+  };
+  const source = isPlainObject(direct) ? direct : legacy;
+  return normalizeTextI18n(source, fallbackValue);
+};
+
 const normalizeTrainingPayload = (rawPayload) => {
   if (!rawPayload || typeof rawPayload !== 'object') {
     throw new Error('payload must be an object');
@@ -934,8 +997,11 @@ const normalizeTrainingPayload = (rawPayload) => {
 
   const routes = routesIn.map((route, idx) => {
     const id = String(route.id).trim();
-    const title = String(route.title || '').trim();
+    const titleI18n = extractTextI18n(route, 'title', route.title);
+    const title = String(titleI18n.en || titleI18n.es || '').trim();
     if (!title) throw new Error(`route ${id} is missing title`);
+    const noteI18n = extractTextI18n(route, 'note', route.note);
+    const note = String(noteI18n.en || noteI18n.es || '').trim();
     const moduleIds = Array.isArray(route.moduleIds)
       ? route.moduleIds.map((item) => String(item || '').trim()).filter(Boolean)
       : [];
@@ -947,7 +1013,9 @@ const normalizeTrainingPayload = (rawPayload) => {
     return {
       id,
       title,
-      note: String(route.note || ''),
+      title_i18n: titleI18n,
+      note,
+      note_i18n: noteI18n,
       sortOrder: idx,
       moduleIds
     };
@@ -955,8 +1023,11 @@ const normalizeTrainingPayload = (rawPayload) => {
 
   const modules = modulesIn.map((module, idx) => {
     const id = String(module.id).trim();
-    const title = String(module.title || '').trim();
+    const titleI18n = extractTextI18n(module, 'title', module.title);
+    const title = String(titleI18n.en || titleI18n.es || '').trim();
     if (!title) throw new Error(`module ${id} is missing title`);
+    const subtitleI18n = extractTextI18n(module, 'subtitle', module.subtitle);
+    const subtitle = String(subtitleI18n.en || subtitleI18n.es || '').trim();
     const sessionIds = Array.isArray(module.sessionIds)
       ? module.sessionIds.map((item) => String(item || '').trim()).filter(Boolean)
       : [];
@@ -968,7 +1039,9 @@ const normalizeTrainingPayload = (rawPayload) => {
     return {
       id,
       title,
-      subtitle: String(module.subtitle || ''),
+      title_i18n: titleI18n,
+      subtitle,
+      subtitle_i18n: subtitleI18n,
       sortOrder: idx,
       sessionIds
     };
@@ -976,7 +1049,8 @@ const normalizeTrainingPayload = (rawPayload) => {
 
   const sessions = sessionsIn.map((session, idx) => {
     const id = String(session.id).trim();
-    const title = String(session.title || '').trim();
+    const titleI18n = extractTextI18n(session, 'title', session.title);
+    const title = String(titleI18n.en || titleI18n.es || '').trim();
     if (!title) throw new Error(`session ${id} is missing title`);
 
     const speak = session.speak && typeof session.speak === 'object' ? session.speak : {};
@@ -990,19 +1064,25 @@ const normalizeTrainingPayload = (rawPayload) => {
     const soundTts = normalizeStepTtsMap(soundRaw.tts || soundRaw.audio || {});
     const spellingTts = normalizeStepTtsMap(spellingRaw.tts || spellingRaw.audio || {});
     const sentenceTts = normalizeStepTtsMap(sentenceRaw.tts || sentenceRaw.audio || {});
+    const soundTitleI18n = extractTextI18n(soundRaw, 'title', soundRaw.title);
+    const spellingTitleI18n = extractTextI18n(spellingRaw, 'title', spellingRaw.title);
+    const sentenceTitleI18n = extractTextI18n(sentenceRaw, 'title', sentenceRaw.title);
     const sound = {
-      title: String(soundRaw.title || ''),
+      title: String(soundTitleI18n.en || soundTitleI18n.es || '').trim(),
+      title_i18n: soundTitleI18n,
       ...soundHints,
       phonetic: String(soundRaw.phonetic || ''),
       expected: String(soundRaw.expected || '')
     };
     const spelling = {
-      title: String(spellingRaw.title || ''),
+      title: String(spellingTitleI18n.en || spellingTitleI18n.es || '').trim(),
+      title_i18n: spellingTitleI18n,
       ...spellingHints,
       words: normalizeStringArray(spellingRaw.words)
     };
     const sentence = {
-      title: String(sentenceRaw.title || ''),
+      title: String(sentenceTitleI18n.en || sentenceTitleI18n.es || '').trim(),
+      title_i18n: sentenceTitleI18n,
       ...sentenceHints,
       sentence: String(sentenceRaw.sentence || ''),
       expected: String(sentenceRaw.expected || '')
@@ -1014,6 +1094,7 @@ const normalizeTrainingPayload = (rawPayload) => {
     return {
       id,
       title,
+      title_i18n: titleI18n,
       speakFocus: String(speak.focus || ''),
       sound,
       spelling,
@@ -1029,18 +1110,26 @@ const toTrainingPayload = (normalized) => ({
   routes: normalized.routes.map((route) => ({
     id: route.id,
     title: route.title,
+    title_i18n: route.title_i18n && typeof route.title_i18n === 'object' ? { ...route.title_i18n } : {},
     note: route.note || '',
+    note_i18n: route.note_i18n && typeof route.note_i18n === 'object' ? { ...route.note_i18n } : {},
     moduleIds: Array.isArray(route.moduleIds) ? route.moduleIds.slice() : []
   })),
   modules: normalized.modules.map((module) => ({
     id: module.id,
     title: module.title,
+    title_i18n: module.title_i18n && typeof module.title_i18n === 'object' ? { ...module.title_i18n } : {},
     subtitle: module.subtitle || '',
+    subtitle_i18n:
+      module.subtitle_i18n && typeof module.subtitle_i18n === 'object'
+        ? { ...module.subtitle_i18n }
+        : {},
     sessionIds: Array.isArray(module.sessionIds) ? module.sessionIds.slice() : []
   })),
   sessions: normalized.sessions.map((session) => ({
     id: session.id,
     title: session.title,
+    title_i18n: session.title_i18n && typeof session.title_i18n === 'object' ? { ...session.title_i18n } : {},
     speak: {
       focus: session.speakFocus || '',
       sound: session.sound && typeof session.sound === 'object' ? { ...session.sound } : {},
@@ -1069,7 +1158,9 @@ const importTrainingNormalized = (normalized, options = {}) => {
       upsertRoute.run({
         id: route.id,
         title: route.title,
+        title_i18n_json: JSON.stringify(route.title_i18n || {}),
         note: route.note,
+        note_i18n_json: JSON.stringify(route.note_i18n || {}),
         sort_order: route.sortOrder,
         is_active: 1,
         updated_at: runAt
@@ -1080,7 +1171,9 @@ const importTrainingNormalized = (normalized, options = {}) => {
       upsertModule.run({
         id: module.id,
         title: module.title,
+        title_i18n_json: JSON.stringify(module.title_i18n || {}),
         subtitle: module.subtitle,
+        subtitle_i18n_json: JSON.stringify(module.subtitle_i18n || {}),
         sort_order: module.sortOrder,
         is_active: 1,
         updated_at: runAt
@@ -1091,6 +1184,7 @@ const importTrainingNormalized = (normalized, options = {}) => {
       upsertSession.run({
         id: session.id,
         title: session.title,
+        title_i18n_json: JSON.stringify(session.title_i18n || {}),
         speak_focus: session.speakFocus,
         speak_sound_json: JSON.stringify(session.sound || {}),
         speak_spelling_json: JSON.stringify(session.spelling || {}),
@@ -1127,15 +1221,16 @@ const importTrainingNormalized = (normalized, options = {}) => {
 };
 
 const selectRoutes = db.prepare(
-  'SELECT id, title, note, sort_order FROM routes WHERE is_active = 1 ORDER BY sort_order ASC, id ASC'
+  'SELECT id, title, title_i18n_json, note, note_i18n_json, sort_order FROM routes WHERE is_active = 1 ORDER BY sort_order ASC, id ASC'
 );
 const selectModules = db.prepare(
-  'SELECT id, title, subtitle, sort_order FROM modules WHERE is_active = 1 ORDER BY sort_order ASC, id ASC'
+  'SELECT id, title, title_i18n_json, subtitle, subtitle_i18n_json, sort_order FROM modules WHERE is_active = 1 ORDER BY sort_order ASC, id ASC'
 );
 const selectSessions = db.prepare(
   `SELECT
     id,
     title,
+    title_i18n_json,
     speak_focus,
     speak_sound_json,
     speak_spelling_json,
@@ -1181,20 +1276,25 @@ const buildTrainingDataFromLive = () => {
   const routes = routesRows.map((row) => ({
     id: row.id,
     title: row.title,
+    title_i18n: parseJsonSafe(row.title_i18n_json, {}),
     note: row.note || '',
+    note_i18n: parseJsonSafe(row.note_i18n_json, {}),
     moduleIds: moduleIdsByRoute.get(row.id) || []
   }));
 
   const modules = modulesRows.map((row) => ({
     id: row.id,
     title: row.title,
+    title_i18n: parseJsonSafe(row.title_i18n_json, {}),
     subtitle: row.subtitle || '',
+    subtitle_i18n: parseJsonSafe(row.subtitle_i18n_json, {}),
     sessionIds: sessionIdsByModule.get(row.id) || []
   }));
 
   const sessions = sessionsRows.map((row) => ({
     id: row.id,
     title: row.title,
+    title_i18n: parseJsonSafe(row.title_i18n_json, {}),
     speak: {
       focus: row.speak_focus || '',
       sound: parseJsonSafe(row.speak_sound_json, {}),

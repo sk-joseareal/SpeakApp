@@ -53,8 +53,10 @@
     addSessionBtn: document.getElementById('addSessionBtn'),
 
     routeIdInput: document.getElementById('routeIdInput'),
-    routeTitleInput: document.getElementById('routeTitleInput'),
-    routeNoteInput: document.getElementById('routeNoteInput'),
+    routeTitleInput: document.getElementById('routeTitleEnInput'),
+    routeTitleEsInput: document.getElementById('routeTitleEsInput'),
+    routeNoteInput: document.getElementById('routeNoteEnInput'),
+    routeNoteEsInput: document.getElementById('routeNoteEsInput'),
     saveRouteBtn: document.getElementById('saveRouteBtn'),
     moveRouteUpBtn: document.getElementById('moveRouteUpBtn'),
     moveRouteDownBtn: document.getElementById('moveRouteDownBtn'),
@@ -62,8 +64,10 @@
 
     selectedRouteLabel: document.getElementById('selectedRouteLabel'),
     moduleIdInput: document.getElementById('moduleIdInput'),
-    moduleTitleInput: document.getElementById('moduleTitleInput'),
-    moduleSubtitleInput: document.getElementById('moduleSubtitleInput'),
+    moduleTitleInput: document.getElementById('moduleTitleEnInput'),
+    moduleTitleEsInput: document.getElementById('moduleTitleEsInput'),
+    moduleSubtitleInput: document.getElementById('moduleSubtitleEnInput'),
+    moduleSubtitleEsInput: document.getElementById('moduleSubtitleEsInput'),
     saveModuleBtn: document.getElementById('saveModuleBtn'),
     moveModuleUpBtn: document.getElementById('moveModuleUpBtn'),
     moveModuleDownBtn: document.getElementById('moveModuleDownBtn'),
@@ -72,22 +76,26 @@
     selectedModuleLabel: document.getElementById('selectedModuleLabel'),
     selectedSessionLabel: document.getElementById('selectedSessionLabel'),
     sessionIdInput: document.getElementById('sessionIdInput'),
-    sessionTitleInput: document.getElementById('sessionTitleInput'),
+    sessionTitleInput: document.getElementById('sessionTitleEnInput'),
+    sessionTitleEsInput: document.getElementById('sessionTitleEsInput'),
     sessionFocusInput: document.getElementById('sessionFocusInput'),
-    sessionSoundTitleInput: document.getElementById('sessionSoundTitleInput'),
+    sessionSoundTitleInput: document.getElementById('sessionSoundTitleEnInput'),
+    sessionSoundTitleEsInput: document.getElementById('sessionSoundTitleEsInput'),
     sessionSoundHintEnLine1Input: document.getElementById('sessionSoundHintEnLine1Input'),
     sessionSoundHintEnLine2Input: document.getElementById('sessionSoundHintEnLine2Input'),
     sessionSoundHintEsLine1Input: document.getElementById('sessionSoundHintEsLine1Input'),
     sessionSoundHintEsLine2Input: document.getElementById('sessionSoundHintEsLine2Input'),
     sessionSoundPhoneticInput: document.getElementById('sessionSoundPhoneticInput'),
     sessionSoundExpectedInput: document.getElementById('sessionSoundExpectedInput'),
-    sessionSpellingTitleInput: document.getElementById('sessionSpellingTitleInput'),
+    sessionSpellingTitleInput: document.getElementById('sessionSpellingTitleEnInput'),
+    sessionSpellingTitleEsInput: document.getElementById('sessionSpellingTitleEsInput'),
     sessionSpellingHintEnLine1Input: document.getElementById('sessionSpellingHintEnLine1Input'),
     sessionSpellingHintEnLine2Input: document.getElementById('sessionSpellingHintEnLine2Input'),
     sessionSpellingHintEsLine1Input: document.getElementById('sessionSpellingHintEsLine1Input'),
     sessionSpellingHintEsLine2Input: document.getElementById('sessionSpellingHintEsLine2Input'),
     sessionSpellingWordsInput: document.getElementById('sessionSpellingWordsInput'),
-    sessionSentenceTitleInput: document.getElementById('sessionSentenceTitleInput'),
+    sessionSentenceTitleInput: document.getElementById('sessionSentenceTitleEnInput'),
+    sessionSentenceTitleEsInput: document.getElementById('sessionSentenceTitleEsInput'),
     sessionSentenceHintEnLine1Input: document.getElementById('sessionSentenceHintEnLine1Input'),
     sessionSentenceHintEnLine2Input: document.getElementById('sessionSentenceHintEnLine2Input'),
     sessionSentenceHintEsLine1Input: document.getElementById('sessionSentenceHintEsLine1Input'),
@@ -218,17 +226,43 @@
     };
   };
 
+  const normalizeTextI18n = (value, fallbackValue = '') => {
+    const source = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+    const fallback = asText(fallbackValue);
+    let en = getFirstText(source.en, source['en-US'], source.en_us);
+    let es = getFirstText(source.es, source['es-ES'], source.es_es);
+    if (!en && fallback) en = fallback;
+    if (!es && fallback) es = fallback;
+    if (!en && es) en = es;
+    if (!es && en) es = en;
+    return { en, es };
+  };
+
+  const extractTextI18n = (rawEntity, fieldName) => {
+    const entity = rawEntity && typeof rawEntity === 'object' ? rawEntity : {};
+    const explicit = entity[`${fieldName}_i18n`];
+    const legacy = {
+      en: entity[`${fieldName}_en`],
+      es: entity[`${fieldName}_es`]
+    };
+    const source =
+      explicit && typeof explicit === 'object' && !Array.isArray(explicit) ? explicit : legacy;
+    return normalizeTextI18n(source, entity[fieldName]);
+  };
+
   const normalizeSession = (session, idx) => {
     const base = session && typeof session === 'object' ? deepClone(session) : {};
     base.id = asText(base.id) || `session-${idx + 1}`;
-    base.title = asText(base.title) || `Session ${idx + 1}`;
+    base.title_i18n = extractTextI18n(base, 'title');
+    base.title = getFirstText(base.title_i18n.en, base.title_i18n.es) || `Session ${idx + 1}`;
     delete base.progress;
     delete base.status;
 
     base.speak = base.speak && typeof base.speak === 'object' ? base.speak : {};
     base.speak.focus = asText(base.speak.focus);
     base.speak.sound = base.speak.sound && typeof base.speak.sound === 'object' ? base.speak.sound : {};
-    base.speak.sound.title = asText(base.speak.sound.title);
+    base.speak.sound.title_i18n = extractTextI18n(base.speak.sound, 'title');
+    base.speak.sound.title = getFirstText(base.speak.sound.title_i18n.en, base.speak.sound.title_i18n.es);
     Object.assign(base.speak.sound, normalizeHintI18n(base.speak.sound));
     delete base.speak.sound.hint;
     delete base.speak.sound.hint_en_1;
@@ -238,7 +272,8 @@
     base.speak.sound.phonetic = asText(base.speak.sound.phonetic);
     base.speak.sound.expected = asText(base.speak.sound.expected);
     base.speak.spelling = base.speak.spelling && typeof base.speak.spelling === 'object' ? base.speak.spelling : {};
-    base.speak.spelling.title = asText(base.speak.spelling.title);
+    base.speak.spelling.title_i18n = extractTextI18n(base.speak.spelling, 'title');
+    base.speak.spelling.title = getFirstText(base.speak.spelling.title_i18n.en, base.speak.spelling.title_i18n.es);
     Object.assign(base.speak.spelling, normalizeHintI18n(base.speak.spelling));
     delete base.speak.spelling.hint;
     delete base.speak.spelling.hint_en_1;
@@ -248,7 +283,8 @@
     base.speak.spelling.words = uniqStrings(base.speak.spelling.words);
     delete base.speak.spelling.expected;
     base.speak.sentence = base.speak.sentence && typeof base.speak.sentence === 'object' ? base.speak.sentence : {};
-    base.speak.sentence.title = asText(base.speak.sentence.title);
+    base.speak.sentence.title_i18n = extractTextI18n(base.speak.sentence, 'title');
+    base.speak.sentence.title = getFirstText(base.speak.sentence.title_i18n.en, base.speak.sentence.title_i18n.es);
     Object.assign(base.speak.sentence, normalizeHintI18n(base.speak.sentence));
     delete base.speak.sentence.hint;
     delete base.speak.sentence.hint_en_1;
@@ -266,20 +302,28 @@
 
     const routes = (Array.isArray(raw.routes) ? raw.routes : []).map((route, idx) => {
       const base = route && typeof route === 'object' ? deepClone(route) : {};
+      const titleI18n = extractTextI18n(base, 'title');
+      const noteI18n = extractTextI18n(base, 'note');
       return {
         id: asText(base.id) || `route-${idx + 1}`,
-        title: asText(base.title) || `Route ${idx + 1}`,
-        note: asText(base.note),
+        title: getFirstText(titleI18n.en, titleI18n.es) || `Route ${idx + 1}`,
+        title_i18n: titleI18n,
+        note: getFirstText(noteI18n.en, noteI18n.es),
+        note_i18n: noteI18n,
         moduleIds: uniqStrings(base.moduleIds)
       };
     });
 
     const modules = (Array.isArray(raw.modules) ? raw.modules : []).map((module, idx) => {
       const base = module && typeof module === 'object' ? deepClone(module) : {};
+      const titleI18n = extractTextI18n(base, 'title');
+      const subtitleI18n = extractTextI18n(base, 'subtitle');
       return {
         id: asText(base.id) || `module-${idx + 1}`,
-        title: asText(base.title) || `Module ${idx + 1}`,
-        subtitle: asText(base.subtitle),
+        title: getFirstText(titleI18n.en, titleI18n.es) || `Module ${idx + 1}`,
+        title_i18n: titleI18n,
+        subtitle: getFirstText(subtitleI18n.en, subtitleI18n.es),
+        subtitle_i18n: subtitleI18n,
         sessionIds: uniqStrings(base.sessionIds)
       };
     });
@@ -503,7 +547,9 @@
     [
       el.routeIdInput,
       el.routeTitleInput,
+      el.routeTitleEsInput,
       el.routeNoteInput,
+      el.routeNoteEsInput,
       el.saveRouteBtn,
       el.moveRouteUpBtn,
       el.moveRouteDownBtn,
@@ -517,7 +563,9 @@
     [
       el.moduleIdInput,
       el.moduleTitleInput,
+      el.moduleTitleEsInput,
       el.moduleSubtitleInput,
+      el.moduleSubtitleEsInput,
       el.saveModuleBtn,
       el.moveModuleUpBtn,
       el.moveModuleDownBtn,
@@ -532,8 +580,10 @@
     [
       el.sessionIdInput,
       el.sessionTitleInput,
+      el.sessionTitleEsInput,
       el.sessionFocusInput,
       el.sessionSoundTitleInput,
+      el.sessionSoundTitleEsInput,
       el.sessionSoundHintEnLine1Input,
       el.sessionSoundHintEnLine2Input,
       el.sessionSoundHintEsLine1Input,
@@ -541,12 +591,14 @@
       el.sessionSoundPhoneticInput,
       el.sessionSoundExpectedInput,
       el.sessionSpellingTitleInput,
+      el.sessionSpellingTitleEsInput,
       el.sessionSpellingHintEnLine1Input,
       el.sessionSpellingHintEnLine2Input,
       el.sessionSpellingHintEsLine1Input,
       el.sessionSpellingHintEsLine2Input,
       el.sessionSpellingWordsInput,
       el.sessionSentenceTitleInput,
+      el.sessionSentenceTitleEsInput,
       el.sessionSentenceHintEnLine1Input,
       el.sessionSentenceHintEnLine2Input,
       el.sessionSentenceHintEsLine1Input,
@@ -599,40 +651,54 @@
     });
 
     if (route) {
+      const routeTitleI18n = normalizeTextI18n(route.title_i18n, route.title);
+      const routeNoteI18n = normalizeTextI18n(route.note_i18n, route.note);
       setRouteFormDisabled(false);
       el.routeIdInput.value = route.id;
-      el.routeTitleInput.value = route.title;
-      el.routeNoteInput.value = route.note || '';
+      el.routeTitleInput.value = routeTitleI18n.en || '';
+      el.routeTitleEsInput.value = routeTitleI18n.es || '';
+      el.routeNoteInput.value = routeNoteI18n.en || '';
+      el.routeNoteEsInput.value = routeNoteI18n.es || '';
       el.selectedRouteLabel.textContent = `Route actual: ${route.title} (${route.id})`;
       el.addModuleBtn.disabled = false;
     } else {
       setRouteFormDisabled(true);
       el.routeIdInput.value = '';
       el.routeTitleInput.value = '';
+      el.routeTitleEsInput.value = '';
       el.routeNoteInput.value = '';
+      el.routeNoteEsInput.value = '';
       el.selectedRouteLabel.textContent = 'Selecciona o crea una route.';
       el.addModuleBtn.disabled = true;
     }
 
     if (module) {
+      const moduleTitleI18n = normalizeTextI18n(module.title_i18n, module.title);
+      const moduleSubtitleI18n = normalizeTextI18n(module.subtitle_i18n, module.subtitle);
       setModuleFormDisabled(false);
       el.moduleIdInput.value = module.id;
-      el.moduleTitleInput.value = module.title;
-      el.moduleSubtitleInput.value = module.subtitle || '';
+      el.moduleTitleInput.value = moduleTitleI18n.en || '';
+      el.moduleTitleEsInput.value = moduleTitleI18n.es || '';
+      el.moduleSubtitleInput.value = moduleSubtitleI18n.en || '';
+      el.moduleSubtitleEsInput.value = moduleSubtitleI18n.es || '';
       el.selectedModuleLabel.textContent = `Módulo actual: ${module.title} (${module.id})`;
     } else {
       setModuleFormDisabled(true);
       el.moduleIdInput.value = '';
       el.moduleTitleInput.value = '';
+      el.moduleTitleEsInput.value = '';
       el.moduleSubtitleInput.value = '';
+      el.moduleSubtitleEsInput.value = '';
       el.selectedModuleLabel.textContent = 'Selecciona o crea un módulo.';
     }
 
     if (session) {
+      const sessionTitleI18n = normalizeTextI18n(session.title_i18n, session.title);
       setSessionFormDisabled(false);
       el.selectedSessionLabel.textContent = `Sesión actual: ${session.title} (${session.id})`;
       el.sessionIdInput.value = session.id;
-      el.sessionTitleInput.value = session.title;
+      el.sessionTitleInput.value = sessionTitleI18n.en || '';
+      el.sessionTitleEsInput.value = sessionTitleI18n.es || '';
       el.sessionFocusInput.value = session.speak && typeof session.speak === 'object' ? session.speak.focus || '' : '';
 
       const sound = session.speak && session.speak.sound && typeof session.speak.sound === 'object'
@@ -644,8 +710,12 @@
       const sentence = session.speak && session.speak.sentence && typeof session.speak.sentence === 'object'
         ? session.speak.sentence
         : {};
+      const soundTitleI18n = normalizeTextI18n(sound.title_i18n, sound.title);
+      const spellingTitleI18n = normalizeTextI18n(spelling.title_i18n, spelling.title);
+      const sentenceTitleI18n = normalizeTextI18n(sentence.title_i18n, sentence.title);
 
-      el.sessionSoundTitleInput.value = sound.title || '';
+      el.sessionSoundTitleInput.value = soundTitleI18n.en || '';
+      el.sessionSoundTitleEsInput.value = soundTitleI18n.es || '';
       el.sessionSoundHintEnLine1Input.value = sound.hint_en_line1 || '';
       el.sessionSoundHintEnLine2Input.value = sound.hint_en_line2 || '';
       el.sessionSoundHintEsLine1Input.value = sound.hint_es_line1 || '';
@@ -653,14 +723,16 @@
       el.sessionSoundPhoneticInput.value = sound.phonetic || '';
       el.sessionSoundExpectedInput.value = sound.expected || '';
 
-      el.sessionSpellingTitleInput.value = spelling.title || '';
+      el.sessionSpellingTitleInput.value = spellingTitleI18n.en || '';
+      el.sessionSpellingTitleEsInput.value = spellingTitleI18n.es || '';
       el.sessionSpellingHintEnLine1Input.value = spelling.hint_en_line1 || '';
       el.sessionSpellingHintEnLine2Input.value = spelling.hint_en_line2 || '';
       el.sessionSpellingHintEsLine1Input.value = spelling.hint_es_line1 || '';
       el.sessionSpellingHintEsLine2Input.value = spelling.hint_es_line2 || '';
       el.sessionSpellingWordsInput.value = Array.isArray(spelling.words) ? spelling.words.join('\n') : '';
 
-      el.sessionSentenceTitleInput.value = sentence.title || '';
+      el.sessionSentenceTitleInput.value = sentenceTitleI18n.en || '';
+      el.sessionSentenceTitleEsInput.value = sentenceTitleI18n.es || '';
       el.sessionSentenceHintEnLine1Input.value = sentence.hint_en_line1 || '';
       el.sessionSentenceHintEnLine2Input.value = sentence.hint_en_line2 || '';
       el.sessionSentenceHintEsLine1Input.value = sentence.hint_es_line1 || '';
@@ -672,8 +744,10 @@
       el.selectedSessionLabel.textContent = 'Selecciona o crea una sesión.';
       el.sessionIdInput.value = '';
       el.sessionTitleInput.value = '';
+      el.sessionTitleEsInput.value = '';
       el.sessionFocusInput.value = '';
       el.sessionSoundTitleInput.value = '';
+      el.sessionSoundTitleEsInput.value = '';
       el.sessionSoundHintEnLine1Input.value = '';
       el.sessionSoundHintEnLine2Input.value = '';
       el.sessionSoundHintEsLine1Input.value = '';
@@ -681,12 +755,14 @@
       el.sessionSoundPhoneticInput.value = '';
       el.sessionSoundExpectedInput.value = '';
       el.sessionSpellingTitleInput.value = '';
+      el.sessionSpellingTitleEsInput.value = '';
       el.sessionSpellingHintEnLine1Input.value = '';
       el.sessionSpellingHintEnLine2Input.value = '';
       el.sessionSpellingHintEsLine1Input.value = '';
       el.sessionSpellingHintEsLine2Input.value = '';
       el.sessionSpellingWordsInput.value = '';
       el.sessionSentenceTitleInput.value = '';
+      el.sessionSentenceTitleEsInput.value = '';
       el.sessionSentenceHintEnLine1Input.value = '';
       el.sessionSentenceHintEnLine2Input.value = '';
       el.sessionSentenceHintEsLine1Input.value = '';
@@ -699,7 +775,15 @@
   const addRoute = () => {
     const ids = new Set(contentState.routes.map((item) => item.id));
     const id = ensureUniqueId(`route-${contentState.routes.length + 1}`, ids);
-    contentState.routes.push({ id, title: `Route ${contentState.routes.length + 1}`, note: '', moduleIds: [] });
+    const title = `Route ${contentState.routes.length + 1}`;
+    contentState.routes.push({
+      id,
+      title,
+      title_i18n: normalizeTextI18n({ en: title, es: title }, title),
+      note: '',
+      note_i18n: { en: '', es: '' },
+      moduleIds: []
+    });
     selectedRouteId = id;
     selectedModuleId = '';
     selectedSessionId = '';
@@ -711,8 +795,16 @@
     if (!route) return;
 
     const nextId = asText(el.routeIdInput.value);
-    const nextTitle = asText(el.routeTitleInput.value);
-    const nextNote = asText(el.routeNoteInput.value);
+    const nextTitleI18n = normalizeTextI18n({
+      en: asText(el.routeTitleInput.value),
+      es: asText(el.routeTitleEsInput.value)
+    });
+    const nextNoteI18n = normalizeTextI18n({
+      en: asText(el.routeNoteInput.value),
+      es: asText(el.routeNoteEsInput.value)
+    });
+    const nextTitle = getFirstText(nextTitleI18n.en, nextTitleI18n.es);
+    const nextNote = getFirstText(nextNoteI18n.en, nextNoteI18n.es);
 
     if (!nextId) {
       setStatus('Route ID obligatorio.');
@@ -729,7 +821,9 @@
     }
 
     route.id = nextId;
+    route.title_i18n = nextTitleI18n;
     route.title = nextTitle;
+    route.note_i18n = nextNoteI18n;
     route.note = nextNote;
     selectedRouteId = nextId;
     commitGuidedChanges('Route actualizada.');
@@ -760,7 +854,15 @@
 
     const ids = new Set(contentState.modules.map((item) => item.id));
     const id = ensureUniqueId(`module-${contentState.modules.length + 1}`, ids);
-    const module = { id, title: `Module ${contentState.modules.length + 1}`, subtitle: '', sessionIds: [] };
+    const title = `Module ${contentState.modules.length + 1}`;
+    const module = {
+      id,
+      title,
+      title_i18n: normalizeTextI18n({ en: title, es: title }, title),
+      subtitle: '',
+      subtitle_i18n: { en: '', es: '' },
+      sessionIds: []
+    };
 
     contentState.modules.push(module);
     route.moduleIds = uniqStrings([...route.moduleIds, id]);
@@ -774,8 +876,16 @@
     if (!module) return;
 
     const nextId = asText(el.moduleIdInput.value);
-    const nextTitle = asText(el.moduleTitleInput.value);
-    const nextSubtitle = asText(el.moduleSubtitleInput.value);
+    const nextTitleI18n = normalizeTextI18n({
+      en: asText(el.moduleTitleInput.value),
+      es: asText(el.moduleTitleEsInput.value)
+    });
+    const nextSubtitleI18n = normalizeTextI18n({
+      en: asText(el.moduleSubtitleInput.value),
+      es: asText(el.moduleSubtitleEsInput.value)
+    });
+    const nextTitle = getFirstText(nextTitleI18n.en, nextTitleI18n.es);
+    const nextSubtitle = getFirstText(nextSubtitleI18n.en, nextSubtitleI18n.es);
 
     if (!nextId) {
       setStatus('Módulo ID obligatorio.');
@@ -793,7 +903,9 @@
 
     const prevId = module.id;
     module.id = nextId;
+    module.title_i18n = nextTitleI18n;
     module.title = nextTitle;
+    module.subtitle_i18n = nextSubtitleI18n;
     module.subtitle = nextSubtitle;
 
     if (prevId !== nextId) {
@@ -888,10 +1000,18 @@
     if (!session) return;
 
     const nextId = asText(el.sessionIdInput.value);
-    const nextTitle = asText(el.sessionTitleInput.value);
+    const nextTitleI18n = normalizeTextI18n({
+      en: asText(el.sessionTitleInput.value),
+      es: asText(el.sessionTitleEsInput.value)
+    });
+    const nextTitle = getFirstText(nextTitleI18n.en, nextTitleI18n.es);
     const nextFocus = asText(el.sessionFocusInput.value);
 
-    const nextSoundTitle = asText(el.sessionSoundTitleInput.value);
+    const nextSoundTitleI18n = normalizeTextI18n({
+      en: asText(el.sessionSoundTitleInput.value),
+      es: asText(el.sessionSoundTitleEsInput.value)
+    });
+    const nextSoundTitle = getFirstText(nextSoundTitleI18n.en, nextSoundTitleI18n.es);
     const nextSoundHintEnLine1 = asText(el.sessionSoundHintEnLine1Input.value);
     const nextSoundHintEnLine2 = asText(el.sessionSoundHintEnLine2Input.value);
     const nextSoundHintEsLine1 = asText(el.sessionSoundHintEsLine1Input.value);
@@ -899,14 +1019,22 @@
     const nextSoundPhonetic = asText(el.sessionSoundPhoneticInput.value);
     const nextSoundExpected = asText(el.sessionSoundExpectedInput.value);
 
-    const nextSpellingTitle = asText(el.sessionSpellingTitleInput.value);
+    const nextSpellingTitleI18n = normalizeTextI18n({
+      en: asText(el.sessionSpellingTitleInput.value),
+      es: asText(el.sessionSpellingTitleEsInput.value)
+    });
+    const nextSpellingTitle = getFirstText(nextSpellingTitleI18n.en, nextSpellingTitleI18n.es);
     const nextSpellingHintEnLine1 = asText(el.sessionSpellingHintEnLine1Input.value);
     const nextSpellingHintEnLine2 = asText(el.sessionSpellingHintEnLine2Input.value);
     const nextSpellingHintEsLine1 = asText(el.sessionSpellingHintEsLine1Input.value);
     const nextSpellingHintEsLine2 = asText(el.sessionSpellingHintEsLine2Input.value);
     const nextSpellingWords = parseWordsInput(el.sessionSpellingWordsInput.value);
 
-    const nextSentenceTitle = asText(el.sessionSentenceTitleInput.value);
+    const nextSentenceTitleI18n = normalizeTextI18n({
+      en: asText(el.sessionSentenceTitleInput.value),
+      es: asText(el.sessionSentenceTitleEsInput.value)
+    });
+    const nextSentenceTitle = getFirstText(nextSentenceTitleI18n.en, nextSentenceTitleI18n.es);
     const nextSentenceHintEnLine1 = asText(el.sessionSentenceHintEnLine1Input.value);
     const nextSentenceHintEnLine2 = asText(el.sessionSentenceHintEnLine2Input.value);
     const nextSentenceHintEsLine1 = asText(el.sessionSentenceHintEsLine1Input.value);
@@ -930,11 +1058,13 @@
 
     const prevId = session.id;
     session.id = nextId;
+    session.title_i18n = nextTitleI18n;
     session.title = nextTitle;
 
     session.speak = session.speak && typeof session.speak === 'object' ? session.speak : {};
     session.speak.focus = nextFocus;
     session.speak.sound = session.speak.sound && typeof session.speak.sound === 'object' ? session.speak.sound : {};
+    session.speak.sound.title_i18n = nextSoundTitleI18n;
     session.speak.sound.title = nextSoundTitle;
     session.speak.sound.hint_en_line1 = nextSoundHintEnLine1;
     session.speak.sound.hint_en_line2 = nextSoundHintEnLine2;
@@ -946,6 +1076,7 @@
 
     session.speak.spelling =
       session.speak.spelling && typeof session.speak.spelling === 'object' ? session.speak.spelling : {};
+    session.speak.spelling.title_i18n = nextSpellingTitleI18n;
     session.speak.spelling.title = nextSpellingTitle;
     session.speak.spelling.hint_en_line1 = nextSpellingHintEnLine1;
     session.speak.spelling.hint_en_line2 = nextSpellingHintEnLine2;
@@ -956,6 +1087,7 @@
 
     session.speak.sentence =
       session.speak.sentence && typeof session.speak.sentence === 'object' ? session.speak.sentence : {};
+    session.speak.sentence.title_i18n = nextSentenceTitleI18n;
     session.speak.sentence.title = nextSentenceTitle;
     session.speak.sentence.hint_en_line1 = nextSentenceHintEnLine1;
     session.speak.sentence.hint_en_line2 = nextSentenceHintEnLine2;

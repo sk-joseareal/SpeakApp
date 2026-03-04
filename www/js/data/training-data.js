@@ -27,6 +27,44 @@ const uniqStrings = (items) => {
   return out;
 };
 
+const normalizeContentLocale = (value) => {
+  const normalized = String(value || '')
+    .trim()
+    .toLowerCase();
+  if (normalized === 'es' || normalized === 'es-es' || normalized === 'es_es') return 'es';
+  if (normalized === 'en' || normalized === 'en-us' || normalized === 'en_us') return 'en';
+  return '';
+};
+
+const asTrimmedText = (value) => String(value === undefined || value === null ? '' : value).trim();
+
+const readI18nFieldObject = (source, fieldName) => {
+  if (!source || typeof source !== 'object') return null;
+  const explicit = source[`${fieldName}_i18n`];
+  if (explicit && typeof explicit === 'object' && !Array.isArray(explicit)) {
+    return explicit;
+  }
+  const legacyEn = source[`${fieldName}_en`];
+  const legacyEs = source[`${fieldName}_es`];
+  if (legacyEn !== undefined || legacyEs !== undefined) {
+    return { en: legacyEn, es: legacyEs };
+  }
+  return null;
+};
+
+export const getLocalizedContentField = (source, fieldName, locale = 'en') => {
+  if (!source || typeof source !== 'object') return '';
+  const fallback = asTrimmedText(source[fieldName]);
+  const localeCode = normalizeContentLocale(locale) || 'en';
+  const i18n = readI18nFieldObject(source, fieldName);
+  if (!i18n) return fallback;
+
+  const en = asTrimmedText(i18n.en || i18n['en-US'] || i18n.en_us);
+  const es = asTrimmedText(i18n.es || i18n['es-ES'] || i18n.es_es);
+  if (localeCode === 'es') return es || en || fallback;
+  return en || es || fallback;
+};
+
 const parseBooleanLoose = (value, fallback = false) => {
   if (value === undefined || value === null || value === '') return fallback;
   if (typeof value === 'boolean') return value;

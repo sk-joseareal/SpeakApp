@@ -1,5 +1,6 @@
 import {
   ensureTrainingData,
+  getLocalizedContentField,
   getRoutes,
   getSelection,
   resolveSelection,
@@ -109,6 +110,7 @@ class PageSpeak extends HTMLElement {
     let focusKey = 'w';
     let sessionTitle = '';
     let currentSessionId = '';
+    let currentSessionData = null;
     let showSummary = false;
     let summaryState = null;
     let lastSummaryAudioCue = '';
@@ -1654,10 +1656,13 @@ class PageSpeak extends HTMLElement {
       const indexInRoutes = routes.findIndex((item) => item && item.id === route.id);
       const badgeIndex = indexInRoutes >= 0 ? indexInRoutes + 1 : 0;
       if (!badgeIndex || badgeIndex > MAX_ROUTE_BADGE_COUNT) return null;
+      const routeLocale = getHintUiLocale(getBaseHintLocale());
+      const routeTitleLocalized =
+        getLocalizedContentField(route, 'title', routeLocale) || route.title || `Ruta ${badgeIndex}`;
       return {
         id: `route:${route.id}`,
         routeId: route.id,
-        routeTitle: route.title || `Ruta ${badgeIndex}`,
+        routeTitle: routeTitleLocalized,
         badgeIndex,
         image: `assets/badges/badge${badgeIndex}.png`,
         title: `Badge ${badgeIndex}`
@@ -2808,6 +2813,20 @@ class PageSpeak extends HTMLElement {
       return normalizeHintLocale(locale) === 'es' ? 'es-ES' : 'en-US';
     };
 
+    const getLocalizedSessionTitle = (session, locale = getHintUiLocale()) => {
+      const localized = getLocalizedContentField(session, 'title', locale);
+      if (localized) return localized;
+      if (!session || typeof session !== 'object') return '';
+      return String(session.title || '').trim();
+    };
+
+    const getLocalizedStepTitle = (stepSource, locale = getHintUiLocale()) => {
+      const localized = getLocalizedContentField(stepSource, 'title', locale);
+      if (localized) return localized;
+      if (!stepSource || typeof stepSource !== 'object') return '';
+      return String(stepSource.title || '').trim();
+    };
+
     const readHintLineByLocale = (source, locale, lineIndex) => {
       if (!source || typeof source !== 'object') return '';
       const safeLocale = normalizeHintLocale(locale) || 'en';
@@ -2888,8 +2907,8 @@ class PageSpeak extends HTMLElement {
       if (heroHintEl.dataset) {
         delete heroHintEl.dataset.narrationToken;
       }
-      heroStepTitleEl.textContent = source && source.title ? source.title : '';
       const locale = normalizeHintLocale(options.locale) || activeHintLocale || getHintUiLocale();
+      heroStepTitleEl.textContent = getLocalizedStepTitle(source, locale);
       const hint = resolveHeroHintText(source, locale);
       const lines = extractHeroNarrationLines(hint);
       const restLineText = String(lines[0] && lines[0].text ? lines[0].text : '').trim();
@@ -2954,7 +2973,8 @@ class PageSpeak extends HTMLElement {
       if (!session || !session.speak) return;
       heroFirstRenderAt = Date.now();
       currentSessionId = session.id;
-      sessionTitle = session.title || '';
+      currentSessionData = session;
+      sessionTitle = getLocalizedSessionTitle(session, getHintUiLocale(getBaseHintLocale()));
       if (sessionTitleEl) {
         sessionTitleEl.textContent = sessionTitle;
       }
@@ -3251,6 +3271,7 @@ class PageSpeak extends HTMLElement {
         debugToggleBtn.setAttribute('aria-pressed', debugEnabled && debugPanelOpen ? 'true' : 'false');
       }
       applyHeroSource(source, { locale: uiLocale });
+      sessionTitle = getLocalizedSessionTitle(currentSessionData, uiLocale);
       if (sessionTitleEl) {
         sessionTitleEl.textContent = sessionTitle || '';
       }

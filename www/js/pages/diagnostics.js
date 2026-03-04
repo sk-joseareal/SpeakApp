@@ -5,8 +5,13 @@ import {
   generateDemoNotifications,
   getNotifications
 } from '../notifications-store.js';
-import { clearOnboardingDone } from '../state.js';
-import { ensureTrainingData, getRoutes, getTrainingDataLoadInfo } from '../data/training-data.js';
+import { clearOnboardingDone, getAppLocale } from '../state.js';
+import {
+  ensureTrainingData,
+  getLocalizedContentField,
+  getRoutes,
+  getTrainingDataLoadInfo
+} from '../data/training-data.js';
 
 class PageDiagnostics extends HTMLElement {
   connectedCallback() {
@@ -866,6 +871,8 @@ class PageDiagnostics extends HTMLElement {
 
     const buildBadgeCatalog = () => {
       const routes = Array.isArray(getRoutes()) ? getRoutes() : [];
+      const localeRaw = String(getAppLocale() || '').trim().toLowerCase();
+      const locale = localeRaw.startsWith('es') ? 'es' : 'en';
       if (!routes.length) {
         return Array.from({ length: 5 }, (_, idx) => ({
           id: `route:badge-${idx + 1}`,
@@ -879,7 +886,7 @@ class PageDiagnostics extends HTMLElement {
       return routes.slice(0, 5).map((route, idx) => ({
         id: `route:${route.id}`,
         routeId: route.id,
-        routeTitle: route.title || `Ruta ${idx + 1}`,
+        routeTitle: getLocalizedContentField(route, 'title', locale) || route.title || `Ruta ${idx + 1}`,
         badgeIndex: idx + 1,
         image: `assets/badges/badge${idx + 1}.png`,
         title: `Badge ${idx + 1}`

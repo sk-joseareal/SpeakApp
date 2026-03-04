@@ -1,5 +1,6 @@
 import {
   ensureTrainingData,
+  getLocalizedContentField,
   getRoutes,
   getSelection,
   resolveSelection,
@@ -443,6 +444,16 @@ class PageHome extends HTMLElement {
     const planMascotSrc = this.getPlanMascotFramePath(this.planMascotFrameIndex);
 
     const routes = getRoutes();
+    const readLocalizedField = (entry, fieldName) => {
+      const localized = getLocalizedContentField(entry, fieldName, uiLocale);
+      if (localized) return localized;
+      return entry && typeof entry === 'object' ? String(entry[fieldName] || '').trim() : '';
+    };
+    const getRouteTitle = (route) => readLocalizedField(route, 'title');
+    const getRouteNote = (route) => readLocalizedField(route, 'note');
+    const getModuleTitle = (module) => readLocalizedField(module, 'title');
+    const getModuleSubtitle = (module) => readLocalizedField(module, 'subtitle');
+    const getSessionTitle = (session) => readLocalizedField(session, 'title');
     if (!routes.length) {
       this.innerHTML = `
         <ion-header translucent="true">
@@ -741,7 +752,7 @@ class PageHome extends HTMLElement {
     const showLockedRouteToast = (routeIndex) => {
       const prevRoute = routeIndex > 0 ? routes[routeIndex - 1] : null;
       const message = prevRoute
-        ? `Aún no puedes acceder a este modulo. Completa primero la ruta anterior: ${prevRoute.title}.`
+        ? `Aún no puedes acceder a este modulo. Completa primero la ruta anterior: ${getRouteTitle(prevRoute)}.`
         : 'Aún no puedes acceder a este modulo.';
       const toast = document.createElement('ion-toast');
       toast.message = message;
@@ -841,7 +852,7 @@ class PageHome extends HTMLElement {
                             <ion-icon name="play"></ion-icon>
                           </div>
                           <div class="training-row-body">
-                            <div class="training-row-title">${item.title}</div>
+                            <div class="training-row-title">${getSessionTitle(item)}</div>
                             <div class="training-row-sub">${progressText}</div>
                           </div>
                           <div class="training-row-status training-row-status-${toneClass}">
@@ -866,8 +877,8 @@ class PageHome extends HTMLElement {
                   data-module-id="${module.id}"
                 >
                   <div>
-                    <div class="module-title">${module.title}</div>
-                    <div class="module-sub">${module.subtitle}</div>
+                    <div class="module-title">${getModuleTitle(module)}</div>
+                    <div class="module-sub">${getModuleSubtitle(module)}</div>
                   </div>
                   <div class="module-meta">
                     ${progressMarkup}
@@ -888,13 +899,13 @@ class PageHome extends HTMLElement {
               data-route-id="${route.id}"
               data-locked="${routeUnlocked ? '0' : '1'}"
             >
-              <span>${route.title}</span>
+              <span>${getRouteTitle(route)}</span>
               <div class="route-header-meta">
                 ${routePercentMarkup}
                 <ion-icon name="chevron-down"></ion-icon>
               </div>
             </button>
-            ${route.note ? `<div class="route-note">${route.note}</div>` : ''}
+            ${getRouteNote(route) ? `<div class="route-note">${getRouteNote(route)}</div>` : ''}
             ${routeRewardsMarkup}
             <div class="route-modules">
               ${modulesMarkup}
@@ -947,7 +958,7 @@ class PageHome extends HTMLElement {
           </section>
 
           <div class="journey-start">
-            <div class="journey-start-pill">${expandedRoute.title}</div>
+            <div class="journey-start-pill">${getRouteTitle(expandedRoute)}</div>
             <button class="journey-start-btn ${expandedRouteUnlocked ? '' : 'is-locked'}" type="button">
               go
             </button>

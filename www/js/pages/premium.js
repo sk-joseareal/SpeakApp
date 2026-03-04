@@ -4,6 +4,7 @@ import { getChatCopy, normalizeLocale as normalizeCopyLocale } from '../content/
 class PagePremium extends HTMLElement {
   connectedCallback() {
     const PREMIUM_ALWAYS_ON_FOR_TESTING = true;
+    const CHAT_MODE_TOGGLE_ALWAYS_VISIBLE_FOR_TESTING = PREMIUM_ALWAYS_ON_FOR_TESTING;
     const getRuntimeLocale = () =>
       normalizeCopyLocale(getAppLocale() || (window.varGlobal && window.varGlobal.locale) || 'en') || 'en';
     let uiLocale = getRuntimeLocale();
@@ -3308,8 +3309,9 @@ class PagePremium extends HTMLElement {
 
     const applyDebugMode = () => {
       const debug = Boolean(window.r34lp0w3r && window.r34lp0w3r.speakDebug);
-      if (modeToggle) modeToggle.hidden = !debug;
-      if (!debug) {
+      const showModeToggle = debug || CHAT_MODE_TOGGLE_ALWAYS_VISIBLE_FOR_TESTING;
+      if (modeToggle) modeToggle.hidden = !showModeToggle;
+      if (!showModeToggle) {
         if (textInput) textInput.value = '';
         updateTextRowVisibility(false);
         setChatMode('catbot', { reconnect: true, persist: false });

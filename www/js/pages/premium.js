@@ -2873,7 +2873,7 @@ class PagePremium extends HTMLElement {
       const userId =
         user && user.id !== undefined && user.id !== null ? String(user.id) : null;
       const loggedIn = Boolean(userId);
-      const premium = loggedIn && isPremiumUser(user);
+      const premium = isPremiumUser(user);
       const userChanged = userId !== lastUserId;
       const premiumChanged = premium !== lastPremium;
       const isInitialLoad = lastUserId === null;

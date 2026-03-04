@@ -1,7 +1,20 @@
+import { getAppLocale } from './state.js';
+import { getNotificationsCopy, normalizeLocale as normalizeCopyLocale } from './content/copy.js';
+
 const NOTIFICATIONS_KEY = 'appv5:notifications';
 const NOTIFICATIONS_MAX = 200;
 const PUSH_QUEUE_KEY = '__pendingPushInbox';
 const PUSH_DUP_WINDOW_MS = 15000;
+
+const resolveCopyLocale = () => {
+  const fromState = normalizeCopyLocale(getAppLocale());
+  if (fromState) return fromState;
+  const fromGlobal =
+    typeof window !== 'undefined' ? normalizeCopyLocale(window.varGlobal?.locale) : '';
+  return fromGlobal || 'en';
+};
+
+const getStoreCopy = () => getNotificationsCopy(resolveCopyLocale());
 
 const safeParse = (raw) => {
   try {
@@ -71,9 +84,9 @@ const parsePushAction = (data) => {
 
   if (!label && !tab && !profileTab && !hash && !callback && !badgeId) return null;
   const action = {
-    label: label || 'Abrir'
+    label: label || getStoreCopy().openAction
   };
-  if (tab) action.tab = tab;
+  if (tab) action.tab = tab === 'premium' ? 'chat' : tab;
   if (profileTab) action.profileTab = profileTab;
   if (hash) action.hash = hash;
   if (callback) action.callback = callback;
@@ -88,7 +101,9 @@ const extractPushPayload = (rawEntry) => {
   const push = asObject(raw.notification && typeof raw.notification === 'object' ? raw.notification : raw);
   const data = asObject(push.data || raw.data || envelope.data);
 
-  const title = pickString(push.title, raw.title, data.title, data.alert_title) || 'Nueva notificacion';
+  const title =
+    pickString(push.title, raw.title, data.title, data.alert_title) ||
+    getStoreCopy().pushDefaultTitle;
   const text = pickString(
     push.body,
     push.text,
@@ -172,7 +187,7 @@ const normalizeNotification = (entry) => {
   return {
     id: entry.id || generateId(),
     type: entry.type || 'info',
-    title: entry.title || 'Notificacion',
+    title: entry.title || getStoreCopy().defaultTitle,
     text: entry.text || '',
     status,
     created_at: created,
@@ -242,7 +257,7 @@ export const addPushNotification = (rawEntry) => {
   const candidate = {
     id: push.id,
     type: push.type || 'push',
-    title: push.title || 'Nueva notificacion',
+    title: push.title || getStoreCopy().pushDefaultTitle,
     text: push.text || '',
     status: 'unread',
     created_at: push.created_at || Date.now(),
@@ -303,53 +318,69 @@ export const getUnreadCount = () =>
 
 const demoFactories = [
   () => {
+    const copy = getStoreCopy();
     const qty = [2, 3, 4, 5][Math.floor(Math.random() * 4)];
     return {
       type: 'review',
       tone: 'warn',
       icon: 'book-outline',
-      title: `Tienes ${qty} palabras flojas`,
-      text: 'Ve a Review y mejora tu pronunciacion.',
-      action: { label: 'Revisar', tab: 'tu', profileTab: 'review', complete: true }
+      title: copy.demo.weakWordsTitle.replace('{n}', String(qty)),
+      text: copy.demo.weakWordsText,
+      action: { label: copy.demo.weakWordsAction, tab: 'tu', profileTab: 'review', complete: true }
     };
   },
-  () => ({
-    type: 'reward',
-    tone: 'good',
-    icon: 'sparkles-outline',
-    title: 'Nuevo badge desbloqueado',
-    text: 'Racha de 3 dias completada.',
-    action: { label: 'Ver perfil', tab: 'tu', profileTab: 'prefs', complete: true }
-  }),
-  () => ({
-    type: 'practice',
-    icon: 'mic-outline',
-    title: 'Mini practica lista',
-    text: 'Solo 2 minutos para hoy.',
-    action: { label: 'Practicar', hash: '/speak', complete: true }
-  }),
-  () => ({
-    type: 'talk',
-    icon: 'chatbubble-ellipses-outline',
-    title: 'Coach listo para ti',
-    text: 'Pregunta algo al coach.',
-    action: { label: 'Abrir coach', tab: 'premium', complete: true }
-  }),
-  () => ({
-    type: 'reminder',
-    tone: 'warn',
-    icon: 'timer-outline',
-    title: 'Recordatorio',
-    text: 'Practica 5 minutos hoy.',
-    action: { label: 'Ir a Home', tab: 'home', complete: true }
-  }),
-  () => ({
-    type: 'info',
-    icon: 'notifications-outline',
-    title: 'Novedad',
-    text: 'Hay nuevos ejercicios disponibles.',
-    action: null
-  })
+  () => {
+    const copy = getStoreCopy();
+    return {
+      type: 'reward',
+      tone: 'good',
+      icon: 'sparkles-outline',
+      title: copy.demo.badgeTitle,
+      text: copy.demo.badgeText,
+      action: { label: copy.demo.badgeAction, tab: 'tu', profileTab: 'prefs', complete: true }
+    };
+  },
+  () => {
+    const copy = getStoreCopy();
+    return {
+      type: 'practice',
+      icon: 'mic-outline',
+      title: copy.demo.practiceTitle,
+      text: copy.demo.practiceText,
+      action: { label: copy.demo.practiceAction, hash: '/speak', complete: true }
+    };
+  },
+  () => {
+    const copy = getStoreCopy();
+    return {
+      type: 'talk',
+      icon: 'chatbubble-ellipses-outline',
+      title: copy.demo.coachTitle,
+      text: copy.demo.coachText,
+      action: { label: copy.demo.coachAction, tab: 'chat', complete: true }
+    };
+  },
+  () => {
+    const copy = getStoreCopy();
+    return {
+      type: 'reminder',
+      tone: 'warn',
+      icon: 'timer-outline',
+      title: copy.demo.reminderTitle,
+      text: copy.demo.reminderText,
+      action: { label: copy.demo.reminderAction, tab: 'home', complete: true }
+    };
+  },
+  () => {
+    const copy = getStoreCopy();
+    return {
+      type: 'info',
+      icon: 'notifications-outline',
+      title: copy.demo.infoTitle,
+      text: copy.demo.infoText,
+      action: null
+    };
+  }
 ];
 
 export const generateDemoNotifications = () => {

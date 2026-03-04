@@ -1,6 +1,6 @@
 import { getAppLocale, setAppLocale } from '../state.js';
 import { ensureTrainingData, getRoutes, setSelection } from '../data/training-data.js';
-import { getLocaleMeta, getNextLocaleCode, resolveLocale } from '../content/copy.js';
+import { getLocaleMeta, getNextLocaleCode, getProfileCopy, resolveLocale } from '../content/copy.js';
 import { goToSpeak } from '../nav.js';
 
 class PageProfile extends HTMLElement {
@@ -29,8 +29,10 @@ class PageProfile extends HTMLElement {
     this.render();
     this._userHandler = () => this.render();
     this._storesHandler = () => this.render();
+    this._localeHandler = () => this.render();
     window.addEventListener('app:user-change', this._userHandler);
     window.addEventListener('app:speak-stores-change', this._storesHandler);
+    window.addEventListener('app:locale-change', this._localeHandler);
   }
 
   disconnectedCallback() {
@@ -39,6 +41,9 @@ class PageProfile extends HTMLElement {
     }
     if (this._storesHandler) {
       window.removeEventListener('app:speak-stores-change', this._storesHandler);
+    }
+    if (this._localeHandler) {
+      window.removeEventListener('app:locale-change', this._localeHandler);
     }
     if (this._metaHandler) {
       window.removeEventListener('app:meta-change', this._metaHandler);
@@ -133,9 +138,20 @@ class PageProfile extends HTMLElement {
       window.r34lp0w3r && window.r34lp0w3r.speakWordScores ? window.r34lp0w3r.speakWordScores : {};
     const phraseScoresStore =
       window.r34lp0w3r && window.r34lp0w3r.speakPhraseScores ? window.r34lp0w3r.speakPhraseScores : {};
+    const rawLocaleSetting = resolveLocale(
+      getAppLocale() || (window.varGlobal && window.varGlobal.locale) || 'es',
+      'es'
+    );
+    const profileCopy = getProfileCopy(rawLocaleSetting);
+    const profileLocaleUi = getLocaleMeta(rawLocaleSetting);
+    const nextLocaleCode = getNextLocaleCode(profileLocaleUi.code);
+    const nextLocaleLabel = getLocaleMeta(nextLocaleCode).label;
 
     const reviewTone = this.reviewTone === 'okay' ? 'okay' : 'bad';
-    const reviewToneLabel = reviewTone === 'okay' ? 'amarillo' : 'rojo';
+    const reviewToneLabel =
+      reviewTone === 'okay'
+        ? profileCopy.reviewToneYellowLabel || 'yellow'
+        : profileCopy.reviewToneRedLabel || 'red';
 
     const sessionLookup = new Map();
     routes.forEach((routeItem) => {
@@ -266,21 +282,13 @@ class PageProfile extends HTMLElement {
     const loggedIn = Boolean(userId);
     const prefsActive = this.activeTab === 'prefs';
     const reviewActive = this.activeTab === 'review';
-    const rawLocaleSetting = resolveLocale(
-      getAppLocale() || (window.varGlobal && window.varGlobal.locale) || 'es',
-      'es'
-    );
-    const profileLocaleUi = getLocaleMeta(rawLocaleSetting);
-    const nextLocaleCode = getNextLocaleCode(profileLocaleUi.code);
-    const nextLocaleLabel = getLocaleMeta(nextLocaleCode).label;
     const showFooterLinks = loggedIn && prefsActive;
     const showAppMeta = !loggedIn || prefsActive;
     const formatExpiry = (value) => {
-      if (!value) return 'n/a';
+      if (!value) return profileCopy.expiryNA || 'n/a';
       const date = new Date(value);
       if (Number.isNaN(date.getTime())) return String(value);
-      const locale = (window.varGlobal && window.varGlobal.locale) || 'es';
-      const lang = String(locale || 'es').toLowerCase();
+      const lang = String(rawLocaleSetting || 'es').toLowerCase();
       const fmtLocale = lang.startsWith('en')
         ? 'en-US'
         : lang.startsWith('br') || lang.startsWith('pt')
@@ -306,7 +314,7 @@ class PageProfile extends HTMLElement {
       if (version && build) return `v${version} (${build})`;
       if (version) return `v${version}`;
       if (build) return `build ${build}`;
-      return 'v n/d';
+      return profileCopy.appMetaNA || 'v n/d';
     };
     const resetProfileState = (nextUser) => {
       if (!nextUser || nextUser.id === undefined || nextUser.id === null) {
@@ -377,8 +385,10 @@ class PageProfile extends HTMLElement {
       const pass = String(profileState.password || '');
       const confirm = String(profileState.passwordConfirm || '');
       if (!pass && !confirm) return '';
-      if (!pass || !confirm) return 'Completa las dos contraseñas.';
-      if (pass !== confirm) return 'Las contraseñas no coinciden.';
+      if (!pass || !confirm) {
+        return profileCopy.passwordBothRequired || 'Please complete both password fields.';
+      }
+      if (pass !== confirm) return profileCopy.passwordMismatch || 'Passwords do not match.';
       return '';
     };
     const profileNote = this.profileSaveMessage || '';
@@ -389,11 +399,11 @@ class PageProfile extends HTMLElement {
       <div class="review-filters">
         <button class="review-filter-btn ${reviewTone === 'bad' ? 'active' : ''}" type="button" data-tone="bad">
           <span class="review-dot bad"></span>
-          <span>Rojo</span>
+          <span>${escapeHtml(profileCopy.reviewRed || 'Red')}</span>
         </button>
         <button class="review-filter-btn ${reviewTone === 'okay' ? 'active' : ''}" type="button" data-tone="okay">
           <span class="review-dot okay"></span>
-          <span>Amarillo</span>
+          <span>${escapeHtml(profileCopy.reviewYellow || 'Yellow')}</span>
         </button>
       </div>
     `;
@@ -405,7 +415,9 @@ class PageProfile extends HTMLElement {
               `<button class="review-word review-entry ${reviewTone}" type="button" data-type="word" data-word="${escapeHtml(entry.word)}" data-session-id="${escapeHtml(entry.sessionId)}">${escapeHtml(entry.word)}</button>`
           )
           .join('')}</div>`
-      : `<div class="review-empty">Aún no hay palabras en ${reviewToneLabel}.</div>`;
+      : `<div class="review-empty">${escapeHtml(
+          String(profileCopy.reviewWordsEmpty || 'No words in {tone}.').replace('{tone}', reviewToneLabel)
+        )}</div>`;
 
     const reviewPhrasesMarkup = reviewPhraseEntries.length
       ? `<div class="review-phrases">${reviewPhraseEntries
@@ -414,7 +426,12 @@ class PageProfile extends HTMLElement {
               `<button class="review-word review-phrase review-entry ${reviewTone}" type="button" data-type="phrase" data-session-id="${escapeHtml(entry.sessionId)}">${escapeHtml(entry.phrase)}</button>`
           )
           .join('')}</div>`
-      : `<div class="review-empty">No hay frases en ${reviewToneLabel}.</div>`;
+      : `<div class="review-empty">${escapeHtml(
+          String(profileCopy.reviewPhrasesEmpty || 'No phrases in {tone}.').replace(
+            '{tone}',
+            reviewToneLabel
+          )
+        )}</div>`;
 
     const badgeStore =
       window.r34lp0w3r && window.r34lp0w3r.speakBadges && typeof window.r34lp0w3r.speakBadges === 'object'
@@ -460,7 +477,9 @@ class PageProfile extends HTMLElement {
             `
           )
           .join('')
-      : `<div class="profile-earned-badges-empty">Aún no has desbloqueado badges.</div>`;
+      : `<div class="profile-earned-badges-empty">${escapeHtml(
+          profileCopy.badgesEmpty || 'You have not unlocked badges yet.'
+        )}</div>`;
 
     this.innerHTML = `
       <ion-header translucent="true">
@@ -483,13 +502,19 @@ class PageProfile extends HTMLElement {
       <ion-content fullscreen class="secret-content">
         <div class="page-shell profile-shell">
           <div class="card placeholder-card" id="profile-login-panel" ${loggedIn ? 'hidden' : ''}>
-            <div class="pill">Acceso</div>
-            <h3>Inicia sesion</h3>
-            <p class="muted">Debes iniciar sesion para ver tu perfil.</p>
-            <ion-button expand="block" shape="round" id="profile-login-btn">Iniciar sesion</ion-button>
+            <div class="pill">${escapeHtml(profileCopy.accessPill || 'Access')}</div>
+            <h3>${escapeHtml(profileCopy.loginTitle || 'Sign in')}</h3>
+            <p class="muted">${escapeHtml(profileCopy.loginSubtitle || 'You need to sign in to view your profile.')}</p>
+            <ion-button expand="block" shape="round" id="profile-login-btn">${escapeHtml(
+              profileCopy.loginCta || 'Sign in'
+            )}</ion-button>
             <div class="profile-links" id="profile-links-login" ${loggedIn ? 'hidden' : ''}>
-              <button class="profile-link-btn" type="button" data-action="contact">Contacto</button>
-              <button class="profile-link-btn" type="button" data-action="legal">Avisos legales</button>
+              <button class="profile-link-btn" type="button" data-action="contact">${escapeHtml(
+                profileCopy.contact || 'Contact'
+              )}</button>
+              <button class="profile-link-btn" type="button" data-action="legal">${escapeHtml(
+                profileCopy.legal || 'Legal'
+              )}</button>
             </div>
           </div>
           <div class="profile-panel" id="profile-content-panel" ${loggedIn ? '' : 'hidden'}>
@@ -500,15 +525,27 @@ class PageProfile extends HTMLElement {
                     <div class="profile-progress-head">
                       <div class="profile-progress-circle ${globalTone}">${globalPercent}</div>
                     </div>
-                    <div class="profile-progress-label">Progreso</div>
+                    <div class="profile-progress-label">${escapeHtml(
+                      profileCopy.progressLabel || 'Progress'
+                    )}</div>
                   </div>
                   <button
                     class="profile-locale-indicator"
                     id="profile-locale-toggle"
                     type="button"
                     data-next-locale="${escapeHtml(nextLocaleCode)}"
-                    aria-label="Cambiar idioma a ${escapeHtml(nextLocaleLabel)}"
-                    title="Cambiar idioma a ${escapeHtml(nextLocaleLabel)}"
+                    aria-label="${escapeHtml(
+                      String(profileCopy.toggleLanguageAria || 'Switch language to {lang}').replace(
+                        '{lang}',
+                        nextLocaleLabel
+                      )
+                    )}"
+                    title="${escapeHtml(
+                      String(profileCopy.toggleLanguageAria || 'Switch language to {lang}').replace(
+                        '{lang}',
+                        nextLocaleLabel
+                      )
+                    )}"
                   >
                     <img class="profile-locale-flag" src="${escapeHtml(profileLocaleUi.flag)}" alt="${escapeHtml(
                       profileLocaleUi.alt
@@ -519,17 +556,17 @@ class PageProfile extends HTMLElement {
               </div>
             </div>
             <div class="card profile-earned-badges-card">
-              <div class="pill">Badges</div>
+              <div class="pill">${escapeHtml(profileCopy.badgesTitle || 'Badges')}</div>
               <div class="profile-earned-badges" id="profile-earned-badges">
                 ${earnedBadgesMarkup}
               </div>
             </div>
             <div class="profile-tabs">
               <button class="profile-tab-btn ${prefsActive ? 'active' : ''}" type="button" data-tab="prefs">
-                Perfil
+                ${escapeHtml(profileCopy.tabPrefs || 'Profile')}
               </button>
               <button class="profile-tab-btn ${reviewActive ? 'active' : ''}" type="button" data-tab="review">
-                Review
+                ${escapeHtml(profileCopy.tabReview || 'Review')}
               </button>
             </div>
             <div class="profile-tab-panel" ${prefsActive ? '' : 'hidden'}>
@@ -540,19 +577,25 @@ class PageProfile extends HTMLElement {
                       class="profile-avatar-large"
                       id="profile-avatar-img"
                       src="${escapeHtml(getUserAvatar(user) || 'https://s3.amazonaws.com/sk.CursoIngles/no-avatar.gif')}"
-                      alt="Avatar perfil"
+                      alt="${escapeHtml(profileCopy.profileAvatarAlt || 'Profile avatar')}"
                     >
                   </div>
                   <div class="profile-avatar-actions">
-                    <ion-button size="small" fill="outline" id="profile-avatar-upload">Cambiar foto</ion-button>
-                    <ion-button size="small" fill="outline" color="medium" id="profile-avatar-delete">Eliminar</ion-button>
+                    <ion-button size="small" fill="outline" id="profile-avatar-upload">${escapeHtml(
+                      profileCopy.changePhoto || 'Change photo'
+                    )}</ion-button>
+                    <ion-button size="small" fill="outline" color="medium" id="profile-avatar-delete">${escapeHtml(
+                      profileCopy.deletePhoto || 'Delete'
+                    )}</ion-button>
                   </div>
                   <input type="file" accept="image/jpeg,image/png,image/gif" id="profile-avatar-input" hidden>
                 </div>
                 <div class="profile-form">
                   <div class="profile-form-row">
                     <label class="profile-field">
-                      <span class="profile-label">Nombre</span>
+                      <span class="profile-label">${escapeHtml(
+                        profileCopy.firstName || 'First name'
+                      )}</span>
                       <input
                         class="profile-input"
                         type="text"
@@ -561,7 +604,9 @@ class PageProfile extends HTMLElement {
                       >
                     </label>
                     <label class="profile-field">
-                      <span class="profile-label">Apellidos</span>
+                      <span class="profile-label">${escapeHtml(
+                        profileCopy.lastName || 'Last name'
+                      )}</span>
                       <input
                         class="profile-input"
                         type="text"
@@ -572,29 +617,33 @@ class PageProfile extends HTMLElement {
                   </div>
                   <div class="profile-form-row">
                     <label class="profile-field">
-                      <span class="profile-label">Contraseña</span>
+                      <span class="profile-label">${escapeHtml(
+                        profileCopy.password || 'Password'
+                      )}</span>
                       <input
                         class="profile-input"
                         type="password"
                         id="profile-password"
                         autocomplete="new-password"
-                        placeholder="Nueva contraseña"
+                        placeholder="${escapeHtml(profileCopy.passwordNewPlaceholder || 'New password')}"
                       >
                     </label>
                     <label class="profile-field">
-                      <span class="profile-label">Repetir contraseña</span>
+                      <span class="profile-label">${escapeHtml(
+                        profileCopy.passwordRepeat || 'Repeat password'
+                      )}</span>
                       <input
                         class="profile-input"
                         type="password"
                         id="profile-password-confirm"
                         autocomplete="new-password"
-                        placeholder="Repite la contraseña"
+                        placeholder="${escapeHtml(profileCopy.passwordRepeatPlaceholder || 'Repeat password')}"
                       >
                     </label>
                   </div>
                   <div class="profile-form-row">
                     <label class="profile-field">
-                      <span class="profile-label">Email</span>
+                      <span class="profile-label">${escapeHtml(profileCopy.email || 'Email')}</span>
                       <input
                         class="profile-input"
                         type="email"
@@ -604,7 +653,9 @@ class PageProfile extends HTMLElement {
                       >
                     </label>
                     <label class="profile-field">
-                      <span class="profile-label">Suscripción hasta</span>
+                      <span class="profile-label">${escapeHtml(
+                        profileCopy.subscriptionUntil || 'Subscription until'
+                      )}</span>
                       <input
                         class="profile-input"
                         type="text"
@@ -616,7 +667,9 @@ class PageProfile extends HTMLElement {
                   </div>
                 </div>
                 <div class="profile-save-row">
-                  <ion-button expand="block" shape="round" id="profile-save-btn">Guardar cambios</ion-button>
+                  <ion-button expand="block" shape="round" id="profile-save-btn">${escapeHtml(
+                    profileCopy.saveChanges || 'Save changes'
+                  )}</ion-button>
                   <p class="profile-save-note ${profileNoteError ? 'error' : ''}" id="profile-save-note">${
                     profileNote ? escapeHtml(profileNote) : ''
                   }</p>
@@ -625,15 +678,23 @@ class PageProfile extends HTMLElement {
             </div>
             <div class="profile-tab-panel" ${reviewActive ? '' : 'hidden'}>
               ${reviewFiltersMarkup}
-              <h3 class="profile-section-title">Palabras a revisar</h3>
+              <h3 class="profile-section-title">${escapeHtml(
+                profileCopy.reviewWordsTitle || 'Words to review'
+              )}</h3>
               ${reviewWordsMarkup}
-              <h3 class="profile-section-title" style="margin-top:16px;">Frases a revisar</h3>
+              <h3 class="profile-section-title" style="margin-top:16px;">${escapeHtml(
+                profileCopy.reviewPhrasesTitle || 'Phrases to review'
+              )}</h3>
               ${reviewPhrasesMarkup}
             </div>
           </div>
           <div class="profile-links profile-links--footer" id="profile-links-footer" ${showFooterLinks ? '' : 'hidden'}>
-            <button class="profile-link-btn" type="button" data-action="contact">Contacto</button>
-            <button class="profile-link-btn" type="button" data-action="legal">Avisos legales</button>
+            <button class="profile-link-btn" type="button" data-action="contact">${escapeHtml(
+              profileCopy.contact || 'Contact'
+            )}</button>
+            <button class="profile-link-btn" type="button" data-action="legal">${escapeHtml(
+              profileCopy.legal || 'Legal'
+            )}</button>
           </div>
           <div class="profile-app-meta" id="profile-app-meta" ${showAppMeta ? '' : 'hidden'}>${escapeHtml(
             appMetaLabel
@@ -688,10 +749,12 @@ class PageProfile extends HTMLElement {
       }
       const name = getUserDisplayName(nextUser);
       const avatar = getUserAvatar(nextUser);
-      if (userNameEl) userNameEl.textContent = name || 'Usuario';
+      if (userNameEl) userNameEl.textContent = name || (profileCopy.userFallbackName || 'User');
       if (userAvatarEl) {
         userAvatarEl.src = avatar || '';
-        userAvatarEl.alt = name ? `Avatar ${name}` : 'Avatar';
+        userAvatarEl.alt = name
+          ? String(profileCopy.avatarAltWithName || 'Avatar {name}').replace('{name}', name)
+          : profileCopy.avatarAltDefault || 'Avatar';
         userAvatarEl.hidden = !avatar;
       }
     };
@@ -761,6 +824,9 @@ class PageProfile extends HTMLElement {
         window.varGlobal.locale = nextLocale;
       }
       window.dispatchEvent(new CustomEvent('app:locale-change', { detail: { locale: nextLocale } }));
+      window.dispatchEvent(
+        new CustomEvent('app:profile-locale-toggle', { detail: { locale: nextLocale } })
+      );
       this.render();
     });
 
@@ -836,20 +902,20 @@ class PageProfile extends HTMLElement {
 
     const validateAvatarFile = (file) => {
       if (!file) {
-        return { ok: false, message: 'No se pudo leer el archivo.' };
+        return { ok: false, message: profileCopy.fileReadError || 'Could not read the file.' };
       }
       if (file.type) {
         if (!avatarConfig.types[file.type]) {
-          return { ok: false, message: 'Formato no permitido. Usa JPG, PNG o GIF.' };
+          return { ok: false, message: profileCopy.fileFormatError || 'Unsupported format. Use JPG, PNG or GIF.' };
         }
       } else {
         const ext = getAvatarExt(file);
         if (!avatarConfig.exts.includes(ext)) {
-          return { ok: false, message: 'Formato no permitido. Usa JPG, PNG o GIF.' };
+          return { ok: false, message: profileCopy.fileFormatError || 'Unsupported format. Use JPG, PNG or GIF.' };
         }
       }
       if (file.size && file.size > avatarConfig.maxBytes) {
-        return { ok: false, message: 'Archivo demasiado grande. Max 500 KB.' };
+        return { ok: false, message: profileCopy.fileTooLarge || 'File too large. Max 500 KB.' };
       }
       return { ok: true, message: '' };
     };
@@ -921,7 +987,7 @@ class PageProfile extends HTMLElement {
         birthdate: profileSeed.birthdate || '1901-01-01',
         sex: profileSeed.sex,
         lc: profileSeed.lc,
-        locale: (window.varGlobal && window.varGlobal.locale) || 'es'
+        locale: rawLocaleSetting || 'es'
       };
       if (profileState.password) {
         payload.password = String(profileState.password);
@@ -932,7 +998,8 @@ class PageProfile extends HTMLElement {
         const message =
           (result && result.data && result.data.error) ||
           (result && result.error) ||
-          'No se pudo actualizar el perfil.';
+          profileCopy.profileUpdateFailed ||
+          'Could not update profile.';
         setProfileMessage(message, true);
         updateSaveState();
         return;
@@ -944,7 +1011,7 @@ class PageProfile extends HTMLElement {
         name: `${firstName} ${lastName}`.trim()
       };
       resetProfileState(nextUser);
-      setProfileMessage('Perfil actualizado.', false);
+      setProfileMessage(profileCopy.profileUpdated || 'Profile updated.', false);
       updateLocalUser(nextUser);
       updateSaveState();
     };
@@ -952,7 +1019,7 @@ class PageProfile extends HTMLElement {
     profileSaveBtn?.addEventListener('click', () => {
       submitProfileUpdate().catch((err) => {
         console.error('[profile] error guardando perfil', err);
-        setProfileMessage('No se pudo actualizar el perfil.', true);
+        setProfileMessage(profileCopy.profileUpdateFailed || 'Could not update profile.', true);
       });
     });
 
@@ -999,7 +1066,10 @@ class PageProfile extends HTMLElement {
           }
         }
         if (!response.ok || (payload && payload.error)) {
-          const message = (payload && payload.error) || 'No se pudo subir el avatar.';
+          const message =
+            (payload && payload.error) ||
+            profileCopy.avatarUploadFailed ||
+            'Could not upload avatar.';
           setProfileMessage(message, true);
           this.profileSavePending = false;
           updateSaveState();
@@ -1027,11 +1097,11 @@ class PageProfile extends HTMLElement {
           refreshUserAvatarLocal(nextUser, { force: true });
         }
         resetProfileState(nextUser);
-        setProfileMessage('Avatar actualizado.', false);
+        setProfileMessage(profileCopy.avatarUpdated || 'Avatar updated.', false);
         updateLocalUser(nextUser);
       } catch (err) {
         console.error('[profile] error subiendo avatar', err);
-        setProfileMessage('No se pudo subir el avatar.', true);
+        setProfileMessage(profileCopy.avatarUploadFailed || 'Could not upload avatar.', true);
       } finally {
         this.profileSavePending = false;
         updateSaveState();
@@ -1077,7 +1147,10 @@ class PageProfile extends HTMLElement {
           }
         }
         if (!response.ok || (resPayload && resPayload.error)) {
-          const message = (resPayload && resPayload.error) || 'No se pudo eliminar el avatar.';
+          const message =
+            (resPayload && resPayload.error) ||
+            profileCopy.avatarDeleteFailed ||
+            'Could not delete avatar.';
           setProfileMessage(message, true);
           this.profileSavePending = false;
           updateSaveState();
@@ -1093,11 +1166,11 @@ class PageProfile extends HTMLElement {
         };
         await clearLocalAvatar(nextUser);
         resetProfileState(nextUser);
-        setProfileMessage('Avatar eliminado.', false);
+        setProfileMessage(profileCopy.avatarDeleted || 'Avatar deleted.', false);
         updateLocalUser(nextUser);
       } catch (err) {
         console.error('[profile] error eliminando avatar', err);
-        setProfileMessage('No se pudo eliminar el avatar.', true);
+        setProfileMessage(profileCopy.avatarDeleteFailed || 'Could not delete avatar.', true);
       } finally {
         this.profileSavePending = false;
         updateSaveState();

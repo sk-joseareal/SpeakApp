@@ -5,14 +5,18 @@ import {
   markNotificationRead,
   removeNotification
 } from '../notifications-store.js';
+import { getAppLocale } from '../state.js';
+import { getNotificationsCopy, normalizeLocale as normalizeCopyLocale } from '../content/copy.js';
 
 class PageNotifications extends HTMLElement {
   connectedCallback() {
     this.classList.add('ion-page');
+    this.currentUiLocale = this.resolveUiLocale();
+    this.currentCopy = getNotificationsCopy(this.currentUiLocale);
     this.innerHTML = `
       <ion-header translucent="true">
         <ion-toolbar>
-          <ion-title>Notificaciones</ion-title>
+          <ion-title>${this.currentCopy.title}</ion-title>
           <ion-buttons slot="end">
             <ion-button fill="clear" id="notify-close-btn">
               <ion-icon slot="icon-only" name="close"></ion-icon>
@@ -23,9 +27,9 @@ class PageNotifications extends HTMLElement {
       <ion-content fullscreen>
         <div class="page-shell notify-shell">
           <div class="card notify-card">
-            <div class="notify-title">Actividad reciente</div>
+            <div class="notify-title">${this.currentCopy.recentActivity}</div>
             <div class="notify-list" id="notify-list"></div>
-            <div class="notify-empty" id="notify-empty" hidden>No hay notificaciones todavia.</div>
+            <div class="notify-empty" id="notify-empty" hidden>${this.currentCopy.empty}</div>
           </div>
         </div>
       </ion-content>
@@ -35,6 +39,8 @@ class PageNotifications extends HTMLElement {
     this.emptyEl = this.querySelector('#notify-empty');
     this._notifyHandler = () => this.renderList();
     window.addEventListener('app:notifications-change', this._notifyHandler);
+    this._localeHandler = () => this.handleLocaleChange();
+    window.addEventListener('app:locale-change', this._localeHandler);
 
     const closeBtn = this.querySelector('#notify-close-btn');
     closeBtn?.addEventListener('click', () => {
@@ -53,6 +59,29 @@ class PageNotifications extends HTMLElement {
       window.removeEventListener('app:notifications-change', this._notifyHandler);
       this._notifyHandler = null;
     }
+    if (this._localeHandler) {
+      window.removeEventListener('app:locale-change', this._localeHandler);
+      this._localeHandler = null;
+    }
+  }
+
+  resolveUiLocale() {
+    const fromState = normalizeCopyLocale(getAppLocale());
+    if (fromState) return fromState;
+    return normalizeCopyLocale(window.varGlobal?.locale) || 'en';
+  }
+
+  handleLocaleChange() {
+    const nextLocale = this.resolveUiLocale();
+    if (nextLocale === this.currentUiLocale) return;
+    this.currentUiLocale = nextLocale;
+    this.currentCopy = getNotificationsCopy(nextLocale);
+    const titleEl = this.querySelector('ion-title');
+    if (titleEl) titleEl.textContent = this.currentCopy.title;
+    const subtitleEl = this.querySelector('.notify-title');
+    if (subtitleEl) subtitleEl.textContent = this.currentCopy.recentActivity;
+    if (this.emptyEl) this.emptyEl.textContent = this.currentCopy.empty;
+    this.renderList();
   }
 
   handleListClick(event) {
@@ -97,9 +126,10 @@ class PageNotifications extends HTMLElement {
         window.r34lp0w3r.profileForceTab = action.profileTab;
       }
       if (action.tab) {
+        const normalizedTab = action.tab === 'premium' ? 'chat' : action.tab;
         const tabs = document.querySelector('ion-tabs');
         if (tabs && typeof tabs.select === 'function') {
-          tabs.select(action.tab).catch(() => {});
+          tabs.select(normalizedTab).catch(() => {});
         }
       }
       if (action.hash) {
@@ -117,6 +147,7 @@ class PageNotifications extends HTMLElement {
 
   renderList() {
     if (!this.listEl || !this.emptyEl) return;
+    const copy = this.currentCopy || getNotificationsCopy('en');
     const items = getNotifications();
     if (!items.length) {
       this.listEl.innerHTML = '';
@@ -129,8 +160,8 @@ class PageNotifications extends HTMLElement {
         const icon = resolveNotifyIcon(item);
         const tone = resolveNotifyTone(item);
         const iconClass = tone ? `notify-icon ${tone}` : 'notify-icon';
-        const statusLabel = item.status === 'unread' ? 'Nueva' : 'Leida';
-        const meta = `${statusLabel} · ${formatElapsed(item.created_at)}`;
+        const statusLabel = item.status === 'unread' ? copy.statusNew : copy.statusRead;
+        const meta = `${statusLabel} · ${formatElapsed(item.created_at, copy)}`;
         const hasAction = item.action && item.action.label;
         const actionLabel = hasAction ? item.action.label : '';
         const readClass = item.status !== 'unread' ? 'is-read' : '';
@@ -150,7 +181,7 @@ class PageNotifications extends HTMLElement {
                 ${hasAction ? `<button class="notify-action-btn" type="button" data-action="open">${escapeHtml(
                   actionLabel
                 )}</button>` : ''}
-                <button class="notify-action-btn danger" type="button" data-action="delete">Eliminar</button>
+                <button class="notify-action-btn danger" type="button" data-action="delete">${escapeHtml(copy.deleteAction)}</button>
               </div>
             </div>
           </div>
@@ -172,6 +203,7 @@ const resolveNotifyIcon = (item) => {
     case 'practice':
       return 'mic-outline';
     case 'premium':
+    case 'chat':
       return 'sparkles-outline';
     case 'talk':
       return 'chatbubble-ellipses-outline';
@@ -185,6 +217,7 @@ const resolveNotifyTone = (item) => {
   switch (item?.type) {
     case 'reward':
     case 'premium':
+    case 'chat':
       return 'good';
     case 'reminder':
     case 'review':
@@ -194,18 +227,19 @@ const resolveNotifyTone = (item) => {
   }
 };
 
-const formatElapsed = (ts) => {
+const formatElapsed = (ts, copy) => {
   const value = Number(ts);
-  if (!value) return 'Hace un momento';
+  const safeCopy = copy || getNotificationsCopy('en');
+  if (!value) return safeCopy.elapsedNow;
   const diff = Math.max(0, Date.now() - value);
   const seconds = Math.floor(diff / 1000);
-  if (seconds < 60) return 'Hace un momento';
+  if (seconds < 60) return safeCopy.elapsedNow;
   const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `Hace ${minutes} min`;
+  if (minutes < 60) return safeCopy.elapsedMinutes.replace('{n}', String(minutes));
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `Hace ${hours} h`;
+  if (hours < 24) return safeCopy.elapsedHours.replace('{n}', String(hours));
   const days = Math.floor(hours / 24);
-  return `Hace ${days} d`;
+  return safeCopy.elapsedDays.replace('{n}', String(days));
 };
 
 const escapeHtml = (value) =>

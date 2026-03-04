@@ -5,7 +5,7 @@ import './pages/onboarding.js';
 import './pages/home.js';
 import './pages/speak.js';
 import './pages/profile.js';
-import './pages/premium.js';
+import './pages/chat.js';
 import './pages/free-ride.js';
 import './pages/tabs.js';
 import './pages/diagnostics.js';
@@ -63,12 +63,6 @@ routerReady.then((router) => {
 
 function setupSecretDiagnostics(router) {
   const DIAG_UNLOCK_KEY = 'appv5:diag-unlocked';
-  const sequence = [
-    { target: 'title', needed: 2, count: 0 },
-    { target: 'content', needed: 2, count: 0 },
-    { target: 'title', needed: 1, count: 0 }
-  ];
-  let step = 0;
   let titleTapCount = 0;
   let titleTapTimer = null;
   const readUnlocked = () => {
@@ -88,10 +82,6 @@ function setupSecretDiagnostics(router) {
   const openDiagnostics = () => {
     router?.push('/diagnostics', 'forward');
   };
-  const reset = () => {
-    step = 0;
-    sequence.forEach((s) => (s.count = 0));
-  };
   const resetTitleTap = () => {
     titleTapCount = 0;
     if (titleTapTimer) {
@@ -99,10 +89,14 @@ function setupSecretDiagnostics(router) {
       titleTapTimer = null;
     }
   };
-  const onUnlockedTitleTap = () => {
+  const onTitleTap = () => {
     titleTapCount += 1;
     if (titleTapCount >= 2) {
+      const alreadyUnlocked = readUnlocked();
       resetTitleTap();
+      if (!alreadyUnlocked) {
+        writeUnlocked();
+      }
       openDiagnostics();
       return;
     }
@@ -120,36 +114,8 @@ function setupSecretDiagnostics(router) {
       path.some((el) => el && el.classList && el.classList.contains(className));
 
     const isTitle = hasClassInPath('secret-title');
-    const isContent = hasClassInPath('secret-content');
-
-    if (readUnlocked()) {
-      if (isTitle) {
-        onUnlockedTitleTap();
-      }
-      return;
-    }
-
-    const expected = sequence[step];
-
-    const matched =
-      (expected.target === 'title' && isTitle) ||
-      (expected.target === 'content' && isContent);
-
-    if (!matched) {
-      reset();
-      return;
-    }
-
-    expected.count += 1;
-    if (expected.count >= expected.needed) {
-      step += 1;
-      if (step >= sequence.length) {
-        reset();
-        writeUnlocked();
-        openDiagnostics();
-        return;
-      }
-    }
+    if (!isTitle) return;
+    onTitleTap();
   };
 
   document.addEventListener('click', handler);

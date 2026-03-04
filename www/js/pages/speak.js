@@ -99,6 +99,7 @@ class PageSpeak extends HTMLElement {
     const HERO_MASCOT_FRAME_COUNT = 9;
     const HERO_MASCOT_REST_FRAME = HERO_MASCOT_FRAME_COUNT - 1;
     const HERO_MASCOT_FRAME_INTERVAL_MS = 150;
+    const MIN_RECORDING_BLOB_BYTES = 128;
     const swipeSurface = this.querySelector('.speak-sheet');
 
     const stepOrder = ['sound', 'spelling', 'sentence'];
@@ -179,9 +180,9 @@ class PageSpeak extends HTMLElement {
     let activeHintLocale = 'en';
 
     const stepState = {
-      sound: { recordingUrl: '', transcript: '', percent: null },
-      spelling: { recordingUrl: '', transcript: '', percent: null },
-      sentence: { recordingUrl: '', transcript: '', percent: null }
+      sound: { recordingUrl: '', recordingBlob: null, transcript: '', percent: null },
+      spelling: { recordingUrl: '', recordingBlob: null, transcript: '', percent: null },
+      sentence: { recordingUrl: '', recordingBlob: null, transcript: '', percent: null }
     };
 
     const getSpeechRecognition = () => window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -2117,13 +2118,20 @@ class PageSpeak extends HTMLElement {
       speechFailed = false;
     };
 
-    const clearRecordingForStep = (key) => {
+    const clearRecordingAudioForStep = (key) => {
       const state = stepState[key];
-      if (state && state.recordingUrl) {
+      if (!state) return;
+      if (state.recordingUrl) {
         URL.revokeObjectURL(state.recordingUrl);
       }
+      state.recordingUrl = '';
+      state.recordingBlob = null;
+    };
+
+    const clearRecordingForStep = (key) => {
+      const state = stepState[key];
+      clearRecordingAudioForStep(key);
       if (state) {
-        state.recordingUrl = '';
         state.transcript = '';
         state.percent = null;
       }
@@ -2168,27 +2176,37 @@ class PageSpeak extends HTMLElement {
         mediaRecorder.onstop = () => {
           setRecordingState(false);
           const blob = new Blob(recordedChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
-          const url = URL.createObjectURL(blob);
           const stepKey = recordingStepKey || getStepKey();
+          const hasPlayableBlob = blob && blob.size >= MIN_RECORDING_BLOB_BYTES;
+          const url = hasPlayableBlob ? URL.createObjectURL(blob) : '';
           if (canNativeFileTranscribe()) {
-            if (isAndroidPlatform()) {
-              setTranscribingState(true, stepKey);
+            if (!hasPlayableBlob) {
+              if (isAndroidPlatform()) {
+                setTranscribingState(false, stepKey);
+              }
+              finalizeRecording('', stepKey, undefined, null);
+            } else {
+              if (isAndroidPlatform()) {
+                setTranscribingState(true, stepKey);
+              }
+              transcribeNativeAudioBlob(blob)
+                .then((text) => {
+                  if (isAndroidPlatform()) {
+                    setTranscribingState(false, stepKey);
+                  }
+                  finalizeRecording(url, stepKey, text, blob);
+                })
+                .catch(() => {
+                  if (isAndroidPlatform()) {
+                    setTranscribingState(false, stepKey);
+                  }
+                  finalizeRecording(url, stepKey, undefined, blob);
+                });
             }
-            transcribeNativeAudioBlob(blob)
-              .then((text) => {
-                if (isAndroidPlatform()) {
-                  setTranscribingState(false, stepKey);
-                }
-                finalizeRecording(url, stepKey, text);
-              })
-              .catch(() => {
-                if (isAndroidPlatform()) {
-                  setTranscribingState(false, stepKey);
-                }
-                finalizeRecording(url, stepKey);
-              });
+          } else if (hasPlayableBlob) {
+            finalizeRecording(url, stepKey, undefined, blob);
           } else {
-            finalizeRecording(url, stepKey);
+            finalizeRecording('', stepKey, undefined, null);
           }
           recordingStepKey = null;
           mediaRecorder = null;
@@ -2226,7 +2244,7 @@ class PageSpeak extends HTMLElement {
       stopSpeechRecognition();
     };
 
-    const finalizeRecording = (audioUrl, stepKey, forcedTranscript) => {
+    const finalizeRecording = (audioUrl, stepKey, forcedTranscript, recordedBlob = null) => {
       const key = stepKey || getStepKey();
       if (!stepState[key]) return;
       const expected = getExpectedText(key);
@@ -2244,6 +2262,7 @@ class PageSpeak extends HTMLElement {
 
       clearRecordingForStep(key);
       stepState[key].recordingUrl = audioUrl || '';
+      stepState[key].recordingBlob = recordedBlob instanceof Blob ? recordedBlob : null;
       stepState[key].transcript = finalTranscript;
       stepState[key].percent = percent;
       if (key === 'spelling' && selectedWord) {
@@ -2264,12 +2283,46 @@ class PageSpeak extends HTMLElement {
     const playRecording = () => {
       const key = getStepKey();
       const state = stepState[key];
-      if (!state || !state.recordingUrl) return;
+      if (!state || (!state.recordingUrl && !(state.recordingBlob instanceof Blob))) return;
       stopPlayback();
-      activeAudio = new Audio(state.recordingUrl);
-      activeAudio.play().catch(() => {});
-      activeAudio.onended = () => {
-        if (activeAudio) activeAudio = null;
+      let sourceUrl = state.recordingUrl || '';
+      let temporarySourceUrl = '';
+      if (state.recordingBlob instanceof Blob && state.recordingBlob.size >= MIN_RECORDING_BLOB_BYTES) {
+        try {
+          temporarySourceUrl = URL.createObjectURL(state.recordingBlob);
+          sourceUrl = temporarySourceUrl;
+        } catch (err) {
+          temporarySourceUrl = '';
+        }
+      }
+      if (!sourceUrl) return;
+      activeAudio = new Audio(sourceUrl);
+      const currentAudio = activeAudio;
+      const release = () => {
+        if (temporarySourceUrl) {
+          try {
+            URL.revokeObjectURL(temporarySourceUrl);
+          } catch (err) {
+            // no-op
+          }
+          temporarySourceUrl = '';
+        }
+        if (activeAudio === currentAudio) activeAudio = null;
+      };
+      currentAudio.play().catch(() => {
+        if (!temporarySourceUrl && state.recordingUrl) {
+          clearRecordingAudioForStep(key);
+          renderStep();
+        }
+        release();
+      });
+      currentAudio.onended = release;
+      currentAudio.onerror = () => {
+        if (!temporarySourceUrl && state.recordingUrl) {
+          clearRecordingAudioForStep(key);
+          renderStep();
+        }
+        release();
       };
     };
 

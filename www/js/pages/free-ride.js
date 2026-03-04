@@ -9,6 +9,7 @@ import {
 const FREE_RIDE_LOCALE_OVERRIDE_KEY = 'appv5:free-ride-locale-override';
 const FREE_RIDE_TEXT_PREFIX = 'appv5:free-ride:text:';
 const RECORDING_TIMESLICE = 500;
+const MIN_RECORDING_BLOB_BYTES = 128;
 const VOSK_SAMPLE_RATE_DEFAULT = 16000;
 const TTS_LANG_BY_LOCALE = {
   es: 'es-ES',
@@ -109,6 +110,7 @@ class PageFreeRide extends HTMLElement {
     this.mediaRecorder = null;
     this.recordingStream = null;
     this.recordedChunks = [];
+    this.recordedBlob = null;
     this.speechRecognizer = null;
     this.speechTranscript = '';
     this.speechInterim = '';
@@ -161,6 +163,25 @@ class PageFreeRide extends HTMLElement {
       });
     };
     window.addEventListener('app:locale-change', this._localeHandler);
+    this._profileLocaleToggleHandler = () => {
+      if (!this.isConnected) return;
+      const hasManualOverride = this.normalizeLocale(this.state.localeOverride);
+      if (!hasManualOverride) return;
+      const baseLocale = this.getBaseLocale();
+      const currentUiLocale = this.getUiLocale(baseLocale);
+      const nextUiLocale = getNextLocaleCode(currentUiLocale);
+      this.state.localeOverride = nextUiLocale === baseLocale ? '' : nextUiLocale;
+      this.persistLocaleOverride(this.state.localeOverride);
+      this.stopActiveCapture();
+      this.stopPlayback();
+      this.refreshPhraseForCurrentLocale();
+      this.clearPracticeResult({
+        skipRender: false,
+        clearRecording: true,
+        forceNarration: this.isTabActive('freeride')
+      });
+    };
+    window.addEventListener('app:profile-locale-toggle', this._profileLocaleToggleHandler);
 
     this._userHandler = (event) => {
       this.updateHeaderUser(event && event.detail ? event.detail : null);
@@ -272,6 +293,10 @@ class PageFreeRide extends HTMLElement {
     if (this._localeHandler) {
       window.removeEventListener('app:locale-change', this._localeHandler);
       this._localeHandler = null;
+    }
+    if (this._profileLocaleToggleHandler) {
+      window.removeEventListener('app:profile-locale-toggle', this._profileLocaleToggleHandler);
+      this._profileLocaleToggleHandler = null;
     }
 
     if (this._userHandler) {
@@ -1683,6 +1708,9 @@ class PageFreeRide extends HTMLElement {
       missing: ['Omitida', 'missing'],
       extra: ['Extra', 'extra'],
       distance: ['distancia', 'distance'],
+      recorded: ['Grabado', 'Recorded'],
+      error: ['Error', 'Error'],
+      close: ['Cerrar', 'Close'],
       ok: ['OK', 'OK'],
       incorrecta: ['Incorrecta', 'Incorrect'],
       issue: ['Incidencia', 'Issue']
@@ -1691,27 +1719,36 @@ class PageFreeRide extends HTMLElement {
   }
 
   renderFreeRideUiLabelHtml(key, options = {}) {
+    return this.renderFreeRideUiLabelLocalizedHtml(key);
+  }
+
+  getFreeRideUiLabelLocalizedText(key) {
     const [es, en] = this.getFreeRideUiLabelPair(key);
-    return this.renderBilingualCopyHtml(es, en, options);
+    const locale = this.getUiLocale(this.currentUiLocale);
+    const primary = String(locale === 'es' ? es : en || '').trim();
+    if (primary) return primary;
+    return String(locale === 'es' ? en : es || '').trim();
+  }
+
+  renderFreeRideUiLabelLocalizedHtml(key) {
+    return this.escapeHtml(this.getFreeRideUiLabelLocalizedText(key));
   }
 
   getFreeRideUiLabelText(key) {
-    const [es, en] = this.getFreeRideUiLabelPair(key);
-    if (!es && !en) return '';
-    if (!es) return en;
-    if (!en) return es;
-    if (String(es).toLowerCase() === String(en).toLowerCase()) return es;
-    return `${es} (${en})`;
+    return this.getFreeRideUiLabelLocalizedText(key);
   }
 
   getRecognitionStatusBilingualText(status) {
     const raw = String(status || '').trim();
     if (!raw) return 'n/d';
     const normalized = raw.toLowerCase();
-    if (normalized === 'success') return 'Éxito (Success)';
-    if (normalized === 'nomatch') return 'Sin coincidencia (NoMatch)';
-    if (normalized === 'initialsilencetimeout') return 'Silencio inicial agotado (InitialSilenceTimeout)';
-    if (normalized === 'babbletimeout') return 'Ruido/Babble timeout (BabbleTimeout)';
+    const locale = this.getUiLocale(this.currentUiLocale);
+    if (normalized === 'success') return locale === 'es' ? 'Éxito' : 'Success';
+    if (normalized === 'nomatch') return locale === 'es' ? 'Sin coincidencia' : 'No match';
+    if (normalized === 'initialsilencetimeout') {
+      return locale === 'es' ? 'Silencio inicial agotado' : 'Initial silence timeout';
+    }
+    if (normalized === 'babbletimeout') return locale === 'es' ? 'Ruido/Babble timeout' : 'Babble timeout';
     return raw;
   }
 
@@ -1740,16 +1777,7 @@ class PageFreeRide extends HTMLElement {
   }
 
   renderRecognitionStatusBilingualHtml(status, options = {}) {
-    const raw = String(status || '').trim();
-    if (!raw) return 'n/d';
-    const normalized = raw.toLowerCase();
-    if (normalized === 'success') return this.renderBilingualCopyHtml('Éxito', 'Success', options);
-    if (normalized === 'nomatch') return this.renderBilingualCopyHtml('Sin coincidencia', 'NoMatch', options);
-    if (normalized === 'initialsilencetimeout') {
-      return this.renderBilingualCopyHtml('Silencio inicial agotado', 'InitialSilenceTimeout', options);
-    }
-    if (normalized === 'babbletimeout') return this.renderBilingualCopyHtml('Ruido/Babble timeout', 'BabbleTimeout', options);
-    return this.escapeHtml(raw);
+    return this.escapeHtml(this.getRecognitionStatusBilingualText(status));
   }
 
   isAdvancedPhonemeScoreUsable(wordLike, phonemeLike) {
@@ -1837,11 +1865,12 @@ class PageFreeRide extends HTMLElement {
     const key = String(status || '')
       .trim()
       .toLowerCase();
-    if (key === 'ok') return this.renderBilingualCopyHtml('OK', 'OK', options);
-    if (key === 'wrong') return this.renderBilingualCopyHtml('Incorrecta', 'Incorrecta', options);
-    if (key === 'missing') return this.renderBilingualCopyHtml('Omitida', 'Omitida', options);
-    if (key === 'extra') return this.renderBilingualCopyHtml('Extra', 'Extra', options);
-    if (key === 'issue') return this.renderBilingualCopyHtml('Incidencia', 'Incidencia', options);
+    const locale = this.getUiLocale(this.currentUiLocale);
+    if (key === 'ok') return 'OK';
+    if (key === 'wrong') return this.escapeHtml(locale === 'es' ? 'Incorrecta' : 'Incorrect');
+    if (key === 'missing') return this.escapeHtml(locale === 'es' ? 'Omitida' : 'Missing');
+    if (key === 'extra') return this.escapeHtml(locale === 'es' ? 'Extra' : 'Extra');
+    if (key === 'issue') return this.escapeHtml(locale === 'es' ? 'Incidencia' : 'Issue');
     return this.escapeHtml(this.getAdvancedStatusLabel(status));
   }
 
@@ -1860,10 +1889,11 @@ class PageFreeRide extends HTMLElement {
     const key = String(kind || '')
       .trim()
       .toLowerCase();
-    if (key === 'match') return this.renderBilingualCopyHtml('Acierto', 'match', options);
-    if (key === 'replace') return this.renderBilingualCopyHtml('Sustitución', 'replace', options);
-    if (key === 'missing') return this.renderBilingualCopyHtml('Omitida', 'missing', options);
-    if (key === 'extra') return this.renderBilingualCopyHtml('Extra', 'extra', options);
+    const locale = this.getUiLocale(this.currentUiLocale);
+    if (key === 'match') return this.escapeHtml(locale === 'es' ? 'Acierto' : 'Match');
+    if (key === 'replace') return this.escapeHtml(locale === 'es' ? 'Sustitución' : 'Replace');
+    if (key === 'missing') return this.escapeHtml(locale === 'es' ? 'Omitida' : 'Missing');
+    if (key === 'extra') return this.escapeHtml(locale === 'es' ? 'Extra' : 'Extra');
     return this.escapeHtml(this.getWordDiffKindLabel(kind));
   }
 
@@ -2077,16 +2107,16 @@ class PageFreeRide extends HTMLElement {
                           }</span>
                         </div>
                         <div class="free-ride-detail-row-meta">
-                          Grabado: ${this.renderAdvancedInlineValueHtml(recognizedText)}
-                          · Error: ${this.renderAdvancedInlineValueHtml(errorTypeText)}
+                          ${this.renderFreeRideUiLabelHtml('recorded')}: ${this.renderAdvancedInlineValueHtml(recognizedText)}
+                          · ${this.renderFreeRideUiLabelHtml('error')}: ${this.renderAdvancedInlineValueHtml(errorTypeText)}
                           · ${this.formatDurationMsForDetail(
                             Number(word?.end_ms) - Number(word?.start_ms)
                           )}
                           ${
                             phonemes.length
                               ? phonemeInlineHtml
-                                ? ` · Fonemas: ${phonemeInlineHtml}`
-                                : ' · Fonemas: n/d'
+                                ? ` · ${this.renderFreeRideUiLabelHtml('phonemes')}: ${phonemeInlineHtml}`
+                                : ` · ${this.renderFreeRideUiLabelHtml('phonemes')}: n/d`
                               : ''
                           }
                         </div>
@@ -2123,7 +2153,9 @@ class PageFreeRide extends HTMLElement {
             <div class="free-ride-detail-modal-title">${this.renderFreeRideUiLabelHtml('phraseDetails')}</div>
             <div class="free-ride-detail-modal-sub">${this.renderFreeRideUiLabelHtml('standardPlusAdvancedIfAvailable')}</div>
           </div>
-          <button class="free-ride-detail-close" type="button" data-close-detail aria-label="Cerrar (Close)">
+          <button class="free-ride-detail-close" type="button" data-close-detail aria-label="${this.escapeHtml(
+            this.getFreeRideUiLabelText('close')
+          )}">
             <ion-icon name="close"></ion-icon>
           </button>
         </div>
@@ -2181,13 +2213,13 @@ class PageFreeRide extends HTMLElement {
                     type="button"
                     data-load-saved-phrase-id="${id}"
                     ${disabledAttr}
-                  >${this.renderFreeRideUiLabelHtml('usePhrase')}</button>
+                  >${this.renderFreeRideUiLabelLocalizedHtml('usePhrase')}</button>
                   <button
                     class="free-ride-library-row-btn is-delete"
                     type="button"
                     data-delete-saved-phrase-id="${id}"
                     ${disabledAttr}
-                  >${this.renderFreeRideUiLabelHtml('deletePhrase')}</button>
+                  >${this.renderFreeRideUiLabelLocalizedHtml('deletePhrase')}</button>
                 </div>
               </div>
             `;
@@ -2205,7 +2237,9 @@ class PageFreeRide extends HTMLElement {
             <div class="free-ride-detail-modal-title">${this.renderFreeRideUiLabelHtml('savedPhrasesTitle')}</div>
             <div class="free-ride-detail-modal-sub">${this.renderFreeRideUiLabelHtml('savedPhrasesSub')}</div>
           </div>
-          <button class="free-ride-detail-close" type="button" data-close-library aria-label="Cerrar (Close)">
+          <button class="free-ride-detail-close" type="button" data-close-library aria-label="${this.escapeHtml(
+            this.getFreeRideUiLabelText('close')
+          )}">
             <ion-icon name="close"></ion-icon>
           </button>
         </div>
@@ -4512,9 +4546,11 @@ class PageFreeRide extends HTMLElement {
   }
 
   clearRecordingUrl() {
-    if (!this.state.recordingUrl) return;
-    URL.revokeObjectURL(this.state.recordingUrl);
-    this.state.recordingUrl = '';
+    if (this.state.recordingUrl) {
+      URL.revokeObjectURL(this.state.recordingUrl);
+      this.state.recordingUrl = '';
+    }
+    this.recordedBlob = null;
   }
 
   clearPracticeResult(options = {}) {
@@ -4777,7 +4813,7 @@ class PageFreeRide extends HTMLElement {
   }
 
   playRecordedAudioWindow(options = {}) {
-    if (!this.state.recordingUrl) return;
+    if (!this.state.recordingUrl && !(this.recordedBlob instanceof Blob)) return;
     const startMsRaw = Number(options.startMs);
     const endMsRaw = Number(options.endMs);
     const hasWindow =
@@ -4813,7 +4849,22 @@ class PageFreeRide extends HTMLElement {
       expectedText && advancedAssessment
         ? this.buildTimedWordDataFromAdvancedAssessment(expectedText, advancedAssessment)
         : null;
-    const audio = new Audio(this.state.recordingUrl);
+    let sourceUrl = this.state.recordingUrl || '';
+    let temporarySourceUrl = '';
+    if (this.recordedBlob instanceof Blob && this.recordedBlob.size >= MIN_RECORDING_BLOB_BYTES) {
+      try {
+        temporarySourceUrl = URL.createObjectURL(this.recordedBlob);
+        sourceUrl = temporarySourceUrl;
+      } catch (err) {
+        temporarySourceUrl = '';
+      }
+    }
+    if (!sourceUrl) {
+      this.clearActivePlayButton();
+      return;
+    }
+
+    const audio = new Audio(sourceUrl);
     audio.preload = 'auto';
     try {
       const playbackRate = this.getFreeRidePlaybackRate();
@@ -4842,6 +4893,14 @@ class PageFreeRide extends HTMLElement {
       clearSegmentTimer();
       if (this.activeAudio === audio) {
         this.activeAudio = null;
+      }
+      if (temporarySourceUrl) {
+        try {
+          URL.revokeObjectURL(temporarySourceUrl);
+        } catch (err) {
+          // no-op
+        }
+        temporarySourceUrl = '';
       }
       this.stopPhraseHighlightLoop();
       this.restorePhrasePreviewText();
@@ -4903,7 +4962,13 @@ class PageFreeRide extends HTMLElement {
     };
 
     audio.onended = finish;
-    audio.onerror = finish;
+    audio.onerror = () => {
+      if (!temporarySourceUrl && this.state.recordingUrl) {
+        this.clearRecordingUrl();
+        this.render();
+      }
+      finish();
+    };
 
     if (audio.readyState >= 1) {
       beginPlayback();
@@ -4973,12 +5038,26 @@ class PageFreeRide extends HTMLElement {
       const blob = new Blob(this.recordedChunks, {
         type: (this.mediaRecorder && this.mediaRecorder.mimeType) || 'audio/webm'
       });
-      const url = URL.createObjectURL(blob);
+      const hasPlayableBlob = blob && blob.size >= MIN_RECORDING_BLOB_BYTES;
+      const url = hasPlayableBlob ? URL.createObjectURL(blob) : '';
 
       this.mediaRecorder = null;
       if (this.recordingStream) {
         this.recordingStream.getTracks().forEach((track) => track.stop());
         this.recordingStream = null;
+      }
+
+      if (!hasPlayableBlob) {
+        const finishWithoutAudio = () => {
+          const transcript = this.speechTranscript || this.speechInterim || '';
+          this.finalizeRecording('', transcript, null);
+        };
+        if (startedSpeechRecognition) {
+          setTimeout(finishWithoutAudio, 240);
+        } else {
+          finishWithoutAudio();
+        }
+        return;
       }
 
       if (this.canNativeFileTranscribe()) {
@@ -5042,6 +5121,7 @@ class PageFreeRide extends HTMLElement {
 
     this.clearRecordingUrl();
     this.state.recordingUrl = audioUrl || '';
+    this.recordedBlob = recordedBlob instanceof Blob ? recordedBlob : null;
     this.state.transcript = transcript;
     this.state.isTranscribing = false;
     this.state.isRecording = false;
@@ -5901,13 +5981,13 @@ class PageFreeRide extends HTMLElement {
                     class="free-ride-input-action-btn is-primary"
                     type="button"
                     ${savePhraseDisabled ? 'disabled' : ''}
-                  >${this.renderFreeRideUiLabelHtml('savePhrase')}</button>
+                  >${this.renderFreeRideUiLabelLocalizedHtml('savePhrase')}</button>
                   <button
                     id="free-ride-open-saved-phrases"
                     class="free-ride-input-action-btn"
                     type="button"
                     ${libraryActionsDisabled ? 'disabled' : ''}
-                  >${this.renderFreeRideUiLabelHtml('myPhrases')}</button>
+                  >${this.renderFreeRideUiLabelLocalizedHtml('myPhrases')}</button>
                 </div>
               </div>
 

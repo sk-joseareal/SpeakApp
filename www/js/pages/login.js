@@ -1,12 +1,22 @@
+import { getAppLocale } from '../state.js';
+import { getLoginCopy, normalizeLocale as normalizeCopyLocale } from '../content/copy.js';
+
 class PageLogin extends HTMLElement {
   connectedCallback() {
     this.classList.add('ion-page');
+    const resolveUiLocale = () => {
+      const fromState = normalizeCopyLocale(getAppLocale());
+      if (fromState) return fromState;
+      return normalizeCopyLocale(window.varGlobal?.locale) || 'en';
+    };
+    const uiLocale = resolveUiLocale();
+    const copy = getLoginCopy(uiLocale);
     this.innerHTML = `
       <ion-header translucent="true">
         <ion-toolbar>
-          <ion-title>Login</ion-title>
+          <ion-title>${copy.title}</ion-title>
           <ion-buttons slot="end">
-            <ion-button fill="clear" size="small" id="login-close">Cerrar</ion-button>
+            <ion-button fill="clear" size="small" id="login-close">${copy.close}</ion-button>
           </ion-buttons>
         </ion-toolbar>
       </ion-header>
@@ -17,80 +27,80 @@ class PageLogin extends HTMLElement {
               <div class="login-social-stack">
                 <ion-button expand="block" fill="outline" id="login-google" class="login-social-btn">
                   <img class="login-social-icon" src="assets/social/google.png" alt="" slot="start" aria-hidden="true">
-                  <span>Login con Google</span>
+                  <span>${copy.socialGoogle}</span>
                 </ion-button>
                 <ion-button expand="block" fill="outline" id="login-fb" class="login-social-btn">
                   <img class="login-social-icon" src="assets/social/facebook.png" alt="" slot="start" aria-hidden="true">
-                  <span>Login con Fb</span>
+                  <span>${copy.socialFacebook}</span>
                 </ion-button>
                 <ion-button expand="block" fill="outline" id="login-apple" class="login-social-btn">
                   <img class="login-social-icon login-social-icon-apple" src="assets/social/apple.png" alt="" slot="start" aria-hidden="true">
-                  <span>Login con Apple</span>
+                  <span>${copy.socialApple}</span>
                 </ion-button>
               </div>
-              <button class="login-link-btn login-create-email-btn" type="button" id="login-register-link">Crear cuenta con tu email</button>
+              <button class="login-link-btn login-create-email-btn" type="button" id="login-register-link">${copy.createWithEmail}</button>
               <div class="login-email-block">
                 <div class="login-inputs">
                   <label class="login-field" for="login-user">
-                    <span class="login-label">Usuario</span>
-                    <input class="chat-text-input login-text-input" autocomplete="username" name="username" id="login-user" type="email" inputmode="email" placeholder="tu usuario">
+                    <span class="login-label">${copy.userLabel}</span>
+                    <input class="chat-text-input login-text-input" autocomplete="username" name="username" id="login-user" type="email" inputmode="email" placeholder="${copy.userPlaceholder}">
                   </label>
                   <label class="login-field" for="login-pass">
-                    <span class="login-label">Contraseña</span>
-                    <input class="chat-text-input login-text-input" autocomplete="current-password" name="password" id="login-pass" type="password" placeholder="********">
+                    <span class="login-label">${copy.passLabel}</span>
+                    <input class="chat-text-input login-text-input" autocomplete="current-password" name="password" id="login-pass" type="password" placeholder="${copy.passPlaceholder}">
                   </label>
                 </div>
                 <p id="login-error" style="display:none; margin:4px 0 0; color: var(--ion-color-danger, #eb445a); font-size:0.9rem;"></p>
-                <ion-button expand="block" shape="round" id="login-enter">Entrar</ion-button>
+                <ion-button expand="block" shape="round" id="login-enter">${copy.enter}</ion-button>
                 <div class="login-links login-links-bottom">
-                  <button class="login-link-btn" type="button" id="login-forgot-link">Recuperar contraseña</button>
+                  <button class="login-link-btn" type="button" id="login-forgot-link">${copy.forgotPassword}</button>
                 </div>
               </div>
             </div>
             <div class="login-panel" data-panel="register" hidden>
-              <h3>Crear cuenta</h3>
-              <p class="muted">Completa los datos para registrarte.</p>
+              <h3>${copy.registerTitle}</h3>
+              <p class="muted">${copy.registerSubtitle}</p>
               <div class="login-inputs">
                 <label class="login-field" for="register-username">
-                  <span class="login-label">Nombre de usuario</span>
-                  <input class="chat-text-input login-text-input" autocomplete="username" name="register-username" id="register-username" type="text" placeholder="tu nombre">
+                  <span class="login-label">${copy.registerUserLabel}</span>
+                  <input class="chat-text-input login-text-input" autocomplete="username" name="register-username" id="register-username" type="text" placeholder="${copy.registerUserPlaceholder}">
                 </label>
                 <label class="login-field" for="register-email">
-                  <span class="login-label">Email</span>
-                  <input class="chat-text-input login-text-input" autocomplete="email" name="register-email" id="register-email" type="email" inputmode="email" placeholder="tu email">
+                  <span class="login-label">${copy.registerEmailLabel}</span>
+                  <input class="chat-text-input login-text-input" autocomplete="email" name="register-email" id="register-email" type="email" inputmode="email" placeholder="${copy.registerEmailPlaceholder}">
                 </label>
                 <label class="login-field" for="register-pass">
-                  <span class="login-label">Contraseña</span>
-                  <input class="chat-text-input login-text-input" autocomplete="new-password" name="register-pass" id="register-pass" type="password" placeholder="********">
+                  <span class="login-label">${copy.registerPassLabel}</span>
+                  <input class="chat-text-input login-text-input" autocomplete="new-password" name="register-pass" id="register-pass" type="password" placeholder="${copy.registerPassPlaceholder}">
                 </label>
                 <label class="login-field" for="register-pass-confirm">
-                  <span class="login-label">Confirmar contraseña</span>
-                  <input class="chat-text-input login-text-input" autocomplete="new-password" name="register-pass-confirm" id="register-pass-confirm" type="password" placeholder="********">
+                  <span class="login-label">${copy.registerPassConfirmLabel}</span>
+                  <input class="chat-text-input login-text-input" autocomplete="new-password" name="register-pass-confirm" id="register-pass-confirm" type="password" placeholder="${copy.registerPassConfirmPlaceholder}">
                 </label>
               </div>
               <ion-item lines="none" class="login-terms-item">
                 <ion-checkbox slot="start" id="register-terms"></ion-checkbox>
-                <ion-label>Acepto las condiciones de uso</ion-label>
+                <ion-label>${copy.registerTerms}</ion-label>
               </ion-item>
               <p id="register-error" style="display:none; margin:4px 0 0; color: var(--ion-color-danger, #eb445a); font-size:0.9rem;"></p>
-              <ion-button expand="block" shape="round" id="register-submit">Crear cuenta</ion-button>
+              <ion-button expand="block" shape="round" id="register-submit">${copy.registerSubmit}</ion-button>
               <div class="login-links">
-                <button class="login-link-btn" type="button" id="register-back">Volver a iniciar sesion</button>
+                <button class="login-link-btn" type="button" id="register-back">${copy.registerBack}</button>
               </div>
             </div>
             <div class="login-panel" data-panel="recover" hidden>
-              <h3>Recuperar contraseña</h3>
-              <p class="muted">Te enviaremos un correo para restablecerla.</p>
+              <h3>${copy.recoverTitle}</h3>
+              <p class="muted">${copy.recoverSubtitle}</p>
               <div class="login-inputs">
                 <label class="login-field" for="recover-email">
-                  <span class="login-label">Email</span>
-                  <input class="chat-text-input login-text-input" autocomplete="email" name="recover-email" id="recover-email" type="email" inputmode="email" placeholder="tu email">
+                  <span class="login-label">${copy.recoverEmailLabel}</span>
+                  <input class="chat-text-input login-text-input" autocomplete="email" name="recover-email" id="recover-email" type="email" inputmode="email" placeholder="${copy.recoverEmailPlaceholder}">
                 </label>
               </div>
               <p id="recover-error" style="display:none; margin:4px 0 0; color: var(--ion-color-danger, #eb445a); font-size:0.9rem;"></p>
-              <ion-button expand="block" shape="round" id="recover-submit">Enviar instrucciones</ion-button>
+              <ion-button expand="block" shape="round" id="recover-submit">${copy.recoverSubmit}</ion-button>
               <div class="login-links">
-                <button class="login-link-btn" type="button" id="recover-back">Volver a iniciar sesion</button>
+                <button class="login-link-btn" type="button" id="recover-back">${copy.recoverBack}</button>
               </div>
             </div>
           </div>
@@ -164,9 +174,9 @@ class PageLogin extends HTMLElement {
 
     const presentInfo = async (message) => {
       const alert = document.createElement('ion-alert');
-      alert.header = 'Atencion';
+      alert.header = copy.alertHeader;
       alert.message = message;
-      alert.buttons = ['Ok'];
+      alert.buttons = [copy.alertOk];
       document.body.appendChild(alert);
       await alert.present();
       await alert.onDidDismiss();
@@ -175,7 +185,7 @@ class PageLogin extends HTMLElement {
 
     const handleSocialError = (event) => {
       const detail = event && event.detail ? event.detail : {};
-      const message = detail.message || detail.error || 'Error de login';
+      const message = detail.message || detail.error || copy.errors.loginGeneric;
       setLoginError(message);
     };
 
@@ -204,11 +214,11 @@ class PageLogin extends HTMLElement {
       const pass = passEl && passEl.value ? String(passEl.value) : '';
 
       if (!email || email.length < 3) {
-        setLoginError('El usuario no es válido');
+        setLoginError(copy.errors.loginInvalidUser);
         return;
       }
       if (!pass || pass.length < 3) {
-        setLoginError('La contraseña no es válida');
+        setLoginError(copy.errors.loginInvalidPassword);
         return;
       } 
 
@@ -216,7 +226,7 @@ class PageLogin extends HTMLElement {
       const usrData = {
         email: email,
         pass: pass,
-        locale: varGlobal.locale,
+        locale: resolveUiLocale(),
         uuid: window.uuid || localStorage.getItem('uuid') || 'n/a'
       };
 
@@ -228,7 +238,7 @@ class PageLogin extends HTMLElement {
         console.log("-> loginCI OK. Login correcto:", JSON.stringify(result.data));
         const user = result.data && result.data.user ? { ...result.data.user } : null;
         if (!user) {
-          setLoginError('Login correcto, pero sin datos de usuario');
+          setLoginError(copy.errors.loginNoUserData);
           return;
         }
 
@@ -295,7 +305,7 @@ class PageLogin extends HTMLElement {
         const message =
           (result && result.data && result.data.error) ||
           (result && result.error) ||
-          "Error de login";          
+          copy.errors.loginGeneric;
         setLoginError(message);
       }
       
@@ -320,18 +330,18 @@ class PageLogin extends HTMLElement {
       console.log("> loginApple.");
       setLoginError('');
       if (typeof window.loginSocial !== 'function') {
-        setLoginError('Login con Apple no disponible.');
+        setLoginError(copy.errors.socialAppleUnavailable);
         return;
       }
       if (!window.Capacitor?.Plugins?.Browser) {
-        setLoginError('Login con Apple solo disponible en la app.');
+        setLoginError(copy.errors.socialAppleOnlyApp);
         return;
       }
       try {
         await window.loginSocial('apple');
       } catch (err) {
         console.log('> loginApple error:', err);
-        setLoginError('No se pudo abrir Apple.');
+        setLoginError(copy.errors.socialAppleOpenFailed);
       }
     }
 
@@ -339,18 +349,18 @@ class PageLogin extends HTMLElement {
       console.log("> loginGoogle.");
       setLoginError('');
       if (typeof window.loginSocial !== 'function') {
-        setLoginError('Login con Google no disponible.');
+        setLoginError(copy.errors.socialGoogleUnavailable);
         return;
       }
       if (!window.Capacitor?.Plugins?.Browser) {
-        setLoginError('Login con Google solo disponible en la app.');
+        setLoginError(copy.errors.socialGoogleOnlyApp);
         return;
       }
       try {
         await window.loginSocial('google');
       } catch (err) {
         console.log('> loginGoogle error:', err);
-        setLoginError('No se pudo abrir Google.');
+        setLoginError(copy.errors.socialGoogleOpenFailed);
       }
     }
 
@@ -358,18 +368,18 @@ class PageLogin extends HTMLElement {
       console.log("> loginFb.");
       setLoginError('');
       if (typeof window.loginSocial !== 'function') {
-        setLoginError('Login con Fb no disponible.');
+        setLoginError(copy.errors.socialFacebookUnavailable);
         return;
       }
       if (!window.Capacitor?.Plugins?.Browser) {
-        setLoginError('Login con Fb solo disponible en la app.');
+        setLoginError(copy.errors.socialFacebookOnlyApp);
         return;
       }
       try {
         await window.loginSocial('facebook');
       } catch (err) {
         console.log('> loginFb error:', err);
-        setLoginError('No se pudo abrir Facebook.');
+        setLoginError(copy.errors.socialFacebookOpenFailed);
       }
     }
 
@@ -394,25 +404,25 @@ class PageLogin extends HTMLElement {
       const acceptterms = !!(termsEl && termsEl.checked);
 
       if (!username || !email || !pass || !confirmation) {
-        setRegisterError('Introduce los datos, por favor.');
+        setRegisterError(copy.errors.registerMissingFields);
         registerPending = false;
         if (registerBtn) registerBtn.disabled = false;
         return;
       }
       if (pass !== confirmation) {
-        setRegisterError('La confirmacion no coincide con la contraseña.');
+        setRegisterError(copy.errors.registerPasswordMismatch);
         registerPending = false;
         if (registerBtn) registerBtn.disabled = false;
         return;
       }
       if (!acceptterms) {
-        setRegisterError('Debes aceptar las condiciones de uso.');
+        setRegisterError(copy.errors.registerTermsRequired);
         registerPending = false;
         if (registerBtn) registerBtn.disabled = false;
         return;
       }
 
-      const locale = (window.varGlobal && window.varGlobal.locale) || 'es';
+      const locale = resolveUiLocale();
       const payload = {
         username,
         email,
@@ -430,11 +440,11 @@ class PageLogin extends HTMLElement {
         const message =
           (result && result.data && result.data.error) ||
           (result && result.error) ||
-          'Error creando la cuenta';
+          copy.errors.registerFailed;
         setRegisterError(message);
         return;
       }
-      await presentInfo('Gracias. Revisa tu email para activar tu cuenta.');
+      await presentInfo(copy.info.registerSuccess);
       setPanel('login');
     };
 
@@ -447,12 +457,12 @@ class PageLogin extends HTMLElement {
       const emailEl = this.querySelector('#recover-email');
       const email = emailEl && emailEl.value ? String(emailEl.value).trim() : '';
       if (!email) {
-        setRecoverError('Debes introducir tu email.');
+        setRecoverError(copy.errors.recoverEmailRequired);
         recoverPending = false;
         if (recoverBtn) recoverBtn.disabled = false;
         return;
       }
-      const locale = (window.varGlobal && window.varGlobal.locale) || 'es';
+      const locale = resolveUiLocale();
       const payload = {
         email,
         lang: locale,
@@ -465,11 +475,11 @@ class PageLogin extends HTMLElement {
         const message =
           (result && result.data && result.data.error) ||
           (result && result.error) ||
-          'No se pudo enviar el email';
+          copy.errors.recoverFailed;
         setRecoverError(message);
         return;
       }
-      await presentInfo('Te hemos enviado un correo con instrucciones para restablecer tu contraseña.');
+      await presentInfo(copy.info.recoverSuccess);
       setPanel('login');
     };
 

@@ -136,6 +136,17 @@ class PageHome extends HTMLElement {
       this.render();
     };
     window.addEventListener('app:locale-change', this._localeHandler);
+    this._profileLocaleToggleHandler = () => {
+      if (!this.isConnected) return;
+      const hasManualOverride = this.normalizeLocale(this.state.localeOverride);
+      if (!hasManualOverride) return;
+      const baseLocale = this.getBaseLocale();
+      const currentUiLocale = this.getUiLocale(baseLocale);
+      const nextUiLocale = getNextLocaleCode(currentUiLocale);
+      this.state.localeOverride = nextUiLocale === baseLocale ? '' : nextUiLocale;
+      this.render();
+    };
+    window.addEventListener('app:profile-locale-toggle', this._profileLocaleToggleHandler);
     this._sessionPercentagesVisibilityHandler = () => {
       if (!this.isConnected) return;
       this.render();
@@ -187,6 +198,9 @@ class PageHome extends HTMLElement {
     }
     if (this._localeHandler) {
       window.removeEventListener('app:locale-change', this._localeHandler);
+    }
+    if (this._profileLocaleToggleHandler) {
+      window.removeEventListener('app:profile-locale-toggle', this._profileLocaleToggleHandler);
     }
     if (this._sessionPercentagesVisibilityHandler) {
       window.removeEventListener(

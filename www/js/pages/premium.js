@@ -1,5 +1,14 @@
+import { getAppLocale } from '../state.js';
+import { getChatCopy, normalizeLocale as normalizeCopyLocale } from '../content/copy.js';
+
 class PagePremium extends HTMLElement {
   connectedCallback() {
+    const PREMIUM_ALWAYS_ON_FOR_TESTING = true;
+    const getRuntimeLocale = () =>
+      normalizeCopyLocale(getAppLocale() || (window.varGlobal && window.varGlobal.locale) || 'en') || 'en';
+    let uiLocale = getRuntimeLocale();
+    let uiCopy = getChatCopy(uiLocale);
+    let tokenFmt = new Intl.NumberFormat(uiLocale === 'es' ? 'es-ES' : 'en-US');
     this.classList.add('ion-page');
     const WAVE_BAR_COUNT = 32;
     const waveBarsMarkup = Array.from(
@@ -30,12 +39,12 @@ class PagePremium extends HTMLElement {
             <div class="premium-card-header">
               <div>
                 <div class="chat-mode-toggle" id="premium-mode-toggle" hidden>
-                  <button type="button" class="chat-mode-btn is-active" data-mode="catbot">Catbot</button>
-                  <button type="button" class="chat-mode-btn" data-mode="chatbot">Chatbot</button>
+                  <button type="button" class="chat-mode-btn is-active" data-mode="catbot">${uiCopy.modeCatbot}</button>
+                  <button type="button" class="chat-mode-btn" data-mode="chatbot">${uiCopy.modeChatbot}</button>
                 </div>
-                <h3 id="premium-coach-title">Coach de pronunciacion</h3>
+                <h3 id="premium-coach-title">${uiCopy.coachCatbotTitle}</h3>
                 <p class="muted" id="premium-coach-subtitle">
-                  Graba tu frase, escucha tu audio y recibe una respuesta simulada.
+                  ${uiCopy.coachCatbotSubtitle}
                 </p>
               </div>
               <div class="coach-avatar coach-avatar-cat" id="premium-coach-avatar" aria-label="Coach">
@@ -51,18 +60,18 @@ class PagePremium extends HTMLElement {
             <div class="premium-access" id="premium-access">
               <div class="premium-access-panel premium-loading-panel" id="premium-loading-panel" hidden>
                 <ion-spinner name="dots"></ion-spinner>
-                <span>Cargando estado de usuario...</span>
+                <span>${uiCopy.loadingUser}</span>
               </div>
               <div class="premium-access-panel" id="premium-login-panel" hidden>
-                <p>Debes iniciar sesion para usar el coach premium.</p>
+                <p>${uiCopy.loginRequired}</p>
                 <button class="chat-btn chat-btn-send premium-login-btn" id="premium-login-btn" type="button">
                   <ion-icon name="log-in"></ion-icon>
-                  <span>Iniciar sesion</span>
+                  <span>${uiCopy.loginCta}</span>
                 </button>
               </div>
               <div class="premium-access-panel" id="premium-locked-panel" hidden>
-                <p>Tu plan no incluye el coach premium.</p>
-                <p class="muted">Actualiza tu plan para desbloquear esta funcionalidad.</p>
+                <p>${uiCopy.planLocked}</p>
+                <p class="muted">${uiCopy.planUpgrade}</p>
               </div>
             </div>
             <div class="chat-panel" id="premium-chat-panel">
@@ -73,45 +82,45 @@ class PagePremium extends HTMLElement {
                     type="text"
                     id="premium-text-input"
                     class="chat-text-input"
-                    placeholder="Escribe tu mensaje..."
+                    placeholder="${uiCopy.inputPlaceholder}"
                     autocomplete="off"
                     enterkeyhint="send"
                   />
                 </div>
                 <div class="chat-controls talk-controls" id="premium-chat-controls">
-                  <button class="chat-btn chat-btn-record talk-record-btn" id="premium-record-btn" type="button" aria-pressed="false" aria-label="Grabar">
+                  <button class="chat-btn chat-btn-record talk-record-btn" id="premium-record-btn" type="button" aria-pressed="false" aria-label="${uiCopy.record}">
                     <ion-icon name="mic"></ion-icon>
-                    <span>Grabar</span>
+                    <span>${uiCopy.record}</span>
                   </button>
                   <div class="talk-recording" id="premium-recording-ui" hidden>
                     <div class="talk-wave talk-wave-recording" id="premium-recording-wave">
                       ${waveBarsMarkup}
                     </div>
                     <div class="talk-timer" id="premium-recording-timer">0:00</div>
-                    <button class="talk-icon-btn talk-stop-btn" id="premium-stop-btn" type="button" aria-label="Detener">
+                    <button class="talk-icon-btn talk-stop-btn" id="premium-stop-btn" type="button" aria-label="${uiCopy.stop}">
                       <ion-icon name="stop"></ion-icon>
                     </button>
                   </div>
                   <div class="talk-review" id="premium-review-ui" hidden>
-                    <button class="talk-icon-btn talk-cancel-btn" id="premium-cancel-btn" type="button" aria-label="Cancelar">
+                    <button class="talk-icon-btn talk-cancel-btn" id="premium-cancel-btn" type="button" aria-label="${uiCopy.cancel}">
                       <ion-icon name="close"></ion-icon>
                     </button>
-                    <button class="chat-btn talk-play-btn" id="premium-preview-btn" type="button" aria-label="Reproducir" disabled>
+                    <button class="chat-btn talk-play-btn" id="premium-preview-btn" type="button" aria-label="${uiCopy.play}" disabled>
                       <ion-icon name="play"></ion-icon>
-                      <span>Escuchar</span>
+                      <span>${uiCopy.listen}</span>
                     </button>
                     <div class="talk-wave talk-wave-review" id="premium-review-wave">
                       ${waveBarsMarkup}
                     </div>
                     <div class="talk-timer talk-timer-review" id="premium-review-timer">0:00</div>
-                    <button class="chat-btn chat-btn-send talk-send-btn" id="premium-send-btn" type="button" aria-label="Enviar" disabled>
+                    <button class="chat-btn chat-btn-send talk-send-btn" id="premium-send-btn" type="button" aria-label="${uiCopy.send}" disabled>
                       <ion-icon name="arrow-up"></ion-icon>
-                      <span>Enviar</span>
+                      <span>${uiCopy.send}</span>
                     </button>
                   </div>
                 </div>
               </div>
-              <div class="chat-hint" id="premium-chat-hint">Pulsa "Grabar" y luego "Detener" para crear tu frase.</div>
+              <div class="chat-hint" id="premium-chat-hint">${uiCopy.hintDefault}</div>
             </div>
           </div>
         </div>
@@ -152,9 +161,9 @@ class PagePremium extends HTMLElement {
     const composerRow = this.querySelector('#premium-composer-row');
     const textRow = this.querySelector('#premium-text-row');
     const textInput = this.querySelector('#premium-text-input');
-    const defaultHint = hintEl ? hintEl.textContent : '';
+    let defaultHint = hintEl ? hintEl.textContent : uiCopy.hintDefault;
 
-    const sampleTranscripts = [
+    const DEFAULT_SAMPLE_TRANSCRIPTS = [
       'I would like to order a coffee, please.',
       'Can you help me find the train station?',
       'I am practicing my pronunciation today.',
@@ -163,13 +172,16 @@ class PagePremium extends HTMLElement {
       'What do you recommend for dinner?'
     ];
 
-    const botTemplates = [
-      (text) => `Nice! Try stressing the key words: "${text}"`,
-      (text) => `Good job. Now say it a bit slower: "${text}"`,
-      (text) => `Great start. Focus on linking the words: "${text}"`,
-      (text) => `Try this version with a softer "t": "${text}"`,
-      (text) => `Let's repeat with clear vowel sounds: "${text}"`
+    const DEFAULT_BOT_TEMPLATES = [
+      'Nice! Try stressing the key words: "{text}"',
+      'Good job. Now say it a bit slower: "{text}"',
+      'Great start. Focus on linking the words: "{text}"',
+      'Try this version with a softer "t": "{text}"',
+      'Let\'s repeat with clear vowel sounds: "{text}"'
     ];
+
+    const resolveCopyList = (value, fallback) =>
+      Array.isArray(value) && value.length ? value : fallback;
 
     let mediaRecorder = null;
     let recordingStream = null;
@@ -847,6 +859,7 @@ class PagePremium extends HTMLElement {
     };
 
     const isPremiumUser = (user) => {
+      if (PREMIUM_ALWAYS_ON_FOR_TESTING) return true;
       const override = getPremiumOverride();
       if (override !== null) return override;
       if (!user || !user.expires_date) return false;
@@ -884,8 +897,6 @@ class PagePremium extends HTMLElement {
       if (hintEl) hintEl.textContent = text;
     };
 
-    const tokenFmt = new Intl.NumberFormat('es-ES');
-
     const getTodayKey = () => new Date().toISOString().slice(0, 10);
 
     const isChatbotDailyLimitActive = () => {
@@ -908,9 +919,9 @@ class PagePremium extends HTMLElement {
         ? Math.max(0, Math.round(Number(info.usedTokensDay)))
         : 0;
       if (limit > 0) {
-        return `Limite diario alcanzado: ${tokenFmt.format(used)} / ${tokenFmt.format(limit)} tokens. Vuelve manana.`;
+        return uiCopy.hintDailyLimitWithCount(tokenFmt.format(used), tokenFmt.format(limit));
       }
-      return 'Limite diario del chatbot alcanzado. Vuelve manana.';
+      return uiCopy.hintDailyLimit;
     };
 
     const setChatbotDailyLimitBlocked = (blocked, info = {}) => {
@@ -1498,7 +1509,7 @@ class PagePremium extends HTMLElement {
       if (accessPanel) accessPanel.hidden = false;
       if (chatPanel) chatPanel.hidden = true;
       setControlsEnabled(false);
-      setHint('Cargando estado de usuario...');
+      setHint(uiCopy.loadingUser);
     };
 
     const hideLoadingState = () => {
@@ -1533,7 +1544,7 @@ class PagePremium extends HTMLElement {
       if (!isRecording) {
         setTalkState(TALK_STATE_REVIEW);
       }
-      const label = simulated ? 'Transcripcion simulada' : 'Transcripcion lista';
+      const label = simulated ? uiCopy.transcriptSimulated : uiCopy.transcriptReady;
       const hintText = notice ? `${notice} ${label}: "${transcript}"` : `${label}: "${transcript}"`;
       setHint(hintText);
     };
@@ -1557,11 +1568,16 @@ class PagePremium extends HTMLElement {
       }
     };
 
-    const pickTranscript = () =>
-      sampleTranscripts[Math.floor(Math.random() * sampleTranscripts.length)];
+    const pickTranscript = () => {
+      const transcripts = resolveCopyList(uiCopy.sampleTranscripts, DEFAULT_SAMPLE_TRANSCRIPTS);
+      return transcripts[Math.floor(Math.random() * transcripts.length)];
+    };
 
-    const pickBotReply = (text) =>
-      botTemplates[Math.floor(Math.random() * botTemplates.length)](text);
+    const pickBotReply = (text) => {
+      const templates = resolveCopyList(uiCopy.botTemplates, DEFAULT_BOT_TEMPLATES);
+      const template = templates[Math.floor(Math.random() * templates.length)] || '{text}';
+      return String(template).replace(/\{text\}/g, String(text || ''));
+    };
 
     const resetSpeechState = () => {
       speechTranscript = '';
@@ -1730,7 +1746,7 @@ class PagePremium extends HTMLElement {
       if (!isRecording) return;
       const preview = `${speechTranscript} ${speechInterim}`.trim();
       if (preview) {
-        setHint(`Escuchando: "${preview}"`);
+        setHint(uiCopy.hintListening(preview));
       }
     };
 
@@ -1746,11 +1762,11 @@ class PagePremium extends HTMLElement {
       let notice = '';
       if (simulated) {
         if (!canTranscribe()) {
-          notice = 'Transcripcion real no disponible.';
+          notice = uiCopy.transcriptionUnavailable;
         } else if (speechFailed) {
-          notice = 'No se pudo transcribir.';
+          notice = uiCopy.transcriptionFailed;
         } else {
-          notice = 'Transcripcion simulada.';
+          notice = `${uiCopy.transcriptSimulated}.`;
         }
       }
       setDraft({
@@ -2312,8 +2328,8 @@ class PagePremium extends HTMLElement {
 
     const getIntroCopy = (mode) =>
       mode === 'chatbot'
-        ? 'Hi!, i am your English teacher, how can i help you?'
-        : 'Hi! Record a phrase in English and I will answer with a suggestion.';
+        ? uiCopy.introChatbot
+        : uiCopy.introCatbot;
 
     const renderMessage = ({ role, text, audioUrl, speakText }, mode) => {
       if (!threadEl) return;
@@ -2335,7 +2351,7 @@ class PagePremium extends HTMLElement {
         const playBtn = document.createElement('button');
         playBtn.type = 'button';
         playBtn.className = 'chat-audio-btn';
-        playBtn.innerHTML = `<ion-icon name="play"></ion-icon><span>${role === 'user' ? 'Escuchar' : 'Repetir'}</span>`;
+        playBtn.innerHTML = `<ion-icon name="play"></ion-icon><span>${role === 'user' ? uiCopy.listen : uiCopy.repeat}</span>`;
         if (!audioUrl && !speakText) {
           playBtn.disabled = true;
         }
@@ -2365,7 +2381,7 @@ class PagePremium extends HTMLElement {
       if (threadEl.querySelector('.chat-msg-typing')) return;
       const msgEl = document.createElement('div');
       msgEl.className = 'chat-msg chat-msg-bot chat-msg-typing';
-      msgEl.setAttribute('aria-label', 'Escribiendo...');
+      msgEl.setAttribute('aria-label', uiCopy.typingAria);
       const bubbleEl = document.createElement('div');
       bubbleEl.className = 'chat-bubble chat-bubble-typing';
       bubbleEl.innerHTML = `
@@ -2484,7 +2500,7 @@ class PagePremium extends HTMLElement {
 
     const finishRecording = (mimeType) => {
       if (!recordedChunks.length) {
-        setHint('No se detecto audio. Pulsa "Grabar" para intentarlo de nuevo.');
+        setHint(uiCopy.hintNoAudio);
         clearDraft(true);
         setTalkState(TALK_STATE_IDLE);
         return;
@@ -2544,7 +2560,7 @@ class PagePremium extends HTMLElement {
           audioUrl: '',
           speakText: transcript,
           simulated: true,
-          notice: 'Microfono no disponible.'
+          notice: uiCopy.microphoneUnavailable
         });
         return;
       }
@@ -2558,7 +2574,7 @@ class PagePremium extends HTMLElement {
           audioUrl: '',
           speakText: transcript,
           simulated: true,
-          notice: 'No se pudo acceder al microfono.'
+          notice: uiCopy.microphoneAccessFailed
         });
         return;
       }
@@ -2596,11 +2612,11 @@ class PagePremium extends HTMLElement {
       const transcribing = startSpeechRecognition();
       setRecordButton(true);
       if (transcribing) {
-        setHint('Grabando... habla en ingles y pulsa "Detener".');
+        setHint(uiCopy.hintRecordingTranscribing);
       } else if (!canTranscribe()) {
-        setHint('Grabando... pulsa "Detener" (transcripcion simulada).');
+        setHint(uiCopy.hintRecordingSimulated);
       } else {
-        setHint('Grabando... pulsa "Detener" cuando termines.');
+        setHint(uiCopy.hintRecordingGeneric);
       }
     };
 
@@ -2625,7 +2641,7 @@ class PagePremium extends HTMLElement {
       }
       setRecordButton(false);
       const transcribing = isAndroidPlatform() && canNativeFileTranscribe();
-      setHint(transcribing ? 'Transcribiendo...' : 'Procesando audio...');
+      setHint(transcribing ? uiCopy.hintTranscribing : uiCopy.hintProcessing);
     };
 
     const disconnectRealtime = () => {
@@ -2947,7 +2963,7 @@ class PagePremium extends HTMLElement {
       setTypingState(messageMode, true);
       if (payload.audioUrl) retainedAudioUrls.push(payload.audioUrl);
       clearDraft(false);
-      setHint('Puedes grabar otra frase cuando quieras.');
+      setHint(uiCopy.hintRecordAgain);
       emitRealtimeMessage({ text: userText });
       if (messageMode === 'catbot') {
         if (replyTimers[messageMode]) clearTimeout(replyTimers[messageMode]);
@@ -3117,13 +3133,92 @@ class PagePremium extends HTMLElement {
     const updateCoachCopy = () => {
       if (!coachTitleEl || !coachSubtitleEl) return;
       if (chatMode === 'chatbot') {
-        coachTitleEl.textContent = 'Coach de IA';
-        coachSubtitleEl.textContent = 'Interactua libremente con el tutor de Ingles.';
+        coachTitleEl.textContent = uiCopy.coachChatbotTitle;
+        coachSubtitleEl.textContent = uiCopy.coachChatbotSubtitle;
       } else {
-        coachTitleEl.textContent = 'Coach de pronunciacion';
-        coachSubtitleEl.textContent =
-          'Graba tu frase, escucha tu audio y recibe una respuesta simulada.';
+        coachTitleEl.textContent = uiCopy.coachCatbotTitle;
+        coachSubtitleEl.textContent = uiCopy.coachCatbotSubtitle;
       }
+    };
+
+    const applyLocaleCopy = (nextLocale, options = {}) => {
+      const normalized = normalizeCopyLocale(nextLocale || getRuntimeLocale()) || 'en';
+      const force = options.force === true;
+      const rerenderThread = options.rerenderThread === true;
+      if (!force && normalized === uiLocale) return false;
+
+      const previousDefaultHint = defaultHint;
+      uiLocale = normalized;
+      uiCopy = getChatCopy(uiLocale);
+      tokenFmt = new Intl.NumberFormat(uiLocale === 'es' ? 'es-ES' : 'en-US');
+
+      if (modeToggle) {
+        const catBtn = modeToggle.querySelector('[data-mode="catbot"]');
+        const botBtn = modeToggle.querySelector('[data-mode="chatbot"]');
+        if (catBtn) catBtn.textContent = uiCopy.modeCatbot;
+        if (botBtn) botBtn.textContent = uiCopy.modeChatbot;
+      }
+
+      if (loadingPanel) {
+        const loadingText = loadingPanel.querySelector('span');
+        if (loadingText) loadingText.textContent = uiCopy.loadingUser;
+      }
+
+      if (loginPanel) {
+        const loginText = loginPanel.querySelector('p');
+        if (loginText) loginText.textContent = uiCopy.loginRequired;
+      }
+      if (loginBtn) {
+        const loginLabel = loginBtn.querySelector('span');
+        if (loginLabel) loginLabel.textContent = uiCopy.loginCta;
+      }
+
+      if (lockedPanel) {
+        const lockedText = lockedPanel.querySelector('p');
+        const lockedMuted = lockedPanel.querySelector('p.muted');
+        if (lockedText) lockedText.textContent = uiCopy.planLocked;
+        if (lockedMuted) lockedMuted.textContent = uiCopy.planUpgrade;
+      }
+
+      if (textInput) textInput.placeholder = uiCopy.inputPlaceholder;
+
+      if (recordBtn) {
+        recordBtn.setAttribute('aria-label', uiCopy.record);
+        const recordLabel = recordBtn.querySelector('span');
+        if (recordLabel) recordLabel.textContent = uiCopy.record;
+      }
+      if (stopBtn) stopBtn.setAttribute('aria-label', uiCopy.stop);
+      if (cancelBtn) cancelBtn.setAttribute('aria-label', uiCopy.cancel);
+      if (previewBtn) {
+        previewBtn.setAttribute('aria-label', uiCopy.play);
+        const previewLabel = previewBtn.querySelector('span');
+        if (previewLabel) previewLabel.textContent = uiCopy.listen;
+      }
+      if (sendBtn) {
+        sendBtn.setAttribute('aria-label', uiCopy.send);
+        const sendLabel = sendBtn.querySelector('span');
+        if (sendLabel) sendLabel.textContent = uiCopy.send;
+      }
+
+      defaultHint = uiCopy.hintDefault;
+      if (hintEl) {
+        const currentHint = String(hintEl.textContent || '').trim();
+        const shouldResetHint =
+          !currentHint ||
+          currentHint === previousDefaultHint ||
+          currentHint === uiCopy.hintDefault;
+        if (chatMode === 'chatbot' && isChatbotDailyLimitActive()) {
+          setHint(getChatbotDailyLimitHint());
+        } else if (shouldResetHint) {
+          setHint(defaultHint);
+        }
+      }
+
+      updateCoachCopy();
+      if (rerenderThread) {
+        renderThread(chatMode);
+      }
+      return true;
     };
 
     const updateSendButtonIcon = () => {
@@ -3238,6 +3333,13 @@ class PagePremium extends HTMLElement {
       setChatMode(mode, { reconnect: true });
     });
 
+    applyLocaleCopy(uiLocale, { force: true, rerenderThread: false });
+    this._localeHandler = (event) => {
+      const nextLocale = event && event.detail ? event.detail.locale : '';
+      applyLocaleCopy(nextLocale, { rerenderThread: true });
+    };
+    window.addEventListener('app:locale-change', this._localeHandler);
+
     this._debugHandler = applyDebugMode;
     window.addEventListener('app:speak-debug', this._debugHandler);
     applyDebugMode();
@@ -3305,10 +3407,15 @@ class PagePremium extends HTMLElement {
     if (this._debugHandler) {
       window.removeEventListener('app:speak-debug', this._debugHandler);
     }
+    if (this._localeHandler) {
+      window.removeEventListener('app:locale-change', this._localeHandler);
+    }
     if (this._talkResetHandler) {
       window.removeEventListener('app:talk-timelines-reset', this._talkResetHandler);
     }
   }
 }
 
-customElements.define('page-premium', PagePremium);
+if (!customElements.get('page-premium')) {
+  customElements.define('page-premium', PagePremium);
+}

@@ -1,10 +1,22 @@
-import { hasLoginTabsLock } from '../state.js';
+import { getAppLocale, hasLoginTabsLock } from '../state.js';
+import { getTabsCopy, normalizeLocale as normalizeCopyLocale } from '../content/copy.js';
 
 class TabsPage extends HTMLElement {
   connectedCallback() {
     this.classList.add('ion-page');
     const TAB_STORAGE_KEY = 'appv5:active-tab';
-    const allowedTabs = ['home', 'freeride', 'tu', 'premium'];
+    const allowedTabs = ['home', 'freeride', 'tu', 'chat'];
+    const normalizeTab = (tab) => {
+      const value = String(tab || '').trim().toLowerCase();
+      return value === 'premium' ? 'chat' : value;
+    };
+    const resolveUiLocale = () => {
+      const fromState = normalizeCopyLocale(getAppLocale());
+      if (fromState) return fromState;
+      return normalizeCopyLocale(window.varGlobal?.locale) || 'en';
+    };
+    const readTabsCopy = () => getTabsCopy(resolveUiLocale());
+    const tabsCopy = readTabsCopy();
     this.innerHTML = `
       <ion-tabs no-router>
         <ion-tab tab="home">
@@ -16,25 +28,25 @@ class TabsPage extends HTMLElement {
         <ion-tab tab="tu">
           <page-profile></page-profile>
         </ion-tab>
-        <ion-tab tab="premium">
+        <ion-tab tab="chat">
           <page-premium></page-premium>
         </ion-tab>
         <ion-tab-bar slot="bottom" class="app-tab-bar">
           <ion-tab-button tab="home">
             <ion-icon name="barbell-outline"></ion-icon>
-            <ion-label>Training</ion-label>
+            <ion-label data-tab-label="home">${tabsCopy.training}</ion-label>
           </ion-tab-button>
           <ion-tab-button tab="freeride">
             <ion-icon name="flask-outline"></ion-icon>
-            <ion-label>Lab</ion-label>
+            <ion-label data-tab-label="freeride">${tabsCopy.lab}</ion-label>
           </ion-tab-button>
           <ion-tab-button tab="tu">
             <ion-icon name="person-circle-outline"></ion-icon>
-            <ion-label>You</ion-label>
+            <ion-label data-tab-label="tu">${tabsCopy.you}</ion-label>
           </ion-tab-button>
-          <ion-tab-button tab="premium">
+          <ion-tab-button tab="chat">
             <img class="tab-mascot-icon" src="assets/mascot/mascot-cat.png" alt="">
-            <ion-label>Chat</ion-label>
+            <ion-label data-tab-label="chat">${tabsCopy.chat}</ion-label>
           </ion-tab-button>
         </ion-tab-bar>
       </ion-tabs>
@@ -42,6 +54,17 @@ class TabsPage extends HTMLElement {
 
     const tabsEl = this.querySelector('ion-tabs');
     const tabBarEl = this.querySelector('ion-tab-bar');
+    const applyTabLabels = () => {
+      const copy = readTabsCopy();
+      const homeLabel = this.querySelector('[data-tab-label="home"]');
+      const freeRideLabel = this.querySelector('[data-tab-label="freeride"]');
+      const youLabel = this.querySelector('[data-tab-label="tu"]');
+      const chatLabel = this.querySelector('[data-tab-label="chat"]');
+      if (homeLabel) homeLabel.textContent = copy.training;
+      if (freeRideLabel) freeRideLabel.textContent = copy.lab;
+      if (youLabel) youLabel.textContent = copy.you;
+      if (chatLabel) chatLabel.textContent = copy.chat;
+    };
     let forcingTab = false;
     let wasLoggedIn = false;
 
@@ -54,8 +77,10 @@ class TabsPage extends HTMLElement {
     };
 
     const writeStoredTab = (tab) => {
+      const normalized = normalizeTab(tab);
+      if (!allowedTabs.includes(normalized)) return;
       try {
-        localStorage.setItem(TAB_STORAGE_KEY, tab);
+        localStorage.setItem(TAB_STORAGE_KEY, normalized);
       } catch (err) {
         // no-op
       }
@@ -114,7 +139,8 @@ class TabsPage extends HTMLElement {
       const target = event.target instanceof Element ? event.target : null;
       const tabButton = target ? target.closest('ion-tab-button[tab]') : null;
       if (!tabButton) return;
-      const tab = tabButton.getAttribute('tab');
+      const rawTab = tabButton.getAttribute('tab');
+      const tab = normalizeTab(rawTab);
       if (!tab || !allowedTabs.includes(tab)) return;
 
       if (isTabsLocked() && tab !== 'tu') {
@@ -136,7 +162,7 @@ class TabsPage extends HTMLElement {
     tabBarEl?.addEventListener('click', this._tabBarClickHandler, true);
 
     this._tabChangeHandler = (event) => {
-      const tab = event && event.detail ? event.detail.tab : null;
+      const tab = normalizeTab(event && event.detail ? event.detail.tab : null);
       if (!tab || !allowedTabs.includes(tab)) return;
       if (forcingTab) return;
 
@@ -168,6 +194,8 @@ class TabsPage extends HTMLElement {
       }
     };
     window.addEventListener('app:user-change', this._userChangeHandler);
+    this._localeChangeHandler = () => applyTabLabels();
+    window.addEventListener('app:locale-change', this._localeChangeHandler);
 
     if (isTabsLocked()) {
       setTimeout(() => enforceLoginTabsLock(true), 0);
@@ -175,9 +203,10 @@ class TabsPage extends HTMLElement {
     }
 
     const storedTab = readStoredTab();
-    if (storedTab && allowedTabs.includes(storedTab)) {
+    const normalizedStoredTab = normalizeTab(storedTab);
+    if (normalizedStoredTab && allowedTabs.includes(normalizedStoredTab)) {
       setTimeout(() => {
-        forceTab(storedTab);
+        forceTab(normalizedStoredTab);
       }, 0);
     }
   }
@@ -199,6 +228,10 @@ class TabsPage extends HTMLElement {
 
     if (this._userChangeHandler) {
       window.removeEventListener('app:user-change', this._userChangeHandler);
+    }
+
+    if (this._localeChangeHandler) {
+      window.removeEventListener('app:locale-change', this._localeChangeHandler);
     }
   }
 }

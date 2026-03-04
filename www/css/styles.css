@@ -2114,16 +2114,23 @@ page-premium .page-shell {
   flex: 1;
   min-height: 0;
   padding-bottom: 16px;
+  width: 100%;
+  align-self: stretch;
+  box-sizing: border-box;
 }
 
 page-premium .premium-chat-card {
   flex: 1;
   min-height: 0;
+  width: 100%;
+  align-self: stretch;
+  box-sizing: border-box;
 }
 
 page-premium .chat-panel {
   flex: 1;
   min-height: 0;
+  width: 100%;
   padding-bottom: var(--premium-keyboard-offset, 0px);
   transition: padding-bottom 0.24s ease;
   will-change: padding-bottom;
@@ -2213,6 +2220,8 @@ page-premium.chat-keyboard-resized .chat-hint {
 page-premium ion-content::part(scroll) {
   display: flex;
   flex-direction: column;
+  align-items: stretch;
+  width: 100%;
 }
 
 .premium-card-header {
@@ -4206,6 +4215,7 @@ page-premium ion-content::part(scroll) {
 .free-ride-sentence-row {
   gap: 10px;
   margin-top: 2px;
+  margin-inline: auto;
 }
 
 .free-ride-sentence-row .speak-sentence {
@@ -5897,6 +5907,11 @@ ion-select.training-pill.active::part(icon) {
 }
 
 @media (min-width: 720px) {
+  page-premium .page-shell {
+    max-width: 860px;
+    margin: 0 auto;
+  }
+
   .page-shell {
     max-width: 640px;
     margin: 0 auto;

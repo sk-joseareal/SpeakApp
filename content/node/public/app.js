@@ -152,14 +152,6 @@
         .map((item) => asText(item))
     );
 
-  const splitHintLines = (value) =>
-    String(value || '')
-      .replace(/<\s*br\s*\/?>/gi, '\n')
-      .split(/\r?\n+/)
-      .map((line) => asText(line))
-      .filter(Boolean)
-      .slice(0, 2);
-
   const getFirstText = (...values) => {
     for (const value of values) {
       const normalized = asText(value);
@@ -170,43 +162,10 @@
 
   const normalizeHintI18n = (rawStep) => {
     const step = rawStep && typeof rawStep === 'object' ? rawStep : {};
-    const legacyLines = splitHintLines(step.hint);
-
-    let hintEnLine1 = getFirstText(
-      step.hint_en_line1,
-      step.hint_en_1,
-      step.hint_en_line_1,
-      step.hint_en_linea_1
-    );
-    let hintEnLine2 = getFirstText(
-      step.hint_en_line2,
-      step.hint_en_2,
-      step.hint_en_line_2,
-      step.hint_en_linea_2
-    );
-    let hintEsLine1 = getFirstText(
-      step.hint_es_line1,
-      step.hint_es_1,
-      step.hint_es_line_1,
-      step.hint_es_linea_1
-    );
-    let hintEsLine2 = getFirstText(
-      step.hint_es_line2,
-      step.hint_es_2,
-      step.hint_es_line_2,
-      step.hint_es_linea_2
-    );
-
-    const hasExplicitHints = Boolean(
-      hintEnLine1 || hintEnLine2 || hintEsLine1 || hintEsLine2
-    );
-
-    if (!hasExplicitHints && legacyLines.length) {
-      hintEnLine1 = legacyLines[0] || '';
-      hintEnLine2 = legacyLines[1] || '';
-      hintEsLine1 = legacyLines[0] || '';
-      hintEsLine2 = legacyLines[1] || '';
-    }
+    let hintEnLine1 = getFirstText(step.hint_en_line1);
+    let hintEnLine2 = getFirstText(step.hint_en_line2);
+    let hintEsLine1 = getFirstText(step.hint_es_line1);
+    let hintEsLine2 = getFirstText(step.hint_es_line2);
 
     if ((!hintEnLine1 && !hintEnLine2) && (hintEsLine1 || hintEsLine2)) {
       hintEnLine1 = hintEsLine1;
@@ -244,50 +203,39 @@
       en: entity[`${fieldName}_en`],
       es: entity[`${fieldName}_es`]
     };
-    return normalizeTextI18n(source);
+    return normalizeTextI18n(source, '');
   };
 
   const normalizeSession = (session, idx) => {
     const base = session && typeof session === 'object' ? deepClone(session) : {};
     base.id = asText(base.id) || `session-${idx + 1}`;
-    base.title_i18n = extractTextI18n(base, 'title');
-    base.title = getFirstText(base.title_i18n.en, base.title_i18n.es) || `Session ${idx + 1}`;
+    const sessionTitle = normalizeTextI18n(extractTextI18n(base, 'title'), `Session ${idx + 1}`);
+    base.title_en = sessionTitle.en;
+    base.title_es = sessionTitle.es;
     delete base.progress;
     delete base.status;
 
     base.speak = base.speak && typeof base.speak === 'object' ? base.speak : {};
     base.speak.focus = asText(base.speak.focus);
     base.speak.sound = base.speak.sound && typeof base.speak.sound === 'object' ? base.speak.sound : {};
-    base.speak.sound.title_i18n = extractTextI18n(base.speak.sound, 'title');
-    base.speak.sound.title = getFirstText(base.speak.sound.title_i18n.en, base.speak.sound.title_i18n.es);
+    const soundTitle = normalizeTextI18n(extractTextI18n(base.speak.sound, 'title'));
+    base.speak.sound.title_en = soundTitle.en;
+    base.speak.sound.title_es = soundTitle.es;
     Object.assign(base.speak.sound, normalizeHintI18n(base.speak.sound));
-    delete base.speak.sound.hint;
-    delete base.speak.sound.hint_en_1;
-    delete base.speak.sound.hint_en_2;
-    delete base.speak.sound.hint_es_1;
-    delete base.speak.sound.hint_es_2;
     base.speak.sound.phonetic = asText(base.speak.sound.phonetic);
     base.speak.sound.expected = asText(base.speak.sound.expected);
     base.speak.spelling = base.speak.spelling && typeof base.speak.spelling === 'object' ? base.speak.spelling : {};
-    base.speak.spelling.title_i18n = extractTextI18n(base.speak.spelling, 'title');
-    base.speak.spelling.title = getFirstText(base.speak.spelling.title_i18n.en, base.speak.spelling.title_i18n.es);
+    const spellingTitle = normalizeTextI18n(extractTextI18n(base.speak.spelling, 'title'));
+    base.speak.spelling.title_en = spellingTitle.en;
+    base.speak.spelling.title_es = spellingTitle.es;
     Object.assign(base.speak.spelling, normalizeHintI18n(base.speak.spelling));
-    delete base.speak.spelling.hint;
-    delete base.speak.spelling.hint_en_1;
-    delete base.speak.spelling.hint_en_2;
-    delete base.speak.spelling.hint_es_1;
-    delete base.speak.spelling.hint_es_2;
     base.speak.spelling.words = uniqStrings(base.speak.spelling.words);
     delete base.speak.spelling.expected;
     base.speak.sentence = base.speak.sentence && typeof base.speak.sentence === 'object' ? base.speak.sentence : {};
-    base.speak.sentence.title_i18n = extractTextI18n(base.speak.sentence, 'title');
-    base.speak.sentence.title = getFirstText(base.speak.sentence.title_i18n.en, base.speak.sentence.title_i18n.es);
+    const sentenceTitle = normalizeTextI18n(extractTextI18n(base.speak.sentence, 'title'));
+    base.speak.sentence.title_en = sentenceTitle.en;
+    base.speak.sentence.title_es = sentenceTitle.es;
     Object.assign(base.speak.sentence, normalizeHintI18n(base.speak.sentence));
-    delete base.speak.sentence.hint;
-    delete base.speak.sentence.hint_en_1;
-    delete base.speak.sentence.hint_en_2;
-    delete base.speak.sentence.hint_es_1;
-    delete base.speak.sentence.hint_es_2;
     base.speak.sentence.sentence = asText(base.speak.sentence.sentence);
     base.speak.sentence.expected = asText(base.speak.sentence.expected);
 
@@ -303,10 +251,10 @@
       const noteI18n = extractTextI18n(base, 'note');
       return {
         id: asText(base.id) || `route-${idx + 1}`,
-        title: getFirstText(titleI18n.en, titleI18n.es) || `Route ${idx + 1}`,
-        title_i18n: titleI18n,
-        note: getFirstText(noteI18n.en, noteI18n.es),
-        note_i18n: noteI18n,
+        title_en: titleI18n.en || `Route ${idx + 1}`,
+        title_es: titleI18n.es || titleI18n.en || `Route ${idx + 1}`,
+        note_en: noteI18n.en || '',
+        note_es: noteI18n.es || noteI18n.en || '',
         moduleIds: uniqStrings(base.moduleIds)
       };
     });
@@ -317,10 +265,10 @@
       const subtitleI18n = extractTextI18n(base, 'subtitle');
       return {
         id: asText(base.id) || `module-${idx + 1}`,
-        title: getFirstText(titleI18n.en, titleI18n.es) || `Module ${idx + 1}`,
-        title_i18n: titleI18n,
-        subtitle: getFirstText(subtitleI18n.en, subtitleI18n.es),
-        subtitle_i18n: subtitleI18n,
+        title_en: titleI18n.en || `Module ${idx + 1}`,
+        title_es: titleI18n.es || titleI18n.en || `Module ${idx + 1}`,
+        subtitle_en: subtitleI18n.en || '',
+        subtitle_es: subtitleI18n.es || subtitleI18n.en || '',
         sessionIds: uniqStrings(base.sessionIds)
       };
     });
@@ -439,9 +387,15 @@
 
   const serializeSessionStepForJson = (rawStep) => {
     const step = rawStep && typeof rawStep === 'object' ? { ...rawStep } : {};
-    const titleI18n = normalizeTextI18n(step.title_i18n);
-    delete step.title;
-    delete step.title_i18n;
+    const titleI18n = normalizeTextI18n(
+      {
+        en: step.title_en,
+        es: step.title_es
+      },
+      ''
+    );
+    delete step.title_en;
+    delete step.title_es;
     return {
       ...step,
       ...withFlatTextFields('title', titleI18n, '')
@@ -450,8 +404,8 @@
 
   const buildJsonPayloadFromState = () => ({
     routes: contentState.routes.map((route) => {
-      const titleI18n = normalizeTextI18n(route.title_i18n);
-      const noteI18n = normalizeTextI18n(route.note_i18n);
+      const titleI18n = normalizeTextI18n({ en: route.title_en, es: route.title_es });
+      const noteI18n = normalizeTextI18n({ en: route.note_en, es: route.note_es });
       return {
         id: route.id,
         ...withFlatTextFields('title', titleI18n, ''),
@@ -460,8 +414,8 @@
       };
     }),
     modules: contentState.modules.map((module) => {
-      const titleI18n = normalizeTextI18n(module.title_i18n);
-      const subtitleI18n = normalizeTextI18n(module.subtitle_i18n);
+      const titleI18n = normalizeTextI18n({ en: module.title_en, es: module.title_es });
+      const subtitleI18n = normalizeTextI18n({ en: module.subtitle_en, es: module.subtitle_es });
       return {
         id: module.id,
         ...withFlatTextFields('title', titleI18n, ''),
@@ -470,7 +424,7 @@
       };
     }),
     sessions: contentState.sessions.map((session) => {
-      const titleI18n = normalizeTextI18n(session.title_i18n);
+      const titleI18n = normalizeTextI18n({ en: session.title_en, es: session.title_es });
       return {
         id: session.id,
         ...withFlatTextFields('title', titleI18n, ''),
@@ -580,6 +534,13 @@
     }
   };
 
+  const getLocalizedFieldText = (entry, fieldName, fallback = '') => {
+    if (!entry || typeof entry !== 'object') return asText(fallback);
+    const en = asText(entry[`${fieldName}_en`]);
+    const es = asText(entry[`${fieldName}_es`]);
+    return getFirstText(en, es, fallback);
+  };
+
   const renderEntityItem = (entry, selected, meta) => {
     const btn = document.createElement('button');
     btn.type = 'button';
@@ -587,7 +548,7 @@
 
     const titleEl = document.createElement('span');
     titleEl.className = 'entity-item-title';
-    titleEl.textContent = entry.title || entry.id;
+    titleEl.textContent = getLocalizedFieldText(entry, 'title', entry.id);
 
     const metaEl = document.createElement('span');
     metaEl.className = 'entity-item-meta';
@@ -706,15 +667,15 @@
     });
 
     if (route) {
-      const routeTitleI18n = normalizeTextI18n(route.title_i18n, route.title);
-      const routeNoteI18n = normalizeTextI18n(route.note_i18n, route.note);
+      const routeTitleI18n = normalizeTextI18n({ en: route.title_en, es: route.title_es });
+      const routeNoteI18n = normalizeTextI18n({ en: route.note_en, es: route.note_es });
       setRouteFormDisabled(false);
       el.routeIdInput.value = route.id;
       el.routeTitleInput.value = routeTitleI18n.en || '';
       el.routeTitleEsInput.value = routeTitleI18n.es || '';
       el.routeNoteInput.value = routeNoteI18n.en || '';
       el.routeNoteEsInput.value = routeNoteI18n.es || '';
-      el.selectedRouteLabel.textContent = `Route actual: ${route.title} (${route.id})`;
+      el.selectedRouteLabel.textContent = `Route actual: ${getLocalizedFieldText(route, 'title', route.id)} (${route.id})`;
       el.addModuleBtn.disabled = false;
     } else {
       setRouteFormDisabled(true);
@@ -728,15 +689,18 @@
     }
 
     if (module) {
-      const moduleTitleI18n = normalizeTextI18n(module.title_i18n, module.title);
-      const moduleSubtitleI18n = normalizeTextI18n(module.subtitle_i18n, module.subtitle);
+      const moduleTitleI18n = normalizeTextI18n({ en: module.title_en, es: module.title_es });
+      const moduleSubtitleI18n = normalizeTextI18n({
+        en: module.subtitle_en,
+        es: module.subtitle_es
+      });
       setModuleFormDisabled(false);
       el.moduleIdInput.value = module.id;
       el.moduleTitleInput.value = moduleTitleI18n.en || '';
       el.moduleTitleEsInput.value = moduleTitleI18n.es || '';
       el.moduleSubtitleInput.value = moduleSubtitleI18n.en || '';
       el.moduleSubtitleEsInput.value = moduleSubtitleI18n.es || '';
-      el.selectedModuleLabel.textContent = `Módulo actual: ${module.title} (${module.id})`;
+      el.selectedModuleLabel.textContent = `Módulo actual: ${getLocalizedFieldText(module, 'title', module.id)} (${module.id})`;
     } else {
       setModuleFormDisabled(true);
       el.moduleIdInput.value = '';
@@ -748,9 +712,9 @@
     }
 
     if (session) {
-      const sessionTitleI18n = normalizeTextI18n(session.title_i18n, session.title);
+      const sessionTitleI18n = normalizeTextI18n({ en: session.title_en, es: session.title_es });
       setSessionFormDisabled(false);
-      el.selectedSessionLabel.textContent = `Sesión actual: ${session.title} (${session.id})`;
+      el.selectedSessionLabel.textContent = `Sesión actual: ${getLocalizedFieldText(session, 'title', session.id)} (${session.id})`;
       el.sessionIdInput.value = session.id;
       el.sessionTitleInput.value = sessionTitleI18n.en || '';
       el.sessionTitleEsInput.value = sessionTitleI18n.es || '';
@@ -765,9 +729,15 @@
       const sentence = session.speak && session.speak.sentence && typeof session.speak.sentence === 'object'
         ? session.speak.sentence
         : {};
-      const soundTitleI18n = normalizeTextI18n(sound.title_i18n, sound.title);
-      const spellingTitleI18n = normalizeTextI18n(spelling.title_i18n, spelling.title);
-      const sentenceTitleI18n = normalizeTextI18n(sentence.title_i18n, sentence.title);
+      const soundTitleI18n = normalizeTextI18n({ en: sound.title_en, es: sound.title_es });
+      const spellingTitleI18n = normalizeTextI18n({
+        en: spelling.title_en,
+        es: spelling.title_es
+      });
+      const sentenceTitleI18n = normalizeTextI18n({
+        en: sentence.title_en,
+        es: sentence.title_es
+      });
 
       el.sessionSoundTitleInput.value = soundTitleI18n.en || '';
       el.sessionSoundTitleEsInput.value = soundTitleI18n.es || '';
@@ -833,10 +803,10 @@
     const title = `Route ${contentState.routes.length + 1}`;
     contentState.routes.push({
       id,
-      title,
-      title_i18n: normalizeTextI18n({ en: title, es: title }, title),
-      note: '',
-      note_i18n: { en: '', es: '' },
+      title_en: title,
+      title_es: title,
+      note_en: '',
+      note_es: '',
       moduleIds: []
     });
     selectedRouteId = id;
@@ -876,10 +846,10 @@
     }
 
     route.id = nextId;
-    route.title_i18n = nextTitleI18n;
-    route.title = nextTitle;
-    route.note_i18n = nextNoteI18n;
-    route.note = nextNote;
+    route.title_en = nextTitleI18n.en;
+    route.title_es = nextTitleI18n.es;
+    route.note_en = nextNoteI18n.en;
+    route.note_es = nextNoteI18n.es;
     selectedRouteId = nextId;
     commitGuidedChanges('Route actualizada.');
   };
@@ -912,10 +882,10 @@
     const title = `Module ${contentState.modules.length + 1}`;
     const module = {
       id,
-      title,
-      title_i18n: normalizeTextI18n({ en: title, es: title }, title),
-      subtitle: '',
-      subtitle_i18n: { en: '', es: '' },
+      title_en: title,
+      title_es: title,
+      subtitle_en: '',
+      subtitle_es: '',
       sessionIds: []
     };
 
@@ -958,10 +928,10 @@
 
     const prevId = module.id;
     module.id = nextId;
-    module.title_i18n = nextTitleI18n;
-    module.title = nextTitle;
-    module.subtitle_i18n = nextSubtitleI18n;
-    module.subtitle = nextSubtitle;
+    module.title_en = nextTitleI18n.en;
+    module.title_es = nextTitleI18n.es;
+    module.subtitle_en = nextSubtitleI18n.en;
+    module.subtitle_es = nextSubtitleI18n.es;
 
     if (prevId !== nextId) {
       contentState.routes.forEach((route) => {
@@ -1009,11 +979,13 @@
     const session = normalizeSession(
       {
         id,
-        title: `Session ${contentState.sessions.length + 1}`,
+        title_en: `Session ${contentState.sessions.length + 1}`,
+        title_es: `Session ${contentState.sessions.length + 1}`,
         speak: {
           focus: '',
           sound: {
-            title: 'THE WAY',
+            title_en: 'THE WAY',
+            title_es: 'LA FORMA',
             hint_en_line1: '',
             hint_en_line2: '',
             hint_es_line1: '',
@@ -1022,7 +994,8 @@
             expected: ''
           },
           spelling: {
-            title: 'THE SPELLING',
+            title_en: 'THE SPELLING',
+            title_es: 'LA ESCRITURA',
             hint_en_line1: '',
             hint_en_line2: '',
             hint_es_line1: '',
@@ -1031,7 +1004,8 @@
             expected: ''
           },
           sentence: {
-            title: 'WHOLE SENTENCE',
+            title_en: 'WHOLE SENTENCE',
+            title_es: 'FRASE COMPLETA',
             hint_en_line1: '',
             hint_en_line2: '',
             hint_es_line1: '',
@@ -1113,14 +1087,14 @@
 
     const prevId = session.id;
     session.id = nextId;
-    session.title_i18n = nextTitleI18n;
-    session.title = nextTitle;
+    session.title_en = nextTitleI18n.en;
+    session.title_es = nextTitleI18n.es;
 
     session.speak = session.speak && typeof session.speak === 'object' ? session.speak : {};
     session.speak.focus = nextFocus;
     session.speak.sound = session.speak.sound && typeof session.speak.sound === 'object' ? session.speak.sound : {};
-    session.speak.sound.title_i18n = nextSoundTitleI18n;
-    session.speak.sound.title = nextSoundTitle;
+    session.speak.sound.title_en = nextSoundTitleI18n.en;
+    session.speak.sound.title_es = nextSoundTitleI18n.es;
     session.speak.sound.hint_en_line1 = nextSoundHintEnLine1;
     session.speak.sound.hint_en_line2 = nextSoundHintEnLine2;
     session.speak.sound.hint_es_line1 = nextSoundHintEsLine1;
@@ -1131,8 +1105,8 @@
 
     session.speak.spelling =
       session.speak.spelling && typeof session.speak.spelling === 'object' ? session.speak.spelling : {};
-    session.speak.spelling.title_i18n = nextSpellingTitleI18n;
-    session.speak.spelling.title = nextSpellingTitle;
+    session.speak.spelling.title_en = nextSpellingTitleI18n.en;
+    session.speak.spelling.title_es = nextSpellingTitleI18n.es;
     session.speak.spelling.hint_en_line1 = nextSpellingHintEnLine1;
     session.speak.spelling.hint_en_line2 = nextSpellingHintEnLine2;
     session.speak.spelling.hint_es_line1 = nextSpellingHintEsLine1;
@@ -1142,8 +1116,8 @@
 
     session.speak.sentence =
       session.speak.sentence && typeof session.speak.sentence === 'object' ? session.speak.sentence : {};
-    session.speak.sentence.title_i18n = nextSentenceTitleI18n;
-    session.speak.sentence.title = nextSentenceTitle;
+    session.speak.sentence.title_en = nextSentenceTitleI18n.en;
+    session.speak.sentence.title_es = nextSentenceTitleI18n.es;
     session.speak.sentence.hint_en_line1 = nextSentenceHintEnLine1;
     session.speak.sentence.hint_en_line2 = nextSentenceHintEnLine2;
     session.speak.sentence.hint_es_line1 = nextSentenceHintEsLine1;

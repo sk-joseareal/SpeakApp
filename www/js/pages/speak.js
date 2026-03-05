@@ -2941,12 +2941,7 @@ class PageSpeak extends HTMLElement {
       if (!source || typeof source !== 'object') return '';
       const safeLocale = normalizeHintLocale(locale) || 'en';
       const line = Number(lineIndex) === 2 ? '2' : '1';
-      return String(
-        source[`hint_${safeLocale}_line${line}`] ||
-          source[`hint_${safeLocale}_${line}`] ||
-          source[`hint_${safeLocale}_line_${line}`] ||
-          ''
-      ).trim();
+      return String(source[`hint_${safeLocale}_line${line}`] || '').trim();
     };
 
     const getHintTextForLocale = (source, locale, options = {}) => {
@@ -2967,19 +2962,13 @@ class PageSpeak extends HTMLElement {
       return parts.join('\n');
     };
 
-    const getLegacyHintText = (source) => {
-      if (!source || typeof source !== 'object') return '';
-      return String(source.hint || '').trim();
-    };
-
     const resolveHeroHintText = (source, locale = getHintUiLocale()) => {
       const localeCode = normalizeHintLocale(locale) || 'en';
       const primary = getHintTextForLocale(source, localeCode, { perLineFallback: true });
       if (primary) return primary;
       const fallbackLocale = localeCode === 'en' ? 'es' : 'en';
       const fallback = getHintTextForLocale(source, fallbackLocale);
-      if (fallback) return fallback;
-      return getLegacyHintText(source);
+      return fallback || '';
     };
 
     const getHeroSourceByStepKey = (stepKey) => {

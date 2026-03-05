@@ -966,13 +966,9 @@ const normalizeTextI18n = (input, fallbackValue = '') => {
 
 const extractTextI18n = (rawEntity, fieldName, fallbackValue = '') => {
   const entity = rawEntity && typeof rawEntity === 'object' ? rawEntity : {};
-  const direct = entity[`${fieldName}_i18n`];
-  const directObj = isPlainObject(direct) ? direct : {};
-  const hasFlatEn = Object.prototype.hasOwnProperty.call(entity, `${fieldName}_en`);
-  const hasFlatEs = Object.prototype.hasOwnProperty.call(entity, `${fieldName}_es`);
   const source = {
-    en: hasFlatEn ? entity[`${fieldName}_en`] : firstHintText(directObj.en, directObj['en-US'], directObj.en_us),
-    es: hasFlatEs ? entity[`${fieldName}_es`] : firstHintText(directObj.es, directObj['es-ES'], directObj.es_es)
+    en: entity[`${fieldName}_en`],
+    es: entity[`${fieldName}_es`]
   };
   return normalizeTextI18n(source, fallbackValue);
 };
@@ -999,10 +995,10 @@ const normalizeTrainingPayload = (rawPayload) => {
 
   const routes = routesIn.map((route, idx) => {
     const id = String(route.id).trim();
-    const titleI18n = extractTextI18n(route, 'title', route.title);
+    const titleI18n = extractTextI18n(route, 'title');
     const title = String(titleI18n.en || titleI18n.es || '').trim();
     if (!title) throw new Error(`route ${id} is missing title`);
-    const noteI18n = extractTextI18n(route, 'note', route.note);
+    const noteI18n = extractTextI18n(route, 'note');
     const note = String(noteI18n.en || noteI18n.es || '').trim();
     const moduleIds = Array.isArray(route.moduleIds)
       ? route.moduleIds.map((item) => String(item || '').trim()).filter(Boolean)
@@ -1025,10 +1021,10 @@ const normalizeTrainingPayload = (rawPayload) => {
 
   const modules = modulesIn.map((module, idx) => {
     const id = String(module.id).trim();
-    const titleI18n = extractTextI18n(module, 'title', module.title);
+    const titleI18n = extractTextI18n(module, 'title');
     const title = String(titleI18n.en || titleI18n.es || '').trim();
     if (!title) throw new Error(`module ${id} is missing title`);
-    const subtitleI18n = extractTextI18n(module, 'subtitle', module.subtitle);
+    const subtitleI18n = extractTextI18n(module, 'subtitle');
     const subtitle = String(subtitleI18n.en || subtitleI18n.es || '').trim();
     const sessionIds = Array.isArray(module.sessionIds)
       ? module.sessionIds.map((item) => String(item || '').trim()).filter(Boolean)
@@ -1051,7 +1047,7 @@ const normalizeTrainingPayload = (rawPayload) => {
 
   const sessions = sessionsIn.map((session, idx) => {
     const id = String(session.id).trim();
-    const titleI18n = extractTextI18n(session, 'title', session.title);
+    const titleI18n = extractTextI18n(session, 'title');
     const title = String(titleI18n.en || titleI18n.es || '').trim();
     if (!title) throw new Error(`session ${id} is missing title`);
 
@@ -1066,9 +1062,9 @@ const normalizeTrainingPayload = (rawPayload) => {
     const soundTts = normalizeStepTtsMap(soundRaw.tts || soundRaw.audio || {});
     const spellingTts = normalizeStepTtsMap(spellingRaw.tts || spellingRaw.audio || {});
     const sentenceTts = normalizeStepTtsMap(sentenceRaw.tts || sentenceRaw.audio || {});
-    const soundTitleI18n = extractTextI18n(soundRaw, 'title', soundRaw.title);
-    const spellingTitleI18n = extractTextI18n(spellingRaw, 'title', spellingRaw.title);
-    const sentenceTitleI18n = extractTextI18n(sentenceRaw, 'title', sentenceRaw.title);
+    const soundTitleI18n = extractTextI18n(soundRaw, 'title');
+    const spellingTitleI18n = extractTextI18n(spellingRaw, 'title');
+    const sentenceTitleI18n = extractTextI18n(sentenceRaw, 'title');
     const sound = {
       title: String(soundTitleI18n.en || soundTitleI18n.es || '').trim(),
       title_i18n: soundTitleI18n,
@@ -1118,12 +1114,20 @@ const withFlatTextFields = (fieldName, i18n, fallbackValue = '') => {
 
 const serializeSpeakStepPayload = (step) => {
   const source = step && typeof step === 'object' ? { ...step } : {};
-  const titleI18n = normalizeTextI18n(source.title_i18n, source.title);
+  const titleI18n = normalizeTextI18n(
+    {
+      en: source.title_en,
+      es: source.title_es
+    },
+    source.title
+  );
   const title = String(titleI18n.en || titleI18n.es || '').trim();
+  delete source.title;
   delete source.title_i18n;
+  delete source.title_en;
+  delete source.title_es;
   return {
     ...source,
-    title,
     ...withFlatTextFields('title', titleI18n, title)
   };
 };
@@ -1140,9 +1144,7 @@ const toTrainingPayload = (normalized) => ({
         : {};
     return {
       id: route.id,
-      title: route.title,
       ...withFlatTextFields('title', titleI18n, route.title),
-      note: route.note || '',
       ...withFlatTextFields('note', noteI18n, route.note || ''),
       moduleIds: Array.isArray(route.moduleIds) ? route.moduleIds.slice() : []
     };
@@ -1158,9 +1160,7 @@ const toTrainingPayload = (normalized) => ({
         : {};
     return {
       id: module.id,
-      title: module.title,
       ...withFlatTextFields('title', titleI18n, module.title),
-      subtitle: module.subtitle || '',
       ...withFlatTextFields('subtitle', subtitleI18n, module.subtitle || ''),
       sessionIds: Array.isArray(module.sessionIds) ? module.sessionIds.slice() : []
     };
@@ -1172,7 +1172,6 @@ const toTrainingPayload = (normalized) => ({
         : {};
     return {
       id: session.id,
-      title: session.title,
       ...withFlatTextFields('title', titleI18n, session.title),
       speak: {
         focus: session.speakFocus || '',
@@ -1318,35 +1317,64 @@ const buildTrainingDataFromLive = () => {
     sessionIdsByModule.set(row.module_id, list);
   });
 
-  const routes = routesRows.map((row) => ({
-    id: row.id,
-    title: row.title,
-    title_i18n: parseJsonSafe(row.title_i18n_json, {}),
-    note: row.note || '',
-    note_i18n: parseJsonSafe(row.note_i18n_json, {}),
-    moduleIds: moduleIdsByRoute.get(row.id) || []
-  }));
+  const routes = routesRows.map((row) => {
+    const titleI18n = normalizeTextI18n(parseJsonSafe(row.title_i18n_json, {}), row.title || '');
+    const noteI18n = normalizeTextI18n(parseJsonSafe(row.note_i18n_json, {}), row.note || '');
+    return {
+      id: row.id,
+      title_en: titleI18n.en || '',
+      title_es: titleI18n.es || '',
+      note_en: noteI18n.en || '',
+      note_es: noteI18n.es || '',
+      moduleIds: moduleIdsByRoute.get(row.id) || []
+    };
+  });
 
-  const modules = modulesRows.map((row) => ({
-    id: row.id,
-    title: row.title,
-    title_i18n: parseJsonSafe(row.title_i18n_json, {}),
-    subtitle: row.subtitle || '',
-    subtitle_i18n: parseJsonSafe(row.subtitle_i18n_json, {}),
-    sessionIds: sessionIdsByModule.get(row.id) || []
-  }));
+  const modules = modulesRows.map((row) => {
+    const titleI18n = normalizeTextI18n(parseJsonSafe(row.title_i18n_json, {}), row.title || '');
+    const subtitleI18n = normalizeTextI18n(parseJsonSafe(row.subtitle_i18n_json, {}), row.subtitle || '');
+    return {
+      id: row.id,
+      title_en: titleI18n.en || '',
+      title_es: titleI18n.es || '',
+      subtitle_en: subtitleI18n.en || '',
+      subtitle_es: subtitleI18n.es || '',
+      sessionIds: sessionIdsByModule.get(row.id) || []
+    };
+  });
 
-  const sessions = sessionsRows.map((row) => ({
-    id: row.id,
-    title: row.title,
-    title_i18n: parseJsonSafe(row.title_i18n_json, {}),
-    speak: {
-      focus: row.speak_focus || '',
-      sound: parseJsonSafe(row.speak_sound_json, {}),
-      spelling: parseJsonSafe(row.speak_spelling_json, {}),
-      sentence: parseJsonSafe(row.speak_sentence_json, {})
-    }
-  }));
+  const normalizeStepForPayload = (rawStep) => {
+    const step = isPlainObject(rawStep) ? { ...rawStep } : {};
+    const titleI18n = normalizeTextI18n(
+      {
+        en: step.title_en,
+        es: step.title_es
+      },
+      step.title || ''
+    );
+    delete step.title;
+    delete step.title_i18n;
+    return {
+      ...step,
+      title_en: titleI18n.en || '',
+      title_es: titleI18n.es || ''
+    };
+  };
+
+  const sessions = sessionsRows.map((row) => {
+    const titleI18n = normalizeTextI18n(parseJsonSafe(row.title_i18n_json, {}), row.title || '');
+    return {
+      id: row.id,
+      title_en: titleI18n.en || '',
+      title_es: titleI18n.es || '',
+      speak: {
+        focus: row.speak_focus || '',
+        sound: normalizeStepForPayload(parseJsonSafe(row.speak_sound_json, {})),
+        spelling: normalizeStepForPayload(parseJsonSafe(row.speak_spelling_json, {})),
+        sentence: normalizeStepForPayload(parseJsonSafe(row.speak_sentence_json, {}))
+      }
+    };
+  });
 
   return sanitizeTrainingPayload({ routes, modules, sessions });
 };
@@ -1370,6 +1398,7 @@ const updateReleaseSnapshotByIdStmt = db.prepare('UPDATE releases SET snapshot_j
 const createReleaseStmt = db.prepare(
   'INSERT INTO releases(name, snapshot_json, published, created_at, published_at) VALUES (?, ?, ?, ?, ?)'
 );
+const listAllReleaseSnapshotsStmt = db.prepare('SELECT id, snapshot_json FROM releases ORDER BY id ASC');
 
 const createReleaseFromLive = (name, publish) => {
   const snapshot = buildTrainingDataFromLive();
@@ -1387,6 +1416,36 @@ const createReleaseFromLive = (name, publish) => {
     return { releaseId, snapshot };
   });
   return tx();
+};
+
+const regularizeStoredReleaseSnapshots = () => {
+  const rows = listAllReleaseSnapshotsStmt.all();
+  if (!Array.isArray(rows) || !rows.length) return { scanned: 0, updated: 0, skipped: 0 };
+
+  let updated = 0;
+  let skipped = 0;
+  const tx = db.transaction(() => {
+    rows.forEach((row) => {
+      const parsed = parseJsonSafe(row.snapshot_json, null);
+      if (!parsed || typeof parsed !== 'object') {
+        skipped += 1;
+        return;
+      }
+      let sanitized = null;
+      try {
+        sanitized = sanitizeTrainingPayload(parsed);
+      } catch (_err) {
+        skipped += 1;
+        return;
+      }
+      const nextJson = JSON.stringify(sanitized);
+      if (nextJson === row.snapshot_json) return;
+      updateReleaseSnapshotByIdStmt.run(nextJson, Number(row.id));
+      updated += 1;
+    });
+  });
+  tx();
+  return { scanned: rows.length, updated, skipped };
 };
 
 const publishReleaseById = (releaseId) => {
@@ -1522,7 +1581,9 @@ const collectReleaseTtsTargets = (payload, options = {}) => {
 
   sessions.forEach((session) => {
     const sessionId = String(session && session.id ? session.id : '').trim();
-    const sessionTitle = String(session && session.title ? session.title : '').trim();
+    const sessionTitle = String(
+      firstHintText(session && session.title_en, session && session.title_es, session && session.id)
+    ).trim();
     stepKeys.forEach((stepKey) => {
       const step = getStepByKey(session, stepKey);
       if (!step) return;
@@ -1887,6 +1948,12 @@ const resolvePayloadFromRequest = (reqBody = {}) => {
 };
 
 seedEditorIfNeeded();
+const releaseSnapshotRegularization = regularizeStoredReleaseSnapshots();
+if (releaseSnapshotRegularization.updated > 0 || releaseSnapshotRegularization.skipped > 0) {
+  console.log(
+    `[content] release snapshot regularization: scanned=${releaseSnapshotRegularization.scanned} updated=${releaseSnapshotRegularization.updated} skipped=${releaseSnapshotRegularization.skipped}`
+  );
+}
 
 app.get('/content/health', (req, res) => {
   res.json({

@@ -2,8 +2,6 @@
   "routes": [
     {
       "id": "sound",
-      "title": "Sound Journey",
-      "note": "Resultado: pronunciación correcta y oído entrenado.",
       "moduleIds": [
         "module-1",
         "module-2",
@@ -16,8 +14,6 @@
     },
     {
       "id": "conversation",
-      "title": "Intro to Conversation",
-      "note": "Result: speaking confidently in real situations.",
       "moduleIds": [
         "module-greetings",
         "module-food",
@@ -30,8 +26,6 @@
     },
     {
       "id": "difficult_sounds",
-      "title": "Difficult Sounds",
-      "note": "Master minimal pairs: Ship vs Sheep.",
       "moduleIds": [
         "module-vowels",
         "module-consonants",
@@ -44,8 +38,6 @@
     },
     {
       "id": "rhythm",
-      "title": "Rythm Flow",
-      "note": "Resultado: ritmo natural y fluidez.",
       "moduleIds": [
         "module-word-stress",
         "module-linking",
@@ -58,8 +50,6 @@
     },
     {
       "id": "professional",
-      "title": "Professional English",
-      "note": "Business communication skills.",
       "moduleIds": [
         "module-interview",
         "module-meetings",
@@ -74,8 +64,6 @@
   "modules": [
     {
       "id": "module-greetings",
-      "title": "Greetings",
-      "subtitle": "Meeting people",
       "sessionIds": [
         "session-meeting-friend",
         "session-formal-informal",
@@ -88,8 +76,6 @@
     },
     {
       "id": "module-food",
-      "title": "Ordering Food",
-      "subtitle": "At the cafe",
       "sessionIds": [
         "session-coffee-shop",
         "session-booking-table",
@@ -102,8 +88,6 @@
     },
     {
       "id": "module-1",
-      "title": "Training 1",
-      "subtitle": "Sonidos clave",
       "sessionIds": [
         "session-p",
         "session-b",
@@ -118,8 +102,6 @@
     },
     {
       "id": "module-2",
-      "title": "Training 2",
-      "subtitle": "Vocales",
       "sessionIds": [
         "session-a",
         "session-e",
@@ -134,8 +116,6 @@
     },
     {
       "id": "module-3",
-      "title": "Training 3",
-      "subtitle": "Consonantes",
       "sessionIds": [
         "session-t",
         "session-s",
@@ -150,8 +130,6 @@
     },
     {
       "id": "module-vowels",
-      "title": "Short vs Long Vowels",
-      "subtitle": "Vowel Sounds",
       "sessionIds": [
         "session-ship-sheep",
         "session-full-fool",
@@ -164,8 +142,6 @@
     },
     {
       "id": "module-consonants",
-      "title": "Consonant Clusters",
-      "subtitle": "Tricky Consonants",
       "sessionIds": [
         "session-tree-three",
         "session-day-they",
@@ -178,8 +154,6 @@
     },
     {
       "id": "module-travel",
-      "title": "Travel Essentials",
-      "subtitle": "On the go",
       "sessionIds": [
         "session-hotel-checkin",
         "session-asking-directions",
@@ -192,8 +166,6 @@
     },
     {
       "id": "module-silent",
-      "title": "Silent Letters",
-      "subtitle": "Hidden Sounds",
       "sessionIds": [
         "session-silent-k",
         "session-silent-w",
@@ -206,8 +178,6 @@
     },
     {
       "id": "module-word-stress",
-      "title": "Word Stress",
-      "subtitle": "Rhythm Basics",
       "sessionIds": [
         "session-stress-2",
         "session-stress-3",
@@ -220,8 +190,6 @@
     },
     {
       "id": "module-linking",
-      "title": "Linking Sounds",
-      "subtitle": "Natural Flow",
       "sessionIds": [
         "session-link-cv",
         "session-link-vv",
@@ -234,8 +202,6 @@
     },
     {
       "id": "module-sentence-stress",
-      "title": "Sentence Stress",
-      "subtitle": "Music of English",
       "sessionIds": [
         "session-schwa",
         "session-focus-words",
@@ -248,8 +214,6 @@
     },
     {
       "id": "module-interview",
-      "title": "Job Interview",
-      "subtitle": "Career Skills",
       "sessionIds": [
         "session-strengths",
         "session-experience",
@@ -262,8 +226,6 @@
     },
     {
       "id": "module-meetings",
-      "title": "Business Meetings",
-      "subtitle": "Collaboration",
       "sessionIds": [
         "session-meeting-open",
         "session-agreeing",
@@ -276,8 +238,6 @@
     },
     {
       "id": "module-biz-calls",
-      "title": "Business Calls",
-      "subtitle": "Telephoning",
       "sessionIds": [
         "session-call-intro",
         "session-clarifying",
@@ -292,11 +252,9 @@
   "sessions": [
     {
       "id": "session-meeting-friend",
-      "title": "Meeting a new friend",
       "speak": {
         "focus": "Hello!",
         "sound": {
-          "title": "GREETING",
           "hint_en_line1": "Start with a friendly greeting.",
           "hint_en_line2": "",
           "hint_es_line1": "Empieza con un saludo amistoso.",
@@ -307,7 +265,6 @@
           "title_es": "SALUDO"
         },
         "spelling": {
-          "title": "POLITE QUESTION",
           "hint_en_line1": "Ask how they are.",
           "hint_en_line2": "",
           "hint_es_line1": "Pregunta cómo están.",
@@ -323,7 +280,6 @@
           "title_es": "PREGUNTA CORTÉS"
         },
         "sentence": {
-          "title": "RESPONSE",
           "hint_en_line1": "Answer and ask back.",
           "hint_en_line2": "",
           "hint_es_line1": "Responde y devuelve la pregunta.",
@@ -339,11 +295,9 @@
     },
     {
       "id": "session-coffee-shop",
-      "title": "At the Coffee Shop",
       "speak": {
         "focus": "Coffee",
         "sound": {
-          "title": "ORDERING",
           "hint_en_line1": "Politely ask for what you want.",
           "hint_en_line2": "",
           "hint_es_line1": "Pide con cortesía lo que quieres.",
@@ -354,7 +308,6 @@
           "title_es": "PEDIR"
         },
         "spelling": {
-          "title": "SIZE",
           "hint_en_line1": "Specify the size.",
           "hint_en_line2": "",
           "hint_es_line1": "Especifica el tamaño.",
@@ -369,7 +322,6 @@
           "title_es": "TAMAÑO"
         },
         "sentence": {
-          "title": "PAYING",
           "hint_en_line1": "Ask for the price.",
           "hint_en_line2": "",
           "hint_es_line1": "Pregunta el precio.",
@@ -385,11 +337,9 @@
     },
     {
       "id": "session-p",
-      "title": "El sonido P de PEN",
       "speak": {
         "focus": "p",
         "sound": {
-          "title": "THE WAY",
           "hint_en_line1": "This sound is made by rounding the lips and making a U shape with the small mouth.",
           "hint_en_line2": "",
           "hint_es_line1": "Este sonido se hace redondeando los labios y haciendo una U con la boca pequeña.",
@@ -400,7 +350,6 @@
           "title_es": "LA FORMA"
         },
         "spelling": {
-          "title": "THE SPELLING",
           "hint_en_line1": "These are words where you can find this sound.",
           "hint_en_line2": "",
           "hint_es_line1": "Estas son palabras donde puedes encontrar este sonido.",
@@ -417,7 +366,6 @@
           "title_es": "LA ESCRITURA"
         },
         "sentence": {
-          "title": "WHOLE SENTENCE",
           "hint_en_line1": "Now say the entire sentence.",
           "hint_en_line2": "",
           "hint_es_line1": "Ahora di la frase completa.",
@@ -433,11 +381,9 @@
     },
     {
       "id": "session-b",
-      "title": "El sonido B de baby",
       "speak": {
         "focus": "b",
         "sound": {
-          "title": "THE WAY",
           "hint_en_line1": "This sound is made by rounding the lips and making a U shape with the small mouth.",
           "hint_en_line2": "",
           "hint_es_line1": "Este sonido se hace redondeando los labios y haciendo una U con la boca pequeña.",
@@ -448,7 +394,6 @@
           "title_es": "LA FORMA"
         },
         "spelling": {
-          "title": "THE SPELLING",
           "hint_en_line1": "These are words where you can find this sound.",
           "hint_en_line2": "",
           "hint_es_line1": "Estas son palabras donde puedes encontrar este sonido.",
@@ -465,7 +410,6 @@
           "title_es": "LA ESCRITURA"
         },
         "sentence": {
-          "title": "WHOLE SENTENCE",
           "hint_en_line1": "Now say the entire sentence.",
           "hint_en_line2": "",
           "hint_es_line1": "Ahora di la frase completa.",
@@ -481,11 +425,9 @@
     },
     {
       "id": "session-w",
-      "title": "El sonido W de water",
       "speak": {
         "focus": "w",
         "sound": {
-          "title": "THE WAY",
           "hint_en_line1": "This sound is made by rounding the lips and making a U shape with the small mouth.",
           "hint_en_line2": "",
           "hint_es_line1": "Este sonido se hace redondeando los labios y haciendo una U con la boca pequeña.",
@@ -496,7 +438,6 @@
           "title_es": "LA FORMA"
         },
         "spelling": {
-          "title": "THE SPELLING",
           "hint_en_line1": "These are words where you can find this sound.",
           "hint_en_line2": "",
           "hint_es_line1": "Estas son palabras donde puedes encontrar este sonido.",
@@ -513,7 +454,6 @@
           "title_es": "LA ESCRITURA"
         },
         "sentence": {
-          "title": "WHOLE SENTENCE",
           "hint_en_line1": "Now say the entire sentence.",
           "hint_en_line2": "",
           "hint_es_line1": "Ahora di la frase completa.",
@@ -529,11 +469,9 @@
     },
     {
       "id": "session-f",
-      "title": "El sonido F de famous",
       "speak": {
         "focus": "f",
         "sound": {
-          "title": "THE WAY",
           "hint_en_line1": "This sound is made by rounding the lips and making a U shape with the small mouth.",
           "hint_en_line2": "",
           "hint_es_line1": "Este sonido se hace redondeando los labios y haciendo una U con la boca pequeña.",
@@ -544,7 +482,6 @@
           "title_es": "LA FORMA"
         },
         "spelling": {
-          "title": "THE SPELLING",
           "hint_en_line1": "These are words where you can find this sound.",
           "hint_en_line2": "",
           "hint_es_line1": "Estas son palabras donde puedes encontrar este sonido.",
@@ -561,7 +498,6 @@
           "title_es": "LA ESCRITURA"
         },
         "sentence": {
-          "title": "WHOLE SENTENCE",
           "hint_en_line1": "Now say the entire sentence.",
           "hint_en_line2": "",
           "hint_es_line1": "Ahora di la frase completa.",
@@ -577,11 +513,9 @@
     },
     {
       "id": "session-v",
-      "title": "El sonido V de vampire",
       "speak": {
         "focus": "v",
         "sound": {
-          "title": "THE WAY",
           "hint_en_line1": "This sound is made by rounding the lips and making a U shape with the small mouth.",
           "hint_en_line2": "",
           "hint_es_line1": "Este sonido se hace redondeando los labios y haciendo una U con la boca pequeña.",
@@ -592,7 +526,6 @@
           "title_es": "LA FORMA"
         },
         "spelling": {
-          "title": "THE SPELLING",
           "hint_en_line1": "These are words where you can find this sound.",
           "hint_en_line2": "",
           "hint_es_line1": "Estas son palabras donde puedes encontrar este sonido.",
@@ -609,7 +542,6 @@
           "title_es": "LA ESCRITURA"
         },
         "sentence": {
-          "title": "WHOLE SENTENCE",
           "hint_en_line1": "Now say the entire sentence.",
           "hint_en_line2": "",
           "hint_es_line1": "Ahora di la frase completa.",
@@ -625,11 +557,9 @@
     },
     {
       "id": "session-a",
-      "title": "El sonido A de APPLE",
       "speak": {
         "focus": "a",
         "sound": {
-          "title": "THE WAY",
           "hint_en_line1": "This sound is made with the mouth open and relaxed.",
           "hint_en_line2": "",
           "hint_es_line1": "Este sonido se hace con la boca abierta y relajada.",
@@ -640,7 +570,6 @@
           "title_es": "LA FORMA"
         },
         "spelling": {
-          "title": "THE SPELLING",
           "hint_en_line1": "These are words where you can find this sound.",
           "hint_en_line2": "",
           "hint_es_line1": "Estas son palabras donde puedes encontrar este sonido.",
@@ -657,7 +586,6 @@
           "title_es": "LA ESCRITURA"
         },
         "sentence": {
-          "title": "WHOLE SENTENCE",
           "hint_en_line1": "Now say the entire sentence.",
           "hint_en_line2": "",
           "hint_es_line1": "Ahora di la frase completa.",
@@ -673,11 +601,9 @@
     },
     {
       "id": "session-e",
-      "title": "El sonido E de EGG",
       "speak": {
         "focus": "e",
         "sound": {
-          "title": "THE WAY",
           "hint_en_line1": "This sound is made with the mouth open and relaxed.",
           "hint_en_line2": "",
           "hint_es_line1": "Este sonido se hace con la boca abierta y relajada.",
@@ -688,7 +614,6 @@
           "title_es": "LA FORMA"
         },
         "spelling": {
-          "title": "THE SPELLING",
           "hint_en_line1": "These are words where you can find this sound.",
           "hint_en_line2": "",
           "hint_es_line1": "Estas son palabras donde puedes encontrar este sonido.",
@@ -705,7 +630,6 @@
           "title_es": "LA ESCRITURA"
         },
         "sentence": {
-          "title": "WHOLE SENTENCE",
           "hint_en_line1": "Now say the entire sentence.",
           "hint_en_line2": "",
           "hint_es_line1": "Ahora di la frase completa.",
@@ -721,11 +645,9 @@
     },
     {
       "id": "session-i",
-      "title": "El sonido I de ICE",
       "speak": {
         "focus": "i",
         "sound": {
-          "title": "THE WAY",
           "hint_en_line1": "This sound is made with the mouth open and relaxed.",
           "hint_en_line2": "",
           "hint_es_line1": "Este sonido se hace con la boca abierta y relajada.",
@@ -736,7 +658,6 @@
           "title_es": "LA FORMA"
         },
         "spelling": {
-          "title": "THE SPELLING",
           "hint_en_line1": "These are words where you can find this sound.",
           "hint_en_line2": "",
           "hint_es_line1": "Estas son palabras donde puedes encontrar este sonido.",
@@ -753,7 +674,6 @@
           "title_es": "LA ESCRITURA"
         },
         "sentence": {
-          "title": "WHOLE SENTENCE",
           "hint_en_line1": "Now say the entire sentence.",
           "hint_en_line2": "",
           "hint_es_line1": "Ahora di la frase completa.",
@@ -769,11 +689,9 @@
     },
     {
       "id": "session-o",
-      "title": "El sonido O de ORANGE",
       "speak": {
         "focus": "o",
         "sound": {
-          "title": "THE WAY",
           "hint_en_line1": "This sound is made with the mouth open and relaxed.",
           "hint_en_line2": "",
           "hint_es_line1": "Este sonido se hace con la boca abierta y relajada.",
@@ -784,7 +702,6 @@
           "title_es": "LA FORMA"
         },
         "spelling": {
-          "title": "THE SPELLING",
           "hint_en_line1": "These are words where you can find this sound.",
           "hint_en_line2": "",
           "hint_es_line1": "Estas son palabras donde puedes encontrar este sonido.",
@@ -801,7 +718,6 @@
           "title_es": "LA ESCRITURA"
         },
         "sentence": {
-          "title": "WHOLE SENTENCE",
           "hint_en_line1": "Now say the entire sentence.",
           "hint_en_line2": "",
           "hint_es_line1": "Ahora di la frase completa.",
@@ -817,11 +733,9 @@
     },
     {
       "id": "session-u",
-      "title": "El sonido U de UMBRELLA",
       "speak": {
         "focus": "u",
         "sound": {
-          "title": "THE WAY",
           "hint_en_line1": "This sound is made with the mouth open and relaxed.",
           "hint_en_line2": "",
           "hint_es_line1": "Este sonido se hace con la boca abierta y relajada.",
@@ -832,7 +746,6 @@
           "title_es": "LA FORMA"
         },
         "spelling": {
-          "title": "THE SPELLING",
           "hint_en_line1": "These are words where you can find this sound.",
           "hint_en_line2": "",
           "hint_es_line1": "Estas son palabras donde puedes encontrar este sonido.",
@@ -849,7 +762,6 @@
           "title_es": "LA ESCRITURA"
         },
         "sentence": {
-          "title": "WHOLE SENTENCE",
           "hint_en_line1": "Now say the entire sentence.",
           "hint_en_line2": "",
           "hint_es_line1": "Ahora di la frase completa.",
@@ -865,11 +777,9 @@
     },
     {
       "id": "session-t",
-      "title": "El sonido T de TIME",
       "speak": {
         "focus": "t",
         "sound": {
-          "title": "THE WAY",
           "hint_en_line1": "This sound is made with the mouth open and relaxed.",
           "hint_en_line2": "",
           "hint_es_line1": "Este sonido se hace con la boca abierta y relajada.",
@@ -880,7 +790,6 @@
           "title_es": "LA FORMA"
         },
         "spelling": {
-          "title": "THE SPELLING",
           "hint_en_line1": "These are words where you can find this sound.",
           "hint_en_line2": "",
           "hint_es_line1": "Estas son palabras donde puedes encontrar este sonido.",
@@ -897,7 +806,6 @@
           "title_es": "LA ESCRITURA"
         },
         "sentence": {
-          "title": "WHOLE SENTENCE",
           "hint_en_line1": "Now say the entire sentence.",
           "hint_en_line2": "",
           "hint_es_line1": "Ahora di la frase completa.",
@@ -913,11 +821,9 @@
     },
     {
       "id": "session-s",
-      "title": "El sonido S de SUN",
       "speak": {
         "focus": "s",
         "sound": {
-          "title": "THE WAY",
           "hint_en_line1": "This sound is made with the mouth open and relaxed.",
           "hint_en_line2": "",
           "hint_es_line1": "Este sonido se hace con la boca abierta y relajada.",
@@ -928,7 +834,6 @@
           "title_es": "LA FORMA"
         },
         "spelling": {
-          "title": "THE SPELLING",
           "hint_en_line1": "These are words where you can find this sound.",
           "hint_en_line2": "",
           "hint_es_line1": "Estas son palabras donde puedes encontrar este sonido.",
@@ -945,7 +850,6 @@
           "title_es": "LA ESCRITURA"
         },
         "sentence": {
-          "title": "WHOLE SENTENCE",
           "hint_en_line1": "Now say the entire sentence.",
           "hint_en_line2": "",
           "hint_es_line1": "Ahora di la frase completa.",
@@ -961,11 +865,9 @@
     },
     {
       "id": "session-r",
-      "title": "El sonido R de RABBIT",
       "speak": {
         "focus": "r",
         "sound": {
-          "title": "THE WAY",
           "hint_en_line1": "This sound is made with the mouth open and relaxed.",
           "hint_en_line2": "",
           "hint_es_line1": "Este sonido se hace con la boca abierta y relajada.",
@@ -976,7 +878,6 @@
           "title_es": "LA FORMA"
         },
         "spelling": {
-          "title": "THE SPELLING",
           "hint_en_line1": "These are words where you can find this sound.",
           "hint_en_line2": "",
           "hint_es_line1": "Estas son palabras donde puedes encontrar este sonido.",
@@ -993,7 +894,6 @@
           "title_es": "LA ESCRITURA"
         },
         "sentence": {
-          "title": "WHOLE SENTENCE",
           "hint_en_line1": "Now say the entire sentence.",
           "hint_en_line2": "",
           "hint_es_line1": "Ahora di la frase completa.",
@@ -1009,11 +909,9 @@
     },
     {
       "id": "session-l",
-      "title": "El sonido L de LION",
       "speak": {
         "focus": "l",
         "sound": {
-          "title": "THE WAY",
           "hint_en_line1": "This sound is made with the mouth open and relaxed.",
           "hint_en_line2": "",
           "hint_es_line1": "Este sonido se hace con la boca abierta y relajada.",
@@ -1024,7 +922,6 @@
           "title_es": "LA FORMA"
         },
         "spelling": {
-          "title": "THE SPELLING",
           "hint_en_line1": "These are words where you can find this sound.",
           "hint_en_line2": "",
           "hint_es_line1": "Estas son palabras donde puedes encontrar este sonido.",
@@ -1041,7 +938,6 @@
           "title_es": "LA ESCRITURA"
         },
         "sentence": {
-          "title": "WHOLE SENTENCE",
           "hint_en_line1": "Now say the entire sentence.",
           "hint_en_line2": "",
           "hint_es_line1": "Ahora di la frase completa.",
@@ -1057,11 +953,9 @@
     },
     {
       "id": "session-k",
-      "title": "El sonido K de KITE",
       "speak": {
         "focus": "k",
         "sound": {
-          "title": "THE WAY",
           "hint_en_line1": "This sound is made with the mouth open and relaxed.",
           "hint_en_line2": "",
           "hint_es_line1": "Este sonido se hace con la boca abierta y relajada.",
@@ -1072,7 +966,6 @@
           "title_es": "LA FORMA"
         },
         "spelling": {
-          "title": "THE SPELLING",
           "hint_en_line1": "These are words where you can find this sound.",
           "hint_en_line2": "",
           "hint_es_line1": "Estas son palabras donde puedes encontrar este sonido.",
@@ -1089,7 +982,6 @@
           "title_es": "LA ESCRITURA"
         },
         "sentence": {
-          "title": "WHOLE SENTENCE",
           "hint_en_line1": "Now say the entire sentence.",
           "hint_en_line2": "",
           "hint_es_line1": "Ahora di la frase completa.",
@@ -1105,11 +997,9 @@
     },
     {
       "id": "session-ship-sheep",
-      "title": "Ship vs Sheep",
       "speak": {
         "focus": "i vs i:",
         "sound": {
-          "title": "THE SOUND",
           "hint_en_line1": "Distinguish between short /I/ and long /i:/.",
           "hint_en_line2": "",
           "hint_es_line1": "Distingue entre /I/ corta e /i:/ larga.",
@@ -1120,7 +1010,6 @@
           "title_es": "EL SONIDO"
         },
         "spelling": {
-          "title": "MINIMAL PAIRS",
           "hint_en_line1": "Listen to the difference.",
           "hint_en_line2": "",
           "hint_es_line1": "Escucha la diferencia.",
@@ -1137,7 +1026,6 @@
           "title_es": "PARES MÍNIMOS"
         },
         "sentence": {
-          "title": "PRACTICE SENTENCE",
           "hint_en_line1": "Say the full sentence.",
           "hint_en_line2": "",
           "hint_es_line1": "Di la frase completa.",
@@ -1153,11 +1041,9 @@
     },
     {
       "id": "session-tree-three",
-      "title": "Tree vs Three",
       "speak": {
         "focus": "t vs th",
         "sound": {
-          "title": "THE SOUND",
           "hint_en_line1": "Place tongue between teeth for TH.",
           "hint_en_line2": "",
           "hint_es_line1": "Coloca la lengua entre los dientes para TH.",
@@ -1168,7 +1054,6 @@
           "title_es": "EL SONIDO"
         },
         "spelling": {
-          "title": "MINIMAL PAIRS",
           "hint_en_line1": "Listen to the difference.",
           "hint_en_line2": "",
           "hint_es_line1": "Escucha la diferencia.",
@@ -1185,7 +1070,6 @@
           "title_es": "PARES MÍNIMOS"
         },
         "sentence": {
-          "title": "PRACTICE SENTENCE",
           "hint_en_line1": "Say the full sentence.",
           "hint_en_line2": "",
           "hint_es_line1": "Di la frase completa.",
@@ -1201,11 +1085,9 @@
     },
     {
       "id": "session-formal-informal",
-      "title": "Formal vs Informal",
       "speak": {
         "focus": "Tone",
         "sound": {
-          "title": "GREETING",
           "hint_en_line1": "Formal setting.",
           "hint_en_line2": "",
           "hint_es_line1": "Contexto formal.",
@@ -1216,7 +1098,6 @@
           "title_es": "SALUDO"
         },
         "spelling": {
-          "title": "OPTIONS",
           "hint_en_line1": "Choose the formal one.",
           "hint_en_line2": "",
           "hint_es_line1": "Elige la opción formal.",
@@ -1231,7 +1112,6 @@
           "title_es": "OPCIONES"
         },
         "sentence": {
-          "title": "CONVERSATION",
           "hint_en_line1": "Ask politely.",
           "hint_en_line2": "",
           "hint_es_line1": "Pregunta con cortesía.",
@@ -1247,11 +1127,9 @@
     },
     {
       "id": "session-goodbyes",
-      "title": "Saying Goodbye",
       "speak": {
         "focus": "Bye",
         "sound": {
-          "title": "FAREWELL",
           "hint_en_line1": "Casual parting.",
           "hint_en_line2": "",
           "hint_es_line1": "Despedida informal.",
@@ -1262,7 +1140,6 @@
           "title_es": "DESPEDIDA"
         },
         "spelling": {
-          "title": "OPTIONS",
           "hint_en_line1": "Complete the phrase.",
           "hint_en_line2": "",
           "hint_es_line1": "Completa la frase.",
@@ -1276,7 +1153,6 @@
           "title_es": "OPCIONES"
         },
         "sentence": {
-          "title": "CONVERSATION",
           "hint_en_line1": "Be friendly.",
           "hint_en_line2": "",
           "hint_es_line1": "Sé amable.",
@@ -1292,11 +1168,9 @@
     },
     {
       "id": "session-booking-table",
-      "title": "Booking a Table",
       "speak": {
         "focus": "Booking",
         "sound": {
-          "title": "REQUEST",
           "hint_en_line1": "I would like...",
           "hint_en_line2": "",
           "hint_es_line1": "Me gustaría...",
@@ -1307,7 +1181,6 @@
           "title_es": "PETICIÓN"
         },
         "spelling": {
-          "title": "DETAILS",
           "hint_en_line1": "Number of people.",
           "hint_en_line2": "",
           "hint_es_line1": "Número de personas.",
@@ -1322,7 +1195,6 @@
           "title_es": "DETALLES"
         },
         "sentence": {
-          "title": "FULL REQUEST",
           "hint_en_line1": "Time and people.",
           "hint_en_line2": "",
           "hint_es_line1": "Hora y personas.",
@@ -1338,11 +1210,9 @@
     },
     {
       "id": "session-asking-bill",
-      "title": "Asking for the Bill",
       "speak": {
         "focus": "Bill",
         "sound": {
-          "title": "REQUEST",
           "hint_en_line1": "Polite request.",
           "hint_en_line2": "",
           "hint_es_line1": "Petición cortés.",
@@ -1353,7 +1223,6 @@
           "title_es": "PETICIÓN"
         },
         "spelling": {
-          "title": "VARIATIONS",
           "hint_en_line1": "Another word for bill.",
           "hint_en_line2": "",
           "hint_es_line1": "Otra forma de decir “cuenta”.",
@@ -1367,7 +1236,6 @@
           "title_es": "VARIACIONES"
         },
         "sentence": {
-          "title": "FULL REQUEST",
           "hint_en_line1": "Ask politely.",
           "hint_en_line2": "",
           "hint_es_line1": "Pregunta con cortesía.",
@@ -1383,11 +1251,9 @@
     },
     {
       "id": "session-hotel-checkin",
-      "title": "Hotel Check-in",
       "speak": {
         "focus": "Check-in",
         "sound": {
-          "title": "ARRIVAL",
           "hint_en_line1": "State your intent.",
           "hint_en_line2": "",
           "hint_es_line1": "Expón tu intención.",
@@ -1398,7 +1264,6 @@
           "title_es": "LLEGADA"
         },
         "spelling": {
-          "title": "DETAILS",
           "hint_en_line1": "Your name.",
           "hint_en_line2": "",
           "hint_es_line1": "Tu nombre.",
@@ -1412,7 +1277,6 @@
           "title_es": "DETALLES"
         },
         "sentence": {
-          "title": "FULL PHRASE",
           "hint_en_line1": "Give your name.",
           "hint_en_line2": "",
           "hint_es_line1": "Da tu nombre.",
@@ -1428,11 +1292,9 @@
     },
     {
       "id": "session-asking-directions",
-      "title": "Asking Directions",
       "speak": {
         "focus": "Where",
         "sound": {
-          "title": "QUESTION",
           "hint_en_line1": "Start politely.",
           "hint_en_line2": "",
           "hint_es_line1": "Empieza con cortesía.",
@@ -1443,7 +1305,6 @@
           "title_es": "PREGUNTA"
         },
         "spelling": {
-          "title": "DESTINATION",
           "hint_en_line1": "Where are you going?",
           "hint_en_line2": "",
           "hint_es_line1": "¿Adónde vas?",
@@ -1457,7 +1318,6 @@
           "title_es": "DESTINO"
         },
         "sentence": {
-          "title": "FULL QUESTION",
           "hint_en_line1": "Ask for location.",
           "hint_en_line2": "",
           "hint_es_line1": "Pregunta la ubicación.",
@@ -1473,11 +1333,9 @@
     },
     {
       "id": "session-buying-tickets",
-      "title": "Buying Tickets",
       "speak": {
         "focus": "Ticket",
         "sound": {
-          "title": "REQUEST",
           "hint_en_line1": "I want...",
           "hint_en_line2": "",
           "hint_es_line1": "Quiero...",
@@ -1488,7 +1346,6 @@
           "title_es": "PETICIÓN"
         },
         "spelling": {
-          "title": "DESTINATION",
           "hint_en_line1": "Place.",
           "hint_en_line2": "",
           "hint_es_line1": "Lugar.",
@@ -1502,7 +1359,6 @@
           "title_es": "DESTINO"
         },
         "sentence": {
-          "title": "FULL REQUEST",
           "hint_en_line1": "Be polite.",
           "hint_en_line2": "",
           "hint_es_line1": "Sé educado.",
@@ -1518,11 +1374,9 @@
     },
     {
       "id": "session-full-fool",
-      "title": "Full vs Fool",
       "speak": {
         "focus": "u vs u:",
         "sound": {
-          "title": "THE SOUND",
           "hint_en_line1": "Short vs Long U.",
           "hint_en_line2": "",
           "hint_es_line1": "U corta vs U larga.",
@@ -1533,7 +1387,6 @@
           "title_es": "EL SONIDO"
         },
         "spelling": {
-          "title": "MINIMAL PAIRS",
           "hint_en_line1": "Listen.",
           "hint_en_line2": "",
           "hint_es_line1": "Escucha.",
@@ -1548,7 +1401,6 @@
           "title_es": "PARES MÍNIMOS"
         },
         "sentence": {
-          "title": "SENTENCE",
           "hint_en_line1": "Mix them.",
           "hint_en_line2": "",
           "hint_es_line1": "Mézclalos.",
@@ -1564,11 +1416,9 @@
     },
     {
       "id": "session-pen-pan",
-      "title": "Pen vs Pan",
       "speak": {
         "focus": "e vs æ",
         "sound": {
-          "title": "THE SOUND",
           "hint_en_line1": "Mouth width.",
           "hint_en_line2": "",
           "hint_es_line1": "Apertura de la boca.",
@@ -1579,7 +1429,6 @@
           "title_es": "EL SONIDO"
         },
         "spelling": {
-          "title": "MINIMAL PAIRS",
           "hint_en_line1": "Listen.",
           "hint_en_line2": "",
           "hint_es_line1": "Escucha.",
@@ -1594,7 +1443,6 @@
           "title_es": "PARES MÍNIMOS"
         },
         "sentence": {
-          "title": "SENTENCE",
           "hint_en_line1": "Mix them.",
           "hint_en_line2": "",
           "hint_es_line1": "Mézclalos.",
@@ -1610,11 +1458,9 @@
     },
     {
       "id": "session-day-they",
-      "title": "Day vs They",
       "speak": {
         "focus": "d vs ð",
         "sound": {
-          "title": "THE SOUND",
           "hint_en_line1": "Tongue position.",
           "hint_en_line2": "",
           "hint_es_line1": "Posición de la lengua.",
@@ -1625,7 +1471,6 @@
           "title_es": "EL SONIDO"
         },
         "spelling": {
-          "title": "MINIMAL PAIRS",
           "hint_en_line1": "Listen.",
           "hint_en_line2": "",
           "hint_es_line1": "Escucha.",
@@ -1640,7 +1485,6 @@
           "title_es": "PARES MÍNIMOS"
         },
         "sentence": {
-          "title": "SENTENCE",
           "hint_en_line1": "Mix them.",
           "hint_en_line2": "",
           "hint_es_line1": "Mézclalos.",
@@ -1656,11 +1500,9 @@
     },
     {
       "id": "session-sea-she",
-      "title": "Sea vs She",
       "speak": {
         "focus": "s vs ʃ",
         "sound": {
-          "title": "THE SOUND",
           "hint_en_line1": "Hiss vs Hush.",
           "hint_en_line2": "",
           "hint_es_line1": "/s/ frente a /sh/.",
@@ -1671,7 +1513,6 @@
           "title_es": "EL SONIDO"
         },
         "spelling": {
-          "title": "MINIMAL PAIRS",
           "hint_en_line1": "Listen.",
           "hint_en_line2": "",
           "hint_es_line1": "Escucha.",
@@ -1686,7 +1527,6 @@
           "title_es": "PARES MÍNIMOS"
         },
         "sentence": {
-          "title": "SENTENCE",
           "hint_en_line1": "Tongue twister.",
           "hint_en_line2": "",
           "hint_es_line1": "Trabalenguas.",
@@ -1702,11 +1542,9 @@
     },
     {
       "id": "session-silent-k",
-      "title": "Silent K",
       "speak": {
         "focus": "Silent K",
         "sound": {
-          "title": "THE SOUND",
           "hint_en_line1": "Don't pronounce K.",
           "hint_en_line2": "",
           "hint_es_line1": "No pronuncies la K.",
@@ -1717,7 +1555,6 @@
           "title_es": "EL SONIDO"
         },
         "spelling": {
-          "title": "WORDS",
           "hint_en_line1": "Silent K.",
           "hint_en_line2": "",
           "hint_es_line1": "K muda.",
@@ -1731,7 +1568,6 @@
           "title_es": "PALABRAS"
         },
         "sentence": {
-          "title": "SENTENCE",
           "hint_en_line1": "Context.",
           "hint_en_line2": "",
           "hint_es_line1": "Contexto.",
@@ -1747,11 +1583,9 @@
     },
     {
       "id": "session-silent-w",
-      "title": "Silent W",
       "speak": {
         "focus": "Silent W",
         "sound": {
-          "title": "THE SOUND",
           "hint_en_line1": "Don't pronounce W.",
           "hint_en_line2": "",
           "hint_es_line1": "No pronuncies la W.",
@@ -1762,7 +1596,6 @@
           "title_es": "EL SONIDO"
         },
         "spelling": {
-          "title": "WORDS",
           "hint_en_line1": "Silent W.",
           "hint_en_line2": "",
           "hint_es_line1": "W muda.",
@@ -1776,7 +1609,6 @@
           "title_es": "PALABRAS"
         },
         "sentence": {
-          "title": "SENTENCE",
           "hint_en_line1": "Context.",
           "hint_en_line2": "",
           "hint_es_line1": "Contexto.",
@@ -1792,11 +1624,9 @@
     },
     {
       "id": "session-silent-l",
-      "title": "Silent L",
       "speak": {
         "focus": "Silent L",
         "sound": {
-          "title": "THE SOUND",
           "hint_en_line1": "Don't pronounce L.",
           "hint_en_line2": "",
           "hint_es_line1": "No pronuncies la L.",
@@ -1807,7 +1637,6 @@
           "title_es": "EL SONIDO"
         },
         "spelling": {
-          "title": "WORDS",
           "hint_en_line1": "Silent L.",
           "hint_en_line2": "",
           "hint_es_line1": "L muda.",
@@ -1821,7 +1650,6 @@
           "title_es": "PALABRAS"
         },
         "sentence": {
-          "title": "SENTENCE",
           "hint_en_line1": "Context.",
           "hint_en_line2": "",
           "hint_es_line1": "Contexto.",
@@ -1837,11 +1665,9 @@
     },
     {
       "id": "session-stress-2",
-      "title": "Two Syllables",
       "speak": {
         "focus": "Stress",
         "sound": {
-          "title": "RHYTHM",
           "hint_en_line1": "Strong-Weak.",
           "hint_en_line2": "",
           "hint_es_line1": "Fuerte-débil.",
@@ -1852,7 +1678,6 @@
           "title_es": "RITMO"
         },
         "spelling": {
-          "title": "PATTERN",
           "hint_en_line1": "Listen to the beat.",
           "hint_en_line2": "",
           "hint_es_line1": "Escucha el ritmo.",
@@ -1866,7 +1691,6 @@
           "title_es": "PATRÓN"
         },
         "sentence": {
-          "title": "PHRASE",
           "hint_en_line1": "Stress the first.",
           "hint_en_line2": "",
           "hint_es_line1": "Acentúa la primera.",
@@ -1882,11 +1706,9 @@
     },
     {
       "id": "session-stress-3",
-      "title": "Three Syllables",
       "speak": {
         "focus": "Stress",
         "sound": {
-          "title": "RHYTHM",
           "hint_en_line1": "Strong middle.",
           "hint_en_line2": "",
           "hint_es_line1": "Golpe fuerte en el medio.",
@@ -1897,7 +1719,6 @@
           "title_es": "RITMO"
         },
         "spelling": {
-          "title": "PATTERN",
           "hint_en_line1": "Listen.",
           "hint_en_line2": "",
           "hint_es_line1": "Escucha.",
@@ -1911,7 +1732,6 @@
           "title_es": "PATRÓN"
         },
         "sentence": {
-          "title": "PHRASE",
           "hint_en_line1": "Rhythm.",
           "hint_en_line2": "",
           "hint_es_line1": "Ritmo.",
@@ -1927,11 +1747,9 @@
     },
     {
       "id": "session-stress-shift",
-      "title": "Shifting Stress",
       "speak": {
         "focus": "Shift",
         "sound": {
-          "title": "COMPARE",
           "hint_en_line1": "Noun vs Verb.",
           "hint_en_line2": "",
           "hint_es_line1": "Sustantivo vs verbo.",
@@ -1942,7 +1760,6 @@
           "title_es": "COMPARA"
         },
         "spelling": {
-          "title": "CHANGE",
           "hint_en_line1": "Stress moves.",
           "hint_en_line2": "",
           "hint_es_line1": "El acento se desplaza.",
@@ -1956,7 +1773,6 @@
           "title_es": "CAMBIO"
         },
         "sentence": {
-          "title": "SENTENCE",
           "hint_en_line1": "Feel the shift.",
           "hint_en_line2": "",
           "hint_es_line1": "Nota el cambio.",
@@ -1972,11 +1788,9 @@
     },
     {
       "id": "session-link-cv",
-      "title": "Consonant to Vowel",
       "speak": {
         "focus": "Link",
         "sound": {
-          "title": "CONNECT",
           "hint_en_line1": "Don't stop.",
           "hint_en_line2": "",
           "hint_es_line1": "No te detengas.",
@@ -1987,7 +1801,6 @@
           "title_es": "CONECTA"
         },
         "spelling": {
-          "title": "FLOW",
           "hint_en_line1": "Sounds like one word.",
           "hint_en_line2": "",
           "hint_es_line1": "Suena como una sola palabra.",
@@ -2001,7 +1814,6 @@
           "title_es": "FLUIDEZ"
         },
         "sentence": {
-          "title": "SENTENCE",
           "hint_en_line1": "Flow.",
           "hint_en_line2": "",
           "hint_es_line1": "Fluidez.",
@@ -2017,11 +1829,9 @@
     },
     {
       "id": "session-link-vv",
-      "title": "Vowel to Vowel",
       "speak": {
         "focus": "Glide",
         "sound": {
-          "title": "CONNECT",
           "hint_en_line1": "Add a W sound.",
           "hint_en_line2": "",
           "hint_es_line1": "Añade un sonido W.",
@@ -2032,7 +1842,6 @@
           "title_es": "CONECTA"
         },
         "spelling": {
-          "title": "FLOW",
           "hint_en_line1": "Smooth.",
           "hint_en_line2": "",
           "hint_es_line1": "Suave.",
@@ -2046,7 +1855,6 @@
           "title_es": "FLUIDEZ"
         },
         "sentence": {
-          "title": "SENTENCE",
           "hint_en_line1": "Smoothly.",
           "hint_en_line2": "",
           "hint_es_line1": "Con suavidad.",
@@ -2062,11 +1870,9 @@
     },
     {
       "id": "session-link-ty",
-      "title": "Y Fusion",
       "speak": {
         "focus": "Fusion",
         "sound": {
-          "title": "CONNECT",
           "hint_en_line1": "T+Y = CH.",
           "hint_en_line2": "",
           "hint_es_line1": "T+Y = CH.",
@@ -2077,7 +1883,6 @@
           "title_es": "CONECTA"
         },
         "spelling": {
-          "title": "FLOW",
           "hint_en_line1": "Combine sounds.",
           "hint_en_line2": "",
           "hint_es_line1": "Combina sonidos.",
@@ -2091,7 +1896,6 @@
           "title_es": "FLUIDEZ"
         },
         "sentence": {
-          "title": "SENTENCE",
           "hint_en_line1": "Informal flow.",
           "hint_en_line2": "",
           "hint_es_line1": "Fluidez informal.",
@@ -2107,11 +1911,9 @@
     },
     {
       "id": "session-schwa",
-      "title": "The Schwa",
       "speak": {
         "focus": "Weak",
         "sound": {
-          "title": "REDUCE",
           "hint_en_line1": "Make it short.",
           "hint_en_line2": "",
           "hint_es_line1": "Hazlo corto.",
@@ -2122,7 +1924,6 @@
           "title_es": "REDUCE"
         },
         "spelling": {
-          "title": "RHYTHM",
           "hint_en_line1": "Shorten 'and'.",
           "hint_en_line2": "",
           "hint_es_line1": "Reduce “and”.",
@@ -2136,7 +1937,6 @@
           "title_es": "RITMO"
         },
         "sentence": {
-          "title": "SENTENCE",
           "hint_en_line1": "Fast 'and'.",
           "hint_en_line2": "",
           "hint_es_line1": "“and” rápido.",
@@ -2152,11 +1952,9 @@
     },
     {
       "id": "session-focus-words",
-      "title": "Focus Words",
       "speak": {
         "focus": "Focus",
         "sound": {
-          "title": "EMPHASIS",
           "hint_en_line1": "Stress the meaning.",
           "hint_en_line2": "",
           "hint_es_line1": "Enfatiza la palabra con sentido.",
@@ -2167,7 +1965,6 @@
           "title_es": "ÉNFASIS"
         },
         "spelling": {
-          "title": "CHANGE",
           "hint_en_line1": "Change meaning.",
           "hint_en_line2": "",
           "hint_es_line1": "Cambia el significado.",
@@ -2181,7 +1978,6 @@
           "title_es": "CAMBIO"
         },
         "sentence": {
-          "title": "SENTENCE",
           "hint_en_line1": "Emphasize emotion.",
           "hint_en_line2": "",
           "hint_es_line1": "Enfatiza la emoción.",
@@ -2197,11 +1993,9 @@
     },
     {
       "id": "session-natural-flow",
-      "title": "Natural Flow",
       "speak": {
         "focus": "Flow",
         "sound": {
-          "title": "REDUCE",
           "hint_en_line1": "Informal.",
           "hint_en_line2": "",
           "hint_es_line1": "Informal.",
@@ -2212,7 +2006,6 @@
           "title_es": "REDUCE"
         },
         "spelling": {
-          "title": "CASUAL",
           "hint_en_line1": "Common reductions.",
           "hint_en_line2": "",
           "hint_es_line1": "Reducciones comunes.",
@@ -2226,7 +2019,6 @@
           "title_es": "INFORMAL"
         },
         "sentence": {
-          "title": "SENTENCE",
           "hint_en_line1": "Fast speech.",
           "hint_en_line2": "",
           "hint_es_line1": "Habla rápida.",
@@ -2242,11 +2034,9 @@
     },
     {
       "id": "session-strengths",
-      "title": "Strengths",
       "speak": {
         "focus": "Skills",
         "sound": {
-          "title": "KEYWORD",
           "hint_en_line1": "Positive trait.",
           "hint_en_line2": "",
           "hint_es_line1": "Rasgo positivo.",
@@ -2257,7 +2047,6 @@
           "title_es": "PALABRA CLAVE"
         },
         "spelling": {
-          "title": "VOCAB",
           "hint_en_line1": "Select best fit.",
           "hint_en_line2": "",
           "hint_es_line1": "Elige la mejor opción.",
@@ -2271,7 +2060,6 @@
           "title_es": "VOCABULARIO"
         },
         "sentence": {
-          "title": "INTERVIEW",
           "hint_en_line1": "Sell yourself.",
           "hint_en_line2": "",
           "hint_es_line1": "Véndete bien.",
@@ -2287,11 +2075,9 @@
     },
     {
       "id": "session-experience",
-      "title": "Experience",
       "speak": {
         "focus": "History",
         "sound": {
-          "title": "FACTS",
           "hint_en_line1": "State clearly.",
           "hint_en_line2": "",
           "hint_es_line1": "Exprésalo con claridad.",
@@ -2302,7 +2088,6 @@
           "title_es": "HECHOS"
         },
         "spelling": {
-          "title": "DETAILS",
           "hint_en_line1": "How long?",
           "hint_en_line2": "",
           "hint_es_line1": "¿Cuánto tiempo?",
@@ -2316,7 +2101,6 @@
           "title_es": "DETALLES"
         },
         "sentence": {
-          "title": "INTERVIEW",
           "hint_en_line1": "Your background.",
           "hint_en_line2": "",
           "hint_es_line1": "Tu trayectoria.",
@@ -2332,11 +2116,9 @@
     },
     {
       "id": "session-why-us",
-      "title": "Why Us?",
       "speak": {
         "focus": "Fit",
         "sound": {
-          "title": "REASON",
           "hint_en_line1": "The cause.",
           "hint_en_line2": "",
           "hint_es_line1": "La causa.",
@@ -2347,7 +2129,6 @@
           "title_es": "MOTIVO"
         },
         "spelling": {
-          "title": "KEYWORD",
           "hint_en_line1": "Why them?",
           "hint_en_line2": "",
           "hint_es_line1": "¿Por qué ellos?",
@@ -2361,7 +2142,6 @@
           "title_es": "PALABRA CLAVE"
         },
         "sentence": {
-          "title": "INTERVIEW",
           "hint_en_line1": "Flattery.",
           "hint_en_line2": "",
           "hint_es_line1": "Halago.",
@@ -2377,11 +2157,9 @@
     },
     {
       "id": "session-meeting-open",
-      "title": "Opening a Meeting",
       "speak": {
         "focus": "Start",
         "sound": {
-          "title": "LEAD",
           "hint_en_line1": "Take charge.",
           "hint_en_line2": "",
           "hint_es_line1": "Toma la iniciativa.",
@@ -2392,7 +2170,6 @@
           "title_es": "INICIO"
         },
         "spelling": {
-          "title": "PHRASE",
           "hint_en_line1": "Begin.",
           "hint_en_line2": "",
           "hint_es_line1": "Empieza.",
@@ -2406,7 +2183,6 @@
           "title_es": "FRASE"
         },
         "sentence": {
-          "title": "MEETING",
           "hint_en_line1": "Polite start.",
           "hint_en_line2": "",
           "hint_es_line1": "Inicio cortés.",
@@ -2422,11 +2198,9 @@
     },
     {
       "id": "session-agreeing",
-      "title": "Agreeing",
       "speak": {
         "focus": "Yes",
         "sound": {
-          "title": "AGREE",
           "hint_en_line1": "Strong yes.",
           "hint_en_line2": "",
           "hint_es_line1": "Sí enfático.",
@@ -2437,7 +2211,6 @@
           "title_es": "ACUERDO"
         },
         "spelling": {
-          "title": "DEGREE",
           "hint_en_line1": "How much?",
           "hint_en_line2": "",
           "hint_es_line1": "¿Cuánto cuesta?",
@@ -2451,7 +2224,6 @@
           "title_es": "GRADO"
         },
         "sentence": {
-          "title": "MEETING",
           "hint_en_line1": "Support.",
           "hint_en_line2": "",
           "hint_es_line1": "Fundamenta tu respuesta.",
@@ -2467,11 +2239,9 @@
     },
     {
       "id": "session-polite-disagreement",
-      "title": "Civil Disagreement",
       "speak": {
         "focus": "But...",
         "sound": {
-          "title": "SOFTEN",
           "hint_en_line1": "Don't be rude.",
           "hint_en_line2": "",
           "hint_es_line1": "No seas brusco.",
@@ -2482,7 +2252,6 @@
           "title_es": "SUAVIZA"
         },
         "spelling": {
-          "title": "PHRASE",
           "hint_en_line1": "Acknowledge.",
           "hint_en_line2": "",
           "hint_es_line1": "Confirma.",
@@ -2496,7 +2265,6 @@
           "title_es": "FRASE"
         },
         "sentence": {
-          "title": "MEETING",
           "hint_en_line1": "Pivot.",
           "hint_en_line2": "",
           "hint_es_line1": "Reconduce la conversación.",
@@ -2512,11 +2280,9 @@
     },
     {
       "id": "session-call-intro",
-      "title": "Call Introduction",
       "speak": {
         "focus": "Hello",
         "sound": {
-          "title": "INTRO",
           "hint_en_line1": "Identify yourself.",
           "hint_en_line2": "",
           "hint_es_line1": "Preséntate.",
@@ -2527,7 +2293,6 @@
           "title_es": "INTRODUCCIÓN"
         },
         "spelling": {
-          "title": "NAME",
           "hint_en_line1": "Say name.",
           "hint_en_line2": "",
           "hint_es_line1": "Di tu nombre.",
@@ -2541,7 +2306,6 @@
           "title_es": "NOMBRE"
         },
         "sentence": {
-          "title": "CALL",
           "hint_en_line1": "Standard intro.",
           "hint_en_line2": "",
           "hint_es_line1": "Introducción estándar.",
@@ -2557,11 +2321,9 @@
     },
     {
       "id": "session-clarifying",
-      "title": "Clarifying",
       "speak": {
         "focus": "Repeat",
         "sound": {
-          "title": "ISSUE",
           "hint_en_line1": "Volume.",
           "hint_en_line2": "",
           "hint_es_line1": "Volumen.",
@@ -2572,7 +2334,6 @@
           "title_es": "TEMA"
         },
         "spelling": {
-          "title": "POLITE",
           "hint_en_line1": "Request.",
           "hint_en_line2": "",
           "hint_es_line1": "Petición.",
@@ -2586,7 +2347,6 @@
           "title_es": "CORTÉS"
         },
         "sentence": {
-          "title": "CALL",
           "hint_en_line1": "Bad line.",
           "hint_en_line2": "",
           "hint_es_line1": "Mala conexión.",
@@ -2602,11 +2362,9 @@
     },
     {
       "id": "session-call-closing",
-      "title": "Call Closing",
       "speak": {
         "focus": "End",
         "sound": {
-          "title": "THANKS",
           "hint_en_line1": "Gratitude.",
           "hint_en_line2": "",
           "hint_es_line1": "Gratitud.",
@@ -2617,7 +2375,6 @@
           "title_es": "AGRADECIMIENTO"
         },
         "spelling": {
-          "title": "POLITE",
           "hint_en_line1": "Wrap up.",
           "hint_en_line2": "",
           "hint_es_line1": "Cierra la conversación.",
@@ -2631,7 +2388,6 @@
           "title_es": "CORTÉS"
         },
         "sentence": {
-          "title": "CALL",
           "hint_en_line1": "Professional exit.",
           "hint_en_line2": "",
           "hint_es_line1": "Cierre profesional.",

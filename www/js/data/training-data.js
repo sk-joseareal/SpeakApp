@@ -40,20 +40,12 @@ const asTrimmedText = (value) => String(value === undefined || value === null ? 
 
 const readI18nFieldObject = (source, fieldName) => {
   if (!source || typeof source !== 'object') return null;
-  const explicit = source[`${fieldName}_i18n`];
-  const nested =
-    explicit && typeof explicit === 'object' && !Array.isArray(explicit) ? explicit : null;
-
   const hasFlatEn = Object.prototype.hasOwnProperty.call(source, `${fieldName}_en`);
   const hasFlatEs = Object.prototype.hasOwnProperty.call(source, `${fieldName}_es`);
   const flatEn = asTrimmedText(source[`${fieldName}_en`]);
   const flatEs = asTrimmedText(source[`${fieldName}_es`]);
-
-  const nestedEn = asTrimmedText(nested && (nested.en || nested['en-US'] || nested.en_us));
-  const nestedEs = asTrimmedText(nested && (nested.es || nested['es-ES'] || nested.es_es));
-
-  const en = hasFlatEn ? flatEn : nestedEn;
-  const es = hasFlatEs ? flatEs : nestedEs;
+  const en = hasFlatEn ? flatEn : '';
+  const es = hasFlatEs ? flatEs : '';
   if (!en && !es) return null;
   return { en, es };
 };

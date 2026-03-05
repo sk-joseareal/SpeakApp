@@ -240,20 +240,11 @@
 
   const extractTextI18n = (rawEntity, fieldName) => {
     const entity = rawEntity && typeof rawEntity === 'object' ? rawEntity : {};
-    const explicit = entity[`${fieldName}_i18n`];
-    const explicitObj =
-      explicit && typeof explicit === 'object' && !Array.isArray(explicit) ? explicit : {};
-    const hasFlatEn = Object.prototype.hasOwnProperty.call(entity, `${fieldName}_en`);
-    const hasFlatEs = Object.prototype.hasOwnProperty.call(entity, `${fieldName}_es`);
     const source = {
-      en: hasFlatEn
-        ? entity[`${fieldName}_en`]
-        : getFirstText(explicitObj.en, explicitObj['en-US'], explicitObj.en_us),
-      es: hasFlatEs
-        ? entity[`${fieldName}_es`]
-        : getFirstText(explicitObj.es, explicitObj['es-ES'], explicitObj.es_es)
+      en: entity[`${fieldName}_en`],
+      es: entity[`${fieldName}_es`]
     };
-    return normalizeTextI18n(source, entity[fieldName]);
+    return normalizeTextI18n(source);
   };
 
   const normalizeSession = (session, idx) => {
@@ -448,47 +439,41 @@
 
   const serializeSessionStepForJson = (rawStep) => {
     const step = rawStep && typeof rawStep === 'object' ? { ...rawStep } : {};
-    const titleI18n = normalizeTextI18n(step.title_i18n, step.title);
-    const title = getFirstText(titleI18n.en, titleI18n.es);
+    const titleI18n = normalizeTextI18n(step.title_i18n);
+    delete step.title;
     delete step.title_i18n;
     return {
       ...step,
-      title,
-      ...withFlatTextFields('title', titleI18n, title)
+      ...withFlatTextFields('title', titleI18n, '')
     };
   };
 
   const buildJsonPayloadFromState = () => ({
     routes: contentState.routes.map((route) => {
-      const titleI18n = normalizeTextI18n(route.title_i18n, route.title);
-      const noteI18n = normalizeTextI18n(route.note_i18n, route.note);
+      const titleI18n = normalizeTextI18n(route.title_i18n);
+      const noteI18n = normalizeTextI18n(route.note_i18n);
       return {
         id: route.id,
-        title: getFirstText(titleI18n.en, titleI18n.es),
-        ...withFlatTextFields('title', titleI18n, route.title || ''),
-        note: getFirstText(noteI18n.en, noteI18n.es),
-        ...withFlatTextFields('note', noteI18n, route.note || ''),
+        ...withFlatTextFields('title', titleI18n, ''),
+        ...withFlatTextFields('note', noteI18n, ''),
         moduleIds: Array.isArray(route.moduleIds) ? route.moduleIds.slice() : []
       };
     }),
     modules: contentState.modules.map((module) => {
-      const titleI18n = normalizeTextI18n(module.title_i18n, module.title);
-      const subtitleI18n = normalizeTextI18n(module.subtitle_i18n, module.subtitle);
+      const titleI18n = normalizeTextI18n(module.title_i18n);
+      const subtitleI18n = normalizeTextI18n(module.subtitle_i18n);
       return {
         id: module.id,
-        title: getFirstText(titleI18n.en, titleI18n.es),
-        ...withFlatTextFields('title', titleI18n, module.title || ''),
-        subtitle: getFirstText(subtitleI18n.en, subtitleI18n.es),
-        ...withFlatTextFields('subtitle', subtitleI18n, module.subtitle || ''),
+        ...withFlatTextFields('title', titleI18n, ''),
+        ...withFlatTextFields('subtitle', subtitleI18n, ''),
         sessionIds: Array.isArray(module.sessionIds) ? module.sessionIds.slice() : []
       };
     }),
     sessions: contentState.sessions.map((session) => {
-      const titleI18n = normalizeTextI18n(session.title_i18n, session.title);
+      const titleI18n = normalizeTextI18n(session.title_i18n);
       return {
         id: session.id,
-        title: getFirstText(titleI18n.en, titleI18n.es),
-        ...withFlatTextFields('title', titleI18n, session.title || ''),
+        ...withFlatTextFields('title', titleI18n, ''),
         speak: {
           focus:
             session.speak && typeof session.speak === 'object'

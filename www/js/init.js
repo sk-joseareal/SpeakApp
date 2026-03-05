@@ -131,6 +131,13 @@ window.speakWebUtterance = (utter) => {
   if (typeof window === 'undefined') return false;
   const synth = window.speechSynthesis;
   if (!synth || typeof synth.speak !== 'function' || !utter) return false;
+  window.r34lp0w3r = window.r34lp0w3r || {};
+
+  const clearCurrentUtteranceRef = () => {
+    if (window.currentUtterance === utter) {
+      window.currentUtterance = null;
+    }
+  };
 
   const originalOnStart = typeof utter.onstart === 'function' ? utter.onstart : null;
   const originalOnEnd = typeof utter.onend === 'function' ? utter.onend : null;
@@ -181,6 +188,7 @@ window.speakWebUtterance = (utter) => {
     if (finished) return;
     finished = true;
     clearWatchdogs();
+    clearCurrentUtteranceRef();
     callHandler(originalOnEnd, payload);
   };
 
@@ -188,6 +196,7 @@ window.speakWebUtterance = (utter) => {
     if (finished) return;
     finished = true;
     clearWatchdogs();
+    clearCurrentUtteranceRef();
     if (typeof console !== 'undefined' && typeof console.warn === 'function') {
       console.warn('[tts-web] speak error', errorCode, {
         lang: utter && utter.lang ? utter.lang : '',
@@ -303,6 +312,17 @@ window.speakWebUtterance = (utter) => {
     }
   };
 
+  // Chrome/macOS sometimes stalls unless we force a clean slate first.
+  try {
+    if (typeof synth.cancel === 'function') {
+      synth.cancel();
+      window.r34lp0w3r.__speechCancelTs = Date.now();
+    }
+  } catch (err) {
+    // no-op
+  }
+  window.currentUtterance = utter;
+
   const lastCancel = Number(window.r34lp0w3r.__speechCancelTs || 0);
   const elapsed = Date.now() - lastCancel;
   let delayMs = 0;
@@ -324,6 +344,7 @@ window.speakWebUtterance = (utter) => {
     if (finished) return;
     finished = true;
     clearWatchdogs();
+    clearCurrentUtteranceRef();
     callHandler(originalOnError, event);
   };
 

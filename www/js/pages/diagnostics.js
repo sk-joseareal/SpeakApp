@@ -150,14 +150,14 @@ class PageDiagnostics extends HTMLElement {
               <p>ID: <strong id="diag-user-id"></strong></p>
               <p>Nombre: <strong id="diag-user-name"></strong></p>
               <p>Avatar: <strong id="diag-user-avatar"></strong></p>
-              <p>Premium hasta: <strong id="diag-user-premium-expiry"></strong></p>
-              <p>Premium real: <strong id="diag-user-premium-state"></strong></p>
+              <p>Chat hasta: <strong id="diag-user-chat-expiry"></strong></p>
+              <p>Chat real: <strong id="diag-user-chat-state"></strong></p>
               <div class="diag-debug-toggle" style="margin-top: 10px;">
                 <div class="diag-debug-text">
-                  <div class="diag-debug-title">Premium (override)</div>
-                  <div class="diag-debug-sub">Fuerza acceso Premium para pruebas.</div>
+                  <div class="diag-debug-title">Chat (override)</div>
+                  <div class="diag-debug-sub">Fuerza acceso Chat para pruebas.</div>
                 </div>
-                <ion-toggle id="diag-premium-toggle"></ion-toggle>
+                <ion-toggle id="diag-chat-toggle"></ion-toggle>
               </div>
               <div class="diag-avatar-wrap">
                 <img id="diag-user-avatar-img" src="" alt="Avatar" class="diag-avatar">
@@ -427,7 +427,7 @@ class PageDiagnostics extends HTMLElement {
 
     resolveVersionsAsync(plugins, this);
 
-    const PREMIUM_OVERRIDE_KEY = 'appv5:premium-override';
+    const CHAT_OVERRIDE_KEY = 'appv5:chat-override';
 
     const debugToggle = this.querySelector('#diag-debug-toggle');
     if (debugToggle) {
@@ -457,19 +457,19 @@ class PageDiagnostics extends HTMLElement {
       });
     }
 
-    const readPremiumOverride = () => {
-      if (window.r34lp0w3r && window.r34lp0w3r.premiumOverride === true) {
+    const readChatOverride = () => {
+      if (window.r34lp0w3r && window.r34lp0w3r.chatOverride === true) {
         return true;
       }
       try {
-        const raw = localStorage.getItem(PREMIUM_OVERRIDE_KEY);
+        const raw = localStorage.getItem(CHAT_OVERRIDE_KEY);
         if (raw === '1') {
           window.r34lp0w3r = window.r34lp0w3r || {};
-          window.r34lp0w3r.premiumOverride = true;
+          window.r34lp0w3r.chatOverride = true;
           return true;
         }
         if (raw === '0') {
-          localStorage.removeItem(PREMIUM_OVERRIDE_KEY);
+          localStorage.removeItem(CHAT_OVERRIDE_KEY);
         }
       } catch (err) {
         // no-op
@@ -477,23 +477,23 @@ class PageDiagnostics extends HTMLElement {
       return null;
     };
 
-    const setPremiumOverride = (enabled) => {
+    const setChatOverride = (enabled) => {
       window.r34lp0w3r = window.r34lp0w3r || {};
       if (enabled) {
-        window.r34lp0w3r.premiumOverride = true;
+        window.r34lp0w3r.chatOverride = true;
       } else {
-        delete window.r34lp0w3r.premiumOverride;
+        delete window.r34lp0w3r.chatOverride;
       }
       try {
         if (enabled) {
-          localStorage.setItem(PREMIUM_OVERRIDE_KEY, '1');
+          localStorage.setItem(CHAT_OVERRIDE_KEY, '1');
         } else {
-          localStorage.removeItem(PREMIUM_OVERRIDE_KEY);
+          localStorage.removeItem(CHAT_OVERRIDE_KEY);
         }
       } catch (err) {
         // no-op
       }
-      window.dispatchEvent(new CustomEvent('app:premium-override', { detail: !!enabled }));
+      window.dispatchEvent(new CustomEvent('app:chat-override', { detail: !!enabled }));
     };
 
     const formatExpiry = (value) => {
@@ -503,22 +503,22 @@ class PageDiagnostics extends HTMLElement {
       return date.toISOString();
     };
 
-    const isPremiumByExpiry = (user) => {
+    const isChatByExpiry = (user) => {
       if (!user || !user.expires_date) return false;
       const date = new Date(user.expires_date);
       if (Number.isNaN(date.getTime())) return false;
       return date.getTime() > Date.now();
     };
 
-    const premiumToggle = this.querySelector('#diag-premium-toggle');
-    if (premiumToggle) {
-      const override = readPremiumOverride();
+    const chatToggle = this.querySelector('#diag-chat-toggle');
+    if (chatToggle) {
+      const override = readChatOverride();
       if (override !== null) {
-        premiumToggle.checked = override;
+        chatToggle.checked = override;
       }
-      premiumToggle.addEventListener('ionChange', (event) => {
-        const checked = event && event.detail ? event.detail.checked : premiumToggle.checked;
-        setPremiumOverride(checked);
+      chatToggle.addEventListener('ionChange', (event) => {
+        const checked = event && event.detail ? event.detail.checked : chatToggle.checked;
+        setChatOverride(checked);
       });
     }
 
@@ -558,32 +558,32 @@ class PageDiagnostics extends HTMLElement {
         const nameEl = this.querySelector('#diag-user-name');
         const avatarEl = this.querySelector('#diag-user-avatar');
         const avatarImgEl = this.querySelector('#diag-user-avatar-img');
-        const premiumExpiryEl = this.querySelector('#diag-user-premium-expiry');
-        const premiumStateEl = this.querySelector('#diag-user-premium-state');
-        const override = readPremiumOverride();
-        const premiumReal = isPremiumByExpiry(user);
+        const chatExpiryEl = this.querySelector('#diag-user-chat-expiry');
+        const chatStateEl = this.querySelector('#diag-user-chat-state');
+        const override = readChatOverride();
+        const chatReal = isChatByExpiry(user);
         if (avatarEl) avatarEl.textContent = user.avatar || 'n/a';
         if (idEl) idEl.textContent = user.id || 'n/a';
         if (nameEl) nameEl.textContent = user.name || 'n/a';
         const avatarSrc = resolveAvatarSrc(user);
         if (avatarEl) avatarEl.textContent = avatarSrc || 'n/a';
         setAvatarImg(avatarImgEl, user);
-        if (premiumExpiryEl) {
-          premiumExpiryEl.textContent = formatExpiry(user.expires_date);
+        if (chatExpiryEl) {
+          chatExpiryEl.textContent = formatExpiry(user.expires_date);
         }
-        if (premiumStateEl) {
-          premiumStateEl.textContent = premiumReal ? 'si' : 'no';
+        if (chatStateEl) {
+          chatStateEl.textContent = chatReal ? 'si' : 'no';
         }
-        if (premiumToggle) {
-          premiumToggle.disabled = false;
-          premiumToggle.checked = override === true;
+        if (chatToggle) {
+          chatToggle.disabled = false;
+          chatToggle.checked = override === true;
         }
         panel.style.display = 'block';
         if (loginBtn) loginBtn.disabled = true;
         if (logoutBtn) logoutBtn.style.display = '';
       } else {
         panel.style.display = 'none';
-        if (premiumToggle) premiumToggle.disabled = true;
+        if (chatToggle) chatToggle.disabled = true;
         if (loginBtn) loginBtn.disabled = false;
         if (logoutBtn) logoutBtn.style.display = 'none';
       }
@@ -2247,6 +2247,10 @@ class PageDiagnostics extends HTMLElement {
                 ? window.speakWebUtterance(utter)
                 : (() => {
                     window.speechSynthesis.cancel();
+                    if (typeof window.speechSynthesis.resume === 'function') {
+                      window.speechSynthesis.resume();
+                    }
+                    window.currentUtterance = utter;
                     window.speechSynthesis.speak(utter);
                     return true;
                   })();

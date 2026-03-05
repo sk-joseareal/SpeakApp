@@ -6,10 +6,7 @@ class TabsPage extends HTMLElement {
     this.classList.add('ion-page');
     const TAB_STORAGE_KEY = 'appv5:active-tab';
     const allowedTabs = ['home', 'freeride', 'tu', 'chat'];
-    const normalizeTab = (tab) => {
-      const value = String(tab || '').trim().toLowerCase();
-      return value === 'premium' ? 'chat' : value;
-    };
+    const normalizeTab = (tab) => String(tab || '').trim().toLowerCase();
     const resolveUiLocale = () => {
       const fromState = normalizeCopyLocale(getAppLocale());
       if (fromState) return fromState;
@@ -29,7 +26,7 @@ class TabsPage extends HTMLElement {
           <page-profile></page-profile>
         </ion-tab>
         <ion-tab tab="chat">
-          <page-premium></page-premium>
+          <page-chat></page-chat>
         </ion-tab>
         <ion-tab-bar slot="bottom" class="app-tab-bar">
           <ion-tab-button tab="home">

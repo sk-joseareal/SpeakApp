@@ -86,7 +86,7 @@ const parsePushAction = (data) => {
   const action = {
     label: label || getStoreCopy().openAction
   };
-  if (tab) action.tab = tab === 'premium' ? 'chat' : tab;
+  if (tab) action.tab = tab;
   if (profileTab) action.profileTab = profileTab;
   if (hash) action.hash = hash;
   if (callback) action.callback = callback;

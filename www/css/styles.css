@@ -63,10 +63,9 @@ page-onboarding,
 tabs-page,
 page-home,
 page-free-ride,
-page-listas,
 page-speak,
 page-profile,
-page-premium {
+page-chat {
   display: block;
   height: 100%;
 }
@@ -2100,17 +2099,17 @@ ion-modal.login-modal page-login .page-shell {
   font-weight: 700;
 }
 
-.premium-chat-card {
+.chat-chat-card {
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
-page-premium {
-  --premium-keyboard-offset: 0px;
+page-chat {
+  --chat-keyboard-offset: 0px;
 }
 
-page-premium .page-shell {
+page-chat .page-shell {
   flex: 1;
   min-height: 0;
   padding-bottom: 16px;
@@ -2119,7 +2118,7 @@ page-premium .page-shell {
   box-sizing: border-box;
 }
 
-page-premium .premium-chat-card {
+page-chat .chat-chat-card {
   flex: 1;
   min-height: 0;
   width: 100%;
@@ -2127,11 +2126,11 @@ page-premium .premium-chat-card {
   box-sizing: border-box;
 }
 
-page-premium .chat-panel {
+page-chat .chat-panel {
   flex: 1;
   min-height: 0;
   width: 100%;
-  padding-bottom: var(--premium-keyboard-offset, 0px);
+  padding-bottom: var(--chat-keyboard-offset, 0px);
   transition: padding-bottom 0.24s ease;
   will-change: padding-bottom;
 }
@@ -2151,80 +2150,80 @@ page-premium .chat-panel {
   width: 100%;
 }
 
-page-premium.premium-chatbot-one-line .chat-composer-row {
+page-chat.chat-chatbot-one-line .chat-composer-row {
   flex-direction: row;
   align-items: center;
   gap: 10px;
 }
 
-page-premium.premium-chatbot-one-line .chat-composer-row .chat-text-row {
+page-chat.chat-chatbot-one-line .chat-composer-row .chat-text-row {
   flex: 1;
   min-width: 0;
 }
 
-page-premium.premium-chatbot-one-line .chat-composer-row .chat-controls {
+page-chat.chat-chatbot-one-line .chat-composer-row .chat-controls {
   width: auto;
   flex: 0 0 auto;
   flex-wrap: nowrap;
   justify-content: flex-end;
 }
 
-page-premium .chat-thread {
+page-chat .chat-thread {
   flex: 1 1 auto;
   min-height: 140px;
   max-height: none;
-  scroll-padding-bottom: calc(120px + var(--premium-keyboard-offset, 0px));
+  scroll-padding-bottom: calc(120px + var(--chat-keyboard-offset, 0px));
 }
 
-page-premium.chat-keyboard-open .page-shell {
+page-chat.chat-keyboard-open .page-shell {
   padding-bottom: 8px;
 }
 
-page-premium.chat-keyboard-open .premium-chat-card {
+page-chat.chat-keyboard-open .chat-chat-card {
   gap: 8px;
 }
 
-page-premium.chat-keyboard-open .chat-panel {
+page-chat.chat-keyboard-open .chat-panel {
   gap: 8px;
 }
 
-page-premium.chat-keyboard-open .chat-thread {
+page-chat.chat-keyboard-open .chat-thread {
   min-height: 0;
 }
 
-page-premium.chat-keyboard-open .chat-hint {
+page-chat.chat-keyboard-open .chat-hint {
   display: none;
 }
 
-page-premium.chat-keyboard-resized .page-shell {
+page-chat.chat-keyboard-resized .page-shell {
   padding-bottom: 8px;
 }
 
-page-premium.chat-keyboard-resized .premium-chat-card {
+page-chat.chat-keyboard-resized .chat-chat-card {
   gap: 8px;
 }
 
-page-premium.chat-keyboard-resized .chat-panel {
+page-chat.chat-keyboard-resized .chat-panel {
   gap: 8px;
 }
 
-page-premium.chat-keyboard-resized .chat-thread {
+page-chat.chat-keyboard-resized .chat-thread {
   min-height: 0;
   scroll-padding-bottom: 120px;
 }
 
-page-premium.chat-keyboard-resized .chat-hint {
+page-chat.chat-keyboard-resized .chat-hint {
   display: none;
 }
 
-page-premium ion-content::part(scroll) {
+page-chat ion-content::part(scroll) {
   display: flex;
   flex-direction: column;
   align-items: stretch;
   width: 100%;
 }
 
-.premium-card-header {
+.chat-card-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
@@ -2346,7 +2345,7 @@ page-premium ion-content::part(scroll) {
   display: none !important;
 }
 
-.premium-user {
+.chat-user {
   display: inline-flex;
   align-items: center;
   gap: 10px;
@@ -2359,7 +2358,7 @@ page-premium ion-content::part(scroll) {
   padding-right: 6px;
 }
 
-.premium-user-info,
+.chat-user-info,
 .app-user-info {
   display: inline-flex;
   align-items: center;
@@ -2369,7 +2368,7 @@ page-premium ion-content::part(scroll) {
   background: rgba(15, 27, 45, 0.05);
 }
 
-.premium-user-avatar,
+.chat-user-avatar,
 .app-user-avatar {
   width: 28px;
   height: 28px;
@@ -2378,7 +2377,7 @@ page-premium ion-content::part(scroll) {
   border: 1px solid var(--app-border);
 }
 
-.premium-user-name,
+.chat-user-name,
 .app-user-name {
   font-size: 0.85rem;
   font-weight: 600;
@@ -2443,21 +2442,21 @@ page-premium ion-content::part(scroll) {
   font-weight: 600;
 }
 
-.premium-access {
+.chat-access {
   border-radius: 16px;
   border: 1px dashed var(--app-border);
   background: rgba(15, 27, 45, 0.04);
   padding: 14px;
 }
 
-.premium-access-panel {
+.chat-access-panel {
   display: flex;
   flex-direction: column;
   gap: 10px;
   align-items: flex-start;
 }
 
-.premium-loading-panel {
+.chat-loading-panel {
   flex-direction: row;
   align-items: center;
   gap: 10px;
@@ -2465,16 +2464,16 @@ page-premium ion-content::part(scroll) {
   font-size: 0.9rem;
 }
 
-.premium-loading-panel ion-spinner {
+.chat-loading-panel ion-spinner {
   width: 18px;
   height: 18px;
 }
 
-.premium-access-panel p {
+.chat-access-panel p {
   margin: 0;
 }
 
-.premium-login-btn {
+.chat-login-btn {
   align-self: flex-start;
 }
 
@@ -5907,7 +5906,7 @@ ion-select.training-pill.active::part(icon) {
 }
 
 @media (min-width: 720px) {
-  page-premium .page-shell {
+  page-chat .page-shell {
     max-width: 860px;
     margin: 0 auto;
   }

@@ -118,6 +118,7 @@ class PageFreeRide extends HTMLElement {
     this.nativeSpeechActive = false;
     this.nativeSpeechListeners = [];
     this.activeAudio = null;
+    this.narrationAudio = null;
     this.activePlayButton = null;
     this.narrationToken = 0;
     this.narrationTimer = null;
@@ -4222,6 +4223,18 @@ class PageFreeRide extends HTMLElement {
   }
 
   async stopNarrationPlayback() {
+    if (this.narrationAudio) {
+      try {
+        this.narrationAudio.pause();
+        this.narrationAudio.currentTime = 0;
+      } catch (err) {
+        // no-op
+      }
+      this.narrationAudio.onplaying = null;
+      this.narrationAudio.onended = null;
+      this.narrationAudio.onerror = null;
+      this.narrationAudio = null;
+    }
     const plugin = this.getNativeTtsPlugin();
     if (plugin && typeof plugin.stop === 'function') {
       try {
@@ -4339,6 +4352,125 @@ class PageFreeRide extends HTMLElement {
         notifyPlaybackEnd();
         settle(false);
       }
+    });
+  }
+
+  async playNarrationAligned(text, lang, token, hooks = {}) {
+    const lineText = String(text || '').trim();
+    if (!lineText) return false;
+    if (token !== this.narrationToken) return false;
+
+    let payload = null;
+    try {
+      payload = await this.fetchAlignedTts(lineText, lang);
+    } catch (err) {
+      payload = null;
+    }
+    if (!payload || token !== this.narrationToken) return false;
+
+    const audioUrl = String(payload.audio_url || '').trim();
+    if (!audioUrl) return false;
+
+    const onPlaybackStart =
+      hooks && typeof hooks.onPlaybackStart === 'function' ? hooks.onPlaybackStart : null;
+    const onPlaybackEnd =
+      hooks && typeof hooks.onPlaybackEnd === 'function' ? hooks.onPlaybackEnd : null;
+    const audio = new Audio(audioUrl);
+    audio.preload = 'auto';
+
+    return new Promise((resolve) => {
+      let started = false;
+      let settled = false;
+      let cancelTimer = null;
+      let startTimeout = null;
+      let maxTimeout = null;
+
+      const notifyStart = () => {
+        if (started) return;
+        started = true;
+        if (onPlaybackStart) onPlaybackStart();
+      };
+
+      const cleanup = () => {
+        if (cancelTimer) {
+          clearInterval(cancelTimer);
+          cancelTimer = null;
+        }
+        if (startTimeout) {
+          clearTimeout(startTimeout);
+          startTimeout = null;
+        }
+        if (maxTimeout) {
+          clearTimeout(maxTimeout);
+          maxTimeout = null;
+        }
+        audio.onplaying = null;
+        audio.onended = null;
+        audio.onerror = null;
+        if (this.narrationAudio === audio) {
+          this.narrationAudio = null;
+        }
+      };
+
+      const settle = () => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        if (onPlaybackEnd) onPlaybackEnd();
+        resolve(started);
+      };
+
+      cancelTimer = setInterval(() => {
+        if (settled) return;
+        if (token !== this.narrationToken) {
+          try {
+            audio.pause();
+            audio.currentTime = 0;
+          } catch (err) {
+            // no-op
+          }
+          settle();
+        }
+      }, 80);
+
+      startTimeout = setTimeout(() => {
+        settle();
+      }, 1800);
+
+      const estimatedMs = Math.min(12000, Math.max(1200, Math.round(lineText.length * 80) + 3200));
+      maxTimeout = setTimeout(() => {
+        settle();
+      }, estimatedMs);
+
+      audio.onplaying = () => {
+        notifyStart();
+      };
+      audio.onended = () => {
+        settle();
+      };
+      audio.onerror = () => {
+        settle();
+      };
+
+      this.narrationAudio = audio;
+      audio
+        .play()
+        .then(() => {
+          if (token !== this.narrationToken) {
+            try {
+              audio.pause();
+              audio.currentTime = 0;
+            } catch (err) {
+              // no-op
+            }
+            settle();
+            return;
+          }
+          notifyStart();
+        })
+        .catch(() => {
+          settle();
+        });
     });
   }
 
@@ -4526,7 +4658,21 @@ class PageFreeRide extends HTMLElement {
           applyLine(line);
         }
 
-        let started = await speakLineWithPlugin(lineText);
+        const hooks = {
+          onPlaybackStart: () => {
+            if (token !== this.narrationToken) return;
+            this.startHeroMascotTalk();
+          },
+          onPlaybackEnd: () => {
+            if (token !== this.narrationToken) return;
+            this.stopHeroMascotTalk({ settle: true });
+          }
+        };
+
+        let started = await this.playNarrationAligned(lineText, lang, token, hooks);
+        if (!started && token === this.narrationToken) {
+          started = await speakLineWithPlugin(lineText);
+        }
         if (!started && token === this.narrationToken) {
           started = await speakLineWebWithRetry(lineText);
         }

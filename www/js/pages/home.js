@@ -25,6 +25,7 @@ const PLAN_MASCOT_FRAME_COUNT = 9;
 const PLAN_MASCOT_REST_FRAME = PLAN_MASCOT_FRAME_COUNT - 1;
 const PLAN_MASCOT_FRAME_INTERVAL_MS = 150;
 const SPEAK_SESSION_PERCENTAGES_VISIBLE_KEY = 'appv5:speak-session-percentages-visible';
+const HOME_ALIGNED_CACHE_MAX_ITEMS = 24;
 
 class PageHome extends HTMLElement {
   constructor() {
@@ -47,6 +48,8 @@ class PageHome extends HTMLElement {
     this.planMascotFrameIndex = PLAN_MASCOT_REST_FRAME;
     this.planMascotFrameTimer = null;
     this.planMascotIsTalking = false;
+    this.narrationAudio = null;
+    this.alignedTtsCache = new Map();
   }
 
   connectedCallback() {
@@ -1346,7 +1349,114 @@ class PageHome extends HTMLElement {
     return fallback ? [{ text: fallback, html: '' }] : [];
   }
 
+  resolveAlignedTtsEndpoint() {
+    const cfg = window.realtimeConfig || {};
+    const direct = cfg.ttsAlignedEndpoint || window.REALTIME_TTS_ALIGNED_ENDPOINT;
+    if (typeof direct === 'string' && direct.trim()) {
+      return direct.trim();
+    }
+    const emitEndpoint = cfg.emitEndpoint;
+    if (typeof emitEndpoint === 'string' && emitEndpoint.trim()) {
+      const trimmed = emitEndpoint.trim().replace(/\/+$/, '');
+      if (trimmed.endsWith('/emit')) {
+        return `${trimmed.slice(0, -5)}/tts/aligned`;
+      }
+    }
+    return 'https://realtime.curso-ingles.com/realtime/tts/aligned';
+  }
+
+  buildAlignedTtsHeaders() {
+    const headers = { 'Content-Type': 'application/json' };
+    const cfg = window.realtimeConfig || {};
+    const token =
+      typeof cfg.stateToken === 'string'
+        ? cfg.stateToken.trim()
+        : typeof window.REALTIME_STATE_TOKEN === 'string'
+          ? window.REALTIME_STATE_TOKEN.trim()
+          : '';
+    if (token) {
+      headers['x-rt-token'] = token;
+    }
+    return headers;
+  }
+
+  getAlignedTtsCacheKey(text, lang) {
+    return `${String(lang || '').trim().toLowerCase()}::${String(text || '').trim()}`;
+  }
+
+  getAlignedTtsFromCache(text, lang) {
+    const key = this.getAlignedTtsCacheKey(text, lang);
+    if (!key || !this.alignedTtsCache.has(key)) return null;
+    const cached = this.alignedTtsCache.get(key);
+    this.alignedTtsCache.delete(key);
+    this.alignedTtsCache.set(key, cached);
+    return cached;
+  }
+
+  storeAlignedTtsInCache(text, lang, payload) {
+    const key = this.getAlignedTtsCacheKey(text, lang);
+    if (!key || !payload) return;
+    this.alignedTtsCache.set(key, payload);
+    while (this.alignedTtsCache.size > HOME_ALIGNED_CACHE_MAX_ITEMS) {
+      const oldest = this.alignedTtsCache.keys().next();
+      if (oldest && !oldest.done) {
+        this.alignedTtsCache.delete(oldest.value);
+      } else {
+        break;
+      }
+    }
+  }
+
+  async fetchAlignedTts(text, lang) {
+    const expected = String(text || '').trim();
+    const locale = String(lang || '').trim() || 'en-US';
+    if (!expected) return null;
+
+    const cached = this.getAlignedTtsFromCache(expected, locale);
+    if (cached) return cached;
+
+    const endpoint = this.resolveAlignedTtsEndpoint();
+    if (!endpoint) return null;
+
+    const body = {
+      text: expected,
+      locale
+    };
+    const user = window.user;
+    if (user && user.id !== undefined && user.id !== null && String(user.id).trim()) {
+      body.user_id = String(user.id).trim();
+    }
+    if (user && typeof user.name === 'string' && user.name.trim()) {
+      body.user_name = user.name.trim();
+    }
+
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: this.buildAlignedTtsHeaders(),
+      body: JSON.stringify(body)
+    });
+    if (!response.ok) return null;
+
+    const data = await response.json();
+    if (!data || data.ok !== true) return null;
+    if (typeof data.audio_url !== 'string' || !data.audio_url.trim()) return null;
+    this.storeAlignedTtsInCache(expected, locale, data);
+    return data;
+  }
+
   async stopNarrationPlayback() {
+    if (this.narrationAudio) {
+      try {
+        this.narrationAudio.pause();
+        this.narrationAudio.currentTime = 0;
+      } catch (err) {
+        // no-op
+      }
+      this.narrationAudio.onplaying = null;
+      this.narrationAudio.onended = null;
+      this.narrationAudio.onerror = null;
+      this.narrationAudio = null;
+    }
     const plugin = this.getNativeTtsPlugin();
     if (plugin && typeof plugin.stop === 'function') {
       try {
@@ -1542,6 +1652,125 @@ class PageHome extends HTMLElement {
     });
   }
 
+  async playNarrationAligned(text, lang, token, hooks = {}) {
+    const lineText = String(text || '').trim();
+    if (!lineText) return false;
+    if (token !== this.narrationToken) return false;
+
+    let payload = null;
+    try {
+      payload = await this.fetchAlignedTts(lineText, lang);
+    } catch (err) {
+      payload = null;
+    }
+    if (!payload || token !== this.narrationToken) return false;
+
+    const audioUrl = String(payload.audio_url || '').trim();
+    if (!audioUrl) return false;
+
+    const onPlaybackStart =
+      hooks && typeof hooks.onPlaybackStart === 'function' ? hooks.onPlaybackStart : null;
+    const onPlaybackEnd =
+      hooks && typeof hooks.onPlaybackEnd === 'function' ? hooks.onPlaybackEnd : null;
+    const audio = new Audio(audioUrl);
+    audio.preload = 'auto';
+
+    return new Promise((resolve) => {
+      let started = false;
+      let settled = false;
+      let cancelTimer = null;
+      let startTimeout = null;
+      let maxTimeout = null;
+
+      const notifyStart = () => {
+        if (started) return;
+        started = true;
+        if (onPlaybackStart) onPlaybackStart();
+      };
+
+      const cleanup = () => {
+        if (cancelTimer) {
+          clearInterval(cancelTimer);
+          cancelTimer = null;
+        }
+        if (startTimeout) {
+          clearTimeout(startTimeout);
+          startTimeout = null;
+        }
+        if (maxTimeout) {
+          clearTimeout(maxTimeout);
+          maxTimeout = null;
+        }
+        audio.onplaying = null;
+        audio.onended = null;
+        audio.onerror = null;
+        if (this.narrationAudio === audio) {
+          this.narrationAudio = null;
+        }
+      };
+
+      const settle = () => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        if (onPlaybackEnd) onPlaybackEnd();
+        resolve(started);
+      };
+
+      cancelTimer = setInterval(() => {
+        if (settled) return;
+        if (token !== this.narrationToken) {
+          try {
+            audio.pause();
+            audio.currentTime = 0;
+          } catch (err) {
+            // no-op
+          }
+          settle();
+        }
+      }, 80);
+
+      startTimeout = setTimeout(() => {
+        settle();
+      }, 1800);
+
+      const estimatedMs = Math.min(12000, Math.max(1200, Math.round(lineText.length * 80) + 3200));
+      maxTimeout = setTimeout(() => {
+        settle();
+      }, estimatedMs);
+
+      audio.onplaying = () => {
+        notifyStart();
+      };
+      audio.onended = () => {
+        settle();
+      };
+      audio.onerror = () => {
+        settle();
+      };
+
+      this.narrationAudio = audio;
+      audio
+        .play()
+        .then(() => {
+          if (token !== this.narrationToken) {
+            try {
+              audio.pause();
+              audio.currentTime = 0;
+            } catch (err) {
+              // no-op
+            }
+            settle();
+            return;
+          }
+          notifyStart();
+        })
+        .catch(() => {
+          settle();
+        });
+    });
+  }
+
   async speakNarration(linesOrText, locale, options = {}) {
     const lines = Array.isArray(linesOrText)
       ? linesOrText.filter((line) => line && typeof line.text === 'string' && line.text.trim())
@@ -1726,7 +1955,21 @@ class PageHome extends HTMLElement {
           applyLine(line);
         }
 
-        let started = await speakLineWithPlugin(lineText);
+        const hooks = {
+          onPlaybackStart: () => {
+            if (token !== this.narrationToken) return;
+            this.startPlanMascotTalk();
+          },
+          onPlaybackEnd: () => {
+            if (token !== this.narrationToken) return;
+            this.stopPlanMascotTalk({ settle: true });
+          }
+        };
+
+        let started = await this.playNarrationAligned(lineText, lang, token, hooks);
+        if (!started && token === this.narrationToken) {
+          started = await speakLineWithPlugin(lineText);
+        }
         if (!started && token === this.narrationToken) {
           started = await speakLineWebWithRetry(lineText);
         }

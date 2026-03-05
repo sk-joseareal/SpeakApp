@@ -126,10 +126,9 @@ class PageNotifications extends HTMLElement {
         window.r34lp0w3r.profileForceTab = action.profileTab;
       }
       if (action.tab) {
-        const normalizedTab = action.tab === 'premium' ? 'chat' : action.tab;
         const tabs = document.querySelector('ion-tabs');
         if (tabs && typeof tabs.select === 'function') {
-          tabs.select(normalizedTab).catch(() => {});
+          tabs.select(action.tab).catch(() => {});
         }
       }
       if (action.hash) {
@@ -202,7 +201,6 @@ const resolveNotifyIcon = (item) => {
       return 'timer-outline';
     case 'practice':
       return 'mic-outline';
-    case 'premium':
     case 'chat':
       return 'sparkles-outline';
     case 'talk':
@@ -216,7 +214,6 @@ const resolveNotifyTone = (item) => {
   if (item && (item.tone === 'good' || item.tone === 'warn')) return item.tone;
   switch (item?.type) {
     case 'reward':
-    case 'premium':
     case 'chat':
       return 'good';
     case 'reminder':

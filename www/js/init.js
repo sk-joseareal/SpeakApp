@@ -432,6 +432,20 @@ window.r34lp0w3r.speakFeedback = window.r34lp0w3r.speakFeedback || {
     { min: 60, tone: 'okay' },
     { min: 0, tone: 'bad' }
   ],
+  labelScaleByLocale: {
+    en: [
+      { min: 85, label: 'You sound like a native' },
+      { min: 70, label: 'Good! Continue practicing' },
+      { min: 60, label: 'Almost Correct!' },
+      { min: 0, label: 'Keep practicing' }
+    ],
+    es: [
+      { min: 85, label: 'Suena como un nativo' },
+      { min: 70, label: 'Bien. Sigue practicando' },
+      { min: 60, label: 'Casi correcto' },
+      { min: 0, label: 'Sigue practicando' }
+    ]
+  },
   labelScale: [
     { min: 85, label: 'You sound like a native' },
     { min: 70, label: 'Good! Continue practicing' },
@@ -441,9 +455,16 @@ window.r34lp0w3r.speakFeedback = window.r34lp0w3r.speakFeedback || {
 };
 
 window.r34lp0w3r.speakSummaryTitles = window.r34lp0w3r.speakSummaryTitles || {
-  good: ['Muy bien! aprendiste {{session}}', 'Excelente! completaste {{session}}'],
-  okay: ['Buen trabajo! sigue practicando {{session}}', 'Vas bien! repasa {{session}}'],
-  bad: ['No pasa nada, practica {{session}}', 'Sigue intentandolo con {{session}}']
+  en: {
+    good: ['Great! You learned {{session}}', 'Excellent! You completed {{session}}'],
+    okay: ['Good work! Keep practicing {{session}}', 'You are doing well! Review {{session}}'],
+    bad: ['No worries, keep practicing {{session}}', 'Keep trying with {{session}}']
+  },
+  es: {
+    good: ['Muy bien! aprendiste {{session}}', 'Excelente! completaste {{session}}'],
+    okay: ['Buen trabajo! sigue practicando {{session}}', 'Vas bien! repasa {{session}}'],
+    bad: ['No pasa nada, practica {{session}}', 'Sigue intentandolo con {{session}}']
+  }
 };
 
 const SPEAK_WORDS_KEY = 'appv5:speak-word-scores';

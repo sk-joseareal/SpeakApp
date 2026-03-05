@@ -241,12 +241,18 @@
   const extractTextI18n = (rawEntity, fieldName) => {
     const entity = rawEntity && typeof rawEntity === 'object' ? rawEntity : {};
     const explicit = entity[`${fieldName}_i18n`];
-    const legacy = {
-      en: entity[`${fieldName}_en`],
-      es: entity[`${fieldName}_es`]
+    const explicitObj =
+      explicit && typeof explicit === 'object' && !Array.isArray(explicit) ? explicit : {};
+    const hasFlatEn = Object.prototype.hasOwnProperty.call(entity, `${fieldName}_en`);
+    const hasFlatEs = Object.prototype.hasOwnProperty.call(entity, `${fieldName}_es`);
+    const source = {
+      en: hasFlatEn
+        ? entity[`${fieldName}_en`]
+        : getFirstText(explicitObj.en, explicitObj['en-US'], explicitObj.en_us),
+      es: hasFlatEs
+        ? entity[`${fieldName}_es`]
+        : getFirstText(explicitObj.es, explicitObj['es-ES'], explicitObj.es_es)
     };
-    const source =
-      explicit && typeof explicit === 'object' && !Array.isArray(explicit) ? explicit : legacy;
     return normalizeTextI18n(source, entity[fieldName]);
   };
 
@@ -432,9 +438,73 @@
     selectedSessionId = sessionId;
   };
 
+  const withFlatTextFields = (fieldName, i18nValue, fallbackValue = '') => {
+    const i18n = normalizeTextI18n(i18nValue, fallbackValue);
+    return {
+      [`${fieldName}_en`]: i18n.en || '',
+      [`${fieldName}_es`]: i18n.es || ''
+    };
+  };
+
+  const serializeSessionStepForJson = (rawStep) => {
+    const step = rawStep && typeof rawStep === 'object' ? { ...rawStep } : {};
+    const titleI18n = normalizeTextI18n(step.title_i18n, step.title);
+    const title = getFirstText(titleI18n.en, titleI18n.es);
+    delete step.title_i18n;
+    return {
+      ...step,
+      title,
+      ...withFlatTextFields('title', titleI18n, title)
+    };
+  };
+
+  const buildJsonPayloadFromState = () => ({
+    routes: contentState.routes.map((route) => {
+      const titleI18n = normalizeTextI18n(route.title_i18n, route.title);
+      const noteI18n = normalizeTextI18n(route.note_i18n, route.note);
+      return {
+        id: route.id,
+        title: getFirstText(titleI18n.en, titleI18n.es),
+        ...withFlatTextFields('title', titleI18n, route.title || ''),
+        note: getFirstText(noteI18n.en, noteI18n.es),
+        ...withFlatTextFields('note', noteI18n, route.note || ''),
+        moduleIds: Array.isArray(route.moduleIds) ? route.moduleIds.slice() : []
+      };
+    }),
+    modules: contentState.modules.map((module) => {
+      const titleI18n = normalizeTextI18n(module.title_i18n, module.title);
+      const subtitleI18n = normalizeTextI18n(module.subtitle_i18n, module.subtitle);
+      return {
+        id: module.id,
+        title: getFirstText(titleI18n.en, titleI18n.es),
+        ...withFlatTextFields('title', titleI18n, module.title || ''),
+        subtitle: getFirstText(subtitleI18n.en, subtitleI18n.es),
+        ...withFlatTextFields('subtitle', subtitleI18n, module.subtitle || ''),
+        sessionIds: Array.isArray(module.sessionIds) ? module.sessionIds.slice() : []
+      };
+    }),
+    sessions: contentState.sessions.map((session) => {
+      const titleI18n = normalizeTextI18n(session.title_i18n, session.title);
+      return {
+        id: session.id,
+        title: getFirstText(titleI18n.en, titleI18n.es),
+        ...withFlatTextFields('title', titleI18n, session.title || ''),
+        speak: {
+          focus:
+            session.speak && typeof session.speak === 'object'
+              ? asText(session.speak.focus)
+              : '',
+          sound: serializeSessionStepForJson(session.speak && session.speak.sound),
+          spelling: serializeSessionStepForJson(session.speak && session.speak.spelling),
+          sentence: serializeSessionStepForJson(session.speak && session.speak.sentence)
+        }
+      };
+    })
+  });
+
   const syncJsonFromState = () => {
     syncingJsonEditor = true;
-    el.jsonEditor.value = JSON.stringify(contentState, null, 2);
+    el.jsonEditor.value = JSON.stringify(buildJsonPayloadFromState(), null, 2);
     syncingJsonEditor = false;
     jsonDirty = false;
     updateSyncFromJsonButtonState();

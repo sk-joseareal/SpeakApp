@@ -171,6 +171,29 @@ const APP_COPY = {
       feedbackKeep: 'Sigue practicando',
       transcribing: 'Transcribiendo...'
     },
+    speak: {
+      practiceSound: 'Practica el sonido',
+      practiceWords: 'Practica las palabras',
+      practicePhrase: 'Practica la frase',
+      transcribing: 'Transcribiendo...',
+      feedbackNative: 'Suena como un nativo',
+      feedbackGood: 'Bien. Sigue practicando',
+      feedbackAlmost: 'Casi correcto',
+      feedbackKeep: 'Sigue practicando',
+      summaryTitleTemplates: {
+        good: ['Muy bien! aprendiste {{session}}', 'Excelente! completaste {{session}}'],
+        okay: ['Buen trabajo! sigue practicando {{session}}', 'Vas bien! repasa {{session}}'],
+        bad: ['No pasa nada, practica {{session}}', 'Sigue intentandolo con {{session}}']
+      },
+      summaryPhrases: {
+        good: ['Suena como un nativo', 'Gran trabajo'],
+        okay: ['Casi correcto', 'Sigue practicando'],
+        bad: ['Sigue practicando', 'Intentalo de nuevo']
+      },
+      summaryLabelPrefix: 'GANAS',
+      summaryBadgeUnlocked: 'Badge desbloqueado: {route}',
+      summaryContinue: 'Continuar'
+    },
     chat: {
       modeCatbot: 'Catbot',
       modeChatbot: 'Chatbot',
@@ -433,6 +456,29 @@ const APP_COPY = {
       feedbackKeep: 'Keep practicing',
       transcribing: 'Transcribing...'
     },
+    speak: {
+      practiceSound: 'Practice the sound',
+      practiceWords: 'Practice the words',
+      practicePhrase: 'Practice the phrase',
+      transcribing: 'Transcribing...',
+      feedbackNative: 'You sound like a native',
+      feedbackGood: 'Good! Continue practicing',
+      feedbackAlmost: 'Almost Correct!',
+      feedbackKeep: 'Keep practicing',
+      summaryTitleTemplates: {
+        good: ['Great! You learned {{session}}', 'Excellent! You completed {{session}}'],
+        okay: ['Good work! Keep practicing {{session}}', 'You are doing well! Review {{session}}'],
+        bad: ['No worries, keep practicing {{session}}', 'Keep trying with {{session}}']
+      },
+      summaryPhrases: {
+        good: ['You sound like a native', 'Great job!'],
+        okay: ['Almost correct!', 'Keep practicing'],
+        bad: ['Keep practicing', 'Try again']
+      },
+      summaryLabelPrefix: 'YOU WIN',
+      summaryBadgeUnlocked: 'Badge unlocked: {route}',
+      summaryContinue: 'Continue'
+    },
     chat: {
       modeCatbot: 'Catbot',
       modeChatbot: 'Chatbot',
@@ -576,6 +622,8 @@ export const getOnboardingCopy = (locale) => getCopyBundle(locale).onboarding;
 export const getHomeCopy = (locale) => getCopyBundle(locale).home;
 
 export const getFreeRideCopy = (locale) => getCopyBundle(locale).freeRide;
+
+export const getSpeakCopy = (locale) => getCopyBundle(locale).speak;
 
 export const getChatCopy = (locale) => getCopyBundle(locale).chat;
 

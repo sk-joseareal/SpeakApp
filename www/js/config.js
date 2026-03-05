@@ -9,7 +9,7 @@
 
   window.appMeta = window.appMeta || {
     version: window.APP_VERSION || '1.0.1',
-    build: window.APP_BUILD || '15'
+    build: window.APP_BUILD || '16'
   };
 
   const emitAppMeta = () => {
@@ -152,9 +152,16 @@
   }
   if (!window.speakSummaryConfig.phrases) {
     window.speakSummaryConfig.phrases = {
-      good: ['You sound like a native', 'Great job!'],
-      okay: ['Almost correct!', 'Keep practicing'],
-      bad: ['Keep practicing', 'Try again']
+      en: {
+        good: ['You sound like a native', 'Great job!'],
+        okay: ['Almost correct!', 'Keep practicing'],
+        bad: ['Keep practicing', 'Try again']
+      },
+      es: {
+        good: ['Suena como un nativo', 'Gran trabajo'],
+        okay: ['Casi correcto', 'Sigue practicando'],
+        bad: ['Sigue practicando', 'Intentalo de nuevo']
+      }
     };
   }
   if (!window.speakSummaryConfig.rewards) {
@@ -165,6 +172,9 @@
     ];
   }
   if (!window.speakSummaryConfig.labelPrefix) {
-    window.speakSummaryConfig.labelPrefix = 'YOU WIN';
+    window.speakSummaryConfig.labelPrefix = {
+      en: 'YOU WIN',
+      es: 'GANAS'
+    };
   }
 })();

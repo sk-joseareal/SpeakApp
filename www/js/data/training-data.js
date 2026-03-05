@@ -41,28 +41,33 @@ const asTrimmedText = (value) => String(value === undefined || value === null ? 
 const readI18nFieldObject = (source, fieldName) => {
   if (!source || typeof source !== 'object') return null;
   const explicit = source[`${fieldName}_i18n`];
-  if (explicit && typeof explicit === 'object' && !Array.isArray(explicit)) {
-    return explicit;
-  }
-  const legacyEn = source[`${fieldName}_en`];
-  const legacyEs = source[`${fieldName}_es`];
-  if (legacyEn !== undefined || legacyEs !== undefined) {
-    return { en: legacyEn, es: legacyEs };
-  }
-  return null;
+  const nested =
+    explicit && typeof explicit === 'object' && !Array.isArray(explicit) ? explicit : null;
+
+  const hasFlatEn = Object.prototype.hasOwnProperty.call(source, `${fieldName}_en`);
+  const hasFlatEs = Object.prototype.hasOwnProperty.call(source, `${fieldName}_es`);
+  const flatEn = asTrimmedText(source[`${fieldName}_en`]);
+  const flatEs = asTrimmedText(source[`${fieldName}_es`]);
+
+  const nestedEn = asTrimmedText(nested && (nested.en || nested['en-US'] || nested.en_us));
+  const nestedEs = asTrimmedText(nested && (nested.es || nested['es-ES'] || nested.es_es));
+
+  const en = hasFlatEn ? flatEn : nestedEn;
+  const es = hasFlatEs ? flatEs : nestedEs;
+  if (!en && !es) return null;
+  return { en, es };
 };
 
 export const getLocalizedContentField = (source, fieldName, locale = 'en') => {
   if (!source || typeof source !== 'object') return '';
-  const fallback = asTrimmedText(source[fieldName]);
   const localeCode = normalizeContentLocale(locale) || 'en';
   const i18n = readI18nFieldObject(source, fieldName);
-  if (!i18n) return fallback;
+  if (!i18n) return '';
 
   const en = asTrimmedText(i18n.en || i18n['en-US'] || i18n.en_us);
   const es = asTrimmedText(i18n.es || i18n['es-ES'] || i18n.es_es);
-  if (localeCode === 'es') return es || en || fallback;
-  return en || es || fallback;
+  if (localeCode === 'es') return es || en || '';
+  return en || es || '';
 };
 
 const parseBooleanLoose = (value, fallback = false) => {

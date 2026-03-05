@@ -12,6 +12,7 @@ import {
   getHomeCopy,
   getLocaleMeta,
   getNextLocaleCode,
+  getSpeakCopy,
   normalizeLocale as normalizeCopyLocale
 } from '../content/copy.js';
 
@@ -425,6 +426,7 @@ class PageHome extends HTMLElement {
     const baseLocale = this.getBaseLocale();
     const uiLocale = this.getUiLocale(baseLocale);
     const copy = getHomeCopy(uiLocale);
+    const speakCopy = getSpeakCopy(uiLocale) || {};
     const planFlag = getLocaleMeta(uiLocale);
     const nextLocaleCode = getNextLocaleCode(uiLocale);
     const nextLocaleMeta = getLocaleMeta(nextLocaleCode);
@@ -445,9 +447,7 @@ class PageHome extends HTMLElement {
 
     const routes = getRoutes();
     const readLocalizedField = (entry, fieldName) => {
-      const localized = getLocalizedContentField(entry, fieldName, uiLocale);
-      if (localized) return localized;
-      return entry && typeof entry === 'object' ? String(entry[fieldName] || '').trim() : '';
+      return getLocalizedContentField(entry, fieldName, uiLocale) || '';
     };
     const getRouteTitle = (route) => readLocalizedField(route, 'title');
     const getRouteNote = (route) => readLocalizedField(route, 'note');
@@ -525,11 +525,37 @@ class PageHome extends HTMLElement {
     } = resolveSelection(getSelection());
     if (!activeRoute || !activeModule || !activeSession) return;
 
+    const getDefaultLabelScale = () => [
+      { min: 85, label: speakCopy.feedbackNative || 'You sound like a native' },
+      { min: 70, label: speakCopy.feedbackGood || 'Good! Continue practicing' },
+      { min: 60, label: speakCopy.feedbackAlmost || 'Almost Correct!' },
+      { min: 0, label: speakCopy.feedbackKeep || 'Keep practicing' }
+    ];
+
     const getFeedbackConfig = () => {
       const config = window.r34lp0w3r && window.r34lp0w3r.speakFeedback;
+      const labelScaleByLocale =
+        config && config.labelScaleByLocale && typeof config.labelScaleByLocale === 'object'
+          ? config.labelScaleByLocale
+          : null;
+      const labelScaleI18n =
+        config && config.labelScale_i18n && typeof config.labelScale_i18n === 'object'
+          ? config.labelScale_i18n
+          : null;
+      const preferredLabelScale = labelScaleByLocale
+        ? labelScaleByLocale[uiLocale]
+        : labelScaleI18n
+          ? labelScaleI18n[uiLocale]
+          : null;
+      const fallbackLabelScale =
+        config && Array.isArray(config.labelScale) && uiLocale === 'en' ? config.labelScale : null;
       return {
         toneScale: config && Array.isArray(config.toneScale) ? config.toneScale : [],
-        labelScale: config && Array.isArray(config.labelScale) ? config.labelScale : []
+        labelScale: Array.isArray(preferredLabelScale)
+          ? preferredLabelScale
+          : Array.isArray(fallbackLabelScale)
+            ? fallbackLabelScale
+            : getDefaultLabelScale()
       };
     };
 
@@ -558,7 +584,12 @@ class PageHome extends HTMLElement {
       const value = typeof percent === 'number' ? percent : 0;
       const { labelScale } = getFeedbackConfig();
       const normalized = normalizeScale(labelScale, 'label');
-      return resolveFromScale(normalized, value, 'label', 'Keep practicing');
+      return resolveFromScale(
+        normalized,
+        value,
+        'label',
+        speakCopy.feedbackKeep || 'Keep practicing'
+      );
     };
 
     const getGoodThreshold = () => {

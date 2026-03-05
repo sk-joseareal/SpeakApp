@@ -6,7 +6,12 @@ import {
   resolveSelection,
   setSelection
 } from '../data/training-data.js';
-import { getLocaleMeta, getNextLocaleCode, resolveLocale as resolveCopyLocale } from '../content/copy.js';
+import {
+  getLocaleMeta,
+  getNextLocaleCode,
+  getSpeakCopy as getSpeakCopyBundle,
+  resolveLocale as resolveCopyLocale
+} from '../content/copy.js';
 import { getAppLocale } from '../state.js';
 import { addNotification } from '../notifications-store.js';
 import { goToHome } from '../nav.js';
@@ -1100,6 +1105,18 @@ class PageSpeak extends HTMLElement {
       { min: 0, label: 'Keep practicing' }
     ];
 
+    const DEFAULT_SUMMARY_TITLE_TEMPLATES = {
+      good: ['Great! You learned {{session}}'],
+      okay: ['Good work! Keep practicing {{session}}'],
+      bad: ['Keep practicing {{session}}']
+    };
+
+    const DEFAULT_SUMMARY_PHRASES = {
+      good: ['You sound like a native', 'Great job!'],
+      okay: ['Almost correct!', 'Keep practicing'],
+      bad: ['Keep practicing', 'Try again']
+    };
+
     const blobToBase64 = (blob) =>
       new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -1257,12 +1274,81 @@ class PageSpeak extends HTMLElement {
       }
     };
 
-    const getFeedbackConfig = () => {
+    const resolveToneListMap = (source, fallback) => {
+      const tones = ['good', 'okay', 'bad'];
+      const safeSource = source && typeof source === 'object' ? source : {};
+      const safeFallback = fallback && typeof fallback === 'object' ? fallback : {};
+      const output = {};
+      tones.forEach((tone) => {
+        const fromSource = Array.isArray(safeSource[tone])
+          ? safeSource[tone].map((item) => String(item || '').trim()).filter(Boolean)
+          : [];
+        const fromFallback = Array.isArray(safeFallback[tone])
+          ? safeFallback[tone].map((item) => String(item || '').trim()).filter(Boolean)
+          : [];
+        output[tone] = fromSource.length ? fromSource : fromFallback;
+      });
+      return output;
+    };
+
+    const getSpeakUiCopy = (locale = getHintUiLocale()) => {
+      const normalized = normalizeHintLocale(locale) || 'en';
+      return getSpeakCopyBundle(normalized) || getSpeakCopyBundle('en') || {};
+    };
+
+    const getSpeakUiText = (key, locale = getHintUiLocale(), fallback = '') => {
+      const copy = getSpeakUiCopy(locale);
+      const value = copy && Object.prototype.hasOwnProperty.call(copy, key) ? copy[key] : '';
+      if (typeof value === 'string' && value.trim()) return value;
+      return fallback;
+    };
+
+    const getDefaultLabelScale = (locale = getHintUiLocale()) => [
+      { min: 85, label: getSpeakUiText('feedbackNative', locale, 'You sound like a native') },
+      { min: 70, label: getSpeakUiText('feedbackGood', locale, 'Good! Continue practicing') },
+      { min: 60, label: getSpeakUiText('feedbackAlmost', locale, 'Almost Correct!') },
+      { min: 0, label: getSpeakUiText('feedbackKeep', locale, 'Keep practicing') }
+    ];
+
+    const resolveLocaleConfigBlock = (value, locale) => {
+      if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+      const normalized = normalizeHintLocale(locale) || 'en';
+      const scoped = value[normalized];
+      if (scoped && typeof scoped === 'object' && !Array.isArray(scoped)) return scoped;
+      return value;
+    };
+
+    const resolveLabelScaleFromConfig = (config, locale) => {
+      if (!config || typeof config !== 'object') return null;
+      const normalized = normalizeHintLocale(locale) || 'en';
+      if (
+        config.labelScaleByLocale &&
+        typeof config.labelScaleByLocale === 'object' &&
+        Array.isArray(config.labelScaleByLocale[normalized])
+      ) {
+        return config.labelScaleByLocale[normalized];
+      }
+      if (
+        config.labelScale_i18n &&
+        typeof config.labelScale_i18n === 'object' &&
+        Array.isArray(config.labelScale_i18n[normalized])
+      ) {
+        return config.labelScale_i18n[normalized];
+      }
+      if (Array.isArray(config.labelScale) && normalized === 'en') {
+        return config.labelScale;
+      }
+      return null;
+    };
+
+    const getFeedbackConfig = (locale = getHintUiLocale()) => {
       const config = window.r34lp0w3r && window.r34lp0w3r.speakFeedback;
       const toneScale =
         config && Array.isArray(config.toneScale) ? config.toneScale : DEFAULT_TONE_SCALE;
-      const labelScale =
-        config && Array.isArray(config.labelScale) ? config.labelScale : DEFAULT_LABEL_SCALE;
+      const labelScaleFromConfig = resolveLabelScaleFromConfig(config, locale);
+      const labelScale = Array.isArray(labelScaleFromConfig)
+        ? labelScaleFromConfig
+        : getDefaultLabelScale(locale);
       return { toneScale, labelScale };
     };
 
@@ -1280,26 +1366,37 @@ class PageSpeak extends HTMLElement {
       return fallback;
     };
 
-    const getSummaryConfig = () => {
+    const getSummaryConfig = (locale = getHintUiLocale()) => {
+      const copy = getSpeakUiCopy(locale);
       const config = window.speakSummaryConfig || {};
-      const phrases = config.phrases || {};
-      const labelPrefix = config.labelPrefix || 'YOU WIN';
+      const fallbackPhrases = resolveToneListMap(copy.summaryPhrases, DEFAULT_SUMMARY_PHRASES);
+      const configuredPhrases = resolveLocaleConfigBlock(config.phrases, locale);
+      const phrases = resolveToneListMap(configuredPhrases, fallbackPhrases);
+      let labelPrefix = '';
+      if (typeof config.labelPrefix === 'string' && config.labelPrefix.trim()) {
+        labelPrefix = config.labelPrefix.trim();
+      } else if (config.labelPrefix && typeof config.labelPrefix === 'object') {
+        const normalized = normalizeHintLocale(locale) || 'en';
+        const localized = String(
+          config.labelPrefix[normalized] || config.labelPrefix.en || config.labelPrefix.es || ''
+        ).trim();
+        if (localized) labelPrefix = localized;
+      }
+      if (!labelPrefix) {
+        labelPrefix = getSpeakUiText('summaryLabelPrefix', locale, 'YOU WIN');
+      }
       return {
         phrases,
         labelPrefix
       };
     };
 
-    const getSummaryTitleTemplates = () => {
+    const getSummaryTitleTemplates = (locale = getHintUiLocale()) => {
+      const copy = getSpeakUiCopy(locale);
+      const fallback = resolveToneListMap(copy.summaryTitleTemplates, DEFAULT_SUMMARY_TITLE_TEMPLATES);
       const templates = window.r34lp0w3r && window.r34lp0w3r.speakSummaryTitles;
-      if (templates && typeof templates === 'object') {
-        return templates;
-      }
-      return {
-        good: ['Muy bien! aprendiste {{session}}'],
-        okay: ['Buen trabajo! sigue practicando {{session}}'],
-        bad: ['Sigue practicando {{session}}']
-      };
+      const configured = resolveLocaleConfigBlock(templates, locale);
+      return resolveToneListMap(configured, fallback);
     };
 
     const formatSummaryTitle = (template, sessionName) => {
@@ -1310,16 +1407,16 @@ class PageSpeak extends HTMLElement {
       return sessionName ? sessionName : '';
     };
 
-    const getSummaryTitle = (tone, sessionName) => {
-      const templates = getSummaryTitleTemplates();
+    const getSummaryTitle = (tone, sessionName, locale = getHintUiLocale()) => {
+      const templates = getSummaryTitleTemplates(locale);
       const list = templates && Array.isArray(templates[tone]) ? templates[tone] : [];
-      const fallback =
+      const fallbackList =
         tone === 'good'
-          ? 'Muy bien! aprendiste {{session}}'
+          ? DEFAULT_SUMMARY_TITLE_TEMPLATES.good
           : tone === 'okay'
-          ? 'Buen trabajo! sigue practicando {{session}}'
-          : 'Sigue practicando {{session}}';
-      const template = pickRandom(list) || fallback;
+          ? DEFAULT_SUMMARY_TITLE_TEMPLATES.okay
+          : DEFAULT_SUMMARY_TITLE_TEMPLATES.bad;
+      const template = pickRandom(list) || pickRandom(fallbackList) || '{{session}}';
       return formatSummaryTitle(template, sessionName);
     };
 
@@ -1331,12 +1428,12 @@ class PageSpeak extends HTMLElement {
       return items[idx];
     };
 
-    const rollSummaryOutcome = () => {
-      const { phrases, labelPrefix } = getSummaryConfig();
+    const rollSummaryOutcome = (locale = getHintUiLocale()) => {
+      const { phrases, labelPrefix } = getSummaryConfig(locale);
       const percent = clampPercent(getSessionPercent());
-      const tone = getScoreTone(percent);
+      const tone = getScoreTone(percent, locale);
       const phraseList = phrases && phrases[tone] ? phrases[tone] : [];
-      const phraseFallback = getScoreLabel(percent);
+      const phraseFallback = getScoreLabel(percent, locale);
       const phrase = pickRandom(phraseList) || phraseFallback;
       const canGrantReward = progressUpdatedThisRun === true;
       const reward =
@@ -1352,6 +1449,21 @@ class PageSpeak extends HTMLElement {
         rewardIcon: reward ? reward.rewardIcon : 'diamond',
         labelPrefix,
         awardedBadge
+      };
+    };
+
+    const localizeExistingSummaryState = (state, locale = getHintUiLocale()) => {
+      if (!state || typeof state !== 'object') return state;
+      const { phrases, labelPrefix } = getSummaryConfig(locale);
+      const tone = String(state.tone || '').toLowerCase().trim();
+      const phraseList = phrases && Array.isArray(phrases[tone]) ? phrases[tone] : [];
+      const percent =
+        typeof state.percent === 'number' && Number.isFinite(state.percent) ? state.percent : 0;
+      const phrase = pickRandom(phraseList) || getScoreLabel(percent, locale);
+      return {
+        ...state,
+        phrase,
+        labelPrefix
       };
     };
 
@@ -1657,8 +1769,7 @@ class PageSpeak extends HTMLElement {
       const badgeIndex = indexInRoutes >= 0 ? indexInRoutes + 1 : 0;
       if (!badgeIndex || badgeIndex > MAX_ROUTE_BADGE_COUNT) return null;
       const routeLocale = getHintUiLocale(getBaseHintLocale());
-      const routeTitleLocalized =
-        getLocalizedContentField(route, 'title', routeLocale) || route.title || `Ruta ${badgeIndex}`;
+      const routeTitleLocalized = getLocalizedContentField(route, 'title', routeLocale) || '';
       return {
         id: `route:${route.id}`,
         routeId: route.id,
@@ -1950,18 +2061,23 @@ class PageSpeak extends HTMLElement {
       `;
     };
 
-    const getScoreTone = (percent) => {
+    const getScoreTone = (percent, locale = getHintUiLocale()) => {
       const value = typeof percent === 'number' ? percent : 0;
-      const { toneScale } = getFeedbackConfig();
+      const { toneScale } = getFeedbackConfig(locale);
       const normalized = normalizeScale(toneScale, 'tone');
       return resolveFromScale(normalized, value, 'tone', 'bad');
     };
 
-    const getScoreLabel = (percent) => {
+    const getScoreLabel = (percent, locale = getHintUiLocale()) => {
       const value = typeof percent === 'number' ? percent : 0;
-      const { labelScale } = getFeedbackConfig();
+      const { labelScale } = getFeedbackConfig(locale);
       const normalized = normalizeScale(labelScale, 'label');
-      return resolveFromScale(normalized, value, 'label', 'Keep practicing');
+      return resolveFromScale(
+        normalized,
+        value,
+        'label',
+        getSpeakUiText('feedbackKeep', locale, 'Keep practicing')
+      );
     };
 
     const getStepKey = () => stepOrder[stepIndex];
@@ -2751,14 +2867,14 @@ class PageSpeak extends HTMLElement {
       return '';
     };
 
-    const getScoreForStep = (key) => {
+    const getScoreForStep = (key, locale = getHintUiLocale()) => {
       const state = stepState[key];
       if (!state || state.percent === null) return null;
       const percent = state.percent;
       return {
         percent,
-        tone: getScoreTone(percent),
-        label: getScoreLabel(percent)
+        tone: getScoreTone(percent, locale),
+        label: getScoreLabel(percent, locale)
       };
     };
 
@@ -2814,17 +2930,11 @@ class PageSpeak extends HTMLElement {
     };
 
     const getLocalizedSessionTitle = (session, locale = getHintUiLocale()) => {
-      const localized = getLocalizedContentField(session, 'title', locale);
-      if (localized) return localized;
-      if (!session || typeof session !== 'object') return '';
-      return String(session.title || '').trim();
+      return getLocalizedContentField(session, 'title', locale) || '';
     };
 
     const getLocalizedStepTitle = (stepSource, locale = getHintUiLocale()) => {
-      const localized = getLocalizedContentField(stepSource, 'title', locale);
-      if (localized) return localized;
-      if (!stepSource || typeof stepSource !== 'object') return '';
-      return String(stepSource.title || '').trim();
+      return getLocalizedContentField(stepSource, 'title', locale) || '';
     };
 
     const readHintLineByLocale = (source, locale, lineIndex) => {
@@ -2839,10 +2949,20 @@ class PageSpeak extends HTMLElement {
       ).trim();
     };
 
-    const getHintTextForLocale = (source, locale) => {
+    const getHintTextForLocale = (source, locale, options = {}) => {
       const localeCode = normalizeHintLocale(locale) || 'en';
-      const line1 = readHintLineByLocale(source, localeCode, 1);
-      const line2 = readHintLineByLocale(source, localeCode, 2);
+      const fallbackLocale = localeCode === 'en' ? 'es' : 'en';
+      const usePerLineFallback = options && options.perLineFallback === true;
+      const line1Primary = readHintLineByLocale(source, localeCode, 1);
+      const line2Primary = readHintLineByLocale(source, localeCode, 2);
+      if (!usePerLineFallback) {
+        const parts = [line1Primary, line2Primary].filter(Boolean);
+        return parts.join('\n');
+      }
+      const line1Fallback = readHintLineByLocale(source, fallbackLocale, 1);
+      const line2Fallback = readHintLineByLocale(source, fallbackLocale, 2);
+      const line1 = line1Primary || line1Fallback;
+      const line2 = line2Primary || line2Fallback;
       const parts = [line1, line2].filter(Boolean);
       return parts.join('\n');
     };
@@ -2854,7 +2974,7 @@ class PageSpeak extends HTMLElement {
 
     const resolveHeroHintText = (source, locale = getHintUiLocale()) => {
       const localeCode = normalizeHintLocale(locale) || 'en';
-      const primary = getHintTextForLocale(source, localeCode);
+      const primary = getHintTextForLocale(source, localeCode, { perLineFallback: true });
       if (primary) return primary;
       const fallbackLocale = localeCode === 'en' ? 'es' : 'en';
       const fallback = getHintTextForLocale(source, fallbackLocale);
@@ -2890,6 +3010,10 @@ class PageSpeak extends HTMLElement {
       const uiLocale = getHintUiLocale(baseLocale);
       activeHintLocale = uiLocale;
       renderHeroFlagButton(uiLocale);
+      if (showSummary && summaryState) {
+        summaryState = localizeExistingSummaryState(summaryState, uiLocale);
+      }
+      renderStep();
       if (showSummary || !heroCardEl || heroCardEl.hidden) return;
       const source = getHeroSourceByStepKey(getStepKey());
       clearHeroNarrationTimer();
@@ -3015,14 +3139,19 @@ class PageSpeak extends HTMLElement {
     };
 
     const renderSoundStep = () => {
-      const score = getScoreForStep('sound');
+      const locale = activeHintLocale || getHintUiLocale();
+      const score = getScoreForStep('sound', locale);
       const hasRecording = Boolean(stepState.sound.recordingUrl);
       const transcribing = isTranscribingStep('sound');
       const showPercentages = areSpeakSessionPercentagesVisible();
       const percent = transcribing ? '' : score && hasRecording ? score.percent : '';
       const tone = transcribing ? 'hint' : score && hasRecording ? score.tone : 'hint';
       const voiceTone = !transcribing && score && hasRecording ? tone : '';
-      const label = transcribing ? 'Transcribiendo...' : score && hasRecording ? score.label : 'Practice the sound';
+      const label = transcribing
+        ? getSpeakUiText('transcribing', locale, 'Transcribing...')
+        : score && hasRecording
+        ? score.label
+        : getSpeakUiText('practiceSound', locale, 'Practice the sound');
       const percentMarkup = showPercentages && percent !== '' ? `${percent}%` : '';
       const noPercentClass = !showPercentages ? ' speak-score-no-percent' : '';
       const displayText = getSoundDisplayText();
@@ -3071,15 +3200,20 @@ class PageSpeak extends HTMLElement {
     };
 
     const renderSpellingStep = () => {
+      const locale = activeHintLocale || getHintUiLocale();
       const stored = getStoredWordResult(currentSessionId, selectedWord);
       const hasScore = stored && typeof stored.percent === 'number';
       const transcribing = isTranscribingStep('spelling');
       const showPercentages = areSpeakSessionPercentagesVisible();
       const hasRecording = Boolean(stepState.spelling.recordingUrl);
       const percent = transcribing ? null : hasScore ? stored.percent : null;
-      const tone = transcribing ? 'hint' : hasScore ? getScoreTone(percent) : 'hint';
+      const tone = transcribing ? 'hint' : hasScore ? getScoreTone(percent, locale) : 'hint';
       const voiceTone = !transcribing && hasRecording && hasScore ? tone : '';
-      const label = transcribing ? 'Transcribiendo...' : hasScore ? getScoreLabel(percent) : 'Practice the words';
+      const label = transcribing
+        ? getSpeakUiText('transcribing', locale, 'Transcribing...')
+        : hasScore
+        ? getScoreLabel(percent, locale)
+        : getSpeakUiText('practiceWords', locale, 'Practice the words');
       const percentMarkup = showPercentages && percent !== null ? `${percent}%` : '';
       const noPercentClass = !showPercentages ? ' speak-score-no-percent' : '';
 
@@ -3087,7 +3221,7 @@ class PageSpeak extends HTMLElement {
         .map((word) => {
           const result = getStoredWordResult(currentSessionId, word);
           const wordTone =
-            result && typeof result.percent === 'number' ? getScoreTone(result.percent) : '';
+            result && typeof result.percent === 'number' ? getScoreTone(result.percent, locale) : '';
           const toneClass = wordTone ? `speak-word-tone-${wordTone}` : '';
           return `
             <button class="speak-word ${toneClass} ${word === selectedWord ? 'is-active' : ''}" data-word="${word}" type="button">
@@ -3119,7 +3253,8 @@ class PageSpeak extends HTMLElement {
     };
 
     const renderSentenceStep = () => {
-      const score = getScoreForStep('sentence');
+      const locale = activeHintLocale || getHintUiLocale();
+      const score = getScoreForStep('sentence', locale);
       const hasScore = score && typeof score.percent === 'number';
       const transcribing = isTranscribingStep('sentence');
       const showPercentages = areSpeakSessionPercentagesVisible();
@@ -3127,13 +3262,17 @@ class PageSpeak extends HTMLElement {
       const percent = transcribing ? '' : hasScore ? score.percent : '';
       const tone = transcribing ? 'hint' : hasScore ? score.tone : 'hint';
       const voiceTone = !transcribing && hasRecordingUrl && hasScore ? tone : '';
-      const label = transcribing ? 'Transcribiendo...' : hasScore ? score.label : 'Practice the phrase';
+      const label = transcribing
+        ? getSpeakUiText('transcribing', locale, 'Transcribing...')
+        : hasScore
+        ? score.label
+        : getSpeakUiText('practicePhrase', locale, 'Practice the phrase');
       const sentenceScorePercentMarkup = showPercentages ? `${percent}%` : '';
       const scoreLine = hasScore && !transcribing
         ? `
           <div class="speak-score-line ${tone}">
             <div class="speak-score-line-value">${sentenceScorePercentMarkup}</div>
-            <div class="speak-score-line-text">Good! Continue practicing</div>
+            <div class="speak-score-line-text">${label}</div>
           </div>
         `
         : `
@@ -3142,6 +3281,8 @@ class PageSpeak extends HTMLElement {
             <div class="speak-score-line-text">&nbsp;</div>
           </div>
         `;
+      const feedbackMarkup =
+        transcribing || !hasScore ? `<div class="speak-feedback ${tone}">${label}</div>` : '';
 
       return `
         <div class="speak-step speak-step-sentence">
@@ -3154,7 +3295,7 @@ class PageSpeak extends HTMLElement {
                 <ion-icon name="volume-high"></ion-icon>
               </button>
             </div>
-            <div class="speak-feedback ${tone}">${label}</div>
+            ${feedbackMarkup}
             ${scoreLine}
           </div>
 
@@ -3185,7 +3326,8 @@ class PageSpeak extends HTMLElement {
     };
 
     const renderSummaryStep = () => {
-      const summary = summaryState || rollSummaryOutcome();
+      const locale = activeHintLocale || getHintUiLocale();
+      const summary = summaryState || rollSummaryOutcome(locale);
       summaryState = summary;
       playSummaryToneSound(summary);
       const percent = summary.percent;
@@ -3200,15 +3342,21 @@ class PageSpeak extends HTMLElement {
       const rewardLabel = hasReward
         ? `${summary.labelPrefix} ${summary.rewardQty} ${summary.rewardLabel}`
         : '';
+      const badgeUnlockedTemplate = getSpeakUiText(
+        'summaryBadgeUnlocked',
+        locale,
+        'Badge unlocked: {route}'
+      );
       const badgeLabel =
         summary.awardedBadge && summary.awardedBadge.routeTitle
-          ? `Badge desbloqueado: ${summary.awardedBadge.routeTitle}`
+          ? badgeUnlockedTemplate.replace(/\{route\}/g, summary.awardedBadge.routeTitle)
           : '';
-      const summaryTitle = getSummaryTitle(tone, sessionTitle);
+      const summaryTitle = getSummaryTitle(tone, sessionTitle, locale);
       const showConfetti = tone === 'good';
       const mascotToneClass = showConfetti ? 'mascot-confetti' : '';
       const summaryPercentMarkup = showPercentages ? `<span>${percent}%</span>` : '';
       const confettiMarkup = showConfetti ? buildSummaryConfettiHtml(40) : '';
+      const continueLabel = getSpeakUiText('summaryContinue', locale, 'Continue');
       return `
         <div class="speak-step speak-step-summary">
           <div class="summary-stage ${showConfetti ? 'is-tone-good' : ''}">
@@ -3231,7 +3379,7 @@ class PageSpeak extends HTMLElement {
                     : ''
                 }
                 ${badgeLabel ? `<div class="summary-badge-earned">${badgeLabel}</div>` : ''}
-                <button class="speak-next-btn" id="speak-next-step" type="button">Continue</button>
+                <button class="speak-next-btn" id="speak-next-step" type="button">${continueLabel}</button>
               </div>
             </div>
           </div>
@@ -3748,7 +3896,7 @@ class PageSpeak extends HTMLElement {
         return;
       }
       showSummary = true;
-      summaryState = rollSummaryOutcome();
+      summaryState = rollSummaryOutcome(activeHintLocale || getHintUiLocale());
       lastSummaryAudioCue = '';
       renderStep();
     };
@@ -3875,6 +4023,10 @@ class PageSpeak extends HTMLElement {
       const nextLocale = getHintUiLocale(baseLocale);
       if (nextLocale === activeHintLocale) return;
       activeHintLocale = nextLocale;
+      if (showSummary && summaryState) {
+        summaryState = localizeExistingSummaryState(summaryState, nextLocale);
+      }
+      renderStep();
       if (showSummary || !heroCardEl || heroCardEl.hidden) return;
       const source = getHeroSourceByStepKey(getStepKey());
       clearHeroNarrationTimer();

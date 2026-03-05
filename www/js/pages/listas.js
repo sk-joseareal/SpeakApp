@@ -1,10 +1,13 @@
 import {
   ensureTrainingData,
+  getLocalizedContentField,
   getRoutes,
   getSelection,
   resolveSelection,
   setSelection
 } from '../data/training-data.js';
+import { getAppLocale } from '../state.js';
+import { normalizeLocale as normalizeCopyLocale } from '../content/copy.js';
 import { goToSpeak } from '../nav.js';
 
 class PageListas extends HTMLElement {
@@ -105,6 +108,16 @@ class PageListas extends HTMLElement {
   }
 
   render() {
+    const normalizeLocale = (value) => normalizeCopyLocale(value);
+    const baseLocale = getAppLocale() || (window.varGlobal && window.varGlobal.locale) || 'en';
+    const uiLocale = normalizeLocale(baseLocale) || 'en';
+    const readLocalizedField = (entry, fieldName) => {
+      return getLocalizedContentField(entry, fieldName, uiLocale) || '';
+    };
+    const getRouteTitle = (route) => readLocalizedField(route, 'title');
+    const getModuleTitle = (module) => readLocalizedField(module, 'title');
+    const getSessionTitle = (session) => readLocalizedField(session, 'title');
+
     const getFeedbackConfig = () => {
       const config = window.r34lp0w3r && window.r34lp0w3r.speakFeedback;
       return {
@@ -310,7 +323,9 @@ class PageListas extends HTMLElement {
       .map((routeItem, idx) => {
         const progress = routeProgressList[idx];
         const label =
-          progress && progress.started ? `${routeItem.title} · ${progress.percent}%` : routeItem.title;
+          progress && progress.started
+            ? `${getRouteTitle(routeItem)} · ${progress.percent}%`
+            : getRouteTitle(routeItem);
         const disabled = routeUnlockList[idx] ? '' : 'disabled="true"';
         return `<ion-select-option value="${routeItem.id}" ${disabled}>${label}</ion-select-option>`;
       })
@@ -320,7 +335,9 @@ class PageListas extends HTMLElement {
       .map((moduleItem) => {
         const progress = getModulePercent(moduleItem);
         const label =
-          progress && progress.started ? `${moduleItem.title} · ${progress.percent}%` : moduleItem.title;
+          progress && progress.started
+            ? `${getModuleTitle(moduleItem)} · ${progress.percent}%`
+            : getModuleTitle(moduleItem);
         return `<ion-select-option value="${moduleItem.id}">${label}</ion-select-option>`;
       })
       .join('');
@@ -354,7 +371,7 @@ class PageListas extends HTMLElement {
               <ion-icon name="play"></ion-icon>
             </div>
             <div class="training-row-body">
-              <div class="training-row-title">${item.title}</div>
+              <div class="training-row-title">${getSessionTitle(item)}</div>
               <div class="training-row-sub">${progressText}</div>
             </div>
             <div class="training-row-status training-row-status-${toneClass}">

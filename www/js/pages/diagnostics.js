@@ -886,7 +886,7 @@ class PageDiagnostics extends HTMLElement {
       return routes.slice(0, 5).map((route, idx) => ({
         id: `route:${route.id}`,
         routeId: route.id,
-        routeTitle: getLocalizedContentField(route, 'title', locale) || route.title || `Ruta ${idx + 1}`,
+        routeTitle: getLocalizedContentField(route, 'title', locale) || '',
         badgeIndex: idx + 1,
         image: `assets/badges/badge${idx + 1}.png`,
         title: `Badge ${idx + 1}`

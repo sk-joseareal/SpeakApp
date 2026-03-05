@@ -580,8 +580,20 @@ async function AdMobShowContentForm() {
   console.log(">#C03#> AdMobShowContentForm.")
   // Solicita información de consentimiento
   console.log(">#C03#> AdMobShowContentForm: requestConsentInfo().")
-  const consentInfo = await AdMob.requestConsentInfo();
-  console.log(">#C03#> AdMobShowContentForm. consentInfo:",JSON.parse(consentInfo))
+  const consentInfoRaw = await AdMob.requestConsentInfo();
+  let consentInfo = consentInfoRaw;
+  if (typeof consentInfoRaw === 'string') {
+    try {
+      consentInfo = JSON.parse(consentInfoRaw);
+    } catch (err) {
+      console.log(">#C03#> AdMobShowContentForm: consentInfo no es JSON válido.", consentInfoRaw);
+      consentInfo = {};
+    }
+  }
+  if (!consentInfo || typeof consentInfo !== 'object') {
+    consentInfo = {};
+  }
+  console.log(">#C03#> AdMobShowContentForm. consentInfo:", consentInfo)
   // Verifica si el formulario de consentimiento está disponible y es requerido
   if (consentInfo.isConsentFormAvailable && consentInfo.status === AdmobConsentStatus.REQUIRED) {
     console.log(">#C03#> AdMobShowContentForm: showConsentForm().")

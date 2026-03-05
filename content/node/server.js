@@ -967,11 +967,13 @@ const normalizeTextI18n = (input, fallbackValue = '') => {
 const extractTextI18n = (rawEntity, fieldName, fallbackValue = '') => {
   const entity = rawEntity && typeof rawEntity === 'object' ? rawEntity : {};
   const direct = entity[`${fieldName}_i18n`];
-  const legacy = {
-    en: entity[`${fieldName}_en`],
-    es: entity[`${fieldName}_es`]
+  const directObj = isPlainObject(direct) ? direct : {};
+  const hasFlatEn = Object.prototype.hasOwnProperty.call(entity, `${fieldName}_en`);
+  const hasFlatEs = Object.prototype.hasOwnProperty.call(entity, `${fieldName}_es`);
+  const source = {
+    en: hasFlatEn ? entity[`${fieldName}_en`] : firstHintText(directObj.en, directObj['en-US'], directObj.en_us),
+    es: hasFlatEs ? entity[`${fieldName}_es`] : firstHintText(directObj.es, directObj['es-ES'], directObj.es_es)
   };
-  const source = isPlainObject(direct) ? direct : legacy;
   return normalizeTextI18n(source, fallbackValue);
 };
 
@@ -1106,37 +1108,80 @@ const normalizeTrainingPayload = (rawPayload) => {
   return { routes, modules, sessions };
 };
 
+const withFlatTextFields = (fieldName, i18n, fallbackValue = '') => {
+  const normalized = normalizeTextI18n(i18n, fallbackValue);
+  return {
+    [`${fieldName}_en`]: normalized.en || '',
+    [`${fieldName}_es`]: normalized.es || ''
+  };
+};
+
+const serializeSpeakStepPayload = (step) => {
+  const source = step && typeof step === 'object' ? { ...step } : {};
+  const titleI18n = normalizeTextI18n(source.title_i18n, source.title);
+  const title = String(titleI18n.en || titleI18n.es || '').trim();
+  delete source.title_i18n;
+  return {
+    ...source,
+    title,
+    ...withFlatTextFields('title', titleI18n, title)
+  };
+};
+
 const toTrainingPayload = (normalized) => ({
-  routes: normalized.routes.map((route) => ({
-    id: route.id,
-    title: route.title,
-    title_i18n: route.title_i18n && typeof route.title_i18n === 'object' ? { ...route.title_i18n } : {},
-    note: route.note || '',
-    note_i18n: route.note_i18n && typeof route.note_i18n === 'object' ? { ...route.note_i18n } : {},
-    moduleIds: Array.isArray(route.moduleIds) ? route.moduleIds.slice() : []
-  })),
-  modules: normalized.modules.map((module) => ({
-    id: module.id,
-    title: module.title,
-    title_i18n: module.title_i18n && typeof module.title_i18n === 'object' ? { ...module.title_i18n } : {},
-    subtitle: module.subtitle || '',
-    subtitle_i18n:
+  routes: normalized.routes.map((route) => {
+    const titleI18n =
+      route.title_i18n && typeof route.title_i18n === 'object'
+        ? { ...route.title_i18n }
+        : {};
+    const noteI18n =
+      route.note_i18n && typeof route.note_i18n === 'object'
+        ? { ...route.note_i18n }
+        : {};
+    return {
+      id: route.id,
+      title: route.title,
+      ...withFlatTextFields('title', titleI18n, route.title),
+      note: route.note || '',
+      ...withFlatTextFields('note', noteI18n, route.note || ''),
+      moduleIds: Array.isArray(route.moduleIds) ? route.moduleIds.slice() : []
+    };
+  }),
+  modules: normalized.modules.map((module) => {
+    const titleI18n =
+      module.title_i18n && typeof module.title_i18n === 'object'
+        ? { ...module.title_i18n }
+        : {};
+    const subtitleI18n =
       module.subtitle_i18n && typeof module.subtitle_i18n === 'object'
         ? { ...module.subtitle_i18n }
-        : {},
-    sessionIds: Array.isArray(module.sessionIds) ? module.sessionIds.slice() : []
-  })),
-  sessions: normalized.sessions.map((session) => ({
-    id: session.id,
-    title: session.title,
-    title_i18n: session.title_i18n && typeof session.title_i18n === 'object' ? { ...session.title_i18n } : {},
-    speak: {
-      focus: session.speakFocus || '',
-      sound: session.sound && typeof session.sound === 'object' ? { ...session.sound } : {},
-      spelling: session.spelling && typeof session.spelling === 'object' ? { ...session.spelling } : {},
-      sentence: session.sentence && typeof session.sentence === 'object' ? { ...session.sentence } : {}
-    }
-  }))
+        : {};
+    return {
+      id: module.id,
+      title: module.title,
+      ...withFlatTextFields('title', titleI18n, module.title),
+      subtitle: module.subtitle || '',
+      ...withFlatTextFields('subtitle', subtitleI18n, module.subtitle || ''),
+      sessionIds: Array.isArray(module.sessionIds) ? module.sessionIds.slice() : []
+    };
+  }),
+  sessions: normalized.sessions.map((session) => {
+    const titleI18n =
+      session.title_i18n && typeof session.title_i18n === 'object'
+        ? { ...session.title_i18n }
+        : {};
+    return {
+      id: session.id,
+      title: session.title,
+      ...withFlatTextFields('title', titleI18n, session.title),
+      speak: {
+        focus: session.speakFocus || '',
+        sound: serializeSpeakStepPayload(session.sound),
+        spelling: serializeSpeakStepPayload(session.spelling),
+        sentence: serializeSpeakStepPayload(session.sentence)
+      }
+    };
+  })
 });
 
 const sanitizeTrainingPayload = (payload) => toTrainingPayload(normalizeTrainingPayload(payload));

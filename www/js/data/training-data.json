@@ -9,14 +9,10 @@
         "module-2",
         "module-3"
       ],
-      "title_i18n": {
-        "en": "Sound Journey",
-        "es": "Viaje de sonidos"
-      },
-      "note_i18n": {
-        "en": "Result: correct pronunciation and trained ear.",
-        "es": "Resultado: pronunciación correcta y oído entrenado."
-      }
+      "title_en": "Sound Journey",
+      "title_es": "Viaje de sonidos",
+      "note_en": "Result: correct pronunciation and trained ear.",
+      "note_es": "Resultado: pronunciación correcta y oído entrenado."
     },
     {
       "id": "conversation",
@@ -27,14 +23,10 @@
         "module-food",
         "module-travel"
       ],
-      "title_i18n": {
-        "en": "Intro to Conversation",
-        "es": "Introducción a la conversación"
-      },
-      "note_i18n": {
-        "en": "Result: speaking confidently in real situations.",
-        "es": "Resultado: hablar con confianza en situaciones reales."
-      }
+      "title_en": "Intro to Conversation",
+      "title_es": "Introducción a la conversación",
+      "note_en": "Result: speaking confidently in real situations.",
+      "note_es": "Resultado: hablar con confianza en situaciones reales."
     },
     {
       "id": "difficult_sounds",
@@ -45,14 +37,10 @@
         "module-consonants",
         "module-silent"
       ],
-      "title_i18n": {
-        "en": "Difficult Sounds",
-        "es": "Sonidos difíciles"
-      },
-      "note_i18n": {
-        "en": "Master minimal pairs: Ship vs Sheep.",
-        "es": "Domina los pares mínimos: Ship vs Sheep."
-      }
+      "title_en": "Difficult Sounds",
+      "title_es": "Sonidos difíciles",
+      "note_en": "Master minimal pairs: Ship vs Sheep.",
+      "note_es": "Domina los pares mínimos: Ship vs Sheep."
     },
     {
       "id": "rhythm",
@@ -63,14 +51,10 @@
         "module-linking",
         "module-sentence-stress"
       ],
-      "title_i18n": {
-        "en": "Rythm Flow",
-        "es": "Flujo de ritmo"
-      },
-      "note_i18n": {
-        "en": "Result: natural rhythm and fluency.",
-        "es": "Resultado: ritmo natural y fluidez."
-      }
+      "title_en": "Rythm Flow",
+      "title_es": "Flujo de ritmo",
+      "note_en": "Result: natural rhythm and fluency.",
+      "note_es": "Resultado: ritmo natural y fluidez."
     },
     {
       "id": "professional",
@@ -81,14 +65,10 @@
         "module-meetings",
         "module-biz-calls"
       ],
-      "title_i18n": {
-        "en": "Professional English",
-        "es": "Inglés profesional"
-      },
-      "note_i18n": {
-        "en": "Business communication skills.",
-        "es": "Habilidades de comunicación profesional."
-      }
+      "title_en": "Professional English",
+      "title_es": "Inglés profesional",
+      "note_en": "Business communication skills.",
+      "note_es": "Habilidades de comunicación profesional."
     }
   ],
   "modules": [
@@ -101,14 +81,10 @@
         "session-formal-informal",
         "session-goodbyes"
       ],
-      "title_i18n": {
-        "en": "Greetings",
-        "es": "Saludos"
-      },
-      "subtitle_i18n": {
-        "en": "Meeting people",
-        "es": "Conocer gente"
-      }
+      "title_en": "Greetings",
+      "title_es": "Saludos",
+      "subtitle_en": "Meeting people",
+      "subtitle_es": "Conocer gente"
     },
     {
       "id": "module-food",
@@ -119,14 +95,10 @@
         "session-booking-table",
         "session-asking-bill"
       ],
-      "title_i18n": {
-        "en": "Ordering Food",
-        "es": "Pedir comida"
-      },
-      "subtitle_i18n": {
-        "en": "At the cafe",
-        "es": "En la cafetería"
-      }
+      "title_en": "Ordering Food",
+      "title_es": "Pedir comida",
+      "subtitle_en": "At the cafe",
+      "subtitle_es": "En la cafetería"
     },
     {
       "id": "module-1",
@@ -139,14 +111,10 @@
         "session-f",
         "session-v"
       ],
-      "title_i18n": {
-        "en": "Training 1",
-        "es": "Entrenamiento 1"
-      },
-      "subtitle_i18n": {
-        "en": "Key sounds",
-        "es": "Sonidos clave"
-      }
+      "title_en": "Training 1",
+      "title_es": "Entrenamiento 1",
+      "subtitle_en": "Key sounds",
+      "subtitle_es": "Sonidos clave"
     },
     {
       "id": "module-2",
@@ -159,14 +127,10 @@
         "session-o",
         "session-u"
       ],
-      "title_i18n": {
-        "en": "Training 2",
-        "es": "Entrenamiento 2"
-      },
-      "subtitle_i18n": {
-        "en": "Vowels",
-        "es": "Vocales"
-      }
+      "title_en": "Training 2",
+      "title_es": "Entrenamiento 2",
+      "subtitle_en": "Vowels",
+      "subtitle_es": "Vocales"
     },
     {
       "id": "module-3",
@@ -179,14 +143,10 @@
         "session-l",
         "session-k"
       ],
-      "title_i18n": {
-        "en": "Training 3",
-        "es": "Entrenamiento 3"
-      },
-      "subtitle_i18n": {
-        "en": "Consonants",
-        "es": "Consonantes"
-      }
+      "title_en": "Training 3",
+      "title_es": "Entrenamiento 3",
+      "subtitle_en": "Consonants",
+      "subtitle_es": "Consonantes"
     },
     {
       "id": "module-vowels",
@@ -197,14 +157,10 @@
         "session-full-fool",
         "session-pen-pan"
       ],
-      "title_i18n": {
-        "en": "Short vs Long Vowels",
-        "es": "Vocales cortas vs largas"
-      },
-      "subtitle_i18n": {
-        "en": "Vowel Sounds",
-        "es": "Sonidos vocálicos"
-      }
+      "title_en": "Short vs Long Vowels",
+      "title_es": "Vocales cortas vs largas",
+      "subtitle_en": "Vowel Sounds",
+      "subtitle_es": "Sonidos vocálicos"
     },
     {
       "id": "module-consonants",
@@ -215,14 +171,10 @@
         "session-day-they",
         "session-sea-she"
       ],
-      "title_i18n": {
-        "en": "Consonant Clusters",
-        "es": "Grupos consonánticos"
-      },
-      "subtitle_i18n": {
-        "en": "Tricky Consonants",
-        "es": "Consonantes difíciles"
-      }
+      "title_en": "Consonant Clusters",
+      "title_es": "Grupos consonánticos",
+      "subtitle_en": "Tricky Consonants",
+      "subtitle_es": "Consonantes difíciles"
     },
     {
       "id": "module-travel",
@@ -233,14 +185,10 @@
         "session-asking-directions",
         "session-buying-tickets"
       ],
-      "title_i18n": {
-        "en": "Travel Essentials",
-        "es": "Esenciales de viaje"
-      },
-      "subtitle_i18n": {
-        "en": "On the go",
-        "es": "En movimiento"
-      }
+      "title_en": "Travel Essentials",
+      "title_es": "Esenciales de viaje",
+      "subtitle_en": "On the go",
+      "subtitle_es": "En movimiento"
     },
     {
       "id": "module-silent",
@@ -251,14 +199,10 @@
         "session-silent-w",
         "session-silent-l"
       ],
-      "title_i18n": {
-        "en": "Silent Letters",
-        "es": "Letras mudas"
-      },
-      "subtitle_i18n": {
-        "en": "Hidden Sounds",
-        "es": "Sonidos ocultos"
-      }
+      "title_en": "Silent Letters",
+      "title_es": "Letras mudas",
+      "subtitle_en": "Hidden Sounds",
+      "subtitle_es": "Sonidos ocultos"
     },
     {
       "id": "module-word-stress",
@@ -269,14 +213,10 @@
         "session-stress-3",
         "session-stress-shift"
       ],
-      "title_i18n": {
-        "en": "Word Stress",
-        "es": "Acento de palabra"
-      },
-      "subtitle_i18n": {
-        "en": "Rhythm Basics",
-        "es": "Fundamentos del ritmo"
-      }
+      "title_en": "Word Stress",
+      "title_es": "Acento de palabra",
+      "subtitle_en": "Rhythm Basics",
+      "subtitle_es": "Fundamentos del ritmo"
     },
     {
       "id": "module-linking",
@@ -287,14 +227,10 @@
         "session-link-vv",
         "session-link-ty"
       ],
-      "title_i18n": {
-        "en": "Linking Sounds",
-        "es": "Enlace de sonidos"
-      },
-      "subtitle_i18n": {
-        "en": "Natural Flow",
-        "es": "Fluidez natural"
-      }
+      "title_en": "Linking Sounds",
+      "title_es": "Enlace de sonidos",
+      "subtitle_en": "Natural Flow",
+      "subtitle_es": "Fluidez natural"
     },
     {
       "id": "module-sentence-stress",
@@ -305,14 +241,10 @@
         "session-focus-words",
         "session-natural-flow"
       ],
-      "title_i18n": {
-        "en": "Sentence Stress",
-        "es": "Acento oracional"
-      },
-      "subtitle_i18n": {
-        "en": "Music of English",
-        "es": "Música del inglés"
-      }
+      "title_en": "Sentence Stress",
+      "title_es": "Acento oracional",
+      "subtitle_en": "Music of English",
+      "subtitle_es": "Música del inglés"
     },
     {
       "id": "module-interview",
@@ -323,14 +255,10 @@
         "session-experience",
         "session-why-us"
       ],
-      "title_i18n": {
-        "en": "Job Interview",
-        "es": "Entrevista de trabajo"
-      },
-      "subtitle_i18n": {
-        "en": "Career Skills",
-        "es": "Habilidades profesionales"
-      }
+      "title_en": "Job Interview",
+      "title_es": "Entrevista de trabajo",
+      "subtitle_en": "Career Skills",
+      "subtitle_es": "Habilidades profesionales"
     },
     {
       "id": "module-meetings",
@@ -341,14 +269,10 @@
         "session-agreeing",
         "session-polite-disagreement"
       ],
-      "title_i18n": {
-        "en": "Business Meetings",
-        "es": "Reuniones de negocio"
-      },
-      "subtitle_i18n": {
-        "en": "Collaboration",
-        "es": "Colaboración"
-      }
+      "title_en": "Business Meetings",
+      "title_es": "Reuniones de negocio",
+      "subtitle_en": "Collaboration",
+      "subtitle_es": "Colaboración"
     },
     {
       "id": "module-biz-calls",
@@ -359,14 +283,10 @@
         "session-clarifying",
         "session-call-closing"
       ],
-      "title_i18n": {
-        "en": "Business Calls",
-        "es": "Llamadas de negocio"
-      },
-      "subtitle_i18n": {
-        "en": "Telephoning",
-        "es": "Llamadas telefónicas"
-      }
+      "title_en": "Business Calls",
+      "title_es": "Llamadas de negocio",
+      "subtitle_en": "Telephoning",
+      "subtitle_es": "Llamadas telefónicas"
     }
   ],
   "sessions": [
@@ -383,10 +303,8 @@
           "hint_es_line2": "",
           "phonetic": "Hello! / Hi!",
           "expected": "Hello",
-          "title_i18n": {
-            "en": "GREETING",
-            "es": "SALUDO"
-          }
+          "title_en": "GREETING",
+          "title_es": "SALUDO"
         },
         "spelling": {
           "title": "POLITE QUESTION",
@@ -401,10 +319,8 @@
             "DOING",
             "TODAY"
           ],
-          "title_i18n": {
-            "en": "POLITE QUESTION",
-            "es": "PREGUNTA CORTÉS"
-          }
+          "title_en": "POLITE QUESTION",
+          "title_es": "PREGUNTA CORTÉS"
         },
         "sentence": {
           "title": "RESPONSE",
@@ -414,16 +330,12 @@
           "hint_es_line2": "",
           "sentence": "I'm great, thanks! And you?",
           "expected": "I'm great, thanks! And you?",
-          "title_i18n": {
-            "en": "RESPONSE",
-            "es": "RESPUESTA"
-          }
+          "title_en": "RESPONSE",
+          "title_es": "RESPUESTA"
         }
       },
-      "title_i18n": {
-        "en": "Meeting a new friend",
-        "es": "Conocer a un nuevo amigo"
-      }
+      "title_en": "Meeting a new friend",
+      "title_es": "Conocer a un nuevo amigo"
     },
     {
       "id": "session-coffee-shop",
@@ -438,10 +350,8 @@
           "hint_es_line2": "",
           "phonetic": "I'd like a...",
           "expected": "I'd like a coffee",
-          "title_i18n": {
-            "en": "ORDERING",
-            "es": "PEDIR"
-          }
+          "title_en": "ORDERING",
+          "title_es": "PEDIR"
         },
         "spelling": {
           "title": "SIZE",
@@ -455,10 +365,8 @@
             "LARGE",
             "PLEASE"
           ],
-          "title_i18n": {
-            "en": "SIZE",
-            "es": "TAMAÑO"
-          }
+          "title_en": "SIZE",
+          "title_es": "TAMAÑO"
         },
         "sentence": {
           "title": "PAYING",
@@ -468,16 +376,12 @@
           "hint_es_line2": "",
           "sentence": "How much is that?",
           "expected": "How much is that?",
-          "title_i18n": {
-            "en": "PAYING",
-            "es": "PAGO"
-          }
+          "title_en": "PAYING",
+          "title_es": "PAGO"
         }
       },
-      "title_i18n": {
-        "en": "At the Coffee Shop",
-        "es": "En la cafetería"
-      }
+      "title_en": "At the Coffee Shop",
+      "title_es": "En la cafetería"
     },
     {
       "id": "session-p",
@@ -492,10 +396,8 @@
           "hint_es_line2": "",
           "phonetic": "/P/ → pen",
           "expected": "pen",
-          "title_i18n": {
-            "en": "THE WAY",
-            "es": "LA FORMA"
-          }
+          "title_en": "THE WAY",
+          "title_es": "LA FORMA"
         },
         "spelling": {
           "title": "THE SPELLING",
@@ -511,10 +413,8 @@
             "STOP",
             "PINK"
           ],
-          "title_i18n": {
-            "en": "THE SPELLING",
-            "es": "LA ESCRITURA"
-          }
+          "title_en": "THE SPELLING",
+          "title_es": "LA ESCRITURA"
         },
         "sentence": {
           "title": "WHOLE SENTENCE",
@@ -524,16 +424,12 @@
           "hint_es_line2": "",
           "sentence": "The pink pen is on the paper.",
           "expected": "The pink pen is on the paper.",
-          "title_i18n": {
-            "en": "WHOLE SENTENCE",
-            "es": "FRASE COMPLETA"
-          }
+          "title_en": "WHOLE SENTENCE",
+          "title_es": "FRASE COMPLETA"
         }
       },
-      "title_i18n": {
-        "en": "The P sound in PEN",
-        "es": "El sonido P de PEN"
-      }
+      "title_en": "The P sound in PEN",
+      "title_es": "El sonido P de PEN"
     },
     {
       "id": "session-b",
@@ -548,10 +444,8 @@
           "hint_es_line2": "",
           "phonetic": "/B/ → ba-by",
           "expected": "baby",
-          "title_i18n": {
-            "en": "THE WAY",
-            "es": "LA FORMA"
-          }
+          "title_en": "THE WAY",
+          "title_es": "LA FORMA"
         },
         "spelling": {
           "title": "THE SPELLING",
@@ -567,10 +461,8 @@
             "TABLE",
             "BIRD"
           ],
-          "title_i18n": {
-            "en": "THE SPELLING",
-            "es": "LA ESCRITURA"
-          }
+          "title_en": "THE SPELLING",
+          "title_es": "LA ESCRITURA"
         },
         "sentence": {
           "title": "WHOLE SENTENCE",
@@ -580,16 +472,12 @@
           "hint_es_line2": "",
           "sentence": "The baby has a blue book.",
           "expected": "The baby has a blue book.",
-          "title_i18n": {
-            "en": "WHOLE SENTENCE",
-            "es": "FRASE COMPLETA"
-          }
+          "title_en": "WHOLE SENTENCE",
+          "title_es": "FRASE COMPLETA"
         }
       },
-      "title_i18n": {
-        "en": "The B sound in baby",
-        "es": "El sonido B de baby"
-      }
+      "title_en": "The B sound in baby",
+      "title_es": "El sonido B de baby"
     },
     {
       "id": "session-w",
@@ -604,10 +492,8 @@
           "hint_es_line2": "",
           "phonetic": "/W/ → wa-ter",
           "expected": "water",
-          "title_i18n": {
-            "en": "THE WAY",
-            "es": "LA FORMA"
-          }
+          "title_en": "THE WAY",
+          "title_es": "LA FORMA"
         },
         "spelling": {
           "title": "THE SPELLING",
@@ -623,10 +509,8 @@
             "WAY",
             "QUEEN"
           ],
-          "title_i18n": {
-            "en": "THE SPELLING",
-            "es": "LA ESCRITURA"
-          }
+          "title_en": "THE SPELLING",
+          "title_es": "LA ESCRITURA"
         },
         "sentence": {
           "title": "WHOLE SENTENCE",
@@ -636,16 +520,12 @@
           "hint_es_line2": "",
           "sentence": "Once, the queen found water and a new way in the white world.",
           "expected": "Once, the queen found water and a new way in the white world.",
-          "title_i18n": {
-            "en": "WHOLE SENTENCE",
-            "es": "FRASE COMPLETA"
-          }
+          "title_en": "WHOLE SENTENCE",
+          "title_es": "FRASE COMPLETA"
         }
       },
-      "title_i18n": {
-        "en": "The W sound in water",
-        "es": "El sonido W de water"
-      }
+      "title_en": "The W sound in water",
+      "title_es": "El sonido W de water"
     },
     {
       "id": "session-f",
@@ -660,10 +540,8 @@
           "hint_es_line2": "",
           "phonetic": "/F/ → fa-mous",
           "expected": "famous",
-          "title_i18n": {
-            "en": "THE WAY",
-            "es": "LA FORMA"
-          }
+          "title_en": "THE WAY",
+          "title_es": "LA FORMA"
         },
         "spelling": {
           "title": "THE SPELLING",
@@ -679,10 +557,8 @@
             "SOFT",
             "HALF"
           ],
-          "title_i18n": {
-            "en": "THE SPELLING",
-            "es": "LA ESCRITURA"
-          }
+          "title_en": "THE SPELLING",
+          "title_es": "LA ESCRITURA"
         },
         "sentence": {
           "title": "WHOLE SENTENCE",
@@ -692,16 +568,12 @@
           "hint_es_line2": "",
           "sentence": "My friend is famous for her food.",
           "expected": "My friend is famous for her food.",
-          "title_i18n": {
-            "en": "WHOLE SENTENCE",
-            "es": "FRASE COMPLETA"
-          }
+          "title_en": "WHOLE SENTENCE",
+          "title_es": "FRASE COMPLETA"
         }
       },
-      "title_i18n": {
-        "en": "The F sound in famous",
-        "es": "El sonido F de famous"
-      }
+      "title_en": "The F sound in famous",
+      "title_es": "El sonido F de famous"
     },
     {
       "id": "session-v",
@@ -716,10 +588,8 @@
           "hint_es_line2": "",
           "phonetic": "/V/ → vam-pire",
           "expected": "vampire",
-          "title_i18n": {
-            "en": "THE WAY",
-            "es": "LA FORMA"
-          }
+          "title_en": "THE WAY",
+          "title_es": "LA FORMA"
         },
         "spelling": {
           "title": "THE SPELLING",
@@ -735,10 +605,8 @@
             "VERY",
             "GIVE"
           ],
-          "title_i18n": {
-            "en": "THE SPELLING",
-            "es": "LA ESCRITURA"
-          }
+          "title_en": "THE SPELLING",
+          "title_es": "LA ESCRITURA"
         },
         "sentence": {
           "title": "WHOLE SENTENCE",
@@ -748,16 +616,12 @@
           "hint_es_line2": "",
           "sentence": "The vampire has a very loud voice.",
           "expected": "The vampire has a very loud voice.",
-          "title_i18n": {
-            "en": "WHOLE SENTENCE",
-            "es": "FRASE COMPLETA"
-          }
+          "title_en": "WHOLE SENTENCE",
+          "title_es": "FRASE COMPLETA"
         }
       },
-      "title_i18n": {
-        "en": "The V sound in vampire",
-        "es": "El sonido V de vampire"
-      }
+      "title_en": "The V sound in vampire",
+      "title_es": "El sonido V de vampire"
     },
     {
       "id": "session-a",
@@ -772,10 +636,8 @@
           "hint_es_line2": "",
           "phonetic": "/A/ → a-pple",
           "expected": "apple",
-          "title_i18n": {
-            "en": "THE WAY",
-            "es": "LA FORMA"
-          }
+          "title_en": "THE WAY",
+          "title_es": "LA FORMA"
         },
         "spelling": {
           "title": "THE SPELLING",
@@ -791,10 +653,8 @@
             "DANCE",
             "MAP"
           ],
-          "title_i18n": {
-            "en": "THE SPELLING",
-            "es": "LA ESCRITURA"
-          }
+          "title_en": "THE SPELLING",
+          "title_es": "LA ESCRITURA"
         },
         "sentence": {
           "title": "WHOLE SENTENCE",
@@ -804,16 +664,12 @@
           "hint_es_line2": "",
           "sentence": "An apple and a cat sit on a mat.",
           "expected": "An apple and a cat sit on a mat.",
-          "title_i18n": {
-            "en": "WHOLE SENTENCE",
-            "es": "FRASE COMPLETA"
-          }
+          "title_en": "WHOLE SENTENCE",
+          "title_es": "FRASE COMPLETA"
         }
       },
-      "title_i18n": {
-        "en": "The A sound in APPLE",
-        "es": "El sonido A de APPLE"
-      }
+      "title_en": "The A sound in APPLE",
+      "title_es": "El sonido A de APPLE"
     },
     {
       "id": "session-e",
@@ -828,10 +684,8 @@
           "hint_es_line2": "",
           "phonetic": "/E/ → e-gg",
           "expected": "egg",
-          "title_i18n": {
-            "en": "THE WAY",
-            "es": "LA FORMA"
-          }
+          "title_en": "THE WAY",
+          "title_es": "LA FORMA"
         },
         "spelling": {
           "title": "THE SPELLING",
@@ -847,10 +701,8 @@
             "NEXT",
             "HELP"
           ],
-          "title_i18n": {
-            "en": "THE SPELLING",
-            "es": "LA ESCRITURA"
-          }
+          "title_en": "THE SPELLING",
+          "title_es": "LA ESCRITURA"
         },
         "sentence": {
           "title": "WHOLE SENTENCE",
@@ -860,16 +712,12 @@
           "hint_es_line2": "",
           "sentence": "The red hen left the nest.",
           "expected": "The red hen left the nest.",
-          "title_i18n": {
-            "en": "WHOLE SENTENCE",
-            "es": "FRASE COMPLETA"
-          }
+          "title_en": "WHOLE SENTENCE",
+          "title_es": "FRASE COMPLETA"
         }
       },
-      "title_i18n": {
-        "en": "The E sound in EGG",
-        "es": "El sonido E de EGG"
-      }
+      "title_en": "The E sound in EGG",
+      "title_es": "El sonido E de EGG"
     },
     {
       "id": "session-i",
@@ -884,10 +732,8 @@
           "hint_es_line2": "",
           "phonetic": "/I/ → i-ce",
           "expected": "ice",
-          "title_i18n": {
-            "en": "THE WAY",
-            "es": "LA FORMA"
-          }
+          "title_en": "THE WAY",
+          "title_es": "LA FORMA"
         },
         "spelling": {
           "title": "THE SPELLING",
@@ -903,10 +749,8 @@
             "LIGHT",
             "RIDE"
           ],
-          "title_i18n": {
-            "en": "THE SPELLING",
-            "es": "LA ESCRITURA"
-          }
+          "title_en": "THE SPELLING",
+          "title_es": "LA ESCRITURA"
         },
         "sentence": {
           "title": "WHOLE SENTENCE",
@@ -916,16 +760,12 @@
           "hint_es_line2": "",
           "sentence": "The white light is bright at night.",
           "expected": "The white light is bright at night.",
-          "title_i18n": {
-            "en": "WHOLE SENTENCE",
-            "es": "FRASE COMPLETA"
-          }
+          "title_en": "WHOLE SENTENCE",
+          "title_es": "FRASE COMPLETA"
         }
       },
-      "title_i18n": {
-        "en": "The I sound in ICE",
-        "es": "El sonido I de ICE"
-      }
+      "title_en": "The I sound in ICE",
+      "title_es": "El sonido I de ICE"
     },
     {
       "id": "session-o",
@@ -940,10 +780,8 @@
           "hint_es_line2": "",
           "phonetic": "/O/ → o-range",
           "expected": "orange",
-          "title_i18n": {
-            "en": "THE WAY",
-            "es": "LA FORMA"
-          }
+          "title_en": "THE WAY",
+          "title_es": "LA FORMA"
         },
         "spelling": {
           "title": "THE SPELLING",
@@ -959,10 +797,8 @@
             "ROSE",
             "SNOW"
           ],
-          "title_i18n": {
-            "en": "THE SPELLING",
-            "es": "LA ESCRITURA"
-          }
+          "title_en": "THE SPELLING",
+          "title_es": "LA ESCRITURA"
         },
         "sentence": {
           "title": "WHOLE SENTENCE",
@@ -972,16 +808,12 @@
           "hint_es_line2": "",
           "sentence": "The orange rose is at home.",
           "expected": "The orange rose is at home.",
-          "title_i18n": {
-            "en": "WHOLE SENTENCE",
-            "es": "FRASE COMPLETA"
-          }
+          "title_en": "WHOLE SENTENCE",
+          "title_es": "FRASE COMPLETA"
         }
       },
-      "title_i18n": {
-        "en": "The O sound in ORANGE",
-        "es": "El sonido O de ORANGE"
-      }
+      "title_en": "The O sound in ORANGE",
+      "title_es": "El sonido O de ORANGE"
     },
     {
       "id": "session-u",
@@ -996,10 +828,8 @@
           "hint_es_line2": "",
           "phonetic": "/U/ → um-brella",
           "expected": "umbrella",
-          "title_i18n": {
-            "en": "THE WAY",
-            "es": "LA FORMA"
-          }
+          "title_en": "THE WAY",
+          "title_es": "LA FORMA"
         },
         "spelling": {
           "title": "THE SPELLING",
@@ -1015,10 +845,8 @@
             "RUN",
             "CLOUD"
           ],
-          "title_i18n": {
-            "en": "THE SPELLING",
-            "es": "LA ESCRITURA"
-          }
+          "title_en": "THE SPELLING",
+          "title_es": "LA ESCRITURA"
         },
         "sentence": {
           "title": "WHOLE SENTENCE",
@@ -1028,16 +856,12 @@
           "hint_es_line2": "",
           "sentence": "The sun is up above the bus.",
           "expected": "The sun is up above the bus.",
-          "title_i18n": {
-            "en": "WHOLE SENTENCE",
-            "es": "FRASE COMPLETA"
-          }
+          "title_en": "WHOLE SENTENCE",
+          "title_es": "FRASE COMPLETA"
         }
       },
-      "title_i18n": {
-        "en": "The U sound in UMBRELLA",
-        "es": "El sonido U de UMBRELLA"
-      }
+      "title_en": "The U sound in UMBRELLA",
+      "title_es": "El sonido U de UMBRELLA"
     },
     {
       "id": "session-t",
@@ -1052,10 +876,8 @@
           "hint_es_line2": "",
           "phonetic": "/T/ → ti-me",
           "expected": "time",
-          "title_i18n": {
-            "en": "THE WAY",
-            "es": "LA FORMA"
-          }
+          "title_en": "THE WAY",
+          "title_es": "LA FORMA"
         },
         "spelling": {
           "title": "THE SPELLING",
@@ -1071,10 +893,8 @@
             "TOP",
             "TICKET"
           ],
-          "title_i18n": {
-            "en": "THE SPELLING",
-            "es": "LA ESCRITURA"
-          }
+          "title_en": "THE SPELLING",
+          "title_es": "LA ESCRITURA"
         },
         "sentence": {
           "title": "WHOLE SENTENCE",
@@ -1084,16 +904,12 @@
           "hint_es_line2": "",
           "sentence": "Take the ticket to the train.",
           "expected": "Take the ticket to the train.",
-          "title_i18n": {
-            "en": "WHOLE SENTENCE",
-            "es": "FRASE COMPLETA"
-          }
+          "title_en": "WHOLE SENTENCE",
+          "title_es": "FRASE COMPLETA"
         }
       },
-      "title_i18n": {
-        "en": "The T sound in TIME",
-        "es": "El sonido T de TIME"
-      }
+      "title_en": "The T sound in TIME",
+      "title_es": "El sonido T de TIME"
     },
     {
       "id": "session-s",
@@ -1108,10 +924,8 @@
           "hint_es_line2": "",
           "phonetic": "/S/ → su-n",
           "expected": "sun",
-          "title_i18n": {
-            "en": "THE WAY",
-            "es": "LA FORMA"
-          }
+          "title_en": "THE WAY",
+          "title_es": "LA FORMA"
         },
         "spelling": {
           "title": "THE SPELLING",
@@ -1127,10 +941,8 @@
             "SOUND",
             "SILVER"
           ],
-          "title_i18n": {
-            "en": "THE SPELLING",
-            "es": "LA ESCRITURA"
-          }
+          "title_en": "THE SPELLING",
+          "title_es": "LA ESCRITURA"
         },
         "sentence": {
           "title": "WHOLE SENTENCE",
@@ -1140,16 +952,12 @@
           "hint_es_line2": "",
           "sentence": "The sun shines over the sea.",
           "expected": "The sun shines over the sea.",
-          "title_i18n": {
-            "en": "WHOLE SENTENCE",
-            "es": "FRASE COMPLETA"
-          }
+          "title_en": "WHOLE SENTENCE",
+          "title_es": "FRASE COMPLETA"
         }
       },
-      "title_i18n": {
-        "en": "The S sound in SUN",
-        "es": "El sonido S de SUN"
-      }
+      "title_en": "The S sound in SUN",
+      "title_es": "El sonido S de SUN"
     },
     {
       "id": "session-r",
@@ -1164,10 +972,8 @@
           "hint_es_line2": "",
           "phonetic": "/R/ → ra-bbit",
           "expected": "rabbit",
-          "title_i18n": {
-            "en": "THE WAY",
-            "es": "LA FORMA"
-          }
+          "title_en": "THE WAY",
+          "title_es": "LA FORMA"
         },
         "spelling": {
           "title": "THE SPELLING",
@@ -1183,10 +989,8 @@
             "ROUND",
             "BRIGHT"
           ],
-          "title_i18n": {
-            "en": "THE SPELLING",
-            "es": "LA ESCRITURA"
-          }
+          "title_en": "THE SPELLING",
+          "title_es": "LA ESCRITURA"
         },
         "sentence": {
           "title": "WHOLE SENTENCE",
@@ -1196,16 +1000,12 @@
           "hint_es_line2": "",
           "sentence": "The rabbit ran down the road.",
           "expected": "The rabbit ran down the road.",
-          "title_i18n": {
-            "en": "WHOLE SENTENCE",
-            "es": "FRASE COMPLETA"
-          }
+          "title_en": "WHOLE SENTENCE",
+          "title_es": "FRASE COMPLETA"
         }
       },
-      "title_i18n": {
-        "en": "The R sound in RABBIT",
-        "es": "El sonido R de RABBIT"
-      }
+      "title_en": "The R sound in RABBIT",
+      "title_es": "El sonido R de RABBIT"
     },
     {
       "id": "session-l",
@@ -1220,10 +1020,8 @@
           "hint_es_line2": "",
           "phonetic": "/L/ → li-on",
           "expected": "lion",
-          "title_i18n": {
-            "en": "THE WAY",
-            "es": "LA FORMA"
-          }
+          "title_en": "THE WAY",
+          "title_es": "LA FORMA"
         },
         "spelling": {
           "title": "THE SPELLING",
@@ -1239,10 +1037,8 @@
             "PLAY",
             "CLOUD"
           ],
-          "title_i18n": {
-            "en": "THE SPELLING",
-            "es": "LA ESCRITURA"
-          }
+          "title_en": "THE SPELLING",
+          "title_es": "LA ESCRITURA"
         },
         "sentence": {
           "title": "WHOLE SENTENCE",
@@ -1252,16 +1048,12 @@
           "hint_es_line2": "",
           "sentence": "The little lion plays near the lamp.",
           "expected": "The little lion plays near the lamp.",
-          "title_i18n": {
-            "en": "WHOLE SENTENCE",
-            "es": "FRASE COMPLETA"
-          }
+          "title_en": "WHOLE SENTENCE",
+          "title_es": "FRASE COMPLETA"
         }
       },
-      "title_i18n": {
-        "en": "The L sound in LION",
-        "es": "El sonido L de LION"
-      }
+      "title_en": "The L sound in LION",
+      "title_es": "El sonido L de LION"
     },
     {
       "id": "session-k",
@@ -1276,10 +1068,8 @@
           "hint_es_line2": "",
           "phonetic": "/K/ → ki-te",
           "expected": "kite",
-          "title_i18n": {
-            "en": "THE WAY",
-            "es": "LA FORMA"
-          }
+          "title_en": "THE WAY",
+          "title_es": "LA FORMA"
         },
         "spelling": {
           "title": "THE SPELLING",
@@ -1295,10 +1085,8 @@
             "KNOCK",
             "SKY"
           ],
-          "title_i18n": {
-            "en": "THE SPELLING",
-            "es": "LA ESCRITURA"
-          }
+          "title_en": "THE SPELLING",
+          "title_es": "LA ESCRITURA"
         },
         "sentence": {
           "title": "WHOLE SENTENCE",
@@ -1308,16 +1096,12 @@
           "hint_es_line2": "",
           "sentence": "The king keeps a kite in the sky.",
           "expected": "The king keeps a kite in the sky.",
-          "title_i18n": {
-            "en": "WHOLE SENTENCE",
-            "es": "FRASE COMPLETA"
-          }
+          "title_en": "WHOLE SENTENCE",
+          "title_es": "FRASE COMPLETA"
         }
       },
-      "title_i18n": {
-        "en": "The K sound in KITE",
-        "es": "El sonido K de KITE"
-      }
+      "title_en": "The K sound in KITE",
+      "title_es": "El sonido K de KITE"
     },
     {
       "id": "session-ship-sheep",
@@ -1332,10 +1116,8 @@
           "hint_es_line2": "",
           "phonetic": "Ship / Sheep",
           "expected": "Sheep",
-          "title_i18n": {
-            "en": "THE SOUND",
-            "es": "EL SONIDO"
-          }
+          "title_en": "THE SOUND",
+          "title_es": "EL SONIDO"
         },
         "spelling": {
           "title": "MINIMAL PAIRS",
@@ -1351,10 +1133,8 @@
             "SIT",
             "SEAT"
           ],
-          "title_i18n": {
-            "en": "MINIMAL PAIRS",
-            "es": "PARES MÍNIMOS"
-          }
+          "title_en": "MINIMAL PAIRS",
+          "title_es": "PARES MÍNIMOS"
         },
         "sentence": {
           "title": "PRACTICE SENTENCE",
@@ -1364,16 +1144,12 @@
           "hint_es_line2": "",
           "sentence": "The sheep is on the ship.",
           "expected": "The sheep is on the ship.",
-          "title_i18n": {
-            "en": "PRACTICE SENTENCE",
-            "es": "FRASE DE PRÁCTICA"
-          }
+          "title_en": "PRACTICE SENTENCE",
+          "title_es": "FRASE DE PRÁCTICA"
         }
       },
-      "title_i18n": {
-        "en": "Ship vs Sheep",
-        "es": "Ship vs Sheep"
-      }
+      "title_en": "Ship vs Sheep",
+      "title_es": "Ship vs Sheep"
     },
     {
       "id": "session-tree-three",
@@ -1388,10 +1164,8 @@
           "hint_es_line2": "",
           "phonetic": "Tree / Three",
           "expected": "Three",
-          "title_i18n": {
-            "en": "THE SOUND",
-            "es": "EL SONIDO"
-          }
+          "title_en": "THE SOUND",
+          "title_es": "EL SONIDO"
         },
         "spelling": {
           "title": "MINIMAL PAIRS",
@@ -1407,10 +1181,8 @@
             "TIN",
             "THIN"
           ],
-          "title_i18n": {
-            "en": "MINIMAL PAIRS",
-            "es": "PARES MÍNIMOS"
-          }
+          "title_en": "MINIMAL PAIRS",
+          "title_es": "PARES MÍNIMOS"
         },
         "sentence": {
           "title": "PRACTICE SENTENCE",
@@ -1420,16 +1192,12 @@
           "hint_es_line2": "",
           "sentence": "Three trees fell down.",
           "expected": "Three trees fell down.",
-          "title_i18n": {
-            "en": "PRACTICE SENTENCE",
-            "es": "FRASE DE PRÁCTICA"
-          }
+          "title_en": "PRACTICE SENTENCE",
+          "title_es": "FRASE DE PRÁCTICA"
         }
       },
-      "title_i18n": {
-        "en": "Tree vs Three",
-        "es": "Tree vs Three"
-      }
+      "title_en": "Tree vs Three",
+      "title_es": "Tree vs Three"
     },
     {
       "id": "session-formal-informal",
@@ -1444,10 +1212,8 @@
           "hint_es_line2": "",
           "phonetic": "Good morning",
           "expected": "Good morning",
-          "title_i18n": {
-            "en": "GREETING",
-            "es": "SALUDO"
-          }
+          "title_en": "GREETING",
+          "title_es": "SALUDO"
         },
         "spelling": {
           "title": "OPTIONS",
@@ -1461,10 +1227,8 @@
             "HELLO",
             "GOOD MORNING"
           ],
-          "title_i18n": {
-            "en": "OPTIONS",
-            "es": "OPCIONES"
-          }
+          "title_en": "OPTIONS",
+          "title_es": "OPCIONES"
         },
         "sentence": {
           "title": "CONVERSATION",
@@ -1474,16 +1238,12 @@
           "hint_es_line2": "",
           "sentence": "Good morning, how do you do?",
           "expected": "Good morning, how do you do?",
-          "title_i18n": {
-            "en": "CONVERSATION",
-            "es": "CONVERSACIÓN"
-          }
+          "title_en": "CONVERSATION",
+          "title_es": "CONVERSACIÓN"
         }
       },
-      "title_i18n": {
-        "en": "Formal vs Informal",
-        "es": "Formal vs informal"
-      }
+      "title_en": "Formal vs Informal",
+      "title_es": "Formal vs informal"
     },
     {
       "id": "session-goodbyes",
@@ -1498,10 +1258,8 @@
           "hint_es_line2": "",
           "phonetic": "See you!",
           "expected": "See you",
-          "title_i18n": {
-            "en": "FAREWELL",
-            "es": "DESPEDIDA"
-          }
+          "title_en": "FAREWELL",
+          "title_es": "DESPEDIDA"
         },
         "spelling": {
           "title": "OPTIONS",
@@ -1514,10 +1272,8 @@
             "SOON",
             "TOMORROW"
           ],
-          "title_i18n": {
-            "en": "OPTIONS",
-            "es": "OPCIONES"
-          }
+          "title_en": "OPTIONS",
+          "title_es": "OPCIONES"
         },
         "sentence": {
           "title": "CONVERSATION",
@@ -1527,16 +1283,12 @@
           "hint_es_line2": "",
           "sentence": "See you later, have a nice day!",
           "expected": "See you later, have a nice day!",
-          "title_i18n": {
-            "en": "CONVERSATION",
-            "es": "CONVERSACIÓN"
-          }
+          "title_en": "CONVERSATION",
+          "title_es": "CONVERSACIÓN"
         }
       },
-      "title_i18n": {
-        "en": "Saying Goodbye",
-        "es": "Decirse adiós"
-      }
+      "title_en": "Saying Goodbye",
+      "title_es": "Decirse adiós"
     },
     {
       "id": "session-booking-table",
@@ -1551,10 +1303,8 @@
           "hint_es_line2": "",
           "phonetic": "I'd like to book",
           "expected": "I'd like to book",
-          "title_i18n": {
-            "en": "REQUEST",
-            "es": "PETICIÓN"
-          }
+          "title_en": "REQUEST",
+          "title_es": "PETICIÓN"
         },
         "spelling": {
           "title": "DETAILS",
@@ -1568,10 +1318,8 @@
             "THREE",
             "FOUR"
           ],
-          "title_i18n": {
-            "en": "DETAILS",
-            "es": "DETALLES"
-          }
+          "title_en": "DETAILS",
+          "title_es": "DETALLES"
         },
         "sentence": {
           "title": "FULL REQUEST",
@@ -1581,16 +1329,12 @@
           "hint_es_line2": "",
           "sentence": "I'd like a table for two at eight.",
           "expected": "I'd like a table for two at eight.",
-          "title_i18n": {
-            "en": "FULL REQUEST",
-            "es": "PETICIÓN COMPLETA"
-          }
+          "title_en": "FULL REQUEST",
+          "title_es": "PETICIÓN COMPLETA"
         }
       },
-      "title_i18n": {
-        "en": "Booking a Table",
-        "es": "Reservar una mesa"
-      }
+      "title_en": "Booking a Table",
+      "title_es": "Reservar una mesa"
     },
     {
       "id": "session-asking-bill",
@@ -1605,10 +1349,8 @@
           "hint_es_line2": "",
           "phonetic": "The bill, please",
           "expected": "The bill please",
-          "title_i18n": {
-            "en": "REQUEST",
-            "es": "PETICIÓN"
-          }
+          "title_en": "REQUEST",
+          "title_es": "PETICIÓN"
         },
         "spelling": {
           "title": "VARIATIONS",
@@ -1621,10 +1363,8 @@
             "RECEIPT",
             "TOTAL"
           ],
-          "title_i18n": {
-            "en": "VARIATIONS",
-            "es": "VARIACIONES"
-          }
+          "title_en": "VARIATIONS",
+          "title_es": "VARIACIONES"
         },
         "sentence": {
           "title": "FULL REQUEST",
@@ -1634,16 +1374,12 @@
           "hint_es_line2": "",
           "sentence": "Could we have the bill, please?",
           "expected": "Could we have the bill, please?",
-          "title_i18n": {
-            "en": "FULL REQUEST",
-            "es": "PETICIÓN COMPLETA"
-          }
+          "title_en": "FULL REQUEST",
+          "title_es": "PETICIÓN COMPLETA"
         }
       },
-      "title_i18n": {
-        "en": "Asking for the Bill",
-        "es": "Pedir la cuenta"
-      }
+      "title_en": "Asking for the Bill",
+      "title_es": "Pedir la cuenta"
     },
     {
       "id": "session-hotel-checkin",
@@ -1658,10 +1394,8 @@
           "hint_es_line2": "",
           "phonetic": "Check in",
           "expected": "Check in",
-          "title_i18n": {
-            "en": "ARRIVAL",
-            "es": "LLEGADA"
-          }
+          "title_en": "ARRIVAL",
+          "title_es": "LLEGADA"
         },
         "spelling": {
           "title": "DETAILS",
@@ -1674,10 +1408,8 @@
             "RESERVATION",
             "BOOKING"
           ],
-          "title_i18n": {
-            "en": "DETAILS",
-            "es": "DETALLES"
-          }
+          "title_en": "DETAILS",
+          "title_es": "DETALLES"
         },
         "sentence": {
           "title": "FULL PHRASE",
@@ -1687,16 +1419,12 @@
           "hint_es_line2": "",
           "sentence": "I have a reservation under Smith.",
           "expected": "I have a reservation under Smith.",
-          "title_i18n": {
-            "en": "FULL PHRASE",
-            "es": "FRASE COMPLETA"
-          }
+          "title_en": "FULL PHRASE",
+          "title_es": "FRASE COMPLETA"
         }
       },
-      "title_i18n": {
-        "en": "Hotel Check-in",
-        "es": "Registro en hotel"
-      }
+      "title_en": "Hotel Check-in",
+      "title_es": "Registro en hotel"
     },
     {
       "id": "session-asking-directions",
@@ -1711,10 +1439,8 @@
           "hint_es_line2": "",
           "phonetic": "Excuse me",
           "expected": "Excuse me",
-          "title_i18n": {
-            "en": "QUESTION",
-            "es": "PREGUNTA"
-          }
+          "title_en": "QUESTION",
+          "title_es": "PREGUNTA"
         },
         "spelling": {
           "title": "DESTINATION",
@@ -1727,10 +1453,8 @@
             "BANK",
             "HOTEL"
           ],
-          "title_i18n": {
-            "en": "DESTINATION",
-            "es": "DESTINO"
-          }
+          "title_en": "DESTINATION",
+          "title_es": "DESTINO"
         },
         "sentence": {
           "title": "FULL QUESTION",
@@ -1740,16 +1464,12 @@
           "hint_es_line2": "",
           "sentence": "Excuse me, where is the train station?",
           "expected": "Excuse me, where is the train station?",
-          "title_i18n": {
-            "en": "FULL QUESTION",
-            "es": "PREGUNTA COMPLETA"
-          }
+          "title_en": "FULL QUESTION",
+          "title_es": "PREGUNTA COMPLETA"
         }
       },
-      "title_i18n": {
-        "en": "Asking Directions",
-        "es": "Pedir indicaciones"
-      }
+      "title_en": "Asking Directions",
+      "title_es": "Pedir indicaciones"
     },
     {
       "id": "session-buying-tickets",
@@ -1764,10 +1484,8 @@
           "hint_es_line2": "",
           "phonetic": "One ticket",
           "expected": "One ticket",
-          "title_i18n": {
-            "en": "REQUEST",
-            "es": "PETICIÓN"
-          }
+          "title_en": "REQUEST",
+          "title_es": "PETICIÓN"
         },
         "spelling": {
           "title": "DESTINATION",
@@ -1780,10 +1498,8 @@
             "PARIS",
             "NEW YORK"
           ],
-          "title_i18n": {
-            "en": "DESTINATION",
-            "es": "DESTINO"
-          }
+          "title_en": "DESTINATION",
+          "title_es": "DESTINO"
         },
         "sentence": {
           "title": "FULL REQUEST",
@@ -1793,16 +1509,12 @@
           "hint_es_line2": "",
           "sentence": "I'd like one ticket to London, please.",
           "expected": "I'd like one ticket to London, please.",
-          "title_i18n": {
-            "en": "FULL REQUEST",
-            "es": "PETICIÓN COMPLETA"
-          }
+          "title_en": "FULL REQUEST",
+          "title_es": "PETICIÓN COMPLETA"
         }
       },
-      "title_i18n": {
-        "en": "Buying Tickets",
-        "es": "Comprar billetes"
-      }
+      "title_en": "Buying Tickets",
+      "title_es": "Comprar billetes"
     },
     {
       "id": "session-full-fool",
@@ -1817,10 +1529,8 @@
           "hint_es_line2": "",
           "phonetic": "Full / Fool",
           "expected": "Fool",
-          "title_i18n": {
-            "en": "THE SOUND",
-            "es": "EL SONIDO"
-          }
+          "title_en": "THE SOUND",
+          "title_es": "EL SONIDO"
         },
         "spelling": {
           "title": "MINIMAL PAIRS",
@@ -1834,10 +1544,8 @@
             "FULL",
             "FOOL"
           ],
-          "title_i18n": {
-            "en": "MINIMAL PAIRS",
-            "es": "PARES MÍNIMOS"
-          }
+          "title_en": "MINIMAL PAIRS",
+          "title_es": "PARES MÍNIMOS"
         },
         "sentence": {
           "title": "SENTENCE",
@@ -1847,16 +1555,12 @@
           "hint_es_line2": "",
           "sentence": "The fool is full of food.",
           "expected": "The fool is full of food.",
-          "title_i18n": {
-            "en": "SENTENCE",
-            "es": "FRASE"
-          }
+          "title_en": "SENTENCE",
+          "title_es": "FRASE"
         }
       },
-      "title_i18n": {
-        "en": "Full vs Fool",
-        "es": "Full vs Fool"
-      }
+      "title_en": "Full vs Fool",
+      "title_es": "Full vs Fool"
     },
     {
       "id": "session-pen-pan",
@@ -1871,10 +1575,8 @@
           "hint_es_line2": "",
           "phonetic": "Pen / Pan",
           "expected": "Pan",
-          "title_i18n": {
-            "en": "THE SOUND",
-            "es": "EL SONIDO"
-          }
+          "title_en": "THE SOUND",
+          "title_es": "EL SONIDO"
         },
         "spelling": {
           "title": "MINIMAL PAIRS",
@@ -1888,10 +1590,8 @@
             "PEN",
             "PAN"
           ],
-          "title_i18n": {
-            "en": "MINIMAL PAIRS",
-            "es": "PARES MÍNIMOS"
-          }
+          "title_en": "MINIMAL PAIRS",
+          "title_es": "PARES MÍNIMOS"
         },
         "sentence": {
           "title": "SENTENCE",
@@ -1901,16 +1601,12 @@
           "hint_es_line2": "",
           "sentence": "The man has a pen in the pan.",
           "expected": "The man has a pen in the pan.",
-          "title_i18n": {
-            "en": "SENTENCE",
-            "es": "FRASE"
-          }
+          "title_en": "SENTENCE",
+          "title_es": "FRASE"
         }
       },
-      "title_i18n": {
-        "en": "Pen vs Pan",
-        "es": "Pen vs Pan"
-      }
+      "title_en": "Pen vs Pan",
+      "title_es": "Pen vs Pan"
     },
     {
       "id": "session-day-they",
@@ -1925,10 +1621,8 @@
           "hint_es_line2": "",
           "phonetic": "Day / They",
           "expected": "They",
-          "title_i18n": {
-            "en": "THE SOUND",
-            "es": "EL SONIDO"
-          }
+          "title_en": "THE SOUND",
+          "title_es": "EL SONIDO"
         },
         "spelling": {
           "title": "MINIMAL PAIRS",
@@ -1942,10 +1636,8 @@
             "DAY",
             "THEY"
           ],
-          "title_i18n": {
-            "en": "MINIMAL PAIRS",
-            "es": "PARES MÍNIMOS"
-          }
+          "title_en": "MINIMAL PAIRS",
+          "title_es": "PARES MÍNIMOS"
         },
         "sentence": {
           "title": "SENTENCE",
@@ -1955,16 +1647,12 @@
           "hint_es_line2": "",
           "sentence": "They went there for the day.",
           "expected": "They went there for the day.",
-          "title_i18n": {
-            "en": "SENTENCE",
-            "es": "FRASE"
-          }
+          "title_en": "SENTENCE",
+          "title_es": "FRASE"
         }
       },
-      "title_i18n": {
-        "en": "Day vs They",
-        "es": "Day vs They"
-      }
+      "title_en": "Day vs They",
+      "title_es": "Day vs They"
     },
     {
       "id": "session-sea-she",
@@ -1979,10 +1667,8 @@
           "hint_es_line2": "",
           "phonetic": "Sea / She",
           "expected": "She",
-          "title_i18n": {
-            "en": "THE SOUND",
-            "es": "EL SONIDO"
-          }
+          "title_en": "THE SOUND",
+          "title_es": "EL SONIDO"
         },
         "spelling": {
           "title": "MINIMAL PAIRS",
@@ -1996,10 +1682,8 @@
             "SEA",
             "SHE"
           ],
-          "title_i18n": {
-            "en": "MINIMAL PAIRS",
-            "es": "PARES MÍNIMOS"
-          }
+          "title_en": "MINIMAL PAIRS",
+          "title_es": "PARES MÍNIMOS"
         },
         "sentence": {
           "title": "SENTENCE",
@@ -2009,16 +1693,12 @@
           "hint_es_line2": "",
           "sentence": "She sells sea shells.",
           "expected": "She sells sea shells.",
-          "title_i18n": {
-            "en": "SENTENCE",
-            "es": "FRASE"
-          }
+          "title_en": "SENTENCE",
+          "title_es": "FRASE"
         }
       },
-      "title_i18n": {
-        "en": "Sea vs She",
-        "es": "Sea vs She"
-      }
+      "title_en": "Sea vs She",
+      "title_es": "Sea vs She"
     },
     {
       "id": "session-silent-k",
@@ -2033,10 +1713,8 @@
           "hint_es_line2": "",
           "phonetic": "Knife",
           "expected": "Knife",
-          "title_i18n": {
-            "en": "THE SOUND",
-            "es": "EL SONIDO"
-          }
+          "title_en": "THE SOUND",
+          "title_es": "EL SONIDO"
         },
         "spelling": {
           "title": "WORDS",
@@ -2049,10 +1727,8 @@
             "KNOW",
             "KNOCK"
           ],
-          "title_i18n": {
-            "en": "WORDS",
-            "es": "PALABRAS"
-          }
+          "title_en": "WORDS",
+          "title_es": "PALABRAS"
         },
         "sentence": {
           "title": "SENTENCE",
@@ -2062,16 +1738,12 @@
           "hint_es_line2": "",
           "sentence": "I know how to use a knife.",
           "expected": "I know how to use a knife.",
-          "title_i18n": {
-            "en": "SENTENCE",
-            "es": "FRASE"
-          }
+          "title_en": "SENTENCE",
+          "title_es": "FRASE"
         }
       },
-      "title_i18n": {
-        "en": "Silent K",
-        "es": "K muda"
-      }
+      "title_en": "Silent K",
+      "title_es": "K muda"
     },
     {
       "id": "session-silent-w",
@@ -2086,10 +1758,8 @@
           "hint_es_line2": "",
           "phonetic": "Write",
           "expected": "Write",
-          "title_i18n": {
-            "en": "THE SOUND",
-            "es": "EL SONIDO"
-          }
+          "title_en": "THE SOUND",
+          "title_es": "EL SONIDO"
         },
         "spelling": {
           "title": "WORDS",
@@ -2102,10 +1772,8 @@
             "WRIST",
             "WRAP"
           ],
-          "title_i18n": {
-            "en": "WORDS",
-            "es": "PALABRAS"
-          }
+          "title_en": "WORDS",
+          "title_es": "PALABRAS"
         },
         "sentence": {
           "title": "SENTENCE",
@@ -2115,16 +1783,12 @@
           "hint_es_line2": "",
           "sentence": "Don't write the wrong answer.",
           "expected": "Don't write the wrong answer.",
-          "title_i18n": {
-            "en": "SENTENCE",
-            "es": "FRASE"
-          }
+          "title_en": "SENTENCE",
+          "title_es": "FRASE"
         }
       },
-      "title_i18n": {
-        "en": "Silent W",
-        "es": "W muda"
-      }
+      "title_en": "Silent W",
+      "title_es": "W muda"
     },
     {
       "id": "session-silent-l",
@@ -2139,10 +1803,8 @@
           "hint_es_line2": "",
           "phonetic": "Walk",
           "expected": "Walk",
-          "title_i18n": {
-            "en": "THE SOUND",
-            "es": "EL SONIDO"
-          }
+          "title_en": "THE SOUND",
+          "title_es": "EL SONIDO"
         },
         "spelling": {
           "title": "WORDS",
@@ -2155,10 +1817,8 @@
             "HALF",
             "CALM"
           ],
-          "title_i18n": {
-            "en": "WORDS",
-            "es": "PALABRAS"
-          }
+          "title_en": "WORDS",
+          "title_es": "PALABRAS"
         },
         "sentence": {
           "title": "SENTENCE",
@@ -2168,16 +1828,12 @@
           "hint_es_line2": "",
           "sentence": "We can walk and talk.",
           "expected": "We can walk and talk.",
-          "title_i18n": {
-            "en": "SENTENCE",
-            "es": "FRASE"
-          }
+          "title_en": "SENTENCE",
+          "title_es": "FRASE"
         }
       },
-      "title_i18n": {
-        "en": "Silent L",
-        "es": "L muda"
-      }
+      "title_en": "Silent L",
+      "title_es": "L muda"
     },
     {
       "id": "session-stress-2",
@@ -2192,10 +1848,8 @@
           "hint_es_line2": "",
           "phonetic": "WA-ter",
           "expected": "Water",
-          "title_i18n": {
-            "en": "RHYTHM",
-            "es": "RITMO"
-          }
+          "title_en": "RHYTHM",
+          "title_es": "RITMO"
         },
         "spelling": {
           "title": "PATTERN",
@@ -2208,10 +1862,8 @@
             "O-PEN",
             "TA-BLE"
           ],
-          "title_i18n": {
-            "en": "PATTERN",
-            "es": "PATRÓN"
-          }
+          "title_en": "PATTERN",
+          "title_es": "PATRÓN"
         },
         "sentence": {
           "title": "PHRASE",
@@ -2221,16 +1873,12 @@
           "hint_es_line2": "",
           "sentence": "Water the flowers.",
           "expected": "Water the flowers.",
-          "title_i18n": {
-            "en": "PHRASE",
-            "es": "FRASE"
-          }
+          "title_en": "PHRASE",
+          "title_es": "FRASE"
         }
       },
-      "title_i18n": {
-        "en": "Two Syllables",
-        "es": "Dos sílabas"
-      }
+      "title_en": "Two Syllables",
+      "title_es": "Dos sílabas"
     },
     {
       "id": "session-stress-3",
@@ -2245,10 +1893,8 @@
           "hint_es_line2": "",
           "phonetic": "to-MO-rrow",
           "expected": "Tomorrow",
-          "title_i18n": {
-            "en": "RHYTHM",
-            "es": "RITMO"
-          }
+          "title_en": "RHYTHM",
+          "title_es": "RITMO"
         },
         "spelling": {
           "title": "PATTERN",
@@ -2261,10 +1907,8 @@
             "PO-TA-TO",
             "BA-NA-NA"
           ],
-          "title_i18n": {
-            "en": "PATTERN",
-            "es": "PATRÓN"
-          }
+          "title_en": "PATTERN",
+          "title_es": "PATRÓN"
         },
         "sentence": {
           "title": "PHRASE",
@@ -2274,16 +1918,12 @@
           "hint_es_line2": "",
           "sentence": "See you tomorrow.",
           "expected": "See you tomorrow.",
-          "title_i18n": {
-            "en": "PHRASE",
-            "es": "FRASE"
-          }
+          "title_en": "PHRASE",
+          "title_es": "FRASE"
         }
       },
-      "title_i18n": {
-        "en": "Three Syllables",
-        "es": "Tres sílabas"
-      }
+      "title_en": "Three Syllables",
+      "title_es": "Tres sílabas"
     },
     {
       "id": "session-stress-shift",
@@ -2298,10 +1938,8 @@
           "hint_es_line2": "",
           "phonetic": "PHO-to-graph",
           "expected": "Photograph",
-          "title_i18n": {
-            "en": "COMPARE",
-            "es": "COMPARA"
-          }
+          "title_en": "COMPARE",
+          "title_es": "COMPARA"
         },
         "spelling": {
           "title": "CHANGE",
@@ -2314,10 +1952,8 @@
             "PHO-TO-GRA-PHY",
             "PHO-TO-GRA-PHIC"
           ],
-          "title_i18n": {
-            "en": "CHANGE",
-            "es": "CAMBIO"
-          }
+          "title_en": "CHANGE",
+          "title_es": "CAMBIO"
         },
         "sentence": {
           "title": "SENTENCE",
@@ -2327,16 +1963,12 @@
           "hint_es_line2": "",
           "sentence": "Take a photograph of photography.",
           "expected": "Take a photograph of photography.",
-          "title_i18n": {
-            "en": "SENTENCE",
-            "es": "FRASE"
-          }
+          "title_en": "SENTENCE",
+          "title_es": "FRASE"
         }
       },
-      "title_i18n": {
-        "en": "Shifting Stress",
-        "es": "Cambio de acento"
-      }
+      "title_en": "Shifting Stress",
+      "title_es": "Cambio de acento"
     },
     {
       "id": "session-link-cv",
@@ -2351,10 +1983,8 @@
           "hint_es_line2": "",
           "phonetic": "Turn_on",
           "expected": "Turn on",
-          "title_i18n": {
-            "en": "CONNECT",
-            "es": "CONECTA"
-          }
+          "title_en": "CONNECT",
+          "title_es": "CONECTA"
         },
         "spelling": {
           "title": "FLOW",
@@ -2367,10 +1997,8 @@
             "GET_UP",
             "LOOK_AT"
           ],
-          "title_i18n": {
-            "en": "FLOW",
-            "es": "FLUIDEZ"
-          }
+          "title_en": "FLOW",
+          "title_es": "FLUIDEZ"
         },
         "sentence": {
           "title": "SENTENCE",
@@ -2380,16 +2008,12 @@
           "hint_es_line2": "",
           "sentence": "Turn on the light.",
           "expected": "Turn on the light.",
-          "title_i18n": {
-            "en": "SENTENCE",
-            "es": "FRASE"
-          }
+          "title_en": "SENTENCE",
+          "title_es": "FRASE"
         }
       },
-      "title_i18n": {
-        "en": "Consonant to Vowel",
-        "es": "Consonante a vocal"
-      }
+      "title_en": "Consonant to Vowel",
+      "title_es": "Consonante a vocal"
     },
     {
       "id": "session-link-vv",
@@ -2404,10 +2028,8 @@
           "hint_es_line2": "",
           "phonetic": "Go_w_out",
           "expected": "Go out",
-          "title_i18n": {
-            "en": "CONNECT",
-            "es": "CONECTA"
-          }
+          "title_en": "CONNECT",
+          "title_es": "CONECTA"
         },
         "spelling": {
           "title": "FLOW",
@@ -2420,10 +2042,8 @@
             "DO_IT",
             "SEE_IT"
           ],
-          "title_i18n": {
-            "en": "FLOW",
-            "es": "FLUIDEZ"
-          }
+          "title_en": "FLOW",
+          "title_es": "FLUIDEZ"
         },
         "sentence": {
           "title": "SENTENCE",
@@ -2433,16 +2053,12 @@
           "hint_es_line2": "",
           "sentence": "Go out and do it.",
           "expected": "Go out and do it.",
-          "title_i18n": {
-            "en": "SENTENCE",
-            "es": "FRASE"
-          }
+          "title_en": "SENTENCE",
+          "title_es": "FRASE"
         }
       },
-      "title_i18n": {
-        "en": "Vowel to Vowel",
-        "es": "Vocal a vocal"
-      }
+      "title_en": "Vowel to Vowel",
+      "title_es": "Vocal a vocal"
     },
     {
       "id": "session-link-ty",
@@ -2457,10 +2073,8 @@
           "hint_es_line2": "",
           "phonetic": "Meet_ch_you",
           "expected": "Meet you",
-          "title_i18n": {
-            "en": "CONNECT",
-            "es": "CONECTA"
-          }
+          "title_en": "CONNECT",
+          "title_es": "CONECTA"
         },
         "spelling": {
           "title": "FLOW",
@@ -2473,10 +2087,8 @@
             "DON'T YOU",
             "WON'T YOU"
           ],
-          "title_i18n": {
-            "en": "FLOW",
-            "es": "FLUIDEZ"
-          }
+          "title_en": "FLOW",
+          "title_es": "FLUIDEZ"
         },
         "sentence": {
           "title": "SENTENCE",
@@ -2486,16 +2098,12 @@
           "hint_es_line2": "",
           "sentence": "Nice to meet you.",
           "expected": "Nice to meet you.",
-          "title_i18n": {
-            "en": "SENTENCE",
-            "es": "FRASE"
-          }
+          "title_en": "SENTENCE",
+          "title_es": "FRASE"
         }
       },
-      "title_i18n": {
-        "en": "Y Fusion",
-        "es": "Fusión de Y"
-      }
+      "title_en": "Y Fusion",
+      "title_es": "Fusión de Y"
     },
     {
       "id": "session-schwa",
@@ -2510,10 +2118,8 @@
           "hint_es_line2": "",
           "phonetic": "Fish-n-chips",
           "expected": "Fish and chips",
-          "title_i18n": {
-            "en": "REDUCE",
-            "es": "REDUCE"
-          }
+          "title_en": "REDUCE",
+          "title_es": "REDUCE"
         },
         "spelling": {
           "title": "RHYTHM",
@@ -2526,10 +2132,8 @@
             "SALT N PEPPER",
             "BLACK N WHITE"
           ],
-          "title_i18n": {
-            "en": "RHYTHM",
-            "es": "RITMO"
-          }
+          "title_en": "RHYTHM",
+          "title_es": "RITMO"
         },
         "sentence": {
           "title": "SENTENCE",
@@ -2539,16 +2143,12 @@
           "hint_es_line2": "",
           "sentence": "I'd like fish and chips.",
           "expected": "I'd like fish and chips.",
-          "title_i18n": {
-            "en": "SENTENCE",
-            "es": "FRASE"
-          }
+          "title_en": "SENTENCE",
+          "title_es": "FRASE"
         }
       },
-      "title_i18n": {
-        "en": "The Schwa",
-        "es": "El schwa"
-      }
+      "title_en": "The Schwa",
+      "title_es": "El schwa"
     },
     {
       "id": "session-focus-words",
@@ -2563,10 +2163,8 @@
           "hint_es_line2": "",
           "phonetic": "I LOVE it",
           "expected": "I love it",
-          "title_i18n": {
-            "en": "EMPHASIS",
-            "es": "ÉNFASIS"
-          }
+          "title_en": "EMPHASIS",
+          "title_es": "ÉNFASIS"
         },
         "spelling": {
           "title": "CHANGE",
@@ -2579,10 +2177,8 @@
             "I LOVE it",
             "SHE loves it"
           ],
-          "title_i18n": {
-            "en": "CHANGE",
-            "es": "CAMBIO"
-          }
+          "title_en": "CHANGE",
+          "title_es": "CAMBIO"
         },
         "sentence": {
           "title": "SENTENCE",
@@ -2592,16 +2188,12 @@
           "hint_es_line2": "",
           "sentence": "I absolutely love it.",
           "expected": "I absolutely love it.",
-          "title_i18n": {
-            "en": "SENTENCE",
-            "es": "FRASE"
-          }
+          "title_en": "SENTENCE",
+          "title_es": "FRASE"
         }
       },
-      "title_i18n": {
-        "en": "Focus Words",
-        "es": "Palabras clave"
-      }
+      "title_en": "Focus Words",
+      "title_es": "Palabras clave"
     },
     {
       "id": "session-natural-flow",
@@ -2616,10 +2208,8 @@
           "hint_es_line2": "",
           "phonetic": "Whaddaya-wannado",
           "expected": "What do you want to do",
-          "title_i18n": {
-            "en": "REDUCE",
-            "es": "REDUCE"
-          }
+          "title_en": "REDUCE",
+          "title_es": "REDUCE"
         },
         "spelling": {
           "title": "CASUAL",
@@ -2632,10 +2222,8 @@
             "WANNA",
             "GOTTA"
           ],
-          "title_i18n": {
-            "en": "CASUAL",
-            "es": "INFORMAL"
-          }
+          "title_en": "CASUAL",
+          "title_es": "INFORMAL"
         },
         "sentence": {
           "title": "SENTENCE",
@@ -2645,16 +2233,12 @@
           "hint_es_line2": "",
           "sentence": "What do you want to do?",
           "expected": "What do you want to do?",
-          "title_i18n": {
-            "en": "SENTENCE",
-            "es": "FRASE"
-          }
+          "title_en": "SENTENCE",
+          "title_es": "FRASE"
         }
       },
-      "title_i18n": {
-        "en": "Natural Flow",
-        "es": "Fluidez natural"
-      }
+      "title_en": "Natural Flow",
+      "title_es": "Fluidez natural"
     },
     {
       "id": "session-strengths",
@@ -2669,10 +2253,8 @@
           "hint_es_line2": "",
           "phonetic": "Team player",
           "expected": "Team player",
-          "title_i18n": {
-            "en": "KEYWORD",
-            "es": "PALABRA CLAVE"
-          }
+          "title_en": "KEYWORD",
+          "title_es": "PALABRA CLAVE"
         },
         "spelling": {
           "title": "VOCAB",
@@ -2685,10 +2267,8 @@
             "TEAM PLAYER",
             "SOLO"
           ],
-          "title_i18n": {
-            "en": "VOCAB",
-            "es": "VOCABULARIO"
-          }
+          "title_en": "VOCAB",
+          "title_es": "VOCABULARIO"
         },
         "sentence": {
           "title": "INTERVIEW",
@@ -2698,16 +2278,12 @@
           "hint_es_line2": "",
           "sentence": "I am a team player.",
           "expected": "I am a team player.",
-          "title_i18n": {
-            "en": "INTERVIEW",
-            "es": "ENTREVISTA"
-          }
+          "title_en": "INTERVIEW",
+          "title_es": "ENTREVISTA"
         }
       },
-      "title_i18n": {
-        "en": "Strengths",
-        "es": "Fortalezas"
-      }
+      "title_en": "Strengths",
+      "title_es": "Fortalezas"
     },
     {
       "id": "session-experience",
@@ -2722,10 +2298,8 @@
           "hint_es_line2": "",
           "phonetic": "Five years",
           "expected": "Five years",
-          "title_i18n": {
-            "en": "FACTS",
-            "es": "HECHOS"
-          }
+          "title_en": "FACTS",
+          "title_es": "HECHOS"
         },
         "spelling": {
           "title": "DETAILS",
@@ -2738,10 +2312,8 @@
             "FIVE",
             "TEN"
           ],
-          "title_i18n": {
-            "en": "DETAILS",
-            "es": "DETALLES"
-          }
+          "title_en": "DETAILS",
+          "title_es": "DETALLES"
         },
         "sentence": {
           "title": "INTERVIEW",
@@ -2751,16 +2323,12 @@
           "hint_es_line2": "",
           "sentence": "I have five years of experience.",
           "expected": "I have five years of experience.",
-          "title_i18n": {
-            "en": "INTERVIEW",
-            "es": "ENTREVISTA"
-          }
+          "title_en": "INTERVIEW",
+          "title_es": "ENTREVISTA"
         }
       },
-      "title_i18n": {
-        "en": "Experience",
-        "es": "Experiencia"
-      }
+      "title_en": "Experience",
+      "title_es": "Experiencia"
     },
     {
       "id": "session-why-us",
@@ -2775,10 +2343,8 @@
           "hint_es_line2": "",
           "phonetic": "Culture",
           "expected": "Culture",
-          "title_i18n": {
-            "en": "REASON",
-            "es": "MOTIVO"
-          }
+          "title_en": "REASON",
+          "title_es": "MOTIVO"
         },
         "spelling": {
           "title": "KEYWORD",
@@ -2791,10 +2357,8 @@
             "CULTURE",
             "LOCATION"
           ],
-          "title_i18n": {
-            "en": "KEYWORD",
-            "es": "PALABRA CLAVE"
-          }
+          "title_en": "KEYWORD",
+          "title_es": "PALABRA CLAVE"
         },
         "sentence": {
           "title": "INTERVIEW",
@@ -2804,16 +2368,12 @@
           "hint_es_line2": "",
           "sentence": "I admire the company culture.",
           "expected": "I admire the company culture.",
-          "title_i18n": {
-            "en": "INTERVIEW",
-            "es": "ENTREVISTA"
-          }
+          "title_en": "INTERVIEW",
+          "title_es": "ENTREVISTA"
         }
       },
-      "title_i18n": {
-        "en": "Why Us?",
-        "es": "¿Por qué nosotros?"
-      }
+      "title_en": "Why Us?",
+      "title_es": "¿Por qué nosotros?"
     },
     {
       "id": "session-meeting-open",
@@ -2828,10 +2388,8 @@
           "hint_es_line2": "",
           "phonetic": "Get started",
           "expected": "Get started",
-          "title_i18n": {
-            "en": "LEAD",
-            "es": "INICIO"
-          }
+          "title_en": "LEAD",
+          "title_es": "INICIO"
         },
         "spelling": {
           "title": "PHRASE",
@@ -2844,10 +2402,8 @@
             "START",
             "WAIT"
           ],
-          "title_i18n": {
-            "en": "PHRASE",
-            "es": "FRASE"
-          }
+          "title_en": "PHRASE",
+          "title_es": "FRASE"
         },
         "sentence": {
           "title": "MEETING",
@@ -2857,16 +2413,12 @@
           "hint_es_line2": "",
           "sentence": "Shall we get started?",
           "expected": "Shall we get started?",
-          "title_i18n": {
-            "en": "MEETING",
-            "es": "REUNIÓN"
-          }
+          "title_en": "MEETING",
+          "title_es": "REUNIÓN"
         }
       },
-      "title_i18n": {
-        "en": "Opening a Meeting",
-        "es": "Apertura de reunión"
-      }
+      "title_en": "Opening a Meeting",
+      "title_es": "Apertura de reunión"
     },
     {
       "id": "session-agreeing",
@@ -2881,10 +2433,8 @@
           "hint_es_line2": "",
           "phonetic": "Totally",
           "expected": "Totally",
-          "title_i18n": {
-            "en": "AGREE",
-            "es": "ACUERDO"
-          }
+          "title_en": "AGREE",
+          "title_es": "ACUERDO"
         },
         "spelling": {
           "title": "DEGREE",
@@ -2897,10 +2447,8 @@
             "TOTALLY",
             "NOT"
           ],
-          "title_i18n": {
-            "en": "DEGREE",
-            "es": "GRADO"
-          }
+          "title_en": "DEGREE",
+          "title_es": "GRADO"
         },
         "sentence": {
           "title": "MEETING",
@@ -2910,16 +2458,12 @@
           "hint_es_line2": "",
           "sentence": "I totally agree with you.",
           "expected": "I totally agree with you.",
-          "title_i18n": {
-            "en": "MEETING",
-            "es": "REUNIÓN"
-          }
+          "title_en": "MEETING",
+          "title_es": "REUNIÓN"
         }
       },
-      "title_i18n": {
-        "en": "Agreeing",
-        "es": "Estar de acuerdo"
-      }
+      "title_en": "Agreeing",
+      "title_es": "Estar de acuerdo"
     },
     {
       "id": "session-polite-disagreement",
@@ -2934,10 +2478,8 @@
           "hint_es_line2": "",
           "phonetic": "I see your point",
           "expected": "I see your point",
-          "title_i18n": {
-            "en": "SOFTEN",
-            "es": "SUAVIZA"
-          }
+          "title_en": "SOFTEN",
+          "title_es": "SUAVIZA"
         },
         "spelling": {
           "title": "PHRASE",
@@ -2950,10 +2492,8 @@
             "I SEE",
             "NO WAY"
           ],
-          "title_i18n": {
-            "en": "PHRASE",
-            "es": "FRASE"
-          }
+          "title_en": "PHRASE",
+          "title_es": "FRASE"
         },
         "sentence": {
           "title": "MEETING",
@@ -2963,16 +2503,12 @@
           "hint_es_line2": "",
           "sentence": "I see your point, but I disagree.",
           "expected": "I see your point, but I disagree.",
-          "title_i18n": {
-            "en": "MEETING",
-            "es": "REUNIÓN"
-          }
+          "title_en": "MEETING",
+          "title_es": "REUNIÓN"
         }
       },
-      "title_i18n": {
-        "en": "Civil Disagreement",
-        "es": "Desacuerdo cordial"
-      }
+      "title_en": "Civil Disagreement",
+      "title_es": "Desacuerdo cordial"
     },
     {
       "id": "session-call-intro",
@@ -2987,10 +2523,8 @@
           "hint_es_line2": "",
           "phonetic": "This is...",
           "expected": "This is",
-          "title_i18n": {
-            "en": "INTRO",
-            "es": "INTRODUCCIÓN"
-          }
+          "title_en": "INTRO",
+          "title_es": "INTRODUCCIÓN"
         },
         "spelling": {
           "title": "NAME",
@@ -3003,10 +2537,8 @@
             "I AM",
             "IT IS"
           ],
-          "title_i18n": {
-            "en": "NAME",
-            "es": "NOMBRE"
-          }
+          "title_en": "NAME",
+          "title_es": "NOMBRE"
         },
         "sentence": {
           "title": "CALL",
@@ -3016,16 +2548,12 @@
           "hint_es_line2": "",
           "sentence": "Hello, this is John speaking.",
           "expected": "Hello, this is John speaking.",
-          "title_i18n": {
-            "en": "CALL",
-            "es": "LLAMADA"
-          }
+          "title_en": "CALL",
+          "title_es": "LLAMADA"
         }
       },
-      "title_i18n": {
-        "en": "Call Introduction",
-        "es": "Inicio de llamada"
-      }
+      "title_en": "Call Introduction",
+      "title_es": "Inicio de llamada"
     },
     {
       "id": "session-clarifying",
@@ -3040,10 +2568,8 @@
           "hint_es_line2": "",
           "phonetic": "Speak up",
           "expected": "Speak up",
-          "title_i18n": {
-            "en": "ISSUE",
-            "es": "TEMA"
-          }
+          "title_en": "ISSUE",
+          "title_es": "TEMA"
         },
         "spelling": {
           "title": "POLITE",
@@ -3056,10 +2582,8 @@
             "HEY YOU",
             "SAY WHAT"
           ],
-          "title_i18n": {
-            "en": "POLITE",
-            "es": "CORTÉS"
-          }
+          "title_en": "POLITE",
+          "title_es": "CORTÉS"
         },
         "sentence": {
           "title": "CALL",
@@ -3069,16 +2593,12 @@
           "hint_es_line2": "",
           "sentence": "Could you speak up, please?",
           "expected": "Could you speak up, please?",
-          "title_i18n": {
-            "en": "CALL",
-            "es": "LLAMADA"
-          }
+          "title_en": "CALL",
+          "title_es": "LLAMADA"
         }
       },
-      "title_i18n": {
-        "en": "Clarifying",
-        "es": "Aclarar"
-      }
+      "title_en": "Clarifying",
+      "title_es": "Aclarar"
     },
     {
       "id": "session-call-closing",
@@ -3093,10 +2613,8 @@
           "hint_es_line2": "",
           "phonetic": "Your time",
           "expected": "Your time",
-          "title_i18n": {
-            "en": "THANKS",
-            "es": "AGRADECIMIENTO"
-          }
+          "title_en": "THANKS",
+          "title_es": "AGRADECIMIENTO"
         },
         "spelling": {
           "title": "POLITE",
@@ -3109,10 +2627,8 @@
             "THANKS",
             "LATER"
           ],
-          "title_i18n": {
-            "en": "POLITE",
-            "es": "CORTÉS"
-          }
+          "title_en": "POLITE",
+          "title_es": "CORTÉS"
         },
         "sentence": {
           "title": "CALL",
@@ -3122,16 +2638,12 @@
           "hint_es_line2": "",
           "sentence": "Thank you for your time.",
           "expected": "Thank you for your time.",
-          "title_i18n": {
-            "en": "CALL",
-            "es": "LLAMADA"
-          }
+          "title_en": "CALL",
+          "title_es": "LLAMADA"
         }
       },
-      "title_i18n": {
-        "en": "Call Closing",
-        "es": "Cierre de llamada"
-      }
+      "title_en": "Call Closing",
+      "title_es": "Cierre de llamada"
     }
   ]
 }

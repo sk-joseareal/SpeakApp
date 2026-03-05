@@ -2120,11 +2120,13 @@ class PageSpeak extends HTMLElement {
           window.speechSynthesis.cancel();
         }
       }
-      stopHeroNarrationPlayback().catch(() => {});
       if (activePlayButton) {
         activePlayButton.classList.remove('is-playing');
         activePlayButton = null;
       }
+      // Cancel full hero narration task (token/timer + playback) to avoid overlap/race
+      // when changing steps while the blue-card audio is still running.
+      stopHeroNarration().catch(() => {});
       if (shouldResetSyllables) {
         playbackAudio = null;
         resetSyllables();

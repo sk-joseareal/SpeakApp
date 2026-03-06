@@ -252,6 +252,15 @@ class PageFreeRide extends HTMLElement {
       this._tabsDidChangeHandler(event);
     };
     window.addEventListener('app:tab-change', this._appTabChangeHandler);
+    this._tabUserClickHandler = (event) => {
+      const tab = String(event && event.detail ? event.detail.tab || '' : '')
+        .trim()
+        .toLowerCase();
+      if (tab !== 'freeride') return;
+      if (this.initialHeroNarrationStarted) return;
+      this.playHeroNarration(true);
+    };
+    window.addEventListener('app:tab-user-click', this._tabUserClickHandler);
 
     this._layoutViewportHandler = () => {
       if (!this.isConnected) return;
@@ -344,6 +353,10 @@ class PageFreeRide extends HTMLElement {
     if (this._appTabChangeHandler) {
       window.removeEventListener('app:tab-change', this._appTabChangeHandler);
       this._appTabChangeHandler = null;
+    }
+    if (this._tabUserClickHandler) {
+      window.removeEventListener('app:tab-user-click', this._tabUserClickHandler);
+      this._tabUserClickHandler = null;
     }
 
     if (this._layoutViewportHandler) {
@@ -4313,19 +4326,19 @@ class PageFreeRide extends HTMLElement {
     if (waitMs === 0) {
       if (!this.isConnected) return;
       if (!forceNarration && !this.isTabActive('freeride')) return;
-      this.playHeroNarration();
+      this.playHeroNarration(forceNarration);
       return;
     }
     this.narrationTimer = setTimeout(() => {
       this.narrationTimer = null;
       if (!this.isConnected) return;
       if (!forceNarration && !this.isTabActive('freeride')) return;
-      this.playHeroNarration();
+      this.playHeroNarration(forceNarration);
     }, waitMs);
   }
 
-  playHeroNarration() {
-    if (!this.isTabActive('freeride')) {
+  playHeroNarration(forceNarration = false) {
+    if (!forceNarration && !this.isTabActive('freeride')) {
       return Promise.resolve(false);
     }
     const lines = this.extractNarrationLines(this.currentCopy && this.currentCopy.subtitle);

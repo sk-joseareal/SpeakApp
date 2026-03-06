@@ -97,6 +97,15 @@ class PageReference extends HTMLElement {
       this._tabChangeHandler(event);
     };
     window.addEventListener('app:tab-change', this._appTabChangeHandler);
+    this._tabUserClickHandler = (event) => {
+      const tab = String(event && event.detail ? event.detail.tab || '' : '')
+        .trim()
+        .toLowerCase();
+      if (tab !== 'reference') return;
+      if (this.initialHeroNarrationStarted) return;
+      this.playHeroNarration(true).catch(() => {});
+    };
+    window.addEventListener('app:tab-user-click', this._tabUserClickHandler);
     this.render();
   }
 
@@ -122,6 +131,9 @@ class PageReference extends HTMLElement {
     }
     if (this._appTabChangeHandler) {
       window.removeEventListener('app:tab-change', this._appTabChangeHandler);
+    }
+    if (this._tabUserClickHandler) {
+      window.removeEventListener('app:tab-user-click', this._tabUserClickHandler);
     }
     this.stopHeroNarration();
   }

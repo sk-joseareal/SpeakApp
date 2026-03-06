@@ -229,6 +229,12 @@ class TabsPage extends HTMLElement {
           console.error('[tabs] error abriendo login', err);
         });
       }
+
+      window.dispatchEvent(
+        new CustomEvent('app:tab-user-click', {
+          detail: { tab }
+        })
+      );
     };
     tabBarEl?.addEventListener('click', this._tabBarClickHandler, true);
 

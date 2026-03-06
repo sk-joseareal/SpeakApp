@@ -1173,18 +1173,20 @@ class PageHome extends HTMLElement {
         ? event.target.closest('button, [data-action], a, input, textarea, select')
         : null;
       if (target) return;
-      this.playPlanNarration();
+      this.playPlanNarration({ manual: true });
     });
     if (options.skipNarration) {
       this.clearNarrationTimer();
       return;
     }
     const forceNarration = Boolean(options.forceNarration);
-    const narrationDelayMs =
-      typeof options.narrationDelayMs === 'number'
-        ? options.narrationDelayMs
-        : this.getAutoNarrationDelay(90);
-    this.schedulePlanNarration(narrationDelayMs, forceNarration);
+    if (forceNarration) {
+      const narrationDelayMs =
+        typeof options.narrationDelayMs === 'number'
+          ? options.narrationDelayMs
+          : this.getAutoNarrationDelay(90);
+      this.schedulePlanNarration(narrationDelayMs, true);
+    }
   }
 
   normalizeLocale(locale) {
@@ -1597,19 +1599,21 @@ class PageHome extends HTMLElement {
     if (waitMs === 0) {
       if (!this.isConnected) return;
       if (!forceNarration && !this.isTabActive('home')) return;
-      this.playPlanNarration();
+      this.playPlanNarration({ manual: false, force: forceNarration });
       return;
     }
     this.narrationTimer = setTimeout(() => {
       this.narrationTimer = null;
       if (!this.isConnected) return;
       if (!forceNarration && !this.isTabActive('home')) return;
-      this.playPlanNarration();
+      this.playPlanNarration({ manual: false, force: forceNarration });
     }, waitMs);
   }
 
-  playPlanNarration() {
-    if (!this.isTabActive('home')) {
+  playPlanNarration(options = {}) {
+    const manual = Boolean(options && options.manual);
+    const force = Boolean(options && options.force);
+    if (!force && !this.isTabActive('home')) {
       return Promise.resolve(false);
     }
     if (this.planNarrationPromise) {
@@ -1621,7 +1625,10 @@ class PageHome extends HTMLElement {
       return Promise.resolve(false);
     }
     const locale = this.getUiLocale(this.currentUiLocale);
-    const runPromise = this.speakNarration(lines, locale, { bubbleEl: this.getPlanBubbleEl() })
+    const runPromise = this.speakNarration(lines, locale, {
+      bubbleEl: this.getPlanBubbleEl(),
+      allowWebFallback: manual
+    })
       .then((started) => {
         if (started && !this.initialPlanNarrationStarted) {
           this.initialPlanNarrationStarted = true;
@@ -1832,6 +1839,7 @@ class PageHome extends HTMLElement {
     const lang = TTS_LANG_BY_LOCALE[normalizedLocale] || 'en-US';
     const token = ++this.narrationToken;
     const bubbleEl = options && options.bubbleEl ? options.bubbleEl : this.getPlanBubbleEl();
+    const allowWebFallback = options && options.allowWebFallback !== false;
     const hasMultipleLines = lines.length > 1;
     const originalBubbleHtml = bubbleEl ? bubbleEl.innerHTML : '';
     const originalBubbleMinHeight = bubbleEl ? bubbleEl.style.minHeight : '';
@@ -2022,7 +2030,7 @@ class PageHome extends HTMLElement {
         if (!started && token === this.narrationToken) {
           started = await speakLineWithPlugin(lineText);
         }
-        if (!started && token === this.narrationToken) {
+        if (!started && allowWebFallback && token === this.narrationToken) {
           started = await speakLineWebWithRetry(lineText);
         }
         startedAny = startedAny || started;

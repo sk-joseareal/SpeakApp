@@ -246,6 +246,8 @@ class PageChat extends HTMLElement {
     };
     const COACH_MASCOT_FRAME_INTERVAL_MS = 150;
     const COACH_MASCOT_AUDIO_START_DELAY_MS = 140;
+    const REALTIME_EMIT_TIMEOUT_MS = 8000;
+    const CHATBOT_REPLY_TIMEOUT_MS = 12000;
     const RECORDING_TIMESLICE = 500;
     const VOSK_SAMPLE_RATE_DEFAULT = 16000;
 	    const TALK_STORAGE_PREFIX = 'appv5:talk-timelines:';
@@ -898,6 +900,61 @@ class PageChat extends HTMLElement {
       if (hintEl) hintEl.textContent = text;
     };
 
+    const isChatbotRealtimeAvailable = () => {
+      if (chatMode !== 'chatbot') return true;
+      return realtimeConnected;
+    };
+
+    const presentSystemToast = (message) => {
+      const text = String(message || '').trim();
+      if (!text) return;
+      try {
+        const toast = document.createElement('ion-toast');
+        toast.message = text;
+        toast.duration = 2600;
+        toast.position = 'top';
+        document.body.appendChild(toast);
+        toast.present().catch(() => {});
+        toast.addEventListener(
+          'didDismiss',
+          () => {
+            toast.remove();
+          },
+          { once: true }
+        );
+      } catch (_err) {
+        // no-op
+      }
+    };
+
+    const handleChatbotServerUnavailable = () => {
+      cancelSimulatedReply('chatbot');
+      awaitingBot.chatbot = false;
+      setTypingState('chatbot', false);
+      setHint(defaultHint || uiCopy.hintDefault);
+      presentSystemToast(
+        uiCopy.serverUnavailable || 'Chat server unavailable. Please try again later.'
+      );
+    };
+
+    const handleChatbotRealtimeDisconnected = ({ notify = false } = {}) => {
+      cancelSimulatedReply('chatbot');
+      awaitingBot.chatbot = false;
+      setTypingState('chatbot', false);
+      applyControlsEnabled();
+      updateDraftButtons();
+      setHint(
+        uiCopy.realtimeDisconnected || uiCopy.serverUnavailable || 'Connection lost. Reconnecting...'
+      );
+      if (notify) {
+        presentSystemToast(
+          uiCopy.realtimeDisconnectedToast ||
+            uiCopy.serverUnavailable ||
+            'Chat server unavailable. Please try again later.'
+        );
+      }
+    };
+
     const getTodayKey = () => new Date().toISOString().slice(0, 10);
 
     const isChatbotDailyLimitActive = () => {
@@ -1475,6 +1532,10 @@ class PageChat extends HTMLElement {
         (Boolean(draftSpeakText) && canSpeechPlayback()) ||
         (Boolean(typedText) && canSpeechPlayback());
       previewBtn.disabled = !hasTranscript || !hasPlayback;
+      if (!isChatbotRealtimeAvailable()) {
+        sendBtn.disabled = true;
+        return;
+      }
       sendBtn.disabled = !hasTranscript;
     };
 
@@ -2271,9 +2332,12 @@ class PageChat extends HTMLElement {
       const role = message.role === 'bot' ? 'bot' : 'user';
       const text = normalizeChatText(message.text);
       if (!text) return null;
+      const idRaw =
+        message.id !== undefined && message.id !== null ? String(message.id).trim() : '';
+      const failed = role === 'user' ? Boolean(message.failed) : false;
       const speakText =
         normalizeChatText(message.speakText) || text;
-      return { role, text, speakText };
+      return { id: idRaw, role, text, speakText, failed };
     };
 
     const normalizeStoredTimeline = (value) =>
@@ -2306,6 +2370,25 @@ class PageChat extends HTMLElement {
 
     const getThread = (mode) => (mode === 'chatbot' ? chatThreads.chatbot : chatThreads.catbot);
 
+    const createChatMessageId = () =>
+      `msg_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+
+    const updateThreadMessage = (mode, messageId, updater, options = {}) => {
+      if (!messageId || typeof updater !== 'function') return null;
+      const thread = getThread(mode);
+      const index = thread.findIndex((item) => item && item.id === messageId);
+      if (index < 0) return null;
+      const current = thread[index];
+      const next = updater({ ...current });
+      if (!next || typeof next !== 'object') return current;
+      thread[index] = next;
+      persistTalkTimelines();
+      if (options.rerender !== false && mode === chatMode) {
+        renderThread(mode);
+      }
+      return next;
+    };
+
     const loadTalkTimelinesForUser = (userId) => {
       const nextKey = resolveTalkStorageKey(userId);
       talkStorageKey = nextKey;
@@ -2332,10 +2415,11 @@ class PageChat extends HTMLElement {
         ? uiCopy.introChatbot
         : uiCopy.introCatbot;
 
-    const renderMessage = ({ role, text, audioUrl, speakText }, mode) => {
+    const renderMessage = ({ id, role, text, audioUrl, speakText, failed }, mode) => {
       if (!threadEl) return;
       const msgEl = document.createElement('div');
       msgEl.className = `chat-msg chat-msg-${role}`;
+      if (id) msgEl.dataset.messageId = id;
 
       const bubbleEl = document.createElement('div');
       bubbleEl.className = 'chat-bubble';
@@ -2346,23 +2430,46 @@ class PageChat extends HTMLElement {
       bubbleEl.appendChild(textEl);
 
       const showAudioAction = mode !== 'chatbot' || role === 'bot';
-      if (showAudioAction) {
+      const showRetryAction = mode === 'chatbot' && role === 'user' && Boolean(failed);
+      if (showAudioAction || showRetryAction) {
         const actionEl = document.createElement('div');
         actionEl.className = 'chat-bubble-actions';
-        const playBtn = document.createElement('button');
-        playBtn.type = 'button';
-        playBtn.className = 'chat-audio-btn';
-        playBtn.innerHTML = `<ion-icon name="play"></ion-icon><span>${role === 'user' ? uiCopy.listen : uiCopy.repeat}</span>`;
-        if (!audioUrl && !speakText) {
-          playBtn.disabled = true;
+        if (showAudioAction) {
+          const playBtn = document.createElement('button');
+          playBtn.type = 'button';
+          playBtn.className = 'chat-audio-btn';
+          playBtn.innerHTML = `<ion-icon name="play"></ion-icon><span>${role === 'user' ? uiCopy.listen : uiCopy.repeat}</span>`;
+          if (!audioUrl && !speakText) {
+            playBtn.disabled = true;
+          }
+          playBtn.addEventListener('pointerdown', (event) => {
+            if (!isChatInputActive()) return;
+            event.preventDefault();
+            keepChatInputFocused({ scroll: true });
+          });
+          playBtn.addEventListener('click', () => playMessageAudio({ audioUrl, speakText, role, mode }));
+          actionEl.appendChild(playBtn);
         }
-        playBtn.addEventListener('pointerdown', (event) => {
-          if (!isChatInputActive()) return;
-          event.preventDefault();
-          keepChatInputFocused({ scroll: true });
-        });
-	        playBtn.addEventListener('click', () => playMessageAudio({ audioUrl, speakText, role, mode }));
-        actionEl.appendChild(playBtn);
+        if (showRetryAction) {
+          const retryBtn = document.createElement('button');
+          retryBtn.type = 'button';
+          retryBtn.className = 'chat-audio-btn chat-retry-btn';
+          retryBtn.innerHTML = `<ion-icon name="refresh"></ion-icon><span>${uiCopy.retrySend || 'Retry'}</span>`;
+          retryBtn.addEventListener('pointerdown', (event) => {
+            if (!isChatInputActive()) return;
+            event.preventDefault();
+            keepChatInputFocused({ scroll: true });
+          });
+          retryBtn.addEventListener('click', () => {
+            if (!id) return;
+            sendUserText(text, {
+              audioUrl: '',
+              speakText: speakText || text,
+              retryMessageId: id
+            });
+          });
+          actionEl.appendChild(retryBtn);
+        }
         bubbleEl.appendChild(actionEl);
       }
 
@@ -2424,23 +2531,27 @@ class PageChat extends HTMLElement {
       updateChatAutoScroll();
     };
 
-    const appendMessage = ({ role, text, audioUrl, speakText }, options = {}) => {
+    const appendMessage = ({ id, role, text, audioUrl, speakText, failed }, options = {}) => {
       const targetMode = options.mode || chatMode;
       const shouldAutoplay = options.autoplay === true;
       const normalizedRole = role === 'bot' ? 'bot' : 'user';
       const normalizedText = normalizeChatText(text);
       if (!normalizedText) return;
+      const normalizedId = id && String(id).trim() ? String(id).trim() : createChatMessageId();
       const normalizedSpeakText = normalizeChatText(speakText) || normalizedText;
       const normalizedAudioUrl = typeof audioUrl === 'string' ? audioUrl : '';
+      const normalizedFailed = normalizedRole === 'user' ? Boolean(failed) : false;
       if (normalizedRole === 'bot') {
         typingState[targetMode] = false;
       }
       const thread = getThread(targetMode);
       const message = {
+        id: normalizedId,
         role: normalizedRole,
         text: normalizedText,
         audioUrl: normalizedAudioUrl,
-        speakText: normalizedSpeakText
+        speakText: normalizedSpeakText,
+        failed: normalizedFailed
       };
       thread.push(message);
       persistTalkTimelines();
@@ -2677,10 +2788,18 @@ class PageChat extends HTMLElement {
       const config = getRealtimeConfig();
       if (!config.key) {
         console.warn('[chat] realtime key missing');
+        realtimeConnected = false;
+        if (chatMode === 'chatbot') {
+          handleChatbotRealtimeDisconnected();
+        }
         return;
       }
       if (typeof window.Pusher !== 'function') {
         console.warn('[chat] Pusher no disponible');
+        realtimeConnected = false;
+        if (chatMode === 'chatbot') {
+          handleChatbotRealtimeDisconnected();
+        }
         return;
       }
       const userId =
@@ -2727,12 +2846,24 @@ class PageChat extends HTMLElement {
 
       pusherClient.connection.bind('connected', () => {
         realtimeConnected = true;
+        applyControlsEnabled();
+        updateDraftButtons();
+        if (chatMode === 'chatbot' && !isChatbotDailyLimitActive() && talkState === TALK_STATE_IDLE) {
+          setHint(defaultHint || uiCopy.hintDefault);
+        }
       });
       pusherClient.connection.bind('disconnected', () => {
         realtimeConnected = false;
+        if (chatMode === 'chatbot') {
+          handleChatbotRealtimeDisconnected();
+        }
       });
       pusherClient.connection.bind('error', (err) => {
         console.warn('[chat] pusher error', err);
+        realtimeConnected = false;
+        if (chatMode === 'chatbot') {
+          handleChatbotRealtimeDisconnected();
+        }
       });
 
       const handleIncoming = (data, fallbackRole) => {
@@ -2758,6 +2889,10 @@ class PageChat extends HTMLElement {
       pusherChannel = pusherClient.subscribe(channelName);
       pusherChannel.bind('pusher:subscription_error', (status) => {
         console.warn('[chat] subscription error', status);
+        realtimeConnected = false;
+        if (chatMode === 'chatbot') {
+          handleChatbotRealtimeDisconnected();
+        }
       });
       pusherChannel.bind('chat_message', (data) => handleIncoming(data, 'bot'));
       pusherChannel.bind('bot_message', (data) => handleIncoming(data, 'bot'));
@@ -2765,8 +2900,8 @@ class PageChat extends HTMLElement {
 
     const emitRealtimeMessage = async ({ text }) => {
       const config = getRealtimeConfig();
-      if (!config.emitEndpoint || !pusherChannelName) return;
-      if (!lastUserId) return;
+      if (!config.emitEndpoint || !pusherChannelName) return false;
+      if (!lastUserId) return false;
       const userName = getUserDisplayName(window.user || {});
       const payload = {
         channel: pusherChannelName,
@@ -2781,14 +2916,33 @@ class PageChat extends HTMLElement {
           userName
         }
       };
+      const hasAbortController = typeof AbortController === 'function';
+      const controller = hasAbortController ? new AbortController() : null;
+      const timeoutId = hasAbortController
+        ? setTimeout(() => {
+            try {
+              controller.abort();
+            } catch (_err) {
+              // no-op
+            }
+          }, REALTIME_EMIT_TIMEOUT_MS)
+        : null;
       try {
-        await fetch(config.emitEndpoint, {
+        const response = await fetch(config.emitEndpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
+          body: JSON.stringify(payload),
+          signal: controller ? controller.signal : undefined
         });
+        if (!response || !response.ok) {
+          throw new Error(`emit_failed_${response ? response.status : 'unknown'}`);
+        }
+        return true;
       } catch (err) {
         console.warn('[chat] emit error', err);
+        return false;
+      } finally {
+        if (timeoutId) clearTimeout(timeoutId);
       }
     };
 
@@ -2947,25 +3101,83 @@ class PageChat extends HTMLElement {
     const sendUserText = (userText, payload = {}) => {
       if (!userText) return;
       const messageMode = chatMode;
+      const retryMessageId =
+        payload && payload.retryMessageId ? String(payload.retryMessageId).trim() : '';
+      const outboundMessageId = retryMessageId || createChatMessageId();
       if (messageMode === 'chatbot' && isChatbotDailyLimitActive()) {
         setHint(getChatbotDailyLimitHint());
         return;
       }
-      if (messageMode === 'catbot') {
+      if (messageMode === 'chatbot' && !isChatbotRealtimeAvailable()) {
+        handleChatbotRealtimeDisconnected({ notify: true });
+        return;
+      }
+      if (messageMode === 'catbot' || messageMode === 'chatbot') {
         awaitingBot[messageMode] = true;
       }
       removeTypingIndicator();
-      appendMessage({
-        role: 'user',
-        text: userText,
-        audioUrl: payload.audioUrl || '',
-        speakText: payload.audioUrl ? '' : payload.speakText || userText
-      }, { mode: messageMode });
+      if (retryMessageId) {
+        updateThreadMessage(
+          messageMode,
+          retryMessageId,
+          (message) => ({
+            ...message,
+            failed: false
+          }),
+          { rerender: true }
+        );
+      } else {
+        appendMessage(
+          {
+            id: outboundMessageId,
+            role: 'user',
+            text: userText,
+            audioUrl: payload.audioUrl || '',
+            speakText: payload.audioUrl ? '' : payload.speakText || userText,
+            failed: false
+          },
+          { mode: messageMode }
+        );
+      }
       setTypingState(messageMode, true);
       if (payload.audioUrl) retainedAudioUrls.push(payload.audioUrl);
       clearDraft(false);
       setHint(uiCopy.hintRecordAgain);
-      emitRealtimeMessage({ text: userText });
+      if (messageMode === 'chatbot') {
+        if (replyTimers.chatbot) clearTimeout(replyTimers.chatbot);
+        replyTimers.chatbot = setTimeout(() => {
+          if (!awaitingBot.chatbot) {
+            replyTimers.chatbot = null;
+            return;
+          }
+          replyTimers.chatbot = null;
+          updateThreadMessage(
+            messageMode,
+            outboundMessageId,
+            (message) => ({
+              ...message,
+              failed: true
+            }),
+            { rerender: true }
+          );
+          handleChatbotServerUnavailable();
+        }, CHATBOT_REPLY_TIMEOUT_MS);
+      }
+      emitRealtimeMessage({ text: userText }).then((ok) => {
+        if (ok) return;
+        if (messageMode !== 'chatbot') return;
+        if (!awaitingBot.chatbot) return;
+        updateThreadMessage(
+          messageMode,
+          outboundMessageId,
+          (message) => ({
+            ...message,
+            failed: true
+          }),
+          { rerender: true }
+        );
+        handleChatbotServerUnavailable();
+      });
       if (messageMode === 'catbot') {
         if (replyTimers[messageMode]) clearTimeout(replyTimers[messageMode]);
         replyTimers[messageMode] = setTimeout(() => {

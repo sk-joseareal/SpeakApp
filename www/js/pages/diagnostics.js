@@ -166,6 +166,7 @@ class PageDiagnostics extends HTMLElement {
               </div>
               <ion-toggle id="diag-speak-session-percentages-toggle" ${getStoredSpeakSessionPercentagesVisible() ? 'checked' : ''}></ion-toggle>
             </div>
+            <!--
             <div class="diag-debug-toggle" style="margin-top: 10px;">
               <div class="diag-debug-text">
                 <div class="diag-debug-title">Tab Referencia</div>
@@ -173,6 +174,7 @@ class PageDiagnostics extends HTMLElement {
               </div>
               <ion-toggle id="diag-reference-tab-toggle" ${getStoredReferenceTabEnabled() ? 'checked' : ''}></ion-toggle>
             </div>
+            -->
             <div id="diag-user" style="display:none; margin-bottom:12px;">
               <div class="pill">Usuario</div>
               <p>ID: <strong id="diag-user-id"></strong></p>

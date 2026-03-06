@@ -367,7 +367,7 @@
 
     <section id="appCopySection" class="card hidden">
       <div class="row between center">
-        <h2>Copys app (JSON)</h2>
+        <h2>Copys app</h2>
       </div>
       <p class="hint">No afecta releases de training. Edítalo aquí y luego cópialo manualmente a la app.</p>
       <div class="row row-wrap gap-sm top-md">
@@ -375,7 +375,17 @@
         <button id="validateAppCopyBtn" class="btn">Validar copys</button>
         <button id="saveAppCopyBtn" class="btn btn-primary">Guardar copys</button>
       </div>
-      <textarea id="appCopyEditor" spellcheck="false" placeholder='{"es": {}, "en": {}}'></textarea>
+      <div class="row row-wrap gap-sm top-md">
+        <button id="appCopyModeGuidedBtn" class="btn btn-primary">Editar</button>
+        <button id="appCopyModeJsonBtn" class="btn">JSON</button>
+      </div>
+      <section id="appCopyGuidedSection" class="top-md">
+        <p id="appCopyGuidedMeta" class="hint"></p>
+        <div id="appCopyGuidedEditor" class="app-copy-guided-editor"></div>
+      </section>
+      <section id="appCopyJsonSection" class="top-md hidden">
+        <textarea id="appCopyEditor" spellcheck="false" placeholder='{"es": {}, "en": {}}'></textarea>
+      </section>
     </section>
 
     <section id="releasesSection" class="card">

@@ -3,6 +3,8 @@
   const LOGIN_EMAIL_KEY = 'speakapp:content-dashboard:login-email';
   const MODE_GUIDED = 'guided';
   const MODE_JSON = 'json';
+  const APP_COPY_MODE_GUIDED = 'guided';
+  const APP_COPY_MODE_JSON = 'json';
 
   const el = {
     loginEmailInput: document.getElementById('loginEmailInput'),
@@ -40,6 +42,12 @@
     releasesSection: document.getElementById('releasesSection'),
     appCopySection: document.getElementById('appCopySection'),
     appCopyEditor: document.getElementById('appCopyEditor'),
+    appCopyModeGuidedBtn: document.getElementById('appCopyModeGuidedBtn'),
+    appCopyModeJsonBtn: document.getElementById('appCopyModeJsonBtn'),
+    appCopyGuidedSection: document.getElementById('appCopyGuidedSection'),
+    appCopyJsonSection: document.getElementById('appCopyJsonSection'),
+    appCopyGuidedMeta: document.getElementById('appCopyGuidedMeta'),
+    appCopyGuidedEditor: document.getElementById('appCopyGuidedEditor'),
     loadAppCopyBtn: document.getElementById('loadAppCopyBtn'),
     validateAppCopyBtn: document.getElementById('validateAppCopyBtn'),
     saveAppCopyBtn: document.getElementById('saveAppCopyBtn'),
@@ -121,6 +129,9 @@
   let jsonDirty = false;
   let syncingJsonEditor = false;
   let syncingAppCopyEditor = false;
+  let appCopyMode = APP_COPY_MODE_GUIDED;
+  let appCopyPayloadState = { es: {}, en: {} };
+  let appCopyFieldDefs = [];
   let sessionJwt = '';
   let currentAuth = null;
   let currentEditor = null;
@@ -339,6 +350,126 @@
     return JSON.parse(JSON.stringify(payload));
   };
 
+  const isPlainObject = (value) => Boolean(value && typeof value === 'object' && !Array.isArray(value));
+  const isPrimitiveValue = (value) =>
+    value === null || typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean';
+
+  const primitiveToEditorText = (value) => (value === null || value === undefined ? '' : String(value));
+  const arrayToEditorText = (value) =>
+    (Array.isArray(value) ? value : []).map((item) => primitiveToEditorText(item)).join('\n');
+  const parseArrayEditorText = (value) =>
+    String(value || '')
+      .split(/\r?\n/)
+      .map((item) => item.trim())
+      .filter(Boolean);
+
+  const getValueAtPath = (source, parts) =>
+    (Array.isArray(parts) ? parts : []).reduce((acc, key) => {
+      if (!acc || typeof acc !== 'object') return undefined;
+      return acc[key];
+    }, source);
+
+  const setValueAtPath = (target, parts, value) => {
+    if (!target || typeof target !== 'object' || !Array.isArray(parts) || !parts.length) return;
+    let cursor = target;
+    for (let idx = 0; idx < parts.length - 1; idx += 1) {
+      const key = parts[idx];
+      if (!isPlainObject(cursor[key])) {
+        cursor[key] = {};
+      }
+      cursor = cursor[key];
+    }
+    cursor[parts[parts.length - 1]] = value;
+  };
+
+  const buildAppCopyFieldDefs = (payload) => {
+    const defsMap = new Map();
+    const order = [];
+    const unsupported = new Set();
+
+    const upsertDef = (parts, kind) => {
+      if (!Array.isArray(parts) || !parts.length) return;
+      const id = parts.join('\u001f');
+      if (unsupported.has(id)) return;
+      const existing = defsMap.get(id);
+      if (existing) {
+        if (existing.kind !== kind) {
+          defsMap.delete(id);
+          unsupported.add(id);
+        }
+        return;
+      }
+      defsMap.set(id, {
+        id,
+        pathLabel: parts.join('.'),
+        parts: parts.slice(),
+        kind,
+        esValue: '',
+        enValue: ''
+      });
+      order.push(id);
+    };
+
+    const visitLocaleTree = (node, parts) => {
+      if (isPlainObject(node)) {
+        Object.keys(node).forEach((key) => {
+          visitLocaleTree(node[key], parts.concat(key));
+        });
+        return;
+      }
+      if (Array.isArray(node)) {
+        if (node.every((item) => isPrimitiveValue(item))) {
+          upsertDef(parts, 'array');
+        } else if (parts.length) {
+          unsupported.add(parts.join('\u001f'));
+        }
+        return;
+      }
+      if (isPrimitiveValue(node)) {
+        upsertDef(parts, 'scalar');
+        return;
+      }
+      if (parts.length) {
+        unsupported.add(parts.join('\u001f'));
+      }
+    };
+
+    visitLocaleTree(payload.es || {}, []);
+    visitLocaleTree(payload.en || {}, []);
+
+    const defs = order
+      .map((id) => defsMap.get(id))
+      .filter(Boolean)
+      .map((def) => {
+        const esRaw = getValueAtPath(payload.es || {}, def.parts);
+        const enRaw = getValueAtPath(payload.en || {}, def.parts);
+        return {
+          ...def,
+          esValue: def.kind === 'array' ? arrayToEditorText(esRaw) : primitiveToEditorText(esRaw),
+          enValue: def.kind === 'array' ? arrayToEditorText(enRaw) : primitiveToEditorText(enRaw)
+        };
+      });
+
+    return { defs, unsupportedCount: unsupported.size };
+  };
+
+  const buildAppCopyPayloadFromGuided = () => {
+    const payload = deepClone(appCopyPayloadState || { es: {}, en: {} });
+    if (!isPlainObject(payload.es)) payload.es = {};
+    if (!isPlainObject(payload.en)) payload.en = {};
+    appCopyFieldDefs.forEach((def) => {
+      if (!def || !Array.isArray(def.parts) || !def.parts.length) return;
+      if (def.kind === 'array') {
+        setValueAtPath(payload.es, def.parts, parseArrayEditorText(def.esValue));
+        setValueAtPath(payload.en, def.parts, parseArrayEditorText(def.enValue));
+      } else {
+        setValueAtPath(payload.es, def.parts, String(def.esValue || ''));
+        setValueAtPath(payload.en, def.parts, String(def.enValue || ''));
+      }
+    });
+    return payload;
+  };
+
   const tryParseAppCopyEditor = () => {
     const raw = String(el.appCopyEditor && el.appCopyEditor.value ? el.appCopyEditor.value : '').trim();
     if (!raw) throw new Error('JSON de copys vacío');
@@ -350,6 +481,113 @@
     syncingAppCopyEditor = true;
     el.appCopyEditor.value = JSON.stringify(payload || { es: {}, en: {} }, null, 2);
     syncingAppCopyEditor = false;
+  };
+
+  const renderAppCopyGuidedEditor = (unsupportedCount = 0) => {
+    if (!el.appCopyGuidedEditor) return;
+    el.appCopyGuidedEditor.innerHTML = '';
+    if (!appCopyFieldDefs.length) {
+      const empty = document.createElement('p');
+      empty.className = 'hint';
+      empty.textContent = 'No se han encontrado campos editables.';
+      el.appCopyGuidedEditor.appendChild(empty);
+    } else {
+      appCopyFieldDefs.forEach((def) => {
+        const row = document.createElement('article');
+        row.className = 'app-copy-field-row';
+
+        const pathLabel = document.createElement('p');
+        pathLabel.className = 'app-copy-field-path';
+        pathLabel.textContent = def.pathLabel;
+        row.appendChild(pathLabel);
+
+        const fieldsRow = document.createElement('div');
+        fieldsRow.className = 'row row-wrap gap-sm';
+
+        const esField = document.createElement('label');
+        esField.className = 'field grow';
+        const esLabel = document.createElement('span');
+        esLabel.textContent = def.kind === 'array' ? 'ES (una línea por elemento)' : 'ES';
+        const esInput = document.createElement('textarea');
+        esInput.rows = def.kind === 'array' ? 4 : 2;
+        esInput.value = def.esValue || '';
+        esInput.addEventListener('input', () => {
+          def.esValue = esInput.value;
+        });
+        esField.appendChild(esLabel);
+        esField.appendChild(esInput);
+
+        const enField = document.createElement('label');
+        enField.className = 'field grow';
+        const enLabel = document.createElement('span');
+        enLabel.textContent = def.kind === 'array' ? 'EN (one line per item)' : 'EN';
+        const enInput = document.createElement('textarea');
+        enInput.rows = def.kind === 'array' ? 4 : 2;
+        enInput.value = def.enValue || '';
+        enInput.addEventListener('input', () => {
+          def.enValue = enInput.value;
+        });
+        enField.appendChild(enLabel);
+        enField.appendChild(enInput);
+
+        fieldsRow.appendChild(esField);
+        fieldsRow.appendChild(enField);
+        row.appendChild(fieldsRow);
+        el.appCopyGuidedEditor.appendChild(row);
+      });
+    }
+
+    if (el.appCopyGuidedMeta) {
+      const base = `Campos editables: ${appCopyFieldDefs.length}.`;
+      el.appCopyGuidedMeta.textContent =
+        unsupportedCount > 0
+          ? `${base} ${unsupportedCount} claves complejas no se muestran en este modo y se conservan tal cual.`
+          : base;
+    }
+  };
+
+  const syncAppCopyGuidedFromPayload = (payload) => {
+    const normalized = normalizeAppCopyPayload(payload);
+    appCopyPayloadState = deepClone(normalized);
+    const built = buildAppCopyFieldDefs(appCopyPayloadState);
+    appCopyFieldDefs = built.defs;
+    renderAppCopyGuidedEditor(built.unsupportedCount);
+    syncAppCopyEditorFromPayload(appCopyPayloadState);
+  };
+
+  const setAppCopyMode = (mode) => {
+    const nextMode = mode === APP_COPY_MODE_JSON ? APP_COPY_MODE_JSON : APP_COPY_MODE_GUIDED;
+    if (nextMode !== appCopyMode) {
+      if (nextMode === APP_COPY_MODE_GUIDED) {
+        try {
+          const fromJson = tryParseAppCopyEditor();
+          syncAppCopyGuidedFromPayload(fromJson);
+        } catch (err) {
+          setStatus('JSON de copys inválido: corrige el formato antes de volver a Editar.', { error: err.message });
+          return;
+        }
+      } else {
+        const payload = buildAppCopyPayloadFromGuided();
+        appCopyPayloadState = deepClone(payload);
+        syncAppCopyEditorFromPayload(payload);
+      }
+      appCopyMode = nextMode;
+    }
+    const guided = appCopyMode === APP_COPY_MODE_GUIDED;
+    if (el.appCopyModeGuidedBtn) {
+      el.appCopyModeGuidedBtn.classList.toggle('is-active', guided);
+      el.appCopyModeGuidedBtn.classList.toggle('btn-primary', guided);
+    }
+    if (el.appCopyModeJsonBtn) {
+      el.appCopyModeJsonBtn.classList.toggle('is-active', !guided);
+      el.appCopyModeJsonBtn.classList.toggle('btn-primary', !guided);
+    }
+    if (el.appCopyGuidedSection) {
+      el.appCopyGuidedSection.classList.toggle('hidden', !guided);
+    }
+    if (el.appCopyJsonSection) {
+      el.appCopyJsonSection.classList.toggle('hidden', guided);
+    }
   };
 
   const headers = (withBody = false) => {
@@ -1881,9 +2119,7 @@
 
   const loadAppCopy = async ({ silent = false } = {}) => {
     if (!isAuthenticated()) {
-      if (el.appCopyEditor) {
-        syncAppCopyEditorFromPayload({ es: {}, en: {} });
-      }
+      syncAppCopyGuidedFromPayload({ es: {}, en: {} });
       return;
     }
     try {
@@ -1894,16 +2130,14 @@
         out && out.data && typeof out.data === 'object' && !Array.isArray(out.data)
           ? out.data
           : { es: {}, en: {} };
-      syncAppCopyEditorFromPayload(payload);
+      syncAppCopyGuidedFromPayload(payload);
       if (!silent) {
         setStatus('Copys app cargados.', {
           updated_at: out && out.updated_at ? out.updated_at : null
         });
       }
     } catch (err) {
-      if (el.appCopyEditor) {
-        syncAppCopyEditorFromPayload({ es: {}, en: {} });
-      }
+      syncAppCopyGuidedFromPayload({ es: {}, en: {} });
       if (!silent) {
         setStatus('Error cargando copys app.', err.response || { error: err.message });
       }
@@ -1912,7 +2146,10 @@
 
   const validateAppCopy = () => {
     try {
-      const payload = tryParseAppCopyEditor();
+      const payload =
+        appCopyMode === APP_COPY_MODE_JSON ? tryParseAppCopyEditor() : normalizeAppCopyPayload(buildAppCopyPayloadFromGuided());
+      appCopyPayloadState = deepClone(payload);
+      syncAppCopyEditorFromPayload(payload);
       setStatus('Copys app válidos.', {
         locales: Object.keys(payload),
         keys_es: Object.keys(payload.es || {}).length,
@@ -1929,7 +2166,8 @@
       return;
     }
     try {
-      const payload = tryParseAppCopyEditor();
+      const payload =
+        appCopyMode === APP_COPY_MODE_JSON ? tryParseAppCopyEditor() : normalizeAppCopyPayload(buildAppCopyPayloadFromGuided());
       const out = await api('/content/admin/app-copy', {
         method: 'PUT',
         headers: headers(true),
@@ -1939,7 +2177,7 @@
         out && out.data && typeof out.data === 'object' && !Array.isArray(out.data)
           ? out.data
           : payload;
-      syncAppCopyEditorFromPayload(savedPayload);
+      syncAppCopyGuidedFromPayload(savedPayload);
       setStatus('Copys app guardados.', {
         updated_at: out && out.updated_at ? out.updated_at : null
       });
@@ -2105,11 +2343,19 @@
     if (el.saveAppCopyBtn) {
       el.saveAppCopyBtn.addEventListener('click', saveAppCopy);
     }
+    if (el.appCopyModeGuidedBtn) {
+      el.appCopyModeGuidedBtn.addEventListener('click', () => setAppCopyMode(APP_COPY_MODE_GUIDED));
+    }
+    if (el.appCopyModeJsonBtn) {
+      el.appCopyModeJsonBtn.addEventListener('click', () => setAppCopyMode(APP_COPY_MODE_JSON));
+    }
 
     bindGuidedEditorEvents();
     setEditorMode(MODE_GUIDED);
     setContentState({ routes: [], modules: [], sessions: [] }, { syncJson: true, preserveSelection: false });
     updateSyncFromJsonButtonState();
+    syncAppCopyGuidedFromPayload({ es: {}, en: {} });
+    setAppCopyMode(APP_COPY_MODE_GUIDED);
 
     await loadHealth();
     await loadMe({ silent: true });

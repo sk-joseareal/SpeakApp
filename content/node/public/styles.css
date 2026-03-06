@@ -98,6 +98,33 @@ textarea {
   min-height: 340px;
 }
 
+.app-copy-guided-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.app-copy-field-row {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fbfcff;
+  padding: 10px;
+}
+
+.app-copy-field-path {
+  margin: 0 0 8px 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: #33496f;
+  letter-spacing: 0.01em;
+}
+
+.app-copy-field-row textarea {
+  min-height: 72px;
+  font-family: inherit;
+  line-height: 1.4;
+}
+
 .btn {
   border: 1px solid var(--border);
   background: #f8faff;

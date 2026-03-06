@@ -309,6 +309,12 @@ app.use(express.urlencoded({ extended: true, limit: '5mb' }));
 const dashboardDir = path.join(__dirname, 'public');
 if (fs.existsSync(dashboardDir)) {
   app.use('/dashboard', express.static(dashboardDir, { redirect: false }));
+  app.get('/favicon.ico', (req, res) => {
+    res.sendFile(path.join(dashboardDir, 'favicon.ico'));
+  });
+  app.get('/robots.txt', (req, res) => {
+    res.sendFile(path.join(dashboardDir, 'robots.txt'));
+  });
   app.get('/styles.css', (req, res) => {
     res.sendFile(path.join(dashboardDir, 'styles.css'));
   });

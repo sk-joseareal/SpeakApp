@@ -35,6 +35,7 @@ class PageDiagnostics extends HTMLElement {
     const FREE_RIDE_ADVANCED_ENABLED_KEY = 'appv5:free-ride-advanced-enabled';
     const FREE_RIDE_WORD_TAP_AUDIO_ENABLED_KEY = 'appv5:free-ride-word-tap-audio-enabled';
     const SPEAK_SESSION_PERCENTAGES_VISIBLE_KEY = 'appv5:speak-session-percentages-visible';
+    const REFERENCE_TAB_ENABLED_KEY = 'appv5:reference-tab-enabled';
     const normalizeFreeRideAudioMode = (value) => {
       const normalized = String(value || '')
         .trim()
@@ -115,6 +116,26 @@ class PageDiagnostics extends HTMLElement {
         return true;
       }
     };
+    const normalizeReferenceTabEnabled = (value) => {
+      if (typeof value === 'boolean') return value;
+      const normalized = String(value || '')
+        .trim()
+        .toLowerCase();
+      if (!normalized) return false;
+      return ['1', 'true', 'on', 'yes'].includes(normalized);
+    };
+    const getStoredReferenceTabEnabled = () => {
+      const globalValue =
+        window.r34lp0w3r && Object.prototype.hasOwnProperty.call(window.r34lp0w3r, 'referenceTabEnabled')
+          ? window.r34lp0w3r.referenceTabEnabled
+          : undefined;
+      if (globalValue !== undefined) return normalizeReferenceTabEnabled(globalValue);
+      try {
+        return normalizeReferenceTabEnabled(localStorage.getItem(REFERENCE_TAB_ENABLED_KEY));
+      } catch (err) {
+        return false;
+      }
+    };
 
     this.innerHTML = `
       <ion-header translucent="true">
@@ -144,6 +165,13 @@ class PageDiagnostics extends HTMLElement {
                 <div class="diag-debug-sub" id="diag-speak-session-percentages-sub"></div>
               </div>
               <ion-toggle id="diag-speak-session-percentages-toggle" ${getStoredSpeakSessionPercentagesVisible() ? 'checked' : ''}></ion-toggle>
+            </div>
+            <div class="diag-debug-toggle" style="margin-top: 10px;">
+              <div class="diag-debug-text">
+                <div class="diag-debug-title">Tab Referencia</div>
+                <div class="diag-debug-sub" id="diag-reference-tab-sub"></div>
+              </div>
+              <ion-toggle id="diag-reference-tab-toggle" ${getStoredReferenceTabEnabled() ? 'checked' : ''}></ion-toggle>
             </div>
             <div id="diag-user" style="display:none; margin-bottom:12px;">
               <div class="pill">Usuario</div>
@@ -216,6 +244,13 @@ class PageDiagnostics extends HTMLElement {
             <div class="diag-actions">
               <ion-button size="small" fill="outline" id="diag-onboarding-repeat">Repetir onboarding</ion-button>
             </div>
+
+            <h4 style="margin-top:16px;">Reset app</h4>
+            <div class="diag-actions">
+              <ion-button size="small" fill="outline" color="danger" id="diag-app-reset">Reset completo</ion-button>
+            </div>
+            <p class="diag-debug-sub">Borra local/session storage y reinicia la app como primera ejecución.</p>
+
             <h4 style="margin-top:16px;">Training content</h4>
             <div class="diag-actions">
               <ion-button size="small" fill="outline" id="diag-content-source-refresh">Refrescar</ion-button>
@@ -644,6 +679,8 @@ class PageDiagnostics extends HTMLElement {
     const freeRideWordTapAudioSubEl = this.querySelector('#diag-free-ride-word-tap-audio-sub');
     const speakSessionPercentagesToggleEl = this.querySelector('#diag-speak-session-percentages-toggle');
     const speakSessionPercentagesSubEl = this.querySelector('#diag-speak-session-percentages-sub');
+    const referenceTabToggleEl = this.querySelector('#diag-reference-tab-toggle');
+    const referenceTabSubEl = this.querySelector('#diag-reference-tab-sub');
     const pronAdvancedUsageSectionEl = this.querySelector('#diag-pron-advanced-usage-section');
     const notifyListEl = this.querySelector('#diag-notify-list');
     const notifyEmptyEl = this.querySelector('#diag-notify-empty');
@@ -775,6 +812,36 @@ class PageDiagnostics extends HTMLElement {
         speakSessionPercentagesSubEl.textContent = normalized
           ? 'Activado: muestra los porcentajes (%) en las pantallas de la sesión.'
           : 'Desactivado: oculta los porcentajes en la sesión; el color sigue indicando el resultado.';
+      }
+      return normalized;
+    };
+
+    const setReferenceTabEnabled = (enabled) => {
+      const normalized = normalizeReferenceTabEnabled(enabled);
+      window.r34lp0w3r = window.r34lp0w3r || {};
+      window.r34lp0w3r.referenceTabEnabled = normalized;
+      try {
+        localStorage.setItem(REFERENCE_TAB_ENABLED_KEY, normalized ? '1' : '0');
+      } catch (err) {
+        // no-op
+      }
+      window.dispatchEvent(
+        new CustomEvent('app:reference-tab-enabled-change', {
+          detail: { enabled: normalized }
+        })
+      );
+      return normalized;
+    };
+
+    const updateReferenceTabUi = (enabled) => {
+      const normalized = normalizeReferenceTabEnabled(enabled);
+      if (referenceTabToggleEl) {
+        referenceTabToggleEl.checked = normalized;
+      }
+      if (referenceTabSubEl) {
+        referenceTabSubEl.textContent = normalized
+          ? 'Activado: muestra el tab Referencia con contenido de cursos/unidades/lecciones.'
+          : 'Desactivado: oculta el tab Referencia en la navegación inferior.';
       }
       return normalized;
     };
@@ -1963,6 +2030,8 @@ class PageDiagnostics extends HTMLElement {
     updateFreeRideWordTapAudioUi(setFreeRideWordTapAudioEnabled(initialFreeRideWordTapAudioEnabled));
     const initialSpeakSessionPercentagesVisible = getStoredSpeakSessionPercentagesVisible();
     updateSpeakSessionPercentagesUi(setSpeakSessionPercentagesVisible(initialSpeakSessionPercentagesVisible));
+    const initialReferenceTabEnabled = getStoredReferenceTabEnabled();
+    updateReferenceTabUi(setReferenceTabEnabled(initialReferenceTabEnabled));
 
     this.querySelector('#diag-back')?.addEventListener('click', () => {
       ensureInitialHash();
@@ -2019,6 +2088,51 @@ class PageDiagnostics extends HTMLElement {
     this.querySelector('#diag-onboarding-repeat')?.addEventListener('click', () => {
       clearOnboardingDone();
       window.location.hash = '#/onboarding';
+    });
+    this.querySelector('#diag-app-reset')?.addEventListener('click', () => {
+      const confirmReset = window.confirm(
+        'Esto borrará todos los datos locales de la app en este dispositivo y la reiniciará como primera ejecución. ¿Continuar?'
+      );
+      if (!confirmReset) return;
+
+      try {
+        if (this._diagStopBrowserTts) this._diagStopBrowserTts();
+      } catch (err) {
+        // no-op
+      }
+      try {
+        if (typeof window !== 'undefined' && window.speechSynthesis && typeof window.speechSynthesis.cancel === 'function') {
+          window.speechSynthesis.cancel();
+        }
+      } catch (err) {
+        // no-op
+      }
+
+      try {
+        localStorage.clear();
+      } catch (err) {
+        console.error('[diag] error limpiando localStorage', err);
+      }
+      try {
+        sessionStorage.clear();
+      } catch (err) {
+        // no-op
+      }
+
+      if (typeof window.setUser === 'function') {
+        try {
+          window.setUser(null);
+        } catch (err) {
+          // no-op
+        }
+      } else {
+        window.user = null;
+      }
+
+      window.location.hash = '#/onboarding';
+      setTimeout(() => {
+        window.location.reload();
+      }, 40);
     });
     this.querySelector('#diag-content-source-refresh')?.addEventListener('click', () => {
       updateContentSourcePanel();
@@ -2083,6 +2197,13 @@ class PageDiagnostics extends HTMLElement {
           ? Boolean(event.detail.checked)
           : Boolean(speakSessionPercentagesToggleEl.checked);
       updateSpeakSessionPercentagesUi(setSpeakSessionPercentagesVisible(nextVisible));
+    });
+    referenceTabToggleEl?.addEventListener('ionChange', (event) => {
+      const nextEnabled =
+        event && event.detail && event.detail.checked !== undefined
+          ? Boolean(event.detail.checked)
+          : Boolean(referenceTabToggleEl.checked);
+      updateReferenceTabUi(setReferenceTabEnabled(nextEnabled));
     });
 
     // Login

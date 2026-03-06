@@ -3,6 +3,7 @@ import { clearLoginTabsLock, hasLoginTabsLock, onboardingDone, setLoginTabsLock 
 import { generateDemoNotifications, getUnreadCount, markAllNotificationsRead } from './notifications-store.js';
 import './pages/onboarding.js';
 import './pages/home.js';
+import './pages/reference.js';
 import './pages/speak.js';
 import './pages/profile.js';
 import './pages/chat.js';

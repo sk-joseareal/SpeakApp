@@ -18,6 +18,7 @@ const TTS_LANG_BY_LOCALE = {
 const HERO_MASCOT_FRAME_COUNT = 9;
 const HERO_MASCOT_REST_FRAME = HERO_MASCOT_FRAME_COUNT - 1;
 const HERO_MASCOT_FRAME_INTERVAL_MS = 150;
+const BROWSER_AUTONARRATION_EXTRA_DELAY_MS = 120;
 const FREE_RIDE_DEBUG_PANEL_OPEN_KEY = 'appv5:free-ride-debug-panel-open';
 const SPEAK_REWARDS_STORAGE_KEY = 'appv5:speak-session-rewards';
 const FREE_RIDE_REWARD_SESSION_PREFIX = 'free-ride';
@@ -223,7 +224,9 @@ class PageFreeRide extends HTMLElement {
     window.addEventListener('app:free-ride-advanced-enabled-change', this._advancedFeatureHandler);
 
     this._tabsDidChangeHandler = (event) => {
-      const tab = event && event.detail ? event.detail.tab : '';
+      const tab = String(event && event.detail ? event.detail.tab || '' : '')
+        .trim()
+        .toLowerCase();
       if (tab !== 'freeride') {
         this.clearNarrationTimer();
         this.narrationToken += 1;
@@ -237,13 +240,18 @@ class PageFreeRide extends HTMLElement {
         return;
       }
       this.applyIOSKeyboardOverlayMode();
-      const delayMs = this.isNativeRuntime() ? 160 : 80;
+      const firstAutoNarration = !this.initialHeroNarrationStarted;
+      const delayMs = firstAutoNarration ? 0 : this.getAutoNarrationDelay(80);
       this.scheduleLayoutSync(0);
       this.scheduleLayoutSync(delayMs + 140);
-      this.scheduleHeroNarration(delayMs, false);
+      this.scheduleHeroNarration(delayMs, firstAutoNarration);
     };
     this._tabsEl = this.getTabsEl();
     this._tabsEl?.addEventListener('ionTabsDidChange', this._tabsDidChangeHandler);
+    this._appTabChangeHandler = (event) => {
+      this._tabsDidChangeHandler(event);
+    };
+    window.addEventListener('app:tab-change', this._appTabChangeHandler);
 
     this._layoutViewportHandler = () => {
       if (!this.isConnected) return;
@@ -257,10 +265,11 @@ class PageFreeRide extends HTMLElement {
 
     if (this.isTabActive('freeride')) {
       this.applyIOSKeyboardOverlayMode();
-      const initialDelayMs = this.isNativeRuntime() ? 280 : 820;
+      const firstAutoNarration = !this.initialHeroNarrationStarted;
+      const initialDelayMs = firstAutoNarration ? 0 : this.getAutoNarrationDelay(820);
       this.scheduleLayoutSync(0);
       this.scheduleLayoutSync(140);
-      this.scheduleHeroNarration(initialDelayMs, false);
+      this.scheduleHeroNarration(initialDelayMs, firstAutoNarration);
     }
 
     this.updateHeaderUser(window.user || null);
@@ -331,6 +340,10 @@ class PageFreeRide extends HTMLElement {
       }
       this._tabsEl = null;
       this._tabsDidChangeHandler = null;
+    }
+    if (this._appTabChangeHandler) {
+      window.removeEventListener('app:tab-change', this._appTabChangeHandler);
+      this._appTabChangeHandler = null;
     }
 
     if (this._layoutViewportHandler) {
@@ -691,6 +704,12 @@ class PageFreeRide extends HTMLElement {
     return capacitor.platform === 'ios' || capacitor.platform === 'android';
   }
 
+  getAutoNarrationDelay(baseMs = 90) {
+    const normalized = Math.max(0, Number(baseMs) || 0);
+    if (this.isNativeRuntime()) return normalized;
+    return normalized + BROWSER_AUTONARRATION_EXTRA_DELAY_MS;
+  }
+
   isNativeIOS() {
     if (!this.isNativeRuntime()) return false;
     const capacitor = window.Capacitor;
@@ -770,23 +789,50 @@ class PageFreeRide extends HTMLElement {
     return this.closest('ion-tabs') || document.querySelector('tabs-page ion-tabs');
   }
 
+  isEventInHeaderZone(event) {
+    if (!event) return false;
+    const y = Number(event.clientY);
+    if (!Number.isFinite(y)) return false;
+    const headerEl = this.querySelector('ion-header');
+    if (!headerEl || typeof headerEl.getBoundingClientRect !== 'function') return false;
+    const rect = headerEl.getBoundingClientRect();
+    return y <= rect.bottom + 2;
+  }
+
   isTabActive(tabName = 'freeride') {
+    const normalizedTabName = String(tabName || '')
+      .trim()
+      .toLowerCase();
     const tabHost = this.closest('ion-tab');
     if (tabHost) {
-      const hostTab = String(tabHost.getAttribute('tab') || '');
-      if (tabName && hostTab && hostTab !== tabName) return false;
+      const hostTab = String(tabHost.getAttribute('tab') || '')
+        .trim()
+        .toLowerCase();
+      if (normalizedTabName && hostTab && hostTab !== normalizedTabName) return false;
       if (tabHost.getAttribute('aria-hidden') === 'true') return false;
       if (tabHost.classList.contains('tab-hidden')) return false;
       const styles = window.getComputedStyle ? window.getComputedStyle(tabHost) : null;
       if (styles && styles.display === 'none') return false;
     }
     const tabsEl = this.getTabsEl();
-    if (tabsEl && tabName) {
-      const selectedFromAttr = String(tabsEl.getAttribute('selected-tab') || '');
+    if (tabsEl && normalizedTabName) {
+      const selectedFromAttr = String(tabsEl.getAttribute('selected-tab') || '')
+        .trim()
+        .toLowerCase();
       const selectedFromProp =
-        typeof tabsEl.selectedTab === 'string' ? String(tabsEl.selectedTab) : '';
+        typeof tabsEl.selectedTab === 'string' ? String(tabsEl.selectedTab).trim().toLowerCase() : '';
       const selected = selectedFromAttr || selectedFromProp;
-      if (selected && selected !== tabName) return false;
+      if (selected) return selected === normalizedTabName;
+      try {
+        const stored = String(localStorage.getItem('appv5:active-tab') || '')
+          .trim()
+          .toLowerCase();
+        if (stored) return stored === normalizedTabName;
+      } catch (err) {
+        // no-op
+      }
+      if (tabHost) return tabHost.classList.contains('tab-selected');
+      return false;
     }
     return true;
   }
@@ -4264,6 +4310,12 @@ class PageFreeRide extends HTMLElement {
     if (!forceNarration && this.initialHeroNarrationStarted) return;
     if (!forceNarration && !this.isTabActive('freeride')) return;
     const waitMs = Number.isFinite(delayMs) ? Math.max(0, delayMs) : 90;
+    if (waitMs === 0) {
+      if (!this.isConnected) return;
+      if (!forceNarration && !this.isTabActive('freeride')) return;
+      this.playHeroNarration();
+      return;
+    }
     this.narrationTimer = setTimeout(() => {
       this.narrationTimer = null;
       if (!this.isConnected) return;
@@ -5878,6 +5930,7 @@ class PageFreeRide extends HTMLElement {
 
     const heroCardEl = this.querySelector('.free-ride-hero-card');
     heroCardEl?.addEventListener('click', (event) => {
+      if (this.isEventInHeaderZone(event)) return;
       const target = event && event.target && typeof event.target.closest === 'function'
         ? event.target.closest('button, [data-action], a, input, textarea, select')
         : null;
@@ -6179,7 +6232,10 @@ class PageFreeRide extends HTMLElement {
     const narrationDelayMs =
       typeof options.narrationDelayMs === 'number' ? options.narrationDelayMs : forceNarration ? 80 : null;
     if (forceNarration || narrationDelayMs !== null) {
-      this.scheduleHeroNarration(narrationDelayMs === null ? 90 : narrationDelayMs, forceNarration);
+      this.scheduleHeroNarration(
+        narrationDelayMs === null ? this.getAutoNarrationDelay(90) : narrationDelayMs,
+        forceNarration
+      );
     }
   }
 }

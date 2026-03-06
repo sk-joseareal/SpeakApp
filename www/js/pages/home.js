@@ -24,6 +24,7 @@ const TTS_LANG_BY_LOCALE = {
 const PLAN_MASCOT_FRAME_COUNT = 9;
 const PLAN_MASCOT_REST_FRAME = PLAN_MASCOT_FRAME_COUNT - 1;
 const PLAN_MASCOT_FRAME_INTERVAL_MS = 150;
+const BROWSER_AUTONARRATION_EXTRA_DELAY_MS = 120;
 const SPEAK_SESSION_PERCENTAGES_VISIBLE_KEY = 'appv5:speak-session-percentages-visible';
 const HOME_ALIGNED_CACHE_MAX_ITEMS = 24;
 
@@ -50,6 +51,7 @@ class PageHome extends HTMLElement {
     this.planMascotIsTalking = false;
     this.narrationAudio = null;
     this.alignedTtsCache = new Map();
+    this.planNarrationPromise = null;
   }
 
   connectedCallback() {
@@ -161,7 +163,9 @@ class PageHome extends HTMLElement {
       this._sessionPercentagesVisibilityHandler
     );
     this._tabsDidChangeHandler = (event) => {
-      const tab = event && event.detail ? event.detail.tab : '';
+      const tab = String(event && event.detail ? event.detail.tab || '' : '')
+        .trim()
+        .toLowerCase();
       if (tab !== 'home') {
         this.clearNarrationTimer();
         this.clearBrowserNarrationRetryTimer();
@@ -173,18 +177,22 @@ class PageHome extends HTMLElement {
         }
         return;
       }
-      const delayMs = this.isNativeRuntime() ? 180 : 90;
-      this.schedulePlanNarration(delayMs, false);
+      const firstAutoNarration = !this.initialPlanNarrationStarted;
+      const delayMs = firstAutoNarration ? 0 : this.getAutoNarrationDelay(90);
+      this.schedulePlanNarration(delayMs, firstAutoNarration);
     };
     this._tabsEl = this.getTabsEl();
     this._tabsEl?.addEventListener('ionTabsDidChange', this._tabsDidChangeHandler);
-    if (!this.isNativeRuntime()) {
-      this.setupBrowserNarrationRetry();
-    }
-    const initialDelayMs = this.isNativeRuntime() ? 280 : 950;
+    this._appTabChangeHandler = (event) => {
+      this._tabsDidChangeHandler(event);
+    };
+    window.addEventListener('app:tab-change', this._appTabChangeHandler);
+    const firstAutoNarration = !this.initialPlanNarrationStarted;
+    const initialDelayMs = firstAutoNarration ? 0 : this.getAutoNarrationDelay(950);
     this.render({
       narrationDelayMs: initialDelayMs,
-      skipNarration: !this.isTabActive('home')
+      skipNarration: !this.isTabActive('home'),
+      forceNarration: firstAutoNarration
     });
   }
 
@@ -220,7 +228,10 @@ class PageHome extends HTMLElement {
       this._tabsEl = null;
       this._tabsDidChangeHandler = null;
     }
-    this.teardownBrowserNarrationRetry();
+    if (this._appTabChangeHandler) {
+      window.removeEventListener('app:tab-change', this._appTabChangeHandler);
+      this._appTabChangeHandler = null;
+    }
     this.clearRoutesCenterScrollTimers();
     this.stopPlanMascotTalk({ settle: true });
     this.clearNarrationTimer();
@@ -1157,6 +1168,7 @@ class PageHome extends HTMLElement {
     });
     const planCardEl = this.querySelector('.journey-plan-card');
     planCardEl?.addEventListener('click', (event) => {
+      if (this.isEventInHeaderZone(event)) return;
       const target = event && event.target && typeof event.target.closest === 'function'
         ? event.target.closest('button, [data-action], a, input, textarea, select')
         : null;
@@ -1169,7 +1181,9 @@ class PageHome extends HTMLElement {
     }
     const forceNarration = Boolean(options.forceNarration);
     const narrationDelayMs =
-      typeof options.narrationDelayMs === 'number' ? options.narrationDelayMs : 90;
+      typeof options.narrationDelayMs === 'number'
+        ? options.narrationDelayMs
+        : this.getAutoNarrationDelay(90);
     this.schedulePlanNarration(narrationDelayMs, forceNarration);
   }
 
@@ -1213,23 +1227,50 @@ class PageHome extends HTMLElement {
     return this.closest('ion-tabs') || document.querySelector('tabs-page ion-tabs');
   }
 
+  isEventInHeaderZone(event) {
+    if (!event) return false;
+    const y = Number(event.clientY);
+    if (!Number.isFinite(y)) return false;
+    const headerEl = this.querySelector('ion-header');
+    if (!headerEl || typeof headerEl.getBoundingClientRect !== 'function') return false;
+    const rect = headerEl.getBoundingClientRect();
+    return y <= rect.bottom + 2;
+  }
+
   isTabActive(tabName = 'home') {
+    const normalizedTabName = String(tabName || '')
+      .trim()
+      .toLowerCase();
     const tabHost = this.closest('ion-tab');
     if (tabHost) {
-      const hostTab = String(tabHost.getAttribute('tab') || '');
-      if (tabName && hostTab && hostTab !== tabName) return false;
+      const hostTab = String(tabHost.getAttribute('tab') || '')
+        .trim()
+        .toLowerCase();
+      if (normalizedTabName && hostTab && hostTab !== normalizedTabName) return false;
       if (tabHost.getAttribute('aria-hidden') === 'true') return false;
       if (tabHost.classList.contains('tab-hidden')) return false;
       const styles = window.getComputedStyle ? window.getComputedStyle(tabHost) : null;
       if (styles && styles.display === 'none') return false;
     }
     const tabsEl = this.getTabsEl();
-    if (tabsEl && tabName) {
-      const selectedFromAttr = String(tabsEl.getAttribute('selected-tab') || '');
+    if (tabsEl && normalizedTabName) {
+      const selectedFromAttr = String(tabsEl.getAttribute('selected-tab') || '')
+        .trim()
+        .toLowerCase();
       const selectedFromProp =
-        typeof tabsEl.selectedTab === 'string' ? String(tabsEl.selectedTab) : '';
+        typeof tabsEl.selectedTab === 'string' ? String(tabsEl.selectedTab).trim().toLowerCase() : '';
       const selected = selectedFromAttr || selectedFromProp;
-      if (selected && selected !== tabName) return false;
+      if (selected) return selected === normalizedTabName;
+      try {
+        const stored = String(localStorage.getItem('appv5:active-tab') || '')
+          .trim()
+          .toLowerCase();
+        if (stored) return stored === normalizedTabName;
+      } catch (err) {
+        // no-op
+      }
+      if (tabHost) return tabHost.classList.contains('tab-selected');
+      return normalizedTabName === 'home';
     }
     return true;
   }
@@ -1259,6 +1300,12 @@ class PageHome extends HTMLElement {
       return Boolean(capacitor.isNativePlatform());
     }
     return capacitor.platform === 'ios' || capacitor.platform === 'android';
+  }
+
+  getAutoNarrationDelay(baseMs = 90) {
+    const normalized = Math.max(0, Number(baseMs) || 0);
+    if (this.isNativeRuntime()) return normalized;
+    return normalized + BROWSER_AUTONARRATION_EXTRA_DELAY_MS;
   }
 
   canWebSpeak() {
@@ -1515,11 +1562,6 @@ class PageHome extends HTMLElement {
     };
     window.addEventListener('load', this.browserNarrationRetryHandler);
     window.addEventListener('pageshow', this.browserNarrationRetryHandler);
-    window.addEventListener('focus', this.browserNarrationRetryHandler);
-    document.addEventListener('visibilitychange', this.browserNarrationRetryHandler);
-    document.addEventListener('pointerdown', this.browserNarrationRetryHandler, { passive: true });
-    document.addEventListener('keydown', this.browserNarrationRetryHandler, { passive: true });
-    document.addEventListener('touchstart', this.browserNarrationRetryHandler, { passive: true });
   }
 
   teardownBrowserNarrationRetry() {
@@ -1527,11 +1569,6 @@ class PageHome extends HTMLElement {
     if (!this.browserNarrationRetryHandler) return;
     window.removeEventListener('load', this.browserNarrationRetryHandler);
     window.removeEventListener('pageshow', this.browserNarrationRetryHandler);
-    window.removeEventListener('focus', this.browserNarrationRetryHandler);
-    document.removeEventListener('visibilitychange', this.browserNarrationRetryHandler);
-    document.removeEventListener('pointerdown', this.browserNarrationRetryHandler);
-    document.removeEventListener('keydown', this.browserNarrationRetryHandler);
-    document.removeEventListener('touchstart', this.browserNarrationRetryHandler);
     this.browserNarrationRetryHandler = null;
   }
 
@@ -1557,6 +1594,12 @@ class PageHome extends HTMLElement {
     if (!forceNarration && this.initialPlanNarrationStarted) return;
     if (!forceNarration && !this.isTabActive('home')) return;
     const waitMs = Number.isFinite(delayMs) ? Math.max(0, delayMs) : 90;
+    if (waitMs === 0) {
+      if (!this.isConnected) return;
+      if (!forceNarration && !this.isTabActive('home')) return;
+      this.playPlanNarration();
+      return;
+    }
     this.narrationTimer = setTimeout(() => {
       this.narrationTimer = null;
       if (!this.isConnected) return;
@@ -1569,25 +1612,34 @@ class PageHome extends HTMLElement {
     if (!this.isTabActive('home')) {
       return Promise.resolve(false);
     }
+    if (this.planNarrationPromise) {
+      return this.planNarrationPromise;
+    }
     const lines = this.extractNarrationLines(this.currentPlanMessage);
     if (!lines.length) {
       this.stopNarration().catch(() => {});
       return Promise.resolve(false);
     }
     const locale = this.getUiLocale(this.currentUiLocale);
-    return this.speakNarration(lines, locale, { bubbleEl: this.getPlanBubbleEl() })
+    const runPromise = this.speakNarration(lines, locale, { bubbleEl: this.getPlanBubbleEl() })
       .then((started) => {
         if (started && !this.initialPlanNarrationStarted) {
           this.initialPlanNarrationStarted = true;
           this.markAutoPlanNarrationPlayed();
-          this.teardownBrowserNarrationRetry();
         }
         return started;
       })
       .catch((err) => {
         console.warn('[home] narration error', err);
         return false;
+      })
+      .finally(() => {
+        if (this.planNarrationPromise === runPromise) {
+          this.planNarrationPromise = null;
+        }
       });
+    this.planNarrationPromise = runPromise;
+    return runPromise;
   }
 
   async speakNarrationWeb(text, lang, token, voiceWaitMs = 1200, hooks = {}) {

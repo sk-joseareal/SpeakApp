@@ -22,6 +22,7 @@ const APP_COPY = {
     tabs: {
       training: 'Training',
       lab: 'Lab',
+      reference: 'Referencia',
       you: 'You',
       chat: 'Chat'
     },
@@ -307,6 +308,7 @@ const APP_COPY = {
     tabs: {
       training: 'Training',
       lab: 'Lab',
+      reference: 'Reference',
       you: 'You',
       chat: 'Chat'
     },

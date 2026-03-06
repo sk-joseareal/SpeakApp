@@ -71,6 +71,23 @@ page-chat {
   height: 100%;
 }
 
+/* Evita selección accidental de texto durante gestos en vistas de tabs. */
+tabs-page {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* Mantener selección/edición normal en campos de texto. */
+tabs-page input,
+tabs-page textarea,
+tabs-page [contenteditable='true'],
+tabs-page .allow-text-selection {
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
+}
+
 ion-content {
   --background: transparent;
   color: var(--app-text);

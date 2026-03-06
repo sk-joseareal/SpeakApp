@@ -101,28 +101,66 @@ textarea {
 .app-copy-guided-editor {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-}
-
-.app-copy-field-row {
+  gap: 6px;
   border: 1px solid var(--border);
   border-radius: 8px;
-  background: #fbfcff;
-  padding: 10px;
+  background: #fff;
+  padding: 8px;
 }
 
-.app-copy-field-path {
-  margin: 0 0 8px 0;
+.app-copy-tree-group {
+  margin-left: calc(var(--depth, 0) * 14px);
   font-size: 12px;
   font-weight: 700;
-  color: #33496f;
+  color: #4f6388;
+  text-transform: uppercase;
   letter-spacing: 0.01em;
+  padding: 5px 8px 2px 8px;
 }
 
-.app-copy-field-row textarea {
-  min-height: 72px;
-  font-family: inherit;
-  line-height: 1.4;
+.app-copy-tree-field {
+  margin-left: calc(var(--depth, 0) * 14px);
+  border: 1px solid #e5ebf5;
+  border-radius: 8px;
+  background: #fbfcff;
+  padding: 8px;
+  display: grid;
+  grid-template-columns: minmax(160px, 280px) minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+}
+
+.app-copy-tree-key {
+  font-size: 13px;
+  font-weight: 600;
+  color: #243752;
+  word-break: break-word;
+}
+
+.app-copy-tree-values {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.app-copy-tree-value {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+}
+
+.app-copy-tree-value > span {
+  font-size: 11px;
+  font-weight: 700;
+  color: #5f7398;
+}
+
+.app-copy-tree-value > input {
+  width: 100%;
+  min-width: 0;
+  font-size: 13px;
+  padding: 8px 9px;
 }
 
 .btn {
@@ -377,6 +415,12 @@ h2 {
   }
   .entity-list {
     max-height: 180px;
+  }
+  .app-copy-tree-field {
+    grid-template-columns: 1fr;
+  }
+  .app-copy-tree-values {
+    grid-template-columns: 1fr;
   }
 }
 

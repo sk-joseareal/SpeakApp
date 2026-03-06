@@ -356,10 +356,10 @@
 
   const primitiveToEditorText = (value) => (value === null || value === undefined ? '' : String(value));
   const arrayToEditorText = (value) =>
-    (Array.isArray(value) ? value : []).map((item) => primitiveToEditorText(item)).join('\n');
+    (Array.isArray(value) ? value : []).map((item) => primitiveToEditorText(item)).join(' | ');
   const parseArrayEditorText = (value) =>
     String(value || '')
-      .split(/\r?\n/)
+      .split(/\s*(?:\||\r?\n|,)\s*/)
       .map((item) => item.trim())
       .filter(Boolean);
 
@@ -492,47 +492,69 @@
       empty.textContent = 'No se han encontrado campos editables.';
       el.appCopyGuidedEditor.appendChild(empty);
     } else {
+      const renderedGroups = new Set();
+      const appendGroup = (parts) => {
+        if (!Array.isArray(parts) || !parts.length) return;
+        const groupKey = parts.join('\u001f');
+        if (renderedGroups.has(groupKey)) return;
+        renderedGroups.add(groupKey);
+        const group = document.createElement('div');
+        group.className = 'app-copy-tree-group';
+        group.style.setProperty('--depth', String(parts.length - 1));
+        group.textContent = parts[parts.length - 1];
+        el.appCopyGuidedEditor.appendChild(group);
+      };
+
       appCopyFieldDefs.forEach((def) => {
-        const row = document.createElement('article');
-        row.className = 'app-copy-field-row';
+        const parts = Array.isArray(def.parts) ? def.parts : [];
+        if (!parts.length) return;
+        for (let idx = 0; idx < parts.length - 1; idx += 1) {
+          appendGroup(parts.slice(0, idx + 1));
+        }
 
-        const pathLabel = document.createElement('p');
-        pathLabel.className = 'app-copy-field-path';
-        pathLabel.textContent = def.pathLabel;
-        row.appendChild(pathLabel);
+        const row = document.createElement('div');
+        row.className = 'app-copy-tree-field';
+        row.style.setProperty('--depth', String(Math.max(0, parts.length - 1)));
 
-        const fieldsRow = document.createElement('div');
-        fieldsRow.className = 'row row-wrap gap-sm';
+        const keyEl = document.createElement('div');
+        keyEl.className = 'app-copy-tree-key';
+        keyEl.textContent = parts[parts.length - 1];
+        row.appendChild(keyEl);
 
-        const esField = document.createElement('label');
-        esField.className = 'field grow';
-        const esLabel = document.createElement('span');
-        esLabel.textContent = def.kind === 'array' ? 'ES (una línea por elemento)' : 'ES';
-        const esInput = document.createElement('textarea');
-        esInput.rows = def.kind === 'array' ? 4 : 2;
+        const valuesEl = document.createElement('div');
+        valuesEl.className = 'app-copy-tree-values';
+
+        const esWrap = document.createElement('label');
+        esWrap.className = 'app-copy-tree-value';
+        const esTag = document.createElement('span');
+        esTag.textContent = 'ES';
+        const esInput = document.createElement('input');
+        esInput.type = 'text';
         esInput.value = def.esValue || '';
+        esInput.placeholder = def.kind === 'array' ? 'valor 1 | valor 2 | valor 3' : '';
         esInput.addEventListener('input', () => {
           def.esValue = esInput.value;
         });
-        esField.appendChild(esLabel);
-        esField.appendChild(esInput);
+        esWrap.appendChild(esTag);
+        esWrap.appendChild(esInput);
 
-        const enField = document.createElement('label');
-        enField.className = 'field grow';
-        const enLabel = document.createElement('span');
-        enLabel.textContent = def.kind === 'array' ? 'EN (one line per item)' : 'EN';
-        const enInput = document.createElement('textarea');
-        enInput.rows = def.kind === 'array' ? 4 : 2;
+        const enWrap = document.createElement('label');
+        enWrap.className = 'app-copy-tree-value';
+        const enTag = document.createElement('span');
+        enTag.textContent = 'EN';
+        const enInput = document.createElement('input');
+        enInput.type = 'text';
         enInput.value = def.enValue || '';
+        enInput.placeholder = def.kind === 'array' ? 'value 1 | value 2 | value 3' : '';
         enInput.addEventListener('input', () => {
           def.enValue = enInput.value;
         });
-        enField.appendChild(enLabel);
-        enField.appendChild(enInput);
+        enWrap.appendChild(enTag);
+        enWrap.appendChild(enInput);
 
-        fieldsRow.appendChild(esField);
-        fieldsRow.appendChild(enField);
-        row.appendChild(fieldsRow);
+        valuesEl.appendChild(esWrap);
+        valuesEl.appendChild(enWrap);
+        row.appendChild(valuesEl);
         el.appCopyGuidedEditor.appendChild(row);
       });
     }
@@ -542,7 +564,7 @@
       el.appCopyGuidedMeta.textContent =
         unsupportedCount > 0
           ? `${base} ${unsupportedCount} claves complejas no se muestran en este modo y se conservan tal cual.`
-          : base;
+          : `${base} Arrays en una línea, separados por "|".`;
     }
   };
 

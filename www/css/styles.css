@@ -71,8 +71,14 @@ page-chat {
   height: 100%;
 }
 
-/* Evita selección accidental de texto durante gestos en vistas de tabs. */
-tabs-page {
+/* Evita selección accidental de texto durante gestos en vistas de la app. */
+tabs-page,
+page-home,
+page-reference,
+page-free-ride,
+page-speak,
+page-profile,
+page-chat {
   -webkit-user-select: none;
   user-select: none;
   -webkit-touch-callout: none;
@@ -82,7 +88,31 @@ tabs-page {
 tabs-page input,
 tabs-page textarea,
 tabs-page [contenteditable='true'],
-tabs-page .allow-text-selection {
+tabs-page .allow-text-selection,
+page-home input,
+page-home textarea,
+page-home [contenteditable='true'],
+page-home .allow-text-selection,
+page-reference input,
+page-reference textarea,
+page-reference [contenteditable='true'],
+page-reference .allow-text-selection,
+page-free-ride input,
+page-free-ride textarea,
+page-free-ride [contenteditable='true'],
+page-free-ride .allow-text-selection,
+page-speak input,
+page-speak textarea,
+page-speak [contenteditable='true'],
+page-speak .allow-text-selection,
+page-profile input,
+page-profile textarea,
+page-profile [contenteditable='true'],
+page-profile .allow-text-selection,
+page-chat input,
+page-chat textarea,
+page-chat [contenteditable='true'],
+page-chat .allow-text-selection {
   -webkit-user-select: text;
   user-select: text;
   -webkit-touch-callout: default;

@@ -109,31 +109,34 @@ textarea {
 }
 
 .app-copy-tree-group {
-  margin-left: calc(var(--depth, 0) * 14px);
+  margin-left: calc(var(--depth, 0) * 18px);
   font-size: 12px;
   font-weight: 700;
-  color: #4f6388;
+  color: #274067;
   text-transform: uppercase;
   letter-spacing: 0.01em;
-  padding: 5px 8px 2px 8px;
+  padding: 6px 8px 4px 8px;
+  background: #f3f7ff;
+  border: 1px solid #dfe7f6;
+  border-radius: 6px;
 }
 
 .app-copy-tree-field {
-  margin-left: calc(var(--depth, 0) * 14px);
+  margin-left: calc(var(--depth, 0) * 18px);
   border: 1px solid #e5ebf5;
   border-radius: 8px;
   background: #fbfcff;
   padding: 8px;
   display: grid;
-  grid-template-columns: minmax(160px, 280px) minmax(0, 1fr);
+  grid-template-columns: minmax(120px, 210px) minmax(0, 1fr);
   gap: 10px;
   align-items: center;
 }
 
 .app-copy-tree-key {
   font-size: 13px;
-  font-weight: 600;
-  color: #243752;
+  font-weight: 700;
+  color: #152d52;
   word-break: break-word;
 }
 
@@ -145,7 +148,7 @@ textarea {
 
 .app-copy-tree-value {
   display: grid;
-  grid-template-columns: 28px minmax(0, 1fr);
+  grid-template-columns: 22px minmax(0, 1fr);
   align-items: center;
   gap: 8px;
 }
@@ -159,8 +162,8 @@ textarea {
 .app-copy-tree-value > input {
   width: 100%;
   min-width: 0;
-  font-size: 13px;
-  padding: 8px 9px;
+  font-size: 12px;
+  padding: 7px 8px;
 }
 
 .btn {
@@ -417,9 +420,6 @@ h2 {
     max-height: 180px;
   }
   .app-copy-tree-field {
-    grid-template-columns: 1fr;
-  }
-  .app-copy-tree-values {
     grid-template-columns: 1fr;
   }
 }

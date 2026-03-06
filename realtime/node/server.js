@@ -1828,6 +1828,11 @@ const hashEvent = (event) => {
     event.badge_id || '',
     event.badge_label || '',
     event.badge_icon || '',
+    event.route_id || '',
+    event.route_title || '',
+    event.badge_index ?? '',
+    event.badge_image || '',
+    event.badge_title || '',
     event.ts || ''
   ].join('|');
   return crypto.createHash('sha1').update(base).digest('hex');
@@ -1880,6 +1885,35 @@ const normalizeEvent = (rawEvent) => {
       payload.badge_icon ??
       rawEvent.badgeIcon ??
       payload.badgeIcon,
+    route_id:
+      rawEvent.route_id ??
+      payload.route_id ??
+      rawEvent.routeId ??
+      payload.routeId,
+    route_title:
+      rawEvent.route_title ??
+      payload.route_title ??
+      rawEvent.routeTitle ??
+      payload.routeTitle,
+    badge_index:
+      rawEvent.badge_index ??
+      payload.badge_index ??
+      rawEvent.badgeIndex ??
+      payload.badgeIndex,
+    badge_image:
+      rawEvent.badge_image ??
+      payload.badge_image ??
+      rawEvent.badgeImage ??
+      payload.badgeImage ??
+      rawEvent.image ??
+      payload.image,
+    badge_title:
+      rawEvent.badge_title ??
+      payload.badge_title ??
+      rawEvent.badgeTitle ??
+      payload.badgeTitle ??
+      rawEvent.title ??
+      payload.title,
     context:
       rawEvent.context ||
       payload.context ||
@@ -1991,7 +2025,14 @@ const applyEventToSnapshot = (snapshot, event) => {
       if (!snapshot.badges) snapshot.badges = {};
       const prev = snapshot.badges[event.badge_id] || { count: 0 };
       const count = coerceNumber(prev.count) || 0;
+      const badgeIndex = coerceNumber(event.badge_index) || coerceNumber(prev.badgeIndex) || 0;
       snapshot.badges[event.badge_id] = {
+        ...prev,
+        routeId: event.route_id || prev.routeId || '',
+        routeTitle: event.route_title || prev.routeTitle || '',
+        badgeIndex,
+        image: event.badge_image || prev.image || '',
+        title: event.badge_title || prev.title || '',
         count: count + 1,
         label: event.badge_label || prev.label || '',
         icon: event.badge_icon || prev.icon || '',

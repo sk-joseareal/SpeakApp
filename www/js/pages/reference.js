@@ -28,6 +28,7 @@ const HERO_MASCOT_REST_FRAME = HERO_MASCOT_FRAME_COUNT - 1;
 const HERO_MASCOT_FRAME_INTERVAL_MS = 150;
 const BROWSER_AUTONARRATION_EXTRA_DELAY_MS = 120;
 const REFERENCE_ALIGNED_CACHE_MAX_ITEMS = 80;
+const REFERENCE_HERO_AUTONARRATION_PLAYED_KEY = 'appv5:reference-hero-auto-narration-played';
 
 let markedParseFnPromise = null;
 
@@ -960,13 +961,28 @@ class PageReference extends HTMLElement {
   hasAutoHeroNarrationPlayed() {
     if (typeof window === 'undefined') return false;
     const appState = window.r34lp0w3r;
-    return Boolean(appState && appState.referenceHeroAutoNarrationPlayed);
+    if (appState && appState.referenceHeroAutoNarrationPlayed) return true;
+    try {
+      const persisted = localStorage.getItem(REFERENCE_HERO_AUTONARRATION_PLAYED_KEY) === '1';
+      if (persisted) {
+        if (!window.r34lp0w3r) window.r34lp0w3r = {};
+        window.r34lp0w3r.referenceHeroAutoNarrationPlayed = true;
+      }
+      return persisted;
+    } catch (err) {
+      return false;
+    }
   }
 
   markAutoHeroNarrationPlayed() {
     if (typeof window === 'undefined') return;
     if (!window.r34lp0w3r) window.r34lp0w3r = {};
     window.r34lp0w3r.referenceHeroAutoNarrationPlayed = true;
+    try {
+      localStorage.setItem(REFERENCE_HERO_AUTONARRATION_PLAYED_KEY, '1');
+    } catch (err) {
+      // no-op
+    }
   }
 
   async stopHeroNarrationPlayback() {
@@ -1708,6 +1724,7 @@ class PageReference extends HTMLElement {
     const SWIPE_DRAG_THRESHOLD = 10;
     const SWIPE_COMMIT_THRESHOLD = 56;
     const SWIPE_VERTICAL_RATIO = 1.2;
+    const TAP_EDGE_ZONE_RATIO = 0.25;
     let suppressTapUntil = 0;
     let swipeTouchActive = false;
     let swipeTouchHorizontal = false;
@@ -1842,12 +1859,14 @@ class PageReference extends HTMLElement {
       const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 0;
       if (!viewportWidth) return;
       const clientX = Number.isFinite(event.clientX) ? event.clientX : viewportWidth / 2;
-      const isLeftHalf = clientX < viewportWidth / 2;
-      if (isLeftHalf) {
+      const leftEdgeLimit = viewportWidth * TAP_EDGE_ZONE_RATIO;
+      const rightEdgeLimit = viewportWidth * (1 - TAP_EDGE_ZONE_RATIO);
+      if (clientX <= leftEdgeLimit) {
         if (!prevLessonRef) return;
         openLesson(prevLessonRef);
         return;
       }
+      if (clientX < rightEdgeLimit) return;
       if (!nextLessonRef) return;
       openLesson(nextLessonRef);
     });

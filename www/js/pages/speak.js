@@ -1858,7 +1858,10 @@ class PageSpeak extends HTMLElement {
           type: 'badge_unlock',
           badge_id: meta.id,
           route_id: meta.routeId,
+          route_title: meta.routeTitle,
           badgeIndex: meta.badgeIndex,
+          badge_image: meta.image,
+          badge_title: meta.title,
           ts: now
         });
       }

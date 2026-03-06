@@ -2171,6 +2171,15 @@ class PageDiagnostics extends HTMLElement {
       } else {
         window.dispatchEvent(new CustomEvent('app:speak-stores-change'));
       }
+      if (typeof window.syncSpeakProgress === 'function') {
+        window
+          .syncSpeakProgress({
+            reason: 'diag-badge-toggle',
+            includeSnapshot: true,
+            strategy: 'replace'
+          })
+          .catch(() => {});
+      }
       updateSpeakPanels();
       renderBadgePicker();
     });

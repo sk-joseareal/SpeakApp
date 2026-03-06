@@ -1,0 +1,4 @@
+
+
+node --input-type=module -e "import('./www/js/content/copy.js').then(({getCopyBundle})=>{process.stdout.write(JSON.stringify({es:getCopyBundle('es'),en:getCopyBundle('en')},null,2));})" > /tmp/app-copy.current.json
+

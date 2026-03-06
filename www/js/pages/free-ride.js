@@ -32,6 +32,7 @@ const FREE_RIDE_PLAYBACK_RATE_MIN = 0.5;
 const FREE_RIDE_PLAYBACK_RATE_MAX = 1.5;
 const FREE_RIDE_PLAYBACK_RATE_STEP = 0.05;
 const FREE_RIDE_WORD_TAP_AUDIO_ENABLED_KEY = 'appv5:free-ride-word-tap-audio-enabled';
+const FREE_RIDE_HERO_AUTONARRATION_PLAYED_KEY = 'appv5:free-ride-hero-auto-narration-played';
 const FREE_RIDE_SAVED_PHRASES_PREFIX = 'appv5:lab-saved-phrases:';
 const FREE_RIDE_SAVED_PHRASES_MAX_ITEMS = 120;
 const FREE_RIDE_EVAL_MODE_KEY = 'appv5:free-ride-eval-mode';
@@ -4186,13 +4187,28 @@ class PageFreeRide extends HTMLElement {
   hasAutoHeroNarrationPlayed() {
     if (typeof window === 'undefined') return false;
     const appState = window.r34lp0w3r;
-    return Boolean(appState && appState.freeRideHeroAutoNarrationPlayed);
+    if (appState && appState.freeRideHeroAutoNarrationPlayed) return true;
+    try {
+      const persisted = localStorage.getItem(FREE_RIDE_HERO_AUTONARRATION_PLAYED_KEY) === '1';
+      if (persisted) {
+        if (!window.r34lp0w3r) window.r34lp0w3r = {};
+        window.r34lp0w3r.freeRideHeroAutoNarrationPlayed = true;
+      }
+      return persisted;
+    } catch (err) {
+      return false;
+    }
   }
 
   markAutoHeroNarrationPlayed() {
     if (typeof window === 'undefined') return;
     if (!window.r34lp0w3r) window.r34lp0w3r = {};
     window.r34lp0w3r.freeRideHeroAutoNarrationPlayed = true;
+    try {
+      localStorage.setItem(FREE_RIDE_HERO_AUTONARRATION_PLAYED_KEY, '1');
+    } catch (err) {
+      // no-op
+    }
   }
 
   extractSpeechText(value) {

@@ -27,6 +27,7 @@ const PLAN_MASCOT_FRAME_INTERVAL_MS = 150;
 const BROWSER_AUTONARRATION_EXTRA_DELAY_MS = 120;
 const SPEAK_SESSION_PERCENTAGES_VISIBLE_KEY = 'appv5:speak-session-percentages-visible';
 const HOME_ALIGNED_CACHE_MAX_ITEMS = 24;
+const HOME_PLAN_AUTONARRATION_PLAYED_KEY = 'appv5:home-plan-auto-narration-played';
 
 class PageHome extends HTMLElement {
   constructor() {
@@ -1545,13 +1546,28 @@ class PageHome extends HTMLElement {
   hasAutoPlanNarrationPlayed() {
     if (typeof window === 'undefined') return false;
     const appState = window.r34lp0w3r;
-    return Boolean(appState && appState.homePlanAutoNarrationPlayed);
+    if (appState && appState.homePlanAutoNarrationPlayed) return true;
+    try {
+      const persisted = localStorage.getItem(HOME_PLAN_AUTONARRATION_PLAYED_KEY) === '1';
+      if (persisted) {
+        if (!window.r34lp0w3r) window.r34lp0w3r = {};
+        window.r34lp0w3r.homePlanAutoNarrationPlayed = true;
+      }
+      return persisted;
+    } catch (err) {
+      return false;
+    }
   }
 
   markAutoPlanNarrationPlayed() {
     if (typeof window === 'undefined') return;
     if (!window.r34lp0w3r) window.r34lp0w3r = {};
     window.r34lp0w3r.homePlanAutoNarrationPlayed = true;
+    try {
+      localStorage.setItem(HOME_PLAN_AUTONARRATION_PLAYED_KEY, '1');
+    } catch (err) {
+      // no-op
+    }
   }
 
   setupBrowserNarrationRetry() {

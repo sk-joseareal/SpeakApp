@@ -10,6 +10,7 @@ import {
 import {
   getLocaleMeta,
   getNextLocaleCode,
+  getReferenceCopy,
   getTabsCopy,
   normalizeLocale as normalizeCopyLocale
 } from '../content/copy.js';
@@ -477,23 +478,6 @@ class PageReference extends HTMLElement {
     } catch (err) {
       // fallback already rendered
     }
-  }
-
-  getReferenceCopy(locale) {
-    const isEs = locale === 'es';
-    return {
-      title: isEs ? 'Referencia' : 'Reference',
-      subtitle: isEs
-        ? 'Explora cursos, unidades y lecciones para consultar contenido.'
-        : 'Browse courses, units, and lessons to review content.',
-      selectedLesson: isEs ? 'Lección seleccionada' : 'Selected lesson',
-      noContent: isEs ? 'No hay contenido para esta lección.' : 'No content available for this lesson.',
-      noData: isEs ? 'No hay contenido de referencia disponible.' : 'No reference content available.',
-      loading: isEs ? 'Cargando referencia...' : 'Loading reference...',
-      toggleLanguage: isEs ? 'Cambiar idioma a {lang}' : 'Switch language to {lang}',
-      lessonListEmpty: isEs ? 'Esta unidad no tiene lecciones.' : 'This unit has no lessons.',
-      chooseLesson: isEs ? 'Selecciona una lección para ver su contenido.' : 'Select a lesson to view its content.'
-    };
   }
 
   async scrollContentIntoView(options = {}) {
@@ -1389,7 +1373,7 @@ class PageReference extends HTMLElement {
     const baseLocale = this.getBaseLocale();
     const uiLocale = this.getUiLocale(baseLocale);
     const tabsCopy = getTabsCopy(uiLocale);
-    const copy = this.getReferenceCopy(uiLocale);
+    const copy = getReferenceCopy(uiLocale);
     const flag = getLocaleMeta(uiLocale);
     const nextLocale = getNextLocaleCode(uiLocale);
     const nextLocaleMeta = getLocaleMeta(nextLocale);

@@ -53,6 +53,7 @@ Funciones incluidas:
 - Editor (MVP): alta/edición/reordenación de `routes`, `modules` y `sessions`
   - En sesiones: edición de `focus`, `sound`, `spelling(words)` y `sentence`
 - Modo JSON avanzado para edición completa `{ routes, modules, sessions }`
+- Editor JSON de copys de app (`{ es, en }`) para revisión rápida (sin versionado)
 - Validar estructura básica del JSON en cliente
 - Guardar draft (`PUT /content/admin/training-data`)
 - Publicar draft con nombre de release (`POST /content/admin/publish`)
@@ -98,6 +99,10 @@ Lock de draft:
 - `GET /content/admin/training-data`
 - `PUT /content/admin/training-data`
   - Reemplaza borrador con payload completo `{ routes, modules, sessions }`.
+- `GET /content/admin/app-copy`
+  - Lee JSON de copys de app guardado en servidor (`settings.app_copy_json`).
+- `PUT /content/admin/app-copy`
+  - Guarda JSON de copys de app (requiere raíz `{ es: {...}, en: {...} }`).
 - `POST /content/admin/import/training-json`
   - Importa desde `payload` o desde fichero.
   - Body opcional:

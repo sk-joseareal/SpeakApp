@@ -68,7 +68,7 @@ class TabsPage extends HTMLElement {
           </ion-tab-button>
           <ion-tab-button tab="reference">
             <ion-icon name="book-outline"></ion-icon>
-            <ion-label data-tab-label="reference">${tabsCopy.reference || 'Reference'}</ion-label>
+            <ion-label data-tab-label="reference">${tabsCopy.reference}</ion-label>
           </ion-tab-button>
           <ion-tab-button tab="tu">
             <ion-icon name="person-circle-outline"></ion-icon>
@@ -93,7 +93,7 @@ class TabsPage extends HTMLElement {
       const chatLabel = this.querySelector('[data-tab-label="chat"]');
       if (homeLabel) homeLabel.textContent = copy.training;
       if (freeRideLabel) freeRideLabel.textContent = copy.lab;
-      if (referenceLabel) referenceLabel.textContent = copy.reference || 'Reference';
+      if (referenceLabel) referenceLabel.textContent = copy.reference;
       if (youLabel) youLabel.textContent = copy.you;
       if (chatLabel) chatLabel.textContent = copy.chat;
     };

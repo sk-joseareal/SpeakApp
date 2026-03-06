@@ -59,6 +59,7 @@ const ttsVerifyHeadTimeoutMs = Math.max(
   1000,
   Number(env('CONTENT_TTS_VERIFY_HEAD_TIMEOUT_MS', '4000')) || 4000
 );
+const APP_COPY_SETTING_KEY = 'app_copy_json';
 
 const ensureDir = (filepath) => {
   const dir = path.dirname(filepath);
@@ -379,6 +380,24 @@ const isPlainObject = (value) => Boolean(value && typeof value === 'object' && !
 
 const hasOwnKeys = (value) => isPlainObject(value) && Object.keys(value).length > 0;
 
+const normalizeAppCopyPayload = (payload) => {
+  if (!isPlainObject(payload)) {
+    throw new Error('app_copy_invalid_payload');
+  }
+  const serialized = JSON.stringify(payload);
+  if (!serialized || serialized.length > 2 * 1024 * 1024) {
+    throw new Error('app_copy_too_large');
+  }
+  const cloned = parseJsonSafe(serialized, null);
+  if (!isPlainObject(cloned)) {
+    throw new Error('app_copy_invalid_payload');
+  }
+  if (!isPlainObject(cloned.es) || !isPlainObject(cloned.en)) {
+    throw new Error('app_copy_locale_roots_required');
+  }
+  return cloned;
+};
+
 const normalizeHintLocale = (value) => {
   const normalized = String(value || '')
     .trim()
@@ -653,9 +672,18 @@ const setSetting = db.prepare(`
 `);
 
 const getSettingStmt = db.prepare('SELECT value FROM settings WHERE key = ?');
+const getSettingRowStmt = db.prepare('SELECT value, updated_at FROM settings WHERE key = ?');
 const getSetting = (key) => {
   const row = getSettingStmt.get(String(key));
   return row ? row.value : null;
+};
+const getSettingRow = (key) => {
+  const row = getSettingRowStmt.get(String(key));
+  if (!row) return null;
+  return {
+    value: row.value,
+    updated_at: row.updated_at || null
+  };
 };
 
 const countEditorsStmt = db.prepare('SELECT COUNT(*) AS n FROM editor_users').pluck();
@@ -2445,6 +2473,55 @@ app.put('/content/admin/training-data', requireEditor, blockIfDraftLockedByOther
         modules: normalized.modules.length,
         sessions: normalized.sessions.length
       }
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+app.get('/content/admin/app-copy', requireEditor, (req, res, next) => {
+  try {
+    const row = getSettingRow(APP_COPY_SETTING_KEY);
+    if (!row || !row.value) {
+      res.json({
+        ok: true,
+        data: null,
+        updated_at: null
+      });
+      return;
+    }
+    const parsed = parseJsonSafe(row.value, null);
+    if (!isPlainObject(parsed)) {
+      res.status(500).json({ ok: false, error: 'app_copy_invalid_storage' });
+      return;
+    }
+    res.json({
+      ok: true,
+      data: parsed,
+      updated_at: row.updated_at || null
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+app.put('/content/admin/app-copy', requireEditor, (req, res, next) => {
+  try {
+    const payload = req.body && typeof req.body === 'object' ? req.body : {};
+    const normalized = normalizeAppCopyPayload(payload);
+    const now = nowIso();
+    setSetting.run({
+      key: APP_COPY_SETTING_KEY,
+      value: JSON.stringify(normalized),
+      updated_at: now
+    });
+    writeAuditLog(req, 'app_copy.save', 'app_copy', {
+      bytes: Buffer.byteLength(JSON.stringify(normalized), 'utf8')
+    });
+    res.json({
+      ok: true,
+      data: normalized,
+      updated_at: now
     });
   } catch (err) {
     next(err);

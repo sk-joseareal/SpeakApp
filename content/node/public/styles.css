@@ -94,6 +94,10 @@ textarea {
   resize: vertical;
 }
 
+#appCopyEditor {
+  min-height: 340px;
+}
+
 .btn {
   border: 1px solid var(--border);
   background: #f8faff;

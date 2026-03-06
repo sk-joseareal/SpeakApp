@@ -38,6 +38,11 @@
     releasesBox: document.getElementById('releasesBox'),
     editorModeSection: document.getElementById('editorModeSection'),
     releasesSection: document.getElementById('releasesSection'),
+    appCopySection: document.getElementById('appCopySection'),
+    appCopyEditor: document.getElementById('appCopyEditor'),
+    loadAppCopyBtn: document.getElementById('loadAppCopyBtn'),
+    validateAppCopyBtn: document.getElementById('validateAppCopyBtn'),
+    saveAppCopyBtn: document.getElementById('saveAppCopyBtn'),
 
     modeGuidedBtn: document.getElementById('modeGuidedBtn'),
     modeJsonBtn: document.getElementById('modeJsonBtn'),
@@ -115,6 +120,7 @@
   let editorMode = MODE_GUIDED;
   let jsonDirty = false;
   let syncingJsonEditor = false;
+  let syncingAppCopyEditor = false;
   let sessionJwt = '';
   let currentAuth = null;
   let currentEditor = null;
@@ -320,6 +326,32 @@
     return payload;
   };
 
+  const normalizeAppCopyPayload = (payload) => {
+    if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+      throw new Error('Estructura inválida: raíz debe ser objeto.');
+    }
+    if (!payload.es || typeof payload.es !== 'object' || Array.isArray(payload.es)) {
+      throw new Error('Estructura inválida: falta raíz "es" (objeto).');
+    }
+    if (!payload.en || typeof payload.en !== 'object' || Array.isArray(payload.en)) {
+      throw new Error('Estructura inválida: falta raíz "en" (objeto).');
+    }
+    return JSON.parse(JSON.stringify(payload));
+  };
+
+  const tryParseAppCopyEditor = () => {
+    const raw = String(el.appCopyEditor && el.appCopyEditor.value ? el.appCopyEditor.value : '').trim();
+    if (!raw) throw new Error('JSON de copys vacío');
+    const payload = JSON.parse(raw);
+    return normalizeAppCopyPayload(payload);
+  };
+
+  const syncAppCopyEditorFromPayload = (payload) => {
+    syncingAppCopyEditor = true;
+    el.appCopyEditor.value = JSON.stringify(payload || { es: {}, en: {} }, null, 2);
+    syncingAppCopyEditor = false;
+  };
+
   const headers = (withBody = false) => {
     const result = {};
     if (sessionJwt) result.Authorization = `Bearer ${sessionJwt}`;
@@ -470,6 +502,9 @@
     }
     if (el.releasesSection) {
       el.releasesSection.classList.toggle('hidden', !canAccessEditor);
+    }
+    if (el.appCopySection) {
+      el.appCopySection.classList.toggle('hidden', !canAccessEditor);
     }
   };
 
@@ -1670,6 +1705,7 @@
       await loadDraft();
       await loadReleases();
       await loadEditors({ silent: true });
+      await loadAppCopy({ silent: true });
       setStatus('Login OK.', {
         editor: out.editor || null,
         expires_in: out.expires_in || null
@@ -1688,6 +1724,9 @@
     renderAuthSummary();
     renderLockInfo();
     renderEditors([]);
+    if (el.appCopyEditor) {
+      syncAppCopyEditorFromPayload({ es: {}, en: {} });
+    }
     setStatus('Sesión cerrada.');
   };
 
@@ -1840,6 +1879,75 @@
     }
   };
 
+  const loadAppCopy = async ({ silent = false } = {}) => {
+    if (!isAuthenticated()) {
+      if (el.appCopyEditor) {
+        syncAppCopyEditorFromPayload({ es: {}, en: {} });
+      }
+      return;
+    }
+    try {
+      const out = await api('/content/admin/app-copy', {
+        headers: headers(false)
+      });
+      const payload =
+        out && out.data && typeof out.data === 'object' && !Array.isArray(out.data)
+          ? out.data
+          : { es: {}, en: {} };
+      syncAppCopyEditorFromPayload(payload);
+      if (!silent) {
+        setStatus('Copys app cargados.', {
+          updated_at: out && out.updated_at ? out.updated_at : null
+        });
+      }
+    } catch (err) {
+      if (el.appCopyEditor) {
+        syncAppCopyEditorFromPayload({ es: {}, en: {} });
+      }
+      if (!silent) {
+        setStatus('Error cargando copys app.', err.response || { error: err.message });
+      }
+    }
+  };
+
+  const validateAppCopy = () => {
+    try {
+      const payload = tryParseAppCopyEditor();
+      setStatus('Copys app válidos.', {
+        locales: Object.keys(payload),
+        keys_es: Object.keys(payload.es || {}).length,
+        keys_en: Object.keys(payload.en || {}).length
+      });
+    } catch (err) {
+      setStatus('Copys app inválidos.', { error: err.message });
+    }
+  };
+
+  const saveAppCopy = async () => {
+    if (!isAuthenticated()) {
+      setStatus('Debes iniciar sesión para guardar copys app.');
+      return;
+    }
+    try {
+      const payload = tryParseAppCopyEditor();
+      const out = await api('/content/admin/app-copy', {
+        method: 'PUT',
+        headers: headers(true),
+        body: JSON.stringify(payload)
+      });
+      const savedPayload =
+        out && out.data && typeof out.data === 'object' && !Array.isArray(out.data)
+          ? out.data
+          : payload;
+      syncAppCopyEditorFromPayload(savedPayload);
+      setStatus('Copys app guardados.', {
+        updated_at: out && out.updated_at ? out.updated_at : null
+      });
+    } catch (err) {
+      setStatus('Error guardando copys app.', err.response || { error: err.message });
+    }
+  };
+
   const saveDraft = async () => {
     try {
       const payload = tryParseEditor();
@@ -1988,6 +2096,15 @@
     el.saveDraftBtn.addEventListener('click', saveDraft);
     el.publishBtn.addEventListener('click', publishDraft);
     el.refreshReleasesBtn.addEventListener('click', loadReleases);
+    if (el.loadAppCopyBtn) {
+      el.loadAppCopyBtn.addEventListener('click', () => loadAppCopy({ silent: false }));
+    }
+    if (el.validateAppCopyBtn) {
+      el.validateAppCopyBtn.addEventListener('click', validateAppCopy);
+    }
+    if (el.saveAppCopyBtn) {
+      el.saveAppCopyBtn.addEventListener('click', saveAppCopy);
+    }
 
     bindGuidedEditorEvents();
     setEditorMode(MODE_GUIDED);
@@ -2000,6 +2117,7 @@
     await loadReleases();
     await refreshLock({ silent: true });
     await loadEditors({ silent: true });
+    await loadAppCopy({ silent: true });
   };
 
   bootstrap();

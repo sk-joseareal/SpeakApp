@@ -365,6 +365,19 @@
       <textarea id="jsonEditor" spellcheck="false"></textarea>
     </section>
 
+    <section id="appCopySection" class="card hidden">
+      <div class="row between center">
+        <h2>Copys app (JSON)</h2>
+      </div>
+      <p class="hint">No afecta releases de training. Edítalo aquí y luego cópialo manualmente a la app.</p>
+      <div class="row row-wrap gap-sm top-md">
+        <button id="loadAppCopyBtn" class="btn">Cargar copys</button>
+        <button id="validateAppCopyBtn" class="btn">Validar copys</button>
+        <button id="saveAppCopyBtn" class="btn btn-primary">Guardar copys</button>
+      </div>
+      <textarea id="appCopyEditor" spellcheck="false" placeholder='{"es": {}, "en": {}}'></textarea>
+    </section>
+
     <section id="releasesSection" class="card">
       <div class="row between center">
         <h2>Releases</h2>

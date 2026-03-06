@@ -77,6 +77,13 @@ Si otra persona tiene el lock, las escrituras devuelven `draft_locked_by_other`.
 - `JSON`: edición avanzada del payload completo.
 - `Aplicar JSON`: aparece solo si modificaste manualmente el JSON.
 
+## Bloque Copys app (JSON)
+
+- `Cargar copys`: carga el JSON de copys guardado en servidor.
+- `Validar copys`: valida que el JSON tenga raíz `es` y `en`.
+- `Guardar copys`: persiste el JSON de copys (no crea release).
+- Uso recomendado: editar aquí y luego copiar manualmente a `www/js/content/copy.js` en el repo/app.
+
 ## Bloque Editor (formulario)
 
 Vista en 4 columnas:

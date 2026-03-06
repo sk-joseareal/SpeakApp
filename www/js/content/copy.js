@@ -26,6 +26,17 @@ const APP_COPY = {
       you: 'You',
       chat: 'Chat'
     },
+    reference: {
+      title: 'Referencia',
+      subtitle: 'Explora cursos, unidades y lecciones para consultar contenido.',
+      selectedLesson: 'Lección seleccionada',
+      noContent: 'No hay contenido para esta lección.',
+      noData: 'No hay contenido de referencia disponible.',
+      loading: 'Cargando referencia...',
+      toggleLanguage: 'Cambiar idioma a {lang}',
+      lessonListEmpty: 'Esta unidad no tiene lecciones.',
+      chooseLesson: 'Selecciona una lección para ver su contenido.'
+    },
     notifications: {
       title: 'Notificaciones',
       recentActivity: 'Actividad reciente',
@@ -217,10 +228,9 @@ const APP_COPY = {
       retrySend: 'Reintentar',
       send: 'Enviar',
       hintDefault: 'Pulsa "Grabar" y luego "Detener" para crear tu frase.',
-      hintDailyLimitWithCount: (used, limit) =>
-        `Limite diario alcanzado: ${used} / ${limit} tokens. Vuelve manana.`,
+      hintDailyLimitWithCount: 'Limite diario alcanzado: {used} / {limit} tokens. Vuelve manana.',
       hintDailyLimit: 'Limite diario del chatbot alcanzado. Vuelve manana.',
-      hintListening: (preview) => `Escuchando: "${preview}"`,
+      hintListening: 'Escuchando: "{preview}"',
       hintNoAudio: 'No se detecto audio. Pulsa "Grabar" para intentarlo de nuevo.',
       hintRecordingTranscribing: 'Grabando... habla en ingles y pulsa "Detener".',
       hintRecordingSimulated: 'Grabando... pulsa "Detener" (transcripcion simulada).',
@@ -315,6 +325,17 @@ const APP_COPY = {
       reference: 'Reference',
       you: 'You',
       chat: 'Chat'
+    },
+    reference: {
+      title: 'Reference',
+      subtitle: 'Browse courses, units, and lessons to review content.',
+      selectedLesson: 'Selected lesson',
+      noContent: 'No content available for this lesson.',
+      noData: 'No reference content available.',
+      loading: 'Loading reference...',
+      toggleLanguage: 'Switch language to {lang}',
+      lessonListEmpty: 'This unit has no lessons.',
+      chooseLesson: 'Select a lesson to view its content.'
     },
     notifications: {
       title: 'Notifications',
@@ -507,10 +528,9 @@ const APP_COPY = {
       retrySend: 'Retry',
       send: 'Send',
       hintDefault: 'Tap "Record" and then "Stop" to create your phrase.',
-      hintDailyLimitWithCount: (used, limit) =>
-        `Daily limit reached: ${used} / ${limit} tokens. Come back tomorrow.`,
+      hintDailyLimitWithCount: 'Daily limit reached: {used} / {limit} tokens. Come back tomorrow.',
       hintDailyLimit: 'Chatbot daily limit reached. Come back tomorrow.',
-      hintListening: (preview) => `Listening: "${preview}"`,
+      hintListening: 'Listening: "{preview}"',
       hintNoAudio: 'No audio detected. Tap "Record" to try again.',
       hintRecordingTranscribing: 'Recording... speak in English and tap "Stop".',
       hintRecordingSimulated: 'Recording... tap "Stop" (simulated transcript).',
@@ -635,7 +655,35 @@ export const getFreeRideCopy = (locale) => getCopyBundle(locale).freeRide;
 
 export const getSpeakCopy = (locale) => getCopyBundle(locale).speak;
 
-export const getChatCopy = (locale) => getCopyBundle(locale).chat;
+const formatCopyTemplate = (template, params = {}) =>
+  String(template || '').replace(/\{([a-zA-Z0-9_]+)\}/g, (_match, key) =>
+    params[key] === undefined || params[key] === null ? '' : String(params[key])
+  );
+
+const withComputedChatCopy = (chatCopy) => {
+  const source = chatCopy && typeof chatCopy === 'object' ? chatCopy : {};
+  const out = { ...source };
+  const dailyTemplate = String(source.hintDailyLimitWithCount || '');
+  const listeningTemplate = String(source.hintListening || '');
+  out.hintDailyLimitWithCount =
+    typeof source.hintDailyLimitWithCount === 'function'
+      ? source.hintDailyLimitWithCount
+      : (used, limit) =>
+          formatCopyTemplate(dailyTemplate, {
+            used,
+            limit
+          });
+  out.hintListening =
+    typeof source.hintListening === 'function'
+      ? source.hintListening
+      : (preview) =>
+          formatCopyTemplate(listeningTemplate, {
+            preview
+          });
+  return out;
+};
+
+export const getChatCopy = (locale) => withComputedChatCopy(getCopyBundle(locale).chat);
 
 export const getProfileCopy = (locale) => getCopyBundle(locale).profile;
 
@@ -644,3 +692,5 @@ export const getTabsCopy = (locale) => getCopyBundle(locale).tabs;
 export const getNotificationsCopy = (locale) => getCopyBundle(locale).notifications;
 
 export const getLoginCopy = (locale) => getCopyBundle(locale).login;
+
+export const getReferenceCopy = (locale) => getCopyBundle(locale).reference;

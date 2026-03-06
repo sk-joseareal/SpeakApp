@@ -1644,7 +1644,7 @@ class PageFreeRide extends HTMLElement {
     return {
       visible: true,
       tone,
-      html: `<strong>${expected}</strong> · ${this.renderFreeRideUiLabelHtml('score', { altClass: 'is-mini' })} ${scoreText} · ${statusLabel} · Grabado: ${recognized} · Error: ${errorType}${phonemeText}`
+      html: `<strong>${expected}</strong> · ${this.renderFreeRideUiLabelHtml('score', { altClass: 'is-mini' })} ${scoreText} · ${statusLabel} · ${this.renderFreeRideUiLabelHtml('recorded')}: ${recognized} · ${this.renderFreeRideUiLabelHtml('error')}: ${errorType}${phonemeText}`
     };
   }
 

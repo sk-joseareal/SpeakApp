@@ -45,28 +45,34 @@ html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); f
 .dashboard-tabs {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 4px;
   margin-top: 14px;
-  padding: 0;
+  padding: 4px;
+  background: #eef2f8;
+  border: 1px solid var(--border);
+  border-radius: 12px;
 }
 
-.dashboard-tab-btn {
-  min-width: 116px;
-}
-
-.dashboard-tab-btn.is-active {
-  background: #e9f0ff;
-  border-color: #8fb2ff;
-  color: #23468f;
+.dashboard-tabs .dashboard-tab-btn {
+  min-width: 96px;
+  border: 0;
+  background: transparent;
+  border-radius: 8px;
+  color: #52607b;
   font-weight: 600;
-  box-shadow: 0 0 0 2px rgba(45, 111, 247, 0.14) inset;
+  box-shadow: none;
 }
 
-.dashboard-tab-btn.is-disabled,
-.dashboard-tab-btn:disabled {
-  opacity: 0.5;
-  background: #f2f4f8;
-  border-color: #d9e0ec;
+.dashboard-tabs .dashboard-tab-btn.is-active {
+  background: #ffffff;
+  color: #23468f;
+  box-shadow: 0 1px 0 rgba(34, 51, 84, 0.05), 0 0 0 1px #d4e0fb inset;
+}
+
+.dashboard-tabs .dashboard-tab-btn.is-disabled,
+.dashboard-tabs .dashboard-tab-btn:disabled {
+  opacity: 0.45;
+  background: transparent;
   color: #77829b;
   cursor: not-allowed;
   box-shadow: none;

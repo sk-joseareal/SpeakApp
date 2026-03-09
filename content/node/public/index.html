@@ -89,30 +89,28 @@
       <div id="editorsList" class="releases top-md"></div>
     </section>
 
-    <section id="editorModeSection" class="card">
-      <div class="row between center">
-        <h2>Editor</h2>
-      </div>
-      <div class="row row-wrap gap-sm top-md">
-        <button id="loadDraftBtn" class="btn btn-primary">Cargar draft</button>
-        <button id="loadPublicBtn" class="btn">Cargar público</button>
-        <button id="validateBtn" class="btn">Validar JSON</button>
-        <button id="saveDraftBtn" class="btn btn-primary">Guardar draft</button>
-      </div>
-      <div class="row row-wrap gap-sm top-md">
-        <button id="modeGuidedBtn" class="btn btn-primary">Editor</button>
-        <button id="modeJsonBtn" class="btn">JSON</button>
-        <button id="syncFromJsonBtn" class="btn hidden">Aplicar JSON</button>
-      </div>
-    </section>
-
     <section id="guidedSection" class="card">
       <div class="row between center">
         <h2>Editor</h2>
         <small id="guidedCountsBox" class="muted"></small>
       </div>
+      <div class="row row-wrap gap-sm between center top-md">
+        <div class="row row-wrap gap-sm">
+          <button id="loadDraftBtn" class="btn btn-primary">Cargar draft</button>
+          <button id="loadPublicBtn" class="btn">Cargar público</button>
+          <button id="validateBtn" class="btn">Validar JSON</button>
+          <button id="saveDraftBtn" class="btn btn-primary">Guardar draft</button>
+        </div>
+        <div class="row row-wrap gap-sm center">
+          <div class="segmented-toggle" role="tablist" aria-label="Modo editor">
+            <button id="modeGuidedBtn" class="btn is-active" type="button">Editor</button>
+            <button id="modeJsonBtn" class="btn" type="button">JSON</button>
+          </div>
+          <button id="syncFromJsonBtn" class="btn hidden">Aplicar JSON</button>
+        </div>
+      </div>
 
-      <div class="guided-grid">
+      <div id="guidedBodySection" class="guided-grid">
         <article class="guided-col">
           <div class="row between center">
             <h3>Routes</h3>
@@ -359,7 +357,7 @@
 
     <section id="jsonSection" class="card">
       <div class="row between center">
-        <h2>Editor JSON (draft)</h2>
+        <h2>JSON (draft)</h2>
         <small id="countsBox" class="muted"></small>
       </div>
       <textarea id="jsonEditor" spellcheck="false"></textarea>

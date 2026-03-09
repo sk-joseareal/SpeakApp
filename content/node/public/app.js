@@ -38,7 +38,6 @@
     guidedCountsBox: document.getElementById('guidedCountsBox'),
     jsonEditor: document.getElementById('jsonEditor'),
     releasesBox: document.getElementById('releasesBox'),
-    editorModeSection: document.getElementById('editorModeSection'),
     releasesSection: document.getElementById('releasesSection'),
     appCopySection: document.getElementById('appCopySection'),
     appCopyEditor: document.getElementById('appCopyEditor'),
@@ -56,6 +55,7 @@
     modeJsonBtn: document.getElementById('modeJsonBtn'),
     syncFromJsonBtn: document.getElementById('syncFromJsonBtn'),
     guidedSection: document.getElementById('guidedSection'),
+    guidedBodySection: document.getElementById('guidedBodySection'),
     jsonSection: document.getElementById('jsonSection'),
 
     routesList: document.getElementById('routesList'),
@@ -641,8 +641,8 @@
     const guided = editorMode === MODE_GUIDED;
     el.modeGuidedBtn.classList.toggle('is-active', guided);
     el.modeJsonBtn.classList.toggle('is-active', !guided);
-    el.modeGuidedBtn.classList.toggle('btn-primary', guided);
-    el.modeJsonBtn.classList.toggle('btn-primary', !guided);
+    el.modeGuidedBtn.setAttribute('aria-pressed', guided ? 'true' : 'false');
+    el.modeJsonBtn.setAttribute('aria-pressed', !guided ? 'true' : 'false');
     renderEditorVisibility();
     updateSyncFromJsonButtonState();
   };
@@ -751,11 +751,11 @@
   const renderEditorVisibility = () => {
     const canAccessEditor = isAuthenticated();
     const guided = editorMode === MODE_GUIDED;
-    if (el.editorModeSection) {
-      el.editorModeSection.classList.toggle('hidden', !canAccessEditor);
-    }
     if (el.guidedSection) {
-      el.guidedSection.classList.toggle('hidden', !canAccessEditor || !guided);
+      el.guidedSection.classList.toggle('hidden', !canAccessEditor);
+    }
+    if (el.guidedBodySection) {
+      el.guidedBodySection.classList.toggle('hidden', !canAccessEditor || !guided);
     }
     if (el.jsonSection) {
       el.jsonSection.classList.toggle('hidden', !canAccessEditor || guided);

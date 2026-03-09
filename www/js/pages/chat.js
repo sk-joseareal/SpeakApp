@@ -195,6 +195,7 @@ class PageChat extends HTMLElement {
     let activeMessagePlayback = { id: '', source: '' };
     let previewAudio = null;
     let isPreviewPlaying = false;
+    const preparedMessageAudio = new Map();
     const retainedAudioUrls = [];
     let speechRecognizer = null;
     let speechTranscript = '';
@@ -247,6 +248,7 @@ class PageChat extends HTMLElement {
     };
     const COACH_MASCOT_FRAME_INTERVAL_MS = 150;
     const COACH_MASCOT_AUDIO_START_DELAY_MS = 140;
+    const CHATBOT_AUDIO_PREROLL_WAIT_MS = 850;
     const REALTIME_EMIT_TIMEOUT_MS = 8000;
     const CHATBOT_REPLY_TIMEOUT_MS = 12000;
     const RECORDING_TIMESLICE = 500;
@@ -2072,7 +2074,17 @@ class PageChat extends HTMLElement {
 	        clearActiveMessagePlayback(messageId);
 	        stopCoachMascotTalk({ settle: true });
 	      };
-	      const audio = new Audio(url);
+	      const preparedEntry = getPreparedMessageAudioEntry(messageId, url);
+	      const audio = preparedEntry && preparedEntry.audio ? preparedEntry.audio : new Audio(url);
+	      audio.preload = 'auto';
+	      if (!preparedEntry) {
+	        audio.src = url;
+	      }
+	      try {
+	        audio.currentTime = 0;
+	      } catch (_err) {
+	        // no-op
+	      }
 	      activeAudio = audio;
 	      audio.onplaying = startTalkOnAudible;
 	      const playPromise = audio.play();
@@ -2502,6 +2514,92 @@ class PageChat extends HTMLElement {
       syncActiveMessagePlaybackUi();
     };
 
+    const clearPreparedMessageAudio = (messageId = '') => {
+      if (!messageId) {
+        preparedMessageAudio.clear();
+        return;
+      }
+      preparedMessageAudio.delete(String(messageId).trim());
+    };
+
+    const getPreparedMessageAudioEntry = (messageId, audioUrl = '') => {
+      const key = messageId ? String(messageId).trim() : '';
+      if (!key) return null;
+      const entry = preparedMessageAudio.get(key);
+      if (!entry) return null;
+      if (audioUrl && entry.url !== audioUrl) return null;
+      return entry;
+    };
+
+    const ensurePreparedMessageAudio = (messageId, audioUrl) => {
+      const key = messageId ? String(messageId).trim() : '';
+      const url = typeof audioUrl === 'string' ? audioUrl.trim() : '';
+      if (!key || !url) return null;
+      const existing = getPreparedMessageAudioEntry(key, url);
+      if (existing) return existing;
+
+      const audio = new Audio();
+      audio.preload = 'auto';
+      audio.src = url;
+      audio.load();
+
+      const entry = {
+        id: key,
+        url,
+        audio,
+        ready: false,
+        readyPromise: null
+      };
+
+      entry.readyPromise = new Promise((resolve) => {
+        let settled = false;
+        const finish = (isReady) => {
+          if (settled) return;
+          settled = true;
+          entry.ready = Boolean(isReady);
+          audio.removeEventListener('canplay', onReady);
+          audio.removeEventListener('canplaythrough', onReady);
+          audio.removeEventListener('loadeddata', onReady);
+          audio.removeEventListener('error', onFail);
+          audio.removeEventListener('abort', onFail);
+          resolve(entry.ready);
+        };
+        const onReady = () => finish(true);
+        const onFail = () => finish(false);
+        audio.addEventListener('canplay', onReady, { once: true });
+        audio.addEventListener('canplaythrough', onReady, { once: true });
+        audio.addEventListener('loadeddata', onReady, { once: true });
+        audio.addEventListener('error', onFail, { once: true });
+        audio.addEventListener('abort', onFail, { once: true });
+      });
+
+      preparedMessageAudio.set(key, entry);
+      while (preparedMessageAudio.size > 12) {
+        const oldestKey = preparedMessageAudio.keys().next();
+        if (!oldestKey || oldestKey.done) break;
+        if (oldestKey.value === key) break;
+        preparedMessageAudio.delete(oldestKey.value);
+      }
+
+      return entry;
+    };
+
+    const warmPreparedMessageAudio = async (messageId, audioUrl, waitMs = CHATBOT_AUDIO_PREROLL_WAIT_MS) => {
+      const entry = ensurePreparedMessageAudio(messageId, audioUrl);
+      if (!entry || !entry.readyPromise) return false;
+      try {
+        await Promise.race([
+          entry.readyPromise,
+          new Promise((resolve) => {
+            setTimeout(() => resolve(false), Math.max(0, Number(waitMs) || 0));
+          })
+        ]);
+      } catch (_err) {
+        return false;
+      }
+      return Boolean(entry.ready);
+    };
+
     const getIntroCopy = (mode) =>
       mode === 'chatbot'
         ? uiCopy.introChatbot
@@ -2690,6 +2788,7 @@ class PageChat extends HTMLElement {
 
     const resetChatSession = ({ keepIntro, setDefaultHint, keepTimeline } = {}) => {
       stopPlayback();
+      clearPreparedMessageAudio();
       stopActiveCapture();
       cancelAllSimulatedReplies();
       typingState.catbot = false;
@@ -2967,13 +3066,14 @@ class PageChat extends HTMLElement {
         }
       });
 
-      const handleIncoming = (data, fallbackRole) => {
+      const handleIncoming = async (data, fallbackRole) => {
+        const messageMode = connectedMode;
         const message = normalizeIncoming(data, fallbackRole);
         if (!message) return;
         if (message.role === 'bot') {
-          setTypingState(connectedMode, false);
-          cancelSimulatedReply(connectedMode);
-          if (connectedMode === 'chatbot' && message.limitReached) {
+          setTypingState(messageMode, false);
+          cancelSimulatedReply(messageMode);
+          if (messageMode === 'chatbot' && message.limitReached) {
             setChatbotDailyLimitBlocked(true, {
               day: message.day,
               tokenLimitDay: message.tokenLimitDay,
@@ -2981,8 +3081,17 @@ class PageChat extends HTMLElement {
             });
           }
         }
+        if (message.role === 'bot' && message.audioUrl) {
+          const ensuredId = message.id && String(message.id).trim() ? String(message.id).trim() : createChatMessageId();
+          message.id = ensuredId;
+          if (messageMode === 'chatbot') {
+            await warmPreparedMessageAudio(ensuredId, message.audioUrl);
+          } else {
+            ensurePreparedMessageAudio(ensuredId, message.audioUrl);
+          }
+        }
         appendMessage(message, {
-          mode: connectedMode,
+          mode: messageMode,
           autoplay: message.role === 'bot'
         });
       };

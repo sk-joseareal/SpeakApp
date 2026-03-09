@@ -18,7 +18,18 @@
       </p>
     </header>
 
-    <section class="card">
+    <nav id="dashboardTabs" class="dashboard-tabs" aria-label="Secciones dashboard">
+      <button class="btn dashboard-tab-btn is-active" data-dashboard-tab="login" type="button">Login</button>
+      <button class="btn dashboard-tab-btn" data-dashboard-tab="users" type="button">Usuarios</button>
+      <button class="btn dashboard-tab-btn" data-dashboard-tab="content" type="button">Contenido</button>
+      <button class="btn dashboard-tab-btn" data-dashboard-tab="appcopy" type="button">Copys app</button>
+      <button class="btn dashboard-tab-btn" data-dashboard-tab="releases" type="button">Releases</button>
+    </nav>
+
+    <section id="loginSection" class="card" data-dashboard-panel="login">
+      <div class="row between center">
+        <h2>Login</h2>
+      </div>
       <div class="row row-wrap gap-sm">
         <label class="field grow">
           <span>Email editor</span>
@@ -34,16 +45,9 @@
       <p id="authSummary" class="hint">Sin sesión JWT.</p>
     </section>
 
-    <section class="card">
-      <div class="row row-wrap gap-sm">
-        <button id="healthBtn" class="btn">Health</button>
-      </div>
-      <pre id="statusBox" class="status">Listo.</pre>
-    </section>
-
-    <section id="editorsSection" class="card hidden">
+    <section id="editorsSection" class="card hidden" data-dashboard-panel="users">
       <div class="row between center">
-        <h2>Editors</h2>
+        <h2>Usuarios</h2>
         <button id="refreshEditorsBtn" class="btn">Refrescar</button>
       </div>
       <div class="row row-wrap gap-sm top-md">
@@ -76,9 +80,9 @@
       <div id="editorsList" class="releases top-md"></div>
     </section>
 
-    <section id="guidedSection" class="card">
+    <section id="guidedSection" class="card" data-dashboard-panel="content">
       <div class="row between center">
-        <h2>Editor</h2>
+        <h2>Contenido</h2>
         <small id="guidedCountsBox" class="muted"></small>
       </div>
       <div class="row row-wrap gap-sm between center top-md">
@@ -348,7 +352,7 @@
       </div>
     </section>
 
-    <section id="jsonSection" class="card">
+    <section id="jsonSection" class="card" data-dashboard-panel="content">
       <div class="row between center">
         <h2>JSON (draft)</h2>
         <small id="countsBox" class="muted"></small>
@@ -356,7 +360,7 @@
       <textarea id="jsonEditor" spellcheck="false"></textarea>
     </section>
 
-    <section id="appCopySection" class="card hidden">
+    <section id="appCopySection" class="card hidden" data-dashboard-panel="appcopy">
       <div class="row between center">
         <h2>Copys app</h2>
       </div>
@@ -379,7 +383,7 @@
       </section>
     </section>
 
-    <section id="releasesSection" class="card">
+    <section id="releasesSection" class="card" data-dashboard-panel="releases">
       <div class="row between center">
         <h2>Releases</h2>
         <button id="refreshReleasesBtn" class="btn">Refrescar</button>
@@ -392,6 +396,16 @@
         <button id="publishBtn" class="btn btn-success">Publicar draft</button>
       </div>
       <div id="releasesBox" class="releases"></div>
+    </section>
+
+    <section id="statusSection" class="card">
+      <div class="row between center">
+        <h2>Status</h2>
+      </div>
+      <div class="row row-wrap gap-sm top-md">
+        <button id="healthBtn" class="btn">Health</button>
+      </div>
+      <pre id="statusBox" class="status">Listo.</pre>
     </section>
   </main>
 

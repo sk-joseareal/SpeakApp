@@ -1,12 +1,22 @@
 (() => {
   const JWT_KEY = 'speakapp:content-dashboard:jwt';
   const LOGIN_EMAIL_KEY = 'speakapp:content-dashboard:login-email';
+  const ACTIVE_TAB_KEY = 'speakapp:content-dashboard:active-tab';
   const MODE_GUIDED = 'guided';
   const MODE_JSON = 'json';
   const APP_COPY_MODE_GUIDED = 'guided';
   const APP_COPY_MODE_JSON = 'json';
+  const TAB_LOGIN = 'login';
+  const TAB_USERS = 'users';
+  const TAB_CONTENT = 'content';
+  const TAB_APPCOPY = 'appcopy';
+  const TAB_RELEASES = 'releases';
+  const TAB_ORDER = [TAB_LOGIN, TAB_USERS, TAB_CONTENT, TAB_APPCOPY, TAB_RELEASES];
 
   const el = {
+    dashboardTabs: document.getElementById('dashboardTabs'),
+    dashboardTabButtons: Array.from(document.querySelectorAll('[data-dashboard-tab]')),
+    dashboardPanels: Array.from(document.querySelectorAll('[data-dashboard-panel]')),
     loginEmailInput: document.getElementById('loginEmailInput'),
     loginPasswordInput: document.getElementById('loginPasswordInput'),
     loginBtn: document.getElementById('loginBtn'),
@@ -136,6 +146,7 @@
   let currentAuth = null;
   let currentEditor = null;
   let currentLock = null;
+  let activeDashboardTab = TAB_LOGIN;
 
   const asText = (value) => String(value === undefined || value === null ? '' : value).trim();
   const roleRank = { editor: 1, publisher: 2, admin: 3 };
@@ -766,6 +777,71 @@
     if (el.appCopySection) {
       el.appCopySection.classList.toggle('hidden', !canAccessEditor);
     }
+  };
+
+  const canAccessDashboardTab = (tab) => {
+    switch (tab) {
+      case TAB_LOGIN:
+        return true;
+      case TAB_USERS:
+        return canManageEditors();
+      case TAB_CONTENT:
+      case TAB_APPCOPY:
+      case TAB_RELEASES:
+        return isAuthenticated();
+      default:
+        return false;
+    }
+  };
+
+  const getPreferredDashboardTab = () => {
+    if (!isAuthenticated()) return TAB_LOGIN;
+    return TAB_CONTENT;
+  };
+
+  const persistDashboardTab = () => {
+    try {
+      localStorage.setItem(ACTIVE_TAB_KEY, activeDashboardTab);
+    } catch (_err) {
+      // no-op
+    }
+  };
+
+  const setDashboardTab = (tab, options = {}) => {
+    const nextTab = TAB_ORDER.includes(tab) ? tab : getPreferredDashboardTab();
+    if (!canAccessDashboardTab(nextTab)) {
+      activeDashboardTab = getPreferredDashboardTab();
+    } else {
+      activeDashboardTab = nextTab;
+    }
+    if (options.persist !== false) {
+      persistDashboardTab();
+    }
+    renderDashboardTabs();
+  };
+
+  const renderDashboardTabs = () => {
+    const allowedTabs = TAB_ORDER.filter((tab) => canAccessDashboardTab(tab));
+    if (!allowedTabs.includes(activeDashboardTab)) {
+      activeDashboardTab = allowedTabs[0] || TAB_LOGIN;
+      persistDashboardTab();
+    }
+
+    el.dashboardTabButtons.forEach((btn) => {
+      const tab = String(btn.dataset.dashboardTab || '');
+      const canAccess = canAccessDashboardTab(tab);
+      btn.classList.toggle('is-disabled', !canAccess);
+      btn.disabled = !canAccess;
+      btn.setAttribute('aria-disabled', canAccess ? 'false' : 'true');
+      const isActive = canAccess && tab === activeDashboardTab;
+      btn.classList.toggle('is-active', isActive);
+      btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+    });
+
+    el.dashboardPanels.forEach((panel) => {
+      const panelTab = String(panel.dataset.dashboardPanel || '');
+      panel.classList.toggle('tab-hidden', panelTab !== activeDashboardTab);
+    });
   };
 
   const setContentState = (payload, options = {}) => {
@@ -1486,6 +1562,7 @@
       el.editorsSection.classList.toggle('hidden', !canManageEditors());
     }
     renderEditorVisibility();
+    renderDashboardTabs();
   };
 
   const renderLockInfo = () => {
@@ -1966,6 +2043,7 @@
       await loadReleases();
       await loadEditors({ silent: true });
       await loadAppCopy({ silent: true });
+      setDashboardTab(getPreferredDashboardTab());
       setStatus('Login OK.', {
         editor: out.editor || null,
         expires_in: out.expires_in || null
@@ -1987,6 +2065,7 @@
     if (el.appCopyEditor) {
       syncAppCopyEditorFromPayload({ es: {}, en: {} });
     }
+    setDashboardTab(TAB_LOGIN);
     setStatus('Sesión cerrada.');
   };
 
@@ -2332,6 +2411,10 @@
       if (lastEmail) {
         el.loginEmailInput.value = String(lastEmail);
       }
+      const lastTab = localStorage.getItem(ACTIVE_TAB_KEY);
+      if (lastTab && TAB_ORDER.includes(lastTab)) {
+        activeDashboardTab = lastTab;
+      }
     } catch (_err) {
       // no-op
     }
@@ -2371,6 +2454,13 @@
     if (el.appCopyModeJsonBtn) {
       el.appCopyModeJsonBtn.addEventListener('click', () => setAppCopyMode(APP_COPY_MODE_JSON));
     }
+    if (el.dashboardTabs) {
+      el.dashboardTabs.addEventListener('click', (event) => {
+        const button = event.target.closest('[data-dashboard-tab]');
+        if (!button) return;
+        setDashboardTab(String(button.dataset.dashboardTab || ''));
+      });
+    }
 
     bindGuidedEditorEvents();
     setEditorMode(MODE_GUIDED);
@@ -2378,6 +2468,7 @@
     updateSyncFromJsonButtonState();
     syncAppCopyGuidedFromPayload({ es: {}, en: {} });
     setAppCopyMode(APP_COPY_MODE_GUIDED);
+    renderDashboardTabs();
 
     await loadHealth();
     await loadMe({ silent: true });
@@ -2386,6 +2477,7 @@
     await refreshLock({ silent: true });
     await loadEditors({ silent: true });
     await loadAppCopy({ silent: true });
+    renderDashboardTabs();
   };
 
   bootstrap();

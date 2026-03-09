@@ -42,6 +42,36 @@ html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); f
   text-decoration: underline;
 }
 
+.dashboard-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 0;
+}
+
+.dashboard-tab-btn {
+  min-width: 116px;
+}
+
+.dashboard-tab-btn.is-active {
+  background: #e9f0ff;
+  border-color: #8fb2ff;
+  color: #23468f;
+  font-weight: 600;
+  box-shadow: 0 0 0 2px rgba(45, 111, 247, 0.14) inset;
+}
+
+.dashboard-tab-btn.is-disabled,
+.dashboard-tab-btn:disabled {
+  opacity: 0.5;
+  background: #f2f4f8;
+  border-color: #d9e0ec;
+  color: #77829b;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
 .muted { color: var(--muted); }
 .hint { color: var(--muted); margin: 8px 0 0 0; font-size: 13px; }
 
@@ -437,6 +467,10 @@ h2 {
 }
 
 .hidden {
+  display: none !important;
+}
+
+.tab-hidden {
   display: none !important;
 }
 

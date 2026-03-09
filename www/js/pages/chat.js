@@ -248,7 +248,7 @@ class PageChat extends HTMLElement {
     };
     const COACH_MASCOT_FRAME_INTERVAL_MS = 150;
     const COACH_MASCOT_AUDIO_START_DELAY_MS = 140;
-    const CHATBOT_AUDIO_PREROLL_WAIT_MS = 850;
+    const CHATBOT_AUDIO_RENDER_FALLBACK_MS = 1800;
     const REALTIME_EMIT_TIMEOUT_MS = 8000;
     const CHATBOT_REPLY_TIMEOUT_MS = 12000;
     const RECORDING_TIMESLICE = 500;
@@ -2042,7 +2042,7 @@ class PageChat extends HTMLElement {
 	    };
 
 	    const playAudioUrl = (url, options = {}) => {
-	      const { skipStop = false, messageId = '', playbackSource = '' } = options;
+	      const { skipStop = false, messageId = '', playbackSource = '', onStart, onEnd, onError } = options;
 	      if (!url) return false;
 	      if (!skipStop) {
 	        stopPlayback();
@@ -2086,7 +2086,10 @@ class PageChat extends HTMLElement {
 	        // no-op
 	      }
 	      activeAudio = audio;
-	      audio.onplaying = startTalkOnAudible;
+	      audio.onplaying = () => {
+	        startTalkOnAudible();
+	        if (typeof onStart === 'function') onStart();
+	      };
 	      const playPromise = audio.play();
 	      if (playPromise && typeof playPromise.then === 'function') {
 	        playPromise
@@ -2095,21 +2098,24 @@ class PageChat extends HTMLElement {
 	            console.warn('[chat] audio play error', err);
 	            if (activeAudio === audio) activeAudio = null;
 	            releaseTalk();
+	            if (typeof onError === 'function') onError(err);
 	          });
 	      }
 	      audio.onended = () => {
 	        if (activeAudio === audio) activeAudio = null;
 	        releaseTalk();
+	        if (typeof onEnd === 'function') onEnd();
 	      };
 	      audio.onerror = () => {
 	        if (activeAudio === audio) activeAudio = null;
 	        releaseTalk();
+	        if (typeof onError === 'function') onError(new Error('audio-url-error'));
 	      };
 	      return true;
 	    };
 
     const playSpeechWeb = (text, options = {}) => {
-      const { onEnd, onError, skipStop = false, messageId = '', playbackSource = 'native' } = options;
+      const { onStart, onEnd, onError, skipStop = false, messageId = '', playbackSource = 'native' } = options;
       if (!text || !canSpeak()) return false;
       if (!skipStop) {
         stopPlayback();
@@ -2132,6 +2138,7 @@ class PageChat extends HTMLElement {
       utter.lang = 'en-US';
       utter.onstart = () => {
         startTalk();
+        if (typeof onStart === 'function') onStart();
       };
       utter.onend = () => {
         releaseTalk();
@@ -2161,7 +2168,7 @@ class PageChat extends HTMLElement {
     };
 
     const playSpeech = (text, options = {}) => {
-      const { onEnd, onError, skipStop = false, messageId = '', playbackSource = 'native' } = options;
+      const { onStart, onEnd, onError, skipStop = false, messageId = '', playbackSource = 'native' } = options;
       if (!text) return false;
       if (!skipStop) {
         stopPlayback();
@@ -2182,6 +2189,7 @@ class PageChat extends HTMLElement {
           startedTalk = true;
           setActiveMessagePlayback(messageId, playbackSource);
           startCoachMascotTalk();
+          if (typeof onStart === 'function') onStart();
         };
         let releasedTalk = false;
         const releaseTalk = () => {
@@ -2210,6 +2218,7 @@ class PageChat extends HTMLElement {
           .catch((err) => {
             releaseTalk();
             const startedWeb = playSpeechWeb(text, {
+              onStart,
               onEnd,
               onError,
               skipStop: true,
@@ -2222,7 +2231,7 @@ class PageChat extends HTMLElement {
           });
         return true;
       }
-      return playSpeechWeb(text, { onEnd, onError, skipStop: true, messageId, playbackSource });
+      return playSpeechWeb(text, { onStart, onEnd, onError, skipStop: true, messageId, playbackSource });
     };
 
     const playPreviewAudio = ({ audioUrl, speakText }) => {
@@ -2307,7 +2316,7 @@ class PageChat extends HTMLElement {
     };
 
 	    const playChatbotAlignedMessageAudio = async (text, requestToken, options = {}) => {
-	      const { messageId = '' } = options;
+	      const { messageId = '', onStart, onEnd, onError } = options;
 	      if (!text) return false;
 	      if (requestToken !== playbackRequestToken) return false;
 	      let payload = null;
@@ -2323,18 +2332,42 @@ class PageChat extends HTMLElement {
 	      return playAudioUrl(audioUrl, {
 	        skipStop: true,
 	        messageId,
-	        playbackSource: normalizeAudioKind(payload.audio_kind || payload.provider || 'polly') || 'polly'
+	        playbackSource: normalizeAudioKind(payload.audio_kind || payload.provider || 'polly') || 'polly',
+	        onStart,
+	        onEnd,
+	        onError
 	      });
 	    };
 
-	    const playMessageAudio = ({ id, audioUrl, audioKind, speakText, mode, role }) => {
+	    const playMessageAudio = ({ id, audioUrl, audioKind, speakText, mode, role, onStart, onEnd, onError }) => {
 	      const normalizedRole = role === 'bot' ? 'bot' : 'user';
 	      const targetMode = mode === 'chatbot' ? 'chatbot' : 'catbot';
 	      const messageId = id ? String(id).trim() : '';
 	      const playbackSource = inferPlaybackSource({ audioUrl, audioKind });
 	      if (audioUrl) {
-	        playAudioUrl(audioUrl, { messageId, playbackSource });
-	        return;
+	        return playAudioUrl(audioUrl, {
+	          messageId,
+	          playbackSource,
+	          onStart,
+	          onEnd,
+	          onError: (err) => {
+	            if (!speakText) {
+	              if (typeof onError === 'function') onError(err);
+	              return;
+	            }
+	            const fallbackStarted = playSpeech(speakText, {
+	              skipStop: true,
+	              messageId,
+	              playbackSource: 'native',
+	              onStart,
+	              onEnd,
+	              onError
+	            });
+	            if (!fallbackStarted && typeof onError === 'function') {
+	              onError(err);
+	            }
+	          }
+	        });
 	      }
 	      if (!speakText) return;
 
@@ -2345,22 +2378,36 @@ class PageChat extends HTMLElement {
 	        !isChatbotAlignedTtsBlockedByLimit();
 
 	      if (!wantsAlignedChatbotAudio) {
-	        playSpeech(speakText, { messageId, playbackSource });
-	        return;
+	        return playSpeech(speakText, { messageId, playbackSource, onStart, onEnd, onError });
 	      }
 
 	      stopPlayback();
 	      const requestToken = playbackRequestToken;
-	      playChatbotAlignedMessageAudio(speakText, requestToken, { messageId })
+	      playChatbotAlignedMessageAudio(speakText, requestToken, { messageId, onStart, onEnd, onError })
 	        .then((started) => {
 	          if (started) return;
 	          if (requestToken !== playbackRequestToken) return;
-	          playSpeech(speakText, { skipStop: true, messageId, playbackSource: 'native' });
+	          playSpeech(speakText, {
+	            skipStop: true,
+	            messageId,
+	            playbackSource: 'native',
+	            onStart,
+	            onEnd,
+	            onError
+	          });
 	        })
 	        .catch(() => {
 	          if (requestToken !== playbackRequestToken) return;
-	          playSpeech(speakText, { skipStop: true, messageId, playbackSource: 'native' });
+	          playSpeech(speakText, {
+	            skipStop: true,
+	            messageId,
+	            playbackSource: 'native',
+	            onStart,
+	            onEnd,
+	            onError
+	          });
 	        });
+	      return true;
 	    };
 
     const resolveTalkStorageKey = (userId) =>
@@ -2582,22 +2629,6 @@ class PageChat extends HTMLElement {
       }
 
       return entry;
-    };
-
-    const warmPreparedMessageAudio = async (messageId, audioUrl, waitMs = CHATBOT_AUDIO_PREROLL_WAIT_MS) => {
-      const entry = ensurePreparedMessageAudio(messageId, audioUrl);
-      if (!entry || !entry.readyPromise) return false;
-      try {
-        await Promise.race([
-          entry.readyPromise,
-          new Promise((resolve) => {
-            setTimeout(() => resolve(false), Math.max(0, Number(waitMs) || 0));
-          })
-        ]);
-      } catch (_err) {
-        return false;
-      }
-      return Boolean(entry.ready);
     };
 
     const getIntroCopy = (mode) =>
@@ -3071,7 +3102,6 @@ class PageChat extends HTMLElement {
         const message = normalizeIncoming(data, fallbackRole);
         if (!message) return;
         if (message.role === 'bot') {
-          setTypingState(messageMode, false);
           cancelSimulatedReply(messageMode);
           if (messageMode === 'chatbot' && message.limitReached) {
             setChatbotDailyLimitBlocked(true, {
@@ -3084,11 +3114,50 @@ class PageChat extends HTMLElement {
         if (message.role === 'bot' && message.audioUrl) {
           const ensuredId = message.id && String(message.id).trim() ? String(message.id).trim() : createChatMessageId();
           message.id = ensuredId;
-          if (messageMode === 'chatbot') {
-            await warmPreparedMessageAudio(ensuredId, message.audioUrl);
-          } else {
-            ensurePreparedMessageAudio(ensuredId, message.audioUrl);
+          ensurePreparedMessageAudio(ensuredId, message.audioUrl);
+        }
+
+        const shouldSyncBotRender = messageMode === 'chatbot' && message.role === 'bot';
+        if (shouldSyncBotRender) {
+          let rendered = false;
+          let renderFallbackTimer = null;
+          const renderNow = () => {
+            if (rendered) return;
+            rendered = true;
+            if (renderFallbackTimer) {
+              clearTimeout(renderFallbackTimer);
+              renderFallbackTimer = null;
+            }
+            setTypingState(messageMode, false);
+            appendMessage(message, {
+              mode: messageMode,
+              autoplay: false
+            });
+          };
+          renderFallbackTimer = setTimeout(() => {
+            renderNow();
+          }, CHATBOT_AUDIO_RENDER_FALLBACK_MS);
+          const started = playMessageAudio({
+            id: message.id,
+            audioUrl: message.audioUrl,
+            audioKind: message.audioKind,
+            speakText: message.speakText,
+            role: message.role,
+            mode: messageMode,
+            onStart: () => {
+              renderNow();
+            },
+            onError: () => {
+              renderNow();
+            }
+          });
+          if (!started) {
+            renderNow();
           }
+          return;
+        }
+        if (message.role === 'bot') {
+          setTypingState(messageMode, false);
         }
         appendMessage(message, {
           mode: messageMode,

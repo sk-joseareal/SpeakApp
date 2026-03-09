@@ -2683,8 +2683,29 @@ page-chat ion-content::part(scroll) {
     transform 180ms ease;
 }
 
+.chat-play-btn {
+  padding: 6px 12px 6px 8px;
+  border-color: rgba(76, 126, 255, 0.2);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(240, 245, 255, 0.96));
+  box-shadow:
+    0 6px 14px rgba(15, 27, 45, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  font-weight: 600;
+}
+
 .chat-audio-btn ion-icon {
   font-size: 16px;
+}
+
+.chat-play-btn ion-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: rgba(76, 126, 255, 0.1);
+  color: #2555d8;
+  font-size: 14px;
 }
 
 .chat-audio-btn:disabled {
@@ -2709,9 +2730,24 @@ page-chat ion-content::part(scroll) {
   color: #1d7c57;
 }
 
+.chat-audio-btn.is-playing[data-playing-source='native'] ion-icon {
+  background: rgba(57, 160, 118, 0.14);
+  color: #1d7c57;
+}
+
 .chat-audio-btn.is-playing[data-playing-source='local'] {
   background: rgba(225, 155, 47, 0.12);
   border-color: rgba(225, 155, 47, 0.3);
+  color: #9d6508;
+}
+
+.chat-audio-btn.is-playing[data-playing-source='polly'] ion-icon {
+  background: rgba(76, 126, 255, 0.16);
+  color: #2555d8;
+}
+
+.chat-audio-btn.is-playing[data-playing-source='local'] ion-icon {
+  background: rgba(225, 155, 47, 0.16);
   color: #9d6508;
 }
 

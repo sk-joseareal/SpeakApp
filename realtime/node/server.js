@@ -210,6 +210,25 @@ const normalizeTtsLocale = (value) => {
 
 const normalizeTtsText = (value) => String(value || '').replace(/\s+/g, ' ').trim();
 
+const normalizeTextForPollyRetry = (value) => {
+  let text = String(value || '');
+  if (typeof text.normalize === 'function') {
+    text = text.normalize('NFKC');
+  }
+  return normalizeTtsText(
+    text
+      .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, ' ')
+      .replace(/[\u200B-\u200D\uFEFF]/g, '')
+      .replace(/[“”]/g, '"')
+      .replace(/[‘’]/g, "'")
+      .replace(/[…]/g, '...')
+      .replace(/[–—]/g, ' - ')
+      .replace(/[•·]/g, ', ')
+      .replace(/[<>]/g, ' ')
+      .replace(/[()]/g, ', ')
+  );
+};
+
 const selectDefaultTtsVoice = (locale) => {
   const normalizedLocale = normalizeTtsLocale(locale);
   if (normalizedLocale === 'es-ES') return ttsAlignedDefaultVoiceEsES;
@@ -341,6 +360,7 @@ const synthesizePollyBuffer = async ({ text, voice, engine, outputFormat, speech
   if (!pollyClient) throw new Error('polly_not_configured');
   const command = new SynthesizeSpeechCommand({
     Text: text,
+    TextType: 'text',
     VoiceId: voice,
     Engine: engine,
     OutputFormat: outputFormat,
@@ -351,6 +371,42 @@ const synthesizePollyBuffer = async ({ text, voice, engine, outputFormat, speech
     buffer: await streamToBuffer(response?.AudioStream),
     requestCharacters: Math.round(toNonNegativeNumber(response?.RequestCharacters, 0))
   };
+};
+
+const synthesizeAlignedPollyAssets = async ({ text, voice, engine }) => {
+  const attemptSynthesis = async (inputText) => {
+    const [audioSynth, marksSynth] = await Promise.all([
+      synthesizePollyBuffer({
+        text: inputText,
+        voice,
+        engine,
+        outputFormat: 'mp3'
+      }),
+      synthesizePollyBuffer({
+        text: inputText,
+        voice,
+        engine,
+        outputFormat: 'json',
+        speechMarkTypes: ['word']
+      })
+    ]);
+    return {
+      inputText,
+      audioSynth,
+      marksSynth
+    };
+  };
+
+  try {
+    return await attemptSynthesis(text);
+  } catch (err) {
+    const normalizedRetryText = normalizeTextForPollyRetry(text);
+    if (!normalizedRetryText || normalizedRetryText === text) {
+      throw err;
+    }
+    console.warn('[realtime] polly retry with normalized text', err.message || err);
+    return attemptSynthesis(normalizedRetryText);
+  }
 };
 
 const buildAlignedTtsPayload = async (source = {}, options = {}) => {
@@ -443,28 +499,24 @@ const buildAlignedTtsPayload = async (source = {}, options = {}) => {
         }
       }
 
-      const [audioSynth, marksSynth] = await Promise.all([
-        synthesizePollyBuffer({
-          text,
-          voice,
-          engine,
-          outputFormat: 'mp3'
-        }),
-        synthesizePollyBuffer({
-          text,
-          voice,
-          engine,
-          outputFormat: 'json',
-          speechMarkTypes: ['word']
-        })
-      ]);
+      const synthesizedAssets = await synthesizeAlignedPollyAssets({
+        text,
+        voice,
+        engine
+      });
+      const audioSynth = synthesizedAssets && synthesizedAssets.audioSynth ? synthesizedAssets.audioSynth : null;
+      const marksSynth = synthesizedAssets && synthesizedAssets.marksSynth ? synthesizedAssets.marksSynth : null;
+      const ttsInputText =
+        synthesizedAssets && typeof synthesizedAssets.inputText === 'string'
+          ? synthesizedAssets.inputText
+          : text;
       const audioBuffer = audioSynth && audioSynth.buffer ? audioSynth.buffer : Buffer.alloc(0);
       const marksBuffer = marksSynth && marksSynth.buffer ? marksSynth.buffer : Buffer.alloc(0);
       const audioRequestChars = Math.round(
-        toNonNegativeNumber(audioSynth && audioSynth.requestCharacters, text.length)
+        toNonNegativeNumber(audioSynth && audioSynth.requestCharacters, ttsInputText.length)
       );
       const marksRequestChars = Math.round(
-        toNonNegativeNumber(marksSynth && marksSynth.requestCharacters, text.length)
+        toNonNegativeNumber(marksSynth && marksSynth.requestCharacters, ttsInputText.length)
       );
       billedCharacters = audioRequestChars + marksRequestChars;
 
@@ -473,7 +525,7 @@ const buildAlignedTtsPayload = async (source = {}, options = {}) => {
         schema: 1,
         generated_at: new Date().toISOString(),
         hash: cacheHash,
-        text,
+        text: ttsInputText,
         locale,
         voice,
         engine,

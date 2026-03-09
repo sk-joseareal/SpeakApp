@@ -1,0 +1,319 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		A10000000000000000000001 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000012 /* AppDelegate.swift */; };
+		A10000000000000000000002 /* AppModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000013 /* AppModels.swift */; };
+		A10000000000000000000003 /* CopyStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000014 /* CopyStore.swift */; };
+		A10000000000000000000004 /* MainTabBarController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000015 /* MainTabBarController.swift */; };
+		A10000000000000000000005 /* ScreenViewControllers.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000016 /* ScreenViewControllers.swift */; };
+		A10000000000000000000006 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000017 /* Assets.xcassets */; };
+		A10000000000000000000007 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000018 /* LaunchScreen.storyboard */; };
+		A10000000000000000000008 /* AppCopy.json in Resources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000001A /* AppCopy.json */; };
+		A10000000000000000000009 /* ReferenceFeature.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000001B /* ReferenceFeature.swift */; };
+		A1000000000000000000000A /* reference-data.json in Resources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000001C /* reference-data.json */; };
+		A1000000000000000000000B /* ChatFeature.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000001D /* ChatFeature.swift */; };
+		A1000000000000000000000C /* LabFeature.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000001E /* LabFeature.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		A10000000000000000000011 /* SpeakAppNative.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SpeakAppNative.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A10000000000000000000012 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		A10000000000000000000013 /* AppModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModels.swift; sourceTree = "<group>"; };
+		A10000000000000000000014 /* CopyStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CopyStore.swift; sourceTree = "<group>"; };
+		A10000000000000000000015 /* MainTabBarController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabBarController.swift; sourceTree = "<group>"; };
+		A10000000000000000000016 /* ScreenViewControllers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenViewControllers.swift; sourceTree = "<group>"; };
+		A10000000000000000000017 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		A10000000000000000000018 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
+		A10000000000000000000019 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		A1000000000000000000001A /* AppCopy.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = AppCopy.json; sourceTree = "<group>"; };
+		A1000000000000000000001B /* ReferenceFeature.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReferenceFeature.swift; sourceTree = "<group>"; };
+		A1000000000000000000001C /* reference-data.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = "reference-data.json"; path = "../www/js/data/reference-data.json"; sourceTree = SOURCE_ROOT; };
+		A1000000000000000000001D /* ChatFeature.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatFeature.swift; sourceTree = "<group>"; };
+		A1000000000000000000001E /* LabFeature.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LabFeature.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		A10000000000000000000042 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		A10000000000000000000021 = {
+			isa = PBXGroup;
+			children = (
+				A10000000000000000000022 /* SpeakAppNative */,
+				A10000000000000000000023 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		A10000000000000000000022 /* SpeakAppNative */ = {
+			isa = PBXGroup;
+			children = (
+				A10000000000000000000024 /* Sources */,
+				A10000000000000000000025 /* Resources */,
+				A10000000000000000000026 /* Support */,
+			);
+			path = SpeakAppNative;
+			sourceTree = "<group>";
+		};
+		A10000000000000000000023 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				A10000000000000000000011 /* SpeakAppNative.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		A10000000000000000000024 /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				A10000000000000000000012 /* AppDelegate.swift */,
+				A10000000000000000000013 /* AppModels.swift */,
+				A10000000000000000000014 /* CopyStore.swift */,
+				A10000000000000000000015 /* MainTabBarController.swift */,
+				A1000000000000000000001B /* ReferenceFeature.swift */,
+				A1000000000000000000001D /* ChatFeature.swift */,
+				A1000000000000000000001E /* LabFeature.swift */,
+				A10000000000000000000016 /* ScreenViewControllers.swift */,
+			);
+			path = Sources;
+			sourceTree = "<group>";
+		};
+		A10000000000000000000025 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				A10000000000000000000017 /* Assets.xcassets */,
+				A1000000000000000000001A /* AppCopy.json */,
+				A1000000000000000000001C /* reference-data.json */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		A10000000000000000000026 /* Support */ = {
+			isa = PBXGroup;
+			children = (
+				A10000000000000000000018 /* LaunchScreen.storyboard */,
+				A10000000000000000000019 /* Info.plist */,
+			);
+			path = Support;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		A10000000000000000000031 /* SpeakAppNative */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A10000000000000000000062 /* Build configuration list for PBXNativeTarget "SpeakAppNative" */;
+			buildPhases = (
+				A10000000000000000000041 /* Sources */,
+				A10000000000000000000042 /* Frameworks */,
+				A10000000000000000000043 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = SpeakAppNative;
+			productName = SpeakAppNative;
+			productReference = A10000000000000000000011 /* SpeakAppNative.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		A10000000000000000000032 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 2600;
+				TargetAttributes = {
+					A10000000000000000000031 = {
+						CreatedOnToolsVersion = 26.2;
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = A10000000000000000000061 /* Build configuration list for PBXProject "SpeakAppNative" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+			);
+			mainGroup = A10000000000000000000021;
+			productRefGroup = A10000000000000000000023 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				A10000000000000000000031 /* SpeakAppNative */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		A10000000000000000000043 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A10000000000000000000006 /* Assets.xcassets in Resources */,
+				A10000000000000000000007 /* LaunchScreen.storyboard in Resources */,
+				A10000000000000000000008 /* AppCopy.json in Resources */,
+				A1000000000000000000000A /* reference-data.json in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		A10000000000000000000041 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A10000000000000000000001 /* AppDelegate.swift in Sources */,
+				A10000000000000000000002 /* AppModels.swift in Sources */,
+				A10000000000000000000003 /* CopyStore.swift in Sources */,
+				A10000000000000000000004 /* MainTabBarController.swift in Sources */,
+				A10000000000000000000009 /* ReferenceFeature.swift in Sources */,
+				A1000000000000000000000B /* ChatFeature.swift in Sources */,
+				A1000000000000000000000C /* LabFeature.swift in Sources */,
+				A10000000000000000000005 /* ScreenViewControllers.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		A10000000000000000000051 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		A10000000000000000000052 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		A10000000000000000000053 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = T4LYZV6KKS;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = SpeakAppNative/Support/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "SpeakApp Native";
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.cursoingles.speakapp.nativepoc;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		A10000000000000000000054 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = T4LYZV6KKS;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = SpeakAppNative/Support/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "SpeakApp Native";
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.cursoingles.speakapp.nativepoc;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		A10000000000000000000061 /* Build configuration list for PBXProject "SpeakAppNative" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A10000000000000000000051 /* Debug */,
+				A10000000000000000000052 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A10000000000000000000062 /* Build configuration list for PBXNativeTarget "SpeakAppNative" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A10000000000000000000053 /* Debug */,
+				A10000000000000000000054 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = A10000000000000000000032 /* Project object */;
+}

@@ -1,0 +1,512 @@
+{
+  "en": {
+    "tabs": {
+      "training": "Training",
+      "lab": "Lab",
+      "reference": "Reference",
+      "you": "You",
+      "chat": "Chat"
+    },
+    "notifications": {
+      "title": "Notifications",
+      "recentActivity": "Recent activity",
+      "empty": "No notifications yet.",
+      "statusNew": "New",
+      "statusRead": "Read",
+      "deleteAction": "Delete",
+      "openAction": "Open",
+      "elapsedNow": "Just now",
+      "elapsedMinutes": "{n} min ago",
+      "elapsedHours": "{n} h ago",
+      "elapsedDays": "{n} d ago",
+      "pushDefaultTitle": "New notification",
+      "defaultTitle": "Notification",
+      "demo": {
+        "weakWordsTitle": "You have {n} weak words",
+        "weakWordsText": "Go to Review and improve pronunciation.",
+        "weakWordsAction": "Review",
+        "badgeTitle": "New badge unlocked",
+        "badgeText": "3-day streak completed.",
+        "badgeAction": "View profile",
+        "practiceTitle": "Mini practice ready",
+        "practiceText": "Just 2 minutes for today.",
+        "practiceAction": "Practice",
+        "coachTitle": "Coach is ready",
+        "coachText": "Ask the coach something.",
+        "coachAction": "Open coach",
+        "reminderTitle": "Reminder",
+        "reminderText": "Practice 5 minutes today.",
+        "reminderAction": "Go to Home",
+        "infoTitle": "Update",
+        "infoText": "New exercises are available."
+      }
+    },
+    "login": {
+      "title": "Login",
+      "close": "Close",
+      "socialGoogle": "Login with Google",
+      "socialFacebook": "Login with Facebook",
+      "socialApple": "Login with Apple",
+      "createWithEmail": "Create account with email",
+      "userLabel": "User",
+      "userPlaceholder": "your user",
+      "passLabel": "Password",
+      "passPlaceholder": "********",
+      "enter": "Enter",
+      "forgotPassword": "Recover password",
+      "registerTitle": "Create account",
+      "registerSubtitle": "Complete your details to register.",
+      "registerUserLabel": "Username",
+      "registerUserPlaceholder": "your name",
+      "registerEmailLabel": "Email",
+      "registerEmailPlaceholder": "your email",
+      "registerPassLabel": "Password",
+      "registerPassPlaceholder": "********",
+      "registerPassConfirmLabel": "Confirm password",
+      "registerPassConfirmPlaceholder": "********",
+      "registerTerms": "I accept the terms of use",
+      "registerSubmit": "Create account",
+      "registerBack": "Back to login",
+      "recoverTitle": "Recover password",
+      "recoverSubtitle": "We will send you an email to reset it.",
+      "recoverEmailLabel": "Email",
+      "recoverEmailPlaceholder": "your email",
+      "recoverSubmit": "Send instructions",
+      "recoverBack": "Back to login",
+      "alertHeader": "Notice",
+      "alertOk": "Ok",
+      "errors": {
+        "loginGeneric": "Login error",
+        "loginInvalidUser": "User is not valid",
+        "loginInvalidPassword": "Password is not valid",
+        "loginNoUserData": "Login ok, but without user data",
+        "socialAppleUnavailable": "Apple login is not available.",
+        "socialAppleOnlyApp": "Apple login is only available in the app.",
+        "socialAppleOpenFailed": "Could not open Apple.",
+        "socialGoogleUnavailable": "Google login is not available.",
+        "socialGoogleOnlyApp": "Google login is only available in the app.",
+        "socialGoogleOpenFailed": "Could not open Google.",
+        "socialFacebookUnavailable": "Facebook login is not available.",
+        "socialFacebookOnlyApp": "Facebook login is only available in the app.",
+        "socialFacebookOpenFailed": "Could not open Facebook.",
+        "registerMissingFields": "Please complete all fields.",
+        "registerPasswordMismatch": "Confirmation does not match password.",
+        "registerTermsRequired": "You must accept the terms of use.",
+        "registerFailed": "Error creating account",
+        "recoverEmailRequired": "You must enter your email.",
+        "recoverFailed": "Could not send email"
+      },
+      "info": {
+        "registerSuccess": "Thanks. Check your email to activate your account.",
+        "recoverSuccess": "We sent you an email with reset instructions."
+      }
+    },
+    "home": {
+      "planTitle": "Your plan",
+      "planMessage": "This is your plan to sound like a native.<br>Tap this card to hear it again."
+    },
+    "freeRide": {
+      "title": "Lab",
+      "subtitle": "Write your own phrase or longer text and practice freely.",
+      "inputLabel": "Your phrase",
+      "inputPlaceholder": "Example: I would like to order a coffee, please.",
+      "emptyPhrase": "Write a phrase to practice.",
+      "playPhrase": "Play phrase",
+      "sayLabel": "Say",
+      "endLabel": "End",
+      "yourVoiceLabel": "Your voice",
+      "feedbackHint": "Practice the phrase",
+      "feedbackNative": "You sound like a native",
+      "feedbackGood": "Good! Continue practicing",
+      "feedbackAlmost": "Almost correct",
+      "feedbackKeep": "Keep practicing",
+      "transcribing": "Transcribing...",
+      "savePhrase": "Save phrase",
+      "myPhrases": "My phrases",
+      "savedPhrasesTitle": "Saved phrases",
+      "savedPhrasesSubtitle": "Load a phrase to practice again.",
+      "noSavedPhrasesYet": "You do not have saved phrases yet.",
+      "savedPhrasesHint": "Save a phrase from Lab and it will appear here.",
+      "usePhrase": "Use phrase",
+      "deletePhrase": "Delete",
+      "savedPhraseSavedToast": "Phrase saved.",
+      "savedPhraseUpdatedToast": "Phrase updated.",
+      "savedPhraseLoadedToast": "Phrase loaded.",
+      "savedPhraseDeletedToast": "Phrase deleted.",
+      "advanced": "Advanced",
+      "evaluatingPronunciation": "Evaluating pronunciation...",
+      "transcript": "Transcript",
+      "transcriptAdvanced": "Transcript (Advanced)",
+      "overall": "Overall",
+      "accuracy": "Accuracy",
+      "fluency": "Fluency",
+      "completeness": "Completeness"
+    },
+    "reference": {
+      "title": "Reference",
+      "subtitle": "Browse courses, units, and lessons to review content."
+    },
+    "chat": {
+      "coachChatbotTitle": "AI coach",
+      "coachChatbotSubtitle": "Chat freely with your English tutor.",
+      "loginRequired": "You need to sign in to use the chat coach.",
+      "loginCta": "Sign in",
+      "loadingUser": "Loading user state...",
+      "inputPlaceholder": "Type your message...",
+      "send": "Send",
+      "listenAgain": "Listen again",
+      "playingNow": "Playing",
+      "retrySend": "Retry",
+      "realtimeDisconnected": "Realtime connection unavailable. Reconnecting...",
+      "serverUnavailable": "The server is not available right now. Please try again later.",
+      "typingAria": "Typing...",
+      "introChatbot": "Hi!, i am your English teacher, how can i help you?"
+    },
+    "profile": {
+      "accessPill": "Access",
+      "loginTitle": "Sign in",
+      "loginSubtitle": "You need to sign in to view your profile.",
+      "loginCta": "Sign in",
+      "rewardsTitle": "Rewards",
+      "rewardsEmpty": "You do not have rewards yet.",
+      "tabPrefs": "Profile"
+    },
+    "native": {
+      "appTitle": "SpeakApp Native",
+      "titleBarSubtitle": "Double tap to open diagnostics.",
+      "notificationsButton": "Notifications",
+      "logoutButton": "Logout",
+      "sessionUserLabel": "Session",
+      "sessionLocaleLabel": "Locale",
+      "sessionPlanLabel": "Plan",
+      "diagnostics": {
+        "title": "Diagnostics",
+        "subtitle": "Local status for the native iOS proof of concept.",
+        "versionTitle": "Version",
+        "bundleTitle": "Bundle",
+        "localeTitle": "Locale",
+        "userTitle": "User",
+        "tabsTitle": "Tabs",
+        "platformTitle": "Platform",
+        "assetsTitle": "Assets"
+      },
+      "screens": {
+        "training": {
+          "eyebrow": "Native shell",
+          "title": "Training",
+          "message": "Placeholder for the daily training loop, streak, and primary CTA.",
+          "callout": "Aligned with `home.planTitle` and the current plan narrative.",
+          "asset": "BrandMark",
+          "highlights": [
+            "Daily summary",
+            "Continue session",
+            "Quick metrics"
+          ]
+        },
+        "lab": {
+          "eyebrow": "Free practice",
+          "title": "Lab",
+          "message": "Placeholder for open pronunciation practice with free text input.",
+          "callout": "Aligned with `freeRide.title` and `freeRide.subtitle`.",
+          "asset": "BrandMark",
+          "highlights": [
+            "Free text",
+            "Microphone entry",
+            "Future feedback loop"
+          ]
+        },
+        "reference": {
+          "eyebrow": "Browse",
+          "title": "Reference",
+          "message": "Placeholder for a native browser of courses, units, and lessons.",
+          "callout": "Aligned with `reference.title` and `reference.subtitle`.",
+          "asset": "FlagEN",
+          "highlights": [
+            "Courses",
+            "Units",
+            "Lessons"
+          ]
+        },
+        "you": {
+          "eyebrow": "Account",
+          "title": "You",
+          "message": "Placeholder for profile, progress, and review areas.",
+          "callout": "Aligned with `profile.tabPrefs` and the mocked signed-in state.",
+          "asset": "Mascot",
+          "highlights": [
+            "Profile",
+            "Review",
+            "Badges"
+          ]
+        },
+        "chat": {
+          "eyebrow": "Coach",
+          "title": "Chat",
+          "message": "Placeholder for the native AI coach and future realtime/audio layer.",
+          "callout": "Aligned with `chat.coachChatbotTitle` and `chat.coachChatbotSubtitle`.",
+          "asset": "Chatbot",
+          "highlights": [
+            "AI coach",
+            "Connection state",
+            "Conversation input"
+          ]
+        }
+      }
+    }
+  },
+  "es": {
+    "tabs": {
+      "training": "Training",
+      "lab": "Lab",
+      "reference": "Referencia",
+      "you": "You",
+      "chat": "Chat"
+    },
+    "notifications": {
+      "title": "Notificaciones",
+      "recentActivity": "Actividad reciente",
+      "empty": "No hay notificaciones todavía.",
+      "statusNew": "Nueva",
+      "statusRead": "Leída",
+      "deleteAction": "Eliminar",
+      "openAction": "Abrir",
+      "elapsedNow": "Hace un momento",
+      "elapsedMinutes": "Hace {n} min",
+      "elapsedHours": "Hace {n} h",
+      "elapsedDays": "Hace {n} d",
+      "pushDefaultTitle": "Nueva notificación",
+      "defaultTitle": "Notificación",
+      "demo": {
+        "weakWordsTitle": "Tienes {n} palabras flojas",
+        "weakWordsText": "Ve a Review y mejora tu pronunciación.",
+        "weakWordsAction": "Revisar",
+        "badgeTitle": "Nuevo badge desbloqueado",
+        "badgeText": "Racha de 3 días completada.",
+        "badgeAction": "Ver perfil",
+        "practiceTitle": "Mini práctica lista",
+        "practiceText": "Solo 2 minutos para hoy.",
+        "practiceAction": "Practicar",
+        "coachTitle": "Coach listo para ti",
+        "coachText": "Pregunta algo al coach.",
+        "coachAction": "Abrir coach",
+        "reminderTitle": "Recordatorio",
+        "reminderText": "Practica 5 minutos hoy.",
+        "reminderAction": "Ir a Home",
+        "infoTitle": "Novedad",
+        "infoText": "Hay nuevos ejercicios disponibles."
+      }
+    },
+    "login": {
+      "title": "Login",
+      "close": "Cerrar",
+      "socialGoogle": "Login con Google",
+      "socialFacebook": "Login con Facebook",
+      "socialApple": "Login con Apple",
+      "createWithEmail": "Crear cuenta con email",
+      "userLabel": "Usuario",
+      "userPlaceholder": "tu usuario",
+      "passLabel": "Contraseña",
+      "passPlaceholder": "********",
+      "enter": "Entrar",
+      "forgotPassword": "Recuperar contraseña",
+      "registerTitle": "Crear cuenta",
+      "registerSubtitle": "Completa tus datos para registrarte.",
+      "registerUserLabel": "Nombre de usuario",
+      "registerUserPlaceholder": "tu nombre",
+      "registerEmailLabel": "Email",
+      "registerEmailPlaceholder": "tu email",
+      "registerPassLabel": "Contraseña",
+      "registerPassPlaceholder": "********",
+      "registerPassConfirmLabel": "Confirmar contraseña",
+      "registerPassConfirmPlaceholder": "********",
+      "registerTerms": "Acepto los términos de uso",
+      "registerSubmit": "Crear cuenta",
+      "registerBack": "Volver al login",
+      "recoverTitle": "Recuperar contraseña",
+      "recoverSubtitle": "Te enviaremos un email para restablecerla.",
+      "recoverEmailLabel": "Email",
+      "recoverEmailPlaceholder": "tu email",
+      "recoverSubmit": "Enviar instrucciones",
+      "recoverBack": "Volver al login",
+      "alertHeader": "Aviso",
+      "alertOk": "Ok",
+      "errors": {
+        "loginGeneric": "Error de login",
+        "loginInvalidUser": "El usuario no es válido",
+        "loginInvalidPassword": "La contraseña no es válida",
+        "loginNoUserData": "Login correcto, pero sin datos de usuario",
+        "socialAppleUnavailable": "Login con Apple no disponible.",
+        "socialAppleOnlyApp": "Login con Apple solo disponible en la app.",
+        "socialAppleOpenFailed": "No se pudo abrir Apple.",
+        "socialGoogleUnavailable": "Login con Google no disponible.",
+        "socialGoogleOnlyApp": "Login con Google solo disponible en la app.",
+        "socialGoogleOpenFailed": "No se pudo abrir Google.",
+        "socialFacebookUnavailable": "Login con Facebook no disponible.",
+        "socialFacebookOnlyApp": "Login con Facebook solo disponible en la app.",
+        "socialFacebookOpenFailed": "No se pudo abrir Facebook.",
+        "registerMissingFields": "Por favor completa todos los campos.",
+        "registerPasswordMismatch": "La confirmación no coincide con la contraseña.",
+        "registerTermsRequired": "Debes aceptar los términos de uso.",
+        "registerFailed": "Error creando cuenta",
+        "recoverEmailRequired": "Debes introducir tu email.",
+        "recoverFailed": "No se pudo enviar el email"
+      },
+      "info": {
+        "registerSuccess": "Gracias. Revisa tu email para activar la cuenta.",
+        "recoverSuccess": "Te enviamos un email con las instrucciones."
+      }
+    },
+    "home": {
+      "planTitle": "Tu plan",
+      "planMessage": "Este es tu plan para sonar como nativo.<br>Toca esta tarjeta para escucharlo otra vez."
+    },
+    "freeRide": {
+      "title": "Lab",
+      "subtitle": "Escribe tu frase o texto y practica pronunciación libre.",
+      "inputLabel": "Tu frase",
+      "inputPlaceholder": "Ejemplo: I would like to order a coffee, please.",
+      "emptyPhrase": "Escribe una frase para practicar.",
+      "playPhrase": "Escuchar frase",
+      "sayLabel": "Habla",
+      "endLabel": "Fin",
+      "yourVoiceLabel": "Tu voz",
+      "feedbackHint": "Practica la frase",
+      "feedbackNative": "Suena como un nativo",
+      "feedbackGood": "Bien. Sigue practicando",
+      "feedbackAlmost": "Casi correcto",
+      "feedbackKeep": "Sigue practicando",
+      "transcribing": "Transcribiendo...",
+      "savePhrase": "Guardar frase",
+      "myPhrases": "Mis frases",
+      "savedPhrasesTitle": "Frases guardadas",
+      "savedPhrasesSubtitle": "Recupera una frase para practicarla de nuevo.",
+      "noSavedPhrasesYet": "No tienes frases guardadas todavía.",
+      "savedPhrasesHint": "Guarda una frase desde Lab y aparecerá aquí.",
+      "usePhrase": "Usar frase",
+      "deletePhrase": "Borrar",
+      "savedPhraseSavedToast": "Frase guardada.",
+      "savedPhraseUpdatedToast": "Frase actualizada.",
+      "savedPhraseLoadedToast": "Frase cargada.",
+      "savedPhraseDeletedToast": "Frase borrada.",
+      "advanced": "Avanzado",
+      "evaluatingPronunciation": "Evaluando pronunciación...",
+      "transcript": "Transcrito",
+      "transcriptAdvanced": "Transcrito (avanzado)",
+      "overall": "Global",
+      "accuracy": "Precisión",
+      "fluency": "Fluidez",
+      "completeness": "Completitud"
+    },
+    "reference": {
+      "title": "Referencia",
+      "subtitle": "Explora cursos, unidades y lecciones para consultar contenido."
+    },
+    "chat": {
+      "coachChatbotTitle": "Coach de IA",
+      "coachChatbotSubtitle": "Interactúa libremente con el tutor de Inglés.",
+      "loginRequired": "Debes iniciar sesión para usar el coach de chat.",
+      "loginCta": "Iniciar sesión",
+      "loadingUser": "Cargando estado de usuario...",
+      "inputPlaceholder": "Escribe tu mensaje...",
+      "send": "Enviar",
+      "listenAgain": "Escuchar de nuevo",
+      "playingNow": "Reproduciendo",
+      "retrySend": "Reintentar",
+      "realtimeDisconnected": "Conexión en tiempo real no disponible. Reintentando...",
+      "serverUnavailable": "El servidor no está disponible ahora mismo. Inténtalo más tarde.",
+      "typingAria": "Escribiendo...",
+      "introChatbot": "Hi!, i am your English teacher, how can i help you?"
+    },
+    "profile": {
+      "accessPill": "Acceso",
+      "loginTitle": "Inicia sesión",
+      "loginSubtitle": "Debes iniciar sesión para ver tu perfil.",
+      "loginCta": "Iniciar sesión",
+      "rewardsTitle": "Premios",
+      "rewardsEmpty": "Todavía no tienes premios.",
+      "tabPrefs": "Perfil"
+    },
+    "native": {
+      "appTitle": "SpeakApp Native",
+      "titleBarSubtitle": "Doble tap para ver diagnostics.",
+      "notificationsButton": "Notificaciones",
+      "logoutButton": "Salir",
+      "sessionUserLabel": "Sesión",
+      "sessionLocaleLabel": "Idioma",
+      "sessionPlanLabel": "Plan",
+      "diagnostics": {
+        "title": "Diagnostics",
+        "subtitle": "Estado local del proof of concept nativo para iOS.",
+        "versionTitle": "Versión",
+        "bundleTitle": "Bundle",
+        "localeTitle": "Idioma",
+        "userTitle": "Usuario",
+        "tabsTitle": "Tabs",
+        "platformTitle": "Plataforma",
+        "assetsTitle": "Assets"
+      },
+      "screens": {
+        "training": {
+          "eyebrow": "Shell nativa",
+          "title": "Training",
+          "message": "Placeholder para el loop diario de entrenamiento, racha y CTA principal.",
+          "callout": "Alineado con `home.planTitle` y la narrativa del plan actual.",
+          "asset": "BrandMark",
+          "highlights": [
+            "Resumen del día",
+            "Continuar sesión",
+            "Métricas rápidas"
+          ]
+        },
+        "lab": {
+          "eyebrow": "Entrada libre",
+          "title": "Lab",
+          "message": "Placeholder para práctica abierta de pronunciación con texto libre.",
+          "callout": "Alineado con `freeRide.title` y `freeRide.subtitle`.",
+          "asset": "BrandMark",
+          "highlights": [
+            "Texto libre",
+            "Acceso a micrófono",
+            "Feedback futuro"
+          ]
+        },
+        "reference": {
+          "eyebrow": "Consulta",
+          "title": "Reference",
+          "message": "Placeholder para navegador nativo de cursos, unidades y lecciones.",
+          "callout": "Alineado con `reference.title` y `reference.subtitle`.",
+          "asset": "FlagEN",
+          "highlights": [
+            "Cursos",
+            "Unidades",
+            "Lecciones"
+          ]
+        },
+        "you": {
+          "eyebrow": "Cuenta",
+          "title": "You",
+          "message": "Placeholder para perfil, progreso y review del usuario.",
+          "callout": "Alineado con `profile.tabPrefs` y el estado de sesión mock.",
+          "asset": "Mascot",
+          "highlights": [
+            "Perfil",
+            "Review",
+            "Badges"
+          ]
+        },
+        "chat": {
+          "eyebrow": "Tutor",
+          "title": "Chat",
+          "message": "Placeholder para el coach de IA nativo y la futura capa realtime/audio.",
+          "callout": "Alineado con `chat.coachChatbotTitle` y `chat.coachChatbotSubtitle`.",
+          "asset": "Chatbot",
+          "highlights": [
+            "Coach IA",
+            "Estado de conexión",
+            "Input conversacional"
+          ]
+        }
+      }
+    }
+  }
+}

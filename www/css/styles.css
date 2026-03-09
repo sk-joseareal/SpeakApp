@@ -2568,6 +2568,11 @@ page-chat ion-content::part(scroll) {
   border-radius: 16px;
   padding: 10px 12px;
   box-shadow: 0 10px 20px rgba(15, 27, 45, 0.06);
+  transition:
+    background 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    transform 180ms ease;
 }
 
 .chat-bubble-typing {
@@ -2621,6 +2626,34 @@ page-chat ion-content::part(scroll) {
   border-color: rgba(91, 112, 255, 0.35);
 }
 
+.chat-msg.is-playing .chat-bubble {
+  transform: translateY(-1px);
+}
+
+.chat-msg.is-playing-polly .chat-bubble {
+  background: linear-gradient(140deg, rgba(104, 148, 255, 0.2), rgba(255, 255, 255, 0.98));
+  border-color: rgba(76, 126, 255, 0.42);
+  box-shadow:
+    0 14px 28px rgba(76, 126, 255, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.72);
+}
+
+.chat-msg.is-playing-native .chat-bubble {
+  background: linear-gradient(140deg, rgba(75, 191, 141, 0.16), rgba(255, 255, 255, 0.98));
+  border-color: rgba(57, 160, 118, 0.34);
+  box-shadow:
+    0 14px 28px rgba(57, 160, 118, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.72);
+}
+
+.chat-msg.is-playing-local .chat-bubble {
+  background: linear-gradient(140deg, rgba(255, 190, 92, 0.16), rgba(255, 255, 255, 0.98));
+  border-color: rgba(225, 155, 47, 0.34);
+  box-shadow:
+    0 14px 28px rgba(225, 155, 47, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.72);
+}
+
 .chat-text {
   margin: 0 0 8px;
   font-size: 0.95rem;
@@ -2642,6 +2675,12 @@ page-chat ion-content::part(scroll) {
   color: var(--app-text);
   font-size: 0.8rem;
   cursor: pointer;
+  transition:
+    background 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease,
+    box-shadow 180ms ease,
+    transform 180ms ease;
 }
 
 .chat-audio-btn ion-icon {
@@ -2651,6 +2690,29 @@ page-chat ion-content::part(scroll) {
 .chat-audio-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.chat-audio-btn.is-playing {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 18px rgba(15, 27, 45, 0.1);
+}
+
+.chat-audio-btn.is-playing[data-playing-source='polly'] {
+  background: rgba(76, 126, 255, 0.12);
+  border-color: rgba(76, 126, 255, 0.34);
+  color: #2555d8;
+}
+
+.chat-audio-btn.is-playing[data-playing-source='native'] {
+  background: rgba(57, 160, 118, 0.12);
+  border-color: rgba(57, 160, 118, 0.3);
+  color: #1d7c57;
+}
+
+.chat-audio-btn.is-playing[data-playing-source='local'] {
+  background: rgba(225, 155, 47, 0.12);
+  border-color: rgba(225, 155, 47, 0.3);
+  color: #9d6508;
 }
 
 .chat-controls {

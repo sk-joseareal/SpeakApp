@@ -353,6 +353,206 @@ const synthesizePollyBuffer = async ({ text, voice, engine, outputFormat, speech
   };
 };
 
+const buildAlignedTtsPayload = async (source = {}, options = {}) => {
+  if (!ttsAlignedEnabled || !s3Client || !pollyClient) {
+    return {
+      ok: false,
+      error: 'tts_aligned_not_configured',
+      statusCode: 501
+    };
+  }
+
+  const shouldTrackUsage = options.trackUsage !== false;
+  const enforceLimit = options.enforceLimit !== false;
+  const text = normalizeTtsText(pickFirstString(source.text, source.phrase, source.input));
+  const ttsUserId = pickFirstString(source.user_id, source.userId, source.id);
+  const ttsUserName = pickFirstString(source.user_name, source.userName, source.name);
+  const maxLen = toPositiveInteger(ttsAlignedTextMaxLen, 320);
+  if (!text) {
+    return {
+      ok: false,
+      error: 'text_required',
+      statusCode: 400
+    };
+  }
+  if (text.length > maxLen) {
+    return {
+      ok: false,
+      error: `text_too_long_max_${maxLen}`,
+      text_length: text.length,
+      max_length: maxLen,
+      statusCode: 400
+    };
+  }
+
+  const locale = normalizeTtsLocale(source.locale || source.lang || source.language);
+  const voice = pickFirstString(source.voice, selectDefaultTtsVoice(locale));
+  if (!voice) {
+    return {
+      ok: false,
+      error: 'voice_required',
+      statusCode: 400
+    };
+  }
+
+  const engine = pickFirstString(source.engine, ttsAlignedPollyEngine);
+  const cacheHash = buildTtsCacheHash({ text, locale, voice, engine });
+  const cachePrefix = sanitizeS3PathPart(ttsAlignedS3Prefix);
+  const audioKey = buildTtsS3Key(cachePrefix, locale, `${cacheHash}.mp3`);
+  const wordsKey = buildTtsS3Key(cachePrefix, locale, `${cacheHash}.words.json`);
+  const forceRegenerate =
+    String(source.force || source.regenerate || '')
+      .toLowerCase()
+      .trim() === 'true' ||
+    String(source.force || source.regenerate || '').trim() === '1';
+
+  try {
+    let cached = false;
+    let wordsPayload = null;
+    let billedCharacters = 0;
+    const projectedBilledCharacters = Math.max(0, text.length) * 2;
+
+    if (!forceRegenerate) {
+      const [hasAudio, hasWords] = await Promise.all([s3ObjectExists(audioKey), s3ObjectExists(wordsKey)]);
+      if (hasAudio && hasWords) {
+        wordsPayload = await readS3JsonObject(wordsKey);
+        if (wordsPayload && Array.isArray(wordsPayload.words)) {
+          cached = true;
+        }
+      }
+    }
+
+    if (!cached) {
+      if (enforceLimit && ttsUserId) {
+        const limitStatus = getTtsDailyLimitStatus(ttsUserId);
+        const hasLimit = limitStatus.char_limit_day > 0;
+        const alreadyReached = Boolean(hasLimit && limitStatus.used_chars_day >= limitStatus.char_limit_day);
+        const wouldExceed =
+          Boolean(hasLimit && limitStatus.used_chars_day + projectedBilledCharacters > limitStatus.char_limit_day);
+        if (alreadyReached || wouldExceed) {
+          return {
+            ok: false,
+            error: 'tts_daily_char_limit',
+            message: 'Daily TTS character limit reached',
+            provider: 'aws-polly',
+            projected_billed_characters: projectedBilledCharacters,
+            would_exceed_today: wouldExceed,
+            statusCode: 429,
+            ...limitStatus
+          };
+        }
+      }
+
+      const [audioSynth, marksSynth] = await Promise.all([
+        synthesizePollyBuffer({
+          text,
+          voice,
+          engine,
+          outputFormat: 'mp3'
+        }),
+        synthesizePollyBuffer({
+          text,
+          voice,
+          engine,
+          outputFormat: 'json',
+          speechMarkTypes: ['word']
+        })
+      ]);
+      const audioBuffer = audioSynth && audioSynth.buffer ? audioSynth.buffer : Buffer.alloc(0);
+      const marksBuffer = marksSynth && marksSynth.buffer ? marksSynth.buffer : Buffer.alloc(0);
+      const audioRequestChars = Math.round(
+        toNonNegativeNumber(audioSynth && audioSynth.requestCharacters, text.length)
+      );
+      const marksRequestChars = Math.round(
+        toNonNegativeNumber(marksSynth && marksSynth.requestCharacters, text.length)
+      );
+      billedCharacters = audioRequestChars + marksRequestChars;
+
+      const parsedMarks = parsePollyWordMarks(marksBuffer.toString('utf8'));
+      wordsPayload = {
+        schema: 1,
+        generated_at: new Date().toISOString(),
+        hash: cacheHash,
+        text,
+        locale,
+        voice,
+        engine,
+        duration_ms: parsedMarks.duration_ms,
+        words: parsedMarks.words
+      };
+
+      await Promise.all([
+        s3Client.send(
+          new PutObjectCommand({
+            Bucket: ttsAlignedS3Bucket,
+            Key: audioKey,
+            Body: audioBuffer,
+            ContentType: 'audio/mpeg',
+            CacheControl: 'public, max-age=31536000, immutable'
+          })
+        ),
+        s3Client.send(
+          new PutObjectCommand({
+            Bucket: ttsAlignedS3Bucket,
+            Key: wordsKey,
+            Body: Buffer.from(JSON.stringify(wordsPayload)),
+            ContentType: 'application/json; charset=utf-8',
+            CacheControl: 'public, max-age=31536000, immutable'
+          })
+        )
+      ]);
+    }
+
+    if (!wordsPayload || !Array.isArray(wordsPayload.words)) {
+      return {
+        ok: false,
+        error: 'tts_aligned_words_missing',
+        statusCode: 500
+      };
+    }
+
+    if (shouldTrackUsage) {
+      trackTtsDailyUsage({
+        timestamp: new Date().toISOString(),
+        user_id: ttsUserId || 'unknown',
+        user_name: ttsUserName || '',
+        locale,
+        voice,
+        engine,
+        text_characters: text.length,
+        billed_characters: cached ? 0 : billedCharacters,
+        cached
+      });
+    }
+    const ttsLimitStatus = ttsUserId ? getTtsDailyLimitStatus(ttsUserId) : null;
+
+    return {
+      ok: true,
+      provider: 'aws-polly',
+      cached,
+      hash: cacheHash,
+      text,
+      locale,
+      voice,
+      engine,
+      audio_url: getTtsPublicUrl(audioKey),
+      words_url: getTtsPublicUrl(wordsKey),
+      duration_ms: toNonNegativeNumber(wordsPayload.duration_ms, 0),
+      words: wordsPayload.words,
+      limit_status: ttsLimitStatus,
+      audio_kind: 'polly'
+    };
+  } catch (err) {
+    console.error('[realtime] tts aligned error', err.message || err);
+    return {
+      ok: false,
+      error: 'tts_aligned_failed',
+      message: err && err.message ? err.message : String(err),
+      statusCode: 500
+    };
+  }
+};
+
 const ensureParentDir = (filePath) => {
   if (!filePath) return;
   const dirPath = path.dirname(filePath);
@@ -2323,11 +2523,32 @@ app.post('/realtime/emit', async (req, res) => {
   generateChatbotReply(channel, text, userMeta)
     .then((reply) => {
       if (!reply) return;
-      return pusher.trigger(channel, 'bot_message', {
+      const ttsSource = {
         text: reply,
-        role: 'bot',
-        coach_id: chatbotCoachId
-      });
+        locale: 'en-US',
+        user_id: resolvedUserId,
+        user_name: userMeta.userName
+      };
+      return buildAlignedTtsPayload(ttsSource)
+        .then((ttsPayload) => {
+          const botPayload = {
+            text: reply,
+            role: 'bot',
+            coach_id: chatbotCoachId,
+            speakText: reply
+          };
+          if (ttsPayload && ttsPayload.ok && ttsPayload.audio_url) {
+            botPayload.audio_url = ttsPayload.audio_url;
+            botPayload.audio_kind = ttsPayload.audio_kind || 'polly';
+            botPayload.tts_provider = ttsPayload.provider || 'aws-polly';
+          } else if (ttsPayload && !ttsPayload.ok) {
+            const ttsError = pickFirstString(ttsPayload.error, ttsPayload.message);
+            if (ttsError) {
+              console.warn('[realtime] chatbot reply without prebuilt audio:', ttsError);
+            }
+          }
+          return pusher.trigger(channel, 'bot_message', botPayload);
+        });
     })
     .catch((err) => {
       console.error('[realtime] chatbot error', err.message || err);
@@ -2336,186 +2557,13 @@ app.post('/realtime/emit', async (req, res) => {
 
 app.post('/realtime/tts/aligned', async (req, res) => {
   if (!authorizeUsage(req, res)) return;
-  if (!ttsAlignedEnabled || !s3Client || !pollyClient) {
-    res.status(501).json({ ok: false, error: 'tts_aligned_not_configured' });
-    return;
-  }
-
   const source = Object.assign({}, req.query || {}, req.body || {});
-  const text = normalizeTtsText(pickFirstString(source.text, source.phrase, source.input));
-  const ttsUserId = pickFirstString(source.user_id, source.userId, source.id);
-  const ttsUserName = pickFirstString(source.user_name, source.userName, source.name);
-  const maxLen = toPositiveInteger(ttsAlignedTextMaxLen, 320);
-  if (!text) {
-    res.status(400).json({ ok: false, error: 'text_required' });
-    return;
+  const payload = await buildAlignedTtsPayload(source);
+  const statusCode = payload && payload.statusCode ? payload.statusCode : 200;
+  if (payload && Object.prototype.hasOwnProperty.call(payload, 'statusCode')) {
+    delete payload.statusCode;
   }
-  if (text.length > maxLen) {
-    res.status(400).json({
-      ok: false,
-      error: `text_too_long_max_${maxLen}`,
-      text_length: text.length,
-      max_length: maxLen
-    });
-    return;
-  }
-
-  const locale = normalizeTtsLocale(source.locale || source.lang || source.language);
-  const voice = pickFirstString(source.voice, selectDefaultTtsVoice(locale));
-  if (!voice) {
-    res.status(400).json({ ok: false, error: 'voice_required' });
-    return;
-  }
-
-  const engine = pickFirstString(source.engine, ttsAlignedPollyEngine);
-  const cacheHash = buildTtsCacheHash({ text, locale, voice, engine });
-  const cachePrefix = sanitizeS3PathPart(ttsAlignedS3Prefix);
-  const audioKey = buildTtsS3Key(cachePrefix, locale, `${cacheHash}.mp3`);
-  const wordsKey = buildTtsS3Key(cachePrefix, locale, `${cacheHash}.words.json`);
-  const forceRegenerate =
-    String(source.force || source.regenerate || '')
-      .toLowerCase()
-      .trim() === 'true' ||
-    String(source.force || source.regenerate || '').trim() === '1';
-
-  try {
-    let cached = false;
-    let wordsPayload = null;
-    let billedCharacters = 0;
-    const projectedBilledCharacters = Math.max(0, text.length) * 2;
-
-    if (!forceRegenerate) {
-      const [hasAudio, hasWords] = await Promise.all([s3ObjectExists(audioKey), s3ObjectExists(wordsKey)]);
-      if (hasAudio && hasWords) {
-        wordsPayload = await readS3JsonObject(wordsKey);
-        if (wordsPayload && Array.isArray(wordsPayload.words)) {
-          cached = true;
-        }
-      }
-    }
-
-    if (!cached) {
-      if (ttsUserId) {
-        const limitStatus = getTtsDailyLimitStatus(ttsUserId);
-        const hasLimit = limitStatus.char_limit_day > 0;
-        const alreadyReached = Boolean(hasLimit && limitStatus.used_chars_day >= limitStatus.char_limit_day);
-        const wouldExceed =
-          Boolean(hasLimit && limitStatus.used_chars_day + projectedBilledCharacters > limitStatus.char_limit_day);
-        if (alreadyReached || wouldExceed) {
-          res.status(429).json({
-            ok: false,
-            error: 'tts_daily_char_limit',
-            message: 'Daily TTS character limit reached',
-            provider: 'aws-polly',
-            projected_billed_characters: projectedBilledCharacters,
-            would_exceed_today: wouldExceed,
-            ...limitStatus
-          });
-          return;
-        }
-      }
-
-      const [audioSynth, marksSynth] = await Promise.all([
-        synthesizePollyBuffer({
-          text,
-          voice,
-          engine,
-          outputFormat: 'mp3'
-        }),
-        synthesizePollyBuffer({
-          text,
-          voice,
-          engine,
-          outputFormat: 'json',
-          speechMarkTypes: ['word']
-        })
-      ]);
-      const audioBuffer = audioSynth && audioSynth.buffer ? audioSynth.buffer : Buffer.alloc(0);
-      const marksBuffer = marksSynth && marksSynth.buffer ? marksSynth.buffer : Buffer.alloc(0);
-      const audioRequestChars = Math.round(
-        toNonNegativeNumber(audioSynth && audioSynth.requestCharacters, text.length)
-      );
-      const marksRequestChars = Math.round(
-        toNonNegativeNumber(marksSynth && marksSynth.requestCharacters, text.length)
-      );
-      billedCharacters = audioRequestChars + marksRequestChars;
-
-      const parsedMarks = parsePollyWordMarks(marksBuffer.toString('utf8'));
-      wordsPayload = {
-        schema: 1,
-        generated_at: new Date().toISOString(),
-        hash: cacheHash,
-        text,
-        locale,
-        voice,
-        engine,
-        duration_ms: parsedMarks.duration_ms,
-        words: parsedMarks.words
-      };
-
-      await Promise.all([
-        s3Client.send(
-          new PutObjectCommand({
-            Bucket: ttsAlignedS3Bucket,
-            Key: audioKey,
-            Body: audioBuffer,
-            ContentType: 'audio/mpeg',
-            CacheControl: 'public, max-age=31536000, immutable'
-          })
-        ),
-        s3Client.send(
-          new PutObjectCommand({
-            Bucket: ttsAlignedS3Bucket,
-            Key: wordsKey,
-            Body: Buffer.from(JSON.stringify(wordsPayload)),
-            ContentType: 'application/json; charset=utf-8',
-            CacheControl: 'public, max-age=31536000, immutable'
-          })
-        )
-      ]);
-    }
-
-    if (!wordsPayload || !Array.isArray(wordsPayload.words)) {
-      res.status(500).json({ ok: false, error: 'tts_aligned_words_missing' });
-      return;
-    }
-
-    trackTtsDailyUsage({
-      timestamp: new Date().toISOString(),
-      user_id: ttsUserId || 'unknown',
-      user_name: ttsUserName || '',
-      locale,
-      voice,
-      engine,
-      text_characters: text.length,
-      billed_characters: cached ? 0 : billedCharacters,
-      cached
-    });
-    const ttsLimitStatus = ttsUserId ? getTtsDailyLimitStatus(ttsUserId) : null;
-
-    res.json({
-      ok: true,
-      provider: 'aws-polly',
-      cached,
-      hash: cacheHash,
-      text,
-      locale,
-      voice,
-      engine,
-      audio_url: getTtsPublicUrl(audioKey),
-      words_url: getTtsPublicUrl(wordsKey),
-      duration_ms: toNonNegativeNumber(wordsPayload.duration_ms, 0),
-      words: wordsPayload.words,
-      limit_status: ttsLimitStatus
-    });
-  } catch (err) {
-    console.error('[realtime] tts aligned error', err.message || err);
-    res.status(500).json({
-      ok: false,
-      error: 'tts_aligned_failed',
-      message: err && err.message ? err.message : String(err)
-    });
-  }
+  res.status(statusCode).json(payload);
 });
 
 app.post('/realtime/pronunciation/assess', async (req, res) => {

@@ -38,19 +38,6 @@
       <div class="row row-wrap gap-sm">
         <button id="healthBtn" class="btn">Health</button>
       </div>
-      <div class="row row-wrap gap-sm top-md">
-        <label class="field grow">
-          <span>Nombre release</span>
-          <input id="releaseNameInput" type="text" autocomplete="off" placeholder="release-1.1.0" />
-        </label>
-        <button id="publishBtn" class="btn btn-success">Publicar draft</button>
-      </div>
-      <div class="row row-wrap gap-sm top-md">
-        <p id="lockInfo" class="hint grow">Lock: sin lock activo.</p>
-        <button id="claimLockBtn" class="btn">Tomar lock</button>
-        <button id="releaseLockBtn" class="btn">Liberar lock</button>
-        <button id="refreshLockBtn" class="btn">Refrescar lock</button>
-      </div>
       <pre id="statusBox" class="status">Listo.</pre>
     </section>
 
@@ -108,6 +95,12 @@
           </div>
           <button id="syncFromJsonBtn" class="btn hidden">Aplicar JSON</button>
         </div>
+      </div>
+      <div class="row row-wrap gap-sm top-md">
+        <p id="lockInfo" class="hint grow">Lock: sin lock activo.</p>
+        <button id="claimLockBtn" class="btn">Tomar lock</button>
+        <button id="releaseLockBtn" class="btn">Liberar lock</button>
+        <button id="refreshLockBtn" class="btn">Refrescar lock</button>
       </div>
 
       <div id="guidedBodySection" class="guided-grid">
@@ -390,6 +383,13 @@
       <div class="row between center">
         <h2>Releases</h2>
         <button id="refreshReleasesBtn" class="btn">Refrescar</button>
+      </div>
+      <div class="row row-wrap gap-sm top-md">
+        <label class="field grow">
+          <span>Nombre release</span>
+          <input id="releaseNameInput" type="text" autocomplete="off" placeholder="release-1.1.0" />
+        </label>
+        <button id="publishBtn" class="btn btn-success">Publicar draft</button>
       </div>
       <div id="releasesBox" class="releases"></div>
     </section>

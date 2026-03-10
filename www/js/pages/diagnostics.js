@@ -36,6 +36,7 @@ class PageDiagnostics extends HTMLElement {
     const FREE_RIDE_WORD_TAP_AUDIO_ENABLED_KEY = 'appv5:free-ride-word-tap-audio-enabled';
     const SPEAK_SESSION_PERCENTAGES_VISIBLE_KEY = 'appv5:speak-session-percentages-visible';
     const REFERENCE_TAB_ENABLED_KEY = 'appv5:reference-tab-enabled';
+    const REFERENCE_TESTS_ENABLED_KEY = 'appv5:reference-tests-enabled';
     const normalizeFreeRideAudioMode = (value) => {
       const normalized = String(value || '')
         .trim()
@@ -136,6 +137,26 @@ class PageDiagnostics extends HTMLElement {
         return false;
       }
     };
+    const normalizeReferenceTestsEnabled = (value) => {
+      if (typeof value === 'boolean') return value;
+      const normalized = String(value || '')
+        .trim()
+        .toLowerCase();
+      if (!normalized) return false;
+      return ['1', 'true', 'on', 'yes'].includes(normalized);
+    };
+    const getStoredReferenceTestsEnabled = () => {
+      const globalValue =
+        window.r34lp0w3r && Object.prototype.hasOwnProperty.call(window.r34lp0w3r, 'referenceTestsEnabled')
+          ? window.r34lp0w3r.referenceTestsEnabled
+          : undefined;
+      if (globalValue !== undefined) return normalizeReferenceTestsEnabled(globalValue);
+      try {
+        return normalizeReferenceTestsEnabled(localStorage.getItem(REFERENCE_TESTS_ENABLED_KEY));
+      } catch (err) {
+        return false;
+      }
+    };
 
     this.innerHTML = `
       <ion-header translucent="true">
@@ -173,6 +194,13 @@ class PageDiagnostics extends HTMLElement {
                 <div class="diag-debug-sub" id="diag-reference-tab-sub"></div>
               </div>
               <ion-toggle id="diag-reference-tab-toggle" ${getStoredReferenceTabEnabled() ? 'checked' : ''}></ion-toggle>
+            </div>
+            <div class="diag-debug-toggle" style="margin-top: 10px;">
+              <div class="diag-debug-text">
+                <div class="diag-debug-title">Tests en Referencia</div>
+                <div class="diag-debug-sub" id="diag-reference-tests-sub"></div>
+              </div>
+              <ion-toggle id="diag-reference-tests-toggle" ${getStoredReferenceTestsEnabled() ? 'checked' : ''}></ion-toggle>
             </div>
             
             <div id="diag-user" style="display:none; margin-bottom:12px;">
@@ -683,6 +711,8 @@ class PageDiagnostics extends HTMLElement {
     const speakSessionPercentagesSubEl = this.querySelector('#diag-speak-session-percentages-sub');
     const referenceTabToggleEl = this.querySelector('#diag-reference-tab-toggle');
     const referenceTabSubEl = this.querySelector('#diag-reference-tab-sub');
+    const referenceTestsToggleEl = this.querySelector('#diag-reference-tests-toggle');
+    const referenceTestsSubEl = this.querySelector('#diag-reference-tests-sub');
     const pronAdvancedUsageSectionEl = this.querySelector('#diag-pron-advanced-usage-section');
     const notifyListEl = this.querySelector('#diag-notify-list');
     const notifyEmptyEl = this.querySelector('#diag-notify-empty');
@@ -844,6 +874,36 @@ class PageDiagnostics extends HTMLElement {
         referenceTabSubEl.textContent = normalized
           ? 'Activado: muestra el tab Referencia con contenido de cursos/unidades/lecciones.'
           : 'Desactivado: oculta el tab Referencia en la navegación inferior.';
+      }
+      return normalized;
+    };
+
+    const setReferenceTestsEnabled = (enabled) => {
+      const normalized = normalizeReferenceTestsEnabled(enabled);
+      window.r34lp0w3r = window.r34lp0w3r || {};
+      window.r34lp0w3r.referenceTestsEnabled = normalized;
+      try {
+        localStorage.setItem(REFERENCE_TESTS_ENABLED_KEY, normalized ? '1' : '0');
+      } catch (err) {
+        // no-op
+      }
+      window.dispatchEvent(
+        new CustomEvent('app:reference-tests-enabled-change', {
+          detail: { enabled: normalized }
+        })
+      );
+      return normalized;
+    };
+
+    const updateReferenceTestsUi = (enabled) => {
+      const normalized = normalizeReferenceTestsEnabled(enabled);
+      if (referenceTestsToggleEl) {
+        referenceTestsToggleEl.checked = normalized;
+      }
+      if (referenceTestsSubEl) {
+        referenceTestsSubEl.textContent = normalized
+          ? 'Activado: muestra tests de lección/unidad dentro del tab Referencia.'
+          : 'Desactivado: oculta los tests del tab Referencia.';
       }
       return normalized;
     };
@@ -2034,6 +2094,8 @@ class PageDiagnostics extends HTMLElement {
     updateSpeakSessionPercentagesUi(setSpeakSessionPercentagesVisible(initialSpeakSessionPercentagesVisible));
     const initialReferenceTabEnabled = getStoredReferenceTabEnabled();
     updateReferenceTabUi(setReferenceTabEnabled(initialReferenceTabEnabled));
+    const initialReferenceTestsEnabled = getStoredReferenceTestsEnabled();
+    updateReferenceTestsUi(setReferenceTestsEnabled(initialReferenceTestsEnabled));
 
     this.querySelector('#diag-back')?.addEventListener('click', () => {
       ensureInitialHash();
@@ -2215,6 +2277,13 @@ class PageDiagnostics extends HTMLElement {
           ? Boolean(event.detail.checked)
           : Boolean(referenceTabToggleEl.checked);
       updateReferenceTabUi(setReferenceTabEnabled(nextEnabled));
+    });
+    referenceTestsToggleEl?.addEventListener('ionChange', (event) => {
+      const nextEnabled =
+        event && event.detail && event.detail.checked !== undefined
+          ? Boolean(event.detail.checked)
+          : Boolean(referenceTestsToggleEl.checked);
+      updateReferenceTestsUi(setReferenceTestsEnabled(nextEnabled));
     });
 
     // Login

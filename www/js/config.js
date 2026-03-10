@@ -9,7 +9,7 @@
 
   window.appMeta = window.appMeta || {
     version: window.APP_VERSION || '1.0.1',
-    build: window.APP_BUILD || '18'
+    build: window.APP_BUILD || '20'
   };
 
   const emitAppMeta = () => {
@@ -144,6 +144,10 @@
       // Remote-first, but fallback to bundled local JSON if remote fails.
       window.contentConfig.allowLocalFallback = true;
     }
+  }
+  if (window.contentConfig.referenceTestsUrl === undefined) {
+    window.contentConfig.referenceTestsUrl =
+      window.REFERENCE_TESTS_URL || '/lessons/contenido_tests_es_en.json';
   }
 
   window.speakSummaryConfig = window.speakSummaryConfig || {};

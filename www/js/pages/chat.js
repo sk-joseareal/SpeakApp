@@ -2059,7 +2059,6 @@ class PageChat extends HTMLElement {
 	        clearStartTalkTimer();
 	        if (startedTalk) return;
 	        startedTalk = true;
-	        setActiveMessagePlayback(messageId, resolvedSource);
 	        startCoachMascotTalk();
 	      };
 	      const startTalkOnAudible = () => {
@@ -2087,8 +2086,9 @@ class PageChat extends HTMLElement {
 	      }
 	      activeAudio = audio;
 	      audio.onplaying = () => {
+	        setActiveMessagePlayback(messageId, resolvedSource);
 	        startTalkOnAudible();
-	        if (typeof onStart === 'function') onStart();
+	        if (typeof onStart === 'function') onStart(resolvedSource);
 	      };
 	      const playPromise = audio.play();
 	      if (playPromise && typeof playPromise.then === 'function') {
@@ -2138,7 +2138,7 @@ class PageChat extends HTMLElement {
       utter.lang = 'en-US';
       utter.onstart = () => {
         startTalk();
-        if (typeof onStart === 'function') onStart();
+        if (typeof onStart === 'function') onStart(playbackSource);
       };
       utter.onend = () => {
         releaseTalk();
@@ -2189,7 +2189,7 @@ class PageChat extends HTMLElement {
           startedTalk = true;
           setActiveMessagePlayback(messageId, playbackSource);
           startCoachMascotTalk();
-          if (typeof onStart === 'function') onStart();
+          if (typeof onStart === 'function') onStart(playbackSource);
         };
         let releasedTalk = false;
         const releaseTalk = () => {
@@ -2538,7 +2538,7 @@ class PageChat extends HTMLElement {
           }
           const iconEl = playBtn.querySelector('ion-icon');
           if (iconEl) {
-            iconEl.setAttribute('name', isActive ? 'volume-high' : 'play');
+            iconEl.setAttribute('name', isActive ? 'stop' : 'play');
           }
         }
       });
@@ -2669,9 +2669,14 @@ class PageChat extends HTMLElement {
             event.preventDefault();
             keepChatInputFocused({ scroll: true });
           });
-          playBtn.addEventListener('click', () =>
-            playMessageAudio({ id, audioUrl, audioKind, speakText, role, mode })
-          );
+          playBtn.addEventListener('click', () => {
+            const targetId = id && String(id).trim() ? String(id).trim() : '';
+            if (targetId && activeMessagePlayback.id === targetId) {
+              stopPlayback();
+              return;
+            }
+            playMessageAudio({ id, audioUrl, audioKind, speakText, role, mode });
+          });
           actionEl.appendChild(playBtn);
         }
         if (showRetryAction) {
@@ -3111,9 +3116,10 @@ class PageChat extends HTMLElement {
             });
           }
         }
+        const ensuredId =
+          message.id && String(message.id).trim() ? String(message.id).trim() : createChatMessageId();
+        message.id = ensuredId;
         if (message.role === 'bot' && message.audioUrl) {
-          const ensuredId = message.id && String(message.id).trim() ? String(message.id).trim() : createChatMessageId();
-          message.id = ensuredId;
           ensurePreparedMessageAudio(ensuredId, message.audioUrl);
         }
 
@@ -3121,8 +3127,14 @@ class PageChat extends HTMLElement {
         if (shouldSyncBotRender) {
           let rendered = false;
           let renderFallbackTimer = null;
-          const renderNow = () => {
-            if (rendered) return;
+          const renderNow = (options = {}) => {
+            const playbackSource = options.playbackSource || '';
+            if (rendered) {
+              if (playbackSource) {
+                setActiveMessagePlayback(message.id, playbackSource);
+              }
+              return;
+            }
             rendered = true;
             if (renderFallbackTimer) {
               clearTimeout(renderFallbackTimer);
@@ -3133,6 +3145,9 @@ class PageChat extends HTMLElement {
               mode: messageMode,
               autoplay: false
             });
+            if (playbackSource) {
+              setActiveMessagePlayback(message.id, playbackSource);
+            }
           };
           renderFallbackTimer = setTimeout(() => {
             renderNow();
@@ -3144,8 +3159,8 @@ class PageChat extends HTMLElement {
             speakText: message.speakText,
             role: message.role,
             mode: messageMode,
-            onStart: () => {
-              renderNow();
+            onStart: (actualPlaybackSource) => {
+              renderNow({ playbackSource: actualPlaybackSource || 'native' });
             },
             onError: () => {
               renderNow();

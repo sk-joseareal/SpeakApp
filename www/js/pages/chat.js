@@ -42,6 +42,7 @@ class PageChat extends HTMLElement {
                 <div class="chat-mode-toggle" id="chat-mode-toggle" hidden>
                   <button type="button" class="chat-mode-btn is-active" data-mode="catbot">${uiCopy.modeCatbot}</button>
                   <button type="button" class="chat-mode-btn" data-mode="chatbot">${uiCopy.modeChatbot}</button>
+                  <button type="button" class="chat-mode-btn" data-mode="community">${uiCopy.modeCommunity}</button>
                 </div>
                 <h3 id="chat-coach-title">${uiCopy.coachCatbotTitle}</h3>
                 <p class="muted" id="chat-coach-subtitle">
@@ -251,6 +252,7 @@ class PageChat extends HTMLElement {
     const CHATBOT_AUDIO_RENDER_FALLBACK_MS = 1800;
     const REALTIME_EMIT_TIMEOUT_MS = 8000;
     const CHATBOT_REPLY_TIMEOUT_MS = 12000;
+    const COMMUNITY_PUBLIC_CHANNEL = 'site-wide-chat-channel';
     const RECORDING_TIMESLICE = 500;
     const VOSK_SAMPLE_RATE_DEFAULT = 16000;
 	    const TALK_STORAGE_PREFIX = 'appv5:talk-timelines:';
@@ -261,11 +263,12 @@ class PageChat extends HTMLElement {
 	    const SHARED_AUDIO_MODE_LOCAL = 'local';
 	    const CHATBOT_ALIGNED_TTS_CACHE_MAX_ITEMS = 80;
 	    let talkStorageKey = `${TALK_STORAGE_PREFIX}anon`;
-    const replyTimers = { catbot: null, chatbot: null };
-    const awaitingBot = { catbot: false, chatbot: false };
-    const typingState = { catbot: false, chatbot: false };
-    const chatThreads = { catbot: [], chatbot: [] };
+    const replyTimers = { catbot: null, chatbot: null, community: null };
+    const awaitingBot = { catbot: false, chatbot: false, community: false };
+    const typingState = { catbot: false, chatbot: false, community: false };
+    const chatThreads = { catbot: [], chatbot: [], community: [] };
     let talkState = TALK_STATE_IDLE;
+    let communityHistoryLoading = false;
     let coachMascotFrameIndex = COACH_MASCOT_SEQUENCES.catbot.restFrame;
     let coachMascotFrameTimer = null;
     let coachMascotTalkRefs = 0;
@@ -565,6 +568,7 @@ class PageChat extends HTMLElement {
         forceTLS: config.forceTLS !== undefined ? config.forceTLS : true,
         authEndpoint: config.authEndpoint || '',
         emitEndpoint: config.emitEndpoint || '',
+        communityPublicMessagesEndpoint: config.communityPublicMessagesEndpoint || '',
         enabledTransports: Array.isArray(config.enabledTransports) ? config.enabledTransports : ['ws', 'wss'],
         channelType: config.channelType || 'private',
         channelPrefix: config.channelPrefix || 'coach'
@@ -574,11 +578,22 @@ class PageChat extends HTMLElement {
     const getCoachId = () => (chatMode === 'chatbot' ? '2' : '1');
 
     const buildChannelName = (userId, config) => {
+      if (chatMode === 'community') return COMMUNITY_PUBLIC_CHANNEL;
       const coachId = getCoachId();
       const base = `${config.channelPrefix}${coachId}-${userId}`;
       const type = config.channelType;
       if (!type || type === 'public') return base;
       return `${type}-${base}`;
+    };
+
+    const pickFirstText = (...values) => {
+      for (let idx = 0; idx < values.length; idx += 1) {
+        const value = values[idx];
+        if (value === undefined || value === null) continue;
+        const text = String(value).trim();
+        if (text) return text;
+      }
+      return '';
     };
 
     const normalizeRole = (value, fallbackRole) => {
@@ -805,17 +820,24 @@ class PageChat extends HTMLElement {
 	      return data;
 	    };
 
-    const normalizeIncoming = (data, fallbackRole) => {
+    const normalizeIncoming = (data, fallbackRole, options = {}) => {
+      const messageMode = options.mode || chatMode;
+      const viewerId = pickFirstText(options.viewerId);
       if (!data) return null;
       if (typeof data === 'string') {
         const text = normalizeChatText(data);
         if (!text) return null;
         return {
+          id: '',
           role: fallbackRole,
           text,
           audioUrl: '',
           audioKind: '',
           speakText: text,
+          actorId: '',
+          actorName: '',
+          actorAvatar: '',
+          actorApp: '',
           limitReached: false,
           tokenLimitDay: 0,
           usedTokensDay: 0,
@@ -825,7 +847,25 @@ class PageChat extends HTMLElement {
       if (typeof data !== 'object') return null;
       const text = normalizeChatText(data.text || data.message || data.body || data.content);
       if (!text) return null;
-      const role = normalizeRole(data.role || data.sender || data.from, fallbackRole);
+      const actor =
+        data.actor && typeof data.actor === 'object' ? data.actor : {};
+      const actorId = pickFirstText(actor.id, actor.user_id, actor.userId);
+      const actorName = pickFirstText(
+        actor.displayName,
+        actor.display_name,
+        actor.name,
+        data.user_name,
+        data.userName,
+        data.nickname
+      );
+      const actorAvatar = pickFirstText(actor.avatar, actor.image, actor.img);
+      const actorApp = pickFirstText(actor.app, data.app);
+      const role =
+        messageMode === 'community'
+          ? actorId && viewerId && actorId === viewerId
+            ? 'user'
+            : 'bot'
+          : normalizeRole(data.role || data.sender || data.from, fallbackRole);
       const audioUrl = data.audio_url || data.audioUrl || '';
       const audioKind = String(data.audio_kind || data.audioKind || '').trim();
       const speakText = normalizeChatText(data.speakText || data.speak_text || text) || text;
@@ -835,11 +875,16 @@ class PageChat extends HTMLElement {
         data.chatbot_disabled === 'daily_token_limit'
       );
       return {
+        id: pickFirstText(data.id),
         role,
         text,
         audioUrl,
         audioKind,
         speakText,
+        actorId,
+        actorName,
+        actorAvatar,
+        actorApp,
         limitReached,
         tokenLimitDay: Number(data.token_limit_day || data.tokenLimitDay || 0),
         usedTokensDay: Number(data.used_tokens_day || data.usedTokensDay || 0),
@@ -931,6 +976,9 @@ class PageChat extends HTMLElement {
       if (hintEl) hintEl.textContent = text;
     };
 
+    const getDefaultHintForMode = (mode = chatMode) =>
+      mode === 'community' ? uiCopy.introCommunity : uiCopy.hintDefault;
+
     const isChatbotRealtimeAvailable = () => {
       if (chatMode !== 'chatbot') return true;
       return realtimeConnected;
@@ -981,8 +1029,104 @@ class PageChat extends HTMLElement {
         presentSystemToast(
           uiCopy.realtimeDisconnectedToast ||
             uiCopy.serverUnavailable ||
-            'Chat server unavailable. Please try again later.'
+          'Chat server unavailable. Please try again later.'
         );
+      }
+    };
+
+    const handleCommunityRealtimeDisconnected = ({ notify = false } = {}) => {
+      setHint(uiCopy.communityRealtimeDisconnected || uiCopy.realtimeDisconnected || uiCopy.serverUnavailable);
+      if (notify) {
+        presentSystemToast(
+          uiCopy.communityRealtimeDisconnected ||
+            uiCopy.realtimeDisconnectedToast ||
+            uiCopy.serverUnavailable
+        );
+      }
+    };
+
+    const getCommunityPublicMessagesEndpoint = () => {
+      const config = getRealtimeConfig();
+      return typeof config.communityPublicMessagesEndpoint === 'string'
+        ? config.communityPublicMessagesEndpoint.trim()
+        : '';
+    };
+
+    const loadCommunityHistory = async ({ force = false } = {}) => {
+      if (chatMode !== 'community' && !force) return false;
+      const endpoint = getCommunityPublicMessagesEndpoint();
+      if (!endpoint) return false;
+      if (communityHistoryLoading) return false;
+      communityHistoryLoading = true;
+      if (chatMode === 'community') {
+        setHint(uiCopy.communityHistoryLoading || uiCopy.loadingUser);
+      }
+      try {
+        const response = await fetch(endpoint, {
+          method: 'GET',
+          headers: {
+            Accept: 'application/json'
+          }
+        });
+        if (!response.ok) throw new Error(`community_history_${response.status}`);
+        const data = await response.json();
+        const messages = Array.isArray(data && data.messages)
+          ? data.messages
+              .map((item) => normalizeIncoming(item, 'bot', { mode: 'community', viewerId: lastUserId || '' }))
+              .filter(Boolean)
+          : [];
+        replaceThreadMessages('community', messages, { rerender: true });
+        if (!messages.length) {
+          ensureIntroMessage('community');
+        }
+        if (chatMode === 'community') {
+          setHint(getDefaultHintForMode('community'));
+        }
+        return true;
+      } catch (err) {
+        console.warn('[chat] community history error', err);
+        if (!getThread('community').length) {
+          ensureIntroMessage('community');
+        }
+        if (chatMode === 'community') {
+          setHint(uiCopy.communityHistoryError || uiCopy.serverUnavailable);
+        }
+        return false;
+      } finally {
+        communityHistoryLoading = false;
+      }
+    };
+
+    const emitCommunityMessage = async ({ text }) => {
+      const endpoint = getCommunityPublicMessagesEndpoint();
+      const user = window.user;
+      const userId = user && user.id !== undefined && user.id !== null ? String(user.id).trim() : '';
+      if (!endpoint || !userId) return { ok: false };
+      const payload = {
+        text,
+        user_id: userId,
+        user_name: getUserDisplayName(user),
+        email: user && user.email ? user.email : '',
+        avatar: getUserAvatar(user),
+        app: 'speakapp',
+        premium: isChatEnabledUser(user)
+      };
+      try {
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json'
+          },
+          body: JSON.stringify(payload)
+        });
+        if (!response.ok) {
+          return { ok: false, status: response.status };
+        }
+        return response.json();
+      } catch (err) {
+        console.warn('[chat] community send error', err);
+        return { ok: false, error: err && err.message ? err.message : 'community_send_failed' };
       }
     };
 
@@ -1074,7 +1218,7 @@ class PageChat extends HTMLElement {
     const KEYBOARD_OFFSET_EPSILON = 2;
 
     const isChatInputActive = () =>
-      Boolean(textInput && textRow && !textRow.hidden && chatMode === 'chatbot');
+      Boolean(textInput && textRow && !textRow.hidden && (chatMode === 'chatbot' || chatMode === 'community'));
 
     const getVisibleViewportBottom = () => {
       const viewport = window.visualViewport;
@@ -1563,6 +1707,12 @@ class PageChat extends HTMLElement {
         (Boolean(draftSpeakText) && canSpeechPlayback()) ||
         (Boolean(typedText) && canSpeechPlayback());
       previewBtn.disabled = !hasTranscript || !hasPlayback;
+      const hasLoggedUser =
+        Boolean(window.user && window.user.id !== undefined && window.user.id !== null);
+      if (chatMode === 'community' && !hasLoggedUser) {
+        sendBtn.disabled = true;
+        return;
+      }
       if (!isChatbotRealtimeAvailable()) {
         sendBtn.disabled = true;
         return;
@@ -2416,7 +2566,7 @@ class PageChat extends HTMLElement {
     const readDebugChatMode = () => {
       try {
         const raw = localStorage.getItem(CHAT_MODE_DEBUG_KEY);
-        if (raw === 'catbot' || raw === 'chatbot') return raw;
+        if (raw === 'catbot' || raw === 'chatbot' || raw === 'community') return raw;
       } catch (err) {
         // no-op
       }
@@ -2424,7 +2574,7 @@ class PageChat extends HTMLElement {
     };
 
     const writeDebugChatMode = (mode) => {
-      if (mode !== 'catbot' && mode !== 'chatbot') return;
+      if (mode !== 'catbot' && mode !== 'chatbot' && mode !== 'community') return;
       try {
         localStorage.setItem(CHAT_MODE_DEBUG_KEY, mode);
       } catch (err) {
@@ -2443,7 +2593,19 @@ class PageChat extends HTMLElement {
       const speakText = normalizeChatText(message.speakText) || text;
       const audioUrl = sanitizeStoredAudioUrl(message.audioUrl || message.audio_url);
       const audioKind = normalizeAudioKind(message.audioKind || message.audio_kind);
-      return { id: idRaw, role, text, audioUrl, audioKind, speakText, failed };
+      return {
+        id: idRaw,
+        role,
+        text,
+        audioUrl,
+        audioKind,
+        speakText,
+        failed,
+        actorId: pickFirstText(message.actorId, message.actor_id),
+        actorName: pickFirstText(message.actorName, message.actor_name),
+        actorAvatar: pickFirstText(message.actorAvatar, message.actor_avatar),
+        actorApp: pickFirstText(message.actorApp, message.actor_app)
+      };
     };
 
     const normalizeStoredTimeline = (value) =>
@@ -2456,7 +2618,8 @@ class PageChat extends HTMLElement {
         const parsed = JSON.parse(raw);
         const catbot = normalizeStoredTimeline(parsed.catbot);
         const chatbot = normalizeStoredTimeline(parsed.chatbot);
-        return { catbot, chatbot };
+        const community = normalizeStoredTimeline(parsed.community);
+        return { catbot, chatbot, community };
       } catch (err) {
         return null;
       }
@@ -2466,7 +2629,8 @@ class PageChat extends HTMLElement {
       try {
         const payload = {
           catbot: chatThreads.catbot.map(sanitizeTalkMessage).filter(Boolean),
-          chatbot: chatThreads.chatbot.map(sanitizeTalkMessage).filter(Boolean)
+          chatbot: chatThreads.chatbot.map(sanitizeTalkMessage).filter(Boolean),
+          community: chatThreads.community.map(sanitizeTalkMessage).filter(Boolean)
         };
         localStorage.setItem(talkStorageKey, JSON.stringify(payload));
       } catch (err) {
@@ -2474,7 +2638,11 @@ class PageChat extends HTMLElement {
       }
     };
 
-    const getThread = (mode) => (mode === 'chatbot' ? chatThreads.chatbot : chatThreads.catbot);
+    const getThread = (mode) => {
+      if (mode === 'chatbot') return chatThreads.chatbot;
+      if (mode === 'community') return chatThreads.community;
+      return chatThreads.catbot;
+    };
 
     const createChatMessageId = () =>
       `msg_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
@@ -2495,6 +2663,17 @@ class PageChat extends HTMLElement {
       return next;
     };
 
+    const replaceThreadMessages = (mode, messages, options = {}) => {
+      const thread = getThread(mode);
+      thread.length = 0;
+      normalizeStoredTimeline(messages).forEach((message) => thread.push(message));
+      persistTalkTimelines();
+      if (options.rerender !== false && mode === chatMode) {
+        renderThread(mode);
+      }
+      return thread;
+    };
+
     const loadTalkTimelinesForUser = (userId) => {
       const nextKey = resolveTalkStorageKey(userId);
       talkStorageKey = nextKey;
@@ -2513,6 +2692,7 @@ class PageChat extends HTMLElement {
       }
       chatThreads.catbot = stored ? stored.catbot : [];
       chatThreads.chatbot = stored ? stored.chatbot : [];
+      chatThreads.community = stored ? stored.community : [];
       return stored;
     };
 
@@ -2631,12 +2811,16 @@ class PageChat extends HTMLElement {
       return entry;
     };
 
-    const getIntroCopy = (mode) =>
-      mode === 'chatbot'
-        ? uiCopy.introChatbot
-        : uiCopy.introCatbot;
+    const getIntroCopy = (mode) => {
+      if (mode === 'chatbot') return uiCopy.introChatbot;
+      if (mode === 'community') return uiCopy.introCommunity;
+      return uiCopy.introCatbot;
+    };
 
-    const renderMessage = ({ id, role, text, audioUrl, audioKind, speakText, failed }, mode) => {
+    const renderMessage = (
+      { id, role, text, audioUrl, audioKind, speakText, failed, actorName, actorApp },
+      mode
+    ) => {
       if (!threadEl) return;
       const msgEl = document.createElement('div');
       msgEl.className = `chat-msg chat-msg-${role}`;
@@ -2649,9 +2833,18 @@ class PageChat extends HTMLElement {
       const textEl = document.createElement('p');
       textEl.className = 'chat-text';
       textEl.textContent = text;
+      if (mode === 'community' && role !== 'user') {
+        const metaEl = document.createElement('div');
+        metaEl.className = 'chat-msg-meta';
+        metaEl.textContent = actorApp
+          ? `${actorName || 'User'} · ${actorApp === 'english-course' ? 'English Course' : 'SpeakApp'}`
+          : actorName || 'User';
+        bubbleEl.appendChild(metaEl);
+      }
       bubbleEl.appendChild(textEl);
 
-      const showAudioAction = mode !== 'chatbot' || role === 'bot';
+      const allowAudioAction = mode === 'catbot' || mode === 'chatbot';
+      const showAudioAction = allowAudioAction && (mode !== 'chatbot' || role === 'bot');
       const showRetryAction = mode === 'chatbot' && role === 'user' && Boolean(failed);
       if (showAudioAction || showRetryAction) {
         const actionEl = document.createElement('div');
@@ -2761,7 +2954,10 @@ class PageChat extends HTMLElement {
       updateChatAutoScroll();
     };
 
-    const appendMessage = ({ id, role, text, audioUrl, audioKind, speakText, failed }, options = {}) => {
+    const appendMessage = (
+      { id, role, text, audioUrl, audioKind, speakText, failed, actorId, actorName, actorAvatar, actorApp },
+      options = {}
+    ) => {
       const targetMode = options.mode || chatMode;
       const shouldAutoplay = options.autoplay === true;
       const normalizedRole = role === 'bot' ? 'bot' : 'user';
@@ -2776,6 +2972,9 @@ class PageChat extends HTMLElement {
         typingState[targetMode] = false;
       }
       const thread = getThread(targetMode);
+      if (thread.some((item) => item && item.id && item.id === normalizedId)) {
+        return;
+      }
       const message = {
         id: normalizedId,
         role: normalizedRole,
@@ -2783,7 +2982,11 @@ class PageChat extends HTMLElement {
         audioUrl: normalizedAudioUrl,
         audioKind: normalizedAudioKind,
         speakText: normalizedSpeakText,
-        failed: normalizedFailed
+        failed: normalizedFailed,
+        actorId: pickFirstText(actorId),
+        actorName: pickFirstText(actorName),
+        actorAvatar: pickFirstText(actorAvatar),
+        actorApp: pickFirstText(actorApp)
       };
       thread.push(message);
       persistTalkTimelines();
@@ -2816,7 +3019,8 @@ class PageChat extends HTMLElement {
           text: introCopy,
           audioUrl: '',
           audioKind: '',
-          speakText: introCopy
+          speakText: introCopy,
+          actorName: targetMode === 'community' ? 'SpeakApp' : ''
         },
         { mode: targetMode }
       );
@@ -2836,6 +3040,7 @@ class PageChat extends HTMLElement {
       if (!keepTimeline) {
         chatThreads.catbot.length = 0;
         chatThreads.chatbot.length = 0;
+        chatThreads.community.length = 0;
         persistTalkTimelines();
       }
       if (keepIntro) {
@@ -3027,6 +3232,8 @@ class PageChat extends HTMLElement {
         realtimeConnected = false;
         if (chatMode === 'chatbot') {
           handleChatbotRealtimeDisconnected();
+        } else if (chatMode === 'community') {
+          handleCommunityRealtimeDisconnected();
         }
         return;
       }
@@ -3035,6 +3242,8 @@ class PageChat extends HTMLElement {
         realtimeConnected = false;
         if (chatMode === 'chatbot') {
           handleChatbotRealtimeDisconnected();
+        } else if (chatMode === 'community') {
+          handleCommunityRealtimeDisconnected();
         }
         return;
       }
@@ -3084,27 +3293,36 @@ class PageChat extends HTMLElement {
         realtimeConnected = true;
         applyControlsEnabled();
         updateDraftButtons();
-        if (chatMode === 'chatbot' && !isChatbotDailyLimitActive() && talkState === TALK_STATE_IDLE) {
+        if (connectedMode === 'chatbot' && !isChatbotDailyLimitActive() && talkState === TALK_STATE_IDLE) {
           setHint(defaultHint || uiCopy.hintDefault);
+        } else if (connectedMode === 'community') {
+          setHint(getDefaultHintForMode('community'));
         }
       });
       pusherClient.connection.bind('disconnected', () => {
         realtimeConnected = false;
-        if (chatMode === 'chatbot') {
+        if (connectedMode === 'chatbot') {
           handleChatbotRealtimeDisconnected();
+        } else if (connectedMode === 'community') {
+          handleCommunityRealtimeDisconnected();
         }
       });
       pusherClient.connection.bind('error', (err) => {
         console.warn('[chat] pusher error', err);
         realtimeConnected = false;
-        if (chatMode === 'chatbot') {
+        if (connectedMode === 'chatbot') {
           handleChatbotRealtimeDisconnected();
+        } else if (connectedMode === 'community') {
+          handleCommunityRealtimeDisconnected();
         }
       });
 
       const handleIncoming = async (data, fallbackRole) => {
         const messageMode = connectedMode;
-        const message = normalizeIncoming(data, fallbackRole);
+        const message = normalizeIncoming(data, fallbackRole, {
+          mode: messageMode,
+          viewerId: userId
+        });
         if (!message) return;
         if (message.role === 'bot') {
           cancelSimulatedReply(messageMode);
@@ -3184,12 +3402,18 @@ class PageChat extends HTMLElement {
       pusherChannel.bind('pusher:subscription_error', (status) => {
         console.warn('[chat] subscription error', status);
         realtimeConnected = false;
-        if (chatMode === 'chatbot') {
+        if (connectedMode === 'chatbot') {
           handleChatbotRealtimeDisconnected();
+        } else if (connectedMode === 'community') {
+          handleCommunityRealtimeDisconnected();
         }
       });
-      pusherChannel.bind('chat_message', (data) => handleIncoming(data, 'bot'));
-      pusherChannel.bind('bot_message', (data) => handleIncoming(data, 'bot'));
+      pusherChannel.bind('chat_message', (data) =>
+        handleIncoming(data, connectedMode === 'community' ? 'user' : 'bot')
+      );
+      if (connectedMode !== 'community') {
+        pusherChannel.bind('bot_message', (data) => handleIncoming(data, 'bot'));
+      }
     };
 
     const emitRealtimeMessage = async ({ text }) => {
@@ -3326,7 +3550,10 @@ class PageChat extends HTMLElement {
       const userChanged = userId !== lastUserId;
       const chatEnabledChanged = chatEnabled !== lastChatEnabled;
       const isInitialLoad = lastUserId === null;
-      const hasStoredMessages = chatThreads.catbot.length > 0 || chatThreads.chatbot.length > 0;
+      const hasStoredMessages =
+        chatThreads.catbot.length > 0 ||
+        chatThreads.chatbot.length > 0 ||
+        chatThreads.community.length > 0;
 
       updateUserHeader(user, loggedIn);
 
@@ -3359,6 +3586,9 @@ class PageChat extends HTMLElement {
         }
         setControlsEnabled(true);
         connectRealtime(user);
+        if (chatMode === 'community') {
+          loadCommunityHistory({ force: true });
+        }
       }
 
       lastUserId = userId;
@@ -3398,6 +3628,35 @@ class PageChat extends HTMLElement {
       const retryMessageId =
         payload && payload.retryMessageId ? String(payload.retryMessageId).trim() : '';
       const outboundMessageId = retryMessageId || createChatMessageId();
+      if (messageMode === 'community') {
+        if (retryMessageId) {
+          updateThreadMessage(
+            messageMode,
+            retryMessageId,
+            (message) => ({
+              ...message,
+              failed: false
+            }),
+            { rerender: true }
+          );
+        }
+        clearDraft(false);
+        setHint(getDefaultHintForMode('community'));
+        emitCommunityMessage({ text: userText }).then((result) => {
+          if (result && result.ok && result.message) {
+            const normalizedMessage = normalizeIncoming(result.message, 'user', {
+              mode: 'community',
+              viewerId: lastUserId || ''
+            });
+            if (normalizedMessage) {
+              appendMessage(normalizedMessage, { mode: 'community', autoplay: false });
+            }
+            return;
+          }
+          presentSystemToast(uiCopy.communitySendError || uiCopy.serverUnavailable);
+        });
+        return;
+      }
       if (messageMode === 'chatbot' && isChatbotDailyLimitActive()) {
         setHint(getChatbotDailyLimitHint());
         return;
@@ -3622,6 +3881,11 @@ class PageChat extends HTMLElement {
     const updateCoachAvatar = () => {
       if (!coachAvatar) return;
       stopCoachMascotTalk({ settle: false, all: true });
+      if (chatMode === 'community') {
+        coachAvatar.hidden = true;
+        return;
+      }
+      coachAvatar.hidden = false;
       if (chatMode === 'chatbot') {
         coachAvatar.classList.remove('coach-avatar-cat');
         coachAvatar.classList.add('coach-avatar-bot');
@@ -3642,6 +3906,9 @@ class PageChat extends HTMLElement {
       if (chatMode === 'chatbot') {
         coachTitleEl.textContent = uiCopy.coachChatbotTitle;
         coachSubtitleEl.textContent = uiCopy.coachChatbotSubtitle;
+      } else if (chatMode === 'community') {
+        coachTitleEl.textContent = uiCopy.coachCommunityTitle;
+        coachSubtitleEl.textContent = uiCopy.coachCommunitySubtitle;
       } else {
         coachTitleEl.textContent = uiCopy.coachCatbotTitle;
         coachSubtitleEl.textContent = uiCopy.coachCatbotSubtitle;
@@ -3662,8 +3929,10 @@ class PageChat extends HTMLElement {
       if (modeToggle) {
         const catBtn = modeToggle.querySelector('[data-mode="catbot"]');
         const botBtn = modeToggle.querySelector('[data-mode="chatbot"]');
+        const communityBtn = modeToggle.querySelector('[data-mode="community"]');
         if (catBtn) catBtn.textContent = uiCopy.modeCatbot;
         if (botBtn) botBtn.textContent = uiCopy.modeChatbot;
+        if (communityBtn) communityBtn.textContent = uiCopy.modeCommunity;
       }
 
       if (loadingPanel) {
@@ -3687,7 +3956,10 @@ class PageChat extends HTMLElement {
         if (lockedMuted) lockedMuted.textContent = uiCopy.planUpgrade;
       }
 
-      if (textInput) textInput.placeholder = uiCopy.inputPlaceholder;
+      if (textInput) {
+        textInput.placeholder =
+          chatMode === 'community' ? uiCopy.inputPlaceholderCommunity : uiCopy.inputPlaceholder;
+      }
 
       if (recordBtn) {
         recordBtn.setAttribute('aria-label', uiCopy.record);
@@ -3707,7 +3979,7 @@ class PageChat extends HTMLElement {
         if (sendLabel) sendLabel.textContent = uiCopy.send;
       }
 
-      defaultHint = uiCopy.hintDefault;
+      defaultHint = getDefaultHintForMode(chatMode);
       if (hintEl) {
         const currentHint = String(hintEl.textContent || '').trim();
         const shouldResetHint =
@@ -3750,7 +4022,9 @@ class PageChat extends HTMLElement {
     const placeSendButton = () => {
       if (!sendBtn || !textRow || !chatControls) return;
       let target = reviewUi || chatControls;
-      if (chatMode === 'chatbot') {
+      if (chatMode === 'community') {
+        target = textRow;
+      } else if (chatMode === 'chatbot') {
         const reviewTarget = reviewUi || chatControls;
         const hasDraftReview = talkState === TALK_STATE_REVIEW && Boolean(draftTranscript);
         target = hasDraftReview ? reviewTarget : textRow;
@@ -3763,8 +4037,9 @@ class PageChat extends HTMLElement {
 
     const updateChatControlsVisibility = () => {
       const isChatbot = chatMode === 'chatbot';
+      const isCommunity = chatMode === 'community';
       if (hintEl) hintEl.hidden = false;
-      if (chatControls) chatControls.hidden = false;
+      if (chatControls) chatControls.hidden = isCommunity;
       if (textRow) textRow.classList.toggle('chat-text-row-inline', isChatbot);
       placeSendButton();
       updateSendButtonIcon();
@@ -3774,23 +4049,28 @@ class PageChat extends HTMLElement {
     };
 
     const updateTextRowVisibility = (debugOverride) => {
-      const isChatbot = chatMode === 'chatbot';
-      const collapsed = isChatbot && talkState !== TALK_STATE_IDLE;
+      const isInlineTextMode = chatMode === 'chatbot' || chatMode === 'community';
+      const collapsed = chatMode === 'chatbot' && talkState !== TALK_STATE_IDLE;
       if (textRow) {
-        textRow.hidden = !isChatbot;
+        textRow.hidden = !isInlineTextMode;
         textRow.classList.toggle('is-collapsed', collapsed);
       }
-      if (!isChatbot && textInput) {
+      if (!isInlineTextMode && textInput) {
         textInput.value = '';
+      }
+      if (textInput) {
+        textInput.placeholder =
+          chatMode === 'community' ? uiCopy.inputPlaceholderCommunity : uiCopy.inputPlaceholder;
       }
       updateChatbotOneLineLayout();
       scheduleChatKeyboardSync();
     };
 
     const setChatMode = (mode, { reconnect, persist } = {}) => {
-      if (mode !== 'catbot' && mode !== 'chatbot') return;
+      if (mode !== 'catbot' && mode !== 'chatbot' && mode !== 'community') return;
       if (chatMode === mode) return;
       chatMode = mode;
+      defaultHint = getDefaultHintForMode(mode);
       if (persist !== false) {
         writeDebugChatMode(mode);
       }
@@ -3808,6 +4088,12 @@ class PageChat extends HTMLElement {
       if (reconnect && lastChatEnabled && window.user) {
         disconnectRealtime();
         connectRealtime(window.user);
+      }
+      if (mode === 'community' && lastChatEnabled && window.user) {
+        loadCommunityHistory({ force: true });
+      }
+      if (mode === 'community' && (!window.user || window.user.id === undefined || window.user.id === null)) {
+        setHint(uiCopy.loginRequired);
       }
       applyControlsEnabled();
       updateDraftButtons();

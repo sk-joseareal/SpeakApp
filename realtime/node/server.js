@@ -152,6 +152,14 @@ const ttsDailyCharLimits = new Map();
 let ttsDailyLimitsFlushTimer = null;
 const pronAssessDailyUsageByUserDay = new Map();
 const pronAssessDailySecondsLimits = new Map();
+const COMMUNITY_PUBLIC_CHANNEL = 'site-wide-chat-channel';
+const COMMUNITY_PUBLIC_PRESENCE_CHANNEL = `presence-${COMMUNITY_PUBLIC_CHANNEL}`;
+const COMMUNITY_HISTORY_MAX_MESSAGES = (() => {
+  const numeric = Number(env('COMMUNITY_HISTORY_MAX_MESSAGES', '240'));
+  if (!Number.isFinite(numeric)) return 240;
+  const parsed = Math.floor(numeric);
+  return parsed > 0 ? parsed : 240;
+})();
 
 const formatUsageDay = (value) => {
   if (!value) return '';
@@ -1932,6 +1940,8 @@ const dataRoot = path.join(__dirname, 'data', 'rt');
 const eventsDir = path.join(dataRoot, 'events');
 const snapshotsDir = path.join(dataRoot, 'snapshots');
 const metaDir = path.join(dataRoot, 'meta');
+const communityDir = path.join(dataRoot, 'community');
+const communityPublicHistoryFile = path.join(communityDir, `${COMMUNITY_PUBLIC_CHANNEL}.json`);
 
 const ensureDir = (dirPath) => {
   try {
@@ -1944,6 +1954,7 @@ const ensureDir = (dirPath) => {
 ensureDir(eventsDir);
 ensureDir(snapshotsDir);
 ensureDir(metaDir);
+ensureDir(communityDir);
 
 const sanitizeOwner = (value) => {
   if (!value) return '';
@@ -2054,6 +2065,95 @@ const appendEvents = (ownerKey, events) => {
   } catch (err) {
     console.warn('[state] append events failed', filePath, err.message);
   }
+};
+
+const newCommunityHistory = () => ({
+  schema: 1,
+  room_type: 'public',
+  room_id: COMMUNITY_PUBLIC_CHANNEL,
+  updated_at: null,
+  messages: []
+});
+
+const loadCommunityHistory = () => {
+  const data = loadJsonFile(communityPublicHistoryFile, null);
+  if (!data || typeof data !== 'object') return newCommunityHistory();
+  if (!Array.isArray(data.messages)) data.messages = [];
+  return data;
+};
+
+const saveCommunityHistory = (history) => {
+  writeJsonFile(communityPublicHistoryFile, history);
+};
+
+const normalizeCommunityText = (value) =>
+  String(value || '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+const normalizeCommunityActor = (source, defaults = {}) => {
+  const id = pickFirstString(source.user_id, source.userId, source.id, defaults.id);
+  const name = pickFirstString(
+    source.user_name,
+    source.userName,
+    source.nickname,
+    source.displayName,
+    source.display_name,
+    source.name,
+    source.email,
+    defaults.name
+  );
+  return {
+    id,
+    name,
+    displayName: name,
+    email: pickFirstString(source.email, defaults.email),
+    avatar: pickFirstString(source.avatar, source.image, source.img, defaults.avatar),
+    app: pickFirstString(source.app, source.origen, source.origin, defaults.app) || 'speakapp',
+    premium:
+      source.premium === true ||
+      source.premium === 'true' ||
+      source.premium === 1 ||
+      source.premium === '1' ||
+      defaults.premium === true
+  };
+};
+
+const createCommunityMessageId = () =>
+  `cmsg_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+
+const buildPublicCommunityMessage = ({ text, actor, id, createdAt }) => {
+  const timestamp = createdAt || new Date().toISOString();
+  const actorId = pickFirstString(actor && actor.id);
+  const actorName = pickFirstString(actor && (actor.name || actor.displayName || actor.email));
+  return {
+    id: pickFirstString(id) || createCommunityMessageId(),
+    room_type: 'public',
+    room_id: COMMUNITY_PUBLIC_CHANNEL,
+    created_at: timestamp,
+    published: timestamp,
+    text: normalizeCommunityText(text),
+    actor: {
+      id: actorId,
+      name: actorName,
+      displayName: actorName,
+      email: pickFirstString(actor && actor.email),
+      avatar: pickFirstString(actor && actor.avatar),
+      app: pickFirstString(actor && actor.app) || 'speakapp',
+      premium: Boolean(actor && actor.premium)
+    }
+  };
+};
+
+const appendPublicCommunityMessage = (message) => {
+  const history = loadCommunityHistory();
+  history.messages.push(message);
+  if (history.messages.length > COMMUNITY_HISTORY_MAX_MESSAGES) {
+    history.messages = history.messages.slice(-COMMUNITY_HISTORY_MAX_MESSAGES);
+  }
+  history.updated_at = new Date().toISOString();
+  saveCommunityHistory(history);
+  return history;
 };
 
 const clampPercent = (value) => {
@@ -2428,11 +2528,35 @@ const parseMaybeJson = (value) => {
 
 const getAuthPayload = (req) => {
   const source = Object.assign({}, req.query || {}, req.body || {});
+  const parsedUserInfo = parseMaybeJson(source.user_info || source.userInfo);
+  const fallbackUserInfo =
+    parsedUserInfo && typeof parsedUserInfo === 'object'
+      ? parsedUserInfo
+      : {
+          id: pickFirstString(source.user_id, source.userId, source.id),
+          name: pickFirstString(
+            source.name,
+            source.user_name,
+            source.userName,
+            source.nickname,
+            source.displayName,
+            source.display_name,
+            source.email
+          ),
+          email: pickFirstString(source.email),
+          avatar: pickFirstString(source.avatar, source.image, source.img),
+          app: pickFirstString(source.app, source.origen, source.origin),
+          premium:
+            source.premium === true ||
+            source.premium === 'true' ||
+            source.premium === 1 ||
+            source.premium === '1'
+        };
   return {
     socketId: source.socket_id || source.socketId,
     channelName: source.channel_name || source.channelName,
-    userId: source.user_id || source.userId,
-    userInfo: parseMaybeJson(source.user_info || source.userInfo)
+    userId: source.user_id || source.userId || source.id,
+    userInfo: fallbackUserInfo
   };
 };
 
@@ -2519,6 +2643,101 @@ const authHandler = (req, res) => {
 
 app.post('/realtime/auth', authHandler);
 app.get('/realtime/auth', authHandler);
+app.post('/chats/auth_v2', authHandler);
+app.get('/chats/auth_v2', authHandler);
+app.post('/chats/auth', authHandler);
+app.get('/chats/auth', authHandler);
+
+app.get('/realtime/community/public/messages', (req, res) => {
+  const limit = toPositiveInteger(req.query && req.query.limit, 80);
+  const history = loadCommunityHistory();
+  const messages = history.messages.slice(-Math.min(limit, COMMUNITY_HISTORY_MAX_MESSAGES));
+  res.json({
+    ok: true,
+    room_type: 'public',
+    room_id: COMMUNITY_PUBLIC_CHANNEL,
+    channel: COMMUNITY_PUBLIC_CHANNEL,
+    presence_channel: COMMUNITY_PUBLIC_PRESENCE_CHANNEL,
+    updated_at: history.updated_at || null,
+    messages
+  });
+});
+
+const emitPublicCommunityMessage = async ({ source, appName }) => {
+  const text = normalizeCommunityText(
+    source.text || source.message || source.body || source.content || ''
+  );
+  if (!text) {
+    return {
+      ok: false,
+      error: 'text_required',
+      statusCode: 400
+    };
+  }
+  const actor = normalizeCommunityActor(source, { app: appName || 'speakapp' });
+  if (!actor.id) {
+    return {
+      ok: false,
+      error: 'user_id_required',
+      statusCode: 400
+    };
+  }
+  const message = buildPublicCommunityMessage({
+    text,
+    actor
+  });
+  appendPublicCommunityMessage(message);
+  await pusher.trigger(COMMUNITY_PUBLIC_CHANNEL, 'chat_message', message);
+  return {
+    ok: true,
+    message
+  };
+};
+
+app.post('/realtime/community/public/messages', async (req, res) => {
+  const source = Object.assign({}, req.query || {}, req.body || {});
+  try {
+    const payload = await emitPublicCommunityMessage({
+      source,
+      appName: pickFirstString(source.app, source.origen, source.origin, 'speakapp')
+    });
+    const statusCode = payload && payload.statusCode ? payload.statusCode : 200;
+    if (payload && Object.prototype.hasOwnProperty.call(payload, 'statusCode')) {
+      delete payload.statusCode;
+    }
+    res.status(statusCode).json(payload);
+  } catch (err) {
+    console.error('[realtime] community public message error', err.message || err);
+    res.status(500).json({ ok: false, error: 'public_message_failed' });
+  }
+});
+
+app.post('/v4/sendMessage', async (req, res) => {
+  const source = Object.assign({}, req.query || {}, req.body || {});
+  const channel = pickFirstString(source.channel, COMMUNITY_PUBLIC_CHANNEL);
+  if (channel !== COMMUNITY_PUBLIC_CHANNEL) {
+    res.status(501).json({
+      ok: false,
+      error: 'legacy_private_chat_not_supported_yet',
+      channel
+    });
+    return;
+  }
+  try {
+    const payload = await emitPublicCommunityMessage({
+      source,
+      appName: 'english-course'
+    });
+    const statusCode = payload && payload.statusCode ? payload.statusCode : 200;
+    if (payload && Object.prototype.hasOwnProperty.call(payload, 'statusCode')) {
+      delete payload.statusCode;
+    }
+    res.status(statusCode).json(payload);
+  } catch (err) {
+    console.error('[realtime] legacy sendMessage error', err.message || err);
+    res.status(500).json({ ok: false, error: 'legacy_send_failed' });
+  }
+});
 
 app.post('/realtime/emit', async (req, res) => {
   const { channel, event, data } = req.body || {};

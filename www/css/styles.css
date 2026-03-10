@@ -2320,6 +2320,7 @@ page-chat ion-content::part(scroll) {
 .chat-mode-toggle {
   display: inline-flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
   padding: 4px;
   border-radius: 999px;
@@ -2657,6 +2658,14 @@ page-chat ion-content::part(scroll) {
 .chat-text {
   margin: 0 0 8px;
   font-size: 0.95rem;
+}
+
+.chat-msg-meta {
+  margin: 0 0 6px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--app-muted);
 }
 
 .chat-bubble-actions {

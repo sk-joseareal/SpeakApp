@@ -49,6 +49,10 @@ There is a minimal Node gateway in `realtime/node/server.js`. It provides:
 
 The same code works with Soketi or Pusher by flipping env vars.
 
+Shared human chat compatibility plan with legacy `wwwV4`:
+
+- `CHAT_COMPAT_SPEC.md`
+
 ## Client config (Pusher JS)
 
 Soketi (self hosted):

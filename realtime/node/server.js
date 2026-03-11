@@ -2591,6 +2591,9 @@ const summarizeCommunityDmRoom = (room, viewerId = '') => {
     updated_at: safeRoom.updated_at || null,
     last_message_at: safeRoom.last_message_at || null,
     last_message_preview: pickFirstString(safeRoom.last_message_preview),
+    last_message_actor_id: pickFirstString(safeRoom.last_message_actor_id),
+    last_message_actor_name: pickFirstString(safeRoom.last_message_actor_name),
+    last_message_actor_app: pickFirstString(safeRoom.last_message_actor_app),
     unread_count: getCommunityDmUnreadCount(safeRoom, safeViewerId),
     participants,
     peer
@@ -2615,6 +2618,9 @@ const ensureCommunityDmRoomRecord = ({
       updated_at: createdAt,
       last_message_at: null,
       last_message_preview: '',
+      last_message_actor_id: '',
+      last_message_actor_name: '',
+      last_message_actor_app: '',
       read_state: {},
       participants: {}
     };
@@ -2755,6 +2761,11 @@ const appendCommunityDmMessage = ({ identity, actor, peerActor, message }) => {
   });
   room.last_message_at = history.updated_at;
   room.last_message_preview = normalizeCommunityText(message.text || '').slice(0, 240);
+  room.last_message_actor_id = pickFirstString(message.actor && message.actor.id);
+  room.last_message_actor_name = pickFirstString(
+    message.actor && (message.actor.name || message.actor.displayName || message.actor.email)
+  );
+  room.last_message_actor_app = pickFirstString(message.actor && message.actor.app);
   room.updated_at = history.updated_at;
   const actorId = pickFirstString(actor && actor.id);
   if (actorId && Array.isArray(room.user_ids) && room.user_ids.includes(actorId)) {

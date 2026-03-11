@@ -2673,13 +2673,15 @@ page-chat ion-content::part(scroll) {
   align-items: center;
   gap: 6px;
   margin-top: 6px;
-  padding: 4px 10px;
+  padding: 6px 10px;
   border-radius: 999px;
   background: rgba(76, 126, 255, 0.08);
   border: 1px solid rgba(76, 126, 255, 0.16);
   color: #3f5fcf;
   font-size: 0.75rem;
   font-weight: 700;
+  line-height: 1.1;
+  white-space: nowrap;
 }
 
 .chat-community-nav {
@@ -2765,6 +2767,29 @@ page-chat ion-content::part(scroll) {
   gap: 3px;
 }
 
+.chat-community-item-side {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
+.chat-community-item-time {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--app-muted);
+  line-height: 1;
+  min-height: 12px;
+}
+
+.chat-community-item-trailing {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .chat-community-item-badge {
   display: inline-flex;
   align-items: center;
@@ -2779,6 +2804,11 @@ page-chat ion-content::part(scroll) {
   font-weight: 800;
   line-height: 1;
   box-shadow: 0 8px 16px rgba(47, 99, 239, 0.18);
+}
+
+.chat-community-item-chevron {
+  color: rgba(15, 27, 45, 0.35);
+  font-size: 1rem;
 }
 
 .chat-community-avatar {
@@ -2878,18 +2908,23 @@ page-chat ion-content::part(scroll) {
 }
 
 .chat-community-item-title {
+  display: block;
   font-size: 0.88rem;
   font-weight: 700;
   color: var(--app-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .chat-community-item-subtitle {
+  display: block;
   font-size: 0.75rem;
   color: var(--app-muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 180px;
+  max-width: none;
 }
 
 .chat-community-empty {

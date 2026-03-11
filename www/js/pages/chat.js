@@ -1166,6 +1166,9 @@ class PageChat extends HTMLElement {
         },
         lastMessagePreview: pickFirstText(value.last_message_preview, value.lastMessagePreview),
         lastMessageAt: pickFirstText(value.last_message_at, value.lastMessageAt, value.updated_at, value.updatedAt),
+        lastMessageActorId: pickFirstText(value.last_message_actor_id, value.lastMessageActorId),
+        lastMessageActorName: pickFirstText(value.last_message_actor_name, value.lastMessageActorName),
+        lastMessageActorApp: pickFirstText(value.last_message_actor_app, value.lastMessageActorApp),
         unreadCount: Math.max(0, Math.round(Number(value.unread_count || value.unreadCount || 0) || 0))
       };
     };
@@ -1205,6 +1208,38 @@ class PageChat extends HTMLElement {
 
     const isCommunityUserOnline = (userId) => Boolean(getCommunityPresenceUser(userId));
 
+    const formatCommunityTimestamp = (value) => {
+      const raw = pickFirstText(value);
+      if (!raw) return '';
+      const date = new Date(raw);
+      if (Number.isNaN(date.getTime())) return '';
+      const now = new Date();
+      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const targetStart = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+      const diffDays = Math.round((todayStart.getTime() - targetStart.getTime()) / 86400000);
+      if (diffDays === 0) {
+        return new Intl.DateTimeFormat(uiLocale === 'es' ? 'es-ES' : 'en-US', {
+          hour: '2-digit',
+          minute: '2-digit'
+        }).format(date);
+      }
+      if (diffDays === 1) {
+        return uiCopy.communityYesterday || (uiLocale === 'es' ? 'Ayer' : 'Yesterday');
+      }
+      const currentWeekDay = todayStart.getDay() === 0 ? 7 : todayStart.getDay();
+      const weekStart = new Date(todayStart);
+      weekStart.setDate(todayStart.getDate() - (currentWeekDay - 1));
+      if (targetStart.getTime() >= weekStart.getTime()) {
+        return new Intl.DateTimeFormat(uiLocale === 'es' ? 'es-ES' : 'en-US', {
+          weekday: 'short'
+        }).format(date);
+      }
+      const dd = String(date.getDate()).padStart(2, '0');
+      const mm = String(date.getMonth() + 1).padStart(2, '0');
+      const yy = String(date.getFullYear()).slice(-2);
+      return `${dd}/${mm}/${yy}`;
+    };
+
     const getCommunityPeerLabel = (room) => {
       const peerName = pickFirstText(room && room.peer && room.peer.name);
       if (peerName) return peerName;
@@ -1219,6 +1254,20 @@ class PageChat extends HTMLElement {
         return appLabel ? `${uiCopy.communityOnlineNow} · ${appLabel}` : uiCopy.communityOnlineNow;
       }
       return appLabel || fallbackText;
+    };
+
+    const getCommunityRoomPreview = (room) => {
+      const safeRoom = room && typeof room === 'object' ? room : {};
+      const preview = pickFirstText(safeRoom.lastMessagePreview);
+      const appLabel = formatCommunityAppName(
+        safeRoom.lastMessageActorApp || (safeRoom.peer && safeRoom.peer.app)
+      );
+      if (preview && appLabel) return `${appLabel} · ${preview}`;
+      if (preview) return preview;
+      return getCommunityPeerStatusLabel(
+        safeRoom.peer,
+        formatCommunityAppName(safeRoom.peer && safeRoom.peer.app)
+      );
     };
 
     const buildCommunityAvatar = (entry, options = {}) => {
@@ -1564,6 +1613,21 @@ class PageChat extends HTMLElement {
           Object.prototype.hasOwnProperty.call(value, 'lastMessageAt') ||
           Object.prototype.hasOwnProperty.call(value, 'updated_at') ||
           Object.prototype.hasOwnProperty.call(value, 'updatedAt'));
+      const hasExplicitLastMessageActorId =
+        value &&
+        typeof value === 'object' &&
+        (Object.prototype.hasOwnProperty.call(value, 'last_message_actor_id') ||
+          Object.prototype.hasOwnProperty.call(value, 'lastMessageActorId'));
+      const hasExplicitLastMessageActorName =
+        value &&
+        typeof value === 'object' &&
+        (Object.prototype.hasOwnProperty.call(value, 'last_message_actor_name') ||
+          Object.prototype.hasOwnProperty.call(value, 'lastMessageActorName'));
+      const hasExplicitLastMessageActorApp =
+        value &&
+        typeof value === 'object' &&
+        (Object.prototype.hasOwnProperty.call(value, 'last_message_actor_app') ||
+          Object.prototype.hasOwnProperty.call(value, 'lastMessageActorApp'));
       const index = communityDmRooms.findIndex((entry) => entry && entry.roomId === room.roomId);
       if (index >= 0) {
         const existingRoom = communityDmRooms[index];
@@ -1572,6 +1636,15 @@ class PageChat extends HTMLElement {
           ...room,
           lastMessagePreview: hasExplicitPreview ? room.lastMessagePreview : existingRoom.lastMessagePreview,
           lastMessageAt: hasExplicitLastMessageAt ? room.lastMessageAt : existingRoom.lastMessageAt,
+          lastMessageActorId: hasExplicitLastMessageActorId
+            ? room.lastMessageActorId
+            : existingRoom.lastMessageActorId,
+          lastMessageActorName: hasExplicitLastMessageActorName
+            ? room.lastMessageActorName
+            : existingRoom.lastMessageActorName,
+          lastMessageActorApp: hasExplicitLastMessageActorApp
+            ? room.lastMessageActorApp
+            : existingRoom.lastMessageActorApp,
           unreadCount: hasExplicitUnread ? room.unreadCount : existingRoom.unreadCount,
           peer: {
             ...(existingRoom.peer || {}),
@@ -1776,7 +1849,17 @@ class PageChat extends HTMLElement {
           titleEl.textContent = peerLabel;
           const subtitleEl = document.createElement('span');
           subtitleEl.className = 'chat-community-item-subtitle';
-          subtitleEl.textContent = getCommunityPeerStatusLabel(peer, formatCommunityAppName(peer.app));
+          subtitleEl.textContent = getCommunityRoomPreview(room);
+          const sideEl = document.createElement('span');
+          sideEl.className = 'chat-community-item-side';
+          const timeEl = document.createElement('span');
+          timeEl.className = 'chat-community-item-time';
+          timeEl.textContent = formatCommunityTimestamp(room.lastMessageAt);
+          const trailingEl = document.createElement('span');
+          trailingEl.className = 'chat-community-item-trailing';
+          const chevronEl = document.createElement('ion-icon');
+          chevronEl.className = 'chat-community-item-chevron';
+          chevronEl.setAttribute('name', 'chevron-forward');
           itemEl.appendChild(
             buildCommunityAvatar(peer, {
               online
@@ -1789,8 +1872,12 @@ class PageChat extends HTMLElement {
             const badgeEl = document.createElement('span');
             badgeEl.className = 'chat-community-item-badge';
             badgeEl.textContent = room.unreadCount > 99 ? '99+' : String(room.unreadCount);
-            itemEl.appendChild(badgeEl);
+            trailingEl.appendChild(badgeEl);
           }
+          trailingEl.appendChild(chevronEl);
+          sideEl.appendChild(timeEl);
+          sideEl.appendChild(trailingEl);
+          itemEl.appendChild(sideEl);
           itemEl.addEventListener('click', () => {
             openCommunityDmRoom(room.roomId, { forceHistory: true });
           });
@@ -1842,19 +1929,24 @@ class PageChat extends HTMLElement {
 
     const getCommunityPresenceUsersForDm = () => {
       const currentUserId = pickFirstText(lastUserId);
+      const existingRoomPeerIds = new Set(
+        communityDmRooms
+          .map((room) => pickFirstText(room && room.peer && room.peer.id))
+          .filter(Boolean)
+      );
       const seen = new Set();
       const peers = [];
-      communityDmRooms.forEach((room) => {
-        const peer = room && room.peer ? room.peer : null;
-        const peerId = pickFirstText(peer && peer.id);
-        if (!peerId || peerId === currentUserId || seen.has(peerId)) return;
-        seen.add(peerId);
-        peers.push(peer);
-      });
       if (Array.isArray(communityPresenceUsers)) {
         communityPresenceUsers.forEach((peer) => {
           const peerId = pickFirstText(peer && peer.user_id, peer && peer.id);
-          if (!peerId || peerId === currentUserId || seen.has(peerId)) return;
+          if (
+            !peerId ||
+            peerId === currentUserId ||
+            seen.has(peerId) ||
+            existingRoomPeerIds.has(peerId)
+          ) {
+            return;
+          }
           seen.add(peerId);
           peers.push({
             id: peerId,
@@ -4193,7 +4285,10 @@ class PageChat extends HTMLElement {
         upsertCommunityRoom({
           ...room,
           last_message_preview: message.text,
-          last_message_at: pickFirstText(data && (data.created_at || data.published)) || new Date().toISOString()
+          last_message_at: pickFirstText(data && (data.created_at || data.published)) || new Date().toISOString(),
+          last_message_actor_id: pickFirstText(message.actorId),
+          last_message_actor_name: pickFirstText(message.actorName),
+          last_message_actor_app: pickFirstText(message.actorApp)
         });
         if (!isOwnMessage && !isVisibleRoom) {
           const currentRoom = communityDmRooms.find((entry) => entry && entry.roomId === room.roomId) || null;

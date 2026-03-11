@@ -2612,6 +2612,52 @@ const fetchChannels = (params, cb) => {
   req.end();
 };
 
+const fetchChannel = (channelName, params, cb) => {
+  const appId = config.appId;
+  const key = config.key;
+  const secret = config.secret;
+  if (!appId || !key || !secret) {
+    cb(new Error('missing app credentials'));
+    return;
+  }
+  const safeChannelName = pickFirstString(channelName);
+  if (!safeChannelName) {
+    cb(new Error('channel_name required'));
+    return;
+  }
+  const encodedChannelName = encodeURIComponent(safeChannelName);
+  const authParams = Object.assign({}, params, {
+    auth_key: key,
+    auth_timestamp: Math.floor(Date.now() / 1000),
+    auth_version: '1.0'
+  });
+  const pathName = `/apps/${appId}/channels/${encodedChannelName}`;
+  const query = signedQuery('GET', pathName, authParams);
+  const req = apiClient.request(
+    {
+      host: apiHost,
+      port: apiPort,
+      path: `${pathName}?${query}`,
+      method: 'GET',
+      timeout: 5000
+    },
+    (resp) => {
+      let body = '';
+      resp.on('data', (chunk) => {
+        body += chunk;
+      });
+      resp.on('end', () => {
+        cb(null, { statusCode: resp.statusCode || 200, body });
+      });
+    }
+  );
+  req.on('timeout', () => {
+    req.destroy(new Error('timeout'));
+  });
+  req.on('error', (err) => cb(err));
+  req.end();
+};
+
 app.get('/realtime/health', (req, res) => {
   res.json({ ok: true, provider, useTLS });
 });
@@ -2661,6 +2707,43 @@ app.get('/realtime/community/public/messages', (req, res) => {
     updated_at: history.updated_at || null,
     messages
   });
+});
+
+app.get('/realtime/community/public/presence', (req, res) => {
+  fetchChannel(
+    COMMUNITY_PUBLIC_PRESENCE_CHANNEL,
+    { info: 'user_count,subscription_count' },
+    (err, result) => {
+      if (err) {
+        console.error('[realtime] community presence error', err);
+        const status = err.message === 'timeout' ? 504 : 500;
+        res.status(status).json({ ok: false, error: err.message || 'community_presence_failed' });
+        return;
+      }
+      const statusCode = result && result.statusCode ? result.statusCode : 200;
+      let body = result && result.body !== undefined ? result.body : result;
+      if (typeof body === 'string') {
+        try {
+          body = JSON.parse(body);
+        } catch (parseErr) {
+          body = { raw: body };
+        }
+      }
+      if (!body || typeof body !== 'object') {
+        body = {};
+      }
+      const userCount = toNonNegativeNumber(body.user_count, 0);
+      const subscriptionCount = toNonNegativeNumber(body.subscription_count, 0);
+      const occupied = Boolean(body.occupied || userCount > 0 || subscriptionCount > 0);
+      res.status(statusCode).json({
+        ok: statusCode >= 200 && statusCode < 300,
+        channel: COMMUNITY_PUBLIC_PRESENCE_CHANNEL,
+        user_count: userCount,
+        subscription_count: subscriptionCount,
+        occupied
+      });
+    }
+  );
 });
 
 const emitPublicCommunityMessage = async ({ source, appName }) => {

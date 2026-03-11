@@ -2668,6 +2668,20 @@ page-chat ion-content::part(scroll) {
   color: var(--app-muted);
 }
 
+.chat-community-presence {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(76, 126, 255, 0.08);
+  border: 1px solid rgba(76, 126, 255, 0.16);
+  color: #3f5fcf;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
 .chat-bubble-actions {
   display: flex;
   justify-content: flex-end;

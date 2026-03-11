@@ -274,6 +274,7 @@ const APP_COPY = {
       communityHistoryEmpty: 'Aun no hay mensajes en el canal publico.',
       communityHistoryError: 'No se pudo cargar el canal publico.',
       communitySendError: 'No se pudo enviar el mensaje al canal publico.',
+      communityPresenceTemplate: '{n} online',
       communityYou: 'Tu',
       transcriptReady: 'Transcripcion lista',
       transcriptSimulated: 'Transcripcion simulada',
@@ -609,6 +610,7 @@ const APP_COPY = {
       communityHistoryEmpty: 'There are no messages in the public room yet.',
       communityHistoryError: 'Could not load the public room.',
       communitySendError: 'Could not send the message to the public room.',
+      communityPresenceTemplate: '{n} online',
       communityYou: 'You',
       transcriptReady: 'Transcript ready',
       transcriptSimulated: 'Simulated transcript',
@@ -735,6 +737,7 @@ const withComputedChatCopy = (chatCopy) => {
   const out = { ...source };
   const dailyTemplate = String(source.hintDailyLimitWithCount || '');
   const listeningTemplate = String(source.hintListening || '');
+  const presenceTemplate = String(source.communityPresenceTemplate || '');
   out.hintDailyLimitWithCount =
     typeof source.hintDailyLimitWithCount === 'function'
       ? source.hintDailyLimitWithCount
@@ -749,6 +752,13 @@ const withComputedChatCopy = (chatCopy) => {
       : (preview) =>
           formatCopyTemplate(listeningTemplate, {
             preview
+          });
+  out.communityPresenceCount =
+    typeof source.communityPresenceCount === 'function'
+      ? source.communityPresenceCount
+      : (n) =>
+          formatCopyTemplate(presenceTemplate, {
+            n
           });
   return out;
 };

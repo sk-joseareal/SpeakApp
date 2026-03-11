@@ -48,6 +48,7 @@ class PageChat extends HTMLElement {
                 <p class="muted" id="chat-coach-subtitle">
                   ${uiCopy.coachCatbotSubtitle}
                 </p>
+                <div class="chat-community-presence" id="chat-community-presence" hidden></div>
               </div>
               <div class="coach-avatar coach-avatar-cat" id="chat-coach-avatar" aria-label="Coach">
                 <img
@@ -160,6 +161,7 @@ class PageChat extends HTMLElement {
     const coachAvatarMascot = this.querySelector('#chat-coach-avatar-mascot');
     const coachTitleEl = this.querySelector('#chat-coach-title');
     const coachSubtitleEl = this.querySelector('#chat-coach-subtitle');
+    const communityPresenceEl = this.querySelector('#chat-community-presence');
     const composerRow = this.querySelector('#chat-composer-row');
     const textRow = this.querySelector('#chat-text-row');
     const textInput = this.querySelector('#chat-text-input');
@@ -213,11 +215,15 @@ class PageChat extends HTMLElement {
     let pusherClient = null;
     let pusherChannel = null;
     let pusherChannelName = '';
+    let pusherPresenceChannel = null;
+    let pusherPresenceChannelName = '';
     let realtimeConnected = false;
+    let communityPresencePollTimer = null;
     let controlsBaseEnabled = false;
     let chatbotDailyLimitBlocked = false;
     let chatbotDailyLimitInfo = null;
     let chatMode = 'catbot';
+    let communityPresenceCount = 0;
     const TALK_STATE_IDLE = 'idle';
     const TALK_STATE_RECORDING = 'recording';
     const TALK_STATE_REVIEW = 'review';
@@ -253,6 +259,7 @@ class PageChat extends HTMLElement {
     const REALTIME_EMIT_TIMEOUT_MS = 8000;
     const CHATBOT_REPLY_TIMEOUT_MS = 12000;
     const COMMUNITY_PUBLIC_CHANNEL = 'site-wide-chat-channel';
+    const COMMUNITY_PRESENCE_POLL_MS = 15000;
     const RECORDING_TIMESLICE = 500;
     const VOSK_SAMPLE_RATE_DEFAULT = 16000;
 	    const TALK_STORAGE_PREFIX = 'appv5:talk-timelines:';
@@ -569,6 +576,7 @@ class PageChat extends HTMLElement {
         authEndpoint: config.authEndpoint || '',
         emitEndpoint: config.emitEndpoint || '',
         communityPublicMessagesEndpoint: config.communityPublicMessagesEndpoint || '',
+        communityPublicPresenceEndpoint: config.communityPublicPresenceEndpoint || '',
         enabledTransports: Array.isArray(config.enabledTransports) ? config.enabledTransports : ['ws', 'wss'],
         channelType: config.channelType || 'private',
         channelPrefix: config.channelPrefix || 'coach'
@@ -866,9 +874,12 @@ class PageChat extends HTMLElement {
             ? 'user'
             : 'bot'
           : normalizeRole(data.role || data.sender || data.from, fallbackRole);
-      const audioUrl = data.audio_url || data.audioUrl || '';
-      const audioKind = String(data.audio_kind || data.audioKind || '').trim();
-      const speakText = normalizeChatText(data.speakText || data.speak_text || text) || text;
+      const audioUrl = messageMode === 'community' ? '' : data.audio_url || data.audioUrl || '';
+      const audioKind = messageMode === 'community' ? '' : String(data.audio_kind || data.audioKind || '').trim();
+      const speakText =
+        messageMode === 'community'
+          ? ''
+          : normalizeChatText(data.speakText || data.speak_text || text) || text;
       const limitReached = Boolean(
         data.limit_reached ||
         data.limitReached ||
@@ -979,6 +990,52 @@ class PageChat extends HTMLElement {
     const getDefaultHintForMode = (mode = chatMode) =>
       mode === 'community' ? uiCopy.introCommunity : uiCopy.hintDefault;
 
+    const updateCommunityPresenceUi = () => {
+      if (!communityPresenceEl) return;
+      if (chatMode !== 'community' || !lastChatEnabled || !lastUserId) {
+        communityPresenceEl.hidden = true;
+        communityPresenceEl.textContent = '';
+        return;
+      }
+      communityPresenceEl.hidden = false;
+      communityPresenceEl.textContent = uiCopy.communityPresenceCount(
+        tokenFmt.format(Math.max(0, Number(communityPresenceCount) || 0))
+      );
+    };
+
+    const resolvePresenceCount = (channel, payload) => {
+      if (
+        payload &&
+        payload.presence &&
+        typeof payload.presence.count === 'number' &&
+        Number.isFinite(payload.presence.count)
+      ) {
+        return Math.max(0, Math.round(payload.presence.count));
+      }
+      if (payload && typeof payload.user_count === 'number' && Number.isFinite(payload.user_count)) {
+        return Math.max(0, Math.round(payload.user_count));
+      }
+      if (
+        payload &&
+        typeof payload.subscription_count === 'number' &&
+        Number.isFinite(payload.subscription_count)
+      ) {
+        return Math.max(0, Math.round(payload.subscription_count));
+      }
+      if (payload && typeof payload.count === 'number' && Number.isFinite(payload.count)) {
+        return Math.max(0, Math.round(payload.count));
+      }
+      if (channel && channel.members) {
+        if (typeof channel.members.count === 'number' && Number.isFinite(channel.members.count)) {
+          return Math.max(0, Math.round(channel.members.count));
+        }
+        if (channel.members.members && typeof channel.members.members === 'object') {
+          return Object.keys(channel.members.members).length;
+        }
+      }
+      return 0;
+    };
+
     const isChatbotRealtimeAvailable = () => {
       if (chatMode !== 'chatbot') return true;
       return realtimeConnected;
@@ -1050,6 +1107,60 @@ class PageChat extends HTMLElement {
       return typeof config.communityPublicMessagesEndpoint === 'string'
         ? config.communityPublicMessagesEndpoint.trim()
         : '';
+    };
+
+    const getCommunityPublicPresenceEndpoint = () => {
+      const config = getRealtimeConfig();
+      return typeof config.communityPublicPresenceEndpoint === 'string'
+        ? config.communityPublicPresenceEndpoint.trim()
+        : '';
+    };
+
+    const clearCommunityPresencePoll = () => {
+      if (!communityPresencePollTimer) return;
+      clearTimeout(communityPresencePollTimer);
+      communityPresencePollTimer = null;
+    };
+
+    const refreshCommunityPresence = async ({ silent = false } = {}) => {
+      const endpoint = getCommunityPublicPresenceEndpoint();
+      if (!endpoint || !lastUserId || !lastChatEnabled) return false;
+      try {
+        const response = await fetch(endpoint, {
+          method: 'GET',
+          headers: {
+            Accept: 'application/json'
+          }
+        });
+        if (!response.ok) throw new Error(`community_presence_${response.status}`);
+        const data = await response.json();
+        const nextCount = resolvePresenceCount(null, data);
+        if (nextCount > 0 || communityPresenceCount <= 0) {
+          communityPresenceCount = nextCount;
+          updateCommunityPresenceUi();
+        }
+        return true;
+      } catch (err) {
+        if (!silent) {
+          console.warn('[chat] community presence error', err);
+        }
+        return false;
+      }
+    };
+
+    const scheduleCommunityPresencePoll = ({ immediate = false } = {}) => {
+      clearCommunityPresencePoll();
+      if (chatMode !== 'community' || !lastUserId || !lastChatEnabled) return;
+      const run = async () => {
+        communityPresencePollTimer = null;
+        await refreshCommunityPresence({ silent: true });
+        scheduleCommunityPresencePoll();
+      };
+      if (immediate) {
+        run();
+        return;
+      }
+      communityPresencePollTimer = setTimeout(run, COMMUNITY_PRESENCE_POLL_MS);
     };
 
     const loadCommunityHistory = async ({ force = false } = {}) => {
@@ -3198,6 +3309,22 @@ class PageChat extends HTMLElement {
     };
 
     const disconnectRealtime = () => {
+      clearCommunityPresencePoll();
+      if (pusherPresenceChannel) {
+        try {
+          pusherPresenceChannel.unbind_all();
+        } catch (err) {
+          // no-op
+        }
+        try {
+          if (pusherClient && pusherPresenceChannelName) {
+            pusherClient.unsubscribe(pusherPresenceChannelName);
+          }
+        } catch (err) {
+          // no-op
+        }
+        pusherPresenceChannel = null;
+      }
       if (pusherChannel) {
         try {
           pusherChannel.unbind_all();
@@ -3213,6 +3340,9 @@ class PageChat extends HTMLElement {
         }
         pusherChannel = null;
       }
+      pusherPresenceChannelName = '';
+      communityPresenceCount = 0;
+      updateCommunityPresenceUi();
       if (pusherClient) {
         try {
           pusherClient.disconnect();
@@ -3270,12 +3400,14 @@ class PageChat extends HTMLElement {
         options.authEndpoint = config.authEndpoint;
       }
 
-      if (channelName.startsWith('private-') || channelName.startsWith('presence-')) {
+      if (connectedMode === 'community' || channelName.startsWith('private-') || channelName.startsWith('presence-')) {
         const userInfo = {
           id: user.id,
           name: getUserDisplayName(user),
           email: user.email || '',
-          avatar: getUserAvatar(user)
+          avatar: getUserAvatar(user),
+          app: 'speakapp',
+          premium: isChatEnabledUser(user)
         };
         options.auth = {
           params: {
@@ -3394,11 +3526,35 @@ class PageChat extends HTMLElement {
         }
         appendMessage(message, {
           mode: messageMode,
-          autoplay: message.role === 'bot'
+          autoplay: messageMode === 'community' ? false : message.role === 'bot'
         });
       };
 
       pusherChannel = pusherClient.subscribe(channelName);
+      if (connectedMode === 'community') {
+        pusherPresenceChannelName = `presence-${COMMUNITY_PUBLIC_CHANNEL}`;
+        pusherPresenceChannel = pusherClient.subscribe(pusherPresenceChannelName);
+        pusherPresenceChannel.bind('pusher:subscription_succeeded', (members) => {
+          communityPresenceCount = resolvePresenceCount(pusherPresenceChannel, members);
+          updateCommunityPresenceUi();
+          if (communityPresenceCount <= 0) {
+            scheduleCommunityPresencePoll({ immediate: true });
+          } else {
+            scheduleCommunityPresencePoll();
+          }
+        });
+        const syncPresenceCount = (payload) => {
+          communityPresenceCount = resolvePresenceCount(pusherPresenceChannel, payload);
+          updateCommunityPresenceUi();
+          if (communityPresenceCount <= 0) {
+            scheduleCommunityPresencePoll({ immediate: true });
+          } else {
+            scheduleCommunityPresencePoll();
+          }
+        };
+        pusherPresenceChannel.bind('pusher:member_added', syncPresenceCount);
+        pusherPresenceChannel.bind('pusher:member_removed', syncPresenceCount);
+      }
       pusherChannel.bind('pusher:subscription_error', (status) => {
         console.warn('[chat] subscription error', status);
         realtimeConnected = false;
@@ -3408,6 +3564,14 @@ class PageChat extends HTMLElement {
           handleCommunityRealtimeDisconnected();
         }
       });
+      if (pusherPresenceChannel) {
+        pusherPresenceChannel.bind('pusher:subscription_error', (status) => {
+          console.warn('[chat] presence subscription error', status);
+          communityPresenceCount = 0;
+          updateCommunityPresenceUi();
+          scheduleCommunityPresencePoll({ immediate: true });
+        });
+      }
       pusherChannel.bind('chat_message', (data) =>
         handleIncoming(data, connectedMode === 'community' ? 'user' : 'bot')
       );
@@ -3588,6 +3752,7 @@ class PageChat extends HTMLElement {
         connectRealtime(user);
         if (chatMode === 'community') {
           loadCommunityHistory({ force: true });
+          scheduleCommunityPresencePoll({ immediate: true });
         }
       }
 
@@ -3994,6 +4159,7 @@ class PageChat extends HTMLElement {
       }
 
       updateCoachCopy();
+      updateCommunityPresenceUi();
       if (rerenderThread) {
         renderThread(chatMode);
       }
@@ -4040,7 +4206,7 @@ class PageChat extends HTMLElement {
       const isCommunity = chatMode === 'community';
       if (hintEl) hintEl.hidden = false;
       if (chatControls) chatControls.hidden = isCommunity;
-      if (textRow) textRow.classList.toggle('chat-text-row-inline', isChatbot);
+      if (textRow) textRow.classList.toggle('chat-text-row-inline', isChatbot || isCommunity);
       placeSendButton();
       updateSendButtonIcon();
       setTalkState(talkState);
@@ -4054,6 +4220,7 @@ class PageChat extends HTMLElement {
       if (textRow) {
         textRow.hidden = !isInlineTextMode;
         textRow.classList.toggle('is-collapsed', collapsed);
+        textRow.classList.toggle('chat-text-row-inline', isInlineTextMode);
       }
       if (!isInlineTextMode && textInput) {
         textInput.value = '';
@@ -4062,6 +4229,7 @@ class PageChat extends HTMLElement {
         textInput.placeholder =
           chatMode === 'community' ? uiCopy.inputPlaceholderCommunity : uiCopy.inputPlaceholder;
       }
+      updateCommunityPresenceUi();
       updateChatbotOneLineLayout();
       scheduleChatKeyboardSync();
     };
@@ -4069,6 +4237,7 @@ class PageChat extends HTMLElement {
     const setChatMode = (mode, { reconnect, persist } = {}) => {
       if (mode !== 'catbot' && mode !== 'chatbot' && mode !== 'community') return;
       if (chatMode === mode) return;
+      stopPlayback();
       chatMode = mode;
       defaultHint = getDefaultHintForMode(mode);
       if (persist !== false) {
@@ -4091,6 +4260,9 @@ class PageChat extends HTMLElement {
       }
       if (mode === 'community' && lastChatEnabled && window.user) {
         loadCommunityHistory({ force: true });
+        scheduleCommunityPresencePoll({ immediate: true });
+      } else {
+        clearCommunityPresencePoll();
       }
       if (mode === 'community' && (!window.user || window.user.id === undefined || window.user.id === null)) {
         setHint(uiCopy.loginRequired);

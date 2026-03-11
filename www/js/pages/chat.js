@@ -743,13 +743,11 @@ class PageChat extends HTMLElement {
 
 		    const getRealtimeStateToken = () => {
 		      const cfg = window.realtimeConfig || {};
-		      return (
-		        typeof cfg.stateToken === 'string'
-		          ? cfg.stateToken.trim()
-		          : typeof window.REALTIME_STATE_TOKEN === 'string'
-		          ? window.REALTIME_STATE_TOKEN.trim()
-		          : '';
-		      );
+		      return typeof cfg.stateToken === 'string'
+		        ? cfg.stateToken.trim()
+		        : typeof window.REALTIME_STATE_TOKEN === 'string'
+		        ? window.REALTIME_STATE_TOKEN.trim()
+		        : '';
 		    };
 
 		    const buildRealtimeStateHeaders = (base = {}) => {

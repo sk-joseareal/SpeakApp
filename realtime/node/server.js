@@ -166,6 +166,12 @@ const COMMUNITY_PRESENCE_ACTIVE_WINDOW_MS = (() => {
   const parsed = Math.floor(numeric);
   return parsed > 0 ? parsed : 45000;
 })();
+const COMMUNITY_PRESENCE_LEGACY_WINDOW_MS = (() => {
+  const numeric = Number(env('COMMUNITY_PRESENCE_LEGACY_WINDOW_MS', '900000'));
+  if (!Number.isFinite(numeric)) return 900000;
+  const parsed = Math.floor(numeric);
+  return parsed > 0 ? parsed : 900000;
+})();
 
 const formatUsageDay = (value) => {
   if (!value) return '';
@@ -2128,7 +2134,6 @@ const ensurePresenceRoom = (state, roomId) => {
 const pruneCommunityPresenceState = (state, now = Date.now()) => {
   if (!state || typeof state !== 'object') return newCommunityPresenceState();
   if (!state.rooms || typeof state.rooms !== 'object') state.rooms = {};
-  const cutoff = now - COMMUNITY_PRESENCE_ACTIVE_WINDOW_MS;
   Object.keys(state.rooms).forEach((roomId) => {
     const room = state.rooms[roomId];
     if (!room || typeof room !== 'object' || !room.users || typeof room.users !== 'object') {
@@ -2144,8 +2149,16 @@ const pruneCommunityPresenceState = (state, now = Date.now()) => {
       const sessions = userEntry.sessions && typeof userEntry.sessions === 'object' ? userEntry.sessions : {};
       Object.keys(sessions).forEach((sessionId) => {
         const sessionEntry = sessions[sessionId];
+        const expiresAt = Date.parse(sessionEntry && sessionEntry.expires_at ? sessionEntry.expires_at : '');
         const lastSeen = Date.parse(sessionEntry && sessionEntry.last_seen_at ? sessionEntry.last_seen_at : '');
-        if (!Number.isFinite(lastSeen) || lastSeen < cutoff) {
+        const legacyWindowMs = toPositiveInteger(
+          sessionEntry && sessionEntry.active_window_ms,
+          COMMUNITY_PRESENCE_ACTIVE_WINDOW_MS
+        );
+        const sessionCutoff = now - legacyWindowMs;
+        const shouldRemoveByExpiry = Number.isFinite(expiresAt) ? expiresAt < now : false;
+        const shouldRemoveByLastSeen = Number.isFinite(lastSeen) ? lastSeen < sessionCutoff : true;
+        if (shouldRemoveByExpiry || shouldRemoveByLastSeen) {
           delete sessions[sessionId];
         }
       });
@@ -2198,34 +2211,56 @@ const summarizeCommunityPresenceRoom = (room) => {
         app: pickFirstString(entry.app) || 'speakapp',
         premium: Boolean(entry.premium),
         last_seen_at: entry.last_seen_at || null,
-        sessions_count: Object.keys(sessions).length
+        sessions_count: Object.keys(sessions).length,
+        legacy_sessions_count: Object.values(sessions).filter(
+          (sessionEntry) => sessionEntry && sessionEntry.source === 'legacy'
+        ).length
       };
     })
   };
 };
 
+let communityPresenceState = pruneCommunityPresenceState(loadCommunityPresenceState());
+saveCommunityPresenceState(communityPresenceState);
+
+const getMutableCommunityPresenceState = (now = Date.now()) => {
+  communityPresenceState = pruneCommunityPresenceState(communityPresenceState, now);
+  return communityPresenceState;
+};
+
 const getCommunityPresenceSummary = (roomId) => {
-  const state = pruneCommunityPresenceState(loadCommunityPresenceState());
+  const state = getMutableCommunityPresenceState();
   saveCommunityPresenceState(state);
   const room = ensurePresenceRoom(state, roomId);
   return summarizeCommunityPresenceRoom(room);
 };
 
-const upsertCommunityPresence = ({ roomId, actor, sessionId, now = Date.now() }) => {
+const upsertCommunityPresence = ({
+  roomId,
+  actor,
+  sessionId,
+  source = 'heartbeat',
+  activeWindowMs = COMMUNITY_PRESENCE_ACTIVE_WINDOW_MS,
+  now = Date.now()
+}) => {
   const safeSessionId = pickFirstString(sessionId);
   const safeActor = actor && typeof actor === 'object' ? actor : {};
   const safeUserId = pickFirstString(safeActor.id, safeActor.user_id);
   if (!safeUserId || !safeSessionId) {
     return { ok: false, error: 'user_id_and_session_id_required' };
   }
-  const state = pruneCommunityPresenceState(loadCommunityPresenceState(), now);
+  const state = getMutableCommunityPresenceState(now);
   const room = ensurePresenceRoom(state, roomId);
   const nowIso = new Date(now).toISOString();
   const existingUser = room.users[safeUserId] && typeof room.users[safeUserId] === 'object' ? room.users[safeUserId] : {};
   const sessions = existingUser.sessions && typeof existingUser.sessions === 'object' ? existingUser.sessions : {};
+  const ttlMs = toPositiveInteger(activeWindowMs, COMMUNITY_PRESENCE_ACTIVE_WINDOW_MS);
   sessions[safeSessionId] = {
     session_id: safeSessionId,
     last_seen_at: nowIso,
+    expires_at: new Date(now + ttlMs).toISOString(),
+    active_window_ms: ttlMs,
+    source: pickFirstString(source) || 'heartbeat',
     app: pickFirstString(safeActor.app, existingUser.app) || 'speakapp'
   };
   room.users[safeUserId] = {
@@ -2243,13 +2278,23 @@ const upsertCommunityPresence = ({ roomId, actor, sessionId, now = Date.now() })
   return { ok: true, summary: summarizeCommunityPresenceRoom(room) };
 };
 
+const upsertLegacyCommunityPresence = ({ roomId, actor, sessionId, now = Date.now() }) =>
+  upsertCommunityPresence({
+    roomId,
+    actor,
+    sessionId,
+    source: 'legacy',
+    activeWindowMs: COMMUNITY_PRESENCE_LEGACY_WINDOW_MS,
+    now
+  });
+
 const removeCommunityPresenceSession = ({ roomId, userId, sessionId, now = Date.now() }) => {
   const safeUserId = pickFirstString(userId);
   const safeSessionId = pickFirstString(sessionId);
   if (!safeUserId || !safeSessionId) {
     return { ok: false, error: 'user_id_and_session_id_required' };
   }
-  const state = pruneCommunityPresenceState(loadCommunityPresenceState(), now);
+  const state = getMutableCommunityPresenceState(now);
   const room = ensurePresenceRoom(state, roomId);
   const userEntry = room.users[safeUserId];
   if (userEntry && userEntry.sessions && typeof userEntry.sessions === 'object') {
@@ -2914,6 +2959,22 @@ const authHandler = (req, res) => {
     user_id: String(userId),
     user_info: userInfo || {}
   };
+  if (channelName === COMMUNITY_PUBLIC_PRESENCE_CHANNEL) {
+    upsertLegacyCommunityPresence({
+      roomId: COMMUNITY_PUBLIC_CHANNEL,
+      actor: normalizeCommunityActor(
+        {
+          ...(userInfo && typeof userInfo === 'object' ? userInfo : {}),
+          user_id: userId
+        },
+        {
+          id: String(userId),
+          app: pickFirstString(userInfo && userInfo.app, userInfo && userInfo.origin, 'english-course')
+        }
+      ),
+      sessionId: `legacy-auth:${String(socketId)}`
+    });
+  }
   res.json(pusher.authenticate(socketId, channelName, presenceData));
 };
 
@@ -3035,6 +3096,13 @@ const emitPublicCommunityMessage = async ({ source, appName }) => {
     actor
   });
   appendPublicCommunityMessage(message);
+  if ((actor.app || '').toLowerCase() === 'english-course') {
+    upsertLegacyCommunityPresence({
+      roomId: COMMUNITY_PUBLIC_CHANNEL,
+      actor,
+      sessionId: `legacy-send:${actor.id}`
+    });
+  }
   await pusher.trigger(COMMUNITY_PUBLIC_CHANNEL, 'chat_message', message);
   return {
     ok: true,

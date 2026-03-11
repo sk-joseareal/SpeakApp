@@ -2658,6 +2658,52 @@ const fetchChannel = (channelName, params, cb) => {
   req.end();
 };
 
+const fetchChannelUsers = (channelName, params, cb) => {
+  const appId = config.appId;
+  const key = config.key;
+  const secret = config.secret;
+  if (!appId || !key || !secret) {
+    cb(new Error('missing app credentials'));
+    return;
+  }
+  const safeChannelName = pickFirstString(channelName);
+  if (!safeChannelName) {
+    cb(new Error('channel_name required'));
+    return;
+  }
+  const encodedChannelName = encodeURIComponent(safeChannelName);
+  const authParams = Object.assign({}, params, {
+    auth_key: key,
+    auth_timestamp: Math.floor(Date.now() / 1000),
+    auth_version: '1.0'
+  });
+  const pathName = `/apps/${appId}/channels/${encodedChannelName}/users`;
+  const query = signedQuery('GET', pathName, authParams);
+  const req = apiClient.request(
+    {
+      host: apiHost,
+      port: apiPort,
+      path: `${pathName}?${query}`,
+      method: 'GET',
+      timeout: 5000
+    },
+    (resp) => {
+      let body = '';
+      resp.on('data', (chunk) => {
+        body += chunk;
+      });
+      resp.on('end', () => {
+        cb(null, { statusCode: resp.statusCode || 200, body });
+      });
+    }
+  );
+  req.on('timeout', () => {
+    req.destroy(new Error('timeout'));
+  });
+  req.on('error', (err) => cb(err));
+  req.end();
+};
+
 app.get('/realtime/health', (req, res) => {
   res.json({ ok: true, provider, useTLS });
 });
@@ -2710,40 +2756,61 @@ app.get('/realtime/community/public/messages', (req, res) => {
 });
 
 app.get('/realtime/community/public/presence', (req, res) => {
-  fetchChannel(
-    COMMUNITY_PUBLIC_PRESENCE_CHANNEL,
-    { info: 'user_count,subscription_count' },
-    (err, result) => {
-      if (err) {
-        console.error('[realtime] community presence error', err);
-        const status = err.message === 'timeout' ? 504 : 500;
-        res.status(status).json({ ok: false, error: err.message || 'community_presence_failed' });
-        return;
+  const parseApiBody = (value) => {
+    let body = value;
+    if (typeof body === 'string') {
+      try {
+        body = JSON.parse(body);
+      } catch (parseErr) {
+        body = { raw: body };
       }
-      const statusCode = result && result.statusCode ? result.statusCode : 200;
-      let body = result && result.body !== undefined ? result.body : result;
-      if (typeof body === 'string') {
-        try {
-          body = JSON.parse(body);
-        } catch (parseErr) {
-          body = { raw: body };
+    }
+    return body && typeof body === 'object' ? body : {};
+  };
+
+  fetchChannel(COMMUNITY_PUBLIC_PRESENCE_CHANNEL, { info: 'user_count,subscription_count' }, (err, result) => {
+    if (err) {
+      console.error('[realtime] community presence error', err);
+      const status = err.message === 'timeout' ? 504 : 500;
+      res.status(status).json({ ok: false, error: err.message || 'community_presence_failed' });
+      return;
+    }
+
+    const statusCode = result && result.statusCode ? result.statusCode : 200;
+    const body = parseApiBody(result && result.body !== undefined ? result.body : result);
+    const reportedUserCount = toNonNegativeNumber(body.user_count, 0);
+    const subscriptionCount = toNonNegativeNumber(body.subscription_count, 0);
+    const occupied = Boolean(body.occupied || reportedUserCount > 0 || subscriptionCount > 0);
+
+    fetchChannelUsers(COMMUNITY_PUBLIC_PRESENCE_CHANNEL, {}, (usersErr, usersResult) => {
+      let usersBody = {};
+      let users = [];
+      let usersStatusCode = 200;
+      if (usersErr) {
+        console.warn('[realtime] community presence users error', usersErr.message || usersErr);
+      } else {
+        usersStatusCode = usersResult && usersResult.statusCode ? usersResult.statusCode : 200;
+        usersBody = parseApiBody(usersResult && usersResult.body !== undefined ? usersResult.body : usersResult);
+        if (Array.isArray(usersBody.users)) {
+          users = usersBody.users;
         }
       }
-      if (!body || typeof body !== 'object') {
-        body = {};
-      }
-      const userCount = toNonNegativeNumber(body.user_count, 0);
-      const subscriptionCount = toNonNegativeNumber(body.subscription_count, 0);
-      const occupied = Boolean(body.occupied || userCount > 0 || subscriptionCount > 0);
+      const usersCount = users.length;
+      const resolvedUserCount = Math.max(reportedUserCount, usersCount);
+      const resolvedOccupied = Boolean(occupied || resolvedUserCount > 0);
+
       res.status(statusCode).json({
         ok: statusCode >= 200 && statusCode < 300,
         channel: COMMUNITY_PUBLIC_PRESENCE_CHANNEL,
-        user_count: userCount,
+        user_count: resolvedUserCount,
+        reported_user_count: reportedUserCount,
         subscription_count: subscriptionCount,
-        occupied
+        occupied: resolvedOccupied,
+        users_count: usersCount,
+        users_status_code: usersStatusCode
       });
-    }
-  );
+    });
+  });
 });
 
 const emitPublicCommunityMessage = async ({ source, appName }) => {

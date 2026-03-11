@@ -49,6 +49,10 @@ class PageChat extends HTMLElement {
                   ${uiCopy.coachCatbotSubtitle}
                 </p>
                 <div class="chat-community-presence" id="chat-community-presence" hidden></div>
+                <div class="chat-community-nav" id="chat-community-nav" hidden>
+                  <button type="button" class="chat-community-nav-btn is-active" data-community-view="public">${uiCopy.communityTabPublic}</button>
+                  <button type="button" class="chat-community-nav-btn" data-community-view="dm">${uiCopy.communityTabChats}</button>
+                </div>
               </div>
               <div class="coach-avatar coach-avatar-cat" id="chat-coach-avatar" aria-label="Coach">
                 <img
@@ -78,6 +82,16 @@ class PageChat extends HTMLElement {
               </div>
             </div>
             <div class="chat-panel" id="chat-chat-panel">
+              <div class="chat-community-lists" id="chat-community-lists" hidden>
+                <section class="chat-community-list-block">
+                  <div class="chat-community-list-title" id="chat-community-rooms-title">${uiCopy.communityChatsTitle}</div>
+                  <div class="chat-community-list" id="chat-community-room-list"></div>
+                </section>
+                <section class="chat-community-list-block">
+                  <div class="chat-community-list-title" id="chat-community-online-title">${uiCopy.communityOnlineUsersTitle}</div>
+                  <div class="chat-community-list" id="chat-community-peer-list"></div>
+                </section>
+              </div>
               <div class="chat-thread" id="chat-chat-thread" role="log" aria-live="polite" aria-relevant="additions"></div>
               <div class="chat-composer-row" id="chat-composer-row">
                 <div class="chat-text-row" id="chat-text-row" hidden>
@@ -162,6 +176,12 @@ class PageChat extends HTMLElement {
     const coachTitleEl = this.querySelector('#chat-coach-title');
     const coachSubtitleEl = this.querySelector('#chat-coach-subtitle');
     const communityPresenceEl = this.querySelector('#chat-community-presence');
+    const communityNavEl = this.querySelector('#chat-community-nav');
+    const communityListsEl = this.querySelector('#chat-community-lists');
+    const communityRoomListEl = this.querySelector('#chat-community-room-list');
+    const communityPeerListEl = this.querySelector('#chat-community-peer-list');
+    const communityRoomsTitleEl = this.querySelector('#chat-community-rooms-title');
+    const communityOnlineTitleEl = this.querySelector('#chat-community-online-title');
     const composerRow = this.querySelector('#chat-composer-row');
     const textRow = this.querySelector('#chat-text-row');
     const textInput = this.querySelector('#chat-text-input');
@@ -215,6 +235,8 @@ class PageChat extends HTMLElement {
     let pusherClient = null;
     let pusherChannel = null;
     let pusherChannelName = '';
+    let pusherCommunityPublicChannel = null;
+    const pusherCommunityDmChannels = new Map();
     let realtimeConnected = false;
     let communityPresenceHeartbeatTimer = null;
     let communityPresenceSessionId = '';
@@ -223,6 +245,13 @@ class PageChat extends HTMLElement {
     let chatbotDailyLimitInfo = null;
     let chatMode = 'catbot';
     let communityPresenceCount = 0;
+    let communityPresenceUsers = [];
+    let communityView = 'public';
+    let communityRoomsLoading = false;
+    let communityRoomsLoaded = false;
+    let communityDmRooms = [];
+    let activeCommunityDmRoomId = '';
+    const communityDmThreads = {};
     const TALK_STATE_IDLE = 'idle';
     const TALK_STATE_RECORDING = 'recording';
     const TALK_STATE_REVIEW = 'review';
@@ -577,6 +606,9 @@ class PageChat extends HTMLElement {
         emitEndpoint: config.emitEndpoint || '',
         communityPublicMessagesEndpoint: config.communityPublicMessagesEndpoint || '',
         communityPublicPresenceEndpoint: config.communityPublicPresenceEndpoint || '',
+        communityRoomsEndpoint: config.communityRoomsEndpoint || '',
+        communityMessagesEndpoint: config.communityMessagesEndpoint || '',
+        communityDmRoomEndpoint: config.communityDmRoomEndpoint || '',
         enabledTransports: Array.isArray(config.enabledTransports) ? config.enabledTransports : ['ws', 'wss'],
         channelType: config.channelType || 'private',
         channelPrefix: config.channelPrefix || 'coach'
@@ -1025,7 +1057,11 @@ class PageChat extends HTMLElement {
     };
 
     const getDefaultHintForMode = (mode = chatMode) =>
-      mode === 'community' ? uiCopy.introCommunity : uiCopy.hintDefault;
+      mode === 'community'
+        ? communityView === 'dm'
+          ? uiCopy.communitySelectChat || uiCopy.introCommunityDm || uiCopy.introCommunity
+          : uiCopy.introCommunity
+        : uiCopy.hintDefault;
 
     const updateCommunityPresenceUi = () => {
       if (!communityPresenceEl) return;
@@ -1043,6 +1079,100 @@ class PageChat extends HTMLElement {
       communityPresenceEl.textContent = uiCopy.communityPresenceCount(
         tokenFmt.format(Math.max(0, Number(communityPresenceCount) || 0))
       );
+    };
+
+    const getCommunityRoomsEndpoint = () =>
+      typeof (window.realtimeConfig || {}).communityRoomsEndpoint === 'string'
+        ? window.realtimeConfig.communityRoomsEndpoint.trim()
+        : '';
+
+    const getCommunityMessagesEndpoint = () =>
+      typeof (window.realtimeConfig || {}).communityMessagesEndpoint === 'string'
+        ? window.realtimeConfig.communityMessagesEndpoint.trim()
+        : '';
+
+    const getCommunityDmRoomEndpoint = () =>
+      typeof (window.realtimeConfig || {}).communityDmRoomEndpoint === 'string'
+        ? window.realtimeConfig.communityDmRoomEndpoint.trim()
+        : '';
+
+    const normalizeCommunityRoom = (value) => {
+      if (!value || typeof value !== 'object') return null;
+      const roomId = pickFirstText(value.room_id, value.roomId);
+      const channel = pickFirstText(value.channel);
+      if (!roomId || !channel) return null;
+      const participants = Array.isArray(value.participants)
+        ? value.participants
+            .map((participant) => {
+              if (!participant || typeof participant !== 'object') return null;
+              const participantId = pickFirstText(participant.id, participant.user_id, participant.userId);
+              if (!participantId) return null;
+              return {
+                id: participantId,
+                name: pickFirstText(participant.name, participant.displayName, participant.email),
+                avatar: pickFirstText(participant.avatar, participant.image, participant.img),
+                app: pickFirstText(participant.app),
+                premium: participant.premium === true
+              };
+            })
+            .filter(Boolean)
+        : [];
+      const peerRaw = value.peer && typeof value.peer === 'object' ? value.peer : null;
+      const peerId = pickFirstText(
+        peerRaw && (peerRaw.id || peerRaw.user_id || peerRaw.userId),
+        participants.find((participant) => participant.id !== (lastUserId || ''))?.id
+      );
+      const peer =
+        (peerRaw || participants.find((participant) => participant.id === peerId) || {
+          id: peerId,
+          name: '',
+          avatar: '',
+          app: '',
+          premium: false
+        });
+      return {
+        roomId,
+        channel,
+        roomType: 'dm',
+        participants,
+        peer: {
+          id: pickFirstText(peer.id, peer.user_id, peer.userId),
+          name: pickFirstText(peer.name, peer.displayName, peer.email),
+          avatar: pickFirstText(peer.avatar, peer.image, peer.img),
+          app: pickFirstText(peer.app),
+          premium: peer.premium === true
+        },
+        lastMessagePreview: pickFirstText(value.last_message_preview, value.lastMessagePreview),
+        lastMessageAt: pickFirstText(value.last_message_at, value.lastMessageAt, value.updated_at, value.updatedAt),
+        unreadCount: Math.max(0, Math.round(Number(value.unread_count || value.unreadCount || 0) || 0))
+      };
+    };
+
+    const ensureCommunityDmThread = (roomId) => {
+      const safeRoomId = pickFirstText(roomId);
+      if (!safeRoomId) return [];
+      if (!communityDmThreads[safeRoomId]) {
+        communityDmThreads[safeRoomId] = [];
+      }
+      return communityDmThreads[safeRoomId];
+    };
+
+    const getCommunityActiveRoom = () =>
+      communityDmRooms.find((room) => room && room.roomId === activeCommunityDmRoomId) || null;
+
+    const getCommunityPeerLabel = (room) => {
+      const peerName = pickFirstText(room && room.peer && room.peer.name);
+      if (peerName) return peerName;
+      const peerId = pickFirstText(room && room.peer && room.peer.id);
+      return peerId || uiCopy.communityNoPeerName;
+    };
+
+    const getCommunityDmIntro = () => {
+      const activeRoom = getCommunityActiveRoom();
+      if (!activeRoom) return uiCopy.introCommunityDm || uiCopy.communitySelectChat;
+      return uiCopy.communityDmBadge
+        ? `${uiCopy.communityDmBadge}: ${getCommunityPeerLabel(activeRoom)}`
+        : getCommunityPeerLabel(activeRoom);
     };
 
     const resolvePresenceCount = (channel, payload) => {
@@ -1194,7 +1324,9 @@ class PageChat extends HTMLElement {
         if (!response.ok) throw new Error(`community_presence_${action}_${response.status}`);
         const data = await response.json();
         communityPresenceCount = resolvePresenceCount(null, data);
+        communityPresenceUsers = Array.isArray(data && data.users) ? data.users : [];
         updateCommunityPresenceUi();
+        renderCommunityLists();
         return true;
       } catch (err) {
         if (!silent) {
@@ -1273,9 +1405,11 @@ class PageChat extends HTMLElement {
               .map((item) => normalizeIncoming(item, 'bot', { mode: 'community', viewerId: lastUserId || '' }))
               .filter(Boolean)
           : [];
-        replaceThreadMessages('community', messages, { rerender: true });
+        replaceThreadMessages('community', messages, { rerender: communityView === 'public', scope: 'public' });
         if (!messages.length) {
-          ensureIntroMessage('community');
+          if (communityView === 'public') {
+            ensureIntroMessage('community');
+          }
         }
         if (chatMode === 'community') {
           setHint(getDefaultHintForMode('community'));
@@ -1283,7 +1417,7 @@ class PageChat extends HTMLElement {
         return true;
       } catch (err) {
         console.warn('[chat] community history error', err);
-        if (!getThread('community').length) {
+        if (!getThread('community', { scope: 'public' }).length && communityView === 'public') {
           ensureIntroMessage('community');
         }
         if (chatMode === 'community') {
@@ -1325,6 +1459,329 @@ class PageChat extends HTMLElement {
       } catch (err) {
         console.warn('[chat] community send error', err);
         return { ok: false, error: err && err.message ? err.message : 'community_send_failed' };
+      }
+    };
+
+    const upsertCommunityRoom = (value) => {
+      const room = normalizeCommunityRoom(value);
+      if (!room) return null;
+      const index = communityDmRooms.findIndex((entry) => entry && entry.roomId === room.roomId);
+      if (index >= 0) {
+        communityDmRooms[index] = {
+          ...communityDmRooms[index],
+          ...room,
+          peer: {
+            ...(communityDmRooms[index].peer || {}),
+            ...(room.peer || {})
+          }
+        };
+      } else {
+        communityDmRooms.push(room);
+      }
+      communityDmRooms.sort((left, right) => {
+        const leftTs = Date.parse((left && left.lastMessageAt) || '');
+        const rightTs = Date.parse((right && right.lastMessageAt) || '');
+        const safeLeft = Number.isFinite(leftTs) ? leftTs : 0;
+        const safeRight = Number.isFinite(rightTs) ? rightTs : 0;
+        return safeRight - safeLeft;
+      });
+      return room;
+    };
+
+    const renderCommunityLists = () => {
+      if (!communityListsEl || !communityRoomListEl || !communityPeerListEl) return;
+      const isCommunityDm = chatMode === 'community' && communityView === 'dm';
+      communityListsEl.hidden = !isCommunityDm;
+      if (!isCommunityDm) return;
+
+      if (communityRoomsTitleEl) communityRoomsTitleEl.textContent = uiCopy.communityChatsTitle;
+      if (communityOnlineTitleEl) communityOnlineTitleEl.textContent = uiCopy.communityOnlineUsersTitle;
+
+      communityRoomListEl.innerHTML = '';
+      if (communityRoomsLoading && !communityDmRooms.length) {
+        const loadingEl = document.createElement('div');
+        loadingEl.className = 'chat-community-empty';
+        loadingEl.textContent = uiCopy.communityRoomsLoading || uiCopy.loadingUser;
+        communityRoomListEl.appendChild(loadingEl);
+      } else if (!communityDmRooms.length) {
+        const emptyEl = document.createElement('div');
+        emptyEl.className = 'chat-community-empty';
+        emptyEl.textContent = uiCopy.communityNoChats;
+        communityRoomListEl.appendChild(emptyEl);
+      } else {
+        communityDmRooms.forEach((room) => {
+          const itemEl = document.createElement('button');
+          itemEl.type = 'button';
+          itemEl.className = 'chat-community-item';
+          if (room.roomId === activeCommunityDmRoomId) itemEl.classList.add('is-active');
+          const peerLabel = getCommunityPeerLabel(room);
+          const preview = pickFirstText(room.lastMessagePreview) || peerLabel;
+          const mainEl = document.createElement('span');
+          mainEl.className = 'chat-community-item-main';
+          const titleEl = document.createElement('span');
+          titleEl.className = 'chat-community-item-title';
+          titleEl.textContent = peerLabel;
+          const subtitleEl = document.createElement('span');
+          subtitleEl.className = 'chat-community-item-subtitle';
+          subtitleEl.textContent = preview;
+          mainEl.appendChild(titleEl);
+          mainEl.appendChild(subtitleEl);
+          itemEl.appendChild(mainEl);
+          itemEl.addEventListener('click', () => {
+            activeCommunityDmRoomId = room.roomId;
+            renderCommunityLists();
+            loadCommunityDmHistory(room.roomId, { force: true }).then(() => {
+              renderThread('community');
+              applyControlsEnabled();
+              updateDraftButtons();
+            });
+          });
+          communityRoomListEl.appendChild(itemEl);
+        });
+      }
+
+      const peers = Array.isArray(getCommunityPresenceUsersForDm())
+        ? getCommunityPresenceUsersForDm()
+        : [];
+      communityPeerListEl.innerHTML = '';
+      if (!peers.length) {
+        const emptyEl = document.createElement('div');
+        emptyEl.className = 'chat-community-empty';
+        emptyEl.textContent = uiCopy.communityNoOnlineUsers;
+        communityPeerListEl.appendChild(emptyEl);
+      } else {
+        peers.forEach((peer) => {
+          const itemEl = document.createElement('button');
+          itemEl.type = 'button';
+          itemEl.className = 'chat-community-item';
+          const label = pickFirstText(peer.name, peer.id) || uiCopy.communityNoPeerName;
+          const mainEl = document.createElement('span');
+          mainEl.className = 'chat-community-item-main';
+          const titleEl = document.createElement('span');
+          titleEl.className = 'chat-community-item-title';
+          titleEl.textContent = label;
+          const subtitleEl = document.createElement('span');
+          subtitleEl.className = 'chat-community-item-subtitle';
+          subtitleEl.textContent = uiCopy.communityStartChat;
+          mainEl.appendChild(titleEl);
+          mainEl.appendChild(subtitleEl);
+          itemEl.appendChild(mainEl);
+          itemEl.addEventListener('click', () => {
+            ensureCommunityDmRoomOpen(peer).then((room) => {
+              if (!room) return;
+              activeCommunityDmRoomId = room.roomId;
+              renderCommunityLists();
+              renderThread('community');
+              applyControlsEnabled();
+              updateDraftButtons();
+            });
+          });
+          communityPeerListEl.appendChild(itemEl);
+        });
+      }
+    };
+
+    const getCommunityPresenceUsersForDm = () => {
+      const currentUserId = pickFirstText(lastUserId);
+      const seen = new Set();
+      const peers = [];
+      communityDmRooms.forEach((room) => {
+        const peer = room && room.peer ? room.peer : null;
+        const peerId = pickFirstText(peer && peer.id);
+        if (!peerId || peerId === currentUserId || seen.has(peerId)) return;
+        seen.add(peerId);
+        peers.push(peer);
+      });
+      if (Array.isArray(communityPresenceUsers)) {
+        communityPresenceUsers.forEach((peer) => {
+          const peerId = pickFirstText(peer && peer.user_id, peer && peer.id);
+          if (!peerId || peerId === currentUserId || seen.has(peerId)) return;
+          seen.add(peerId);
+          peers.push({
+            id: peerId,
+            name: pickFirstText(peer && peer.name),
+            avatar: pickFirstText(peer && peer.avatar),
+            app: pickFirstText(peer && peer.app),
+            premium: peer && peer.premium === true
+          });
+        });
+      }
+      return peers;
+    };
+
+    const loadCommunityDmRooms = async ({ force = false } = {}) => {
+      if (chatMode !== 'community' && !force) return false;
+      const endpoint = getCommunityRoomsEndpoint();
+      const currentUserId = pickFirstText(lastUserId);
+      if (!endpoint || !currentUserId) return false;
+      if (communityRoomsLoading) return false;
+      if (communityRoomsLoaded && !force) return true;
+      communityRoomsLoading = true;
+      if (communityView === 'dm') {
+        setHint(uiCopy.communityRoomsLoading || uiCopy.loadingUser);
+      }
+      try {
+        const url = new URL(endpoint, window.location.origin);
+        url.searchParams.set('scope', 'dm');
+        url.searchParams.set('user_id', currentUserId);
+        const response = await fetch(url.toString(), {
+          method: 'GET',
+          headers: { Accept: 'application/json' }
+        });
+        if (!response.ok) throw new Error(`community_rooms_${response.status}`);
+        const data = await response.json();
+        communityDmRooms = Array.isArray(data && data.rooms)
+          ? data.rooms.map(normalizeCommunityRoom).filter(Boolean)
+          : [];
+        communityRoomsLoaded = true;
+        if (
+          activeCommunityDmRoomId &&
+          !communityDmRooms.some((room) => room && room.roomId === activeCommunityDmRoomId)
+        ) {
+          activeCommunityDmRoomId = '';
+        }
+        if (!activeCommunityDmRoomId && communityDmRooms.length) {
+          activeCommunityDmRoomId = communityDmRooms[0].roomId;
+        }
+        if (pusherClient && chatMode === 'community') {
+          syncCommunityDmSubscriptions();
+        }
+        renderCommunityLists();
+        if (communityView === 'dm' && activeCommunityDmRoomId) {
+          loadCommunityDmHistory(activeCommunityDmRoomId, { force: false });
+        }
+        if (communityView === 'dm') {
+          setHint(getDefaultHintForMode('community'));
+        }
+        return true;
+      } catch (err) {
+        console.warn('[chat] community dm rooms error', err);
+        renderCommunityLists();
+        if (communityView === 'dm') {
+          setHint(uiCopy.communityRoomsError || uiCopy.serverUnavailable);
+        }
+        return false;
+      } finally {
+        communityRoomsLoading = false;
+      }
+    };
+
+    const loadCommunityDmHistory = async (roomId, { force = false } = {}) => {
+      const safeRoomId = pickFirstText(roomId, activeCommunityDmRoomId);
+      if (!safeRoomId) return false;
+      const endpoint = getCommunityMessagesEndpoint();
+      if (!endpoint) return false;
+      const thread = ensureCommunityDmThread(safeRoomId);
+      if (thread.length && !force) return true;
+      try {
+        const url = new URL(endpoint, window.location.origin);
+        url.searchParams.set('room_type', 'dm');
+        url.searchParams.set('room_id', safeRoomId);
+        const response = await fetch(url.toString(), {
+          method: 'GET',
+          headers: { Accept: 'application/json' }
+        });
+        if (!response.ok) throw new Error(`community_dm_history_${response.status}`);
+        const data = await response.json();
+        const messages = Array.isArray(data && data.messages)
+          ? data.messages
+              .map((item) => normalizeIncoming(item, 'bot', { mode: 'community', viewerId: lastUserId || '' }))
+              .filter(Boolean)
+          : [];
+        replaceThreadMessages('community', messages, {
+          rerender: communityView === 'dm' && safeRoomId === activeCommunityDmRoomId,
+          scope: 'dm',
+          roomId: safeRoomId
+        });
+        if (!messages.length && communityView === 'dm' && safeRoomId === activeCommunityDmRoomId) {
+          ensureIntroMessage('community');
+        }
+        return true;
+      } catch (err) {
+        console.warn('[chat] community dm history error', err);
+        return false;
+      }
+    };
+
+    const ensureCommunityDmRoomOpen = async (peer) => {
+      const endpoint = getCommunityDmRoomEndpoint();
+      const currentUser = window.user;
+      const currentUserId =
+        currentUser && currentUser.id !== undefined && currentUser.id !== null ? String(currentUser.id).trim() : '';
+      const peerUserId = pickFirstText(peer && (peer.id || peer.user_id || peer.userId));
+      if (!endpoint || !currentUserId || !peerUserId) return null;
+      try {
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json'
+          },
+          body: JSON.stringify({
+            user_id: currentUserId,
+            user_name: getUserDisplayName(currentUser),
+            avatar: getUserAvatar(currentUser),
+            app: 'speakapp',
+            premium: isChatEnabledUser(currentUser),
+            peer_user_id: peerUserId,
+            peer_name: pickFirstText(peer && peer.name),
+            peer_avatar: pickFirstText(peer && peer.avatar),
+            peer_app: pickFirstText(peer && peer.app)
+          })
+        });
+        if (!response.ok) throw new Error(`community_dm_open_${response.status}`);
+        const data = await response.json();
+        if (!data || data.ok !== true || !data.room) throw new Error('community_dm_open_invalid');
+        const room = upsertCommunityRoom(data.room);
+        renderCommunityLists();
+        if (room && pusherClient && chatMode === 'community') {
+          syncCommunityDmSubscriptions();
+          await loadCommunityDmHistory(room.roomId, { force: true });
+        }
+        return room;
+      } catch (err) {
+        console.warn('[chat] community dm open error', err);
+        presentSystemToast(uiCopy.communityDmOpenError || uiCopy.serverUnavailable);
+        return null;
+      }
+    };
+
+    const emitCommunityDmMessage = async ({ roomId, text }) => {
+      const endpoint = getCommunityMessagesEndpoint();
+      const currentUser = window.user;
+      const currentUserId =
+        currentUser && currentUser.id !== undefined && currentUser.id !== null ? String(currentUser.id).trim() : '';
+      const activeRoom = communityDmRooms.find((room) => room && room.roomId === roomId) || null;
+      if (!endpoint || !currentUserId || !roomId || !activeRoom) return { ok: false };
+      try {
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json'
+          },
+          body: JSON.stringify({
+            room_type: 'dm',
+            room_id: roomId,
+            user_id: currentUserId,
+            user_name: getUserDisplayName(currentUser),
+            avatar: getUserAvatar(currentUser),
+            app: 'speakapp',
+            premium: isChatEnabledUser(currentUser),
+            peer_user_id: pickFirstText(activeRoom.peer && activeRoom.peer.id),
+            peer_name: pickFirstText(activeRoom.peer && activeRoom.peer.name),
+            peer_avatar: pickFirstText(activeRoom.peer && activeRoom.peer.avatar),
+            peer_app: pickFirstText(activeRoom.peer && activeRoom.peer.app),
+            text
+          })
+        });
+        if (!response.ok) {
+          return { ok: false, status: response.status };
+        }
+        return response.json();
+      } catch (err) {
+        console.warn('[chat] community dm send error', err);
+        return { ok: false, error: err && err.message ? err.message : 'community_dm_send_failed' };
       }
     };
 
@@ -1911,6 +2368,10 @@ class PageChat extends HTMLElement {
         sendBtn.disabled = true;
         return;
       }
+      if (chatMode === 'community' && communityView === 'dm' && !activeCommunityDmRoomId) {
+        sendBtn.disabled = true;
+        return;
+      }
       if (!isChatbotRealtimeAvailable()) {
         sendBtn.disabled = true;
         return;
@@ -1929,7 +2390,9 @@ class PageChat extends HTMLElement {
         if (sendBtn) sendBtn.disabled = true;
         if (textInput) textInput.disabled = true;
       } else {
-        if (textInput) textInput.disabled = false;
+        if (textInput) {
+          textInput.disabled = Boolean(chatMode === 'community' && communityView === 'dm' && !activeCommunityDmRoomId);
+        }
         updateDraftButtons();
       }
       if (limited) {
@@ -2836,18 +3299,37 @@ class PageChat extends HTMLElement {
       }
     };
 
-    const getThread = (mode) => {
+    const getThread = (mode, options = {}) => {
       if (mode === 'chatbot') return chatThreads.chatbot;
-      if (mode === 'community') return chatThreads.community;
+      if (mode === 'community') {
+        const scope = pickFirstText(options.scope, communityView);
+        const roomId = pickFirstText(options.roomId, activeCommunityDmRoomId);
+        if (scope === 'dm') {
+          return ensureCommunityDmThread(roomId);
+        }
+        return chatThreads.community;
+      }
       return chatThreads.catbot;
     };
 
     const createChatMessageId = () =>
       `msg_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 
+    const isVisibleThread = (mode, options = {}) => {
+      if (mode !== chatMode) return false;
+      if (mode !== 'community') return true;
+      const scope = pickFirstText(options.scope, communityView);
+      const roomId = pickFirstText(options.roomId, activeCommunityDmRoomId);
+      if (scope !== communityView) return false;
+      if (scope === 'dm') {
+        return Boolean(roomId) && roomId === activeCommunityDmRoomId;
+      }
+      return true;
+    };
+
     const updateThreadMessage = (mode, messageId, updater, options = {}) => {
       if (!messageId || typeof updater !== 'function') return null;
-      const thread = getThread(mode);
+      const thread = getThread(mode, options);
       const index = thread.findIndex((item) => item && item.id === messageId);
       if (index < 0) return null;
       const current = thread[index];
@@ -2855,18 +3337,18 @@ class PageChat extends HTMLElement {
       if (!next || typeof next !== 'object') return current;
       thread[index] = next;
       persistTalkTimelines();
-      if (options.rerender !== false && mode === chatMode) {
+      if (options.rerender !== false && isVisibleThread(mode, options)) {
         renderThread(mode);
       }
       return next;
     };
 
     const replaceThreadMessages = (mode, messages, options = {}) => {
-      const thread = getThread(mode);
+      const thread = getThread(mode, options);
       thread.length = 0;
       normalizeStoredTimeline(messages).forEach((message) => thread.push(message));
       persistTalkTimelines();
-      if (options.rerender !== false && mode === chatMode) {
+      if (options.rerender !== false && isVisibleThread(mode, options)) {
         renderThread(mode);
       }
       return thread;
@@ -2891,6 +3373,9 @@ class PageChat extends HTMLElement {
       chatThreads.catbot = stored ? stored.catbot : [];
       chatThreads.chatbot = stored ? stored.chatbot : [];
       chatThreads.community = stored ? stored.community : [];
+      Object.keys(communityDmThreads).forEach((roomId) => {
+        delete communityDmThreads[roomId];
+      });
       return stored;
     };
 
@@ -3011,7 +3496,9 @@ class PageChat extends HTMLElement {
 
     const getIntroCopy = (mode) => {
       if (mode === 'chatbot') return uiCopy.introChatbot;
-      if (mode === 'community') return uiCopy.introCommunity;
+      if (mode === 'community') {
+        return communityView === 'dm' ? getCommunityDmIntro() : uiCopy.introCommunity;
+      }
       return uiCopy.introCatbot;
     };
 
@@ -3144,6 +3631,23 @@ class PageChat extends HTMLElement {
       if (!threadEl) return;
       clearThread();
       const thread = getThread(mode);
+      if (mode === 'community' && communityView === 'dm' && !activeCommunityDmRoomId) {
+        renderMessage(
+          {
+            id: '',
+            role: 'bot',
+            text: getCommunityDmIntro(),
+            audioUrl: '',
+            audioKind: '',
+            speakText: '',
+            failed: false,
+            actorName: 'SpeakApp',
+            actorApp: ''
+          },
+          mode
+        );
+        return;
+      }
       thread.forEach((message) => renderMessage(message, mode));
       if (typingState[mode]) {
         renderTypingIndicator();
@@ -3169,7 +3673,7 @@ class PageChat extends HTMLElement {
       if (normalizedRole === 'bot') {
         typingState[targetMode] = false;
       }
-      const thread = getThread(targetMode);
+      const thread = getThread(targetMode, options);
       if (thread.some((item) => item && item.id && item.id === normalizedId)) {
         return;
       }
@@ -3188,7 +3692,7 @@ class PageChat extends HTMLElement {
       };
       thread.push(message);
       persistTalkTimelines();
-      if (targetMode === chatMode) {
+      if (isVisibleThread(targetMode, options)) {
         if (normalizedRole === 'bot') {
           removeTypingIndicator();
         }
@@ -3208,7 +3712,9 @@ class PageChat extends HTMLElement {
 
     const ensureIntroMessage = (mode) => {
       const targetMode = mode || chatMode;
-      const thread = getThread(targetMode);
+      const targetScope = targetMode === 'community' ? communityView : '';
+      const targetRoomId = targetMode === 'community' && targetScope === 'dm' ? activeCommunityDmRoomId : '';
+      const thread = getThread(targetMode, { scope: targetScope, roomId: targetRoomId });
       if (thread.length) return;
       const introCopy = getIntroCopy(targetMode);
       appendMessage(
@@ -3220,7 +3726,7 @@ class PageChat extends HTMLElement {
           speakText: introCopy,
           actorName: targetMode === 'community' ? 'SpeakApp' : ''
         },
-        { mode: targetMode }
+        { mode: targetMode, scope: targetScope, roomId: targetRoomId }
       );
     };
 
@@ -3395,10 +3901,95 @@ class PageChat extends HTMLElement {
       setHint(transcribing ? uiCopy.hintTranscribing : uiCopy.hintProcessing);
     };
 
+    const subscribeCommunityDmRoom = (room, userId) => {
+      if (!pusherClient || !room || !room.channel || !room.roomId) return null;
+      if (pusherCommunityDmChannels.has(room.roomId)) {
+        return pusherCommunityDmChannels.get(room.roomId);
+      }
+      const channel = pusherClient.subscribe(room.channel);
+      channel.bind('pusher:subscription_error', (status) => {
+        console.warn('[chat] dm subscription error', room.channel, status);
+      });
+      channel.bind('chat_message', (data) => {
+        const message = normalizeIncoming(data, 'user', {
+          mode: 'community',
+          viewerId: userId
+        });
+        if (!message) return;
+        const ensuredId =
+          message.id && String(message.id).trim() ? String(message.id).trim() : createChatMessageId();
+        message.id = ensuredId;
+        appendMessage(message, {
+          mode: 'community',
+          autoplay: false,
+          scope: 'dm',
+          roomId: room.roomId
+        });
+        upsertCommunityRoom({
+          ...room,
+          last_message_preview: message.text,
+          last_message_at: new Date().toISOString()
+        });
+        renderCommunityLists();
+      });
+      pusherCommunityDmChannels.set(room.roomId, channel);
+      return channel;
+    };
+
+    const syncCommunityDmSubscriptions = () => {
+      if (!pusherClient || chatMode !== 'community') return;
+      const desired = new Set(communityDmRooms.map((room) => room.roomId));
+      Array.from(pusherCommunityDmChannels.entries()).forEach(([roomId, channel]) => {
+        if (desired.has(roomId)) return;
+        try {
+          channel.unbind_all();
+        } catch (err) {
+          // no-op
+        }
+        try {
+          pusherClient.unsubscribe(channel.name || `private-${roomId}`);
+        } catch (err) {
+          // no-op
+        }
+        pusherCommunityDmChannels.delete(roomId);
+      });
+      communityDmRooms.forEach((room) => {
+        subscribeCommunityDmRoom(room, lastUserId || '');
+      });
+    };
+
     const disconnectRealtime = () => {
       clearCommunityPresenceHeartbeat();
       if (chatMode === 'community' || pusherChannelName === COMMUNITY_PUBLIC_CHANNEL) {
         leaveCommunityPresence({ keepalive: true, silent: true });
+      }
+      Array.from(pusherCommunityDmChannels.entries()).forEach(([roomId, channel]) => {
+        try {
+          channel.unbind_all();
+        } catch (err) {
+          // no-op
+        }
+        try {
+          if (pusherClient) pusherClient.unsubscribe(channel.name || `private-${roomId}`);
+        } catch (err) {
+          // no-op
+        }
+      });
+      pusherCommunityDmChannels.clear();
+      if (pusherCommunityPublicChannel) {
+        try {
+          pusherCommunityPublicChannel.unbind_all();
+        } catch (err) {
+          // no-op
+        }
+        try {
+          if (pusherClient) {
+            pusherClient.unsubscribe(COMMUNITY_PUBLIC_CHANNEL);
+          }
+        } catch (err) {
+          // no-op
+        }
+        pusherCommunityPublicChannel = null;
       }
       if (pusherChannel) {
         try {
@@ -3416,6 +4007,7 @@ class PageChat extends HTMLElement {
         pusherChannel = null;
       }
       communityPresenceCount = 0;
+      communityPresenceUsers = [];
       updateCommunityPresenceUi();
       if (pusherClient) {
         try {
@@ -3493,7 +4085,7 @@ class PageChat extends HTMLElement {
       }
 
       pusherClient = new window.Pusher(config.key, options);
-      pusherChannelName = channelName;
+      pusherChannelName = connectedMode === 'community' ? COMMUNITY_PUBLIC_CHANNEL : channelName;
 
       pusherClient.connection.bind('connected', () => {
         realtimeConnected = true;
@@ -3503,6 +4095,7 @@ class PageChat extends HTMLElement {
           setHint(defaultHint || uiCopy.hintDefault);
         } else if (connectedMode === 'community') {
           setHint(getDefaultHintForMode('community'));
+          syncCommunityDmSubscriptions();
         }
       });
       pusherClient.connection.bind('disconnected', () => {
@@ -3522,6 +4115,97 @@ class PageChat extends HTMLElement {
           handleCommunityRealtimeDisconnected();
         }
       });
+
+      if (connectedMode === 'community') {
+        const handleCommunityIncoming = (data, scope = 'public', roomId = '') => {
+          const message = normalizeIncoming(data, 'user', {
+            mode: 'community',
+            viewerId: userId
+          });
+          if (!message) return;
+          const ensuredId =
+            message.id && String(message.id).trim() ? String(message.id).trim() : createChatMessageId();
+          message.id = ensuredId;
+          appendMessage(message, {
+            mode: 'community',
+            autoplay: false,
+            scope,
+            roomId
+          });
+          if (scope === 'dm' && roomId) {
+            upsertCommunityRoom({
+              room_id: roomId,
+              channel: `private-${roomId}`,
+              last_message_preview: message.text,
+              last_message_at: new Date().toISOString()
+            });
+            renderCommunityLists();
+          }
+        };
+
+        pusherCommunityPublicChannel = pusherClient.subscribe(COMMUNITY_PUBLIC_CHANNEL);
+        pusherCommunityPublicChannel.bind('pusher:subscription_error', (status) => {
+          console.warn('[chat] subscription error', status);
+          realtimeConnected = false;
+          handleCommunityRealtimeDisconnected();
+        });
+        pusherCommunityPublicChannel.bind('chat_message', (data) => {
+          handleCommunityIncoming(data, 'public', COMMUNITY_PUBLIC_CHANNEL);
+        });
+        pusherCommunityPublicChannel.bind('private_chat', (data) => {
+          const roomId = pickFirstText(
+            data && data.private_channel ? String(data.private_channel).replace(/^private-/, '') : ''
+          );
+          const user1 = pickFirstText(data && data.user1);
+          const user2 = pickFirstText(data && data.user2);
+          if (!roomId || !user1 || !user2 || (user1 !== userId && user2 !== userId)) return;
+          const peerId = user1 === userId ? user2 : user1;
+          const room = upsertCommunityRoom({
+            room_id: roomId,
+            channel: `private-${roomId}`,
+            peer: {
+              id: peerId
+            }
+          });
+          if (!activeCommunityDmRoomId && room) {
+            activeCommunityDmRoomId = room.roomId;
+          }
+          syncCommunityDmSubscriptions();
+          loadCommunityDmRooms({ force: true });
+          renderCommunityLists();
+        });
+        pusherCommunityPublicChannel.bind('destroy_private_chat', (data) => {
+          const roomId = pickFirstText(
+            data && data.private_channel ? String(data.private_channel).replace(/^private-/, '') : ''
+          );
+          if (!roomId) return;
+          communityDmRooms = communityDmRooms.filter((room) => room && room.roomId !== roomId);
+          delete communityDmThreads[roomId];
+          const channel = pusherCommunityDmChannels.get(roomId);
+          if (channel) {
+            try {
+              channel.unbind_all();
+            } catch (err) {
+              // no-op
+            }
+            try {
+              pusherClient.unsubscribe(channel.name || `private-${roomId}`);
+            } catch (err) {
+              // no-op
+            }
+            pusherCommunityDmChannels.delete(roomId);
+          }
+          if (activeCommunityDmRoomId === roomId) {
+            activeCommunityDmRoomId = communityDmRooms[0] ? communityDmRooms[0].roomId : '';
+          }
+          renderCommunityLists();
+          renderThread('community');
+        });
+        loadCommunityDmRooms({ force: false }).then(() => {
+          syncCommunityDmSubscriptions();
+        });
+        return;
+      }
 
       const handleIncoming = async (data, fallbackRole) => {
         const messageMode = connectedMode;
@@ -3772,7 +4456,12 @@ class PageChat extends HTMLElement {
 	        setChatbotDailyLimitBlocked(false);
 	        clearChatbotAlignedTtsLimitStatus();
 	        loadTalkTimelinesForUser(userId);
+          communityDmRooms = [];
+          communityRoomsLoaded = false;
+          activeCommunityDmRoomId = '';
+          communityPresenceUsers = [];
 	        clearThread();
+          renderCommunityLists();
 	      }
 
       if (!chatEnabled) {
@@ -3794,6 +4483,9 @@ class PageChat extends HTMLElement {
         connectRealtime(user);
         if (chatMode === 'community') {
           loadCommunityHistory({ force: true });
+          if (communityView === 'dm') {
+            loadCommunityDmRooms({ force: true });
+          }
           scheduleCommunityPresenceHeartbeat({ immediate: true });
         }
       }
@@ -3836,6 +4528,41 @@ class PageChat extends HTMLElement {
         payload && payload.retryMessageId ? String(payload.retryMessageId).trim() : '';
       const outboundMessageId = retryMessageId || createChatMessageId();
       if (messageMode === 'community') {
+        if (communityView === 'dm') {
+          const roomId = pickFirstText(activeCommunityDmRoomId);
+          if (!roomId) {
+            setHint(uiCopy.communitySelectChat);
+            return;
+          }
+          clearDraft(false);
+          setHint(getDefaultHintForMode('community'));
+          emitCommunityDmMessage({ roomId, text: userText }).then((result) => {
+            if (result && result.ok && result.message) {
+              if (result.room) {
+                upsertCommunityRoom(result.room);
+                renderCommunityLists();
+                if (pusherClient && chatMode === 'community') {
+                  syncCommunityDmSubscriptions();
+                }
+              }
+              const normalizedMessage = normalizeIncoming(result.message, 'user', {
+                mode: 'community',
+                viewerId: lastUserId || ''
+              });
+              if (normalizedMessage) {
+                appendMessage(normalizedMessage, {
+                  mode: 'community',
+                  autoplay: false,
+                  scope: 'dm',
+                  roomId
+                });
+              }
+              return;
+            }
+            presentSystemToast(uiCopy.communityDmSendError || uiCopy.serverUnavailable);
+          });
+          return;
+        }
         if (retryMessageId) {
           updateThreadMessage(
             messageMode,
@@ -3856,7 +4583,11 @@ class PageChat extends HTMLElement {
               viewerId: lastUserId || ''
             });
             if (normalizedMessage) {
-              appendMessage(normalizedMessage, { mode: 'community', autoplay: false });
+              appendMessage(normalizedMessage, {
+                mode: 'community',
+                autoplay: false,
+                scope: 'public'
+              });
             }
             return;
           }
@@ -4042,6 +4773,11 @@ class PageChat extends HTMLElement {
         console.error('[chat] error abriendo login', err);
       });
     });
+    communityNavEl?.querySelectorAll('[data-community-view]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        setCommunityView(btn.dataset.communityView || 'public');
+      });
+    });
     logoutBtn?.addEventListener('click', () => {
       if (typeof window.setUser === 'function') {
         window.setUser(null);
@@ -4148,6 +4884,14 @@ class PageChat extends HTMLElement {
         if (botBtn) botBtn.textContent = uiCopy.modeChatbot;
         if (communityBtn) communityBtn.textContent = uiCopy.modeCommunity;
       }
+      if (communityNavEl) {
+        const publicBtn = communityNavEl.querySelector('[data-community-view="public"]');
+        const chatsBtn = communityNavEl.querySelector('[data-community-view="dm"]');
+        if (publicBtn) publicBtn.textContent = uiCopy.communityTabPublic;
+        if (chatsBtn) chatsBtn.textContent = uiCopy.communityTabChats;
+      }
+      if (communityRoomsTitleEl) communityRoomsTitleEl.textContent = uiCopy.communityChatsTitle;
+      if (communityOnlineTitleEl) communityOnlineTitleEl.textContent = uiCopy.communityOnlineUsersTitle;
 
       if (loadingPanel) {
         const loadingText = loadingPanel.querySelector('span');
@@ -4172,7 +4916,13 @@ class PageChat extends HTMLElement {
 
       if (textInput) {
         textInput.placeholder =
-          chatMode === 'community' ? uiCopy.inputPlaceholderCommunity : uiCopy.inputPlaceholder;
+          chatMode === 'community'
+            ? communityView === 'dm'
+              ? (activeCommunityDmRoomId
+                ? (uiCopy.inputPlaceholderCommunityDm || uiCopy.inputPlaceholderCommunity)
+                : uiCopy.communitySelectChat)
+              : uiCopy.inputPlaceholderCommunity
+            : uiCopy.inputPlaceholder;
       }
 
       if (recordBtn) {
@@ -4209,6 +4959,7 @@ class PageChat extends HTMLElement {
 
       updateCoachCopy();
       updateCommunityPresenceUi();
+      updateCommunityViewUi();
       if (rerenderThread) {
         renderThread(chatMode);
       }
@@ -4263,6 +5014,57 @@ class PageChat extends HTMLElement {
       scheduleChatKeyboardSync();
     };
 
+    const updateCommunityViewUi = () => {
+      const isCommunity = chatMode === 'community';
+      if (communityNavEl) {
+        communityNavEl.hidden = !isCommunity;
+        communityNavEl.querySelectorAll('[data-community-view]').forEach((btn) => {
+          btn.classList.toggle('is-active', btn.dataset.communityView === communityView);
+        });
+      }
+      renderCommunityLists();
+      if (textInput) {
+        if (isCommunity && communityView === 'dm') {
+          textInput.placeholder = activeCommunityDmRoomId
+            ? uiCopy.inputPlaceholderCommunityDm || uiCopy.inputPlaceholderCommunity
+            : uiCopy.communitySelectChat;
+        } else if (isCommunity) {
+          textInput.placeholder = uiCopy.inputPlaceholderCommunity;
+        }
+      }
+      if (textInput) {
+        const disableInput = isCommunity && communityView === 'dm' && !activeCommunityDmRoomId;
+        textInput.disabled = disableInput;
+      }
+      if (sendBtn) {
+        const disableSend = isCommunity && communityView === 'dm' && !activeCommunityDmRoomId;
+        if (disableSend) {
+          sendBtn.disabled = true;
+        }
+      }
+    };
+
+    const setCommunityView = (view, options = {}) => {
+      const nextView = view === 'dm' ? 'dm' : 'public';
+      const changed = communityView !== nextView;
+      communityView = nextView;
+      if (changed && nextView === 'dm') {
+        loadCommunityDmRooms({ force: !communityRoomsLoaded });
+        if (activeCommunityDmRoomId) {
+          loadCommunityDmHistory(activeCommunityDmRoomId, { force: false });
+        }
+      }
+      updateCommunityViewUi();
+      if (options.rerender !== false && chatMode === 'community') {
+        renderThread('community');
+      }
+      if (chatMode === 'community') {
+        setHint(getDefaultHintForMode('community'));
+      }
+      applyControlsEnabled();
+      updateDraftButtons();
+    };
+
     const updateTextRowVisibility = (debugOverride) => {
       const isInlineTextMode = chatMode === 'chatbot' || chatMode === 'community';
       const collapsed = chatMode === 'chatbot' && talkState !== TALK_STATE_IDLE;
@@ -4276,9 +5078,16 @@ class PageChat extends HTMLElement {
       }
       if (textInput) {
         textInput.placeholder =
-          chatMode === 'community' ? uiCopy.inputPlaceholderCommunity : uiCopy.inputPlaceholder;
+          chatMode === 'community'
+            ? communityView === 'dm'
+              ? (activeCommunityDmRoomId
+                ? (uiCopy.inputPlaceholderCommunityDm || uiCopy.inputPlaceholderCommunity)
+                : uiCopy.communitySelectChat)
+              : uiCopy.inputPlaceholderCommunity
+            : uiCopy.inputPlaceholder;
       }
       updateCommunityPresenceUi();
+      updateCommunityViewUi();
       updateChatbotOneLineLayout();
       scheduleChatKeyboardSync();
     };
@@ -4302,6 +5111,7 @@ class PageChat extends HTMLElement {
       updateCoachCopy();
       updateChatControlsVisibility();
       updateTextRowVisibility();
+      updateCommunityViewUi();
       renderThread(chatMode);
       ensureIntroMessage(chatMode);
       if (reconnect && lastChatEnabled && window.user) {
@@ -4310,6 +5120,12 @@ class PageChat extends HTMLElement {
       }
       if (mode === 'community' && lastChatEnabled && window.user) {
         loadCommunityHistory({ force: true });
+        if (communityView === 'dm') {
+          loadCommunityDmRooms({ force: false });
+          if (activeCommunityDmRoomId) {
+            loadCommunityDmHistory(activeCommunityDmRoomId, { force: false });
+          }
+        }
         scheduleCommunityPresenceHeartbeat({ immediate: true });
       } else {
         if (previousMode === 'community') {

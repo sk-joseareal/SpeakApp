@@ -154,6 +154,7 @@ const pronAssessDailyUsageByUserDay = new Map();
 const pronAssessDailySecondsLimits = new Map();
 const COMMUNITY_PUBLIC_CHANNEL = 'site-wide-chat-channel';
 const COMMUNITY_PUBLIC_PRESENCE_CHANNEL = `presence-${COMMUNITY_PUBLIC_CHANNEL}`;
+const COMMUNITY_DM_CHANNEL_PREFIX = 'private-';
 const COMMUNITY_HISTORY_MAX_MESSAGES = (() => {
   const numeric = Number(env('COMMUNITY_HISTORY_MAX_MESSAGES', '240'));
   if (!Number.isFinite(numeric)) return 240;
@@ -1953,8 +1954,10 @@ const eventsDir = path.join(dataRoot, 'events');
 const snapshotsDir = path.join(dataRoot, 'snapshots');
 const metaDir = path.join(dataRoot, 'meta');
 const communityDir = path.join(dataRoot, 'community');
+const communityDmDir = path.join(communityDir, 'dm');
 const communityPublicHistoryFile = path.join(communityDir, `${COMMUNITY_PUBLIC_CHANNEL}.json`);
 const communityPresenceFile = path.join(communityDir, 'presence.json');
+const communityDmRoomsFile = path.join(communityDir, 'dm-rooms.json');
 
 const ensureDir = (dirPath) => {
   try {
@@ -1968,6 +1971,7 @@ ensureDir(eventsDir);
 ensureDir(snapshotsDir);
 ensureDir(metaDir);
 ensureDir(communityDir);
+ensureDir(communityDmDir);
 
 const sanitizeOwner = (value) => {
   if (!value) return '';
@@ -2313,6 +2317,473 @@ const removeCommunityPresenceSession = ({ roomId, userId, sessionId, now = Date.
   state.updated_at = room.updated_at;
   saveCommunityPresenceState(state);
   return { ok: true, summary: summarizeCommunityPresenceRoom(room) };
+};
+
+const compareCommunityUserIds = (left, right) => {
+  const a = pickFirstString(left);
+  const b = pickFirstString(right);
+  if (a === b) return 0;
+  const aIsNumeric = /^\d+$/.test(a);
+  const bIsNumeric = /^\d+$/.test(b);
+  if (aIsNumeric && bIsNumeric) {
+    try {
+      const aInt = BigInt(a);
+      const bInt = BigInt(b);
+      if (aInt < bInt) return -1;
+      if (aInt > bInt) return 1;
+      return 0;
+    } catch (err) {
+      // Fall through to lexical compare.
+    }
+  }
+  return a.localeCompare(b, 'en', { numeric: true, sensitivity: 'base' });
+};
+
+const buildCommunityDmIdentity = (userA, userB) => {
+  const left = pickFirstString(userA);
+  const right = pickFirstString(userB);
+  if (!left || !right || left === right) return null;
+  const ordered = [left, right].sort(compareCommunityUserIds);
+  const roomId = `${ordered[0]}_${ordered[1]}`;
+  return {
+    room_type: 'dm',
+    room_id: roomId,
+    channel: `${COMMUNITY_DM_CHANNEL_PREFIX}${roomId}`,
+    user_ids: ordered
+  };
+};
+
+const parseCommunityDmChannel = (channelName) => {
+  const raw = pickFirstString(channelName);
+  if (!raw || raw.startsWith('private-coach')) return null;
+  const match = /^private-(.+)_(.+)$/.exec(raw);
+  if (!match) return null;
+  return buildCommunityDmIdentity(match[1], match[2]);
+};
+
+const newCommunityDmRoomsState = () => ({
+  schema: 1,
+  updated_at: null,
+  rooms: {}
+});
+
+const loadCommunityDmRoomsState = () => {
+  const data = loadJsonFile(communityDmRoomsFile, null);
+  if (!data || typeof data !== 'object') return newCommunityDmRoomsState();
+  if (!data.rooms || typeof data.rooms !== 'object') data.rooms = {};
+  return data;
+};
+
+const saveCommunityDmRoomsState = (state) => {
+  writeJsonFile(communityDmRoomsFile, state);
+};
+
+const dmHistoryPathFor = (roomId) =>
+  path.join(communityDmDir, `${sanitizeOwner(roomId || 'room')}.json`);
+
+const newCommunityDmHistory = (identity) => ({
+  schema: 1,
+  room_type: 'dm',
+  room_id: identity.room_id,
+  channel: identity.channel,
+  user_ids: [...identity.user_ids],
+  updated_at: null,
+  messages: []
+});
+
+const loadCommunityDmHistory = (identity) => {
+  const filePath = dmHistoryPathFor(identity.room_id);
+  const data = loadJsonFile(filePath, null);
+  if (!data || typeof data !== 'object') return newCommunityDmHistory(identity);
+  if (!Array.isArray(data.messages)) data.messages = [];
+  if (!Array.isArray(data.user_ids)) data.user_ids = [...identity.user_ids];
+  if (!data.room_id) data.room_id = identity.room_id;
+  if (!data.channel) data.channel = identity.channel;
+  return data;
+};
+
+const saveCommunityDmHistory = (history) => {
+  writeJsonFile(dmHistoryPathFor(history.room_id), history);
+};
+
+let communityDmRoomsState = loadCommunityDmRoomsState();
+
+const getMutableCommunityDmRoomsState = () => {
+  if (!communityDmRoomsState || typeof communityDmRoomsState !== 'object') {
+    communityDmRoomsState = newCommunityDmRoomsState();
+  }
+  if (!communityDmRoomsState.rooms || typeof communityDmRoomsState.rooms !== 'object') {
+    communityDmRoomsState.rooms = {};
+  }
+  return communityDmRoomsState;
+};
+
+const buildCommunityParticipantSummary = (participant) => {
+  const entry = participant && typeof participant === 'object' ? participant : {};
+  return {
+    id: pickFirstString(entry.id, entry.user_id),
+    name: pickFirstString(entry.name, entry.displayName, entry.email),
+    avatar: pickFirstString(entry.avatar),
+    email: pickFirstString(entry.email),
+    app: pickFirstString(entry.app) || 'speakapp',
+    premium: Boolean(entry.premium)
+  };
+};
+
+const summarizeCommunityDmRoom = (room, viewerId = '') => {
+  const safeRoom = room && typeof room === 'object' ? room : {};
+  const participantsRaw =
+    safeRoom.participants && typeof safeRoom.participants === 'object' ? safeRoom.participants : {};
+  const participants = Object.keys(participantsRaw)
+    .map((participantId) => buildCommunityParticipantSummary(participantsRaw[participantId]))
+    .filter((participant) => participant.id);
+  const safeViewerId = pickFirstString(viewerId);
+  const peer =
+    participants.find((participant) => participant.id !== safeViewerId) ||
+    participants[0] ||
+    {
+      id: '',
+      name: '',
+      avatar: '',
+      email: '',
+      app: '',
+      premium: false
+    };
+  return {
+    room_type: 'dm',
+    room_id: pickFirstString(safeRoom.room_id),
+    channel: pickFirstString(safeRoom.channel),
+    user_ids: Array.isArray(safeRoom.user_ids) ? [...safeRoom.user_ids] : [],
+    created_at: safeRoom.created_at || null,
+    updated_at: safeRoom.updated_at || null,
+    last_message_at: safeRoom.last_message_at || null,
+    last_message_preview: pickFirstString(safeRoom.last_message_preview),
+    unread_count: Math.max(0, Math.round(toNonNegativeNumber(safeRoom.unread_count, 0))),
+    participants,
+    peer
+  };
+};
+
+const ensureCommunityDmRoomRecord = ({
+  identity,
+  actor,
+  peerActor,
+  createdAt = new Date().toISOString()
+}) => {
+  const state = getMutableCommunityDmRoomsState();
+  const roomId = identity.room_id;
+  if (!state.rooms[roomId] || typeof state.rooms[roomId] !== 'object') {
+    state.rooms[roomId] = {
+      room_type: 'dm',
+      room_id: identity.room_id,
+      channel: identity.channel,
+      user_ids: [...identity.user_ids],
+      created_at: createdAt,
+      updated_at: createdAt,
+      last_message_at: null,
+      last_message_preview: '',
+      unread_count: 0,
+      participants: {}
+    };
+  }
+  const room = state.rooms[roomId];
+  if (!room.participants || typeof room.participants !== 'object') room.participants = {};
+  const mergeParticipant = (candidate) => {
+    const safeCandidate = candidate && typeof candidate === 'object' ? candidate : {};
+    const candidateId = pickFirstString(safeCandidate.id, safeCandidate.user_id);
+    if (!candidateId) return;
+    const existing = room.participants[candidateId] && typeof room.participants[candidateId] === 'object'
+      ? room.participants[candidateId]
+      : {};
+    room.participants[candidateId] = {
+      id: candidateId,
+      name: pickFirstString(safeCandidate.name, safeCandidate.displayName, safeCandidate.email, existing.name),
+      displayName: pickFirstString(
+        safeCandidate.displayName,
+        safeCandidate.name,
+        safeCandidate.email,
+        existing.displayName,
+        existing.name
+      ),
+      email: pickFirstString(safeCandidate.email, existing.email),
+      avatar: pickFirstString(safeCandidate.avatar, existing.avatar),
+      app: pickFirstString(safeCandidate.app, existing.app) || 'speakapp',
+      premium: safeCandidate.premium === true || existing.premium === true
+    };
+  };
+  mergeParticipant(actor);
+  mergeParticipant(peerActor);
+  room.updated_at = createdAt;
+  state.updated_at = createdAt;
+  saveCommunityDmRoomsState(state);
+  return room;
+};
+
+const getCommunityPublicPresenceUserMap = () => {
+  const summary = getCommunityPresenceSummary(COMMUNITY_PUBLIC_CHANNEL);
+  const map = new Map();
+  (Array.isArray(summary.users) ? summary.users : []).forEach((entry) => {
+    const userId = pickFirstString(entry && entry.user_id);
+    if (!userId) return;
+    map.set(userId, {
+      id: userId,
+      name: pickFirstString(entry && entry.name),
+      avatar: pickFirstString(entry && entry.avatar),
+      app: pickFirstString(entry && entry.app) || 'speakapp',
+      premium: entry && entry.premium === true
+    });
+  });
+  return map;
+};
+
+const hydrateCommunityDmRoom = (room, viewerId = '') => {
+  const summary = summarizeCommunityDmRoom(room, viewerId);
+  const presenceUsers = getCommunityPublicPresenceUserMap();
+  const mergeParticipant = (participant) => {
+    const safeParticipant = participant && typeof participant === 'object' ? participant : {};
+    const participantId = pickFirstString(safeParticipant.id);
+    if (!participantId) return safeParticipant;
+    const online = presenceUsers.get(participantId);
+    if (!online) return safeParticipant;
+    return {
+      ...safeParticipant,
+      name: pickFirstString(safeParticipant.name, online.name),
+      avatar: pickFirstString(safeParticipant.avatar, online.avatar),
+      app: pickFirstString(safeParticipant.app, online.app) || 'speakapp',
+      premium: safeParticipant.premium === true || online.premium === true
+    };
+  };
+  const hydratedParticipants = summary.participants.map(mergeParticipant);
+  const hydratedPeer = mergeParticipant(summary.peer);
+  return {
+    ...summary,
+    participants: hydratedParticipants,
+    peer: hydratedPeer
+  };
+};
+
+const listCommunityDmRoomsForUser = (userId) => {
+  const safeUserId = pickFirstString(userId);
+  if (!safeUserId) return [];
+  const state = getMutableCommunityDmRoomsState();
+  saveCommunityDmRoomsState(state);
+  return Object.keys(state.rooms)
+    .map((roomId) => state.rooms[roomId])
+    .filter((room) => room && Array.isArray(room.user_ids) && room.user_ids.includes(safeUserId))
+    .sort((left, right) => {
+      const leftTs = Date.parse(left && (left.last_message_at || left.updated_at || left.created_at) || '');
+      const rightTs = Date.parse(right && (right.last_message_at || right.updated_at || right.created_at) || '');
+      const safeLeft = Number.isFinite(leftTs) ? leftTs : 0;
+      const safeRight = Number.isFinite(rightTs) ? rightTs : 0;
+      return safeRight - safeLeft;
+    })
+    .map((room) => hydrateCommunityDmRoom(room, safeUserId));
+};
+
+const buildCommunityDmMessage = ({ identity, text, actor, id, createdAt }) => {
+  const timestamp = createdAt || new Date().toISOString();
+  const actorId = pickFirstString(actor && actor.id);
+  const actorName = pickFirstString(actor && (actor.name || actor.displayName || actor.email));
+  return {
+    id: pickFirstString(id) || createCommunityMessageId(),
+    room_type: 'dm',
+    room_id: identity.room_id,
+    channel: identity.channel,
+    created_at: timestamp,
+    published: timestamp,
+    text: normalizeCommunityText(text),
+    actor: {
+      id: actorId,
+      name: actorName,
+      displayName: actorName,
+      email: pickFirstString(actor && actor.email),
+      avatar: pickFirstString(actor && actor.avatar),
+      app: pickFirstString(actor && actor.app) || 'speakapp',
+      premium: Boolean(actor && actor.premium)
+    }
+  };
+};
+
+const appendCommunityDmMessage = ({ identity, actor, peerActor, message }) => {
+  const history = loadCommunityDmHistory(identity);
+  history.messages.push(message);
+  if (history.messages.length > COMMUNITY_HISTORY_MAX_MESSAGES) {
+    history.messages = history.messages.slice(-COMMUNITY_HISTORY_MAX_MESSAGES);
+  }
+  history.updated_at = message.created_at || new Date().toISOString();
+  saveCommunityDmHistory(history);
+
+  const room = ensureCommunityDmRoomRecord({
+    identity,
+    actor,
+    peerActor,
+    createdAt: history.updated_at
+  });
+  room.last_message_at = history.updated_at;
+  room.last_message_preview = normalizeCommunityText(message.text || '').slice(0, 240);
+  room.updated_at = history.updated_at;
+  const state = getMutableCommunityDmRoomsState();
+  state.rooms[identity.room_id] = room;
+  state.updated_at = room.updated_at;
+  saveCommunityDmRoomsState(state);
+  return { history, room };
+};
+
+const buildLegacyPrivateChatPayload = (identity) => ({
+  user1: identity.user_ids[0],
+  user2: identity.user_ids[1],
+  private_channel: identity.channel
+});
+
+const emitLegacyPrivateChatOpen = async (identity) => {
+  await pusher.trigger(
+    COMMUNITY_PUBLIC_CHANNEL,
+    'private_chat',
+    buildLegacyPrivateChatPayload(identity)
+  );
+};
+
+const emitLegacyPrivateChatClose = async (identity) => {
+  await pusher.trigger(
+    COMMUNITY_PUBLIC_CHANNEL,
+    'destroy_private_chat',
+    buildLegacyPrivateChatPayload(identity)
+  );
+};
+
+const ensureCommunityDmRoom = async ({
+  userId,
+  peerUserId,
+  actor,
+  peerActor,
+  emitLegacyOpen = false
+}) => {
+  const identity = buildCommunityDmIdentity(userId, peerUserId);
+  if (!identity) {
+    return { ok: false, error: 'invalid_dm_users' };
+  }
+  const nowIso = new Date().toISOString();
+  const room = ensureCommunityDmRoomRecord({
+    identity,
+    actor,
+    peerActor,
+    createdAt: nowIso
+  });
+  if (emitLegacyOpen) {
+    await emitLegacyPrivateChatOpen(identity);
+  }
+  return {
+    ok: true,
+    room: hydrateCommunityDmRoom(room, pickFirstString(userId)),
+    identity
+  };
+};
+
+const emitCommunityDmMessage = async ({ source, appName, emitLegacyOpen = false }) => {
+  const requestedRoomId = pickFirstString(source.room_id, source.roomId);
+  const requestedChannel = pickFirstString(source.channel);
+  const requestedIdentity =
+    parseCommunityDmChannel(requestedChannel) ||
+    (requestedRoomId ? buildCommunityDmIdentity(...requestedRoomId.split('_')) : null);
+  const senderId = pickFirstString(source.user_id, source.userId, source.id);
+  const peerUserId = pickFirstString(source.peer_user_id, source.peerUserId);
+  const identity =
+    requestedIdentity ||
+    buildCommunityDmIdentity(senderId, peerUserId);
+  if (!identity) {
+    return { ok: false, error: 'dm_room_required', statusCode: 400 };
+  }
+  if (!identity.user_ids.includes(senderId)) {
+    return { ok: false, error: 'sender_not_in_dm_room', statusCode: 403 };
+  }
+  const text = normalizeCommunityText(source.text || source.message || source.body || source.content || '');
+  if (!text) {
+    return { ok: false, error: 'text_required', statusCode: 400 };
+  }
+  const actor = normalizeCommunityActor(source, { app: appName || 'speakapp', id: senderId });
+  const peerActor = normalizeCommunityActor(
+    {
+      user_id: identity.user_ids.find((candidate) => candidate !== senderId) || '',
+      user_name: pickFirstString(source.peer_name, source.peerName),
+      avatar: pickFirstString(source.peer_avatar, source.peerAvatar),
+      app: pickFirstString(source.peer_app, source.peerApp)
+    },
+    {
+      id: identity.user_ids.find((candidate) => candidate !== senderId) || '',
+      app: 'english-course'
+    }
+  );
+  const ensured = await ensureCommunityDmRoom({
+    userId: identity.user_ids[0],
+    peerUserId: identity.user_ids[1],
+    actor,
+    peerActor,
+    emitLegacyOpen
+  });
+  if (!ensured.ok) return ensured;
+  const message = buildCommunityDmMessage({
+    identity,
+    text,
+    actor
+  });
+  appendCommunityDmMessage({
+    identity,
+    actor,
+    peerActor,
+    message
+  });
+  await pusher.trigger(identity.channel, 'chat_message', message);
+  return {
+    ok: true,
+    room: listCommunityDmRoomsForUser(senderId).find((room) => room.room_id === identity.room_id) || ensured.room,
+    message
+  };
+};
+
+const getCommunityMessages = ({ roomType, roomId, limit }) => {
+  const safeLimit = Math.min(toPositiveInteger(limit, 80), COMMUNITY_HISTORY_MAX_MESSAGES);
+  if (roomType === 'public') {
+    const history = loadCommunityHistory();
+    return {
+      ok: true,
+      room_type: 'public',
+      room_id: COMMUNITY_PUBLIC_CHANNEL,
+      channel: COMMUNITY_PUBLIC_CHANNEL,
+      presence_channel: COMMUNITY_PUBLIC_PRESENCE_CHANNEL,
+      updated_at: history.updated_at || null,
+      messages: history.messages.slice(-safeLimit)
+    };
+  }
+  const identity = roomId
+    ? buildCommunityDmIdentity(...String(roomId).split('_'))
+    : null;
+  if (!identity) {
+    return { ok: false, error: 'invalid_room_id', statusCode: 400 };
+  }
+  const history = loadCommunityDmHistory(identity);
+  return {
+    ok: true,
+    room_type: 'dm',
+    room_id: identity.room_id,
+    channel: identity.channel,
+    updated_at: history.updated_at || null,
+    messages: history.messages.slice(-safeLimit)
+  };
+};
+
+const toLegacyChatRows = (messages, { newestFirst = true } = {}) => {
+  const rows = (Array.isArray(messages) ? messages : []).map((message) => ({
+    message_id: pickFirstString(message && message.id),
+    created_at: pickFirstString(message && (message.created_at || message.published)),
+    body: normalizeCommunityText(message && message.text),
+    user_id: pickFirstString(message && message.actor && message.actor.id),
+    display_name: pickFirstString(
+      message && message.actor && (message.actor.displayName || message.actor.name || message.actor.email)
+    ),
+    image: pickFirstString(message && message.actor && message.actor.avatar),
+    style: ''
+  }));
+  return newestFirst ? rows.slice().reverse() : rows;
 };
 
 const normalizeCommunityText = (value) =>
@@ -2945,18 +3416,38 @@ const authHandler = (req, res) => {
   }
 
   const isPresence = channelName.startsWith('presence-');
+  const safeUserId = pickFirstString(userId, userInfo && userInfo.id);
+
   if (!isPresence) {
+    if (channelName.startsWith('private-coach')) {
+      const ownerUserId = pickFirstString(parseCoachUserId(channelName));
+      if (!safeUserId || !ownerUserId || safeUserId !== ownerUserId) {
+        res.status(403).json({ error: 'unauthorized_channel' });
+        return;
+      }
+      res.json(pusher.authenticate(socketId, channelName));
+      return;
+    }
+    if (channelName.startsWith('private-')) {
+      const identity = parseCommunityDmChannel(channelName);
+      if (!identity || !safeUserId || !identity.user_ids.includes(safeUserId)) {
+        res.status(403).json({ error: 'unauthorized_channel' });
+        return;
+      }
+      res.json(pusher.authenticate(socketId, channelName));
+      return;
+    }
     res.json(pusher.authenticate(socketId, channelName));
     return;
   }
 
-  if (!userId) {
+  if (!safeUserId) {
     res.status(400).json({ error: 'user_id required for presence channels' });
     return;
   }
 
   const presenceData = {
-    user_id: String(userId),
+    user_id: String(safeUserId),
     user_info: userInfo || {}
   };
   if (channelName === COMMUNITY_PUBLIC_PRESENCE_CHANNEL) {
@@ -2965,10 +3456,10 @@ const authHandler = (req, res) => {
       actor: normalizeCommunityActor(
         {
           ...(userInfo && typeof userInfo === 'object' ? userInfo : {}),
-          user_id: userId
+          user_id: safeUserId
         },
         {
-          id: String(userId),
+          id: String(safeUserId),
           app: pickFirstString(userInfo && userInfo.app, userInfo && userInfo.origin, 'english-course')
         }
       ),
@@ -2985,19 +3476,87 @@ app.get('/chats/auth_v2', authHandler);
 app.post('/chats/auth', authHandler);
 app.get('/chats/auth', authHandler);
 
-app.get('/realtime/community/public/messages', (req, res) => {
-  const limit = toPositiveInteger(req.query && req.query.limit, 80);
-  const history = loadCommunityHistory();
-  const messages = history.messages.slice(-Math.min(limit, COMMUNITY_HISTORY_MAX_MESSAGES));
-  res.json({
+app.get('/realtime/community/rooms', (req, res) => {
+  const userId = pickFirstString(req.query && (req.query.user_id || req.query.userId));
+  const scope = pickFirstString(req.query && req.query.scope, 'dm').toLowerCase();
+  if (!userId) {
+    res.status(400).json({ ok: false, error: 'user_id_required' });
+    return;
+  }
+  const response = {
     ok: true,
-    room_type: 'public',
-    room_id: COMMUNITY_PUBLIC_CHANNEL,
-    channel: COMMUNITY_PUBLIC_CHANNEL,
-    presence_channel: COMMUNITY_PUBLIC_PRESENCE_CHANNEL,
-    updated_at: history.updated_at || null,
-    messages
+    scope,
+    user_id: userId,
+    rooms: []
+  };
+  if (scope === 'public' || scope === 'all') {
+    response.public_room = {
+      room_type: 'public',
+      room_id: COMMUNITY_PUBLIC_CHANNEL,
+      channel: COMMUNITY_PUBLIC_CHANNEL,
+      presence_channel: COMMUNITY_PUBLIC_PRESENCE_CHANNEL
+    };
+  }
+  if (scope === 'dm' || scope === 'all') {
+    response.rooms = listCommunityDmRoomsForUser(userId);
+  }
+  res.json(response);
+});
+
+app.post('/realtime/community/rooms/dm', async (req, res) => {
+  const source = Object.assign({}, req.query || {}, req.body || {});
+  const userId = pickFirstString(source.user_id, source.userId, source.id);
+  const peerUserId = pickFirstString(source.peer_user_id, source.peerUserId, source.user2, source.peer);
+  if (!userId || !peerUserId) {
+    res.status(400).json({ ok: false, error: 'user_id_and_peer_user_id_required' });
+    return;
+  }
+  try {
+    const payload = await ensureCommunityDmRoom({
+      userId,
+      peerUserId,
+      actor: normalizeCommunityActor(source, { id: userId, app: pickFirstString(source.app, 'speakapp') }),
+      peerActor: normalizeCommunityActor(
+        {
+          user_id: peerUserId,
+          user_name: pickFirstString(source.peer_name, source.peerName, source.user2_name),
+          avatar: pickFirstString(source.peer_avatar, source.peerAvatar),
+          app: pickFirstString(source.peer_app, source.peerApp)
+        },
+        { id: peerUserId, app: 'english-course' }
+      ),
+      emitLegacyOpen: true
+    });
+    const statusCode = payload && payload.ok === false && payload.error === 'invalid_dm_users' ? 400 : 200;
+    res.status(statusCode).json(payload);
+  } catch (err) {
+    console.error('[realtime] ensure dm room error', err.message || err);
+    res.status(500).json({ ok: false, error: 'dm_room_failed' });
+  }
+});
+
+app.get('/realtime/community/messages', (req, res) => {
+  const roomType = pickFirstString(req.query && (req.query.room_type || req.query.roomType), 'public').toLowerCase();
+  const roomId = pickFirstString(req.query && (req.query.room_id || req.query.roomId));
+  const payload = getCommunityMessages({
+    roomType,
+    roomId: roomType === 'public' ? COMMUNITY_PUBLIC_CHANNEL : roomId,
+    limit: req.query && req.query.limit
   });
+  const statusCode = payload && payload.statusCode ? payload.statusCode : payload.ok === false ? 400 : 200;
+  if (payload && Object.prototype.hasOwnProperty.call(payload, 'statusCode')) {
+    delete payload.statusCode;
+  }
+  res.status(statusCode).json(payload);
+});
+
+app.get('/realtime/community/public/messages', (req, res) => {
+  const payload = getCommunityMessages({
+    roomType: 'public',
+    roomId: COMMUNITY_PUBLIC_CHANNEL,
+    limit: req.query && req.query.limit
+  });
+  res.json(payload);
 });
 
 app.get('/realtime/community/public/presence', (req, res) => {
@@ -3110,6 +3669,34 @@ const emitPublicCommunityMessage = async ({ source, appName }) => {
   };
 };
 
+app.post('/realtime/community/messages', async (req, res) => {
+  const source = Object.assign({}, req.query || {}, req.body || {});
+  const roomType = pickFirstString(source.room_type, source.roomType, 'public').toLowerCase();
+  try {
+    let payload;
+    if (roomType === 'dm') {
+      payload = await emitCommunityDmMessage({
+        source,
+        appName: pickFirstString(source.app, source.origen, source.origin, 'speakapp'),
+        emitLegacyOpen: true
+      });
+    } else {
+      payload = await emitPublicCommunityMessage({
+        source,
+        appName: pickFirstString(source.app, source.origen, source.origin, 'speakapp')
+      });
+    }
+    const statusCode = payload && payload.statusCode ? payload.statusCode : 200;
+    if (payload && Object.prototype.hasOwnProperty.call(payload, 'statusCode')) {
+      delete payload.statusCode;
+    }
+    res.status(statusCode).json(payload);
+  } catch (err) {
+    console.error('[realtime] community message error', err.message || err);
+    res.status(500).json({ ok: false, error: 'community_message_failed' });
+  }
+});
+
 app.post('/realtime/community/public/messages', async (req, res) => {
   const source = Object.assign({}, req.query || {}, req.body || {});
   try {
@@ -3131,19 +3718,27 @@ app.post('/realtime/community/public/messages', async (req, res) => {
 app.post('/v4/sendMessage', async (req, res) => {
   const source = Object.assign({}, req.query || {}, req.body || {});
   const channel = pickFirstString(source.channel, COMMUNITY_PUBLIC_CHANNEL);
-  if (channel !== COMMUNITY_PUBLIC_CHANNEL) {
-    res.status(501).json({
-      ok: false,
-      error: 'legacy_private_chat_not_supported_yet',
-      channel
-    });
-    return;
-  }
   try {
-    const payload = await emitPublicCommunityMessage({
-      source,
-      appName: 'english-course'
-    });
+    let payload;
+    if (channel === COMMUNITY_PUBLIC_CHANNEL) {
+      payload = await emitPublicCommunityMessage({
+        source,
+        appName: 'english-course'
+      });
+    } else {
+      payload = await emitCommunityDmMessage({
+        source: {
+          ...source,
+          room_type: 'dm',
+          channel,
+          user_name: pickFirstString(source.nickname, source.user_name, source.userName, source.name),
+          avatar: pickFirstString(source.image, source.avatar, source.img),
+          app: 'english-course'
+        },
+        appName: 'english-course',
+        emitLegacyOpen: true
+      });
+    }
     const statusCode = payload && payload.statusCode ? payload.statusCode : 200;
     if (payload && Object.prototype.hasOwnProperty.call(payload, 'statusCode')) {
       delete payload.statusCode;
@@ -3153,6 +3748,68 @@ app.post('/v4/sendMessage', async (req, res) => {
     console.error('[realtime] legacy sendMessage error', err.message || err);
     res.status(500).json({ ok: false, error: 'legacy_send_failed' });
   }
+});
+
+app.post('/v4/createPrivate', async (req, res) => {
+  const source = Object.assign({}, req.query || {}, req.body || {});
+  const userId = pickFirstString(source.user1, source.user_id, source.userId, source.id);
+  const peerUserId = pickFirstString(source.user2, source.peer_user_id, source.peerUserId);
+  try {
+    const payload = await ensureCommunityDmRoom({
+      userId,
+      peerUserId,
+      actor: normalizeCommunityActor(
+        {
+          user_id: userId,
+          user_name: pickFirstString(source.user1_name, source.user_name, source.userName, source.name),
+          app: 'english-course'
+        },
+        { id: userId, app: 'english-course' }
+      ),
+      peerActor: normalizeCommunityActor(
+        {
+          user_id: peerUserId,
+          user_name: pickFirstString(source.user2_name, source.peer_name, source.peerName),
+          app: 'english-course'
+        },
+        { id: peerUserId, app: 'english-course' }
+      ),
+      emitLegacyOpen: true
+    });
+    const statusCode = payload && payload.ok === false ? 400 : 200;
+    res.status(statusCode).json(payload);
+  } catch (err) {
+    console.error('[realtime] legacy createPrivate error', err.message || err);
+    res.status(500).json({ ok: false, error: 'legacy_create_private_failed' });
+  }
+});
+
+app.post('/v4/getLastChats', (req, res) => {
+  const source = Object.assign({}, req.query || {}, req.body || {});
+  const channel = pickFirstString(source.channel, COMMUNITY_PUBLIC_CHANNEL);
+  let payload;
+  if (channel === COMMUNITY_PUBLIC_CHANNEL) {
+    payload = getCommunityMessages({
+      roomType: 'public',
+      roomId: COMMUNITY_PUBLIC_CHANNEL,
+      limit: source.limit || 60
+    });
+  } else {
+    const identity = parseCommunityDmChannel(channel);
+    payload = getCommunityMessages({
+      roomType: 'dm',
+      roomId: identity ? identity.room_id : '',
+      limit: source.limit || 60
+    });
+  }
+  if (!payload || payload.ok === false) {
+    res.status(payload && payload.statusCode ? payload.statusCode : 400).json(payload || { ok: false });
+    return;
+  }
+  res.json({
+    ok: true,
+    data: toLegacyChatRows(payload.messages, { newestFirst: true })
+  });
 });
 
 app.post('/realtime/emit', async (req, res) => {

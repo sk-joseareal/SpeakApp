@@ -92,6 +92,16 @@ class PageChat extends HTMLElement {
                   <div class="chat-community-list" id="chat-community-peer-list"></div>
                 </section>
               </div>
+              <div class="chat-community-dm-header" id="chat-community-dm-header" hidden>
+                <button type="button" class="chat-community-dm-back" id="chat-community-dm-back" aria-label="${uiCopy.communityBackToChats}">
+                  <ion-icon name="chevron-back"></ion-icon>
+                </button>
+                <div class="chat-community-dm-avatar" id="chat-community-dm-avatar" aria-hidden="true"></div>
+                <div class="chat-community-dm-main">
+                  <div class="chat-community-dm-name" id="chat-community-dm-name">${uiCopy.communityNoPeerName}</div>
+                  <div class="chat-community-dm-status" id="chat-community-dm-status"></div>
+                </div>
+              </div>
               <div class="chat-thread" id="chat-chat-thread" role="log" aria-live="polite" aria-relevant="additions"></div>
               <div class="chat-composer-row" id="chat-composer-row">
                 <div class="chat-text-row" id="chat-text-row" hidden>
@@ -182,6 +192,11 @@ class PageChat extends HTMLElement {
     const communityPeerListEl = this.querySelector('#chat-community-peer-list');
     const communityRoomsTitleEl = this.querySelector('#chat-community-rooms-title');
     const communityOnlineTitleEl = this.querySelector('#chat-community-online-title');
+    const communityDmHeaderEl = this.querySelector('#chat-community-dm-header');
+    const communityDmBackBtn = this.querySelector('#chat-community-dm-back');
+    const communityDmAvatarEl = this.querySelector('#chat-community-dm-avatar');
+    const communityDmNameEl = this.querySelector('#chat-community-dm-name');
+    const communityDmStatusEl = this.querySelector('#chat-community-dm-status');
     const composerRow = this.querySelector('#chat-composer-row');
     const textRow = this.querySelector('#chat-text-row');
     const textInput = this.querySelector('#chat-text-input');
@@ -1167,11 +1182,71 @@ class PageChat extends HTMLElement {
     const getCommunityActiveRoom = () =>
       communityDmRooms.find((room) => room && room.roomId === activeCommunityDmRoomId) || null;
 
+    const formatCommunityAppName = (value) => {
+      const raw = pickFirstText(value).toLowerCase();
+      if (!raw) return '';
+      if (raw === 'speakapp') return 'SpeakApp';
+      if (raw === 'english-course') return 'English Course';
+      return raw
+        .split(/[-_\s]+/)
+        .filter(Boolean)
+        .map((chunk) => chunk.charAt(0).toUpperCase() + chunk.slice(1))
+        .join(' ');
+    };
+
+    const getCommunityPresenceUser = (userId) => {
+      const safeUserId = pickFirstText(userId);
+      if (!safeUserId || !Array.isArray(communityPresenceUsers)) return null;
+      return (
+        communityPresenceUsers.find((entry) => pickFirstText(entry && (entry.user_id || entry.id)) === safeUserId) ||
+        null
+      );
+    };
+
+    const isCommunityUserOnline = (userId) => Boolean(getCommunityPresenceUser(userId));
+
     const getCommunityPeerLabel = (room) => {
       const peerName = pickFirstText(room && room.peer && room.peer.name);
       if (peerName) return peerName;
       const peerId = pickFirstText(room && room.peer && room.peer.id);
       return peerId || uiCopy.communityNoPeerName;
+    };
+
+    const getCommunityPeerStatusLabel = (peer, fallbackText = '') => {
+      const safePeer = peer && typeof peer === 'object' ? peer : {};
+      const appLabel = formatCommunityAppName(safePeer.app);
+      if (isCommunityUserOnline(safePeer.id)) {
+        return appLabel ? `${uiCopy.communityOnlineNow} · ${appLabel}` : uiCopy.communityOnlineNow;
+      }
+      return appLabel || fallbackText;
+    };
+
+    const buildCommunityAvatar = (entry, options = {}) => {
+      const safeEntry = entry && typeof entry === 'object' ? entry : {};
+      const rootEl = document.createElement('span');
+      rootEl.className = 'chat-community-avatar';
+      if (options.large) rootEl.classList.add('is-large');
+      if (options.online) rootEl.classList.add('is-online');
+      const avatarUrl = pickFirstText(safeEntry.avatar);
+      const name = pickFirstText(safeEntry.name, safeEntry.id, uiCopy.communityNoPeerName);
+      if (avatarUrl) {
+        const imgEl = document.createElement('img');
+        imgEl.src = avatarUrl;
+        imgEl.alt = '';
+        rootEl.appendChild(imgEl);
+      } else {
+        const initialsEl = document.createElement('span');
+        initialsEl.className = 'chat-community-avatar-fallback';
+        const initials = name
+          .split(/\s+/)
+          .filter(Boolean)
+          .slice(0, 2)
+          .map((part) => part.charAt(0).toUpperCase())
+          .join('');
+        initialsEl.textContent = initials || '?';
+        rootEl.appendChild(initialsEl);
+      }
+      return rootEl;
     };
 
     const getCommunityDmIntro = () => {
@@ -1545,6 +1620,30 @@ class PageChat extends HTMLElement {
       communityView === 'dm' &&
       pickFirstText(activeCommunityDmRoomId) === pickFirstText(roomId);
 
+    const openCommunityDmRoom = async (roomId, options = {}) => {
+      const safeRoomId = pickFirstText(roomId);
+      if (!safeRoomId) return false;
+      activeCommunityDmRoomId = safeRoomId;
+      updateCommunityViewUi();
+      await loadCommunityDmHistory(safeRoomId, {
+        force: options.forceHistory === true
+      });
+      renderThread('community');
+      setHint(getDefaultHintForMode('community'));
+      applyControlsEnabled();
+      updateDraftButtons();
+      return true;
+    };
+
+    const closeCommunityDmRoom = () => {
+      activeCommunityDmRoomId = '';
+      updateCommunityViewUi();
+      renderThread('community');
+      setHint(getDefaultHintForMode('community'));
+      applyControlsEnabled();
+      updateDraftButtons();
+    };
+
     const markCommunityDmRoomRead = async (roomId, options = {}) => {
       const safeRoomId = pickFirstText(roomId);
       const currentUserId = pickFirstText(lastUserId);
@@ -1621,11 +1720,32 @@ class PageChat extends HTMLElement {
       });
     };
 
+    const updateCommunityDmHeader = () => {
+      if (!communityDmHeaderEl || !communityDmAvatarEl || !communityDmNameEl || !communityDmStatusEl) return;
+      const isCommunityDmThread =
+        chatMode === 'community' && communityView === 'dm' && Boolean(activeCommunityDmRoomId);
+      communityDmHeaderEl.hidden = !isCommunityDmThread;
+      if (!isCommunityDmThread) return;
+      const room = getCommunityActiveRoom();
+      const peer = room && room.peer ? room.peer : null;
+      communityDmAvatarEl.innerHTML = '';
+      communityDmAvatarEl.appendChild(
+        buildCommunityAvatar(peer, {
+          large: true,
+          online: Boolean(peer && isCommunityUserOnline(peer.id))
+        })
+      );
+      communityDmNameEl.textContent = room ? getCommunityPeerLabel(room) : uiCopy.communityNoPeerName;
+      communityDmStatusEl.textContent = getCommunityPeerStatusLabel(peer, formatCommunityAppName(peer && peer.app));
+    };
+
     const renderCommunityLists = () => {
       if (!communityListsEl || !communityRoomListEl || !communityPeerListEl) return;
-      const isCommunityDm = chatMode === 'community' && communityView === 'dm';
-      communityListsEl.hidden = !isCommunityDm;
-      if (!isCommunityDm) return;
+      const isCommunityDmList =
+        chatMode === 'community' && communityView === 'dm' && !activeCommunityDmRoomId;
+      communityListsEl.hidden = !isCommunityDmList;
+      updateCommunityDmHeader();
+      if (!isCommunityDmList) return;
 
       if (communityRoomsTitleEl) communityRoomsTitleEl.textContent = uiCopy.communityChatsTitle;
       if (communityOnlineTitleEl) communityOnlineTitleEl.textContent = uiCopy.communityOnlineUsersTitle;
@@ -1646,9 +1766,9 @@ class PageChat extends HTMLElement {
           const itemEl = document.createElement('button');
           itemEl.type = 'button';
           itemEl.className = 'chat-community-item';
-          if (room.roomId === activeCommunityDmRoomId) itemEl.classList.add('is-active');
           const peerLabel = getCommunityPeerLabel(room);
-          const preview = pickFirstText(room.lastMessagePreview) || peerLabel;
+          const peer = room && room.peer ? room.peer : {};
+          const online = isCommunityUserOnline(peer.id);
           const mainEl = document.createElement('span');
           mainEl.className = 'chat-community-item-main';
           const titleEl = document.createElement('span');
@@ -1656,7 +1776,12 @@ class PageChat extends HTMLElement {
           titleEl.textContent = peerLabel;
           const subtitleEl = document.createElement('span');
           subtitleEl.className = 'chat-community-item-subtitle';
-          subtitleEl.textContent = preview;
+          subtitleEl.textContent = getCommunityPeerStatusLabel(peer, formatCommunityAppName(peer.app));
+          itemEl.appendChild(
+            buildCommunityAvatar(peer, {
+              online
+            })
+          );
           mainEl.appendChild(titleEl);
           mainEl.appendChild(subtitleEl);
           itemEl.appendChild(mainEl);
@@ -1667,13 +1792,7 @@ class PageChat extends HTMLElement {
             itemEl.appendChild(badgeEl);
           }
           itemEl.addEventListener('click', () => {
-            activeCommunityDmRoomId = room.roomId;
-            renderCommunityLists();
-            loadCommunityDmHistory(room.roomId, { force: true }).then(() => {
-              renderThread('community');
-              applyControlsEnabled();
-              updateDraftButtons();
-            });
+            openCommunityDmRoom(room.roomId, { forceHistory: true });
           });
           communityRoomListEl.appendChild(itemEl);
         });
@@ -1701,18 +1820,19 @@ class PageChat extends HTMLElement {
           titleEl.textContent = label;
           const subtitleEl = document.createElement('span');
           subtitleEl.className = 'chat-community-item-subtitle';
-          subtitleEl.textContent = uiCopy.communityStartChat;
+          subtitleEl.textContent = getCommunityPeerStatusLabel(peer, uiCopy.communityStartChat);
+          itemEl.appendChild(
+            buildCommunityAvatar(peer, {
+              online: true
+            })
+          );
           mainEl.appendChild(titleEl);
           mainEl.appendChild(subtitleEl);
           itemEl.appendChild(mainEl);
           itemEl.addEventListener('click', () => {
             ensureCommunityDmRoomOpen(peer).then((room) => {
               if (!room) return;
-              activeCommunityDmRoomId = room.roomId;
-              renderCommunityLists();
-              renderThread('community');
-              applyControlsEnabled();
-              updateDraftButtons();
+              openCommunityDmRoom(room.roomId, { forceHistory: false });
             });
           });
           communityPeerListEl.appendChild(itemEl);
@@ -1779,13 +1899,10 @@ class PageChat extends HTMLElement {
         ) {
           activeCommunityDmRoomId = '';
         }
-        if (!activeCommunityDmRoomId && communityDmRooms.length) {
-          activeCommunityDmRoomId = communityDmRooms[0].roomId;
-        }
         if (pusherClient && chatMode === 'community') {
           syncCommunityDmSubscriptions();
         }
-        renderCommunityLists();
+        updateCommunityViewUi();
         if (communityView === 'dm' && activeCommunityDmRoomId) {
           loadCommunityDmHistory(activeCommunityDmRoomId, { force: false });
         }
@@ -4328,9 +4445,6 @@ class PageChat extends HTMLElement {
               id: peerId
             }
           });
-          if (!activeCommunityDmRoomId && room) {
-            activeCommunityDmRoomId = room.roomId;
-          }
           syncCommunityDmSubscriptions();
           loadCommunityDmRooms({ force: true });
           renderCommunityLists();
@@ -4357,9 +4471,9 @@ class PageChat extends HTMLElement {
             pusherCommunityDmChannels.delete(roomId);
           }
           if (activeCommunityDmRoomId === roomId) {
-            activeCommunityDmRoomId = communityDmRooms[0] ? communityDmRooms[0].roomId : '';
+            activeCommunityDmRoomId = '';
           }
-          renderCommunityLists();
+          updateCommunityViewUi();
           renderThread('community');
         });
         loadCommunityDmRooms({ force: false }).then(() => {
@@ -4623,7 +4737,7 @@ class PageChat extends HTMLElement {
           activeCommunityDmRoomId = '';
           communityPresenceUsers = [];
 	        clearThread();
-          renderCommunityLists();
+          updateCommunityViewUi();
 	      }
 
       if (!chatEnabled) {
@@ -4945,6 +5059,9 @@ class PageChat extends HTMLElement {
         setCommunityView(btn.dataset.communityView || 'public');
       });
     });
+    communityDmBackBtn?.addEventListener('click', () => {
+      closeCommunityDmRoom();
+    });
     logoutBtn?.addEventListener('click', () => {
       if (typeof window.setUser === 'function') {
         window.setUser(null);
@@ -5183,15 +5300,27 @@ class PageChat extends HTMLElement {
 
     const updateCommunityViewUi = () => {
       const isCommunity = chatMode === 'community';
+      const isCommunityDm = isCommunity && communityView === 'dm';
+      const hasActiveCommunityDm = isCommunityDm && Boolean(activeCommunityDmRoomId);
       if (communityNavEl) {
         communityNavEl.hidden = !isCommunity;
         communityNavEl.querySelectorAll('[data-community-view]').forEach((btn) => {
           btn.classList.toggle('is-active', btn.dataset.communityView === communityView);
         });
       }
+      if (communityDmBackBtn) {
+        communityDmBackBtn.setAttribute('aria-label', uiCopy.communityBackToChats || uiCopy.communityTabChats);
+        communityDmBackBtn.title = uiCopy.communityBackToChats || uiCopy.communityTabChats;
+      }
+      if (threadEl) {
+        threadEl.hidden = Boolean(isCommunityDm && !hasActiveCommunityDm);
+      }
+      if (composerRow) {
+        composerRow.hidden = Boolean(isCommunityDm && !hasActiveCommunityDm);
+      }
       renderCommunityLists();
       if (textInput) {
-        if (isCommunity && communityView === 'dm') {
+        if (isCommunity && isCommunityDm) {
           textInput.placeholder = activeCommunityDmRoomId
             ? uiCopy.inputPlaceholderCommunityDm || uiCopy.inputPlaceholderCommunity
             : uiCopy.communitySelectChat;
@@ -5200,11 +5329,11 @@ class PageChat extends HTMLElement {
         }
       }
       if (textInput) {
-        const disableInput = isCommunity && communityView === 'dm' && !activeCommunityDmRoomId;
+        const disableInput = isCommunityDm && !hasActiveCommunityDm;
         textInput.disabled = disableInput;
       }
       if (sendBtn) {
-        const disableSend = isCommunity && communityView === 'dm' && !activeCommunityDmRoomId;
+        const disableSend = isCommunityDm && !hasActiveCommunityDm;
         if (disableSend) {
           sendBtn.disabled = true;
         }
@@ -5233,7 +5362,10 @@ class PageChat extends HTMLElement {
     };
 
     const updateTextRowVisibility = (debugOverride) => {
-      const isInlineTextMode = chatMode === 'chatbot' || chatMode === 'community';
+      const isCommunityDmWithoutSelection =
+        chatMode === 'community' && communityView === 'dm' && !activeCommunityDmRoomId;
+      const isInlineTextMode =
+        chatMode === 'chatbot' || (chatMode === 'community' && !isCommunityDmWithoutSelection);
       const collapsed = chatMode === 'chatbot' && talkState !== TALK_STATE_IDLE;
       if (textRow) {
         textRow.hidden = !isInlineTextMode;

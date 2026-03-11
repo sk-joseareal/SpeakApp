@@ -81,6 +81,11 @@
       window.REALTIME_COMMUNITY_DM_ROOM_ENDPOINT ||
       'https://realtime.curso-ingles.com/realtime/community/rooms/dm';
   }
+  if (window.realtimeConfig.communityDmReadEndpoint === undefined) {
+    window.realtimeConfig.communityDmReadEndpoint =
+      window.REALTIME_COMMUNITY_DM_READ_ENDPOINT ||
+      'https://realtime.curso-ingles.com/realtime/community/rooms/dm/read';
+  }
   if (window.realtimeConfig.chatbotUsageDailyEndpoint === undefined) {
     window.realtimeConfig.chatbotUsageDailyEndpoint =
       window.REALTIME_CHATBOT_USAGE_DAILY_ENDPOINT ||

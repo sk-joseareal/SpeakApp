@@ -2406,6 +2406,139 @@ const saveCommunityDmHistory = (history) => {
   writeJsonFile(dmHistoryPathFor(history.room_id), history);
 };
 
+const normalizeCommunityDmReadStateEntry = (entry) => {
+  const safeEntry = entry && typeof entry === 'object' ? entry : {};
+  return {
+    last_read_message_id: pickFirstString(
+      safeEntry.last_read_message_id,
+      safeEntry.lastReadMessageId
+    ),
+    last_read_at: pickFirstString(safeEntry.last_read_at, safeEntry.lastReadAt),
+    updated_at: pickFirstString(safeEntry.updated_at, safeEntry.updatedAt)
+  };
+};
+
+const ensureCommunityDmReadState = (room) => {
+  const safeRoom = room && typeof room === 'object' ? room : {};
+  if (!safeRoom.read_state || typeof safeRoom.read_state !== 'object') {
+    safeRoom.read_state = {};
+  }
+  return safeRoom.read_state;
+};
+
+const getCommunityDmUnreadCount = (room, viewerId, historyInput = null) => {
+  const safeRoom = room && typeof room === 'object' ? room : {};
+  const safeViewerId = pickFirstString(viewerId);
+  if (!safeViewerId) return 0;
+
+  const roomId = pickFirstString(safeRoom.room_id);
+  const channel = pickFirstString(safeRoom.channel) || `${COMMUNITY_DM_CHANNEL_PREFIX}${roomId}`;
+  const identity =
+    parseCommunityDmChannel(channel) ||
+    (roomId ? buildCommunityDmIdentity(...String(roomId).split('_')) : null);
+  if (!identity) return 0;
+
+  const history =
+    historyInput && typeof historyInput === 'object' ? historyInput : loadCommunityDmHistory(identity);
+  const messages = Array.isArray(history.messages) ? history.messages : [];
+  if (!messages.length) return 0;
+
+  const readState = ensureCommunityDmReadState(safeRoom);
+  const readEntry = normalizeCommunityDmReadStateEntry(readState[safeViewerId]);
+
+  let lastReadIndex = -1;
+  if (readEntry.last_read_message_id) {
+    lastReadIndex = messages.findIndex(
+      (message) => pickFirstString(message && message.id) === readEntry.last_read_message_id
+    );
+  }
+  if (lastReadIndex < 0 && readEntry.last_read_at) {
+    const lastReadAt = Date.parse(readEntry.last_read_at);
+    if (Number.isFinite(lastReadAt)) {
+      messages.forEach((message, index) => {
+        const createdAt = Date.parse(
+          pickFirstString(message && (message.created_at || message.published))
+        );
+        if (Number.isFinite(createdAt) && createdAt <= lastReadAt) {
+          lastReadIndex = index;
+        }
+      });
+    }
+  }
+
+  return messages.reduce((count, message, index) => {
+    if (index <= lastReadIndex) return count;
+    const actorId = pickFirstString(
+      message && message.actor && (message.actor.id || message.actor.user_id)
+    );
+    if (!actorId || actorId === safeViewerId) return count;
+    return count + 1;
+  }, 0);
+};
+
+const markCommunityDmRoomRead = ({
+  roomId,
+  userId,
+  messageId,
+  readAt = new Date().toISOString()
+}) => {
+  const safeRoomId = pickFirstString(roomId);
+  const safeUserId = pickFirstString(userId);
+  if (!safeRoomId || !safeUserId) {
+    return { ok: false, error: 'room_id_and_user_id_required' };
+  }
+
+  const state = getMutableCommunityDmRoomsState();
+  const room = state.rooms[safeRoomId];
+  if (!room || !Array.isArray(room.user_ids) || !room.user_ids.includes(safeUserId)) {
+    return { ok: false, error: 'dm_room_not_found' };
+  }
+
+  const identity =
+    parseCommunityDmChannel(pickFirstString(room.channel)) ||
+    buildCommunityDmIdentity(...String(safeRoomId).split('_'));
+  if (!identity) {
+    return { ok: false, error: 'invalid_dm_room_id' };
+  }
+
+  const history = loadCommunityDmHistory(identity);
+  const messages = Array.isArray(history.messages) ? history.messages : [];
+  const safeMessageId = pickFirstString(messageId);
+  let targetMessage = null;
+  if (safeMessageId) {
+    targetMessage = messages.find((message) => pickFirstString(message && message.id) === safeMessageId) || null;
+  }
+  if (!targetMessage && messages.length) {
+    targetMessage = messages[messages.length - 1];
+  }
+
+  const nowIso = new Date().toISOString();
+  const readState = ensureCommunityDmReadState(room);
+  const existingReadEntry = normalizeCommunityDmReadStateEntry(readState[safeUserId]);
+  readState[safeUserId] = {
+    ...existingReadEntry,
+    last_read_message_id: targetMessage
+      ? pickFirstString(targetMessage.id)
+      : existingReadEntry.last_read_message_id,
+    last_read_at: pickFirstString(
+      targetMessage && (targetMessage.created_at || targetMessage.published),
+      readAt,
+      existingReadEntry.last_read_at,
+      nowIso
+    ),
+    updated_at: nowIso
+  };
+
+  state.rooms[safeRoomId] = room;
+  state.updated_at = nowIso;
+  saveCommunityDmRoomsState(state);
+
+  return {
+    ok: true,
+    room: hydrateCommunityDmRoom(room, safeUserId)
+  };
+};
+
 let communityDmRoomsState = loadCommunityDmRoomsState();
 
 const getMutableCommunityDmRoomsState = () => {
@@ -2458,7 +2591,7 @@ const summarizeCommunityDmRoom = (room, viewerId = '') => {
     updated_at: safeRoom.updated_at || null,
     last_message_at: safeRoom.last_message_at || null,
     last_message_preview: pickFirstString(safeRoom.last_message_preview),
-    unread_count: Math.max(0, Math.round(toNonNegativeNumber(safeRoom.unread_count, 0))),
+    unread_count: getCommunityDmUnreadCount(safeRoom, safeViewerId),
     participants,
     peer
   };
@@ -2482,12 +2615,13 @@ const ensureCommunityDmRoomRecord = ({
       updated_at: createdAt,
       last_message_at: null,
       last_message_preview: '',
-      unread_count: 0,
+      read_state: {},
       participants: {}
     };
   }
   const room = state.rooms[roomId];
   if (!room.participants || typeof room.participants !== 'object') room.participants = {};
+  ensureCommunityDmReadState(room);
   const mergeParticipant = (candidate) => {
     const safeCandidate = candidate && typeof candidate === 'object' ? candidate : {};
     const candidateId = pickFirstString(safeCandidate.id, safeCandidate.user_id);
@@ -2622,6 +2756,15 @@ const appendCommunityDmMessage = ({ identity, actor, peerActor, message }) => {
   room.last_message_at = history.updated_at;
   room.last_message_preview = normalizeCommunityText(message.text || '').slice(0, 240);
   room.updated_at = history.updated_at;
+  const actorId = pickFirstString(actor && actor.id);
+  if (actorId && Array.isArray(room.user_ids) && room.user_ids.includes(actorId)) {
+    const readState = ensureCommunityDmReadState(room);
+    readState[actorId] = {
+      last_read_message_id: pickFirstString(message.id),
+      last_read_at: pickFirstString(message.created_at, message.published, history.updated_at),
+      updated_at: history.updated_at
+    };
+  }
   const state = getMutableCommunityDmRoomsState();
   state.rooms[identity.room_id] = room;
   state.updated_at = room.updated_at;
@@ -3533,6 +3676,20 @@ app.post('/realtime/community/rooms/dm', async (req, res) => {
     console.error('[realtime] ensure dm room error', err.message || err);
     res.status(500).json({ ok: false, error: 'dm_room_failed' });
   }
+});
+
+app.post('/realtime/community/rooms/dm/read', (req, res) => {
+  const source = Object.assign({}, req.query || {}, req.body || {});
+  const roomId = pickFirstString(source.room_id, source.roomId);
+  const userId = pickFirstString(source.user_id, source.userId, source.id);
+  const messageId = pickFirstString(source.message_id, source.messageId);
+  const payload = markCommunityDmRoomRead({
+    roomId,
+    userId,
+    messageId
+  });
+  const statusCode = payload && payload.ok === false ? 400 : 200;
+  res.status(statusCode).json(payload);
 });
 
 app.get('/realtime/community/messages', (req, res) => {

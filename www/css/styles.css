@@ -2739,6 +2739,8 @@ page-chat ion-content::part(scroll) {
 .chat-community-item {
   display: inline-flex;
   align-items: center;
+  justify-content: space-between;
+  gap: 10px;
   min-width: 0;
   padding: 10px 12px;
   border-radius: 14px;
@@ -2756,8 +2758,25 @@ page-chat ion-content::part(scroll) {
 .chat-community-item-main {
   display: flex;
   flex-direction: column;
+  flex: 1 1 auto;
   min-width: 0;
   gap: 2px;
+}
+
+.chat-community-item-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #4c7eff, #2f63ef);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 800;
+  line-height: 1;
+  box-shadow: 0 8px 16px rgba(47, 99, 239, 0.18);
 }
 
 .chat-community-item-title {

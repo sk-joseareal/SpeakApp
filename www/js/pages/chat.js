@@ -237,6 +237,7 @@ class PageChat extends HTMLElement {
     let pusherChannelName = '';
     let pusherCommunityPublicChannel = null;
     const pusherCommunityDmChannels = new Map();
+    const communityDmReadRequests = new Map();
     let realtimeConnected = false;
     let communityPresenceHeartbeatTimer = null;
     let communityPresenceSessionId = '';
@@ -609,6 +610,7 @@ class PageChat extends HTMLElement {
         communityRoomsEndpoint: config.communityRoomsEndpoint || '',
         communityMessagesEndpoint: config.communityMessagesEndpoint || '',
         communityDmRoomEndpoint: config.communityDmRoomEndpoint || '',
+        communityDmReadEndpoint: config.communityDmReadEndpoint || '',
         enabledTransports: Array.isArray(config.enabledTransports) ? config.enabledTransports : ['ws', 'wss'],
         channelType: config.channelType || 'private',
         channelPrefix: config.channelPrefix || 'coach'
@@ -1096,6 +1098,11 @@ class PageChat extends HTMLElement {
         ? window.realtimeConfig.communityDmRoomEndpoint.trim()
         : '';
 
+    const getCommunityDmReadEndpoint = () =>
+      typeof (window.realtimeConfig || {}).communityDmReadEndpoint === 'string'
+        ? window.realtimeConfig.communityDmReadEndpoint.trim()
+        : '';
+
     const normalizeCommunityRoom = (value) => {
       if (!value || typeof value !== 'object') return null;
       const roomId = pickFirstText(value.room_id, value.roomId);
@@ -1465,13 +1472,34 @@ class PageChat extends HTMLElement {
     const upsertCommunityRoom = (value) => {
       const room = normalizeCommunityRoom(value);
       if (!room) return null;
+      const hasExplicitUnread =
+        value &&
+        typeof value === 'object' &&
+        (Object.prototype.hasOwnProperty.call(value, 'unread_count') ||
+          Object.prototype.hasOwnProperty.call(value, 'unreadCount'));
+      const hasExplicitPreview =
+        value &&
+        typeof value === 'object' &&
+        (Object.prototype.hasOwnProperty.call(value, 'last_message_preview') ||
+          Object.prototype.hasOwnProperty.call(value, 'lastMessagePreview'));
+      const hasExplicitLastMessageAt =
+        value &&
+        typeof value === 'object' &&
+        (Object.prototype.hasOwnProperty.call(value, 'last_message_at') ||
+          Object.prototype.hasOwnProperty.call(value, 'lastMessageAt') ||
+          Object.prototype.hasOwnProperty.call(value, 'updated_at') ||
+          Object.prototype.hasOwnProperty.call(value, 'updatedAt'));
       const index = communityDmRooms.findIndex((entry) => entry && entry.roomId === room.roomId);
       if (index >= 0) {
+        const existingRoom = communityDmRooms[index];
         communityDmRooms[index] = {
-          ...communityDmRooms[index],
+          ...existingRoom,
           ...room,
+          lastMessagePreview: hasExplicitPreview ? room.lastMessagePreview : existingRoom.lastMessagePreview,
+          lastMessageAt: hasExplicitLastMessageAt ? room.lastMessageAt : existingRoom.lastMessageAt,
+          unreadCount: hasExplicitUnread ? room.unreadCount : existingRoom.unreadCount,
           peer: {
-            ...(communityDmRooms[index].peer || {}),
+            ...(existingRoom.peer || {}),
             ...(room.peer || {})
           }
         };
@@ -1486,6 +1514,111 @@ class PageChat extends HTMLElement {
         return safeRight - safeLeft;
       });
       return room;
+    };
+
+    const setCommunityRoomUnreadCount = (roomId, unreadCount) => {
+      const safeRoomId = pickFirstText(roomId);
+      if (!safeRoomId) return null;
+      const index = communityDmRooms.findIndex((entry) => entry && entry.roomId === safeRoomId);
+      if (index < 0) return null;
+      communityDmRooms[index] = {
+        ...communityDmRooms[index],
+        unreadCount: Math.max(0, Math.round(Number(unreadCount) || 0))
+      };
+      return communityDmRooms[index];
+    };
+
+    const getCommunityDmLatestMessage = (roomId) => {
+      const safeRoomId = pickFirstText(roomId);
+      if (!safeRoomId) return null;
+      const thread = ensureCommunityDmThread(safeRoomId);
+      for (let index = thread.length - 1; index >= 0; index -= 1) {
+        const message = thread[index];
+        if (!message || !message.id || !normalizeChatText(message.text) || !pickFirstText(message.actorId)) continue;
+        return message;
+      }
+      return null;
+    };
+
+    const isVisibleCommunityDmRoom = (roomId) =>
+      chatMode === 'community' &&
+      communityView === 'dm' &&
+      pickFirstText(activeCommunityDmRoomId) === pickFirstText(roomId);
+
+    const markCommunityDmRoomRead = async (roomId, options = {}) => {
+      const safeRoomId = pickFirstText(roomId);
+      const currentUserId = pickFirstText(lastUserId);
+      const endpoint = getCommunityDmReadEndpoint();
+      if (!safeRoomId || !currentUserId || !endpoint) return false;
+      const latestMessage = options.message || getCommunityDmLatestMessage(safeRoomId);
+      const latestMessageId = pickFirstText(options.messageId, latestMessage && latestMessage.id);
+      const previousRoom = communityDmRooms.find((room) => room && room.roomId === safeRoomId) || null;
+      const previousUnread = previousRoom ? Math.max(0, Number(previousRoom.unreadCount) || 0) : 0;
+      setCommunityRoomUnreadCount(safeRoomId, 0);
+      renderCommunityLists();
+
+      const pending = communityDmReadRequests.get(safeRoomId) || Promise.resolve();
+      const nextRequest = pending
+        .catch(() => {})
+        .then(async () => {
+          const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Accept: 'application/json'
+            },
+            body: JSON.stringify({
+              room_id: safeRoomId,
+              user_id: currentUserId,
+              message_id: latestMessageId
+            })
+          });
+          if (!response.ok) {
+            throw new Error(`community_dm_read_${response.status}`);
+          }
+          const data = await response.json();
+          if (!data || data.ok !== true) {
+            throw new Error('community_dm_read_invalid');
+          }
+          if (data.room) {
+            upsertCommunityRoom(data.room);
+          } else {
+            setCommunityRoomUnreadCount(safeRoomId, 0);
+          }
+          renderCommunityLists();
+          return true;
+        })
+        .catch((err) => {
+          setCommunityRoomUnreadCount(safeRoomId, previousUnread);
+          renderCommunityLists();
+          if (!options.silent) {
+            console.warn('[chat] community dm read error', err);
+          }
+          return false;
+        })
+        .finally(() => {
+          if (communityDmReadRequests.get(safeRoomId) === nextRequest) {
+            communityDmReadRequests.delete(safeRoomId);
+          }
+        });
+      communityDmReadRequests.set(safeRoomId, nextRequest);
+      return nextRequest;
+    };
+
+    const syncVisibleCommunityDmReadState = (roomId, options = {}) => {
+      const safeRoomId = pickFirstText(roomId);
+      if (!safeRoomId || !isVisibleCommunityDmRoom(safeRoomId)) return Promise.resolve(false);
+      const latestMessage = options.message || getCommunityDmLatestMessage(safeRoomId);
+      if (!latestMessage) {
+        setCommunityRoomUnreadCount(safeRoomId, 0);
+        renderCommunityLists();
+        return Promise.resolve(true);
+      }
+      return markCommunityDmRoomRead(safeRoomId, {
+        messageId: latestMessage.id,
+        message: latestMessage,
+        silent: options.silent !== false
+      });
     };
 
     const renderCommunityLists = () => {
@@ -1527,6 +1660,12 @@ class PageChat extends HTMLElement {
           mainEl.appendChild(titleEl);
           mainEl.appendChild(subtitleEl);
           itemEl.appendChild(mainEl);
+          if (room.unreadCount > 0) {
+            const badgeEl = document.createElement('span');
+            badgeEl.className = 'chat-community-item-badge';
+            badgeEl.textContent = room.unreadCount > 99 ? '99+' : String(room.unreadCount);
+            itemEl.appendChild(badgeEl);
+          }
           itemEl.addEventListener('click', () => {
             activeCommunityDmRoomId = room.roomId;
             renderCommunityLists();
@@ -1672,7 +1811,10 @@ class PageChat extends HTMLElement {
       const endpoint = getCommunityMessagesEndpoint();
       if (!endpoint) return false;
       const thread = ensureCommunityDmThread(safeRoomId);
-      if (thread.length && !force) return true;
+      if (thread.length && !force) {
+        await syncVisibleCommunityDmReadState(safeRoomId, { silent: true });
+        return true;
+      }
       try {
         const url = new URL(endpoint, window.location.origin);
         url.searchParams.set('room_type', 'dm');
@@ -1696,6 +1838,10 @@ class PageChat extends HTMLElement {
         if (!messages.length && communityView === 'dm' && safeRoomId === activeCommunityDmRoomId) {
           ensureIntroMessage('community');
         }
+        await syncVisibleCommunityDmReadState(safeRoomId, {
+          silent: true,
+          message: messages.length ? messages[messages.length - 1] : null
+        });
         return true;
       } catch (err) {
         console.warn('[chat] community dm history error', err);
@@ -3925,12 +4071,26 @@ class PageChat extends HTMLElement {
           scope: 'dm',
           roomId: room.roomId
         });
+        const isOwnMessage = pickFirstText(message.actorId) === pickFirstText(userId);
+        const isVisibleRoom = isVisibleCommunityDmRoom(room.roomId);
         upsertCommunityRoom({
           ...room,
           last_message_preview: message.text,
-          last_message_at: new Date().toISOString()
+          last_message_at: pickFirstText(data && (data.created_at || data.published)) || new Date().toISOString()
         });
+        if (!isOwnMessage && !isVisibleRoom) {
+          const currentRoom = communityDmRooms.find((entry) => entry && entry.roomId === room.roomId) || null;
+          setCommunityRoomUnreadCount(room.roomId, (currentRoom ? currentRoom.unreadCount : 0) + 1);
+        } else {
+          setCommunityRoomUnreadCount(room.roomId, 0);
+        }
         renderCommunityLists();
+        if (!isOwnMessage && isVisibleRoom) {
+          syncVisibleCommunityDmReadState(room.roomId, {
+            silent: true,
+            message
+          });
+        }
       });
       pusherCommunityDmChannels.set(room.roomId, channel);
       return channel;
@@ -3960,6 +4120,7 @@ class PageChat extends HTMLElement {
 
     const disconnectRealtime = () => {
       clearCommunityPresenceHeartbeat();
+      communityDmReadRequests.clear();
       if (chatMode === 'community' || pusherChannelName === COMMUNITY_PUBLIC_CHANNEL) {
         leaveCommunityPresence({ keepalive: true, silent: true });
       }
@@ -4456,6 +4617,7 @@ class PageChat extends HTMLElement {
 	        setChatbotDailyLimitBlocked(false);
 	        clearChatbotAlignedTtsLimitStatus();
 	        loadTalkTimelinesForUser(userId);
+          communityDmReadRequests.clear();
           communityDmRooms = [];
           communityRoomsLoaded = false;
           activeCommunityDmRoomId = '';
@@ -4540,6 +4702,7 @@ class PageChat extends HTMLElement {
             if (result && result.ok && result.message) {
               if (result.room) {
                 upsertCommunityRoom(result.room);
+                setCommunityRoomUnreadCount(roomId, 0);
                 renderCommunityLists();
                 if (pusherClient && chatMode === 'community') {
                   syncCommunityDmSubscriptions();
@@ -4555,6 +4718,10 @@ class PageChat extends HTMLElement {
                   autoplay: false,
                   scope: 'dm',
                   roomId
+                });
+                syncVisibleCommunityDmReadState(roomId, {
+                  silent: true,
+                  message: normalizedMessage
                 });
               }
               return;

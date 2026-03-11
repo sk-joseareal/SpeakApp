@@ -160,6 +160,12 @@ const COMMUNITY_HISTORY_MAX_MESSAGES = (() => {
   const parsed = Math.floor(numeric);
   return parsed > 0 ? parsed : 240;
 })();
+const COMMUNITY_PRESENCE_ACTIVE_WINDOW_MS = (() => {
+  const numeric = Number(env('COMMUNITY_PRESENCE_ACTIVE_WINDOW_MS', '45000'));
+  if (!Number.isFinite(numeric)) return 45000;
+  const parsed = Math.floor(numeric);
+  return parsed > 0 ? parsed : 45000;
+})();
 
 const formatUsageDay = (value) => {
   if (!value) return '';
@@ -1942,6 +1948,7 @@ const snapshotsDir = path.join(dataRoot, 'snapshots');
 const metaDir = path.join(dataRoot, 'meta');
 const communityDir = path.join(dataRoot, 'community');
 const communityPublicHistoryFile = path.join(communityDir, `${COMMUNITY_PUBLIC_CHANNEL}.json`);
+const communityPresenceFile = path.join(communityDir, 'presence.json');
 
 const ensureDir = (dirPath) => {
   try {
@@ -2084,6 +2091,183 @@ const loadCommunityHistory = () => {
 
 const saveCommunityHistory = (history) => {
   writeJsonFile(communityPublicHistoryFile, history);
+};
+
+const newCommunityPresenceState = () => ({
+  schema: 1,
+  updated_at: null,
+  active_window_ms: COMMUNITY_PRESENCE_ACTIVE_WINDOW_MS,
+  rooms: {}
+});
+
+const loadCommunityPresenceState = () => {
+  const data = loadJsonFile(communityPresenceFile, null);
+  if (!data || typeof data !== 'object') return newCommunityPresenceState();
+  if (!data.rooms || typeof data.rooms !== 'object') data.rooms = {};
+  return data;
+};
+
+const saveCommunityPresenceState = (state) => {
+  writeJsonFile(communityPresenceFile, state);
+};
+
+const ensurePresenceRoom = (state, roomId) => {
+  const safeRoomId = pickFirstString(roomId) || COMMUNITY_PUBLIC_CHANNEL;
+  if (!state.rooms[safeRoomId] || typeof state.rooms[safeRoomId] !== 'object') {
+    state.rooms[safeRoomId] = {
+      room_id: safeRoomId,
+      updated_at: null,
+      users: {}
+    };
+  }
+  const room = state.rooms[safeRoomId];
+  if (!room.users || typeof room.users !== 'object') room.users = {};
+  return room;
+};
+
+const pruneCommunityPresenceState = (state, now = Date.now()) => {
+  if (!state || typeof state !== 'object') return newCommunityPresenceState();
+  if (!state.rooms || typeof state.rooms !== 'object') state.rooms = {};
+  const cutoff = now - COMMUNITY_PRESENCE_ACTIVE_WINDOW_MS;
+  Object.keys(state.rooms).forEach((roomId) => {
+    const room = state.rooms[roomId];
+    if (!room || typeof room !== 'object' || !room.users || typeof room.users !== 'object') {
+      delete state.rooms[roomId];
+      return;
+    }
+    Object.keys(room.users).forEach((userId) => {
+      const userEntry = room.users[userId];
+      if (!userEntry || typeof userEntry !== 'object') {
+        delete room.users[userId];
+        return;
+      }
+      const sessions = userEntry.sessions && typeof userEntry.sessions === 'object' ? userEntry.sessions : {};
+      Object.keys(sessions).forEach((sessionId) => {
+        const sessionEntry = sessions[sessionId];
+        const lastSeen = Date.parse(sessionEntry && sessionEntry.last_seen_at ? sessionEntry.last_seen_at : '');
+        if (!Number.isFinite(lastSeen) || lastSeen < cutoff) {
+          delete sessions[sessionId];
+        }
+      });
+      userEntry.sessions = sessions;
+      const remainingSessionIds = Object.keys(sessions);
+      if (!remainingSessionIds.length) {
+        delete room.users[userId];
+        return;
+      }
+      const latestSeen = remainingSessionIds.reduce((max, sessionId) => {
+        const sessionEntry = sessions[sessionId];
+        const lastSeen = Date.parse(sessionEntry && sessionEntry.last_seen_at ? sessionEntry.last_seen_at : '');
+        return Number.isFinite(lastSeen) && lastSeen > max ? lastSeen : max;
+      }, 0);
+      userEntry.last_seen_at = latestSeen > 0 ? new Date(latestSeen).toISOString() : userEntry.last_seen_at || null;
+    });
+    if (!Object.keys(room.users).length) {
+      delete state.rooms[roomId];
+      return;
+    }
+    room.updated_at = new Date(now).toISOString();
+  });
+  state.updated_at = new Date(now).toISOString();
+  return state;
+};
+
+const summarizeCommunityPresenceRoom = (room) => {
+  const safeRoom = room && typeof room === 'object' ? room : { users: {} };
+  const users = safeRoom.users && typeof safeRoom.users === 'object' ? safeRoom.users : {};
+  const userIds = Object.keys(users);
+  const sessionsCount = userIds.reduce((total, userId) => {
+    const sessions = users[userId] && users[userId].sessions && typeof users[userId].sessions === 'object'
+      ? users[userId].sessions
+      : {};
+    return total + Object.keys(sessions).length;
+  }, 0);
+  return {
+    room_id: pickFirstString(safeRoom.room_id) || COMMUNITY_PUBLIC_CHANNEL,
+    updated_at: safeRoom.updated_at || null,
+    user_count: userIds.length,
+    subscription_count: sessionsCount,
+    occupied: userIds.length > 0,
+    users: userIds.map((userId) => {
+      const entry = users[userId] || {};
+      const sessions = entry.sessions && typeof entry.sessions === 'object' ? entry.sessions : {};
+      return {
+        user_id: String(userId),
+        name: pickFirstString(entry.name),
+        avatar: pickFirstString(entry.avatar),
+        app: pickFirstString(entry.app) || 'speakapp',
+        premium: Boolean(entry.premium),
+        last_seen_at: entry.last_seen_at || null,
+        sessions_count: Object.keys(sessions).length
+      };
+    })
+  };
+};
+
+const getCommunityPresenceSummary = (roomId) => {
+  const state = pruneCommunityPresenceState(loadCommunityPresenceState());
+  saveCommunityPresenceState(state);
+  const room = ensurePresenceRoom(state, roomId);
+  return summarizeCommunityPresenceRoom(room);
+};
+
+const upsertCommunityPresence = ({ roomId, actor, sessionId, now = Date.now() }) => {
+  const safeSessionId = pickFirstString(sessionId);
+  const safeActor = actor && typeof actor === 'object' ? actor : {};
+  const safeUserId = pickFirstString(safeActor.id, safeActor.user_id);
+  if (!safeUserId || !safeSessionId) {
+    return { ok: false, error: 'user_id_and_session_id_required' };
+  }
+  const state = pruneCommunityPresenceState(loadCommunityPresenceState(), now);
+  const room = ensurePresenceRoom(state, roomId);
+  const nowIso = new Date(now).toISOString();
+  const existingUser = room.users[safeUserId] && typeof room.users[safeUserId] === 'object' ? room.users[safeUserId] : {};
+  const sessions = existingUser.sessions && typeof existingUser.sessions === 'object' ? existingUser.sessions : {};
+  sessions[safeSessionId] = {
+    session_id: safeSessionId,
+    last_seen_at: nowIso,
+    app: pickFirstString(safeActor.app, existingUser.app) || 'speakapp'
+  };
+  room.users[safeUserId] = {
+    user_id: safeUserId,
+    name: pickFirstString(safeActor.name, safeActor.displayName, existingUser.name),
+    avatar: pickFirstString(safeActor.avatar, existingUser.avatar),
+    app: pickFirstString(safeActor.app, existingUser.app) || 'speakapp',
+    premium: safeActor.premium === true || existingUser.premium === true,
+    last_seen_at: nowIso,
+    sessions
+  };
+  room.updated_at = nowIso;
+  state.updated_at = nowIso;
+  saveCommunityPresenceState(state);
+  return { ok: true, summary: summarizeCommunityPresenceRoom(room) };
+};
+
+const removeCommunityPresenceSession = ({ roomId, userId, sessionId, now = Date.now() }) => {
+  const safeUserId = pickFirstString(userId);
+  const safeSessionId = pickFirstString(sessionId);
+  if (!safeUserId || !safeSessionId) {
+    return { ok: false, error: 'user_id_and_session_id_required' };
+  }
+  const state = pruneCommunityPresenceState(loadCommunityPresenceState(), now);
+  const room = ensurePresenceRoom(state, roomId);
+  const userEntry = room.users[safeUserId];
+  if (userEntry && userEntry.sessions && typeof userEntry.sessions === 'object') {
+    delete userEntry.sessions[safeSessionId];
+    if (!Object.keys(userEntry.sessions).length) {
+      delete room.users[safeUserId];
+    } else {
+      const latestSeen = Object.values(userEntry.sessions).reduce((max, sessionEntry) => {
+        const lastSeen = Date.parse(sessionEntry && sessionEntry.last_seen_at ? sessionEntry.last_seen_at : '');
+        return Number.isFinite(lastSeen) && lastSeen > max ? lastSeen : max;
+      }, 0);
+      userEntry.last_seen_at = latestSeen > 0 ? new Date(latestSeen).toISOString() : null;
+    }
+  }
+  room.updated_at = new Date(now).toISOString();
+  state.updated_at = room.updated_at;
+  saveCommunityPresenceState(state);
+  return { ok: true, summary: summarizeCommunityPresenceRoom(room) };
 };
 
 const normalizeCommunityText = (value) =>
@@ -2756,60 +2940,74 @@ app.get('/realtime/community/public/messages', (req, res) => {
 });
 
 app.get('/realtime/community/public/presence', (req, res) => {
-  const parseApiBody = (value) => {
-    let body = value;
-    if (typeof body === 'string') {
-      try {
-        body = JSON.parse(body);
-      } catch (parseErr) {
-        body = { raw: body };
-      }
-    }
-    return body && typeof body === 'object' ? body : {};
-  };
+  if (!authorizeState(req, res)) return;
+  const summary = getCommunityPresenceSummary(COMMUNITY_PUBLIC_CHANNEL);
+  res.json({
+    ok: true,
+    channel: COMMUNITY_PUBLIC_PRESENCE_CHANNEL,
+    room_id: summary.room_id,
+    updated_at: summary.updated_at,
+    active_window_ms: COMMUNITY_PRESENCE_ACTIVE_WINDOW_MS,
+    user_count: summary.user_count,
+    subscription_count: summary.subscription_count,
+    occupied: summary.occupied,
+    users: Array.isArray(summary.users) ? summary.users : []
+  });
+});
 
-  fetchChannel(COMMUNITY_PUBLIC_PRESENCE_CHANNEL, { info: 'user_count,subscription_count' }, (err, result) => {
-    if (err) {
-      console.error('[realtime] community presence error', err);
-      const status = err.message === 'timeout' ? 504 : 500;
-      res.status(status).json({ ok: false, error: err.message || 'community_presence_failed' });
+app.post('/realtime/community/public/presence', (req, res) => {
+  if (!authorizeState(req, res)) return;
+  const body = req.body && typeof req.body === 'object' ? req.body : {};
+  const action = pickFirstString(body.action).toLowerCase() || 'heartbeat';
+  const roomId = pickFirstString(body.room_id, body.roomId) || COMMUNITY_PUBLIC_CHANNEL;
+  const actor = normalizeCommunityActor(body, { app: 'speakapp' });
+  const sessionId = pickFirstString(body.session_id, body.sessionId);
+
+  if (action === 'leave') {
+    const result = removeCommunityPresenceSession({
+      roomId,
+      userId: actor.id,
+      sessionId
+    });
+    if (!result.ok) {
+      res.status(400).json({ ok: false, error: result.error || 'presence_leave_failed' });
       return;
     }
-
-    const statusCode = result && result.statusCode ? result.statusCode : 200;
-    const body = parseApiBody(result && result.body !== undefined ? result.body : result);
-    const reportedUserCount = toNonNegativeNumber(body.user_count, 0);
-    const subscriptionCount = toNonNegativeNumber(body.subscription_count, 0);
-    const occupied = Boolean(body.occupied || reportedUserCount > 0 || subscriptionCount > 0);
-
-    fetchChannelUsers(COMMUNITY_PUBLIC_PRESENCE_CHANNEL, {}, (usersErr, usersResult) => {
-      let usersBody = {};
-      let users = [];
-      let usersStatusCode = 200;
-      if (usersErr) {
-        console.warn('[realtime] community presence users error', usersErr.message || usersErr);
-      } else {
-        usersStatusCode = usersResult && usersResult.statusCode ? usersResult.statusCode : 200;
-        usersBody = parseApiBody(usersResult && usersResult.body !== undefined ? usersResult.body : usersResult);
-        if (Array.isArray(usersBody.users)) {
-          users = usersBody.users;
-        }
-      }
-      const usersCount = users.length;
-      const resolvedUserCount = Math.max(reportedUserCount, usersCount);
-      const resolvedOccupied = Boolean(occupied || resolvedUserCount > 0);
-
-      res.status(statusCode).json({
-        ok: statusCode >= 200 && statusCode < 300,
-        channel: COMMUNITY_PUBLIC_PRESENCE_CHANNEL,
-        user_count: resolvedUserCount,
-        reported_user_count: reportedUserCount,
-        subscription_count: subscriptionCount,
-        occupied: resolvedOccupied,
-        users_count: usersCount,
-        users_status_code: usersStatusCode
-      });
+    res.json({
+      ok: true,
+      action: 'leave',
+      channel: COMMUNITY_PUBLIC_PRESENCE_CHANNEL,
+      room_id: result.summary.room_id,
+      updated_at: result.summary.updated_at,
+      active_window_ms: COMMUNITY_PRESENCE_ACTIVE_WINDOW_MS,
+      user_count: result.summary.user_count,
+      subscription_count: result.summary.subscription_count,
+      occupied: result.summary.occupied,
+      users: result.summary.users
     });
+    return;
+  }
+
+  const result = upsertCommunityPresence({
+    roomId,
+    actor,
+    sessionId
+  });
+  if (!result.ok) {
+    res.status(400).json({ ok: false, error: result.error || 'presence_heartbeat_failed' });
+    return;
+  }
+  res.json({
+    ok: true,
+    action: 'heartbeat',
+    channel: COMMUNITY_PUBLIC_PRESENCE_CHANNEL,
+    room_id: result.summary.room_id,
+    updated_at: result.summary.updated_at,
+    active_window_ms: COMMUNITY_PRESENCE_ACTIVE_WINDOW_MS,
+    user_count: result.summary.user_count,
+    subscription_count: result.summary.subscription_count,
+    occupied: result.summary.occupied,
+    users: result.summary.users
   });
 });
 

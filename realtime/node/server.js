@@ -218,11 +218,18 @@ const normalizePublicAvatarUrl = (value) => {
   if (!isPublicAvatarUrl(url)) return '';
   try {
     const parsed = new URL(url);
-    const match = parsed.pathname.match(/^\/(sk\.assets|sk\.audios\.dev)\/avatars\/([^/]+)\/([^/]+)$/i);
+    const match = parsed.pathname.match(
+      /^\/(sk\.assets|sk\.audios\.dev)\/avatars\/([^/]+)\/(?:(original)\/)?([^/]+)$/i
+    );
     if (!match) return parsed.toString();
-    const [, bucket, userId, fileName] = match;
+    const [, bucket, userId, originalSegment, fileName] = match;
+    if (/^avatarv4\./i.test(fileName)) {
+      parsed.pathname = `/sk.assets/avatars/${userId}/${fileName}`;
+      return parsed.toString();
+    }
     const shouldUseOriginal =
       bucket === 'sk.audios.dev' ||
+      originalSegment === 'original' ||
       /^image\.(gif|png|jpe?g|webp)$/i.test(fileName);
     if (!shouldUseOriginal) return parsed.toString();
     parsed.pathname = `/sk.audios.dev/avatars/${userId}/original/${fileName}`;

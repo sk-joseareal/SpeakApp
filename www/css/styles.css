@@ -2962,6 +2962,9 @@ page-chat ion-content::part(scroll) {
 }
 
 .chat-community-dm-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   font-size: 0.95rem;
   font-weight: 800;
   color: var(--app-text);

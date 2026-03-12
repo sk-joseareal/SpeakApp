@@ -1367,22 +1367,17 @@ class PageChat extends HTMLElement {
 
     const getCommunityPeerStatusLabel = (peer, fallbackText = '') => {
       const safePeer = peer && typeof peer === 'object' ? peer : {};
-      const appLabel = formatCommunityAppName(safePeer.app);
       if (isCommunityUserOnline(safePeer.id)) {
-        return appLabel ? `${uiCopy.communityOnlineNow} · ${appLabel}` : uiCopy.communityOnlineNow;
+        return uiCopy.communityOnlineNow;
       }
-      return appLabel || fallbackText;
+      return fallbackText || '';
     };
 
     const getCommunityRoomPreview = (room) => {
       const safeRoom = room && typeof room === 'object' ? room : {};
       const preview = pickFirstText(safeRoom.lastMessagePreview);
-      const appLabel = formatCommunityAppName(
-        safeRoom.lastMessageActorApp || (safeRoom.peer && safeRoom.peer.app)
-      );
-      if (preview && appLabel) return `${appLabel} - ${preview}`;
       if (preview) return preview;
-      return appLabel || uiCopy.communityStartChat;
+      return uiCopy.communityStartChat;
     };
 
     const buildCommunityStatusDot = ({ online = false } = {}) => {
@@ -1398,7 +1393,6 @@ class PageChat extends HTMLElement {
       const rootEl = document.createElement('span');
       rootEl.className = 'chat-community-avatar';
       if (options.large) rootEl.classList.add('is-large');
-      if (options.online) rootEl.classList.add('is-online');
       const avatarUrl = pickFirstText(safeEntry.avatar);
       const name = pickFirstText(safeEntry.name, safeEntry.id, uiCopy.communityNoPeerName);
       if (avatarUrl) {
@@ -1820,6 +1814,7 @@ class PageChat extends HTMLElement {
       if (!safeRoomId) return false;
       activeCommunityDmRoomId = safeRoomId;
       updateCommunityViewUi();
+      updateTextRowVisibility();
       await loadCommunityDmHistory(safeRoomId, {
         force: options.forceHistory === true
       });
@@ -1833,6 +1828,7 @@ class PageChat extends HTMLElement {
     const closeCommunityDmRoom = () => {
       activeCommunityDmRoomId = '';
       updateCommunityViewUi();
+      updateTextRowVisibility();
       renderThread('community');
       setHint(getDefaultHintForMode('community'));
       applyControlsEnabled();
@@ -1924,14 +1920,17 @@ class PageChat extends HTMLElement {
       const room = getCommunityActiveRoom();
       const peer = room && room.peer ? room.peer : null;
       communityDmAvatarEl.innerHTML = '';
-      communityDmAvatarEl.appendChild(
-        buildCommunityAvatar(peer, {
-          large: true,
+      communityDmAvatarEl.appendChild(buildCommunityAvatar(peer, { large: true }));
+      communityDmNameEl.textContent = '';
+      communityDmNameEl.appendChild(
+        buildCommunityStatusDot({
           online: Boolean(peer && isCommunityUserOnline(peer.id))
         })
       );
-      communityDmNameEl.textContent = room ? getCommunityPeerLabel(room) : uiCopy.communityNoPeerName;
-      communityDmStatusEl.textContent = getCommunityPeerStatusLabel(peer, formatCommunityAppName(peer && peer.app));
+      const nameTextEl = document.createElement('span');
+      nameTextEl.textContent = room ? getCommunityPeerLabel(room) : uiCopy.communityNoPeerName;
+      communityDmNameEl.appendChild(nameTextEl);
+      communityDmStatusEl.textContent = getCommunityPeerStatusLabel(peer);
     };
 
     const renderCommunityLists = () => {
@@ -2035,8 +2034,7 @@ class PageChat extends HTMLElement {
           titleEl.textContent = label;
           const subtitleEl = document.createElement('span');
           subtitleEl.className = 'chat-community-item-subtitle';
-          subtitleEl.textContent =
-            formatCommunityAppName(peer && peer.app) || uiCopy.communityStartChat;
+          subtitleEl.textContent = uiCopy.communityStartChat;
           itemEl.appendChild(
             buildCommunityAvatar(peer, {
               online: false
@@ -4015,12 +4013,10 @@ class PageChat extends HTMLElement {
       const textEl = document.createElement('p');
       textEl.className = 'chat-text';
       textEl.textContent = text;
-      if (mode === 'community' && role !== 'user') {
+      if (mode === 'community' && role !== 'user' && actorName) {
         const metaEl = document.createElement('div');
         metaEl.className = 'chat-msg-meta';
-        metaEl.textContent = actorApp
-          ? `${actorName || 'User'} · ${actorApp === 'english-course' ? 'English Course' : 'SpeakApp'}`
-          : actorName || 'User';
+        metaEl.textContent = actorName || 'User';
         bubbleEl.appendChild(metaEl);
       }
       bubbleEl.appendChild(textEl);
@@ -4138,7 +4134,7 @@ class PageChat extends HTMLElement {
             audioKind: '',
             speakText: '',
             failed: false,
-            actorName: 'SpeakApp',
+            actorName: '',
             actorApp: ''
           },
           mode
@@ -4221,7 +4217,7 @@ class PageChat extends HTMLElement {
           audioUrl: '',
           audioKind: '',
           speakText: introCopy,
-          actorName: targetMode === 'community' ? 'SpeakApp' : ''
+          actorName: ''
         },
         { mode: targetMode, scope: targetScope, roomId: targetRoomId }
       );
@@ -5617,6 +5613,7 @@ class PageChat extends HTMLElement {
         }
       }
       updateCommunityViewUi();
+      updateTextRowVisibility();
       if (options.rerender !== false && chatMode === 'community') {
         renderThread('community');
       }

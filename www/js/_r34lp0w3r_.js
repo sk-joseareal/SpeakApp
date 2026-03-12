@@ -493,12 +493,9 @@ function procesarLoginDesdeCallback(url) {
       return;
     }
 
+    ensureUserRemoteAvatar(user);
     if (!user.image) {
-      if (user.avatar_file_name) {
-        user.image = `https://s3.amazonaws.com/sk.audios.dev/avatars/${user.id}/original/${user.avatar_file_name}`;
-      } else {
-        user.image = 'https://s3.amazonaws.com/sk.CursoIngles/no-avatar.gif';
-      }
+      user.image = 'https://s3.amazonaws.com/sk.CursoIngles/no-avatar.gif';
     }
 
     applyAvatarCacheBust(user);
@@ -2378,16 +2375,26 @@ const applyAvatarCacheBust = (user) => {
   }
 };
 
+const getCanonicalAvatarUrlFromFile = (userId, avatarFileName) => {
+  const safeUserId = userId !== undefined && userId !== null ? String(userId).trim() : '';
+  const safeAvatarFileName =
+    typeof avatarFileName === 'string' ? avatarFileName.trim() : '';
+  if (!safeUserId || !safeAvatarFileName) return '';
+  if (/^avatarv4\./i.test(safeAvatarFileName)) {
+    return `https://s3.amazonaws.com/sk.assets/avatars/${safeUserId}/${safeAvatarFileName}`;
+  }
+  return `https://s3.amazonaws.com/sk.audios.dev/avatars/${safeUserId}/original/${safeAvatarFileName}`;
+};
+
 const ensureUserRemoteAvatar = (user) => {
   if (!user || typeof user !== 'object') return user;
-  const currentImage = typeof user.image === 'string' ? user.image.trim() : '';
-  if (currentImage) return user;
   const avatarFileName =
     typeof user.avatar_file_name === 'string' ? user.avatar_file_name.trim() : '';
   const userId =
     user.id !== undefined && user.id !== null ? String(user.id).trim() : '';
-  if (!avatarFileName || !userId) return user;
-  user.image = `https://s3.amazonaws.com/sk.audios.dev/avatars/${userId}/original/${avatarFileName}`;
+  const resolved = getCanonicalAvatarUrlFromFile(userId, avatarFileName);
+  if (!resolved) return user;
+  user.image = resolved;
   return user;
 };
 
@@ -2397,8 +2404,7 @@ const getCanonicalOriginalAvatarUrl = (user) => {
     typeof user.avatar_file_name === 'string' ? user.avatar_file_name.trim() : '';
   const userId =
     user.id !== undefined && user.id !== null ? String(user.id).trim() : '';
-  if (!avatarFileName || !userId) return '';
-  return `https://s3.amazonaws.com/sk.audios.dev/avatars/${userId}/original/${avatarFileName}`;
+  return getCanonicalAvatarUrlFromFile(userId, avatarFileName);
 };
 
 window.applyAvatarCacheBust = applyAvatarCacheBust;

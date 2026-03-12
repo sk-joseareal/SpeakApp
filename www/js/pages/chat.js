@@ -311,7 +311,7 @@ class PageChat extends HTMLElement {
     const REALTIME_EMIT_TIMEOUT_MS = 8000;
     const CHATBOT_REPLY_TIMEOUT_MS = 12000;
     const COMMUNITY_PUBLIC_CHANNEL = 'site-wide-chat-channel';
-    const COMMUNITY_PRESENCE_HEARTBEAT_MS = 20000;
+    const COMMUNITY_PRESENCE_HEARTBEAT_MS = 10000;
     const RECORDING_TIMESLICE = 500;
     const VOSK_SAMPLE_RATE_DEFAULT = 16000;
 	    const TALK_STORAGE_PREFIX = 'appv5:talk-timelines:';
@@ -1813,6 +1813,7 @@ class PageChat extends HTMLElement {
       const safeRoomId = pickFirstText(roomId);
       if (!safeRoomId) return false;
       activeCommunityDmRoomId = safeRoomId;
+      refreshCommunityPresenceNow({ silent: true });
       updateCommunityViewUi();
       updateTextRowVisibility();
       await loadCommunityDmHistory(safeRoomId, {
@@ -5257,6 +5258,37 @@ class PageChat extends HTMLElement {
       }
     };
 
+    const refreshCommunityPresenceNow = ({ silent = true } = {}) => {
+      if (chatMode !== 'community' || !window.user || window.user.id === undefined || window.user.id === null) {
+        return;
+      }
+      scheduleCommunityPresenceHeartbeat({ immediate: true });
+      if (!silent) {
+        updateCommunityPresenceUi();
+      }
+    };
+
+    const handleDocumentVisibilityChange = () => {
+      if (typeof document === 'undefined' || document.hidden) return;
+      refreshCommunityPresenceNow({ silent: true });
+    };
+
+    const previousTriggerResume = typeof window._trigger_resume === 'function' ? window._trigger_resume : null;
+    const previousTriggerPause = typeof window._trigger_pause === 'function' ? window._trigger_pause : null;
+
+    window._trigger_resume = () => {
+      if (typeof previousTriggerResume === 'function') {
+        previousTriggerResume();
+      }
+      refreshCommunityPresenceNow({ silent: true });
+    };
+
+    window._trigger_pause = () => {
+      if (typeof previousTriggerPause === 'function') {
+        previousTriggerPause();
+      }
+    };
+
     sendBtn?.addEventListener('click', () => {
       const typedText = textInput ? textInput.value.trim() : '';
       const hasDraft = Boolean(draftTranscript);
@@ -5337,6 +5369,7 @@ class PageChat extends HTMLElement {
     }
     window.addEventListener('resize', handleViewportChange);
     window.addEventListener('pagehide', handleWindowPageHide);
+    document.addEventListener('visibilitychange', handleDocumentVisibilityChange);
     threadEl?.addEventListener('scroll', updateChatAutoScroll, { passive: true });
 
     const initialUser = window.user;
@@ -5612,6 +5645,9 @@ class PageChat extends HTMLElement {
           loadCommunityDmHistory(activeCommunityDmRoomId, { force: false });
         }
       }
+      if (chatMode === 'community') {
+        refreshCommunityPresenceNow({ silent: true });
+      }
       updateCommunityViewUi();
       updateTextRowVisibility();
       if (options.rerender !== false && chatMode === 'community') {
@@ -5759,6 +5795,9 @@ class PageChat extends HTMLElement {
         syncCommunityUnreadIndicators();
       }
       if (tab !== 'chat') return;
+      if (chatMode === 'community') {
+        refreshCommunityPresenceNow({ silent: true });
+      }
       scrollChatTimelineToLatest('auto');
     };
     window.addEventListener('app:tab-change', this._tabChangeHandler);
@@ -5772,6 +5811,9 @@ class PageChat extends HTMLElement {
         syncCommunityUnreadIndicators();
       }
       if (tab !== 'chat') return;
+      if (chatMode === 'community') {
+        refreshCommunityPresenceNow({ silent: true });
+      }
       scrollChatTimelineToLatest('auto');
     };
     window.addEventListener('app:tab-user-click', this._tabUserClickHandler);
@@ -5811,7 +5853,10 @@ class PageChat extends HTMLElement {
       }
       window.removeEventListener('resize', handleViewportChange);
       window.removeEventListener('pagehide', handleWindowPageHide);
+      document.removeEventListener('visibilitychange', handleDocumentVisibilityChange);
       threadEl?.removeEventListener('scroll', updateChatAutoScroll);
+      window._trigger_resume = previousTriggerResume || null;
+      window._trigger_pause = previousTriggerPause || null;
     };
   }
 

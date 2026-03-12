@@ -162,10 +162,10 @@ const COMMUNITY_HISTORY_MAX_MESSAGES = (() => {
   return parsed > 0 ? parsed : 240;
 })();
 const COMMUNITY_PRESENCE_ACTIVE_WINDOW_MS = (() => {
-  const numeric = Number(env('COMMUNITY_PRESENCE_ACTIVE_WINDOW_MS', '45000'));
-  if (!Number.isFinite(numeric)) return 45000;
+  const numeric = Number(env('COMMUNITY_PRESENCE_ACTIVE_WINDOW_MS', '25000'));
+  if (!Number.isFinite(numeric)) return 25000;
   const parsed = Math.floor(numeric);
-  return parsed > 0 ? parsed : 45000;
+  return parsed > 0 ? parsed : 25000;
 })();
 const COMMUNITY_PRESENCE_LEGACY_WINDOW_MS = (() => {
   const numeric = Number(env('COMMUNITY_PRESENCE_LEGACY_WINDOW_MS', '900000'));

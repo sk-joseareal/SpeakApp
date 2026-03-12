@@ -6,6 +6,7 @@ class TabsPage extends HTMLElement {
     this.classList.add('ion-page');
     const TAB_STORAGE_KEY = 'appv5:active-tab';
     const REFERENCE_TAB_ENABLED_KEY = 'appv5:reference-tab-enabled';
+    const CHAT_COMMUNITY_ENABLED_KEY = 'appv5:chat-community-enabled';
     const COMMUNITY_CHAT_UNREAD_STORAGE_PREFIX = 'appv5:chat-community-unread:';
     const normalizeTab = (tab) => String(tab || '').trim().toLowerCase();
     const normalizeReferenceTabEnabled = (value) => {
@@ -25,6 +26,27 @@ class TabsPage extends HTMLElement {
       }
       try {
         return normalizeReferenceTabEnabled(localStorage.getItem(REFERENCE_TAB_ENABLED_KEY));
+      } catch (err) {
+        return false;
+      }
+    };
+    const normalizeChatCommunityEnabled = (value) => {
+      if (typeof value === 'boolean') return value;
+      const normalized = String(value || '')
+        .trim()
+        .toLowerCase();
+      if (!normalized) return false;
+      return ['1', 'true', 'on', 'yes'].includes(normalized);
+    };
+    const isChatCommunityEnabled = () => {
+      if (
+        window.r34lp0w3r &&
+        Object.prototype.hasOwnProperty.call(window.r34lp0w3r, 'chatCommunityEnabled')
+      ) {
+        return normalizeChatCommunityEnabled(window.r34lp0w3r.chatCommunityEnabled);
+      }
+      try {
+        return normalizeChatCommunityEnabled(localStorage.getItem(CHAT_COMMUNITY_ENABLED_KEY));
       } catch (err) {
         return false;
       }
@@ -107,6 +129,7 @@ class TabsPage extends HTMLElement {
     };
 
     const readChatUnreadState = () => {
+      if (!isChatCommunityEnabled()) return { count: 0, showTabDot: false };
       const currentUserId = getCurrentUserId();
       if (!currentUserId) return { count: 0, showTabDot: false };
       try {
@@ -344,6 +367,10 @@ class TabsPage extends HTMLElement {
       applyChatUnreadBadge(detail);
     };
     window.addEventListener('app:chat-unread-change', this._chatUnreadChangeHandler);
+    this._chatCommunityToggleHandler = () => {
+      applyChatUnreadBadge();
+    };
+    window.addEventListener('app:chat-community-enabled-change', this._chatCommunityToggleHandler);
 
     applyReferenceTabVisibility();
     applyChatUnreadBadge();
@@ -393,6 +420,10 @@ class TabsPage extends HTMLElement {
 
     if (this._chatUnreadChangeHandler) {
       window.removeEventListener('app:chat-unread-change', this._chatUnreadChangeHandler);
+    }
+
+    if (this._chatCommunityToggleHandler) {
+      window.removeEventListener('app:chat-community-enabled-change', this._chatCommunityToggleHandler);
     }
   }
 }

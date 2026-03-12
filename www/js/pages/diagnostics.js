@@ -37,6 +37,7 @@ class PageDiagnostics extends HTMLElement {
     const SPEAK_SESSION_PERCENTAGES_VISIBLE_KEY = 'appv5:speak-session-percentages-visible';
     const REFERENCE_TAB_ENABLED_KEY = 'appv5:reference-tab-enabled';
     const REFERENCE_TESTS_ENABLED_KEY = 'appv5:reference-tests-enabled';
+    const CHAT_COMMUNITY_ENABLED_KEY = 'appv5:chat-community-enabled';
     const normalizeFreeRideAudioMode = (value) => {
       const normalized = String(value || '')
         .trim()
@@ -157,6 +158,26 @@ class PageDiagnostics extends HTMLElement {
         return false;
       }
     };
+    const normalizeChatCommunityEnabled = (value) => {
+      if (typeof value === 'boolean') return value;
+      const normalized = String(value || '')
+        .trim()
+        .toLowerCase();
+      if (!normalized) return false;
+      return ['1', 'true', 'on', 'yes'].includes(normalized);
+    };
+    const getStoredChatCommunityEnabled = () => {
+      const globalValue =
+        window.r34lp0w3r && Object.prototype.hasOwnProperty.call(window.r34lp0w3r, 'chatCommunityEnabled')
+          ? window.r34lp0w3r.chatCommunityEnabled
+          : undefined;
+      if (globalValue !== undefined) return normalizeChatCommunityEnabled(globalValue);
+      try {
+        return normalizeChatCommunityEnabled(localStorage.getItem(CHAT_COMMUNITY_ENABLED_KEY));
+      } catch (err) {
+        return false;
+      }
+    };
 
     this.innerHTML = `
       <ion-header translucent="true">
@@ -201,6 +222,13 @@ class PageDiagnostics extends HTMLElement {
                 <div class="diag-debug-sub" id="diag-reference-tests-sub"></div>
               </div>
               <ion-toggle id="diag-reference-tests-toggle" ${getStoredReferenceTestsEnabled() ? 'checked' : ''}></ion-toggle>
+            </div>
+            <div class="diag-debug-toggle" style="margin-top: 10px;">
+              <div class="diag-debug-text">
+                <div class="diag-debug-title">Chat Community</div>
+                <div class="diag-debug-sub" id="diag-chat-community-sub"></div>
+              </div>
+              <ion-toggle id="diag-chat-community-toggle" ${getStoredChatCommunityEnabled() ? 'checked' : ''}></ion-toggle>
             </div>
             
             <div id="diag-user" style="display:none; margin-bottom:12px;">
@@ -713,6 +741,8 @@ class PageDiagnostics extends HTMLElement {
     const referenceTabSubEl = this.querySelector('#diag-reference-tab-sub');
     const referenceTestsToggleEl = this.querySelector('#diag-reference-tests-toggle');
     const referenceTestsSubEl = this.querySelector('#diag-reference-tests-sub');
+    const chatCommunityToggleEl = this.querySelector('#diag-chat-community-toggle');
+    const chatCommunitySubEl = this.querySelector('#diag-chat-community-sub');
     const pronAdvancedUsageSectionEl = this.querySelector('#diag-pron-advanced-usage-section');
     const notifyListEl = this.querySelector('#diag-notify-list');
     const notifyEmptyEl = this.querySelector('#diag-notify-empty');
@@ -904,6 +934,36 @@ class PageDiagnostics extends HTMLElement {
         referenceTestsSubEl.textContent = normalized
           ? 'Activado: muestra tests de lección/unidad dentro del tab Referencia.'
           : 'Desactivado: oculta los tests del tab Referencia.';
+      }
+      return normalized;
+    };
+
+    const setChatCommunityEnabled = (enabled) => {
+      const normalized = normalizeChatCommunityEnabled(enabled);
+      window.r34lp0w3r = window.r34lp0w3r || {};
+      window.r34lp0w3r.chatCommunityEnabled = normalized;
+      try {
+        localStorage.setItem(CHAT_COMMUNITY_ENABLED_KEY, normalized ? '1' : '0');
+      } catch (err) {
+        // no-op
+      }
+      window.dispatchEvent(
+        new CustomEvent('app:chat-community-enabled-change', {
+          detail: { enabled: normalized }
+        })
+      );
+      return normalized;
+    };
+
+    const updateChatCommunityUi = (enabled) => {
+      const normalized = normalizeChatCommunityEnabled(enabled);
+      if (chatCommunityToggleEl) {
+        chatCommunityToggleEl.checked = normalized;
+      }
+      if (chatCommunitySubEl) {
+        chatCommunitySubEl.textContent = normalized
+          ? 'Activado: muestra el modo Community dentro del tab Chat.'
+          : 'Desactivado: oculta el modo Community y fuerza Catbot si estaba activo.';
       }
       return normalized;
     };
@@ -2096,6 +2156,8 @@ class PageDiagnostics extends HTMLElement {
     updateReferenceTabUi(setReferenceTabEnabled(initialReferenceTabEnabled));
     const initialReferenceTestsEnabled = getStoredReferenceTestsEnabled();
     updateReferenceTestsUi(setReferenceTestsEnabled(initialReferenceTestsEnabled));
+    const initialChatCommunityEnabled = getStoredChatCommunityEnabled();
+    updateChatCommunityUi(setChatCommunityEnabled(initialChatCommunityEnabled));
 
     this.querySelector('#diag-back')?.addEventListener('click', () => {
       ensureInitialHash();
@@ -2284,6 +2346,13 @@ class PageDiagnostics extends HTMLElement {
           ? Boolean(event.detail.checked)
           : Boolean(referenceTestsToggleEl.checked);
       updateReferenceTestsUi(setReferenceTestsEnabled(nextEnabled));
+    });
+    chatCommunityToggleEl?.addEventListener('ionChange', (event) => {
+      const nextEnabled =
+        event && event.detail && event.detail.checked !== undefined
+          ? Boolean(event.detail.checked)
+          : Boolean(chatCommunityToggleEl.checked);
+      updateChatCommunityUi(setChatCommunityEnabled(nextEnabled));
     });
 
     // Login

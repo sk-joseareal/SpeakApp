@@ -213,11 +213,30 @@ const isPublicAvatarUrl = (value) => {
   return !/(localhost|127\.0\.0\.1|_capacitor_file_)/i.test(url);
 };
 
+const normalizePublicAvatarUrl = (value) => {
+  const url = pickFirstString(value);
+  if (!isPublicAvatarUrl(url)) return '';
+  try {
+    const parsed = new URL(url);
+    const match = parsed.pathname.match(/^\/(sk\.assets|sk\.audios\.dev)\/avatars\/([^/]+)\/([^/]+)$/i);
+    if (!match) return parsed.toString();
+    const [, bucket, userId, fileName] = match;
+    const shouldUseOriginal =
+      bucket === 'sk.audios.dev' ||
+      /^image\.(gif|png|jpe?g|webp)$/i.test(fileName);
+    if (!shouldUseOriginal) return parsed.toString();
+    parsed.pathname = `/sk.audios.dev/avatars/${userId}/original/${fileName}`;
+    return parsed.toString();
+  } catch (err) {
+    return url;
+  }
+};
+
 const pickPublicAvatar = (...values) => {
   for (let i = 0; i < values.length; i += 1) {
     const url = pickFirstString(values[i]);
     if (!url) continue;
-    if (isPublicAvatarUrl(url)) return url;
+    if (isPublicAvatarUrl(url)) return normalizePublicAvatarUrl(url);
   }
   return '';
 };

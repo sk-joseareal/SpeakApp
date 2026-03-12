@@ -330,6 +330,104 @@ function arreglaStatusBar() {
 
 // Guardar el proveedor activo
 let currentProvider = null;
+let lastProcessedLoginCallbackUrl = '';
+const LOGIN_SOCIAL_PROVIDER_STORAGE_KEY = 'appv5:login-social-provider';
+const LOGIN_SOCIAL_CALLBACK_PREFIX = 'app://callback';
+
+const readStoredLoginProvider = () => {
+  try {
+    return localStorage.getItem(LOGIN_SOCIAL_PROVIDER_STORAGE_KEY) || '';
+  } catch (err) {
+    console.log('>#C02#> loginSocial: error leyendo proveedor almacenado', err);
+    return '';
+  }
+};
+
+const storeCurrentLoginProvider = (provider) => {
+  currentProvider = provider || null;
+  try {
+    if (provider) {
+      localStorage.setItem(LOGIN_SOCIAL_PROVIDER_STORAGE_KEY, provider);
+    } else {
+      localStorage.removeItem(LOGIN_SOCIAL_PROVIDER_STORAGE_KEY);
+    }
+  } catch (err) {
+    console.log('>#C02#> loginSocial: error guardando proveedor almacenado', err);
+  }
+};
+
+const restoreCurrentLoginProvider = () => {
+  if (currentProvider) return currentProvider;
+  const storedProvider = readStoredLoginProvider();
+  if (storedProvider) {
+    currentProvider = storedProvider;
+  }
+  return currentProvider;
+};
+
+const clearCurrentLoginProvider = () => {
+  storeCurrentLoginProvider('');
+};
+
+const isExpectedLoginCallbackUrl = (infoUrl) => {
+  try {
+    const parsed = new URL(infoUrl);
+    return parsed.href.startsWith(LOGIN_SOCIAL_CALLBACK_PREFIX);
+  } catch (err) {
+    console.log('>#C02#> loginSocial: callback URL inválida', infoUrl, err);
+    return false;
+  }
+};
+
+const closeSocialLoginBrowser = async () => {
+  try {
+    if (window.Capacitor?.Plugins?.Browser?.close) {
+      await window.Capacitor.Plugins.Browser.close();
+    }
+  } catch (err) {
+    console.log('>#C02#> loginSocial: no se pudo cerrar Browser', err);
+  }
+};
+
+const handleSocialLoginCallbackUrl = async (infoUrl, options = {}) => {
+  const { closeBrowser = false, source = '' } = options || {};
+  if (!isExpectedLoginCallbackUrl(infoUrl)) {
+    console.log('>#C02#> loginSocial: Ignorando URL no esperada:', infoUrl);
+    return false;
+  }
+
+  let callbackUrl = '';
+  try {
+    callbackUrl = new URL(infoUrl).toString();
+  } catch (err) {
+    console.log('>#C02#> loginSocial: no se pudo normalizar callback URL', infoUrl, err);
+    return false;
+  }
+
+  if (lastProcessedLoginCallbackUrl === callbackUrl) {
+    console.log('>#C02#> loginSocial: callback duplicado ignorado', source || 'unknown');
+    if (closeBrowser) {
+      await closeSocialLoginBrowser();
+    }
+    return true;
+  }
+
+  if (closeBrowser) {
+    await closeSocialLoginBrowser();
+  }
+
+  lastProcessedLoginCallbackUrl = callbackUrl;
+  restoreCurrentLoginProvider();
+  console.log('>#C02#> loginSocial: procesando callback', source || 'unknown', callbackUrl);
+
+  if (window.loginCallbackFromBrowser) {
+    window.loginCallbackFromBrowser(callbackUrl);
+    return true;
+  }
+
+  procesarLoginDesdeCallback(callbackUrl);
+  return true;
+};
 
 const dispatchLoginEvent = (type, detail) => {
   try {
@@ -357,6 +455,7 @@ const notifyLoginSuccess = (user) => {
 
 function procesarLoginDesdeCallback(url) {
   try {
+    restoreCurrentLoginProvider();
     Rlog()
     Rlog(">#C02#> loginSocial: procesarLoginDesdeCallback, >>> URL: " + url);
     const parsed = new URL(url);
@@ -365,6 +464,7 @@ function procesarLoginDesdeCallback(url) {
       const error = params.get('error');
       Rlog('>#C02#> loginSocial: Error recibido en callback: ' + error);
       notifyLoginError(error, error === 'datos_incompletos' ? 'Información incompleta.' : error);
+      clearCurrentLoginProvider();
       return;
     }
     Rlog('>#C02#> loginSocial: procesarLoginDesdeCallback: >>> LOGIN OK.');
@@ -374,6 +474,7 @@ function procesarLoginDesdeCallback(url) {
     const loginDataRaw = params.get('loginData');
     if (!loginDataRaw) {
       notifyLoginError('missing_login_data', 'Login sin datos.');
+      clearCurrentLoginProvider();
       return;
     }
     let loginData = null;
@@ -381,12 +482,14 @@ function procesarLoginDesdeCallback(url) {
       loginData = JSON.parse(loginDataRaw);
     } catch (err) {
       notifyLoginError('invalid_login_data', 'Login inválido.');
+      clearCurrentLoginProvider();
       return;
     }
     Rlog('>#C02#> loginSocial: procesarLoginDesdeCallback: >>> loginData:' + JSON.stringify(loginData));
     const user = loginData && loginData.user ? { ...loginData.user } : null;
     if (!user) {
       notifyLoginError('missing_user', 'Login sin usuario.');
+      clearCurrentLoginProvider();
       return;
     }
 
@@ -420,9 +523,11 @@ function procesarLoginDesdeCallback(url) {
       refreshUserAvatarLocal(user, { force: true });
     }
     notifyLoginSuccess(user);
+    clearCurrentLoginProvider();
   } catch (err) {
     Rlog('>#C02#> loginSocial: procesarLoginDesdeCallback: Error procesando callback: ' + JSON.stringify(err));
     notifyLoginError('callback_error', 'Error procesando login.');
+    clearCurrentLoginProvider();
   }
 }
 
@@ -460,7 +565,8 @@ loginSocial = async function (provider) {
   console.log(">###> loginSocial.")
   const cfg = oauthProviders[provider];
   if (!cfg) return console.log('>###> loginSocial: Proveedor no soportado.');
-  currentProvider = provider;
+  lastProcessedLoginCallbackUrl = '';
+  storeCurrentLoginProvider(provider);
 
 
   //  const state = Math.random().toString(36).substring(2);
@@ -494,6 +600,7 @@ loginSocial = async function (provider) {
 
   } catch (err) {
     console.log('>#C02#> loginSocial: Error al abrir navegador:', err);
+    clearCurrentLoginProvider();
   }
 }
 
@@ -2229,6 +2336,7 @@ const notifyUserChange = (user) => {
 
 window.setUser = (user) => {
   window.user = user || null;
+  ensureUserRemoteAvatar(window.user);
   writeStoredUser(window.user);
   if (!window.user) {
     resetSpeakOnLogout();
@@ -2270,6 +2378,29 @@ const applyAvatarCacheBust = (user) => {
   }
 };
 
+const ensureUserRemoteAvatar = (user) => {
+  if (!user || typeof user !== 'object') return user;
+  const currentImage = typeof user.image === 'string' ? user.image.trim() : '';
+  if (currentImage) return user;
+  const avatarFileName =
+    typeof user.avatar_file_name === 'string' ? user.avatar_file_name.trim() : '';
+  const userId =
+    user.id !== undefined && user.id !== null ? String(user.id).trim() : '';
+  if (!avatarFileName || !userId) return user;
+  user.image = `https://s3.amazonaws.com/sk.audios.dev/avatars/${userId}/original/${avatarFileName}`;
+  return user;
+};
+
+const getCanonicalOriginalAvatarUrl = (user) => {
+  if (!user || typeof user !== 'object') return '';
+  const avatarFileName =
+    typeof user.avatar_file_name === 'string' ? user.avatar_file_name.trim() : '';
+  const userId =
+    user.id !== undefined && user.id !== null ? String(user.id).trim() : '';
+  if (!avatarFileName || !userId) return '';
+  return `https://s3.amazonaws.com/sk.audios.dev/avatars/${userId}/original/${avatarFileName}`;
+};
+
 window.applyAvatarCacheBust = applyAvatarCacheBust;
 window.addLocalCacheBust = addLocalCacheBust;
 
@@ -2278,6 +2409,7 @@ window.loadUser = () => {
   const stored = storedFromSession || readLocalUser();
   if (stored) {
     window.user = stored;
+    ensureUserRemoteAvatar(window.user);
     applyAvatarCacheBust(window.user);
     writeStoredUser(window.user, { syncLocal: !storedFromSession });
   } else if (!window.user) {
@@ -2291,9 +2423,17 @@ window.loadUser = () => {
 };
 
 const getUserAvatarRemoteCandidates = (user) => {
-  if (!user || !user.image) return [];
-  const raw = String(user.image);
+  if (!user) return [];
+  ensureUserRemoteAvatar(user);
   const candidates = [];
+  const pushCandidate = (url) => {
+    const text = typeof url === 'string' ? url.trim() : '';
+    if (!text || candidates.includes(text)) return;
+    candidates.push(text);
+  };
+  pushCandidate(getCanonicalOriginalAvatarUrl(user));
+  if (!user.image) return candidates;
+  const raw = String(user.image);
   const isS3 = raw.includes('s3.amazonaws.com/');
   const hasAudios = raw.includes('sk.audios.dev');
   const hasAssets = raw.includes('sk.assets');
@@ -2310,11 +2450,13 @@ const getUserAvatarRemoteCandidates = (user) => {
         originalUrl = originalUrl.replace(/\/avatars\/([^/]+)\//, '/avatars/$1/original/');
       }
     }
-    [assetsUrl, originalUrl].forEach((url) => {
-      if (url && !candidates.includes(url)) candidates.push(url);
-    });
+    const shouldPreferOriginal =
+      hasAudios ||
+      /\/original\//i.test(raw) ||
+      /\/image\.(gif|png|jpe?g|webp)(\?|$)/i.test(raw);
+    (shouldPreferOriginal ? [originalUrl, assetsUrl] : [assetsUrl, originalUrl]).forEach(pushCandidate);
   } else {
-    candidates.push(raw);
+    pushCandidate(raw);
   }
   return candidates;
 };
@@ -2636,28 +2778,26 @@ document.addEventListener('DOMContentLoaded', async function() {
     // Registrar el listener para appUrlOpen para manejar URLs con esquema app://
     plugins.App.addListener('appUrlOpen', async function(info) {
       console.log(">#C02#> Plugin App (loginSocial): 📥 appUrlOpen ACTIVADO con URL:", info.url);
-
-      try {
-        await plugins.Browser.close();
-      } catch (err) {
-        console.log('>#C02#> Plugin App (loginSocial): No se pudo cerrar Browser:', err);
-      }
-
-      const url = new URL(info.url);
-
-      if (!url.href.startsWith('app://callback')) {
-        console.log('>#C02#> Plugin App (loginSocial): Ignorando URL no esperada:', url.href);
-        return;
-      }
-
-      // Implementado en index.js
-      if (window.loginCallbackFromBrowser) {
-        console.log("|||||||||||||||| window.loginCallbackFromBrowser(info.url) ||||||||||||||||")
-        window.loginCallbackFromBrowser(info.url);
-        return;
-      }
-      procesarLoginDesdeCallback(info.url);
+      await handleSocialLoginCallbackUrl(info.url, {
+        closeBrowser: true,
+        source: 'appUrlOpen'
+      });
     });
+
+    if (typeof plugins.App.getLaunchUrl === 'function') {
+      try {
+        const launchData = await plugins.App.getLaunchUrl();
+        if (launchData && launchData.url) {
+          console.log('>#C02#> Plugin App (loginSocial): getLaunchUrl detectó URL:', launchData.url);
+          await handleSocialLoginCallbackUrl(launchData.url, {
+            closeBrowser: true,
+            source: 'getLaunchUrl'
+          });
+        }
+      } catch (err) {
+        console.log('>#C02#> Plugin App (loginSocial): Error en getLaunchUrl:', err);
+      }
+    }
 
     // Registrar el listener appStateChange para pause y resume
     console.log(">#C02#> Plugin App: 📲 Registrando listener appStateChange.");

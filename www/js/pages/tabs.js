@@ -349,7 +349,7 @@ class TabsPage extends HTMLElement {
     applyChatUnreadBadge();
 
     if (isTabsLocked()) {
-      setTimeout(() => enforceLoginTabsLock(true), 0);
+      setTimeout(() => enforceLoginTabsLock(false), 0);
       return;
     }
 

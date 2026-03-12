@@ -265,8 +265,16 @@ class PageChat extends HTMLElement {
     let communityView = 'public';
     let communityRoomsLoading = false;
     let communityRoomsLoaded = false;
+    let communityPublicUnreadCount = 0;
     let communityDmRooms = [];
     let activeCommunityDmRoomId = '';
+    let currentAppTab = (() => {
+      try {
+        return String(localStorage.getItem('appv5:active-tab') || '').trim().toLowerCase() || 'home';
+      } catch (err) {
+        return 'home';
+      }
+    })();
     const communityDmThreads = {};
     const TALK_STATE_IDLE = 'idle';
     const TALK_STATE_RECORDING = 'recording';
@@ -310,6 +318,8 @@ class PageChat extends HTMLElement {
 	    const TALK_STORAGE_LEGACY = 'appv5:talk-timelines';
 	    const CHAT_MODE_DEBUG_KEY = 'appv5:chat-debug-chat-mode';
 	    const COMMUNITY_PRESENCE_SESSION_KEY = 'appv5:community-presence-session-id';
+	    const COMMUNITY_CHAT_UNREAD_STORAGE_PREFIX = 'appv5:chat-community-unread:';
+	    const APP_TAB_STORAGE_KEY = 'appv5:active-tab';
 	    const SHARED_AUDIO_MODE_KEY = 'appv5:free-ride-audio-mode';
 	    const SHARED_AUDIO_MODE_GENERATED = 'generated';
 	    const SHARED_AUDIO_MODE_LOCAL = 'local';
@@ -1054,6 +1064,27 @@ class PageChat extends HTMLElement {
       return user.image_local || user.image || '';
     };
 
+    const isPublicAvatarUrl = (value) => {
+      const url = pickFirstText(value);
+      if (!url) return false;
+      if (!/^https?:\/\//i.test(url)) return false;
+      return !/(localhost|127\.0\.0\.1|_capacitor_file_)/i.test(url);
+    };
+
+    const getUserPublicAvatar = (user) => {
+      if (!user) return '';
+      if (typeof window.getUserAvatarRemoteCandidates === 'function') {
+        const candidates = window.getUserAvatarRemoteCandidates(user);
+        const match = (Array.isArray(candidates) ? candidates : []).find((entry) => isPublicAvatarUrl(entry));
+        if (match) return String(match).trim();
+      }
+      const remote = pickFirstText(user.image);
+      if (isPublicAvatarUrl(remote)) return remote;
+      const local = pickFirstText(user.image_local);
+      if (isPublicAvatarUrl(local)) return local;
+      return '';
+    };
+
     const cancelSimulatedReply = (mode) => {
       const targetMode = mode || chatMode;
       if (!replyTimers[targetMode]) {
@@ -1098,6 +1129,28 @@ class PageChat extends HTMLElement {
       );
     };
 
+    const isCommunityPublicVisible = () =>
+      currentAppTab === 'chat' && chatMode === 'community' && communityView === 'public';
+
+    const isCommunityDmVisible = () =>
+      currentAppTab === 'chat' && chatMode === 'community' && communityView === 'dm';
+
+    const updateCommunityNavUnreadUi = (count = getCommunityTotalUnreadCount()) => {
+      if (!communityNavEl) return;
+      const publicButton = communityNavEl.querySelector('[data-community-view="public"]');
+      const dmButton = communityNavEl.querySelector('[data-community-view="dm"]');
+      const dmUnread = Math.max(0, Math.round(Number(count) || 0));
+      const publicUnread = Math.max(0, Math.round(Number(communityPublicUnreadCount) || 0));
+      if (publicButton) {
+        const showPublicDot = publicUnread > 0 && communityView !== 'public';
+        publicButton.classList.toggle('has-unread', showPublicDot);
+      }
+      if (dmButton) {
+        const showDmDot = dmUnread > 0 && communityView !== 'dm';
+        dmButton.classList.toggle('has-unread', showDmDot);
+      }
+    };
+
     const getCommunityRoomsEndpoint = () =>
       typeof (window.realtimeConfig || {}).communityRoomsEndpoint === 'string'
         ? window.realtimeConfig.communityRoomsEndpoint.trim()
@@ -1117,6 +1170,71 @@ class PageChat extends HTMLElement {
       typeof (window.realtimeConfig || {}).communityDmReadEndpoint === 'string'
         ? window.realtimeConfig.communityDmReadEndpoint.trim()
         : '';
+
+    const getCommunityUnreadStorageKey = (userId = lastUserId) => {
+      const safeUserId =
+        userId !== undefined && userId !== null ? String(userId).trim() : '';
+      return safeUserId ? `${COMMUNITY_CHAT_UNREAD_STORAGE_PREFIX}${safeUserId}` : '';
+    };
+
+    const getCommunityTotalUnreadCount = () =>
+      communityDmRooms.reduce(
+        (total, room) => total + Math.max(0, Number(room && room.unreadCount) || 0),
+        0
+      );
+
+    const setCommunityPublicUnreadCount = (count, { sync = true } = {}) => {
+      communityPublicUnreadCount = Math.max(0, Math.round(Number(count) || 0));
+      if (sync) syncCommunityUnreadIndicators();
+      return communityPublicUnreadCount;
+    };
+
+    const syncCommunityUnreadIndicators = (userId = lastUserId) => {
+      const dmUnread = getCommunityTotalUnreadCount();
+      const publicUnread = Math.max(0, Number(communityPublicUnreadCount) || 0);
+      updateCommunityNavUnreadUi(dmUnread);
+      const showTabDot =
+        (publicUnread > 0 && !isCommunityPublicVisible()) || (dmUnread > 0 && !isCommunityDmVisible());
+      const count = dmUnread + publicUnread;
+      const storageKey = getCommunityUnreadStorageKey(userId);
+      try {
+        if (storageKey) {
+          localStorage.setItem(
+            storageKey,
+            JSON.stringify({
+              count,
+              dmUnread,
+              publicUnread,
+              showTabDot
+            })
+          );
+        }
+      } catch (err) {
+        // no-op
+      }
+      window.dispatchEvent(
+        new CustomEvent('app:chat-unread-change', {
+          detail: {
+            userId: userId !== undefined && userId !== null ? String(userId) : '',
+            count,
+            dmUnread,
+            publicUnread,
+            showTabDot
+          }
+        })
+      );
+      return count;
+    };
+
+    const sortCommunityDmRooms = () => {
+      communityDmRooms.sort((left, right) => {
+        const leftTs = Date.parse((left && left.lastMessageAt) || '');
+        const rightTs = Date.parse((right && right.lastMessageAt) || '');
+        const safeLeft = Number.isFinite(leftTs) ? leftTs : 0;
+        const safeRight = Number.isFinite(rightTs) ? rightTs : 0;
+        return safeRight - safeLeft;
+      });
+    };
 
     const normalizeCommunityRoom = (value) => {
       if (!value || typeof value !== 'object') return null;
@@ -1262,12 +1380,17 @@ class PageChat extends HTMLElement {
       const appLabel = formatCommunityAppName(
         safeRoom.lastMessageActorApp || (safeRoom.peer && safeRoom.peer.app)
       );
-      if (preview && appLabel) return `${appLabel} · ${preview}`;
+      if (preview && appLabel) return `${appLabel} - ${preview}`;
       if (preview) return preview;
-      return getCommunityPeerStatusLabel(
-        safeRoom.peer,
-        formatCommunityAppName(safeRoom.peer && safeRoom.peer.app)
-      );
+      return appLabel || uiCopy.communityStartChat;
+    };
+
+    const buildCommunityStatusDot = ({ online = false } = {}) => {
+      const dotEl = document.createElement('span');
+      dotEl.className = 'chat-community-status-dot';
+      dotEl.classList.add(online ? 'is-online' : 'is-offline');
+      dotEl.setAttribute('aria-hidden', 'true');
+      return dotEl;
     };
 
     const buildCommunityAvatar = (entry, options = {}) => {
@@ -1437,7 +1560,7 @@ class PageChat extends HTMLElement {
         user_id: userId,
         user_name: getUserDisplayName(user),
         email: user && user.email ? user.email : '',
-        avatar: getUserAvatar(user),
+        avatar: getUserPublicAvatar(user),
         app: 'speakapp',
         premium: isChatEnabledUser(user)
       };
@@ -1537,6 +1660,9 @@ class PageChat extends HTMLElement {
               .filter(Boolean)
           : [];
         replaceThreadMessages('community', messages, { rerender: communityView === 'public', scope: 'public' });
+        if (isCommunityPublicVisible()) {
+          setCommunityPublicUnreadCount(0);
+        }
         if (!messages.length) {
           if (communityView === 'public') {
             ensureIntroMessage('community');
@@ -1570,7 +1696,7 @@ class PageChat extends HTMLElement {
         user_id: userId,
         user_name: getUserDisplayName(user),
         email: user && user.email ? user.email : '',
-        avatar: getUserAvatar(user),
+        avatar: getUserPublicAvatar(user),
         app: 'speakapp',
         premium: isChatEnabledUser(user)
       };
@@ -1654,13 +1780,8 @@ class PageChat extends HTMLElement {
       } else {
         communityDmRooms.push(room);
       }
-      communityDmRooms.sort((left, right) => {
-        const leftTs = Date.parse((left && left.lastMessageAt) || '');
-        const rightTs = Date.parse((right && right.lastMessageAt) || '');
-        const safeLeft = Number.isFinite(leftTs) ? leftTs : 0;
-        const safeRight = Number.isFinite(rightTs) ? rightTs : 0;
-        return safeRight - safeLeft;
-      });
+      sortCommunityDmRooms();
+      syncCommunityUnreadIndicators();
       return room;
     };
 
@@ -1673,6 +1794,7 @@ class PageChat extends HTMLElement {
         ...communityDmRooms[index],
         unreadCount: Math.max(0, Math.round(Number(unreadCount) || 0))
       };
+      syncCommunityUnreadIndicators();
       return communityDmRooms[index];
     };
 
@@ -1844,6 +1966,8 @@ class PageChat extends HTMLElement {
           const online = isCommunityUserOnline(peer.id);
           const mainEl = document.createElement('span');
           mainEl.className = 'chat-community-item-main';
+          const headingEl = document.createElement('span');
+          headingEl.className = 'chat-community-item-heading';
           const titleEl = document.createElement('span');
           titleEl.className = 'chat-community-item-title';
           titleEl.textContent = peerLabel;
@@ -1862,10 +1986,12 @@ class PageChat extends HTMLElement {
           chevronEl.setAttribute('name', 'chevron-forward');
           itemEl.appendChild(
             buildCommunityAvatar(peer, {
-              online
+              online: false
             })
           );
-          mainEl.appendChild(titleEl);
+          headingEl.appendChild(buildCommunityStatusDot({ online }));
+          headingEl.appendChild(titleEl);
+          mainEl.appendChild(headingEl);
           mainEl.appendChild(subtitleEl);
           itemEl.appendChild(mainEl);
           if (room.unreadCount > 0) {
@@ -1902,18 +2028,23 @@ class PageChat extends HTMLElement {
           const label = pickFirstText(peer.name, peer.id) || uiCopy.communityNoPeerName;
           const mainEl = document.createElement('span');
           mainEl.className = 'chat-community-item-main';
+          const headingEl = document.createElement('span');
+          headingEl.className = 'chat-community-item-heading';
           const titleEl = document.createElement('span');
           titleEl.className = 'chat-community-item-title';
           titleEl.textContent = label;
           const subtitleEl = document.createElement('span');
           subtitleEl.className = 'chat-community-item-subtitle';
-          subtitleEl.textContent = getCommunityPeerStatusLabel(peer, uiCopy.communityStartChat);
+          subtitleEl.textContent =
+            formatCommunityAppName(peer && peer.app) || uiCopy.communityStartChat;
           itemEl.appendChild(
             buildCommunityAvatar(peer, {
-              online: true
+              online: false
             })
           );
-          mainEl.appendChild(titleEl);
+          headingEl.appendChild(buildCommunityStatusDot({ online: true }));
+          headingEl.appendChild(titleEl);
+          mainEl.appendChild(headingEl);
           mainEl.appendChild(subtitleEl);
           itemEl.appendChild(mainEl);
           itemEl.addEventListener('click', () => {
@@ -1961,7 +2092,6 @@ class PageChat extends HTMLElement {
     };
 
     const loadCommunityDmRooms = async ({ force = false } = {}) => {
-      if (chatMode !== 'community' && !force) return false;
       const endpoint = getCommunityRoomsEndpoint();
       const currentUserId = pickFirstText(lastUserId);
       if (!endpoint || !currentUserId) return false;
@@ -1984,6 +2114,8 @@ class PageChat extends HTMLElement {
         communityDmRooms = Array.isArray(data && data.rooms)
           ? data.rooms.map(normalizeCommunityRoom).filter(Boolean)
           : [];
+        sortCommunityDmRooms();
+        syncCommunityUnreadIndicators(currentUserId);
         communityRoomsLoaded = true;
         if (
           activeCommunityDmRoomId &&
@@ -2075,7 +2207,7 @@ class PageChat extends HTMLElement {
           body: JSON.stringify({
             user_id: currentUserId,
             user_name: getUserDisplayName(currentUser),
-            avatar: getUserAvatar(currentUser),
+            avatar: getUserPublicAvatar(currentUser),
             app: 'speakapp',
             premium: isChatEnabledUser(currentUser),
             peer_user_id: peerUserId,
@@ -2120,7 +2252,7 @@ class PageChat extends HTMLElement {
             room_id: roomId,
             user_id: currentUserId,
             user_name: getUserDisplayName(currentUser),
-            avatar: getUserAvatar(currentUser),
+            avatar: getUserPublicAvatar(currentUser),
             app: 'speakapp',
             premium: isChatEnabledUser(currentUser),
             peer_user_id: pickFirstText(activeRoom.peer && activeRoom.peer.id),
@@ -2364,6 +2496,16 @@ class PageChat extends HTMLElement {
         chatKeyboardRaf = null;
         syncChatKeyboardOffset();
       });
+    };
+
+    const scrollChatTimelineToLatest = (behavior = 'auto') => {
+      if (chatMode === 'community' && communityView === 'dm' && !activeCommunityDmRoomId) return;
+      requestAnimationFrame(() => {
+        scrollThreadToBottom(behavior);
+      });
+      setTimeout(() => {
+        scrollThreadToBottom('auto');
+      }, 80);
     };
 
     const keepChatInputFocused = ({ defer, scroll } = {}) => {
@@ -4309,7 +4451,7 @@ class PageChat extends HTMLElement {
     };
 
     const syncCommunityDmSubscriptions = () => {
-      if (!pusherClient || chatMode !== 'community') return;
+      if (!pusherClient || !pickFirstText(lastUserId)) return;
       const desired = new Set(communityDmRooms.map((room) => room.roomId));
       Array.from(pusherCommunityDmChannels.entries()).forEach(([roomId, channel]) => {
         if (desired.has(roomId)) return;
@@ -4444,7 +4586,7 @@ class PageChat extends HTMLElement {
           id: user.id,
           name: getUserDisplayName(user),
           email: user.email || '',
-          avatar: getUserAvatar(user),
+          avatar: getUserPublicAvatar(user),
           app: 'speakapp',
           premium: isChatEnabledUser(user)
         };
@@ -4470,6 +4612,9 @@ class PageChat extends HTMLElement {
           setHint(getDefaultHintForMode('community'));
           syncCommunityDmSubscriptions();
         }
+        loadCommunityDmRooms({ force: false }).then(() => {
+          syncCommunityDmSubscriptions();
+        });
       });
       pusherClient.connection.bind('disconnected', () => {
         realtimeConnected = false;
@@ -4489,91 +4634,101 @@ class PageChat extends HTMLElement {
         }
       });
 
-      if (connectedMode === 'community') {
-        const handleCommunityIncoming = (data, scope = 'public', roomId = '') => {
-          const message = normalizeIncoming(data, 'user', {
-            mode: 'community',
-            viewerId: userId
-          });
-          if (!message) return;
-          const ensuredId =
-            message.id && String(message.id).trim() ? String(message.id).trim() : createChatMessageId();
-          message.id = ensuredId;
-          appendMessage(message, {
-            mode: 'community',
-            autoplay: false,
-            scope,
-            roomId
-          });
-          if (scope === 'dm' && roomId) {
-            upsertCommunityRoom({
-              room_id: roomId,
-              channel: `private-${roomId}`,
-              last_message_preview: message.text,
-              last_message_at: new Date().toISOString()
-            });
-            renderCommunityLists();
+      const handleCommunityIncoming = (data, scope = 'public', roomId = '') => {
+        const message = normalizeIncoming(data, 'user', {
+          mode: 'community',
+          viewerId: userId
+        });
+        if (!message) return;
+        const ensuredId =
+          message.id && String(message.id).trim() ? String(message.id).trim() : createChatMessageId();
+        message.id = ensuredId;
+        appendMessage(message, {
+          mode: 'community',
+          autoplay: false,
+          scope,
+          roomId
+        });
+        if (scope === 'public') {
+          if (isCommunityPublicVisible()) {
+            setCommunityPublicUnreadCount(0);
+          } else {
+            setCommunityPublicUnreadCount(communityPublicUnreadCount + 1);
           }
-        };
-
-        pusherCommunityPublicChannel = pusherClient.subscribe(COMMUNITY_PUBLIC_CHANNEL);
-        pusherCommunityPublicChannel.bind('pusher:subscription_error', (status) => {
-          console.warn('[chat] subscription error', status);
-          realtimeConnected = false;
-          handleCommunityRealtimeDisconnected();
-        });
-        pusherCommunityPublicChannel.bind('chat_message', (data) => {
-          handleCommunityIncoming(data, 'public', COMMUNITY_PUBLIC_CHANNEL);
-        });
-        pusherCommunityPublicChannel.bind('private_chat', (data) => {
-          const roomId = pickFirstText(
-            data && data.private_channel ? String(data.private_channel).replace(/^private-/, '') : ''
-          );
-          const user1 = pickFirstText(data && data.user1);
-          const user2 = pickFirstText(data && data.user2);
-          if (!roomId || !user1 || !user2 || (user1 !== userId && user2 !== userId)) return;
-          const peerId = user1 === userId ? user2 : user1;
-          const room = upsertCommunityRoom({
+        }
+        if (scope === 'dm' && roomId) {
+          upsertCommunityRoom({
             room_id: roomId,
             channel: `private-${roomId}`,
-            peer: {
-              id: peerId
-            }
+            last_message_preview: message.text,
+            last_message_at: new Date().toISOString()
           });
-          syncCommunityDmSubscriptions();
-          loadCommunityDmRooms({ force: true });
           renderCommunityLists();
-        });
-        pusherCommunityPublicChannel.bind('destroy_private_chat', (data) => {
-          const roomId = pickFirstText(
-            data && data.private_channel ? String(data.private_channel).replace(/^private-/, '') : ''
-          );
-          if (!roomId) return;
-          communityDmRooms = communityDmRooms.filter((room) => room && room.roomId !== roomId);
-          delete communityDmThreads[roomId];
-          const channel = pusherCommunityDmChannels.get(roomId);
-          if (channel) {
-            try {
-              channel.unbind_all();
-            } catch (err) {
-              // no-op
-            }
-            try {
-              pusherClient.unsubscribe(channel.name || `private-${roomId}`);
-            } catch (err) {
-              // no-op
-            }
-            pusherCommunityDmChannels.delete(roomId);
+        }
+      };
+
+      pusherCommunityPublicChannel = pusherClient.subscribe(COMMUNITY_PUBLIC_CHANNEL);
+      pusherCommunityPublicChannel.bind('pusher:subscription_error', (status) => {
+        console.warn('[chat] subscription error', status);
+        realtimeConnected = false;
+        handleCommunityRealtimeDisconnected();
+      });
+      pusherCommunityPublicChannel.bind('chat_message', (data) => {
+        handleCommunityIncoming(data, 'public', COMMUNITY_PUBLIC_CHANNEL);
+      });
+      pusherCommunityPublicChannel.bind('private_chat', (data) => {
+        const roomId = pickFirstText(
+          data && data.private_channel ? String(data.private_channel).replace(/^private-/, '') : ''
+        );
+        const user1 = pickFirstText(data && data.user1);
+        const user2 = pickFirstText(data && data.user2);
+        if (!roomId || !user1 || !user2 || (user1 !== userId && user2 !== userId)) return;
+        const peerId = user1 === userId ? user2 : user1;
+        upsertCommunityRoom({
+          room_id: roomId,
+          channel: `private-${roomId}`,
+          peer: {
+            id: peerId
           }
-          if (activeCommunityDmRoomId === roomId) {
-            activeCommunityDmRoomId = '';
+        });
+        syncCommunityDmSubscriptions();
+        loadCommunityDmRooms({ force: true });
+        renderCommunityLists();
+      });
+      pusherCommunityPublicChannel.bind('destroy_private_chat', (data) => {
+        const roomId = pickFirstText(
+          data && data.private_channel ? String(data.private_channel).replace(/^private-/, '') : ''
+        );
+        if (!roomId) return;
+        communityDmRooms = communityDmRooms.filter((room) => room && room.roomId !== roomId);
+        delete communityDmThreads[roomId];
+        const channel = pusherCommunityDmChannels.get(roomId);
+        if (channel) {
+          try {
+            channel.unbind_all();
+          } catch (err) {
+            // no-op
           }
-          updateCommunityViewUi();
-          renderThread('community');
-        });
-        loadCommunityDmRooms({ force: false }).then(() => {
-          syncCommunityDmSubscriptions();
-        });
+          try {
+            pusherClient.unsubscribe(channel.name || `private-${roomId}`);
+          } catch (err) {
+            // no-op
+          }
+          pusherCommunityDmChannels.delete(roomId);
+        }
+        if (activeCommunityDmRoomId === roomId) {
+          activeCommunityDmRoomId = '';
+        }
+        syncCommunityUnreadIndicators();
+        updateCommunityViewUi();
+        renderThread('community');
+      });
+
+      loadCommunityDmRooms({ force: false }).then(() => {
+        syncCommunityDmSubscriptions();
+      });
+
+      if (connectedMode === 'community') {
         return;
       }
 
@@ -4827,6 +4982,7 @@ class PageChat extends HTMLElement {
 	        clearChatbotAlignedTtsLimitStatus();
 	        loadTalkTimelinesForUser(userId);
           communityDmReadRequests.clear();
+          communityPublicUnreadCount = 0;
           communityDmRooms = [];
           communityRoomsLoaded = false;
           activeCommunityDmRoomId = '';
@@ -4863,6 +5019,7 @@ class PageChat extends HTMLElement {
 
       lastUserId = userId;
       lastChatEnabled = chatEnabled;
+      syncCommunityUnreadIndicators(userId);
     };
 
     recordBtn?.addEventListener('click', () => {
@@ -5353,6 +5510,13 @@ class PageChat extends HTMLElement {
       icon.setAttribute('name', isInlineTextSend ? 'paper-plane' : 'arrow-up');
     };
 
+    const updateChatHintVisibility = () => {
+      if (!hintEl) return;
+      const hideHint =
+        chatMode === 'community' && communityView === 'dm' && Boolean(activeCommunityDmRoomId);
+      hintEl.hidden = hideHint;
+    };
+
     const updateChatbotOneLineLayout = () => {
       const textVisible = Boolean(textRow && !textRow.hidden);
       const controlsVisible = Boolean(chatControls && !chatControls.hidden);
@@ -5383,12 +5547,12 @@ class PageChat extends HTMLElement {
     const updateChatControlsVisibility = () => {
       const isChatbot = chatMode === 'chatbot';
       const isCommunity = chatMode === 'community';
-      if (hintEl) hintEl.hidden = false;
       if (chatControls) chatControls.hidden = isCommunity;
       if (textRow) textRow.classList.toggle('chat-text-row-inline', isChatbot || isCommunity);
       placeSendButton();
       updateSendButtonIcon();
       setTalkState(talkState);
+      updateChatHintVisibility();
       updateChatbotOneLineLayout();
       scheduleChatKeyboardSync();
     };
@@ -5403,6 +5567,7 @@ class PageChat extends HTMLElement {
           btn.classList.toggle('is-active', btn.dataset.communityView === communityView);
         });
       }
+      updateCommunityNavUnreadUi();
       if (communityDmBackBtn) {
         communityDmBackBtn.setAttribute('aria-label', uiCopy.communityBackToChats || uiCopy.communityTabChats);
         communityDmBackBtn.title = uiCopy.communityBackToChats || uiCopy.communityTabChats;
@@ -5433,12 +5598,18 @@ class PageChat extends HTMLElement {
           sendBtn.disabled = true;
         }
       }
+      updateChatHintVisibility();
     };
 
     const setCommunityView = (view, options = {}) => {
       const nextView = view === 'dm' ? 'dm' : 'public';
       const changed = communityView !== nextView;
       communityView = nextView;
+      if (nextView === 'public') {
+        setCommunityPublicUnreadCount(0);
+      } else {
+        syncCommunityUnreadIndicators();
+      }
       if (changed && nextView === 'dm') {
         loadCommunityDmRooms({ force: !communityRoomsLoaded });
         if (activeCommunityDmRoomId) {
@@ -5582,6 +5753,32 @@ class PageChat extends HTMLElement {
     };
     window.addEventListener('app:talk-timelines-reset', this._talkResetHandler);
 
+    this._tabChangeHandler = (event) => {
+      const tab = event && event.detail ? String(event.detail.tab || '').trim().toLowerCase() : '';
+      currentAppTab = tab || currentAppTab;
+      if (tab === 'chat' && isCommunityPublicVisible()) {
+        setCommunityPublicUnreadCount(0);
+      } else {
+        syncCommunityUnreadIndicators();
+      }
+      if (tab !== 'chat') return;
+      scrollChatTimelineToLatest('auto');
+    };
+    window.addEventListener('app:tab-change', this._tabChangeHandler);
+
+    this._tabUserClickHandler = (event) => {
+      const tab = event && event.detail ? String(event.detail.tab || '').trim().toLowerCase() : '';
+      currentAppTab = tab || currentAppTab;
+      if (tab === 'chat' && isCommunityPublicVisible()) {
+        setCommunityPublicUnreadCount(0);
+      } else {
+        syncCommunityUnreadIndicators();
+      }
+      if (tab !== 'chat') return;
+      scrollChatTimelineToLatest('auto');
+    };
+    window.addEventListener('app:tab-user-click', this._tabUserClickHandler);
+
     this._cleanupChat = () => {
       resetChatSession({ keepIntro: false, setDefaultHint: false });
       disconnectRealtime();
@@ -5642,6 +5839,12 @@ class PageChat extends HTMLElement {
     }
     if (this._talkResetHandler) {
       window.removeEventListener('app:talk-timelines-reset', this._talkResetHandler);
+    }
+    if (this._tabChangeHandler) {
+      window.removeEventListener('app:tab-change', this._tabChangeHandler);
+    }
+    if (this._tabUserClickHandler) {
+      window.removeEventListener('app:tab-user-click', this._tabUserClickHandler);
     }
   }
 }

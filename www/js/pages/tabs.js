@@ -6,6 +6,7 @@ class TabsPage extends HTMLElement {
     this.classList.add('ion-page');
     const TAB_STORAGE_KEY = 'appv5:active-tab';
     const REFERENCE_TAB_ENABLED_KEY = 'appv5:reference-tab-enabled';
+    const COMMUNITY_CHAT_UNREAD_STORAGE_PREFIX = 'appv5:chat-community-unread:';
     const normalizeTab = (tab) => String(tab || '').trim().toLowerCase();
     const normalizeReferenceTabEnabled = (value) => {
       if (typeof value === 'boolean') return value;
@@ -74,8 +75,8 @@ class TabsPage extends HTMLElement {
             <ion-icon name="person-circle-outline"></ion-icon>
             <ion-label data-tab-label="tu">${tabsCopy.you}</ion-label>
           </ion-tab-button>
-          <ion-tab-button tab="chat">
-            <img class="tab-mascot-icon" src="assets/mascot/mascot-cat.png" alt="">
+          <ion-tab-button tab="chat" class="app-tab-button-chat">
+            <ion-icon name="chatbubbles-outline"></ion-icon>
             <ion-label data-tab-label="chat">${tabsCopy.chat}</ion-label>
           </ion-tab-button>
         </ion-tab-bar>
@@ -99,6 +100,46 @@ class TabsPage extends HTMLElement {
     };
     let forcingTab = false;
     let wasLoggedIn = false;
+
+    const getCurrentUserId = () => {
+      const user = window.user;
+      return user && user.id !== undefined && user.id !== null ? String(user.id) : '';
+    };
+
+    const readChatUnreadState = () => {
+      const currentUserId = getCurrentUserId();
+      if (!currentUserId) return { count: 0, showTabDot: false };
+      try {
+        const raw = localStorage.getItem(`${COMMUNITY_CHAT_UNREAD_STORAGE_PREFIX}${currentUserId}`);
+        if (!raw) return { count: 0, showTabDot: false };
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object') {
+          return {
+            count: Math.max(0, Math.round(Number(parsed.count) || 0)),
+            showTabDot: parsed.showTabDot === true
+          };
+        }
+        return {
+          count: Math.max(0, Math.round(Number(raw) || 0)),
+          showTabDot: Math.max(0, Math.round(Number(raw) || 0)) > 0
+        };
+      } catch (err) {
+        return { count: 0, showTabDot: false };
+      }
+    };
+
+    const applyChatUnreadBadge = (state = readChatUnreadState()) => {
+      const chatButton = this.querySelector('ion-tab-button[tab="chat"]');
+      if (!chatButton) return;
+      const unread = Math.max(0, Math.round(Number(state && state.count) || 0));
+      const showTabDot = Boolean(state && state.showTabDot);
+      chatButton.classList.toggle('has-unread', showTabDot);
+      if (showTabDot && unread > 0) {
+        chatButton.setAttribute('data-unread-count', String(unread));
+      } else {
+        chatButton.removeAttribute('data-unread-count');
+      }
+    };
 
     const readStoredTab = () => {
       try {
@@ -276,6 +317,7 @@ class TabsPage extends HTMLElement {
       const justLoggedIn = !wasLoggedIn && nowLoggedIn;
       wasLoggedIn = nowLoggedIn;
       applyReferenceTabVisibility();
+      applyChatUnreadBadge();
       enforceLoginTabsLock(false);
       if (justLoggedIn) {
         writeStoredTab('home');
@@ -293,8 +335,18 @@ class TabsPage extends HTMLElement {
       }
     };
     window.addEventListener('app:reference-tab-enabled-change', this._referenceTabToggleHandler);
+    this._chatUnreadChangeHandler = (event) => {
+      const currentUserId = getCurrentUserId();
+      const detail = event && event.detail ? event.detail : {};
+      const detailUserId =
+        detail.userId !== undefined && detail.userId !== null ? String(detail.userId) : '';
+      if (detailUserId && currentUserId && detailUserId !== currentUserId) return;
+      applyChatUnreadBadge(detail);
+    };
+    window.addEventListener('app:chat-unread-change', this._chatUnreadChangeHandler);
 
     applyReferenceTabVisibility();
+    applyChatUnreadBadge();
 
     if (isTabsLocked()) {
       setTimeout(() => enforceLoginTabsLock(true), 0);
@@ -337,6 +389,10 @@ class TabsPage extends HTMLElement {
 
     if (this._referenceTabToggleHandler) {
       window.removeEventListener('app:reference-tab-enabled-change', this._referenceTabToggleHandler);
+    }
+
+    if (this._chatUnreadChangeHandler) {
+      window.removeEventListener('app:chat-unread-change', this._chatUnreadChangeHandler);
     }
   }
 }

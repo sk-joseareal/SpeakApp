@@ -2147,11 +2147,13 @@ window.varGlobal = {
 };
 
 const USER_STORAGE_KEY = 'appv5:user';
+const USER_SESSION_STORAGE_KEY = 'appv5:user:session';
 window.user = window.user || null;
 
-const readStoredUser = () => {
+const readUserFromStorage = (storage, key) => {
   try {
-    const raw = localStorage.getItem(USER_STORAGE_KEY);
+    if (!storage || typeof storage.getItem !== 'function') return null;
+    const raw = storage.getItem(key);
     if (!raw) return null;
     return JSON.parse(raw);
   } catch (err) {
@@ -2160,15 +2162,30 @@ const readStoredUser = () => {
   }
 };
 
-const writeStoredUser = (user) => {
+const readSessionUser = () => readUserFromStorage(window.sessionStorage, USER_SESSION_STORAGE_KEY);
+
+const readLocalUser = () => readUserFromStorage(window.localStorage, USER_STORAGE_KEY);
+
+const readStoredUser = () => readSessionUser() || readLocalUser();
+
+const writeUserToStorage = (storage, key, user) => {
   try {
+    if (!storage) return;
     if (user) {
-      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user));
+      storage.setItem(key, JSON.stringify(user));
     } else {
-      localStorage.removeItem(USER_STORAGE_KEY);
+      storage.removeItem(key);
     }
   } catch (err) {
     console.error('[user] error guardando localStorage', err);
+  }
+};
+
+const writeStoredUser = (user, options = {}) => {
+  const syncLocal = options.syncLocal !== false;
+  writeUserToStorage(window.sessionStorage, USER_SESSION_STORAGE_KEY, user);
+  if (syncLocal) {
+    writeUserToStorage(window.localStorage, USER_STORAGE_KEY, user);
   }
 };
 
@@ -2257,11 +2274,12 @@ window.applyAvatarCacheBust = applyAvatarCacheBust;
 window.addLocalCacheBust = addLocalCacheBust;
 
 window.loadUser = () => {
-  const stored = readStoredUser();
+  const storedFromSession = readSessionUser();
+  const stored = storedFromSession || readLocalUser();
   if (stored) {
     window.user = stored;
     applyAvatarCacheBust(window.user);
-    writeStoredUser(window.user);
+    writeStoredUser(window.user, { syncLocal: !storedFromSession });
   } else if (!window.user) {
     window.user = null;
   }

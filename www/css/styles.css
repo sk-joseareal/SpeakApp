@@ -1452,6 +1452,19 @@ ion-modal.login-modal page-login .page-shell {
   padding-bottom: 6px;
 }
 
+.app-tab-bar ion-tab-button.has-unread::before {
+  content: "";
+  position: absolute;
+  top: 8px;
+  right: 24px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ef4444;
+  border: 2px solid #ffffff;
+  z-index: 2;
+}
+
 .app-tab-bar ion-tab-button::after {
   content: "";
   position: absolute;
@@ -2294,11 +2307,15 @@ page-chat ion-content::part(scroll) {
 }
 
 .coach-avatar-cat {
+  width: 59px;
+  height: 59px;
   background-color: rgba(15, 27, 45, 0.04);
   color: transparent;
 }
 
 .coach-avatar-bot {
+  width: 59px;
+  height: 59px;
   background-color: #eef2ff;
   color: transparent;
 }
@@ -2315,6 +2332,18 @@ page-chat ion-content::part(scroll) {
   pointer-events: none;
   user-select: none;
   -webkit-user-drag: none;
+}
+
+.coach-avatar-cat .coach-avatar-mascot {
+  bottom: 4px;
+  width: 68%;
+  max-height: 72%;
+}
+
+.coach-avatar-bot .coach-avatar-mascot {
+  bottom: 4px;
+  width: 74%;
+  max-height: 78%;
 }
 
 .chat-mode-toggle {
@@ -2697,6 +2726,7 @@ page-chat ion-content::part(scroll) {
 }
 
 .chat-community-nav-btn {
+  position: relative;
   border: none;
   background: transparent;
   color: var(--app-muted);
@@ -2710,6 +2740,18 @@ page-chat ion-content::part(scroll) {
 .chat-community-nav-btn.is-active {
   background: rgba(76, 126, 255, 0.12);
   color: #2555d8;
+}
+
+.chat-community-nav-btn.has-unread::after {
+  content: "";
+  position: absolute;
+  top: 5px;
+  right: 7px;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #ef4444;
+  border: 2px solid #ffffff;
 }
 
 .chat-community-lists {
@@ -2767,6 +2809,13 @@ page-chat ion-content::part(scroll) {
   gap: 3px;
 }
 
+.chat-community-item-heading {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
 .chat-community-item-side {
   display: inline-flex;
   flex-direction: column;
@@ -2809,6 +2858,22 @@ page-chat ion-content::part(scroll) {
 .chat-community-item-chevron {
   color: rgba(15, 27, 45, 0.35);
   font-size: 1rem;
+}
+
+.chat-community-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  flex: 0 0 auto;
+}
+
+.chat-community-status-dot.is-online {
+  background: #32c782;
+  box-shadow: 0 0 0 3px rgba(50, 199, 130, 0.14);
+}
+
+.chat-community-status-dot.is-offline {
+  background: rgba(15, 27, 45, 0.2);
 }
 
 .chat-community-avatar {
@@ -2909,6 +2974,8 @@ page-chat ion-content::part(scroll) {
 
 .chat-community-item-title {
   display: block;
+  flex: 1 1 auto;
+  min-width: 0;
   font-size: 0.88rem;
   font-weight: 700;
   color: var(--app-text);

@@ -206,6 +206,22 @@ const pickFirstString = (...values) => {
   return '';
 };
 
+const isPublicAvatarUrl = (value) => {
+  const url = pickFirstString(value);
+  if (!url) return false;
+  if (!/^https?:\/\//i.test(url)) return false;
+  return !/(localhost|127\.0\.0\.1|_capacitor_file_)/i.test(url);
+};
+
+const pickPublicAvatar = (...values) => {
+  for (let i = 0; i < values.length; i += 1) {
+    const url = pickFirstString(values[i]);
+    if (!url) continue;
+    if (isPublicAvatarUrl(url)) return url;
+  }
+  return '';
+};
+
 const toNonNegativeNumber = (value, fallback = 0) => {
   const numeric = Number(value);
   if (!Number.isFinite(numeric)) return fallback;
@@ -2211,7 +2227,7 @@ const summarizeCommunityPresenceRoom = (room) => {
       return {
         user_id: String(userId),
         name: pickFirstString(entry.name),
-        avatar: pickFirstString(entry.avatar),
+        avatar: pickPublicAvatar(entry.avatar),
         app: pickFirstString(entry.app) || 'speakapp',
         premium: Boolean(entry.premium),
         last_seen_at: entry.last_seen_at || null,
@@ -2270,7 +2286,7 @@ const upsertCommunityPresence = ({
   room.users[safeUserId] = {
     user_id: safeUserId,
     name: pickFirstString(safeActor.name, safeActor.displayName, existingUser.name),
-    avatar: pickFirstString(safeActor.avatar, existingUser.avatar),
+    avatar: pickPublicAvatar(safeActor.avatar, existingUser.avatar),
     app: pickFirstString(safeActor.app, existingUser.app) || 'speakapp',
     premium: safeActor.premium === true || existingUser.premium === true,
     last_seen_at: nowIso,
@@ -2556,7 +2572,7 @@ const buildCommunityParticipantSummary = (participant) => {
   return {
     id: pickFirstString(entry.id, entry.user_id),
     name: pickFirstString(entry.name, entry.displayName, entry.email),
-    avatar: pickFirstString(entry.avatar),
+    avatar: pickPublicAvatar(entry.avatar),
     email: pickFirstString(entry.email),
     app: pickFirstString(entry.app) || 'speakapp',
     premium: Boolean(entry.premium)
@@ -2646,7 +2662,7 @@ const ensureCommunityDmRoomRecord = ({
         existing.name
       ),
       email: pickFirstString(safeCandidate.email, existing.email),
-      avatar: pickFirstString(safeCandidate.avatar, existing.avatar),
+      avatar: pickPublicAvatar(safeCandidate.avatar, existing.avatar),
       app: pickFirstString(safeCandidate.app, existing.app) || 'speakapp',
       premium: safeCandidate.premium === true || existing.premium === true
     };
@@ -2668,7 +2684,7 @@ const getCommunityPublicPresenceUserMap = () => {
     map.set(userId, {
       id: userId,
       name: pickFirstString(entry && entry.name),
-      avatar: pickFirstString(entry && entry.avatar),
+      avatar: pickPublicAvatar(entry && entry.avatar),
       app: pickFirstString(entry && entry.app) || 'speakapp',
       premium: entry && entry.premium === true
     });
@@ -2688,7 +2704,7 @@ const hydrateCommunityDmRoom = (room, viewerId = '') => {
     return {
       ...safeParticipant,
       name: pickFirstString(safeParticipant.name, online.name),
-      avatar: pickFirstString(safeParticipant.avatar, online.avatar),
+      avatar: pickPublicAvatar(safeParticipant.avatar, online.avatar),
       app: pickFirstString(safeParticipant.app, online.app) || 'speakapp',
       premium: safeParticipant.premium === true || online.premium === true
     };
@@ -2737,7 +2753,7 @@ const buildCommunityDmMessage = ({ identity, text, actor, id, createdAt }) => {
       name: actorName,
       displayName: actorName,
       email: pickFirstString(actor && actor.email),
-      avatar: pickFirstString(actor && actor.avatar),
+      avatar: pickPublicAvatar(actor && actor.avatar),
       app: pickFirstString(actor && actor.app) || 'speakapp',
       premium: Boolean(actor && actor.premium)
     }
@@ -2962,7 +2978,7 @@ const normalizeCommunityActor = (source, defaults = {}) => {
     name,
     displayName: name,
     email: pickFirstString(source.email, defaults.email),
-    avatar: pickFirstString(source.avatar, source.image, source.img, defaults.avatar),
+    avatar: pickPublicAvatar(source.avatar, source.image, source.img, defaults.avatar),
     app: pickFirstString(source.app, source.origen, source.origin, defaults.app) || 'speakapp',
     premium:
       source.premium === true ||
@@ -2992,7 +3008,7 @@ const buildPublicCommunityMessage = ({ text, actor, id, createdAt }) => {
       name: actorName,
       displayName: actorName,
       email: pickFirstString(actor && actor.email),
-      avatar: pickFirstString(actor && actor.avatar),
+      avatar: pickPublicAvatar(actor && actor.avatar),
       app: pickFirstString(actor && actor.app) || 'speakapp',
       premium: Boolean(actor && actor.premium)
     }
@@ -3398,7 +3414,7 @@ const getAuthPayload = (req) => {
             source.email
           ),
           email: pickFirstString(source.email),
-          avatar: pickFirstString(source.avatar, source.image, source.img),
+          avatar: pickPublicAvatar(source.avatar, source.image, source.img),
           app: pickFirstString(source.app, source.origen, source.origin),
           premium:
             source.premium === true ||
@@ -3600,16 +3616,28 @@ const authHandler = (req, res) => {
     return;
   }
 
+  const safePresenceUserInfo = isPresence
+    ? normalizeCommunityActor(
+        {
+          ...(userInfo && typeof userInfo === 'object' ? userInfo : {}),
+          user_id: safeUserId
+        },
+        {
+          id: String(safeUserId),
+          app: pickFirstString(userInfo && userInfo.app, userInfo && userInfo.origin, 'english-course')
+        }
+      )
+    : userInfo || {};
   const presenceData = {
     user_id: String(safeUserId),
-    user_info: userInfo || {}
+    user_info: safePresenceUserInfo
   };
   if (channelName === COMMUNITY_PUBLIC_PRESENCE_CHANNEL) {
     upsertLegacyCommunityPresence({
       roomId: COMMUNITY_PUBLIC_CHANNEL,
       actor: normalizeCommunityActor(
         {
-          ...(userInfo && typeof userInfo === 'object' ? userInfo : {}),
+          ...(safePresenceUserInfo && typeof safePresenceUserInfo === 'object' ? safePresenceUserInfo : {}),
           user_id: safeUserId
         },
         {

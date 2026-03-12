@@ -311,7 +311,7 @@ class PageChat extends HTMLElement {
     const REALTIME_EMIT_TIMEOUT_MS = 8000;
     const CHATBOT_REPLY_TIMEOUT_MS = 12000;
     const COMMUNITY_PUBLIC_CHANNEL = 'site-wide-chat-channel';
-    const COMMUNITY_PRESENCE_HEARTBEAT_MS = 10000;
+    const COMMUNITY_PRESENCE_HEARTBEAT_MS = 8000;
     const RECORDING_TIMESLICE = 500;
     const VOSK_SAMPLE_RATE_DEFAULT = 16000;
 	    const TALK_STORAGE_PREFIX = 'appv5:talk-timelines:';

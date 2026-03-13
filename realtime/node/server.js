@@ -3,6 +3,7 @@ const crypto = require('crypto');
 const fs = require('fs');
 const http = require('http');
 const https = require('https');
+const { spawn } = require('child_process');
 const { PollyClient, SynthesizeSpeechCommand } = require('@aws-sdk/client-polly');
 const { S3Client, PutObjectCommand, HeadObjectCommand, GetObjectCommand } = require('@aws-sdk/client-s3');
 
@@ -182,6 +183,17 @@ const COMMUNITY_PUSH_PROVIDER_TIMEOUT_MS = (() => {
   return parsed > 0 ? parsed : 8000;
 })();
 const COMMUNITY_PUSH_DESTINATION = env('COMMUNITY_PUSH_DESTINATION', 'speak');
+const COMMUNITY_PUSH_SCRIPT_DIR = (() => {
+  const configured = env('COMMUNITY_PUSH_SCRIPT_DIR', '');
+  if (configured) return configured;
+  return fs.existsSync('/opt/backendV4/send_push') ? '/opt/backendV4/send_push' : '';
+})();
+const COMMUNITY_PUSH_NODE_BIN = env('COMMUNITY_PUSH_NODE_BIN', 'node');
+const COMMUNITY_PUSH_TRANSPORT = (() => {
+  const configured = env('COMMUNITY_PUSH_TRANSPORT', '').trim();
+  if (configured) return configured;
+  return COMMUNITY_PUSH_SCRIPT_DIR ? 'script' : 'http';
+})();
 
 const formatUsageDay = (value) => {
   if (!value) return '';
@@ -1997,6 +2009,51 @@ const postJson = (targetUrl, payload, { timeoutMs = 8000, headers = {} } = {}) =
   });
 };
 
+const runNodeScript = (scriptPath, args = [], { timeoutMs = 8000 } = {}) =>
+  new Promise((resolve, reject) => {
+    const child = spawn(COMMUNITY_PUSH_NODE_BIN, [scriptPath, ...args], {
+      stdio: ['ignore', 'pipe', 'pipe']
+    });
+    let stdout = '';
+    let stderr = '';
+    let finished = false;
+
+    const finish = (result) => {
+      if (finished) return;
+      finished = true;
+      resolve(result);
+    };
+
+    const timer =
+      timeoutMs > 0
+        ? setTimeout(() => {
+            child.kill('SIGTERM');
+            reject(new Error(`timeout after ${timeoutMs}ms`));
+          }, timeoutMs)
+        : null;
+
+    child.stdout.on('data', (chunk) => {
+      stdout += chunk.toString();
+    });
+    child.stderr.on('data', (chunk) => {
+      stderr += chunk.toString();
+    });
+    child.on('error', (err) => {
+      if (timer) clearTimeout(timer);
+      reject(err);
+    });
+    child.on('close', (code, signal) => {
+      if (timer) clearTimeout(timer);
+      finish({
+        ok: code === 0,
+        exitCode: code,
+        signal: signal || '',
+        stdout: stdout.trim(),
+        stderr: stderr.trim()
+      });
+    });
+  });
+
 const generateChatbotReply = async (channel, text, userMeta = {}) => {
   if (!text) return '';
   const session = getChatSession(channel);
@@ -3150,6 +3207,49 @@ const buildCommunityPushBody = (message) => {
   return `${text.slice(0, 137)}...`;
 };
 
+const resolveCommunityPushScriptPath = (tokenType) => {
+  const safeType = pickFirstString(tokenType).toLowerCase();
+  if (!COMMUNITY_PUSH_SCRIPT_DIR || !safeType) return '';
+  const fileName = safeType === 'apns' ? 'apns.js' : safeType === 'fcm' ? 'fcm.js' : '';
+  if (!fileName) return '';
+  const scriptPath = path.join(COMMUNITY_PUSH_SCRIPT_DIR, fileName);
+  return fs.existsSync(scriptPath) ? scriptPath : '';
+};
+
+const sendCommunityPushViaScript = async ({ tokenType, token, title, body, destination }) => {
+  const scriptPath = resolveCommunityPushScriptPath(tokenType);
+  if (!scriptPath) {
+    throw new Error(`push_script_not_found:${tokenType || 'unknown'}`);
+  }
+  const args = [
+    '--token',
+    token,
+    '--title',
+    title || 'Nuevo mensaje',
+    '--body',
+    body || 'Tienes un mensaje nuevo.',
+    '--delay',
+    '0',
+    '--destination',
+    destination || COMMUNITY_PUSH_DESTINATION
+  ];
+  const result = await runNodeScript(scriptPath, args, {
+    timeoutMs: COMMUNITY_PUSH_PROVIDER_TIMEOUT_MS
+  });
+  const combinedOutput = `${result.stdout || ''}\n${result.stderr || ''}`.trim();
+  const scriptReportedError =
+    /(^|\s)[❌🚫]/u.test(combinedOutput) ||
+    /error al enviar|falta el parámetro|tipo inválido/i.test(combinedOutput);
+  return {
+    ok: result.ok && !scriptReportedError,
+    transport: 'script',
+    exitCode: result.exitCode,
+    signal: result.signal,
+    stdout: result.stdout,
+    stderr: result.stderr
+  };
+};
+
 const sendCommunityPushToToken = async ({ tokenRecord, title, body }) => {
   const safeToken = pickFirstString(tokenRecord && tokenRecord.token);
   const safeType = normalizePushTokenType(
@@ -3167,13 +3267,28 @@ const sendCommunityPushToToken = async ({ tokenRecord, title, body }) => {
     delay: 0,
     destination: pickFirstString(tokenRecord && tokenRecord.destination, COMMUNITY_PUSH_DESTINATION)
   };
-  const result = await postJson(COMMUNITY_PUSH_PROVIDER_URL, payload, {
-    timeoutMs: COMMUNITY_PUSH_PROVIDER_TIMEOUT_MS
-  });
+  let result;
+  if (COMMUNITY_PUSH_TRANSPORT === 'script') {
+    result = await sendCommunityPushViaScript({
+      tokenType: safeType,
+      token: safeToken,
+      title: payload.title,
+      body: payload.body,
+      destination: payload.destination
+    });
+  } else {
+    const httpResult = await postJson(COMMUNITY_PUSH_PROVIDER_URL, payload, {
+      timeoutMs: COMMUNITY_PUSH_PROVIDER_TIMEOUT_MS
+    });
+    result = {
+      ok: true,
+      transport: 'http',
+      status: httpResult.status,
+      data: httpResult.data
+    };
+  }
   return {
-    ok: true,
-    status: result.status,
-    data: result.data,
+    ...result,
     token_type: safeType,
     platform: pickFirstString(tokenRecord && tokenRecord.platform),
     uuid: pickFirstString(tokenRecord && tokenRecord.uuid)

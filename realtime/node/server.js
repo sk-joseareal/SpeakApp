@@ -269,39 +269,42 @@ const normalizeCommunityPresenceRoomType = (value) => {
   return '';
 };
 
+const hasOwnPresenceField = (source, ...keys) => {
+  const safeSource = source && typeof source === 'object' ? source : {};
+  return keys.some((key) => Object.prototype.hasOwnProperty.call(safeSource, key));
+};
+
+const readPresenceField = (source, snakeKey, camelKey, defaults = {}) => {
+  const safeSource = source && typeof source === 'object' ? source : {};
+  const safeDefaults = defaults && typeof defaults === 'object' ? defaults : {};
+  if (hasOwnPresenceField(safeSource, snakeKey, camelKey)) {
+    const raw = Object.prototype.hasOwnProperty.call(safeSource, snakeKey)
+      ? safeSource[snakeKey]
+      : safeSource[camelKey];
+    if (raw === undefined || raw === null) return '';
+    return String(raw).trim();
+  }
+  return pickFirstString(safeDefaults[snakeKey], safeDefaults[camelKey]);
+};
+
 const normalizeCommunityPresenceContext = (source, defaults = {}) => {
   const safeSource = source && typeof source === 'object' ? source : {};
   const safeDefaults = defaults && typeof defaults === 'object' ? defaults : {};
   const appState = normalizeCommunityPresenceAppState(
-    pickFirstString(safeSource.app_state, safeSource.appState, safeDefaults.app_state, safeDefaults.appState)
+    readPresenceField(safeSource, 'app_state', 'appState', safeDefaults)
   );
-  const tab = pickFirstString(safeSource.tab, safeDefaults.tab).toLowerCase();
-  const chatMode = pickFirstString(
-    safeSource.chat_mode,
-    safeSource.chatMode,
-    safeDefaults.chat_mode,
-    safeDefaults.chatMode
-  ).toLowerCase();
-  const communityView = pickFirstString(
-    safeSource.community_view,
-    safeSource.communityView,
-    safeDefaults.community_view,
-    safeDefaults.communityView
+  const tab = readPresenceField(safeSource, 'tab', 'tab', safeDefaults).toLowerCase();
+  const chatMode = readPresenceField(safeSource, 'chat_mode', 'chatMode', safeDefaults).toLowerCase();
+  const communityView = readPresenceField(
+    safeSource,
+    'community_view',
+    'communityView',
+    safeDefaults
   ).toLowerCase();
   const activeRoomType = normalizeCommunityPresenceRoomType(
-    pickFirstString(
-      safeSource.active_room_type,
-      safeSource.activeRoomType,
-      safeDefaults.active_room_type,
-      safeDefaults.activeRoomType
-    )
+    readPresenceField(safeSource, 'active_room_type', 'activeRoomType', safeDefaults)
   );
-  const activeRoomId = pickFirstString(
-    safeSource.active_room_id,
-    safeSource.activeRoomId,
-    safeDefaults.active_room_id,
-    safeDefaults.activeRoomId
-  );
+  const activeRoomId = readPresenceField(safeSource, 'active_room_id', 'activeRoomId', safeDefaults);
   return {
     app_state: appState,
     tab,

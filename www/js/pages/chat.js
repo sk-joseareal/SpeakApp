@@ -1632,7 +1632,12 @@ class PageChat extends HTMLElement {
       communityPresenceHeartbeatTimer = null;
     };
 
-    const sendCommunityPresence = async ({ action = 'heartbeat', keepalive = false, silent = false } = {}) => {
+    const sendCommunityPresence = async ({
+      action = 'heartbeat',
+      keepalive = false,
+      silent = false,
+      contextOverride = null
+    } = {}) => {
       const endpoint = getCommunityPublicPresenceEndpoint();
       const user = window.user;
       const userId = user && user.id !== undefined && user.id !== null ? String(user.id).trim() : '';
@@ -1648,12 +1653,28 @@ class PageChat extends HTMLElement {
         app: 'speakapp',
         premium: isChatEnabledUser(user)
       };
-      Object.assign(payload, getCommunityPresenceContextPayload());
+      Object.assign(
+        payload,
+        getCommunityPresenceContextPayload(),
+        contextOverride && typeof contextOverride === 'object' ? contextOverride : {}
+      );
       const realtimeStateToken = getRealtimeStateToken();
       if (realtimeStateToken) {
         payload.rt_token = realtimeStateToken;
       }
       try {
+        if (
+          keepalive &&
+          typeof navigator !== 'undefined' &&
+          typeof navigator.sendBeacon === 'function'
+        ) {
+          const body = new Blob([JSON.stringify(payload)], { type: 'application/json' });
+          const queued = navigator.sendBeacon(endpoint, body);
+          if (!queued) {
+            throw new Error(`community_presence_${action}_beacon_failed`);
+          }
+          return true;
+        }
         const response = await fetch(endpoint, {
           method: 'POST',
           headers: buildRealtimeStateHeaders({ 'Content-Type': 'application/json', Accept: 'application/json' }),
@@ -5409,9 +5430,32 @@ class PageChat extends HTMLElement {
       }
     };
 
-    const handleDocumentVisibilityChange = () => {
-      if (typeof document === 'undefined' || document.hidden) return;
+    const syncCommunityStateAfterResume = async () => {
+      if (chatMode !== 'community' || !window.user || window.user.id === undefined || window.user.id === null) {
+        return;
+      }
       refreshCommunityPresenceNow({ silent: true });
+      await loadCommunityDmRooms({ force: true });
+      if (communityView === 'dm' && activeCommunityDmRoomId) {
+        await loadCommunityDmHistory(activeCommunityDmRoomId, { force: true });
+      } else if (communityView === 'public') {
+        await loadCommunityHistory({ force: true });
+      }
+      renderThread('community');
+    };
+
+    const handleDocumentVisibilityChange = () => {
+      if (typeof document === 'undefined') return;
+      if (document.hidden) {
+        sendCommunityPresence({
+          action: 'heartbeat',
+          keepalive: true,
+          silent: true,
+          contextOverride: { app_state: 'background' }
+        });
+        return;
+      }
+      syncCommunityStateAfterResume();
     };
 
     const previousTriggerResume = typeof window._trigger_resume === 'function' ? window._trigger_resume : null;
@@ -5421,13 +5465,19 @@ class PageChat extends HTMLElement {
       if (typeof previousTriggerResume === 'function') {
         previousTriggerResume();
       }
-      refreshCommunityPresenceNow({ silent: true });
+      syncCommunityStateAfterResume();
     };
 
     window._trigger_pause = () => {
       if (typeof previousTriggerPause === 'function') {
         previousTriggerPause();
       }
+      sendCommunityPresence({
+        action: 'heartbeat',
+        keepalive: true,
+        silent: true,
+        contextOverride: { app_state: 'background' }
+      });
     };
 
     sendBtn?.addEventListener('click', () => {

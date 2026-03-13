@@ -4798,6 +4798,40 @@ class PageChat extends HTMLElement {
           loadCommunityDmRooms({ force: true });
           renderCommunityLists();
         });
+        pusherCommunityPublicChannel.bind('private_chat_message', (data) => {
+          const roomId = pickFirstText(
+            data && data.private_channel ? String(data.private_channel).replace(/^private-/, '') : '',
+            data && data.room_id
+          );
+          const user1 = pickFirstText(data && data.user1);
+          const user2 = pickFirstText(data && data.user2);
+          const actorId = pickFirstText(data && data.actor && data.actor.id);
+          if (!roomId || !user1 || !user2 || (user1 !== userId && user2 !== userId)) return;
+          if (actorId && actorId === userId) return;
+          const peerId = user1 === userId ? user2 : user1;
+          const alreadySubscribed = pusherCommunityDmChannels.has(roomId);
+          const existingRoom = communityDmRooms.find((room) => room && room.roomId === roomId) || null;
+          upsertCommunityRoom({
+            room_id: roomId,
+            channel: `private-${roomId}`,
+            last_message_preview: pickFirstText(data && data.text),
+            last_message_at: pickFirstText(data && data.created_at) || new Date().toISOString(),
+            last_message_actor_id: actorId,
+            last_message_actor_name: pickFirstText(data && data.actor && data.actor.name),
+            peer: {
+              id: peerId
+            }
+          });
+          if (!alreadySubscribed && !isVisibleCommunityDmRoom(roomId)) {
+            const previousUnread = existingRoom ? Math.max(0, Number(existingRoom.unreadCount) || 0) : 0;
+            setCommunityRoomUnreadCount(roomId, Math.max(1, previousUnread + 1));
+          }
+          if (!alreadySubscribed) {
+            syncCommunityDmSubscriptions();
+            loadCommunityDmRooms({ force: true });
+          }
+          renderCommunityLists();
+        });
         pusherCommunityPublicChannel.bind('destroy_private_chat', (data) => {
           const roomId = pickFirstText(
             data && data.private_channel ? String(data.private_channel).replace(/^private-/, '') : ''

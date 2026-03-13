@@ -3353,6 +3353,22 @@ const buildLegacyPrivateChatPayload = (identity) => ({
   private_channel: identity.channel
 });
 
+const buildCommunityDmNoticePayload = (identity, message) => ({
+  room_id: identity.room_id,
+  private_channel: identity.channel,
+  user1: identity.user_ids[0],
+  user2: identity.user_ids[1],
+  created_at: pickFirstString(message && (message.created_at || message.published)),
+  text: normalizeCommunityText(message && message.text),
+  actor: {
+    id: pickFirstString(message && message.actor && message.actor.id),
+    name: pickFirstString(
+      message && message.actor && (message.actor.name || message.actor.displayName || message.actor.email)
+    ),
+    avatar: pickPublicAvatar(message && message.actor && message.actor.avatar)
+  }
+});
+
 const emitLegacyPrivateChatOpen = async (identity) => {
   await pusher.trigger(
     COMMUNITY_PUBLIC_CHANNEL,
@@ -3466,6 +3482,11 @@ const emitCommunityDmMessage = async ({ source, appName, emitLegacyOpen = false 
     });
   }
   await pusher.trigger(identity.channel, 'chat_message', message);
+  await pusher.trigger(
+    COMMUNITY_PUBLIC_CHANNEL,
+    'private_chat_message',
+    buildCommunityDmNoticePayload(identity, message)
+  );
   const delivery = buildCommunityDmDelivery({
     identity,
     actorId: actor.id

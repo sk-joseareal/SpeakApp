@@ -956,6 +956,7 @@ class PageChat extends HTMLElement {
         if (!text) return null;
         return {
           id: '',
+          clientMessageId: '',
           role: fallbackRole,
           text,
           audioUrl: '',
@@ -1006,6 +1007,12 @@ class PageChat extends HTMLElement {
       );
       return {
         id: pickFirstText(data.id),
+        clientMessageId: pickFirstText(
+          data.client_message_id,
+          data.clientMessageId,
+          data.message_id,
+          data.messageId
+        ),
         role,
         text,
         audioUrl,
@@ -2344,7 +2351,7 @@ class PageChat extends HTMLElement {
       }
     };
 
-    const emitCommunityDmMessage = async ({ roomId, text }) => {
+    const emitCommunityDmMessage = async ({ roomId, text, clientMessageId = '' }) => {
       const endpoint = getCommunityMessagesEndpoint();
       const currentUser = window.user;
       const currentUserId =
@@ -2370,6 +2377,7 @@ class PageChat extends HTMLElement {
             peer_name: pickFirstText(activeRoom.peer && activeRoom.peer.name),
             peer_avatar: pickFirstText(activeRoom.peer && activeRoom.peer.avatar),
             peer_app: pickFirstText(activeRoom.peer && activeRoom.peer.app),
+            client_message_id: pickFirstText(clientMessageId),
             text
           })
         });
@@ -3871,17 +3879,24 @@ class PageChat extends HTMLElement {
       const idRaw =
         message.id !== undefined && message.id !== null ? String(message.id).trim() : '';
       const failed = role === 'user' ? Boolean(message.failed) : false;
+      const sendStateRaw = pickFirstText(message.sendState, message.send_state);
+      const sendState =
+        role === 'user' && (sendStateRaw === 'sending' || sendStateRaw === 'sent' || sendStateRaw === 'failed')
+          ? sendStateRaw
+          : '';
       const speakText = normalizeChatText(message.speakText) || text;
       const audioUrl = sanitizeStoredAudioUrl(message.audioUrl || message.audio_url);
       const audioKind = normalizeAudioKind(message.audioKind || message.audio_kind);
       return {
         id: idRaw,
+        clientMessageId: pickFirstText(message.clientMessageId, message.client_message_id),
         role,
         text,
         audioUrl,
         audioKind,
         speakText,
         failed,
+        sendState,
         actorId: pickFirstText(message.actorId, message.actor_id),
         actorName: pickFirstText(message.actorName, message.actor_name),
         actorAvatar: pickFirstText(message.actorAvatar, message.actor_avatar),
@@ -4123,7 +4138,7 @@ class PageChat extends HTMLElement {
     };
 
     const renderMessage = (
-      { id, role, text, audioUrl, audioKind, speakText, failed, actorName, actorApp },
+      { id, clientMessageId, role, text, audioUrl, audioKind, speakText, failed, sendState, actorName, actorApp },
       mode
     ) => {
       if (!threadEl) return;
@@ -4145,6 +4160,25 @@ class PageChat extends HTMLElement {
         bubbleEl.appendChild(metaEl);
       }
       bubbleEl.appendChild(textEl);
+      const showSendState = mode === 'community' && communityView === 'dm' && role === 'user' && sendState;
+      if (showSendState) {
+        const stateEl = document.createElement('div');
+        stateEl.className = `chat-msg-state chat-msg-state-${sendState}`;
+        if (sendState === 'sending') {
+          stateEl.innerHTML = `<ion-icon name="time-outline"></ion-icon><span>${escapeHtml(
+            uiCopy.messageSending || 'Sending'
+          )}</span>`;
+        } else if (sendState === 'sent') {
+          stateEl.innerHTML = `<ion-icon name="checkmark-outline"></ion-icon><span>${escapeHtml(
+            uiCopy.messageSent || 'Sent'
+          )}</span>`;
+        } else {
+          stateEl.innerHTML = `<ion-icon name="alert-circle-outline"></ion-icon><span>${escapeHtml(
+            uiCopy.communityDmSendError || 'Send failed'
+          )}</span>`;
+        }
+        bubbleEl.appendChild(stateEl);
+      }
 
       const allowAudioAction = mode === 'catbot' || mode === 'chatbot';
       const showAudioAction = allowAudioAction && (mode !== 'chatbot' || role === 'bot');
@@ -4275,7 +4309,7 @@ class PageChat extends HTMLElement {
     };
 
     const appendMessage = (
-      { id, role, text, audioUrl, audioKind, speakText, failed, actorId, actorName, actorAvatar, actorApp },
+      { id, clientMessageId, role, text, audioUrl, audioKind, speakText, failed, sendState, actorId, actorName, actorAvatar, actorApp },
       options = {}
     ) => {
       const targetMode = options.mode || chatMode;
@@ -4288,6 +4322,15 @@ class PageChat extends HTMLElement {
       const normalizedAudioUrl = typeof audioUrl === 'string' ? audioUrl : '';
       const normalizedAudioKind = normalizeAudioKind(audioKind);
       const normalizedFailed = normalizedRole === 'user' ? Boolean(failed) : false;
+      const normalizedClientMessageId = pickFirstText(options.clientMessageId, clientMessageId);
+      const normalizedSendStateRaw = pickFirstText(options.sendState, sendState);
+      const normalizedSendState =
+        normalizedRole === 'user' &&
+        (normalizedSendStateRaw === 'sending' ||
+          normalizedSendStateRaw === 'sent' ||
+          normalizedSendStateRaw === 'failed')
+          ? normalizedSendStateRaw
+          : '';
       if (normalizedRole === 'bot') {
         typingState[targetMode] = false;
       }
@@ -4297,12 +4340,14 @@ class PageChat extends HTMLElement {
       }
       const message = {
         id: normalizedId,
+        clientMessageId: normalizedClientMessageId,
         role: normalizedRole,
         text: normalizedText,
         audioUrl: normalizedAudioUrl,
         audioKind: normalizedAudioKind,
         speakText: normalizedSpeakText,
         failed: normalizedFailed,
+        sendState: normalizedSendState,
         actorId: pickFirstText(actorId),
         actorName: pickFirstText(actorName),
         actorAvatar: pickFirstText(actorAvatar),
@@ -4534,6 +4579,35 @@ class PageChat extends HTMLElement {
           viewerId: userId
         });
         if (!message) return;
+        const normalizedClientMessageId = pickFirstText(message.clientMessageId);
+        const isOwnMessage = pickFirstText(message.actorId) === pickFirstText(userId);
+        if (isOwnMessage && normalizedClientMessageId) {
+          const reconciled = updateThreadMessage(
+            'community',
+            normalizedClientMessageId,
+            (current) => ({
+              ...current,
+              id: pickFirstText(message.id) || current.id,
+              clientMessageId: normalizedClientMessageId,
+              sendState: 'sent',
+              failed: false
+            }),
+            { scope: 'dm', roomId: room.roomId, rerender: true }
+          );
+          if (reconciled) {
+            upsertCommunityRoom({
+              ...room,
+              last_message_preview: message.text,
+              last_message_at: pickFirstText(data && (data.created_at || data.published)) || new Date().toISOString(),
+              last_message_actor_id: pickFirstText(message.actorId),
+              last_message_actor_name: pickFirstText(message.actorName),
+              last_message_actor_app: pickFirstText(message.actorApp)
+            });
+            setCommunityRoomUnreadCount(room.roomId, 0);
+            renderCommunityLists();
+            return;
+          }
+        }
         const ensuredId =
           message.id && String(message.id).trim() ? String(message.id).trim() : createChatMessageId();
         message.id = ensuredId;
@@ -4543,7 +4617,6 @@ class PageChat extends HTMLElement {
           scope: 'dm',
           roomId: room.roomId
         });
-        const isOwnMessage = pickFirstText(message.actorId) === pickFirstText(userId);
         const isVisibleRoom = isVisibleCommunityDmRoom(room.roomId);
         upsertCommunityRoom({
           ...room,
@@ -5224,6 +5297,33 @@ class PageChat extends HTMLElement {
           clearDraft(false);
           setHint(getDefaultHintForMode('community'));
           emitCommunityDmMessage({ roomId, text: userText }).then((result) => {
+          const clientMessageId = outboundMessageId;
+          appendMessage(
+            {
+              id: clientMessageId,
+              clientMessageId,
+              role: 'user',
+              text: userText,
+              audioUrl: '',
+              audioKind: '',
+              speakText: '',
+              failed: false,
+              sendState: 'sending',
+              actorId: pickFirstText(lastUserId),
+              actorName: getUserDisplayName(window.user),
+              actorAvatar: getUserPublicAvatar(window.user),
+              actorApp: 'speakapp'
+            },
+            {
+              mode: 'community',
+              autoplay: false,
+              scope: 'dm',
+              roomId,
+              sendState: 'sending',
+              clientMessageId
+            }
+          );
+          emitCommunityDmMessage({ roomId, text: userText, clientMessageId }).then((result) => {
             if (result && result.ok && result.message) {
               if (result.room) {
                 upsertCommunityRoom(result.room);
@@ -5238,12 +5338,18 @@ class PageChat extends HTMLElement {
                 viewerId: lastUserId || ''
               });
               if (normalizedMessage) {
-                appendMessage(normalizedMessage, {
-                  mode: 'community',
-                  autoplay: false,
-                  scope: 'dm',
-                  roomId
-                });
+                updateThreadMessage(
+                  'community',
+                  clientMessageId,
+                  (current) => ({
+                    ...current,
+                    id: pickFirstText(normalizedMessage.id) || current.id,
+                    clientMessageId,
+                    sendState: 'sent',
+                    failed: false
+                  }),
+                  { scope: 'dm', roomId, rerender: true }
+                );
                 syncVisibleCommunityDmReadState(roomId, {
                   silent: true,
                   message: normalizedMessage
@@ -5251,6 +5357,16 @@ class PageChat extends HTMLElement {
               }
               return;
             }
+            updateThreadMessage(
+              'community',
+              clientMessageId,
+              (current) => ({
+                ...current,
+                sendState: 'failed',
+                failed: true
+              }),
+              { scope: 'dm', roomId, rerender: true }
+            );
             presentSystemToast(uiCopy.communityDmSendError || uiCopy.serverUnavailable);
           });
           return;

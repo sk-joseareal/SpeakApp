@@ -3402,12 +3402,13 @@ const listCommunityDmRoomsForUser = (userId) => {
     .map((room) => hydrateCommunityDmRoom(room, safeUserId));
 };
 
-const buildCommunityDmMessage = ({ identity, text, actor, id, createdAt }) => {
+const buildCommunityDmMessage = ({ identity, text, actor, id, createdAt, clientMessageId }) => {
   const timestamp = createdAt || new Date().toISOString();
   const actorId = pickFirstString(actor && actor.id);
   const actorName = pickFirstString(actor && (actor.name || actor.displayName || actor.email));
   return {
     id: pickFirstString(id) || createCommunityMessageId(),
+    client_message_id: pickFirstString(clientMessageId),
     room_type: 'dm',
     room_id: identity.room_id,
     channel: identity.channel,
@@ -3476,6 +3477,7 @@ const buildCommunityDmNoticePayload = (identity, message) => ({
   private_channel: identity.channel,
   user1: identity.user_ids[0],
   user2: identity.user_ids[1],
+  client_message_id: pickFirstString(message && message.client_message_id),
   created_at: pickFirstString(message && (message.created_at || message.published)),
   text: normalizeCommunityText(message && message.text),
   actor: {
@@ -3576,7 +3578,13 @@ const emitCommunityDmMessage = async ({ source, appName, emitLegacyOpen = false 
   const message = buildCommunityDmMessage({
     identity,
     text,
-    actor
+    actor,
+    clientMessageId: pickFirstString(
+      source.client_message_id,
+      source.clientMessageId,
+      source.message_id,
+      source.messageId
+    )
   });
   appendCommunityDmMessage({
     identity,

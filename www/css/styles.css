@@ -2697,6 +2697,32 @@ page-chat ion-content::part(scroll) {
   color: var(--app-muted);
 }
 
+.chat-msg-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 8px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--app-muted);
+}
+
+.chat-msg-state ion-icon {
+  font-size: 0.9rem;
+}
+
+.chat-msg-state-sending {
+  color: #6c7391;
+}
+
+.chat-msg-state-sent {
+  color: #4c7eff;
+}
+
+.chat-msg-state-failed {
+  color: #d34d62;
+}
+
 .chat-community-presence {
   display: inline-flex;
   align-items: center;

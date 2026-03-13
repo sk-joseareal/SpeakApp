@@ -844,6 +844,9 @@ function queuePushInboxNotification(raw, source) {
       window.__pendingPushInbox = [];
     }
     window.__pendingPushInbox.push(payload);
+    if (typeof window.requestBadgeReset === 'function') {
+      window.requestBadgeReset(`push:${payload.source}`);
+    }
   } catch (err) {
     console.error('>#C04#> queuePushInboxNotification error:', err);
   }
@@ -1073,6 +1076,26 @@ async function PushNotificationsInit()
   console.log(">#C04#> PushNotificationsInit: Listeners apnsToken, fcmToken y pushNotificationTap registrados correctamente.");
 
 }
+
+window.requestBadgeReset = function(reason) {
+  try {
+    if (window.__badgeResetTimer) {
+      clearTimeout(window.__badgeResetTimer);
+    }
+    window.__badgeResetTimer = setTimeout(function() {
+      try {
+        if (typeof window.resetBadgeCount === 'function') {
+          console.log(`>#C00.05#> requestBadgeReset(${reason || 'unknown'})`);
+          window.resetBadgeCount();
+        }
+      } catch (err) {
+        console.warn('>#C00.05#> requestBadgeReset error:', err);
+      }
+    }, 80);
+  } catch (err) {
+    console.warn('>#C00.05#> requestBadgeReset scheduling error:', err);
+  }
+};
 
 async function enviarPush(type,delay = 0) {
   console.log(">#C04#> enviarPush.")
@@ -3080,6 +3103,9 @@ document.addEventListener('DOMContentLoaded', async function() {
     plugins.App.addListener('appStateChange', ({ isActive }) => {
       if (isActive) {
         console.log('--- Capacitor.Plugins.App.appStateChange: App resumed ---');
+        if (typeof window.requestBadgeReset === 'function') {
+          window.requestBadgeReset('appStateChange:resume');
+        }
         // Implementado en index.js
         if (window._trigger_resume) {
           console.log("|||||||||||||||| window._trigger_resume ||||||||||||||||")
@@ -3253,6 +3279,9 @@ document.addEventListener('DOMContentLoaded', async function() {
         console.log(">#C00.05#> No existe window.Capacitor.Plugins.P4w4Plugin.resetBadgeCount().");
       }
     }
+  }
+  if (typeof window.requestBadgeReset === 'function') {
+    window.requestBadgeReset('boot');
   }
   /////
   //

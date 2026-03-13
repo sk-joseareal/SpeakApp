@@ -997,8 +997,16 @@ async function PushNotificationsInit()
     // Registrarlo en el backend
     if (window.pushTokenReceived) {
       console.log("|||||||||||||||| window.pushTokenReceived(token.value) ||||||||||||||||");
-      // Implementado en index.js
-      window.pushTokenReceived(token.value);
+      const platform =
+        window.Capacitor && typeof window.Capacitor.getPlatform === 'function'
+          ? window.Capacitor.getPlatform()
+          : 'unknown';
+      window.pushTokenReceived({
+        token: token.value,
+        source: 'registration',
+        type: platform === 'android' ? 'fcm' : platform === 'ios' ? 'apns' : '',
+        platform
+      });
     }
 
   });
@@ -1032,14 +1040,29 @@ async function PushNotificationsInit()
     // Registrarlo en el backend
     if (window.pushTokenReceived) {
       console.log("|||||||||||||||| window.pushTokenReceived(e.detail.token) ||||||||||||||||");
-      // Implementado en index.js
-      window.pushTokenReceived(e.detail.token);
+      window.pushTokenReceived({
+        token: e.detail.token,
+        source: 'apns',
+        type: 'apns',
+        platform: 'ios'
+      });
     }
   });
 
   window.addEventListener('fcmToken', function(e) {
     console.log('>#C04#> fcmToken: 📲 Token fcm obtenido desde nativo:', e.detail.token);
-    window.__fcmToken = e.detail.token;    
+    window.__fcmToken = e.detail.token;
+    if (window.pushTokenReceived) {
+      window.pushTokenReceived({
+        token: e.detail.token,
+        source: 'fcm',
+        type: 'fcm',
+        platform:
+          window.Capacitor && typeof window.Capacitor.getPlatform === 'function'
+            ? window.Capacitor.getPlatform()
+            : 'unknown'
+      });
+    }
   });
 
   window.addEventListener('pushNotificationTap', function(e) {
@@ -2252,6 +2275,7 @@ window.varGlobal = {
 
 const USER_STORAGE_KEY = 'appv5:user';
 const USER_SESSION_STORAGE_KEY = 'appv5:user:session';
+const PUSH_TOKEN_STORAGE_KEY = 'appv5:push-tokens';
 window.user = window.user || null;
 
 const readUserFromStorage = (storage, key) => {
@@ -2333,6 +2357,10 @@ const notifyUserChange = (user) => {
 
 window.setUser = (user) => {
   window.user = user || null;
+  window.user_id =
+    window.user && window.user.id !== undefined && window.user.id !== null
+      ? String(window.user.id).trim()
+      : null;
   ensureUserRemoteAvatar(window.user);
   writeStoredUser(window.user);
   if (!window.user) {
@@ -2340,6 +2368,243 @@ window.setUser = (user) => {
   }
   notifyUserChange(window.user);
 };
+
+const readStoredPushTokens = () => {
+  try {
+    const raw = window.localStorage.getItem(PUSH_TOKEN_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (err) {
+    console.error('[push] error leyendo tokens almacenados', err);
+    return [];
+  }
+};
+
+const writeStoredPushTokens = (records) => {
+  try {
+    const safeRecords = Array.isArray(records) ? records : [];
+    window.localStorage.setItem(PUSH_TOKEN_STORAGE_KEY, JSON.stringify(safeRecords));
+  } catch (err) {
+    console.error('[push] error guardando tokens', err);
+  }
+};
+
+const getCurrentPushUserId = () => {
+  const direct =
+    window.user && window.user.id !== undefined && window.user.id !== null
+      ? String(window.user.id).trim()
+      : '';
+  if (direct) return direct;
+  if (window.user_id !== undefined && window.user_id !== null) {
+    const text = String(window.user_id).trim();
+    if (text) return text;
+  }
+  return '';
+};
+
+const pickFirstString = (...values) => {
+  for (let i = 0; i < values.length; i += 1) {
+    const value = values[i];
+    if (value === undefined || value === null) continue;
+    const text = String(value).trim();
+    if (text) return text;
+  }
+  return '';
+};
+
+const normalizePushTokenType = (value, platformHint = '', sourceHint = '') => {
+  const safePlatform = String(platformHint || '').trim().toLowerCase();
+  const safeValue = String(value || sourceHint || '').trim().toLowerCase();
+  if (safeValue === 'apns') return 'apns';
+  if (safeValue === 'fcm') return 'fcm';
+  if (safeValue === 'registration') {
+    if (safePlatform === 'android') return 'fcm';
+    if (safePlatform === 'ios') return 'apns';
+  }
+  if (safePlatform === 'android') return 'fcm';
+  if (safePlatform === 'ios') return 'apns';
+  return '';
+};
+
+const normalizePushTokenInput = (input) => {
+  const source = input && typeof input === 'object' ? input : { token: input };
+  const token = pickFirstString(source.token, source.value);
+  if (!token) return null;
+  const platform =
+    pickFirstString(
+      source.platform,
+      window.Capacitor && typeof window.Capacitor.getPlatform === 'function'
+        ? window.Capacitor.getPlatform()
+        : ''
+    ).toLowerCase() || 'unknown';
+  const tokenType = normalizePushTokenType(source.type, platform, source.source);
+  const uuid = window.uuid || window.localStorage.getItem('uuid') || '';
+  const userId = getCurrentPushUserId();
+  if (!uuid && !userId) return null;
+  return {
+    key: `${tokenType || 'auto'}:${token}`,
+    token,
+    token_type: tokenType,
+    platform,
+    source: pickFirstString(source.source, 'push'),
+    uuid,
+    user_id: userId,
+    destination: pickFirstString(source.destination, 'speak'),
+    app: 'speakapp',
+    updated_at: new Date().toISOString()
+  };
+};
+
+const upsertStoredPushToken = (record) => {
+  if (!record || !record.key) return;
+  const current = readStoredPushTokens();
+  const next = [];
+  let replaced = false;
+  for (const entry of current) {
+    if (!entry || entry.key !== record.key) {
+      next.push(entry);
+      continue;
+    }
+    next.push({
+      ...entry,
+      ...record,
+      synced_at: entry.synced_at || '',
+      synced_user_id: entry.synced_user_id || ''
+    });
+    replaced = true;
+  }
+  if (!replaced) {
+    next.push({
+      ...record,
+      synced_at: '',
+      synced_user_id: ''
+    });
+  }
+  writeStoredPushTokens(next);
+};
+
+const shouldSyncStoredPushToken = (record) => {
+  if (!record || !record.token) return false;
+  const currentUserId = getCurrentPushUserId();
+  const expectedUserId = currentUserId || pickFirstString(record.user_id);
+  const syncedUserId = pickFirstString(record.synced_user_id);
+  const syncedAt = Date.parse(pickFirstString(record.synced_at));
+  const updatedAt = Date.parse(pickFirstString(record.updated_at));
+  if (!pickFirstString(record.uuid, window.uuid || window.localStorage.getItem('uuid') || '')) return false;
+  if (!Number.isFinite(syncedAt)) return true;
+  if (Number.isFinite(updatedAt) && updatedAt > syncedAt) return true;
+  return expectedUserId !== syncedUserId;
+};
+
+const registerPushTokenRemote = async (record) => {
+  if (!record || !record.token) return { ok: false, error: 'token_required' };
+  const endpoint =
+    (window.realtimeConfig && window.realtimeConfig.pushRegisterEndpoint) ||
+    'https://realtime.curso-ingles.com/realtime/push/register';
+  const headers = { 'Content-Type': 'application/json' };
+  const rtToken = window.realtimeConfig && window.realtimeConfig.stateToken;
+  if (rtToken) headers['x-rt-token'] = rtToken;
+  const payload = {
+    token: record.token,
+    token_type: record.token_type,
+    platform: record.platform,
+    source: record.source,
+    destination: record.destination || 'speak',
+    uuid: pickFirstString(record.uuid, window.uuid || window.localStorage.getItem('uuid') || ''),
+    user_id: getCurrentPushUserId() || pickFirstString(record.user_id),
+    app: 'speakapp'
+  };
+  const res = await fetch(endpoint, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(payload)
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || !data || data.ok === false) {
+    return {
+      ok: false,
+      status: res.status,
+      error: (data && (data.error || data.message)) || 'push_register_failed'
+    };
+  }
+  return { ok: true, data };
+};
+
+let pushTokenSyncInFlight = false;
+const flushStoredPushTokens = async () => {
+  if (pushTokenSyncInFlight) return;
+  if (window.navigator && window.navigator.onLine === false) return;
+  const platform =
+    window.Capacitor && typeof window.Capacitor.getPlatform === 'function'
+      ? window.Capacitor.getPlatform()
+      : 'browser';
+  if (platform === 'browser' || platform === 'web') return;
+
+  const records = readStoredPushTokens();
+  if (!records.length) return;
+
+  pushTokenSyncInFlight = true;
+  try {
+    const next = [];
+    for (const entry of records) {
+      if (!entry || !entry.token) continue;
+      const normalized = normalizePushTokenInput(entry);
+      if (!normalized) {
+        next.push(entry);
+        continue;
+      }
+      const merged = {
+        ...entry,
+        ...normalized
+      };
+      if (!shouldSyncStoredPushToken(merged)) {
+        next.push(merged);
+        continue;
+      }
+      try {
+        const result = await registerPushTokenRemote(merged);
+        if (result.ok) {
+          next.push({
+            ...merged,
+            synced_at: new Date().toISOString(),
+            synced_user_id: getCurrentPushUserId() || pickFirstString(merged.user_id)
+          });
+        } else {
+          console.warn('[push] registro remoto fallido', result);
+          next.push(merged);
+        }
+      } catch (err) {
+        console.warn('[push] error registrando token remoto', err);
+        next.push(merged);
+      }
+    }
+    writeStoredPushTokens(next);
+  } finally {
+    pushTokenSyncInFlight = false;
+  }
+};
+
+window.pushTokenReceived = (input) => {
+  const record = normalizePushTokenInput(input);
+  if (!record) return;
+  upsertStoredPushToken(record);
+  flushStoredPushTokens();
+};
+
+window.flushPushTokenRegistrations = flushStoredPushTokens;
+
+window.addEventListener('app:user-change', () => {
+  flushStoredPushTokens();
+});
+
+window.addEventListener('online', () => {
+  flushStoredPushTokens();
+});
+
+setTimeout(() => {
+  flushStoredPushTokens();
+}, 1200);
 
 const isAvatarS3Url = (url) =>
   typeof url === 'string' && url.includes('s3.amazonaws.com/') && url.includes('/avatars/');
@@ -2415,11 +2680,16 @@ window.loadUser = () => {
   const stored = storedFromSession || readLocalUser();
   if (stored) {
     window.user = stored;
+    window.user_id =
+      window.user && window.user.id !== undefined && window.user.id !== null
+        ? String(window.user.id).trim()
+        : null;
     ensureUserRemoteAvatar(window.user);
     applyAvatarCacheBust(window.user);
     writeStoredUser(window.user, { syncLocal: !storedFromSession });
   } else if (!window.user) {
     window.user = null;
+    window.user_id = null;
   }
   notifyUserChange(window.user);
   if (window.user) {

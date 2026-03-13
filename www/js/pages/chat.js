@@ -1582,6 +1582,36 @@ class PageChat extends HTMLElement {
       }
     };
 
+    const getCommunityPresenceContextPayload = () => {
+      const activeTab = pickFirstText(currentAppTab).toLowerCase();
+      const appState =
+        typeof document !== 'undefined' && document.hidden ? 'background' : 'foreground';
+      const inChatTab = activeTab === 'chat';
+      const activeChatMode = inChatTab ? chatMode : '';
+      const activeCommunityView =
+        inChatTab && activeChatMode === 'community' ? communityView : '';
+      const activeRoomType =
+        activeCommunityView === 'dm' && activeCommunityDmRoomId
+          ? 'dm'
+          : activeCommunityView === 'public'
+            ? 'public'
+            : '';
+      const activeRoomId =
+        activeRoomType === 'dm'
+          ? activeCommunityDmRoomId
+          : activeRoomType === 'public'
+            ? COMMUNITY_PUBLIC_CHANNEL
+            : '';
+      return {
+        app_state: appState,
+        tab: activeTab,
+        chat_mode: activeChatMode,
+        community_view: activeCommunityView,
+        active_room_type: activeRoomType,
+        active_room_id: activeRoomId
+      };
+    };
+
     const getCommunityPublicMessagesEndpoint = () => {
       const config = getRealtimeConfig();
       return typeof config.communityPublicMessagesEndpoint === 'string'
@@ -1618,6 +1648,7 @@ class PageChat extends HTMLElement {
         app: 'speakapp',
         premium: isChatEnabledUser(user)
       };
+      Object.assign(payload, getCommunityPresenceContextPayload());
       const realtimeStateToken = getRealtimeStateToken();
       if (realtimeStateToken) {
         payload.rt_token = realtimeStateToken;
@@ -5908,10 +5939,10 @@ class PageChat extends HTMLElement {
       } else {
         syncCommunityUnreadIndicators();
       }
-      if (tab !== 'chat') return;
       if (chatMode === 'community') {
         refreshCommunityPresenceNow({ silent: true });
       }
+      if (tab !== 'chat') return;
       scrollChatTimelineToLatest('auto');
     };
     window.addEventListener('app:tab-change', this._tabChangeHandler);
@@ -5924,10 +5955,10 @@ class PageChat extends HTMLElement {
       } else {
         syncCommunityUnreadIndicators();
       }
-      if (tab !== 'chat') return;
       if (chatMode === 'community') {
         refreshCommunityPresenceNow({ silent: true });
       }
+      if (tab !== 'chat') return;
       scrollChatTimelineToLatest('auto');
     };
     window.addEventListener('app:tab-user-click', this._tabUserClickHandler);

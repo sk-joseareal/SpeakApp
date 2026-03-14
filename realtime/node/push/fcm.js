@@ -17,6 +17,10 @@ const body = String(args.body || 'Tienes un mensaje nuevo.').trim();
 const destination = String(args.destination || 'cursoingles').trim().toLowerCase() || 'cursoingles';
 const image = String(args.image || '').trim();
 const delaySeconds = Number.isFinite(Number(args.delay)) ? Math.max(0, Math.floor(Number(args.delay))) : 0;
+const legacySpeakServiceAccountPath =
+  '/opt/backendV4/send_push/speakapp-4653c-firebase-adminsdk-fbsvc-fbf6617169.json';
+const legacyCursoServiceAccountPath =
+  '/opt/backendV4/send_push/curso-ingles-9584cd5de4fd.json';
 
 if (!token) {
   console.error('Missing --token');
@@ -25,8 +29,10 @@ if (!token) {
 
 const serviceAccountPath = String(
   destination === 'speak'
-    ? process.env.COMMUNITY_PUSH_FCM_SERVICE_ACCOUNT_SPEAK_PATH || ''
-    : process.env.COMMUNITY_PUSH_FCM_SERVICE_ACCOUNT_CURSOINGLES_PATH || ''
+    ? process.env.COMMUNITY_PUSH_FCM_SERVICE_ACCOUNT_SPEAK_PATH ||
+        (fs.existsSync(legacySpeakServiceAccountPath) ? legacySpeakServiceAccountPath : '')
+    : process.env.COMMUNITY_PUSH_FCM_SERVICE_ACCOUNT_CURSOINGLES_PATH ||
+        (fs.existsSync(legacyCursoServiceAccountPath) ? legacyCursoServiceAccountPath : '')
 ).trim();
 
 if (!serviceAccountPath) {

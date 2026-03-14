@@ -15,15 +15,19 @@ const body = String(args.body || 'Tienes un mensaje nuevo.').trim();
 const destination = String(args.destination || 'cursoingles').trim().toLowerCase() || 'cursoingles';
 const image = String(args.image || '').trim();
 const delaySeconds = Number.isFinite(Number(args.delay)) ? Math.max(0, Math.floor(Number(args.delay))) : 0;
+const legacyKeyPath = '/opt/backendV4/send_push/AuthKey_5J64U76FC9.p8';
 
 if (!token) {
   console.error('Missing --token');
   process.exit(1);
 }
 
-const apnsKeyPath = String(process.env.COMMUNITY_PUSH_APNS_KEY_PATH || '').trim();
-const apnsKeyId = String(process.env.COMMUNITY_PUSH_APNS_KEY_ID || '').trim();
-const apnsTeamId = String(process.env.COMMUNITY_PUSH_APNS_TEAM_ID || '').trim();
+const apnsKeyPath = String(
+  process.env.COMMUNITY_PUSH_APNS_KEY_PATH ||
+    (fs.existsSync(legacyKeyPath) ? legacyKeyPath : '')
+).trim();
+const apnsKeyId = String(process.env.COMMUNITY_PUSH_APNS_KEY_ID || '5J64U76FC9').trim();
+const apnsTeamId = String(process.env.COMMUNITY_PUSH_APNS_TEAM_ID || 'T4LYZV6KKS').trim();
 const apnsProduction = String(process.env.COMMUNITY_PUSH_APNS_PRODUCTION || 'false').trim() === 'true';
 const apnsTopicSpeak = String(process.env.COMMUNITY_PUSH_APNS_TOPIC_SPEAK || 'com.sokinternet.speak').trim();
 const apnsTopicCurso = String(

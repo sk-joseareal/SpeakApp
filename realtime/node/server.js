@@ -204,18 +204,9 @@ const LOCAL_COMMUNITY_PUSH_SCRIPT_DIR = path.join(__dirname, 'push');
 const COMMUNITY_PUSH_SCRIPT_DIR = (() => {
   const configured = env('COMMUNITY_PUSH_SCRIPT_DIR', '');
   if (configured) return configured;
-  const localConfigured = Boolean(
-    COMMUNITY_PUSH_APNS_KEY_PATH ||
-      COMMUNITY_PUSH_APNS_KEY_ID ||
-      COMMUNITY_PUSH_APNS_TEAM_ID ||
-      COMMUNITY_PUSH_FCM_SERVICE_ACCOUNT_SPEAK_PATH ||
-      COMMUNITY_PUSH_FCM_SERVICE_ACCOUNT_CURSOINGLES_PATH
-  );
-  if (localConfigured && fs.existsSync(LOCAL_COMMUNITY_PUSH_SCRIPT_DIR)) {
-    return LOCAL_COMMUNITY_PUSH_SCRIPT_DIR;
-  }
+  if (fs.existsSync(LOCAL_COMMUNITY_PUSH_SCRIPT_DIR)) return LOCAL_COMMUNITY_PUSH_SCRIPT_DIR;
   if (fs.existsSync('/opt/backendV4/send_push')) return '/opt/backendV4/send_push';
-  return fs.existsSync(LOCAL_COMMUNITY_PUSH_SCRIPT_DIR) ? LOCAL_COMMUNITY_PUSH_SCRIPT_DIR : '';
+  return '';
 })();
 const COMMUNITY_PUSH_NODE_BIN = env('COMMUNITY_PUSH_NODE_BIN', 'node');
 const COMMUNITY_PUSH_TRANSPORT = (() => {

@@ -110,13 +110,37 @@
       border-collapse: collapse;
       font-size: 0.9rem;
     }
+    .table-wrap {
+      overflow-x: auto;
+    }
     th, td {
       text-align: left;
       padding: 8px 6px;
       border-bottom: 1px solid #edf0f6;
+      vertical-align: top;
     }
     th {
       color: #6b7280;
+      font-weight: 600;
+    }
+    .mono {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.82rem;
+    }
+    .cell-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: #eef2ff;
+      color: #334155;
+      font-size: 0.78rem;
       font-weight: 600;
     }
     .muted {
@@ -218,6 +242,52 @@
     </section>
 
     <section class="card">
+      <h2>Community Monitor</h2>
+      <div class="row">
+        <label>User id</label>
+        <input id="community-user-filter" placeholder="optional">
+      </div>
+      <div class="row">
+        <label>UUID</label>
+        <input id="community-uuid-filter" placeholder="optional">
+      </div>
+      <div class="row">
+        <label>Room id</label>
+        <input id="community-room-filter" placeholder="optional">
+      </div>
+      <div class="row">
+        <label>Audit type</label>
+        <input id="community-audit-type" placeholder="optional">
+      </div>
+      <div class="row">
+        <label>Limit</label>
+        <input id="community-audit-limit" type="number" value="100" min="1" max="1000">
+      </div>
+      <div class="row">
+        <button id="refresh-community-presence">Presence</button>
+        <button id="refresh-community-tokens" class="secondary">Push devices</button>
+        <button id="refresh-community-audit" class="secondary">Audit</button>
+        <button id="refresh-community-all" class="secondary">Refresh all</button>
+      </div>
+      <div id="community-monitor-status" class="muted">No data yet.</div>
+    </section>
+
+    <section class="card">
+      <h2>Community Presence</h2>
+      <div id="community-presence-output" class="muted">No data yet.</div>
+    </section>
+
+    <section class="card">
+      <h2>Push Devices</h2>
+      <div id="community-tokens-output" class="muted">No data yet.</div>
+    </section>
+
+    <section class="card">
+      <h2>Community Audit</h2>
+      <div id="community-audit-output" class="muted">No data yet.</div>
+    </section>
+
+    <section class="card">
       <h2>Log</h2>
       <div id="log" class="log"></div>
     </section>
@@ -230,12 +300,70 @@
     const statusEl = el('conn-status');
     const channelsOutput = el('channels-output');
     const channelsStatus = el('channels-status');
+    const communityMonitorStatus = el('community-monitor-status');
+    const communityPresenceOutput = el('community-presence-output');
+    const communityTokensOutput = el('community-tokens-output');
+    const communityAuditOutput = el('community-audit-output');
 
     const log = (line) => {
       const ts = new Date().toISOString();
       logEl.textContent += `[${ts}] ${line}\n`;
       logEl.scrollTop = logEl.scrollHeight;
     };
+
+    const escapeHtml = (value) =>
+      String(value == null ? '' : value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+
+    const formatText = (value, fallback = '-') => {
+      const text = String(value == null ? '' : value).trim();
+      return text || fallback;
+    };
+
+    const formatTs = (value) => {
+      const text = String(value == null ? '' : value).trim();
+      if (!text) return '-';
+      const date = new Date(text);
+      if (Number.isNaN(date.getTime())) return escapeHtml(text);
+      return escapeHtml(date.toLocaleString());
+    };
+
+    const getMonitorToken = () => el('monitor-token').value.trim();
+
+    const buildMonitorUrl = (pathname) => {
+      const channelsEndpoint = el('channels-endpoint').value.trim() || window.location.href;
+      return new URL(pathname, channelsEndpoint).toString();
+    };
+
+    const fetchMonitorJson = async (pathname, params = {}) => {
+      const url = new URL(buildMonitorUrl(pathname));
+      Object.entries(params || {}).forEach(([key, value]) => {
+        const text = String(value == null ? '' : value).trim();
+        if (text) url.searchParams.set(key, text);
+      });
+      const headers = {};
+      const token = getMonitorToken();
+      if (token) headers['x-monitor-token'] = token;
+      const res = await fetch(url.toString(), { headers });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const error = data && (data.error || data.message) ? data.error || data.message : `status ${res.status}`;
+        throw new Error(error);
+      }
+      return data;
+    };
+
+    const getCommunityMonitorFilters = () => ({
+      user_id: el('community-user-filter').value.trim(),
+      uuid: el('community-uuid-filter').value.trim(),
+      room_id: el('community-room-filter').value.trim(),
+      type: el('community-audit-type').value.trim(),
+      limit: el('community-audit-limit').value.trim()
+    });
 
     let pusher = null;
     let channel = null;
@@ -416,14 +544,234 @@
         `<table><thead><tr><th>Channel</th><th>Subs</th></tr></thead><tbody>${rows}</tbody></table>`;
     };
 
+    const renderCommunityPresence = (data) => {
+      const users = Array.isArray(data && data.users) ? data.users : [];
+      if (!users.length) {
+        communityPresenceOutput.textContent = 'No active presence data.';
+        return;
+      }
+      const rows = users
+        .map((user) => {
+          const sessions = Array.isArray(user && user.sessions) ? user.sessions : [];
+          const sessionsHtml = sessions.length
+            ? sessions
+                .map((session) => {
+                  const context = session && session.context ? session.context : {};
+                  return `
+                    <div class="cell-stack">
+                      <span class="pill">${escapeHtml(formatText(session.platform || session.app || 'unknown'))}</span>
+                      <span class="mono">${escapeHtml(formatText(session.uuid))}</span>
+                      <span>${escapeHtml(formatText(context.app_state))} / ${escapeHtml(formatText(context.tab))}</span>
+                      <span>${escapeHtml(formatText(context.active_room_type))} ${escapeHtml(formatText(context.active_room_id, ''))}</span>
+                      <span class="mono">${escapeHtml(formatText(session.ip))}</span>
+                    </div>
+                  `;
+                })
+                .join('')
+            : '-';
+          return `
+            <tr>
+              <td>${escapeHtml(formatText(user.user_id))}</td>
+              <td>
+                <div class="cell-stack">
+                  <strong>${escapeHtml(formatText(user.name))}</strong>
+                  <span class="muted">${escapeHtml(formatText(user.app))}</span>
+                </div>
+              </td>
+              <td>${escapeHtml(String(user.sessions_count ?? '-'))}</td>
+              <td>${escapeHtml(formatText(user.viewing_dm_room_id || (user.viewing_public ? 'public' : '')))}</td>
+              <td>${formatTs(user.last_seen_at)}</td>
+              <td>${sessionsHtml}</td>
+            </tr>
+          `;
+        })
+        .join('');
+      communityPresenceOutput.innerHTML = `
+        <div class="muted">Room: ${escapeHtml(formatText(data.room_id))} · Users: ${escapeHtml(String(data.user_count ?? users.length))}</div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>User</th>
+                <th>Name</th>
+                <th>Sessions</th>
+                <th>Active room</th>
+                <th>Last seen</th>
+                <th>Session detail</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+      `;
+    };
+
+    const renderCommunityTokens = (data) => {
+      const tokens = Array.isArray(data && data.tokens) ? data.tokens : [];
+      if (!tokens.length) {
+        communityTokensOutput.textContent = 'No push devices found.';
+        return;
+      }
+      const rows = tokens
+        .map((entry) => `
+          <tr>
+            <td>${escapeHtml(formatText(entry.user_id))}</td>
+            <td class="mono">${escapeHtml(formatText(entry.uuid))}</td>
+            <td>${escapeHtml(formatText(entry.platform))}</td>
+            <td>${escapeHtml(formatText(entry.token_type))}</td>
+            <td class="mono">${escapeHtml(formatText(entry.token_masked))}</td>
+            <td class="mono">${escapeHtml(formatText(entry.last_ip))}</td>
+            <td>${formatTs(entry.updated_at)}</td>
+          </tr>
+        `)
+        .join('');
+      communityTokensOutput.innerHTML = `
+        <div class="muted">Devices: ${escapeHtml(String(data.count ?? tokens.length))}</div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>User</th>
+                <th>UUID</th>
+                <th>Platform</th>
+                <th>Type</th>
+                <th>Token</th>
+                <th>Last IP</th>
+                <th>Updated</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+      `;
+    };
+
+    const renderCommunityAudit = (data) => {
+      const events = Array.isArray(data && data.events) ? data.events : [];
+      if (!events.length) {
+        communityAuditOutput.textContent = 'No audit events.';
+        return;
+      }
+      const rows = events
+        .map((event) => `
+          <tr>
+            <td>${formatTs(event.ts)}</td>
+            <td>${escapeHtml(formatText(event.type))}</td>
+            <td>${escapeHtml(formatText(event.user_id))}</td>
+            <td>${escapeHtml(formatText(event.room_id))}</td>
+            <td class="mono">${escapeHtml(formatText(event.uuid))}</td>
+            <td class="mono">${escapeHtml(formatText(event.ip))}</td>
+            <td class="mono">${escapeHtml(formatText(event.message_id || event.token_key || event.channel || event.session_id))}</td>
+          </tr>
+        `)
+        .join('');
+      communityAuditOutput.innerHTML = `
+        <div class="muted">Events: ${escapeHtml(String(data.count ?? events.length))}</div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Timestamp</th>
+                <th>Type</th>
+                <th>User</th>
+                <th>Room</th>
+                <th>UUID</th>
+                <th>IP</th>
+                <th>Detail</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+      `;
+    };
+
+    const refreshCommunityPresence = async () => {
+      const filters = getCommunityMonitorFilters();
+      const data = await fetchMonitorJson('/realtime/community/monitor/presence', {
+        room_id: filters.room_id,
+        user_id: filters.user_id
+      });
+      renderCommunityPresence(data);
+      return data;
+    };
+
+    const refreshCommunityTokens = async () => {
+      const filters = getCommunityMonitorFilters();
+      const data = await fetchMonitorJson('/realtime/community/monitor/push-tokens', {
+        user_id: filters.user_id,
+        uuid: filters.uuid
+      });
+      renderCommunityTokens(data);
+      return data;
+    };
+
+    const refreshCommunityAudit = async () => {
+      const filters = getCommunityMonitorFilters();
+      const data = await fetchMonitorJson('/realtime/community/monitor/audit', {
+        user_id: filters.user_id,
+        room_id: filters.room_id,
+        uuid: filters.uuid,
+        type: filters.type,
+        limit: filters.limit
+      });
+      renderCommunityAudit(data);
+      return data;
+    };
+
+    const refreshCommunityAll = async () => {
+      communityMonitorStatus.textContent = 'loading...';
+      try {
+        await Promise.all([
+          refreshCommunityPresence(),
+          refreshCommunityTokens(),
+          refreshCommunityAudit()
+        ]);
+        communityMonitorStatus.textContent = 'ok';
+      } catch (err) {
+        communityMonitorStatus.textContent = err.message;
+      }
+    };
+
     el('connect').addEventListener('click', connect);
     el('disconnect').addEventListener('click', disconnect);
     el('subscribe').addEventListener('click', subscribe);
     el('unsubscribe').addEventListener('click', unsubscribe);
     el('send').addEventListener('click', send);
     el('refresh-channels').addEventListener('click', refreshChannels);
+    el('refresh-community-presence').addEventListener('click', () => {
+      refreshCommunityPresence()
+        .then(() => {
+          communityMonitorStatus.textContent = 'presence ok';
+        })
+        .catch((err) => {
+          communityMonitorStatus.textContent = err.message;
+        });
+    });
+    el('refresh-community-tokens').addEventListener('click', () => {
+      refreshCommunityTokens()
+        .then(() => {
+          communityMonitorStatus.textContent = 'push devices ok';
+        })
+        .catch((err) => {
+          communityMonitorStatus.textContent = err.message;
+        });
+    });
+    el('refresh-community-audit').addEventListener('click', () => {
+      refreshCommunityAudit()
+        .then(() => {
+          communityMonitorStatus.textContent = 'audit ok';
+        })
+        .catch((err) => {
+          communityMonitorStatus.textContent = err.message;
+        });
+    });
+    el('refresh-community-all').addEventListener('click', refreshCommunityAll);
 
     connect();
+    refreshCommunityAll().catch((err) => {
+      communityMonitorStatus.textContent = err.message;
+    });
   </script>
 </body>
 </html>

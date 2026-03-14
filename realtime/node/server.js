@@ -2258,6 +2258,123 @@ const appendCommunityAuditEvent = (type, payload = {}) => {
   }
 };
 
+const maskTokenValue = (value) => {
+  const raw = pickFirstString(value);
+  if (!raw) return '';
+  if (raw.length <= 16) return raw;
+  return `${raw.slice(0, 8)}...${raw.slice(-8)}`;
+};
+
+const listCommunityMonitorPresenceUsers = ({ roomId = COMMUNITY_PUBLIC_CHANNEL, userId = '' } = {}) => {
+  const safeRoomId = pickFirstString(roomId, COMMUNITY_PUBLIC_CHANNEL) || COMMUNITY_PUBLIC_CHANNEL;
+  const safeUserId = pickFirstString(userId);
+  const state = getMutableCommunityPresenceState();
+  saveCommunityPresenceState(state);
+  const room = ensurePresenceRoom(state, safeRoomId);
+  const users = room && room.users && typeof room.users === 'object' ? room.users : {};
+  const rows = Object.keys(users)
+    .map((id) => summarizeCommunityPresenceUser(id, users[id] || {}, { includePrivateSessions: true }))
+    .filter((entry) => !safeUserId || pickFirstString(entry && entry.user_id) === safeUserId)
+    .sort((left, right) => {
+      const leftSeen = Date.parse(left && left.last_seen_at ? left.last_seen_at : '');
+      const rightSeen = Date.parse(right && right.last_seen_at ? right.last_seen_at : '');
+      const safeLeft = Number.isFinite(leftSeen) ? leftSeen : 0;
+      const safeRight = Number.isFinite(rightSeen) ? rightSeen : 0;
+      return safeRight - safeLeft;
+    });
+  return {
+    room_id: safeRoomId,
+    updated_at: room && room.updated_at ? room.updated_at : null,
+    user_count: rows.length,
+    users: rows
+  };
+};
+
+const listCommunityMonitorPushTokens = ({ userId = '', uuid = '', platform = '' } = {}) => {
+  const safeUserId = pickFirstString(userId);
+  const safeUuid = pickFirstString(uuid);
+  const safePlatform = normalizeCommunityPresencePlatform(platform);
+  const state = getMutableCommunityPushTokensState();
+  const tokens = Object.keys(state.tokens || {})
+    .map((key) => state.tokens[key])
+    .filter((entry) => {
+      if (!entry) return false;
+      if (safeUserId && pickFirstString(entry.user_id) !== safeUserId) return false;
+      if (safeUuid && pickFirstString(entry.uuid) !== safeUuid) return false;
+      if (safePlatform && normalizeCommunityPresencePlatform(entry.platform) !== safePlatform) return false;
+      return true;
+    })
+    .sort((left, right) => {
+      const leftTs = Date.parse(left && left.updated_at ? left.updated_at : '');
+      const rightTs = Date.parse(right && right.updated_at ? right.updated_at : '');
+      const safeLeft = Number.isFinite(leftTs) ? leftTs : 0;
+      const safeRight = Number.isFinite(rightTs) ? rightTs : 0;
+      return safeRight - safeLeft;
+    })
+    .map((entry) => ({
+      key: pickFirstString(entry && entry.key),
+      user_id: pickFirstString(entry && entry.user_id),
+      uuid: pickFirstString(entry && entry.uuid),
+      platform: pickFirstString(entry && entry.platform),
+      token_type: pickFirstString(entry && entry.token_type),
+      destination: pickFirstString(entry && entry.destination),
+      app: pickFirstString(entry && entry.app),
+      first_ip: normalizeClientIp(entry && entry.first_ip),
+      last_ip: normalizeClientIp(entry && entry.last_ip),
+      updated_at: pickFirstString(entry && entry.updated_at),
+      first_seen_at: pickFirstString(entry && entry.first_seen_at),
+      token_masked: maskTokenValue(entry && entry.token)
+    }));
+  return {
+    updated_at: state && state.updated_at ? state.updated_at : null,
+    count: tokens.length,
+    tokens
+  };
+};
+
+const readCommunityAuditEvents = ({ userId = '', roomId = '', uuid = '', type = '', limit = 100 } = {}) => {
+  const safeUserId = pickFirstString(userId);
+  const safeRoomId = pickFirstString(roomId);
+  const safeUuid = pickFirstString(uuid);
+  const safeType = pickFirstString(type);
+  const safeLimit = Math.min(toPositiveInteger(limit, 100), 1000);
+  try {
+    if (!fs.existsSync(communityAuditFile)) {
+      return { count: 0, events: [] };
+    }
+    const raw = fs.readFileSync(communityAuditFile, 'utf8');
+    const events = String(raw || '')
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line) => {
+        try {
+          return JSON.parse(line);
+        } catch (err) {
+          return null;
+        }
+      })
+      .filter(Boolean)
+      .filter((event) => {
+        if (safeUserId && pickFirstString(event && event.user_id) !== safeUserId) return false;
+        if (safeRoomId && pickFirstString(event && event.room_id) !== safeRoomId) return false;
+        if (safeUuid && pickFirstString(event && event.uuid) !== safeUuid) return false;
+        if (safeType && pickFirstString(event && event.type) !== safeType) return false;
+        return true;
+      });
+    return {
+      count: events.length,
+      events: events.slice(-safeLimit).reverse()
+    };
+  } catch (err) {
+    return {
+      count: 0,
+      error: err && err.message ? err.message : 'audit_read_failed',
+      events: []
+    };
+  }
+};
+
 const sanitizeOwner = (value) => {
   if (!value) return '';
   return String(value)
@@ -5420,6 +5537,47 @@ app.get('/realtime/channels', (req, res) => {
       }
     }
     res.status(statusCode).json(body || {});
+  });
+});
+
+app.get('/realtime/community/monitor/presence', (req, res) => {
+  if (!authorizeMonitor(req, res)) return;
+  const payload = listCommunityMonitorPresenceUsers({
+    roomId: pickFirstString(req.query.room_id, req.query.roomId, COMMUNITY_PUBLIC_CHANNEL),
+    userId: pickFirstString(req.query.user_id, req.query.userId)
+  });
+  res.json({
+    ok: true,
+    ...payload
+  });
+});
+
+app.get('/realtime/community/monitor/push-tokens', (req, res) => {
+  if (!authorizeMonitor(req, res)) return;
+  const payload = listCommunityMonitorPushTokens({
+    userId: pickFirstString(req.query.user_id, req.query.userId),
+    uuid: pickFirstString(req.query.uuid),
+    platform: pickFirstString(req.query.platform)
+  });
+  res.json({
+    ok: true,
+    ...payload
+  });
+});
+
+app.get('/realtime/community/monitor/audit', (req, res) => {
+  if (!authorizeMonitor(req, res)) return;
+  const payload = readCommunityAuditEvents({
+    userId: pickFirstString(req.query.user_id, req.query.userId),
+    roomId: pickFirstString(req.query.room_id, req.query.roomId),
+    uuid: pickFirstString(req.query.uuid),
+    type: pickFirstString(req.query.type),
+    limit: req.query.limit
+  });
+  const statusCode = payload && payload.error ? 500 : 200;
+  res.status(statusCode).json({
+    ok: !payload.error,
+    ...payload
   });
 });
 

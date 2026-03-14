@@ -1,14 +1,8 @@
 'use strict';
 
 const fs = require('fs');
-const {
-  delay,
-  loadJsonFile,
-  parseArgs,
-  postForm,
-  postJson,
-  signJwt
-} = require('./shared');
+const admin = require('firebase-admin');
+const { delay, loadJsonFile, parseArgs } = require('./shared');
 
 const args = parseArgs(process.argv.slice(2));
 const token = String(args.token || '').trim();
@@ -45,111 +39,68 @@ if (!fs.existsSync(serviceAccountPath)) {
 }
 
 const serviceAccount = loadJsonFile(serviceAccountPath);
-const clientEmail = String(serviceAccount.client_email || '').trim();
-const privateKey = String(serviceAccount.private_key || '').trim();
 const projectId = String(serviceAccount.project_id || '').trim();
-
-if (!clientEmail || !privateKey || !projectId) {
+if (!projectId) {
   console.error('Invalid FCM service account file');
   process.exit(1);
 }
 
-const buildAccessToken = async () => {
-  const assertion = signJwt({
-    header: {
-      alg: 'RS256',
-      typ: 'JWT'
+const appName = `community-push-${projectId}`;
+const app =
+  admin.apps.find((candidate) => candidate && candidate.name === appName) ||
+  admin.initializeApp(
+    {
+      credential: admin.credential.cert(serviceAccount),
+      projectId
     },
-    payload: {
-      iss: clientEmail,
-      scope: 'https://www.googleapis.com/auth/firebase.messaging',
-      aud: 'https://oauth2.googleapis.com/token',
-      iat: Math.floor(Date.now() / 1000),
-      exp: Math.floor(Date.now() / 1000) + 3600
-    },
-    privateKeyPem: privateKey,
-    algorithm: 'RS256'
-  });
+    appName
+  );
 
-  const response = await postForm('https://oauth2.googleapis.com/token', {
-    grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
-    assertion
-  });
-
-  if (response.statusCode < 200 || response.statusCode >= 300) {
-    throw new Error(`OAuth token request failed: HTTP ${response.statusCode} ${response.body || ''}`);
-  }
-
-  const parsed = JSON.parse(response.body || '{}');
-  const accessToken = String(parsed.access_token || '').trim();
-  if (!accessToken) {
-    throw new Error('OAuth token response missing access_token');
-  }
-  return accessToken;
-};
-
-const buildMessage = () => {
-  const notification = {
+const message = {
+  token,
+  notification: {
     title,
     body
-  };
-  if (image) {
-    notification.image = image;
-  }
-
-  const message = {
-    token,
-    notification,
-    android: {
-      priority: 'high',
-      notification: {
+  },
+  android: {
+    priority: 'high',
+    notification: {
+      sound: 'default'
+    }
+  },
+  apns: {
+    payload: {
+      aps: {
         sound: 'default'
       }
-    },
-    apns: {
-      payload: {
-        aps: {
-          sound: 'default'
-        }
-      }
     }
-  };
-
-  if (image) {
-    message.android.notification.imageUrl = image;
-    message.apns.fcm_options = {
-      image
-    };
   }
-
-  return { message };
 };
+
+if (image) {
+  message.notification.imageUrl = image;
+  message.android.notification.imageUrl = image;
+  message.apns.fcm_options = {
+    image
+  };
+}
 
 (async () => {
   try {
     await delay(delaySeconds);
-    const accessToken = await buildAccessToken();
-    const response = await postJson(
-      `https://fcm.googleapis.com/v1/projects/${encodeURIComponent(projectId)}/messages:send`,
-      buildMessage(),
-      {
-        Authorization: `Bearer ${accessToken}`
-      }
+    const response = await admin.messaging(app).send(message);
+    console.log(
+      JSON.stringify({
+        ok: true,
+        transport: 'fcm',
+        name: response || ''
+      })
     );
-
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw new Error(`FCM send failed: HTTP ${response.statusCode} ${response.body || ''}`);
-    }
-
-    const parsed = JSON.parse(response.body || '{}');
-    console.log(JSON.stringify({
-      ok: true,
-      transport: 'fcm',
-      name: parsed.name || ''
-    }));
+    await app.delete().catch(() => {});
     process.exit(0);
   } catch (err) {
     console.error(err && err.stack ? err.stack : String(err));
+    await app.delete().catch(() => {});
     process.exit(1);
   }
 })();

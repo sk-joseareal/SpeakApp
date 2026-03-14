@@ -9,7 +9,6 @@ const token = String(args.token || '').trim();
 const title = String(args.title || 'Nuevo mensaje').trim();
 const body = String(args.body || 'Tienes un mensaje nuevo.').trim();
 const destination = String(args.destination || 'cursoingles').trim().toLowerCase() || 'cursoingles';
-const image = String(args.image || '').trim();
 const delaySeconds = Number.isFinite(Number(args.delay)) ? Math.max(0, Math.floor(Number(args.delay))) : 0;
 const legacySpeakServiceAccountPath =
   '/opt/backendV4/send_push/speakapp-4653c-firebase-adminsdk-fbsvc-fbf6617169.json';
@@ -76,14 +75,6 @@ const message = {
     }
   }
 };
-
-if (image) {
-  message.notification.imageUrl = image;
-  message.android.notification.imageUrl = image;
-  message.apns.fcm_options = {
-    image
-  };
-}
 
 (async () => {
   try {

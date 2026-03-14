@@ -3285,13 +3285,14 @@ const sendCommunityPushToToken = async ({ tokenRecord, title, body, image }) => 
   if (!safeToken || !safeType) {
     return { ok: false, error: 'invalid_token_record' };
   }
+  const effectiveImage = safeType === 'apns' ? pickFirstString(image) : '';
   const payload = {
     type: safeType,
     token: safeToken,
     title: title || 'Nuevo mensaje',
     body: body || 'Tienes un mensaje nuevo.',
     delay: 0,
-    image: pickFirstString(image),
+    image: effectiveImage,
     destination: pickFirstString(tokenRecord && tokenRecord.destination, COMMUNITY_PUSH_DESTINATION)
   };
   let result;

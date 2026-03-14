@@ -26,6 +26,12 @@ app.use(express.json({ limit: '12mb' }));
 app.use(express.urlencoded({ extended: true, limit: '2mb' }));
 
 const env = (key, fallback) => (process.env[key] ? process.env[key] : fallback);
+const envFlag = (key, fallback = false) => {
+  const raw = process.env[key];
+  if (raw === undefined || raw === null || raw === '') return fallback;
+  return ['1', 'true', 'yes', 'on'].includes(String(raw).trim().toLowerCase());
+};
+app.set('trust proxy', envFlag('REALTIME_TRUST_PROXY', true));
 const provider = env('REALTIME_PROVIDER', 'soketi');
 const useTLS = env('REALTIME_USE_TLS', provider === 'pusher' ? 'true' : 'false') === 'true';
 const monitorToken = env('REALTIME_MONITOR_TOKEN', '');
@@ -344,6 +350,35 @@ const normalizeCommunityPresenceContext = (source, defaults = {}) => {
     community_view: communityView,
     active_room_type: activeRoomType,
     active_room_id: activeRoomId
+  };
+};
+
+const normalizeClientIp = (value) => {
+  const raw = pickFirstString(value);
+  if (!raw) return '';
+  const first = raw.split(',')[0].trim();
+  if (!first) return '';
+  if (first.startsWith('::ffff:')) return first.slice(7);
+  return first;
+};
+
+const getRequestClientMeta = (req) => {
+  const forwardedForHeader = req && typeof req.get === 'function' ? req.get('x-forwarded-for') : '';
+  const forwardedHeader = req && typeof req.get === 'function' ? req.get('forwarded') : '';
+  const ips = Array.isArray(req && req.ips) ? req.ips.map(normalizeClientIp).filter(Boolean) : [];
+  const ip =
+    normalizeClientIp((ips.length && ips[0]) || (req && req.ip) || forwardedForHeader) ||
+    normalizeClientIp(
+      req &&
+        req.socket &&
+        req.socket.remoteAddress
+    ) ||
+    '';
+  return {
+    ip,
+    forwarded_for: pickFirstString(forwardedForHeader),
+    forwarded: pickFirstString(forwardedHeader),
+    user_agent: pickFirstString(req && typeof req.get === 'function' ? req.get('user-agent') : '')
   };
 };
 
@@ -2192,6 +2227,7 @@ const communityPublicHistoryFile = path.join(communityDir, `${COMMUNITY_PUBLIC_C
 const communityPresenceFile = path.join(communityDir, 'presence.json');
 const communityDmRoomsFile = path.join(communityDir, 'dm-rooms.json');
 const communityPushTokensFile = path.join(communityDir, 'push-tokens.json');
+const communityAuditFile = path.join(communityDir, 'audit.jsonl');
 
 const ensureDir = (dirPath) => {
   try {
@@ -2206,6 +2242,21 @@ ensureDir(snapshotsDir);
 ensureDir(metaDir);
 ensureDir(communityDir);
 ensureDir(communityDmDir);
+
+const appendCommunityAuditEvent = (type, payload = {}) => {
+  const eventType = pickFirstString(type);
+  if (!eventType) return;
+  const event = {
+    ts: new Date().toISOString(),
+    type: eventType,
+    ...payload
+  };
+  try {
+    fs.appendFileSync(communityAuditFile, `${JSON.stringify(event)}\n`, 'utf8');
+  } catch (err) {
+    console.warn('[community-audit] append failed', err.message);
+  }
+};
 
 const sanitizeOwner = (value) => {
   if (!value) return '';
@@ -2372,6 +2423,41 @@ const saveCommunityPushTokensState = (state) => {
   writeJsonFile(communityPushTokensFile, state);
 };
 
+const normalizeCommunityPresencePlatform = (value) => {
+  const raw = pickFirstString(value).toLowerCase();
+  if (!raw) return '';
+  if (raw === 'ios' || raw === 'android' || raw === 'web' || raw === 'browser') return raw;
+  return raw;
+};
+
+const normalizeCommunityPresenceSessionMeta = (source, defaults = {}) => {
+  const safeSource = source && typeof source === 'object' ? source : {};
+  const safeDefaults = defaults && typeof defaults === 'object' ? defaults : {};
+  return {
+    uuid: pickFirstString(
+      safeSource.uuid,
+      safeSource.device_id,
+      safeSource.deviceId,
+      safeDefaults.uuid
+    ),
+    platform: normalizeCommunityPresencePlatform(
+      pickFirstString(safeSource.platform, safeDefaults.platform)
+    ),
+    ip: normalizeClientIp(pickFirstString(safeSource.ip, safeSource.client_ip, safeDefaults.ip)),
+    forwarded_for: pickFirstString(
+      safeSource.forwarded_for,
+      safeSource.forwardedFor,
+      safeDefaults.forwarded_for
+    ),
+    forwarded: pickFirstString(safeSource.forwarded, safeDefaults.forwarded),
+    user_agent: pickFirstString(
+      safeSource.user_agent,
+      safeSource.userAgent,
+      safeDefaults.user_agent
+    )
+  };
+};
+
 const normalizePushTokenType = (value, platformHint = '') => {
   const safePlatform = String(platformHint || '').trim().toLowerCase();
   const safeValue = String(value || '').trim().toLowerCase();
@@ -2391,6 +2477,7 @@ const normalizeCommunityPushTokenRecord = (source) => {
   const tokenType = normalizePushTokenType(source && (source.token_type || source.type || source.source), platform);
   const uuid = pickFirstString(source && (source.uuid || source.device_id || source.deviceId));
   const userId = pickFirstString(source && (source.user_id || source.userId || source.id));
+  const clientMeta = normalizeCommunityPresenceSessionMeta(source);
   if (!token || (!uuid && !userId)) return null;
   return {
     key: buildCommunityPushTokenKey(tokenType, token),
@@ -2402,6 +2489,10 @@ const normalizeCommunityPushTokenRecord = (source) => {
     source: pickFirstString(source && source.source, 'push'),
     destination: pickFirstString(source && source.destination, COMMUNITY_PUSH_DESTINATION),
     app: pickFirstString(source && source.app, 'speakapp'),
+    last_ip: clientMeta.ip,
+    forwarded_for: clientMeta.forwarded_for,
+    forwarded: clientMeta.forwarded,
+    user_agent: clientMeta.user_agent,
     updated_at: new Date().toISOString()
   };
 };
@@ -2420,7 +2511,9 @@ const upsertCommunityPushToken = (source) => {
     : {};
   state.tokens[normalized.key] = {
     ...previous,
-    ...normalized
+    ...normalized,
+    first_ip: pickFirstString(previous.first_ip, normalized.last_ip),
+    first_seen_at: pickFirstString(previous.first_seen_at, normalized.updated_at)
   };
   state.updated_at = normalized.updated_at;
   saveCommunityPushTokensState(state);
@@ -2544,13 +2637,13 @@ const pruneCommunityPresenceState = (state, now = Date.now()) => {
   return state;
 };
 
-const listActiveCommunityPresenceSessions = (entry) => {
+const listActiveCommunityPresenceSessions = (entry, { includePrivate = false } = {}) => {
   const sessions = entry && entry.sessions && typeof entry.sessions === 'object' ? entry.sessions : {};
   return Object.keys(sessions)
     .map((sessionId) => {
       const sessionEntry = sessions[sessionId];
       if (!sessionEntry || typeof sessionEntry !== 'object') return null;
-      return {
+      const normalized = {
         session_id: sessionId,
         last_seen_at: pickFirstString(sessionEntry.last_seen_at) || null,
         expires_at: pickFirstString(sessionEntry.expires_at) || null,
@@ -2562,6 +2655,15 @@ const listActiveCommunityPresenceSessions = (entry) => {
         app: pickFirstString(sessionEntry.app, entry && entry.app) || 'speakapp',
         context: normalizeCommunityPresenceContext(sessionEntry, entry && entry.context)
       };
+      if (includePrivate) {
+        normalized.uuid = pickFirstString(sessionEntry.uuid);
+        normalized.platform = normalizeCommunityPresencePlatform(sessionEntry.platform);
+        normalized.ip = normalizeClientIp(sessionEntry.ip);
+        normalized.forwarded_for = pickFirstString(sessionEntry.forwarded_for);
+        normalized.forwarded = pickFirstString(sessionEntry.forwarded);
+        normalized.user_agent = pickFirstString(sessionEntry.user_agent);
+      }
+      return normalized;
     })
     .filter(Boolean)
     .sort((left, right) => {
@@ -2573,8 +2675,8 @@ const listActiveCommunityPresenceSessions = (entry) => {
     });
 };
 
-const summarizeCommunityPresenceUser = (userId, entry) => {
-  const sessions = listActiveCommunityPresenceSessions(entry);
+const summarizeCommunityPresenceUser = (userId, entry, { includePrivateSessions = false } = {}) => {
+  const sessions = listActiveCommunityPresenceSessions(entry, { includePrivate: includePrivateSessions });
   const latestSession = sessions[0] || null;
   const visiblePublicSession =
     sessions.find(
@@ -2663,6 +2765,7 @@ const upsertCommunityPresence = ({
   actor,
   sessionId,
   context,
+  sessionMeta,
   source = 'heartbeat',
   activeWindowMs = COMMUNITY_PRESENCE_ACTIVE_WINDOW_MS,
   now = Date.now()
@@ -2679,6 +2782,7 @@ const upsertCommunityPresence = ({
   const existingUser = room.users[safeUserId] && typeof room.users[safeUserId] === 'object' ? room.users[safeUserId] : {};
   const sessions = existingUser.sessions && typeof existingUser.sessions === 'object' ? existingUser.sessions : {};
   const normalizedContext = normalizeCommunityPresenceContext(context, existingUser.context);
+  const normalizedSessionMeta = normalizeCommunityPresenceSessionMeta(sessionMeta, existingUser);
   const ttlMs = toPositiveInteger(activeWindowMs, COMMUNITY_PRESENCE_ACTIVE_WINDOW_MS);
   sessions[safeSessionId] = {
     session_id: safeSessionId,
@@ -2687,6 +2791,12 @@ const upsertCommunityPresence = ({
     active_window_ms: ttlMs,
     source: pickFirstString(source) || 'heartbeat',
     app: pickFirstString(safeActor.app, existingUser.app) || 'speakapp',
+    uuid: pickFirstString(normalizedSessionMeta.uuid),
+    platform: pickFirstString(normalizedSessionMeta.platform),
+    ip: pickFirstString(normalizedSessionMeta.ip),
+    forwarded_for: pickFirstString(normalizedSessionMeta.forwarded_for),
+    forwarded: pickFirstString(normalizedSessionMeta.forwarded),
+    user_agent: pickFirstString(normalizedSessionMeta.user_agent),
     ...normalizedContext
   };
   room.users[safeUserId] = {
@@ -2696,6 +2806,7 @@ const upsertCommunityPresence = ({
     app: pickFirstString(safeActor.app, existingUser.app) || 'speakapp',
     premium: safeActor.premium === true || existingUser.premium === true,
     last_seen_at: nowIso,
+    last_ip: pickFirstString(normalizedSessionMeta.ip, existingUser.last_ip),
     context: normalizedContext,
     sessions
   };
@@ -2705,12 +2816,13 @@ const upsertCommunityPresence = ({
   return { ok: true, summary: summarizeCommunityPresenceRoom(room) };
 };
 
-const upsertLegacyCommunityPresence = ({ roomId, actor, sessionId, context, now = Date.now() }) =>
+const upsertLegacyCommunityPresence = ({ roomId, actor, sessionId, context, sessionMeta, now = Date.now() }) =>
   upsertCommunityPresence({
     roomId,
     actor,
     sessionId,
     context,
+    sessionMeta,
     source: 'legacy',
     activeWindowMs: COMMUNITY_PRESENCE_LEGACY_WINDOW_MS,
     now
@@ -3101,12 +3213,13 @@ const getCommunityPublicPresenceUserMap = () => {
 };
 
 const getCommunityPublicPresenceEntryMap = () => {
-  const summary = getCommunityPresenceSummary(COMMUNITY_PUBLIC_CHANNEL);
+  const state = getMutableCommunityPresenceState();
+  const room = ensurePresenceRoom(state, COMMUNITY_PUBLIC_CHANNEL);
   const map = new Map();
-  (Array.isArray(summary.users) ? summary.users : []).forEach((entry) => {
-    const userId = pickFirstString(entry && entry.user_id);
+  const users = room && room.users && typeof room.users === 'object' ? room.users : {};
+  Object.keys(users).forEach((userId) => {
     if (!userId) return;
-    map.set(userId, entry);
+    map.set(userId, summarizeCommunityPresenceUser(userId, users[userId] || {}, { includePrivateSessions: true }));
   });
   return map;
 };
@@ -3172,6 +3285,55 @@ const buildCommunityRecipientDelivery = ({ userId, roomType, roomId }) => {
       active_room_type: pickFirstString(entry.active_room_type),
       active_room_id: pickFirstString(entry.active_room_id)
     }
+  };
+};
+
+const buildCommunityDeviceDeliveryForToken = ({ recipient, tokenRecord, roomType, roomId }) => {
+  const safeRecipient = recipient && typeof recipient === 'object' ? recipient : {};
+  const safeTokenRecord = tokenRecord && typeof tokenRecord === 'object' ? tokenRecord : {};
+  const tokenUuid = pickFirstString(safeTokenRecord.uuid);
+  const sessions = Array.isArray(safeRecipient.sessions) ? safeRecipient.sessions : [];
+  const matchedSessions = tokenUuid
+    ? sessions.filter((session) => pickFirstString(session && session.uuid) === tokenUuid)
+    : [];
+
+  if (!tokenUuid || !matchedSessions.length) {
+    return {
+      uuid: tokenUuid,
+      should_push: safeRecipient.should_push === true,
+      active_in_room: safeRecipient.active_in_room === true,
+      reason: pickFirstString(safeRecipient.reason, 'offline'),
+      matched_sessions_count: matchedSessions.length
+    };
+  }
+
+  const activeInRoom = matchedSessions.some((session) =>
+    isCommunityPresenceSessionViewingRoom(session, roomType, roomId)
+  );
+  const foregroundSessions = matchedSessions.filter(
+    (session) => session && session.context && session.context.app_state === 'foreground'
+  );
+  let reason = 'inactive';
+  if (activeInRoom) {
+    reason = 'active_room';
+  } else if (!foregroundSessions.length) {
+    reason = 'background';
+  } else {
+    const inChatCommunity = foregroundSessions.some(
+      (session) =>
+        session &&
+        session.context &&
+        session.context.tab === 'chat' &&
+        session.context.chat_mode === 'community'
+    );
+    reason = inChatCommunity ? 'different_room' : 'other_tab';
+  }
+  return {
+    uuid: tokenUuid,
+    should_push: !activeInRoom,
+    active_in_room: activeInRoom,
+    reason,
+    matched_sessions_count: matchedSessions.length
   };
 };
 
@@ -3336,7 +3498,7 @@ const dispatchCommunityDmPushes = async ({ message, delivery }) => {
 
   for (const recipient of recipients) {
     const safeUserId = pickFirstString(recipient && recipient.user_id);
-    if (!safeUserId || !recipient || recipient.should_push !== true) continue;
+    if (!safeUserId || !recipient) continue;
     const selectedTokens = selectPreferredCommunityPushTokens(listCommunityPushTokensForUser(safeUserId));
     if (!selectedTokens.length) {
       results.push({
@@ -3347,6 +3509,23 @@ const dispatchCommunityDmPushes = async ({ message, delivery }) => {
       continue;
     }
     for (const tokenRecord of selectedTokens) {
+      const deviceDelivery = buildCommunityDeviceDeliveryForToken({
+        recipient,
+        tokenRecord,
+        roomType: 'dm',
+        roomId: pickFirstString(delivery && delivery.room_id)
+      });
+      if (!deviceDelivery.should_push) {
+        results.push({
+          user_id: safeUserId,
+          ok: false,
+          skipped: 'active_device',
+          uuid: pickFirstString(tokenRecord && tokenRecord.uuid),
+          platform: pickFirstString(tokenRecord && tokenRecord.platform),
+          reason: deviceDelivery.reason
+        });
+        continue;
+      }
       try {
         const pushResult = await sendCommunityPushToToken({
           tokenRecord,
@@ -3356,12 +3535,14 @@ const dispatchCommunityDmPushes = async ({ message, delivery }) => {
         });
         results.push({
           user_id: safeUserId,
+          reason: deviceDelivery.reason,
           ...pushResult
         });
       } catch (err) {
         results.push({
           user_id: safeUserId,
           ok: false,
+          reason: deviceDelivery.reason,
           error: err && err.message ? err.message : 'push_send_failed'
         });
       }
@@ -3564,7 +3745,7 @@ const ensureCommunityDmRoom = async ({
   };
 };
 
-const emitCommunityDmMessage = async ({ source, appName, emitLegacyOpen = false }) => {
+const emitCommunityDmMessage = async ({ source, appName, emitLegacyOpen = false, clientMeta = {} }) => {
   const requestedRoomId = pickFirstString(source.room_id, source.roomId);
   const requestedChannel = pickFirstString(source.channel);
   const requestedIdentity =
@@ -3623,11 +3804,21 @@ const emitCommunityDmMessage = async ({ source, appName, emitLegacyOpen = false 
     peerActor,
     message
   });
+  appendCommunityAuditEvent('message_dm', {
+    room_id: identity.room_id,
+    message_id: pickFirstString(message.id),
+    user_id: pickFirstString(actor.id),
+    peer_user_id: identity.user_ids.find((candidate) => candidate !== senderId) || '',
+    uuid: pickFirstString(source.uuid, source.device_id, source.deviceId),
+    ip: normalizeClientIp(clientMeta.ip),
+    app: pickFirstString(actor.app)
+  });
   if ((actor.app || '').toLowerCase() === 'english-course') {
     upsertLegacyCommunityPresence({
       roomId: COMMUNITY_PUBLIC_CHANNEL,
       actor,
       sessionId: `legacy-send:${actor.id}`,
+      sessionMeta: normalizeCommunityPresenceSessionMeta(source, clientMeta),
       context: {
         app_state: 'foreground',
         tab: 'chat',
@@ -4328,7 +4519,10 @@ app.get('/realtime/health', (req, res) => {
 });
 
 const authHandler = (req, res) => {
+  const authSource = Object.assign({}, req.query || {}, req.body || {});
   const { socketId, channelName, userId, userInfo } = getAuthPayload(req);
+  const clientMeta = getRequestClientMeta(req);
+  const sessionMeta = normalizeCommunityPresenceSessionMeta(authSource, clientMeta);
   if (!socketId || !channelName) {
     res.status(400).json({ error: 'socket_id and channel_name required' });
     return;
@@ -4344,6 +4538,13 @@ const authHandler = (req, res) => {
         res.status(403).json({ error: 'unauthorized_channel' });
         return;
       }
+      appendCommunityAuditEvent('auth', {
+        channel: channelName,
+        socket_id: socketId,
+        user_id: safeUserId,
+        uuid: pickFirstString(sessionMeta.uuid),
+        ip: clientMeta.ip
+      });
       res.json(pusher.authenticate(socketId, channelName));
       return;
     }
@@ -4353,9 +4554,24 @@ const authHandler = (req, res) => {
         res.status(403).json({ error: 'unauthorized_channel' });
         return;
       }
+      appendCommunityAuditEvent('auth', {
+        channel: channelName,
+        socket_id: socketId,
+        user_id: safeUserId,
+        room_id: identity.room_id,
+        uuid: pickFirstString(sessionMeta.uuid),
+        ip: clientMeta.ip
+      });
       res.json(pusher.authenticate(socketId, channelName));
       return;
     }
+    appendCommunityAuditEvent('auth', {
+      channel: channelName,
+      socket_id: socketId,
+      user_id: safeUserId,
+      uuid: pickFirstString(sessionMeta.uuid),
+      ip: clientMeta.ip
+    });
     res.json(pusher.authenticate(socketId, channelName));
     return;
   }
@@ -4395,6 +4611,7 @@ const authHandler = (req, res) => {
         }
       ),
       sessionId: `legacy-auth:${String(socketId)}`,
+      sessionMeta,
       context: {
         app_state: 'foreground',
         tab: 'chat',
@@ -4405,6 +4622,13 @@ const authHandler = (req, res) => {
       }
     });
   }
+  appendCommunityAuditEvent('auth', {
+    channel: channelName,
+    socket_id: socketId,
+    user_id: safeUserId,
+    uuid: pickFirstString(sessionMeta.uuid),
+    ip: clientMeta.ip
+  });
   res.json(pusher.authenticate(socketId, channelName, presenceData));
 };
 
@@ -4417,12 +4641,21 @@ app.get('/chats/auth', authHandler);
 
 app.post('/realtime/push/register', (req, res) => {
   if (!authorizeState(req, res)) return;
-  const source = Object.assign({}, req.query || {}, req.body || {});
+  const clientMeta = getRequestClientMeta(req);
+  const source = Object.assign({}, req.query || {}, req.body || {}, clientMeta);
   const result = upsertCommunityPushToken(source);
   if (!result.ok) {
     res.status(400).json(result);
     return;
   }
+  appendCommunityAuditEvent('push_register', {
+    user_id: result.token.user_id,
+    uuid: pickFirstString(result.token.uuid),
+    platform: pickFirstString(result.token.platform),
+    token_type: pickFirstString(result.token.token_type),
+    token_key: pickFirstString(result.token.key),
+    ip: clientMeta.ip
+  });
   res.json({
     ok: true,
     token: {
@@ -4552,11 +4785,13 @@ app.get('/realtime/community/public/presence', (req, res) => {
 app.post('/realtime/community/public/presence', (req, res) => {
   if (!authorizeState(req, res)) return;
   const body = req.body && typeof req.body === 'object' ? req.body : {};
+  const clientMeta = getRequestClientMeta(req);
   const action = pickFirstString(body.action).toLowerCase() || 'heartbeat';
   const roomId = pickFirstString(body.room_id, body.roomId) || COMMUNITY_PUBLIC_CHANNEL;
   const actor = normalizeCommunityActor(body, { app: 'speakapp' });
   const sessionId = pickFirstString(body.session_id, body.sessionId);
   const context = normalizeCommunityPresenceContext(body);
+  const sessionMeta = normalizeCommunityPresenceSessionMeta(body, clientMeta);
 
   if (action === 'leave') {
     const result = removeCommunityPresenceSession({
@@ -4568,6 +4803,13 @@ app.post('/realtime/community/public/presence', (req, res) => {
       res.status(400).json({ ok: false, error: result.error || 'presence_leave_failed' });
       return;
     }
+    appendCommunityAuditEvent('presence_leave', {
+      room_id: roomId,
+      user_id: pickFirstString(actor.id),
+      session_id: sessionId,
+      uuid: pickFirstString(sessionMeta.uuid),
+      ip: clientMeta.ip
+    });
     res.json({
       ok: true,
       action: 'leave',
@@ -4587,12 +4829,26 @@ app.post('/realtime/community/public/presence', (req, res) => {
     roomId,
     actor,
     sessionId,
-    context
+    context,
+    sessionMeta
   });
   if (!result.ok) {
     res.status(400).json({ ok: false, error: result.error || 'presence_heartbeat_failed' });
     return;
   }
+  appendCommunityAuditEvent('presence_heartbeat', {
+    room_id: roomId,
+    user_id: pickFirstString(actor.id),
+    session_id: sessionId,
+    uuid: pickFirstString(sessionMeta.uuid),
+    platform: pickFirstString(sessionMeta.platform),
+    ip: clientMeta.ip,
+    app_state: pickFirstString(context.app_state),
+    tab: pickFirstString(context.tab),
+    chat_mode: pickFirstString(context.chat_mode),
+    active_room_type: pickFirstString(context.active_room_type),
+    active_room_id: pickFirstString(context.active_room_id)
+  });
   res.json({
     ok: true,
     action: 'heartbeat',
@@ -4607,7 +4863,7 @@ app.post('/realtime/community/public/presence', (req, res) => {
   });
 });
 
-const emitPublicCommunityMessage = async ({ source, appName }) => {
+const emitPublicCommunityMessage = async ({ source, appName, clientMeta = {} }) => {
   const text = normalizeCommunityText(
     source.text || source.message || source.body || source.content || ''
   );
@@ -4631,11 +4887,20 @@ const emitPublicCommunityMessage = async ({ source, appName }) => {
     actor
   });
   appendPublicCommunityMessage(message);
+  appendCommunityAuditEvent('message_public', {
+    room_id: COMMUNITY_PUBLIC_CHANNEL,
+    message_id: pickFirstString(message.id),
+    user_id: pickFirstString(actor.id),
+    uuid: pickFirstString(source.uuid, source.device_id, source.deviceId),
+    ip: normalizeClientIp(clientMeta.ip),
+    app: pickFirstString(actor.app)
+  });
   if ((actor.app || '').toLowerCase() === 'english-course') {
     upsertLegacyCommunityPresence({
       roomId: COMMUNITY_PUBLIC_CHANNEL,
       actor,
       sessionId: `legacy-send:${actor.id}`,
+      sessionMeta: normalizeCommunityPresenceSessionMeta(source, clientMeta),
       context: {
         app_state: 'foreground',
         tab: 'chat',
@@ -4656,6 +4921,7 @@ const emitPublicCommunityMessage = async ({ source, appName }) => {
 
 app.post('/realtime/community/messages', async (req, res) => {
   const source = Object.assign({}, req.query || {}, req.body || {});
+  const clientMeta = getRequestClientMeta(req);
   const roomType = pickFirstString(source.room_type, source.roomType, 'public').toLowerCase();
   try {
     let payload;
@@ -4663,12 +4929,14 @@ app.post('/realtime/community/messages', async (req, res) => {
       payload = await emitCommunityDmMessage({
         source,
         appName: pickFirstString(source.app, source.origen, source.origin, 'speakapp'),
-        emitLegacyOpen: true
+        emitLegacyOpen: true,
+        clientMeta
       });
     } else {
       payload = await emitPublicCommunityMessage({
         source,
-        appName: pickFirstString(source.app, source.origen, source.origin, 'speakapp')
+        appName: pickFirstString(source.app, source.origen, source.origin, 'speakapp'),
+        clientMeta
       });
     }
     const statusCode = payload && payload.statusCode ? payload.statusCode : 200;
@@ -4684,10 +4952,12 @@ app.post('/realtime/community/messages', async (req, res) => {
 
 app.post('/realtime/community/public/messages', async (req, res) => {
   const source = Object.assign({}, req.query || {}, req.body || {});
+  const clientMeta = getRequestClientMeta(req);
   try {
     const payload = await emitPublicCommunityMessage({
       source,
-      appName: pickFirstString(source.app, source.origen, source.origin, 'speakapp')
+      appName: pickFirstString(source.app, source.origen, source.origin, 'speakapp'),
+      clientMeta
     });
     const statusCode = payload && payload.statusCode ? payload.statusCode : 200;
     if (payload && Object.prototype.hasOwnProperty.call(payload, 'statusCode')) {
@@ -4702,13 +4972,15 @@ app.post('/realtime/community/public/messages', async (req, res) => {
 
 app.post('/v4/sendMessage', async (req, res) => {
   const source = Object.assign({}, req.query || {}, req.body || {});
+  const clientMeta = getRequestClientMeta(req);
   const channel = pickFirstString(source.channel, COMMUNITY_PUBLIC_CHANNEL);
   try {
     let payload;
     if (channel === COMMUNITY_PUBLIC_CHANNEL) {
       payload = await emitPublicCommunityMessage({
         source,
-        appName: 'english-course'
+        appName: 'english-course',
+        clientMeta
       });
     } else {
       payload = await emitCommunityDmMessage({
@@ -4721,7 +4993,8 @@ app.post('/v4/sendMessage', async (req, res) => {
           app: 'english-course'
         },
         appName: 'english-course',
-        emitLegacyOpen: true
+        emitLegacyOpen: true,
+        clientMeta
       });
     }
     const statusCode = payload && payload.statusCode ? payload.statusCode : 200;

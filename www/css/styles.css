@@ -2426,6 +2426,17 @@ page-chat ion-content::part(scroll) {
   background: #ffffff;
   font-size: 0.9rem;
   color: var(--app-text);
+  appearance: none;
+  -webkit-appearance: none;
+  outline: none;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.chat-text-input:focus,
+.chat-text-input:focus-visible {
+  outline: none;
+  border-color: rgba(76, 126, 255, 0.55);
+  box-shadow: 0 0 0 1px rgba(76, 126, 255, 0.16);
 }
 
 [hidden] {
@@ -3359,6 +3370,21 @@ page-chat ion-content::part(scroll) {
 .chat-hint {
   font-size: 0.85rem;
   color: var(--app-muted);
+}
+
+.chat-hint-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.2em;
+  height: 1.2em;
+  margin: 0 0.08em;
+  vertical-align: -0.16em;
+  color: var(--app-text);
+}
+
+.chat-hint-icon ion-icon {
+  font-size: 1.02em;
 }
 
 :root {

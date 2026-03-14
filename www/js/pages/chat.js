@@ -144,7 +144,7 @@ class PageChat extends HTMLElement {
                   </div>
                 </div>
               </div>
-              <div class="chat-hint" id="chat-chat-hint">${uiCopy.hintDefault}</div>
+              <div class="chat-hint" id="chat-chat-hint"></div>
             </div>
           </div>
         </div>
@@ -197,7 +197,7 @@ class PageChat extends HTMLElement {
     const composerRow = this.querySelector('#chat-composer-row');
     const textRow = this.querySelector('#chat-text-row');
     const textInput = this.querySelector('#chat-text-input');
-    let defaultHint = hintEl ? hintEl.textContent : uiCopy.hintDefault;
+    let defaultHint = uiCopy.hintDefault;
 
     const DEFAULT_SAMPLE_TRANSCRIPTS = [
       'I would like to order a coffee, please.',
@@ -1129,9 +1129,37 @@ class PageChat extends HTMLElement {
       Object.keys(replyTimers).forEach((mode) => cancelSimulatedReply(mode));
     };
 
-    const setHint = (text) => {
-      if (hintEl) hintEl.textContent = text;
+    const escapeHintText = (value) =>
+      String(value == null ? '' : value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+
+    const renderHintMarkup = (text) => {
+      const escaped = escapeHintText(text);
+      const recordLabel = escapeHintText(uiCopy.record || 'Record');
+      const stopLabel = escapeHintText(uiCopy.stop || 'Stop');
+      return escaped
+        .replace(
+          /\[record\]/g,
+          `<span class="chat-hint-icon" aria-label="${recordLabel}"><ion-icon name="mic"></ion-icon></span>`
+        )
+        .replace(
+          /\[stop\]/g,
+          `<span class="chat-hint-icon" aria-label="${stopLabel}"><ion-icon name="stop"></ion-icon></span>`
+        );
     };
+
+    const setHint = (text) => {
+      if (!hintEl) return;
+      const rawText = String(text == null ? '' : text);
+      hintEl.dataset.rawHint = rawText;
+      hintEl.innerHTML = renderHintMarkup(rawText);
+    };
+
+    setHint(defaultHint);
 
     const getDefaultHintForMode = (mode = chatMode) =>
       mode === 'community'
@@ -1637,6 +1665,26 @@ class PageChat extends HTMLElement {
       };
     };
 
+    const getClientUuid = () => {
+      try {
+        return pickFirstText(window.uuid, window.localStorage && window.localStorage.getItem('uuid'));
+      } catch (err) {
+        return pickFirstText(window.uuid);
+      }
+    };
+
+    const getClientPlatform = () => {
+      try {
+        const cap = window.Capacitor;
+        if (cap && typeof cap.getPlatform === 'function') {
+          return pickFirstText(cap.getPlatform()).toLowerCase();
+        }
+      } catch (err) {
+        // no-op
+      }
+      return '';
+    };
+
     const getCommunityPublicMessagesEndpoint = () => {
       const config = getRealtimeConfig();
       return typeof config.communityPublicMessagesEndpoint === 'string'
@@ -1671,6 +1719,8 @@ class PageChat extends HTMLElement {
         action,
         room_id: COMMUNITY_PUBLIC_CHANNEL,
         session_id: getCommunityPresenceSessionId(),
+        uuid: getClientUuid(),
+        platform: getClientPlatform(),
         user_id: userId,
         user_name: getUserDisplayName(user),
         email: user && user.email ? user.email : '',
@@ -1748,6 +1798,8 @@ class PageChat extends HTMLElement {
         action: 'leave',
         room_id: COMMUNITY_PUBLIC_CHANNEL,
         session_id: communityPresenceSessionId,
+        uuid: getClientUuid(),
+        platform: getClientPlatform(),
         user_id: lastUserId,
         app: 'speakapp'
       };
@@ -1824,6 +1876,8 @@ class PageChat extends HTMLElement {
       if (!endpoint || !userId) return { ok: false };
       const payload = {
         text,
+        uuid: getClientUuid(),
+        platform: getClientPlatform(),
         user_id: userId,
         user_name: getUserDisplayName(user),
         email: user && user.email ? user.email : '',
@@ -2341,6 +2395,8 @@ class PageChat extends HTMLElement {
             Accept: 'application/json'
           },
           body: JSON.stringify({
+            uuid: getClientUuid(),
+            platform: getClientPlatform(),
             user_id: currentUserId,
             user_name: getUserDisplayName(currentUser),
             avatar: getUserPublicAvatar(currentUser),
@@ -2386,6 +2442,8 @@ class PageChat extends HTMLElement {
           body: JSON.stringify({
             room_type: 'dm',
             room_id: roomId,
+            uuid: getClientUuid(),
+            platform: getClientPlatform(),
             user_id: currentUserId,
             user_name: getUserDisplayName(currentUser),
             avatar: getUserPublicAvatar(currentUser),
@@ -5941,7 +5999,7 @@ class PageChat extends HTMLElement {
 
       defaultHint = getDefaultHintForMode(chatMode);
       if (hintEl) {
-        const currentHint = String(hintEl.textContent || '').trim();
+        const currentHint = String(hintEl.dataset.rawHint || hintEl.textContent || '').trim();
         const shouldResetHint =
           !currentHint ||
           currentHint === previousDefaultHint ||

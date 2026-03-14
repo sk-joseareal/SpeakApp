@@ -41,18 +41,15 @@ class PageChat extends HTMLElement {
               <div>
                 <div class="chat-mode-toggle" id="chat-mode-toggle" hidden>
                   <button type="button" class="chat-mode-btn is-active" data-mode="catbot">${uiCopy.modeCatbot}</button>
-                  <button type="button" class="chat-mode-btn" data-mode="chatbot">${uiCopy.modeChatbot}</button>
-                  <button type="button" class="chat-mode-btn" data-mode="community">${uiCopy.modeCommunity}</button>
+                  <button type="button" class="chat-mode-btn" data-mode="public">${uiCopy.modePublic}</button>
+                  <button type="button" class="chat-mode-btn" data-mode="private">${uiCopy.modePrivate}</button>
+                  <button type="button" class="chat-mode-btn" data-mode="coach">${uiCopy.modeCoach}</button>
                 </div>
                 <h3 id="chat-coach-title">${uiCopy.coachCatbotTitle}</h3>
                 <p class="muted" id="chat-coach-subtitle">
                   ${uiCopy.coachCatbotSubtitle}
                 </p>
                 <div class="chat-community-presence" id="chat-community-presence" hidden></div>
-                <div class="chat-community-nav" id="chat-community-nav" hidden>
-                  <button type="button" class="chat-community-nav-btn is-active" data-community-view="public">${uiCopy.communityTabPublic}</button>
-                  <button type="button" class="chat-community-nav-btn" data-community-view="dm">${uiCopy.communityTabChats}</button>
-                </div>
               </div>
               <div class="coach-avatar coach-avatar-cat" id="chat-coach-avatar" aria-label="Coach">
                 <img
@@ -317,7 +314,7 @@ class PageChat extends HTMLElement {
 	    const TALK_STORAGE_PREFIX = 'appv5:talk-timelines:';
 	    const TALK_STORAGE_LEGACY = 'appv5:talk-timelines';
 	    const CHAT_MODE_DEBUG_KEY = 'appv5:chat-debug-chat-mode';
-	    const CHAT_COMMUNITY_ENABLED_KEY = 'appv5:chat-community-enabled';
+	    const CHAT_CATBOT_ENABLED_KEY = 'appv5:chat-catbot-enabled';
 	    const COMMUNITY_PRESENCE_SESSION_KEY = 'appv5:community-presence-session-id';
 	    const COMMUNITY_CHAT_UNREAD_STORAGE_PREFIX = 'appv5:chat-community-unread:';
 	    const APP_TAB_STORAGE_KEY = 'appv5:active-tab';
@@ -348,7 +345,7 @@ class PageChat extends HTMLElement {
     let playbackRequestToken = 0;
     const chatbotAlignedTtsCache = new Map();
     let chatbotAlignedTtsLimitStatus = null;
-    let communityFeatureEnabled = false;
+    let catbotFeatureEnabled = false;
     const coachMascotFramePaths = Array.from(
       new Set(
         Object.values(COACH_MASCOT_SEQUENCES).flatMap((sequence) =>
@@ -368,7 +365,7 @@ class PageChat extends HTMLElement {
       typeof window !== 'undefined' &&
       typeof window.speechSynthesis !== 'undefined' &&
       typeof window.SpeechSynthesisUtterance !== 'undefined';
-    const normalizeCommunityFeatureEnabled = (value) => {
+    const normalizeCatbotFeatureEnabled = (value) => {
       if (typeof value === 'boolean') return value;
       const normalized = String(value || '')
         .trim()
@@ -376,19 +373,20 @@ class PageChat extends HTMLElement {
       if (!normalized) return false;
       return ['1', 'true', 'on', 'yes'].includes(normalized);
     };
-    const getStoredCommunityFeatureEnabled = () => {
+    const getStoredCatbotFeatureEnabled = () => {
       const globalValue =
-        window.r34lp0w3r && Object.prototype.hasOwnProperty.call(window.r34lp0w3r, 'chatCommunityEnabled')
-          ? window.r34lp0w3r.chatCommunityEnabled
+        window.r34lp0w3r && Object.prototype.hasOwnProperty.call(window.r34lp0w3r, 'chatCatbotEnabled')
+          ? window.r34lp0w3r.chatCatbotEnabled
           : undefined;
-      if (globalValue !== undefined) return normalizeCommunityFeatureEnabled(globalValue);
+      if (globalValue !== undefined) return normalizeCatbotFeatureEnabled(globalValue);
       try {
-        return normalizeCommunityFeatureEnabled(localStorage.getItem(CHAT_COMMUNITY_ENABLED_KEY));
+        return normalizeCatbotFeatureEnabled(localStorage.getItem(CHAT_CATBOT_ENABLED_KEY));
       } catch (err) {
         return false;
       }
     };
-    const isCommunityFeatureEnabled = () => communityFeatureEnabled === true;
+    const isCatbotFeatureEnabled = () => catbotFeatureEnabled === true;
+    const isCommunityFeatureEnabled = () => true;
     const isNativeRuntime = () => {
       const cap = window.Capacitor;
       if (!cap) return false;
@@ -1018,6 +1016,7 @@ class PageChat extends HTMLElement {
         audioUrl,
         audioKind,
         speakText,
+        createdAt: pickFirstText(data.created_at, data.createdAt, data.published, data.timestamp),
         actorId,
         actorName,
         actorAvatar,
@@ -1423,6 +1422,25 @@ class PageChat extends HTMLElement {
       const mm = String(date.getMonth() + 1).padStart(2, '0');
       const yy = String(date.getFullYear()).slice(-2);
       return `${dd}/${mm}/${yy}`;
+    };
+
+    const formatCommunityBubbleTime = (value) => {
+      const raw = pickFirstText(value);
+      if (!raw) return '';
+      const date = new Date(raw);
+      if (Number.isNaN(date.getTime())) return '';
+      const now = new Date();
+      const isSameDay =
+        date.getFullYear() === now.getFullYear() &&
+        date.getMonth() === now.getMonth() &&
+        date.getDate() === now.getDate();
+      if (isSameDay) {
+        return new Intl.DateTimeFormat(uiLocale === 'es' ? 'es-ES' : 'en-US', {
+          hour: '2-digit',
+          minute: '2-digit'
+        }).format(date);
+      }
+      return formatCommunityTimestamp(raw);
     };
 
     const getCommunityPeerLabel = (room) => {
@@ -3843,18 +3861,17 @@ class PageChat extends HTMLElement {
     const readDebugChatMode = () => {
       try {
         const raw = localStorage.getItem(CHAT_MODE_DEBUG_KEY);
-        if (raw === 'community') {
-          return isCommunityFeatureEnabled() ? 'community' : 'catbot';
-        }
-        if (raw === 'catbot' || raw === 'chatbot') return raw;
+        if (raw === 'community') return 'community';
+        if (raw === 'chatbot') return 'chatbot';
+        if (raw === 'catbot') return isCatbotFeatureEnabled() ? 'catbot' : 'community';
       } catch (err) {
         // no-op
       }
-      return 'catbot';
+      return isCatbotFeatureEnabled() ? 'catbot' : 'community';
     };
 
     const writeDebugChatMode = (mode) => {
-      const normalizedMode = mode === 'community' && !isCommunityFeatureEnabled() ? 'catbot' : mode;
+      const normalizedMode = mode === 'catbot' && !isCatbotFeatureEnabled() ? 'community' : mode;
       if (normalizedMode !== 'catbot' && normalizedMode !== 'chatbot' && normalizedMode !== 'community') return;
       try {
         localStorage.setItem(CHAT_MODE_DEBUG_KEY, normalizedMode);
@@ -3863,11 +3880,21 @@ class PageChat extends HTMLElement {
       }
     };
 
-    const updateCommunityModeAvailability = () => {
+    const getVisibleChatMode = () => {
+      if (chatMode === 'chatbot') return 'coach';
+      if (chatMode === 'community') return communityView === 'dm' ? 'private' : 'public';
+      return 'catbot';
+    };
+
+    const updateModeToggleUi = () => {
       if (!modeToggle) return;
-      const communityBtn = modeToggle.querySelector('[data-mode="community"]');
-      if (communityBtn) {
-        communityBtn.hidden = !isCommunityFeatureEnabled();
+      const activeMode = getVisibleChatMode();
+      modeToggle.querySelectorAll('.chat-mode-btn').forEach((btn) => {
+        btn.classList.toggle('is-active', btn.dataset.mode === activeMode);
+      });
+      const catbotBtn = modeToggle.querySelector('[data-mode="catbot"]');
+      if (catbotBtn) {
+        catbotBtn.hidden = !isCatbotFeatureEnabled();
       }
     };
 
@@ -3887,6 +3914,12 @@ class PageChat extends HTMLElement {
       const speakText = normalizeChatText(message.speakText) || text;
       const audioUrl = sanitizeStoredAudioUrl(message.audioUrl || message.audio_url);
       const audioKind = normalizeAudioKind(message.audioKind || message.audio_kind);
+      const createdAt = pickFirstText(
+        message.createdAt,
+        message.created_at,
+        message.published,
+        message.timestamp
+      );
       return {
         id: idRaw,
         clientMessageId: pickFirstText(message.clientMessageId, message.client_message_id),
@@ -3897,6 +3930,7 @@ class PageChat extends HTMLElement {
         speakText,
         failed,
         sendState,
+        createdAt,
         actorId: pickFirstText(message.actorId, message.actor_id),
         actorName: pickFirstText(message.actorName, message.actor_name),
         actorAvatar: pickFirstText(message.actorAvatar, message.actor_avatar),
@@ -3966,6 +4000,22 @@ class PageChat extends HTMLElement {
       if (!messageId || typeof updater !== 'function') return null;
       const thread = getThread(mode, options);
       const index = thread.findIndex((item) => item && item.id === messageId);
+      if (index < 0) return null;
+      const current = thread[index];
+      const next = updater({ ...current });
+      if (!next || typeof next !== 'object') return current;
+      thread[index] = next;
+      persistTalkTimelines();
+      if (options.rerender !== false && isVisibleThread(mode, options)) {
+        renderThread(mode);
+      }
+      return next;
+    };
+
+    const updateThreadMessageBy = (mode, matcher, updater, options = {}) => {
+      if (typeof matcher !== 'function' || typeof updater !== 'function') return null;
+      const thread = getThread(mode, options);
+      const index = thread.findIndex((item) => item && matcher(item));
       if (index < 0) return null;
       const current = thread[index];
       const next = updater({ ...current });
@@ -4138,7 +4188,7 @@ class PageChat extends HTMLElement {
     };
 
     const renderMessage = (
-      { id, clientMessageId, role, text, audioUrl, audioKind, speakText, failed, sendState, actorName, actorApp },
+      { id, clientMessageId, role, text, audioUrl, audioKind, speakText, failed, sendState, createdAt, actorName, actorApp },
       mode
     ) => {
       if (!threadEl) return;
@@ -4159,25 +4209,34 @@ class PageChat extends HTMLElement {
         metaEl.textContent = actorName || 'User';
         bubbleEl.appendChild(metaEl);
       }
-      bubbleEl.appendChild(textEl);
-      const showSendState = mode === 'community' && communityView === 'dm' && role === 'user' && sendState;
-      if (showSendState) {
-        const stateEl = document.createElement('div');
-        stateEl.className = `chat-msg-state chat-msg-state-${sendState}`;
-        if (sendState === 'sending') {
-          stateEl.innerHTML = `<ion-icon name="time-outline"></ion-icon><span>${escapeHtml(
-            uiCopy.messageSending || 'Sending'
-          )}</span>`;
-        } else if (sendState === 'sent') {
-          stateEl.innerHTML = `<ion-icon name="checkmark-outline"></ion-icon><span>${escapeHtml(
-            uiCopy.messageSent || 'Sent'
-          )}</span>`;
-        } else {
-          stateEl.innerHTML = `<ion-icon name="alert-circle-outline"></ion-icon><span>${escapeHtml(
-            uiCopy.communityDmSendError || 'Send failed'
-          )}</span>`;
+      const showCommunityDmMeta = mode === 'community' && communityView === 'dm';
+      if (showCommunityDmMeta) {
+        const bodyEl = document.createElement('div');
+        bodyEl.className = 'chat-bubble-body';
+        bodyEl.appendChild(textEl);
+
+        const effectiveSendState = role === 'user' ? sendState : '';
+        const bubbleTime = formatCommunityBubbleTime(createdAt);
+        const showBubbleTime = Boolean(bubbleTime) && (role !== 'user' || effectiveSendState === 'sent');
+        const showStateIcon = effectiveSendState === 'sending' || effectiveSendState === 'failed';
+        if (showBubbleTime || showStateIcon) {
+          const stateEl = document.createElement('div');
+          stateEl.className = `chat-msg-state${showStateIcon ? ` chat-msg-state-${effectiveSendState}` : ''}`;
+          if (showStateIcon) {
+            const iconEl = document.createElement('ion-icon');
+            iconEl.setAttribute('name', effectiveSendState === 'failed' ? 'alert-circle-outline' : 'time-outline');
+            stateEl.appendChild(iconEl);
+          }
+          if (showBubbleTime) {
+            const labelEl = document.createElement('span');
+            labelEl.textContent = bubbleTime;
+            stateEl.appendChild(labelEl);
+          }
+          bodyEl.appendChild(stateEl);
         }
-        bubbleEl.appendChild(stateEl);
+        bubbleEl.appendChild(bodyEl);
+      } else {
+        bubbleEl.appendChild(textEl);
       }
 
       const allowAudioAction = mode === 'catbot' || mode === 'chatbot';
@@ -4309,7 +4368,7 @@ class PageChat extends HTMLElement {
     };
 
     const appendMessage = (
-      { id, clientMessageId, role, text, audioUrl, audioKind, speakText, failed, sendState, actorId, actorName, actorAvatar, actorApp },
+      { id, clientMessageId, role, text, audioUrl, audioKind, speakText, failed, sendState, createdAt, actorId, actorName, actorAvatar, actorApp },
       options = {}
     ) => {
       const targetMode = options.mode || chatMode;
@@ -4331,6 +4390,8 @@ class PageChat extends HTMLElement {
           normalizedSendStateRaw === 'failed')
           ? normalizedSendStateRaw
           : '';
+      const normalizedCreatedAt =
+        pickFirstText(options.createdAt, createdAt) || new Date().toISOString();
       if (normalizedRole === 'bot') {
         typingState[targetMode] = false;
       }
@@ -4348,6 +4409,7 @@ class PageChat extends HTMLElement {
         speakText: normalizedSpeakText,
         failed: normalizedFailed,
         sendState: normalizedSendState,
+        createdAt: normalizedCreatedAt,
         actorId: pickFirstText(actorId),
         actorName: pickFirstText(actorName),
         actorAvatar: pickFirstText(actorAvatar),
@@ -4589,12 +4651,45 @@ class PageChat extends HTMLElement {
               ...current,
               id: pickFirstText(message.id) || current.id,
               clientMessageId: normalizedClientMessageId,
+              createdAt: pickFirstText(message.createdAt, current.createdAt),
               sendState: 'sent',
               failed: false
             }),
             { scope: 'dm', roomId: room.roomId, rerender: true }
           );
           if (reconciled) {
+            upsertCommunityRoom({
+              ...room,
+              last_message_preview: message.text,
+              last_message_at: pickFirstText(data && (data.created_at || data.published)) || new Date().toISOString(),
+              last_message_actor_id: pickFirstText(message.actorId),
+              last_message_actor_name: pickFirstText(message.actorName),
+              last_message_actor_app: pickFirstText(message.actorApp)
+            });
+            setCommunityRoomUnreadCount(room.roomId, 0);
+            renderCommunityLists();
+            return;
+          }
+        }
+        if (isOwnMessage) {
+          const reconciledByText = updateThreadMessageBy(
+            'community',
+            (current) =>
+              current &&
+              current.role === 'user' &&
+              current.sendState === 'sending' &&
+              normalizeChatText(current.text) === normalizeChatText(message.text),
+            (current) => ({
+              ...current,
+              id: pickFirstText(message.id) || current.id,
+              clientMessageId: normalizedClientMessageId || current.clientMessageId || current.id,
+              createdAt: pickFirstText(message.createdAt, current.createdAt),
+              sendState: 'sent',
+              failed: false
+            }),
+            { scope: 'dm', roomId: room.roomId, rerender: true }
+          );
+          if (reconciledByText) {
             upsertCommunityRoom({
               ...room,
               last_message_preview: message.text,
@@ -5294,10 +5389,9 @@ class PageChat extends HTMLElement {
             setHint(uiCopy.communitySelectChat);
             return;
           }
+          const clientMessageId = outboundMessageId;
           clearDraft(false);
           setHint(getDefaultHintForMode('community'));
-          emitCommunityDmMessage({ roomId, text: userText }).then((result) => {
-          const clientMessageId = outboundMessageId;
           appendMessage(
             {
               id: clientMessageId,
@@ -5309,6 +5403,7 @@ class PageChat extends HTMLElement {
               speakText: '',
               failed: false,
               sendState: 'sending',
+              createdAt: new Date().toISOString(),
               actorId: pickFirstText(lastUserId),
               actorName: getUserDisplayName(window.user),
               actorAvatar: getUserPublicAvatar(window.user),
@@ -5338,18 +5433,45 @@ class PageChat extends HTMLElement {
                 viewerId: lastUserId || ''
               });
               if (normalizedMessage) {
-                updateThreadMessage(
-                  'community',
-                  clientMessageId,
-                  (current) => ({
-                    ...current,
-                    id: pickFirstText(normalizedMessage.id) || current.id,
+                const updated =
+                  updateThreadMessage(
+                    'community',
                     clientMessageId,
-                    sendState: 'sent',
-                    failed: false
-                  }),
-                  { scope: 'dm', roomId, rerender: true }
-                );
+                    (current) => ({
+                      ...current,
+                      id: pickFirstText(normalizedMessage.id) || current.id,
+                      clientMessageId,
+                      createdAt: pickFirstText(normalizedMessage.createdAt, current.createdAt),
+                      sendState: 'sent',
+                      failed: false
+                    }),
+                    { scope: 'dm', roomId, rerender: true }
+                  ) ||
+                  updateThreadMessageBy(
+                    'community',
+                    (current) =>
+                      current &&
+                      current.role === 'user' &&
+                      current.sendState === 'sending' &&
+                      normalizeChatText(current.text) === normalizeChatText(normalizedMessage.text),
+                    (current) => ({
+                      ...current,
+                      id: pickFirstText(normalizedMessage.id) || current.id,
+                      clientMessageId,
+                      createdAt: pickFirstText(normalizedMessage.createdAt, current.createdAt),
+                      sendState: 'sent',
+                      failed: false
+                    }),
+                    { scope: 'dm', roomId, rerender: true }
+                  );
+                if (!updated) {
+                  appendMessage(normalizedMessage, {
+                    mode: 'community',
+                    autoplay: false,
+                    scope: 'dm',
+                    roomId
+                  });
+                }
                 syncVisibleCommunityDmReadState(roomId, {
                   silent: true,
                   message: normalizedMessage
@@ -5729,8 +5851,13 @@ class PageChat extends HTMLElement {
         coachTitleEl.textContent = uiCopy.coachChatbotTitle;
         coachSubtitleEl.textContent = uiCopy.coachChatbotSubtitle;
       } else if (chatMode === 'community') {
-        coachTitleEl.textContent = uiCopy.coachCommunityTitle;
-        coachSubtitleEl.textContent = uiCopy.coachCommunitySubtitle;
+        if (communityView === 'dm') {
+          coachTitleEl.textContent = uiCopy.coachPrivateTitle || uiCopy.communityChatsTitle;
+          coachSubtitleEl.textContent = uiCopy.coachPrivateSubtitle || uiCopy.communitySelectChat;
+        } else {
+          coachTitleEl.textContent = uiCopy.coachCommunityTitle;
+          coachSubtitleEl.textContent = uiCopy.coachCommunitySubtitle;
+        }
       } else {
         coachTitleEl.textContent = uiCopy.coachCatbotTitle;
         coachSubtitleEl.textContent = uiCopy.coachCatbotSubtitle;
@@ -5750,19 +5877,15 @@ class PageChat extends HTMLElement {
 
       if (modeToggle) {
         const catBtn = modeToggle.querySelector('[data-mode="catbot"]');
-        const botBtn = modeToggle.querySelector('[data-mode="chatbot"]');
-        const communityBtn = modeToggle.querySelector('[data-mode="community"]');
+        const publicBtn = modeToggle.querySelector('[data-mode="public"]');
+        const privateBtn = modeToggle.querySelector('[data-mode="private"]');
+        const coachBtn = modeToggle.querySelector('[data-mode="coach"]');
         if (catBtn) catBtn.textContent = uiCopy.modeCatbot;
-        if (botBtn) botBtn.textContent = uiCopy.modeChatbot;
-        if (communityBtn) communityBtn.textContent = uiCopy.modeCommunity;
+        if (publicBtn) publicBtn.textContent = uiCopy.modePublic;
+        if (privateBtn) privateBtn.textContent = uiCopy.modePrivate;
+        if (coachBtn) coachBtn.textContent = uiCopy.modeCoach;
       }
-      updateCommunityModeAvailability();
-      if (communityNavEl) {
-        const publicBtn = communityNavEl.querySelector('[data-community-view="public"]');
-        const chatsBtn = communityNavEl.querySelector('[data-community-view="dm"]');
-        if (publicBtn) publicBtn.textContent = uiCopy.communityTabPublic;
-        if (chatsBtn) chatsBtn.textContent = uiCopy.communityTabChats;
-      }
+      updateModeToggleUi();
       if (communityRoomsTitleEl) communityRoomsTitleEl.textContent = uiCopy.communityChatsTitle;
       if (communityOnlineTitleEl) communityOnlineTitleEl.textContent = uiCopy.communityOnlineUsersTitle;
 
@@ -5898,12 +6021,7 @@ class PageChat extends HTMLElement {
       const isCommunity = chatMode === 'community';
       const isCommunityDm = isCommunity && communityView === 'dm';
       const hasActiveCommunityDm = isCommunityDm && Boolean(activeCommunityDmRoomId);
-      if (communityNavEl) {
-        communityNavEl.hidden = !isCommunity;
-        communityNavEl.querySelectorAll('[data-community-view]').forEach((btn) => {
-          btn.classList.toggle('is-active', btn.dataset.communityView === communityView);
-        });
-      }
+      updateModeToggleUi();
       updateCommunityNavUnreadUi();
       if (communityDmBackBtn) {
         communityDmBackBtn.setAttribute('aria-label', uiCopy.communityBackToChats || uiCopy.communityTabChats);
@@ -5956,6 +6074,7 @@ class PageChat extends HTMLElement {
       if (chatMode === 'community') {
         refreshCommunityPresenceNow({ silent: true });
       }
+      updateCoachCopy();
       updateCommunityViewUi();
       updateTextRowVisibility();
       if (options.rerender !== false && chatMode === 'community') {
@@ -5998,8 +6117,37 @@ class PageChat extends HTMLElement {
       scheduleChatKeyboardSync();
     };
 
+    const setSurfaceChatMode = (mode, options = {}) => {
+      const target = String(mode || '').trim().toLowerCase();
+      if (target === 'coach') {
+        setChatMode('chatbot', options);
+        return;
+      }
+      if (target === 'public' || target === 'private') {
+        const targetView = target === 'private' ? 'dm' : 'public';
+        const isAlreadyCommunity = chatMode === 'community';
+        if (communityView !== targetView) {
+          setCommunityView(targetView, { rerender: isAlreadyCommunity });
+        }
+        if (!isAlreadyCommunity) {
+          setChatMode('community', options);
+        } else if (options.persist !== false) {
+          writeDebugChatMode('community');
+          updateModeToggleUi();
+        }
+        return;
+      }
+      if (target === 'catbot') {
+        if (!isCatbotFeatureEnabled()) {
+          setSurfaceChatMode('public', options);
+          return;
+        }
+        setChatMode('catbot', options);
+      }
+    };
+
     const setChatMode = (mode, { reconnect, persist } = {}) => {
-      const normalizedMode = mode === 'community' && !isCommunityFeatureEnabled() ? 'catbot' : mode;
+      const normalizedMode = mode === 'catbot' && !isCatbotFeatureEnabled() ? 'community' : mode;
       if (normalizedMode !== 'catbot' && normalizedMode !== 'chatbot' && normalizedMode !== 'community') return;
       if (chatMode === normalizedMode) return;
       const previousMode = chatMode;
@@ -6009,11 +6157,7 @@ class PageChat extends HTMLElement {
       if (persist !== false) {
         writeDebugChatMode(normalizedMode);
       }
-      if (modeToggle) {
-        modeToggle.querySelectorAll('.chat-mode-btn').forEach((btn) => {
-          btn.classList.toggle('is-active', btn.dataset.mode === normalizedMode);
-        });
-      }
+      updateModeToggleUi();
       updateCoachAvatar();
       updateCoachCopy();
       updateChatControlsVisibility();
@@ -6047,29 +6191,17 @@ class PageChat extends HTMLElement {
       updateDraftButtons();
     };
 
-    const applyCommunityFeatureState = (enabled, { reconnect = true } = {}) => {
-      communityFeatureEnabled = normalizeCommunityFeatureEnabled(enabled);
+    const applyCatbotFeatureState = (enabled) => {
+      catbotFeatureEnabled = normalizeCatbotFeatureEnabled(enabled);
       window.r34lp0w3r = window.r34lp0w3r || {};
-      window.r34lp0w3r.chatCommunityEnabled = communityFeatureEnabled;
-      updateCommunityModeAvailability();
-      if (!communityFeatureEnabled) {
-        resetCommunityUnreadIndicators();
-      } else {
-        syncCommunityUnreadIndicators();
-      }
-      if (chatMode === 'community') {
-        setChatMode('catbot', {
-          reconnect: reconnect && lastChatEnabled && Boolean(window.user),
-          persist: true
-        });
+      window.r34lp0w3r.chatCatbotEnabled = catbotFeatureEnabled;
+      updateModeToggleUi();
+      if (!catbotFeatureEnabled && chatMode === 'catbot') {
+        setSurfaceChatMode('public', { reconnect: true, persist: true });
         return;
       }
       updateCommunityViewUi();
       updateTextRowVisibility();
-      if (reconnect && lastChatEnabled && window.user) {
-        disconnectRealtime();
-        connectRealtime(window.user);
-      }
     };
 
     const applyDebugMode = () => {
@@ -6079,7 +6211,7 @@ class PageChat extends HTMLElement {
       if (!showModeToggle) {
         if (textInput) textInput.value = '';
         updateTextRowVisibility(false);
-        setChatMode('catbot', { reconnect: true, persist: false });
+        setSurfaceChatMode(isCatbotFeatureEnabled() ? 'catbot' : 'public', { reconnect: true, persist: false });
         renderThread(chatMode);
       } else {
         const preferredMode = readDebugChatMode();
@@ -6097,12 +6229,12 @@ class PageChat extends HTMLElement {
       const button = event.target.closest('.chat-mode-btn');
       if (!button) return;
       const mode = button.dataset.mode;
-      setChatMode(mode, { reconnect: true });
+      setSurfaceChatMode(mode, { reconnect: true });
     });
 
-    communityFeatureEnabled = getStoredCommunityFeatureEnabled();
+    catbotFeatureEnabled = getStoredCatbotFeatureEnabled();
     window.r34lp0w3r = window.r34lp0w3r || {};
-    window.r34lp0w3r.chatCommunityEnabled = communityFeatureEnabled;
+    window.r34lp0w3r.chatCatbotEnabled = catbotFeatureEnabled;
     applyLocaleCopy(uiLocale, { force: true, rerenderThread: false });
     this._localeHandler = (event) => {
       const nextLocale = event && event.detail ? event.detail.locale : '';
@@ -6112,14 +6244,14 @@ class PageChat extends HTMLElement {
 
     this._debugHandler = applyDebugMode;
     window.addEventListener('app:speak-debug', this._debugHandler);
-    this._communityToggleHandler = (event) => {
+    this._catbotToggleHandler = (event) => {
       const nextEnabled =
         event && event.detail && event.detail.enabled !== undefined
           ? Boolean(event.detail.enabled)
-          : getStoredCommunityFeatureEnabled();
-      applyCommunityFeatureState(nextEnabled, { reconnect: true });
+          : getStoredCatbotFeatureEnabled();
+      applyCatbotFeatureState(nextEnabled);
     };
-    window.addEventListener('app:chat-community-enabled-change', this._communityToggleHandler);
+    window.addEventListener('app:chat-catbot-enabled-change', this._catbotToggleHandler);
     applyDebugMode();
     updateCoachAvatar();
     updateCoachCopy();
@@ -6221,8 +6353,8 @@ class PageChat extends HTMLElement {
     if (this._debugHandler) {
       window.removeEventListener('app:speak-debug', this._debugHandler);
     }
-    if (this._communityToggleHandler) {
-      window.removeEventListener('app:chat-community-enabled-change', this._communityToggleHandler);
+    if (this._catbotToggleHandler) {
+      window.removeEventListener('app:chat-catbot-enabled-change', this._catbotToggleHandler);
     }
     if (this._localeHandler) {
       window.removeEventListener('app:locale-change', this._localeHandler);

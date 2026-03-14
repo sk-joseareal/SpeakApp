@@ -37,7 +37,49 @@ class PageDiagnostics extends HTMLElement {
     const SPEAK_SESSION_PERCENTAGES_VISIBLE_KEY = 'appv5:speak-session-percentages-visible';
     const REFERENCE_TAB_ENABLED_KEY = 'appv5:reference-tab-enabled';
     const REFERENCE_TESTS_ENABLED_KEY = 'appv5:reference-tests-enabled';
-    const CHAT_COMMUNITY_ENABLED_KEY = 'appv5:chat-community-enabled';
+    const CHAT_CATBOT_ENABLED_KEY = 'appv5:chat-catbot-enabled';
+    const TAB_VISIBILITY_ORDER = ['home', 'freeride', 'reference', 'chat', 'tu'];
+    const TAB_VISIBILITY_KEYS = {
+      home: 'appv5:tab-training-enabled',
+      freeride: 'appv5:tab-lab-enabled',
+      reference: REFERENCE_TAB_ENABLED_KEY,
+      chat: 'appv5:tab-chat-enabled',
+      tu: 'appv5:tab-you-enabled'
+    };
+    const TAB_VISIBILITY_DEFAULTS = {
+      home: true,
+      freeride: true,
+      reference: false,
+      chat: true,
+      tu: true
+    };
+    const TAB_VISIBILITY_META = {
+      home: {
+        title: 'Tab Training',
+        enabledSub: 'Activado: muestra el tab Training en la navegación inferior.',
+        disabledSub: 'Desactivado: oculta el tab Training en la navegación inferior.'
+      },
+      freeride: {
+        title: 'Tab Lab',
+        enabledSub: 'Activado: muestra el tab Lab en la navegación inferior.',
+        disabledSub: 'Desactivado: oculta el tab Lab en la navegación inferior.'
+      },
+      reference: {
+        title: 'Tab Referencia',
+        enabledSub: 'Activado: muestra el tab Referencia en la navegación inferior.',
+        disabledSub: 'Desactivado: oculta el tab Referencia en la navegación inferior.'
+      },
+      chat: {
+        title: 'Tab Chat',
+        enabledSub: 'Activado: muestra el tab Chat en la navegación inferior.',
+        disabledSub: 'Desactivado: oculta el tab Chat en la navegación inferior.'
+      },
+      tu: {
+        title: 'Tab You',
+        enabledSub: 'Activado: muestra el tab You en la navegación inferior.',
+        disabledSub: 'Desactivado: oculta el tab You en la navegación inferior.'
+      }
+    };
     const normalizeFreeRideAudioMode = (value) => {
       const normalized = String(value || '')
         .trim()
@@ -118,25 +160,48 @@ class PageDiagnostics extends HTMLElement {
         return true;
       }
     };
-    const normalizeReferenceTabEnabled = (value) => {
+    const normalizeTabVisibilityEnabled = (tab, value) => {
       if (typeof value === 'boolean') return value;
       const normalized = String(value || '')
         .trim()
         .toLowerCase();
-      if (!normalized) return false;
-      return ['1', 'true', 'on', 'yes'].includes(normalized);
+      if (!normalized) return Boolean(TAB_VISIBILITY_DEFAULTS[tab]);
+      return !['0', 'false', 'off', 'no'].includes(normalized);
+    };
+    const getStoredTabVisibility = (tab) => {
+      const globalMap = window.r34lp0w3r && window.r34lp0w3r.tabVisibility;
+      if (globalMap && Object.prototype.hasOwnProperty.call(globalMap, tab)) {
+        return normalizeTabVisibilityEnabled(tab, globalMap[tab]);
+      }
+      if (
+        tab === 'reference' &&
+        window.r34lp0w3r &&
+        Object.prototype.hasOwnProperty.call(window.r34lp0w3r, 'referenceTabEnabled')
+      ) {
+        return normalizeTabVisibilityEnabled(tab, window.r34lp0w3r.referenceTabEnabled);
+      }
+      try {
+        return normalizeTabVisibilityEnabled(tab, localStorage.getItem(TAB_VISIBILITY_KEYS[tab]));
+      } catch (err) {
+        return Boolean(TAB_VISIBILITY_DEFAULTS[tab]);
+      }
+    };
+    const buildTabVisibilityToggleMarkup = () =>
+      TAB_VISIBILITY_ORDER.map(
+        (tab) => `
+            <div class="diag-debug-toggle" style="margin-top: 10px;">
+              <div class="diag-debug-text">
+                <div class="diag-debug-title">${TAB_VISIBILITY_META[tab].title}</div>
+                <div class="diag-debug-sub" id="diag-tab-${tab}-sub"></div>
+              </div>
+              <ion-toggle id="diag-tab-${tab}-toggle" ${getStoredTabVisibility(tab) ? 'checked' : ''}></ion-toggle>
+            </div>`
+      ).join('');
+    const normalizeReferenceTabEnabled = (value) => {
+      return normalizeTabVisibilityEnabled('reference', value);
     };
     const getStoredReferenceTabEnabled = () => {
-      const globalValue =
-        window.r34lp0w3r && Object.prototype.hasOwnProperty.call(window.r34lp0w3r, 'referenceTabEnabled')
-          ? window.r34lp0w3r.referenceTabEnabled
-          : undefined;
-      if (globalValue !== undefined) return normalizeReferenceTabEnabled(globalValue);
-      try {
-        return normalizeReferenceTabEnabled(localStorage.getItem(REFERENCE_TAB_ENABLED_KEY));
-      } catch (err) {
-        return false;
-      }
+      return getStoredTabVisibility('reference');
     };
     const normalizeReferenceTestsEnabled = (value) => {
       if (typeof value === 'boolean') return value;
@@ -158,7 +223,7 @@ class PageDiagnostics extends HTMLElement {
         return false;
       }
     };
-    const normalizeChatCommunityEnabled = (value) => {
+    const normalizeChatCatbotEnabled = (value) => {
       if (typeof value === 'boolean') return value;
       const normalized = String(value || '')
         .trim()
@@ -166,14 +231,14 @@ class PageDiagnostics extends HTMLElement {
       if (!normalized) return false;
       return ['1', 'true', 'on', 'yes'].includes(normalized);
     };
-    const getStoredChatCommunityEnabled = () => {
+    const getStoredChatCatbotEnabled = () => {
       const globalValue =
-        window.r34lp0w3r && Object.prototype.hasOwnProperty.call(window.r34lp0w3r, 'chatCommunityEnabled')
-          ? window.r34lp0w3r.chatCommunityEnabled
+        window.r34lp0w3r && Object.prototype.hasOwnProperty.call(window.r34lp0w3r, 'chatCatbotEnabled')
+          ? window.r34lp0w3r.chatCatbotEnabled
           : undefined;
-      if (globalValue !== undefined) return normalizeChatCommunityEnabled(globalValue);
+      if (globalValue !== undefined) return normalizeChatCatbotEnabled(globalValue);
       try {
-        return normalizeChatCommunityEnabled(localStorage.getItem(CHAT_COMMUNITY_ENABLED_KEY));
+        return normalizeChatCatbotEnabled(localStorage.getItem(CHAT_CATBOT_ENABLED_KEY));
       } catch (err) {
         return false;
       }
@@ -208,14 +273,8 @@ class PageDiagnostics extends HTMLElement {
               </div>
               <ion-toggle id="diag-speak-session-percentages-toggle" ${getStoredSpeakSessionPercentagesVisible() ? 'checked' : ''}></ion-toggle>
             </div>
-            
-            <div class="diag-debug-toggle" style="margin-top: 10px;">
-              <div class="diag-debug-text">
-                <div class="diag-debug-title">Tab Referencia</div>
-                <div class="diag-debug-sub" id="diag-reference-tab-sub"></div>
-              </div>
-              <ion-toggle id="diag-reference-tab-toggle" ${getStoredReferenceTabEnabled() ? 'checked' : ''}></ion-toggle>
-            </div>
+
+            ${buildTabVisibilityToggleMarkup()}
             <div class="diag-debug-toggle" style="margin-top: 10px;">
               <div class="diag-debug-text">
                 <div class="diag-debug-title">Tests en Referencia</div>
@@ -225,10 +284,10 @@ class PageDiagnostics extends HTMLElement {
             </div>
             <div class="diag-debug-toggle" style="margin-top: 10px;">
               <div class="diag-debug-text">
-                <div class="diag-debug-title">Chat Community</div>
+                <div class="diag-debug-title">Catbot</div>
                 <div class="diag-debug-sub" id="diag-chat-community-sub"></div>
               </div>
-              <ion-toggle id="diag-chat-community-toggle" ${getStoredChatCommunityEnabled() ? 'checked' : ''}></ion-toggle>
+              <ion-toggle id="diag-chat-community-toggle" ${getStoredChatCatbotEnabled() ? 'checked' : ''}></ion-toggle>
             </div>
             
             <div id="diag-user" style="display:none; margin-bottom:12px;">
@@ -737,8 +796,12 @@ class PageDiagnostics extends HTMLElement {
     const freeRideWordTapAudioSubEl = this.querySelector('#diag-free-ride-word-tap-audio-sub');
     const speakSessionPercentagesToggleEl = this.querySelector('#diag-speak-session-percentages-toggle');
     const speakSessionPercentagesSubEl = this.querySelector('#diag-speak-session-percentages-sub');
-    const referenceTabToggleEl = this.querySelector('#diag-reference-tab-toggle');
-    const referenceTabSubEl = this.querySelector('#diag-reference-tab-sub');
+    const tabVisibilityToggleEls = Object.fromEntries(
+      TAB_VISIBILITY_ORDER.map((tab) => [tab, this.querySelector(`#diag-tab-${tab}-toggle`)])
+    );
+    const tabVisibilitySubEls = Object.fromEntries(
+      TAB_VISIBILITY_ORDER.map((tab) => [tab, this.querySelector(`#diag-tab-${tab}-sub`)])
+    );
     const referenceTestsToggleEl = this.querySelector('#diag-reference-tests-toggle');
     const referenceTestsSubEl = this.querySelector('#diag-reference-tests-sub');
     const chatCommunityToggleEl = this.querySelector('#diag-chat-community-toggle');
@@ -878,32 +941,58 @@ class PageDiagnostics extends HTMLElement {
       return normalized;
     };
 
-    const setReferenceTabEnabled = (enabled) => {
-      const normalized = normalizeReferenceTabEnabled(enabled);
+    const getEnabledTabsCount = () =>
+      TAB_VISIBILITY_ORDER.reduce((count, tab) => count + (getStoredTabVisibility(tab) ? 1 : 0), 0);
+
+    const setTabVisibility = (tab, enabled) => {
+      if (!TAB_VISIBILITY_KEYS[tab]) return false;
+      const normalized = normalizeTabVisibilityEnabled(tab, enabled);
+      const currentValue = getStoredTabVisibility(tab);
+      if (!normalized && currentValue && getEnabledTabsCount() <= 1) {
+        return currentValue;
+      }
       window.r34lp0w3r = window.r34lp0w3r || {};
-      window.r34lp0w3r.referenceTabEnabled = normalized;
+      const nextMap =
+        window.r34lp0w3r.tabVisibility && typeof window.r34lp0w3r.tabVisibility === 'object'
+          ? { ...window.r34lp0w3r.tabVisibility }
+          : {};
+      nextMap[tab] = normalized;
+      window.r34lp0w3r.tabVisibility = nextMap;
+      if (tab === 'reference') {
+        window.r34lp0w3r.referenceTabEnabled = normalized;
+      }
       try {
-        localStorage.setItem(REFERENCE_TAB_ENABLED_KEY, normalized ? '1' : '0');
+        localStorage.setItem(TAB_VISIBILITY_KEYS[tab], normalized ? '1' : '0');
       } catch (err) {
         // no-op
       }
       window.dispatchEvent(
-        new CustomEvent('app:reference-tab-enabled-change', {
-          detail: { enabled: normalized }
+        new CustomEvent('app:tab-visibility-change', {
+          detail: { tab, enabled: normalized }
         })
       );
+      if (tab === 'reference') {
+        window.dispatchEvent(
+          new CustomEvent('app:reference-tab-enabled-change', {
+            detail: { enabled: normalized }
+          })
+        );
+      }
       return normalized;
     };
 
-    const updateReferenceTabUi = (enabled) => {
-      const normalized = normalizeReferenceTabEnabled(enabled);
-      if (referenceTabToggleEl) {
-        referenceTabToggleEl.checked = normalized;
+    const updateTabVisibilityUi = (tab, enabled) => {
+      if (!TAB_VISIBILITY_META[tab]) return false;
+      const normalized = normalizeTabVisibilityEnabled(tab, enabled);
+      const toggleEl = tabVisibilityToggleEls[tab];
+      const subEl = tabVisibilitySubEls[tab];
+      if (toggleEl) {
+        toggleEl.checked = normalized;
       }
-      if (referenceTabSubEl) {
-        referenceTabSubEl.textContent = normalized
-          ? 'Activado: muestra el tab Referencia con contenido de cursos/unidades/lecciones.'
-          : 'Desactivado: oculta el tab Referencia en la navegación inferior.';
+      if (subEl) {
+        subEl.textContent = normalized
+          ? TAB_VISIBILITY_META[tab].enabledSub
+          : TAB_VISIBILITY_META[tab].disabledSub;
       }
       return normalized;
     };
@@ -938,17 +1027,17 @@ class PageDiagnostics extends HTMLElement {
       return normalized;
     };
 
-    const setChatCommunityEnabled = (enabled) => {
-      const normalized = normalizeChatCommunityEnabled(enabled);
+    const setChatCatbotEnabled = (enabled) => {
+      const normalized = normalizeChatCatbotEnabled(enabled);
       window.r34lp0w3r = window.r34lp0w3r || {};
-      window.r34lp0w3r.chatCommunityEnabled = normalized;
+      window.r34lp0w3r.chatCatbotEnabled = normalized;
       try {
-        localStorage.setItem(CHAT_COMMUNITY_ENABLED_KEY, normalized ? '1' : '0');
+        localStorage.setItem(CHAT_CATBOT_ENABLED_KEY, normalized ? '1' : '0');
       } catch (err) {
         // no-op
       }
       window.dispatchEvent(
-        new CustomEvent('app:chat-community-enabled-change', {
+        new CustomEvent('app:chat-catbot-enabled-change', {
           detail: { enabled: normalized }
         })
       );
@@ -956,14 +1045,14 @@ class PageDiagnostics extends HTMLElement {
     };
 
     const updateChatCommunityUi = (enabled) => {
-      const normalized = normalizeChatCommunityEnabled(enabled);
+      const normalized = normalizeChatCatbotEnabled(enabled);
       if (chatCommunityToggleEl) {
         chatCommunityToggleEl.checked = normalized;
       }
       if (chatCommunitySubEl) {
         chatCommunitySubEl.textContent = normalized
-          ? 'Activado: muestra el modo Community dentro del tab Chat.'
-          : 'Desactivado: oculta el modo Community y fuerza Catbot si estaba activo.';
+          ? 'Activado: muestra Catbot en el selector superior del tab Chat.'
+          : 'Desactivado: oculta Catbot y deja Public / Private / Coach.';
       }
       return normalized;
     };
@@ -2152,12 +2241,13 @@ class PageDiagnostics extends HTMLElement {
     updateFreeRideWordTapAudioUi(setFreeRideWordTapAudioEnabled(initialFreeRideWordTapAudioEnabled));
     const initialSpeakSessionPercentagesVisible = getStoredSpeakSessionPercentagesVisible();
     updateSpeakSessionPercentagesUi(setSpeakSessionPercentagesVisible(initialSpeakSessionPercentagesVisible));
-    const initialReferenceTabEnabled = getStoredReferenceTabEnabled();
-    updateReferenceTabUi(setReferenceTabEnabled(initialReferenceTabEnabled));
+    TAB_VISIBILITY_ORDER.forEach((tab) => {
+      updateTabVisibilityUi(tab, setTabVisibility(tab, getStoredTabVisibility(tab)));
+    });
     const initialReferenceTestsEnabled = getStoredReferenceTestsEnabled();
     updateReferenceTestsUi(setReferenceTestsEnabled(initialReferenceTestsEnabled));
-    const initialChatCommunityEnabled = getStoredChatCommunityEnabled();
-    updateChatCommunityUi(setChatCommunityEnabled(initialChatCommunityEnabled));
+    const initialChatCommunityEnabled = getStoredChatCatbotEnabled();
+    updateChatCommunityUi(setChatCatbotEnabled(initialChatCommunityEnabled));
 
     this.querySelector('#diag-back')?.addEventListener('click', () => {
       ensureInitialHash();
@@ -2333,12 +2423,14 @@ class PageDiagnostics extends HTMLElement {
           : Boolean(speakSessionPercentagesToggleEl.checked);
       updateSpeakSessionPercentagesUi(setSpeakSessionPercentagesVisible(nextVisible));
     });
-    referenceTabToggleEl?.addEventListener('ionChange', (event) => {
-      const nextEnabled =
-        event && event.detail && event.detail.checked !== undefined
-          ? Boolean(event.detail.checked)
-          : Boolean(referenceTabToggleEl.checked);
-      updateReferenceTabUi(setReferenceTabEnabled(nextEnabled));
+    TAB_VISIBILITY_ORDER.forEach((tab) => {
+      tabVisibilityToggleEls[tab]?.addEventListener('ionChange', (event) => {
+        const nextEnabled =
+          event && event.detail && event.detail.checked !== undefined
+            ? Boolean(event.detail.checked)
+            : Boolean(tabVisibilityToggleEls[tab] && tabVisibilityToggleEls[tab].checked);
+        updateTabVisibilityUi(tab, setTabVisibility(tab, nextEnabled));
+      });
     });
     referenceTestsToggleEl?.addEventListener('ionChange', (event) => {
       const nextEnabled =
@@ -2352,7 +2444,7 @@ class PageDiagnostics extends HTMLElement {
         event && event.detail && event.detail.checked !== undefined
           ? Boolean(event.detail.checked)
           : Boolean(chatCommunityToggleEl.checked);
-      updateChatCommunityUi(setChatCommunityEnabled(nextEnabled));
+      updateChatCommunityUi(setChatCatbotEnabled(nextEnabled));
     });
 
     // Login

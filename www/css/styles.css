@@ -2291,6 +2291,11 @@ page-chat ion-content::part(scroll) {
   gap: 16px;
 }
 
+.chat-card-header > :first-child {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
 .coach-avatar {
   width: 96px;
   height: 96px;
@@ -2349,24 +2354,28 @@ page-chat ion-content::part(scroll) {
 .chat-mode-toggle {
   display: inline-flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
+  gap: 4px;
   padding: 4px;
   border-radius: 999px;
   border: 1px solid var(--app-border);
   background: var(--app-surface-2);
   width: fit-content;
+  max-width: 100%;
 }
 
 .chat-mode-btn {
+  flex: 0 0 auto;
   border: none;
   background: transparent;
-  padding: 6px 12px;
+  padding: 6px 16px;
   border-radius: 999px;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   font-weight: 600;
   color: var(--app-muted);
   cursor: pointer;
+  text-align: center;
+  min-width: 0;
+  white-space: nowrap;
 }
 
 .chat-mode-btn.is-active {
@@ -2559,6 +2568,8 @@ page-chat ion-content::part(scroll) {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .chat-thread {
@@ -2684,9 +2695,18 @@ page-chat ion-content::part(scroll) {
     inset 0 1px 0 rgba(255, 255, 255, 0.72);
 }
 
+.chat-bubble-body {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .chat-text {
-  margin: 0 0 8px;
+  margin: 0;
   font-size: 0.95rem;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .chat-msg-meta {
@@ -2700,23 +2720,21 @@ page-chat ion-content::part(scroll) {
 .chat-msg-state {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  margin-top: 8px;
-  font-size: 0.72rem;
+  gap: 4px;
+  margin-left: auto;
+  font-size: 0.69rem;
   font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
   color: var(--app-muted);
 }
 
 .chat-msg-state ion-icon {
-  font-size: 0.9rem;
+  font-size: 0.8rem;
 }
 
 .chat-msg-state-sending {
   color: #6c7391;
-}
-
-.chat-msg-state-sent {
-  color: #4c7eff;
 }
 
 .chat-msg-state-failed {
@@ -2781,15 +2799,25 @@ page-chat ion-content::part(scroll) {
 }
 
 .chat-community-lists {
-  display: grid;
-  grid-template-columns: 1fr;
+  display: flex;
+  flex-direction: column;
   gap: 14px;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding-right: 2px;
+  padding-bottom: 4px;
 }
 
 .chat-community-list-block {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  min-height: 0;
+  flex: 0 0 auto;
 }
 
 .chat-community-list-title {

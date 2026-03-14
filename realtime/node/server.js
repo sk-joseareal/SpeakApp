@@ -183,10 +183,39 @@ const COMMUNITY_PUSH_PROVIDER_TIMEOUT_MS = (() => {
   return parsed > 0 ? parsed : 8000;
 })();
 const COMMUNITY_PUSH_DESTINATION = env('COMMUNITY_PUSH_DESTINATION', 'speak');
+const COMMUNITY_PUSH_APNS_KEY_PATH = env('COMMUNITY_PUSH_APNS_KEY_PATH', '');
+const COMMUNITY_PUSH_APNS_KEY_ID = env('COMMUNITY_PUSH_APNS_KEY_ID', '');
+const COMMUNITY_PUSH_APNS_TEAM_ID = env('COMMUNITY_PUSH_APNS_TEAM_ID', '');
+const COMMUNITY_PUSH_APNS_TOPIC_SPEAK = env('COMMUNITY_PUSH_APNS_TOPIC_SPEAK', 'com.sokinternet.speak');
+const COMMUNITY_PUSH_APNS_TOPIC_CURSOINGLES = env(
+  'COMMUNITY_PUSH_APNS_TOPIC_CURSOINGLES',
+  'com.sokinternet.cursoingles'
+);
+const COMMUNITY_PUSH_APNS_PRODUCTION = env('COMMUNITY_PUSH_APNS_PRODUCTION', 'false') === 'true';
+const COMMUNITY_PUSH_FCM_SERVICE_ACCOUNT_SPEAK_PATH = env(
+  'COMMUNITY_PUSH_FCM_SERVICE_ACCOUNT_SPEAK_PATH',
+  ''
+);
+const COMMUNITY_PUSH_FCM_SERVICE_ACCOUNT_CURSOINGLES_PATH = env(
+  'COMMUNITY_PUSH_FCM_SERVICE_ACCOUNT_CURSOINGLES_PATH',
+  ''
+);
+const LOCAL_COMMUNITY_PUSH_SCRIPT_DIR = path.join(__dirname, 'push');
 const COMMUNITY_PUSH_SCRIPT_DIR = (() => {
   const configured = env('COMMUNITY_PUSH_SCRIPT_DIR', '');
   if (configured) return configured;
-  return fs.existsSync('/opt/backendV4/send_push') ? '/opt/backendV4/send_push' : '';
+  const localConfigured = Boolean(
+    COMMUNITY_PUSH_APNS_KEY_PATH ||
+      COMMUNITY_PUSH_APNS_KEY_ID ||
+      COMMUNITY_PUSH_APNS_TEAM_ID ||
+      COMMUNITY_PUSH_FCM_SERVICE_ACCOUNT_SPEAK_PATH ||
+      COMMUNITY_PUSH_FCM_SERVICE_ACCOUNT_CURSOINGLES_PATH
+  );
+  if (localConfigured && fs.existsSync(LOCAL_COMMUNITY_PUSH_SCRIPT_DIR)) {
+    return LOCAL_COMMUNITY_PUSH_SCRIPT_DIR;
+  }
+  if (fs.existsSync('/opt/backendV4/send_push')) return '/opt/backendV4/send_push';
+  return fs.existsSync(LOCAL_COMMUNITY_PUSH_SCRIPT_DIR) ? LOCAL_COMMUNITY_PUSH_SCRIPT_DIR : '';
 })();
 const COMMUNITY_PUSH_NODE_BIN = env('COMMUNITY_PUSH_NODE_BIN', 'node');
 const COMMUNITY_PUSH_TRANSPORT = (() => {
@@ -3197,7 +3226,7 @@ const buildCommunityPushTitle = (message) => {
   const actorName = pickFirstString(
     message && message.actor && (message.actor.name || message.actor.displayName || message.actor.email)
   );
-  return actorName ? `Nuevo mensaje de ${actorName}` : 'Nuevo mensaje';
+  return actorName || 'Nuevo mensaje';
 };
 
 const buildCommunityPushBody = (message) => {
@@ -3206,6 +3235,9 @@ const buildCommunityPushBody = (message) => {
   if (text.length <= 140) return text;
   return `${text.slice(0, 137)}...`;
 };
+
+const buildCommunityPushImage = (message) =>
+  pickPublicAvatar(message && message.actor && message.actor.avatar);
 
 const resolveCommunityPushScriptPath = (tokenType) => {
   const safeType = pickFirstString(tokenType).toLowerCase();
@@ -3216,7 +3248,7 @@ const resolveCommunityPushScriptPath = (tokenType) => {
   return fs.existsSync(scriptPath) ? scriptPath : '';
 };
 
-const sendCommunityPushViaScript = async ({ tokenType, token, title, body, destination }) => {
+const sendCommunityPushViaScript = async ({ tokenType, token, title, body, destination, image }) => {
   const scriptPath = resolveCommunityPushScriptPath(tokenType);
   if (!scriptPath) {
     throw new Error(`push_script_not_found:${tokenType || 'unknown'}`);
@@ -3233,6 +3265,9 @@ const sendCommunityPushViaScript = async ({ tokenType, token, title, body, desti
     '--destination',
     destination || COMMUNITY_PUSH_DESTINATION
   ];
+  if (pickFirstString(image)) {
+    args.push('--image', pickFirstString(image));
+  }
   const result = await runNodeScript(scriptPath, args, {
     timeoutMs: COMMUNITY_PUSH_PROVIDER_TIMEOUT_MS
   });
@@ -3250,7 +3285,7 @@ const sendCommunityPushViaScript = async ({ tokenType, token, title, body, desti
   };
 };
 
-const sendCommunityPushToToken = async ({ tokenRecord, title, body }) => {
+const sendCommunityPushToToken = async ({ tokenRecord, title, body, image }) => {
   const safeToken = pickFirstString(tokenRecord && tokenRecord.token);
   const safeType = normalizePushTokenType(
     tokenRecord && tokenRecord.token_type,
@@ -3265,6 +3300,7 @@ const sendCommunityPushToToken = async ({ tokenRecord, title, body }) => {
     title: title || 'Nuevo mensaje',
     body: body || 'Tienes un mensaje nuevo.',
     delay: 0,
+    image: pickFirstString(image),
     destination: pickFirstString(tokenRecord && tokenRecord.destination, COMMUNITY_PUSH_DESTINATION)
   };
   let result;
@@ -3274,7 +3310,8 @@ const sendCommunityPushToToken = async ({ tokenRecord, title, body }) => {
       token: safeToken,
       title: payload.title,
       body: payload.body,
-      destination: payload.destination
+      destination: payload.destination,
+      image: payload.image
     });
   } else {
     const httpResult = await postJson(COMMUNITY_PUSH_PROVIDER_URL, payload, {
@@ -3302,6 +3339,7 @@ const dispatchCommunityDmPushes = async ({ message, delivery }) => {
   const recipients = Array.isArray(delivery && delivery.recipients) ? delivery.recipients : [];
   const title = buildCommunityPushTitle(message);
   const body = buildCommunityPushBody(message);
+  const image = buildCommunityPushImage(message);
   const results = [];
 
   for (const recipient of recipients) {
@@ -3321,7 +3359,8 @@ const dispatchCommunityDmPushes = async ({ message, delivery }) => {
         const pushResult = await sendCommunityPushToToken({
           tokenRecord,
           title,
-          body
+          body,
+          image
         });
         results.push({
           user_id: safeUserId,

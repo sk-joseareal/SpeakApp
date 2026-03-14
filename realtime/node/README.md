@@ -31,6 +31,11 @@ npm start
 - `GET /realtime/state` (full snapshot)
 - `POST /realtime/state/sync` (append events + merge snapshot)
 
+## Community push
+
+DM push delivery can run locally from `realtime/node/push/` without depending on
+`backendV4`. Configure the APNs / FCM credential paths in `../.env`.
+
 ## State sync notes
 
 - Storage is file-based for MVP: `realtime/node/data/rt/`.

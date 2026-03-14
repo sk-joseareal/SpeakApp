@@ -4,58 +4,64 @@ import { getTabsCopy, normalizeLocale as normalizeCopyLocale } from '../content/
 class TabsPage extends HTMLElement {
   connectedCallback() {
     this.classList.add('ion-page');
+
     const TAB_STORAGE_KEY = 'appv5:active-tab';
     const REFERENCE_TAB_ENABLED_KEY = 'appv5:reference-tab-enabled';
-    const CHAT_COMMUNITY_ENABLED_KEY = 'appv5:chat-community-enabled';
+    const TAB_VISIBILITY_KEYS = {
+      home: 'appv5:tab-training-enabled',
+      freeride: 'appv5:tab-lab-enabled',
+      reference: REFERENCE_TAB_ENABLED_KEY,
+      chat: 'appv5:tab-chat-enabled',
+      tu: 'appv5:tab-you-enabled'
+    };
+    const TAB_DEFAULT_VISIBILITY = {
+      home: true,
+      freeride: true,
+      reference: false,
+      chat: true,
+      tu: true
+    };
+    const TAB_ORDER = ['home', 'freeride', 'reference', 'chat', 'tu'];
     const COMMUNITY_CHAT_UNREAD_STORAGE_PREFIX = 'appv5:chat-community-unread:';
+
     const normalizeTab = (tab) => String(tab || '').trim().toLowerCase();
-    const normalizeReferenceTabEnabled = (value) => {
+    const normalizeTabVisibilityEnabled = (tab, value) => {
       if (typeof value === 'boolean') return value;
       const normalized = String(value || '')
         .trim()
         .toLowerCase();
-      if (!normalized) return false;
-      return ['1', 'true', 'on', 'yes'].includes(normalized);
+      if (!normalized) return Boolean(TAB_DEFAULT_VISIBILITY[tab]);
+      return !['0', 'false', 'off', 'no'].includes(normalized);
     };
-    const isReferenceTabEnabled = () => {
+    const getStoredTabVisibility = (tab) => {
+      if (!TAB_VISIBILITY_KEYS[tab]) return false;
+      const runtimeMap = window.r34lp0w3r && window.r34lp0w3r.tabVisibility;
+      if (runtimeMap && Object.prototype.hasOwnProperty.call(runtimeMap, tab)) {
+        return normalizeTabVisibilityEnabled(tab, runtimeMap[tab]);
+      }
       if (
+        tab === 'reference' &&
         window.r34lp0w3r &&
         Object.prototype.hasOwnProperty.call(window.r34lp0w3r, 'referenceTabEnabled')
       ) {
-        return normalizeReferenceTabEnabled(window.r34lp0w3r.referenceTabEnabled);
+        return normalizeTabVisibilityEnabled(tab, window.r34lp0w3r.referenceTabEnabled);
       }
       try {
-        return normalizeReferenceTabEnabled(localStorage.getItem(REFERENCE_TAB_ENABLED_KEY));
+        return normalizeTabVisibilityEnabled(tab, localStorage.getItem(TAB_VISIBILITY_KEYS[tab]));
       } catch (err) {
-        return false;
+        return Boolean(TAB_DEFAULT_VISIBILITY[tab]);
       }
     };
-    const normalizeChatCommunityEnabled = (value) => {
-      if (typeof value === 'boolean') return value;
-      const normalized = String(value || '')
-        .trim()
-        .toLowerCase();
-      if (!normalized) return false;
-      return ['1', 'true', 'on', 'yes'].includes(normalized);
+    const getAllowedTabs = () => {
+      const enabledTabs = TAB_ORDER.filter((tab) => getStoredTabVisibility(tab));
+      return enabledTabs.length ? enabledTabs : ['home'];
     };
-    const isChatCommunityEnabled = () => {
-      if (
-        window.r34lp0w3r &&
-        Object.prototype.hasOwnProperty.call(window.r34lp0w3r, 'chatCommunityEnabled')
-      ) {
-        return normalizeChatCommunityEnabled(window.r34lp0w3r.chatCommunityEnabled);
-      }
-      try {
-        return normalizeChatCommunityEnabled(localStorage.getItem(CHAT_COMMUNITY_ENABLED_KEY));
-      } catch (err) {
-        return false;
-      }
-    };
-    const getAllowedTabs = () =>
-      isReferenceTabEnabled()
-        ? ['home', 'freeride', 'reference', 'tu', 'chat']
-        : ['home', 'freeride', 'tu', 'chat'];
     const isAllowedTab = (tab) => getAllowedTabs().includes(tab);
+    const getLoginTargetTab = () => {
+      if (isAllowedTab('tu')) return 'tu';
+      const allowedTabs = getAllowedTabs();
+      return allowedTabs.length ? allowedTabs[0] : 'home';
+    };
     const resolveUiLocale = () => {
       const fromState = normalizeCopyLocale(getAppLocale());
       if (fromState) return fromState;
@@ -63,6 +69,7 @@ class TabsPage extends HTMLElement {
     };
     const readTabsCopy = () => getTabsCopy(resolveUiLocale());
     const tabsCopy = readTabsCopy();
+
     this.innerHTML = `
       <ion-tabs no-router>
         <ion-tab tab="home">
@@ -74,11 +81,11 @@ class TabsPage extends HTMLElement {
         <ion-tab tab="reference">
           <page-reference></page-reference>
         </ion-tab>
-        <ion-tab tab="tu">
-          <page-profile></page-profile>
-        </ion-tab>
         <ion-tab tab="chat">
           <page-chat></page-chat>
+        </ion-tab>
+        <ion-tab tab="tu">
+          <page-profile></page-profile>
         </ion-tab>
         <ion-tab-bar slot="bottom" class="app-tab-bar">
           <ion-tab-button tab="home">
@@ -93,13 +100,13 @@ class TabsPage extends HTMLElement {
             <ion-icon name="book-outline"></ion-icon>
             <ion-label data-tab-label="reference">${tabsCopy.reference}</ion-label>
           </ion-tab-button>
-          <ion-tab-button tab="tu">
-            <ion-icon name="person-circle-outline"></ion-icon>
-            <ion-label data-tab-label="tu">${tabsCopy.you}</ion-label>
-          </ion-tab-button>
           <ion-tab-button tab="chat" class="app-tab-button-chat">
             <ion-icon name="chatbubbles-outline"></ion-icon>
             <ion-label data-tab-label="chat">${tabsCopy.chat}</ion-label>
+          </ion-tab-button>
+          <ion-tab-button tab="tu">
+            <ion-icon name="person-circle-outline"></ion-icon>
+            <ion-label data-tab-label="tu">${tabsCopy.you}</ion-label>
           </ion-tab-button>
         </ion-tab-bar>
       </ion-tabs>
@@ -112,14 +119,15 @@ class TabsPage extends HTMLElement {
       const homeLabel = this.querySelector('[data-tab-label="home"]');
       const freeRideLabel = this.querySelector('[data-tab-label="freeride"]');
       const referenceLabel = this.querySelector('[data-tab-label="reference"]');
-      const youLabel = this.querySelector('[data-tab-label="tu"]');
       const chatLabel = this.querySelector('[data-tab-label="chat"]');
+      const youLabel = this.querySelector('[data-tab-label="tu"]');
       if (homeLabel) homeLabel.textContent = copy.training;
       if (freeRideLabel) freeRideLabel.textContent = copy.lab;
       if (referenceLabel) referenceLabel.textContent = copy.reference;
-      if (youLabel) youLabel.textContent = copy.you;
       if (chatLabel) chatLabel.textContent = copy.chat;
+      if (youLabel) youLabel.textContent = copy.you;
     };
+
     let forcingTab = false;
     let wasLoggedIn = false;
 
@@ -129,7 +137,6 @@ class TabsPage extends HTMLElement {
     };
 
     const readChatUnreadState = () => {
-      if (!isChatCommunityEnabled()) return { count: 0, showTabDot: false };
       const currentUserId = getCurrentUserId();
       if (!currentUserId) return { count: 0, showTabDot: false };
       try {
@@ -182,41 +189,6 @@ class TabsPage extends HTMLElement {
       }
     };
 
-    const applyReferenceTabVisibility = () => {
-      const enabled = isReferenceTabEnabled();
-      const referenceButton = this.querySelector('ion-tab-button[tab="reference"]');
-      if (referenceButton) {
-        referenceButton.hidden = !enabled;
-      }
-      const referenceTab = this.querySelector('ion-tab[tab="reference"]');
-      if (referenceTab) {
-        referenceTab.hidden = !enabled;
-      }
-      if (!enabled) {
-        const selectedFromAttr = normalizeTab(tabsEl?.getAttribute('selected-tab') || '');
-        const selectedFromProp =
-          tabsEl && typeof tabsEl.selectedTab === 'string' ? normalizeTab(tabsEl.selectedTab) : '';
-        const selected = selectedFromProp || selectedFromAttr;
-        if (selected === 'reference') {
-          writeStoredTab('home');
-          forceTab('home');
-        }
-      }
-    };
-
-    const isLoggedIn = () => {
-      const user = window.user;
-      return Boolean(user && user.id !== undefined && user.id !== null);
-    };
-    wasLoggedIn = isLoggedIn();
-
-    const isTabsLocked = () => hasLoginTabsLock() && !isLoggedIn();
-
-    const openLoginModal = async (locked) => {
-      if (typeof window.openLoginModal !== 'function') return;
-      await window.openLoginModal({ locked: Boolean(locked) });
-    };
-
     const forceTab = (tab) => {
       if (!tabsEl || typeof tabsEl.select !== 'function') return;
       const normalizedTab = normalizeTab(tab);
@@ -239,11 +211,56 @@ class TabsPage extends HTMLElement {
         });
     };
 
+    const applyTabVisibility = () => {
+      const allowedTabs = getAllowedTabs();
+      TAB_ORDER.forEach((tab) => {
+        const tabButton = this.querySelector(`ion-tab-button[tab="${tab}"]`);
+        if (tabButton) {
+          tabButton.hidden = !allowedTabs.includes(tab);
+        }
+        const tabPane = this.querySelector(`ion-tab[tab="${tab}"]`);
+        if (tabPane) {
+          tabPane.hidden = !allowedTabs.includes(tab);
+        }
+      });
+      if (tabBarEl) {
+        tabBarEl.hidden = allowedTabs.length < 2;
+      }
+      const storedTab = normalizeTab(readStoredTab());
+      const selectedFromAttr = normalizeTab(tabsEl?.getAttribute('selected-tab') || '');
+      const selectedFromProp =
+        tabsEl && typeof tabsEl.selectedTab === 'string' ? normalizeTab(tabsEl.selectedTab) : '';
+      const selectedTab = selectedFromProp || selectedFromAttr;
+      const preferredTab = allowedTabs.includes(storedTab)
+        ? storedTab
+        : allowedTabs.includes(selectedTab)
+          ? selectedTab
+          : allowedTabs[0] || 'home';
+      if (!selectedTab || selectedTab !== preferredTab || !allowedTabs.includes(selectedTab)) {
+        writeStoredTab(preferredTab);
+        forceTab(preferredTab);
+      }
+    };
+
+    const isLoggedIn = () => {
+      const user = window.user;
+      return Boolean(user && user.id !== undefined && user.id !== null);
+    };
+    wasLoggedIn = isLoggedIn();
+
+    const isTabsLocked = () => hasLoginTabsLock() && !isLoggedIn();
+
+    const openLoginModal = async (locked) => {
+      if (typeof window.openLoginModal !== 'function') return;
+      await window.openLoginModal({ locked: Boolean(locked) });
+    };
+
     const applyTabButtonLock = (locked) => {
       const buttons = Array.from(this.querySelectorAll('ion-tab-button[tab]'));
+      const loginTargetTab = getLoginTargetTab();
       buttons.forEach((button) => {
         const tab = button.getAttribute('tab');
-        const disabled = Boolean(locked && tab !== 'tu');
+        const disabled = Boolean(locked && tab !== loginTargetTab);
         button.disabled = disabled;
         button.setAttribute('aria-disabled', disabled ? 'true' : 'false');
       });
@@ -251,10 +268,11 @@ class TabsPage extends HTMLElement {
 
     const enforceLoginTabsLock = (openLogin = true) => {
       const locked = isTabsLocked();
+      const loginTargetTab = getLoginTargetTab();
       applyTabButtonLock(locked);
       if (!locked) return;
-      writeStoredTab('tu');
-      forceTab('tu');
+      writeStoredTab(loginTargetTab);
+      forceTab(loginTargetTab);
       if (openLogin) {
         openLoginModal(true).catch((err) => {
           console.error('[tabs] error abriendo login bloqueado', err);
@@ -266,29 +284,21 @@ class TabsPage extends HTMLElement {
       const target = event.target instanceof Element ? event.target : null;
       const tabButton = target ? target.closest('ion-tab-button[tab]') : null;
       if (!tabButton) return;
-      const rawTab = tabButton.getAttribute('tab');
-      const tab = normalizeTab(rawTab);
+      const tab = normalizeTab(tabButton.getAttribute('tab'));
       if (!tab || !isAllowedTab(tab)) return;
 
-      if (tab === 'reference' && !isReferenceTabEnabled()) {
+      const loginTargetTab = getLoginTargetTab();
+      if (isTabsLocked() && tab !== loginTargetTab) {
         event.preventDefault();
         event.stopPropagation();
-        writeStoredTab('home');
-        forceTab('home');
-        return;
-      }
-
-      if (isTabsLocked() && tab !== 'tu') {
-        event.preventDefault();
-        event.stopPropagation();
-        forceTab('tu');
+        forceTab(loginTargetTab);
         openLoginModal(true).catch((err) => {
           console.error('[tabs] error abriendo login bloqueado', err);
         });
         return;
       }
 
-      if (tab === 'tu' && !isLoggedIn()) {
+      if (tab === loginTargetTab && !isLoggedIn()) {
         openLoginModal(isTabsLocked()).catch((err) => {
           console.error('[tabs] error abriendo login', err);
         });
@@ -304,17 +314,11 @@ class TabsPage extends HTMLElement {
 
     this._tabChangeHandler = (event) => {
       const tab = normalizeTab(event && event.detail ? event.detail.tab : null);
-      if (!tab || !isAllowedTab(tab)) return;
-      if (forcingTab) return;
+      if (!tab || !isAllowedTab(tab) || forcingTab) return;
 
-      if (tab === 'reference' && !isReferenceTabEnabled()) {
-        writeStoredTab('home');
-        forceTab('home');
-        return;
-      }
-
-      if (isTabsLocked() && tab !== 'tu') {
-        forceTab('tu');
+      const loginTargetTab = getLoginTargetTab();
+      if (isTabsLocked() && tab !== loginTargetTab) {
+        forceTab(loginTargetTab);
         openLoginModal(true).catch((err) => {
           console.error('[tabs] error abriendo login bloqueado', err);
         });
@@ -339,7 +343,7 @@ class TabsPage extends HTMLElement {
       const nowLoggedIn = isLoggedIn();
       const justLoggedIn = !wasLoggedIn && nowLoggedIn;
       wasLoggedIn = nowLoggedIn;
-      applyReferenceTabVisibility();
+      applyTabVisibility();
       applyChatUnreadBadge();
       enforceLoginTabsLock(false);
       if (justLoggedIn) {
@@ -348,16 +352,20 @@ class TabsPage extends HTMLElement {
       }
     };
     window.addEventListener('app:user-change', this._userChangeHandler);
+
     this._localeChangeHandler = () => applyTabLabels();
     window.addEventListener('app:locale-change', this._localeChangeHandler);
-    this._referenceTabToggleHandler = () => {
-      applyReferenceTabVisibility();
+
+    this._tabVisibilityChangeHandler = () => {
+      applyTabVisibility();
       const storedTab = normalizeTab(readStoredTab());
       if (storedTab && !isAllowedTab(storedTab)) {
-        writeStoredTab('home');
+        writeStoredTab(getAllowedTabs()[0] || 'home');
       }
     };
-    window.addEventListener('app:reference-tab-enabled-change', this._referenceTabToggleHandler);
+    window.addEventListener('app:tab-visibility-change', this._tabVisibilityChangeHandler);
+    window.addEventListener('app:reference-tab-enabled-change', this._tabVisibilityChangeHandler);
+
     this._chatUnreadChangeHandler = (event) => {
       const currentUserId = getCurrentUserId();
       const detail = event && event.detail ? event.detail : {};
@@ -367,12 +375,8 @@ class TabsPage extends HTMLElement {
       applyChatUnreadBadge(detail);
     };
     window.addEventListener('app:chat-unread-change', this._chatUnreadChangeHandler);
-    this._chatCommunityToggleHandler = () => {
-      applyChatUnreadBadge();
-    };
-    window.addEventListener('app:chat-community-enabled-change', this._chatCommunityToggleHandler);
 
-    applyReferenceTabVisibility();
+    applyTabVisibility();
     applyChatUnreadBadge();
 
     if (isTabsLocked()) {
@@ -380,14 +384,13 @@ class TabsPage extends HTMLElement {
       return;
     }
 
-    const storedTab = readStoredTab();
-    const normalizedStoredTab = normalizeTab(storedTab);
-    if (normalizedStoredTab && isAllowedTab(normalizedStoredTab)) {
+    const storedTab = normalizeTab(readStoredTab());
+    if (storedTab && isAllowedTab(storedTab)) {
       setTimeout(() => {
-        forceTab(normalizedStoredTab);
+        forceTab(storedTab);
       }, 0);
-    } else if (normalizedStoredTab && !isAllowedTab(normalizedStoredTab)) {
-      writeStoredTab('home');
+    } else if (storedTab && !isAllowedTab(storedTab)) {
+      writeStoredTab(getAllowedTabs()[0] || 'home');
     }
   }
 
@@ -414,16 +417,13 @@ class TabsPage extends HTMLElement {
       window.removeEventListener('app:locale-change', this._localeChangeHandler);
     }
 
-    if (this._referenceTabToggleHandler) {
-      window.removeEventListener('app:reference-tab-enabled-change', this._referenceTabToggleHandler);
+    if (this._tabVisibilityChangeHandler) {
+      window.removeEventListener('app:tab-visibility-change', this._tabVisibilityChangeHandler);
+      window.removeEventListener('app:reference-tab-enabled-change', this._tabVisibilityChangeHandler);
     }
 
     if (this._chatUnreadChangeHandler) {
       window.removeEventListener('app:chat-unread-change', this._chatUnreadChangeHandler);
-    }
-
-    if (this._chatCommunityToggleHandler) {
-      window.removeEventListener('app:chat-community-enabled-change', this._chatCommunityToggleHandler);
     }
   }
 }

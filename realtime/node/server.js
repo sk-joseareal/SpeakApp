@@ -2433,8 +2433,7 @@ const pruneCommunityModerationState = (state) => {
   return safeState;
 };
 
-let communityModerationState = pruneCommunityModerationState(loadCommunityModerationState());
-saveCommunityModerationState(communityModerationState);
+let communityModerationState = null;
 
 const getMutableCommunityModerationState = () => {
   communityModerationState = pruneCommunityModerationState(communityModerationState);
@@ -2724,6 +2723,9 @@ const writeJsonFile = (filePath, data) => {
     console.warn('[state] write failed', filePath, err.message);
   }
 };
+
+communityModerationState = pruneCommunityModerationState(loadCommunityModerationState());
+saveCommunityModerationState(communityModerationState);
 
 const loadSnapshot = (ownerKey) => {
   const filePath = snapshotPathFor(ownerKey);

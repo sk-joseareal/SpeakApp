@@ -126,6 +126,19 @@
     .table-wrap {
       overflow-x: auto;
     }
+    .table-pagination {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin: 8px 0 12px;
+      flex-wrap: wrap;
+    }
+    .pagination-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
     th, td {
       text-align: left;
       padding: 8px 6px;
@@ -318,8 +331,8 @@
         <input id="community-audit-type" placeholder="optional">
       </div>
       <div class="row">
-        <label>Limit</label>
-        <input id="community-audit-limit" type="number" value="100" min="1" max="1000">
+        <label>Items per page</label>
+        <input id="community-audit-limit" type="number" value="10" min="1" max="1000">
       </div>
       <div class="row">
         <button id="refresh-community-presence">Presence</button>
@@ -427,6 +440,10 @@
     const communityModerationOutput = el('community-moderation-output');
     const communityInspectorOutput = el('community-inspector-output');
     const communityAuditOutput = el('community-audit-output');
+    const communityPaginationState = {
+      messages: 1,
+      audit: 1
+    };
 
     const log = (line) => {
       const ts = new Date().toISOString();
@@ -498,8 +515,40 @@
       room_type: el('community-room-type').value.trim(),
       text: el('community-text-filter').value.trim(),
       type: el('community-audit-type').value.trim(),
-      limit: el('community-audit-limit').value.trim()
+      limit: el('community-audit-limit').value.trim() || '10'
     });
+
+    const resetCommunityPagination = (scope = '') => {
+      if (!scope || scope === 'messages') communityPaginationState.messages = 1;
+      if (!scope || scope === 'audit') communityPaginationState.audit = 1;
+    };
+
+    const buildPaginationHtml = (scope, data) => {
+      const page = Math.max(1, Number(data && data.page) || 1);
+      const pages = Math.max(1, Number(data && data.pages) || 1);
+      const count = Math.max(0, Number(data && data.count) || 0);
+      return `
+        <div class="table-pagination">
+          <span class="muted">Page ${escapeHtml(String(page))} / ${escapeHtml(String(pages))} · ${escapeHtml(String(count))} total</span>
+          <div class="pagination-actions">
+            <button
+              type="button"
+              class="secondary community-page-btn"
+              data-scope="${escapeHtml(scope)}"
+              data-page="${escapeHtml(String(Math.max(1, page - 1)))}"
+              ${page <= 1 ? 'disabled' : ''}
+            >Prev</button>
+            <button
+              type="button"
+              class="secondary community-page-btn"
+              data-scope="${escapeHtml(scope)}"
+              data-page="${escapeHtml(String(Math.min(pages, page + 1)))}"
+              ${page >= pages ? 'disabled' : ''}
+            >Next</button>
+          </div>
+        </div>
+      `;
+    };
 
     const getCommunityModerationUserId = () =>
       el('community-moderation-user-id').value.trim() || el('community-user-filter').value.trim();
@@ -545,6 +594,20 @@
       userId: el('auth-user-id').value.trim(),
       userName: el('auth-user-name').value.trim()
     });
+
+    const parseCommunityDmChannel = (channelValue) => {
+      const text = String(channelValue || '').trim();
+      const match = text.match(/^private-(.+)$/);
+      if (!match) return null;
+      const roomId = match[1].trim();
+      if (!roomId || roomId.indexOf('_') < 0) return null;
+      const parts = roomId.split('_').map((part) => part.trim()).filter(Boolean);
+      if (parts.length !== 2) return null;
+      return {
+        roomId,
+        userIds: parts
+      };
+    };
 
     const updateStatus = (state) => {
       statusEl.textContent = state;
@@ -656,6 +719,11 @@
             throw new Error('user_id required for community messages');
           }
           const isCommunityDm = channelValue.startsWith('private-');
+          const dmIdentity = isCommunityDm ? parseCommunityDmChannel(channelValue) : null;
+          if (isCommunityDm && (!dmIdentity || !dmIdentity.userIds.includes(userId))) {
+            const expected = dmIdentity && Array.isArray(dmIdentity.userIds) ? dmIdentity.userIds.join(' or ') : 'a room participant';
+            throw new Error(`For DM channels, user_id must be ${expected}`);
+          }
           const pathname = isCommunityDm
             ? '/realtime/community/messages'
             : '/realtime/community/public/messages';
@@ -851,7 +919,10 @@
     const renderCommunityMessages = (data) => {
       const messages = Array.isArray(data && data.messages) ? data.messages : [];
       if (!messages.length) {
-        communityMessagesOutput.textContent = 'No messages found.';
+        communityMessagesOutput.innerHTML = `
+          <div class="muted">No messages found.</div>
+          ${buildPaginationHtml('messages', data)}
+        `;
         return;
       }
       const rows = messages
@@ -885,7 +956,8 @@
         `)
         .join('');
       communityMessagesOutput.innerHTML = `
-        <div class="muted">Messages: ${escapeHtml(String(data.count ?? messages.length))}</div>
+        <div class="muted">Messages</div>
+        ${buildPaginationHtml('messages', data)}
         <div class="table-wrap">
           <table>
             <thead>
@@ -1125,7 +1197,10 @@
     const renderCommunityAudit = (data) => {
       const events = Array.isArray(data && data.events) ? data.events : [];
       if (!events.length) {
-        communityAuditOutput.textContent = 'No audit events.';
+        communityAuditOutput.innerHTML = `
+          <div class="muted">No audit events.</div>
+          ${buildPaginationHtml('audit', data)}
+        `;
         return;
       }
       const rows = events
@@ -1142,7 +1217,8 @@
         `)
         .join('');
       communityAuditOutput.innerHTML = `
-        <div class="muted">Events: ${escapeHtml(String(data.count ?? events.length))}</div>
+        <div class="muted">Audit events</div>
+        ${buildPaginationHtml('audit', data)}
         <div class="table-wrap">
           <table>
             <thead>
@@ -1182,28 +1258,38 @@
       return data;
     };
 
-    const refreshCommunityAudit = async () => {
+    const refreshCommunityAudit = async (options = {}) => {
+      if (options && options.page !== undefined) {
+        communityPaginationState.audit = Math.max(1, parseInt(options.page, 10) || 1);
+      }
       const filters = getCommunityMonitorFilters();
       const data = await fetchMonitorJson('/realtime/community/monitor/audit', {
         user_id: filters.user_id,
         room_id: filters.room_id,
         uuid: filters.uuid,
         type: filters.type,
-        limit: filters.limit
+        limit: filters.limit,
+        page: String(communityPaginationState.audit)
       });
+      communityPaginationState.audit = Math.max(1, Number(data && data.page) || communityPaginationState.audit);
       renderCommunityAudit(data);
       return data;
     };
 
-    const refreshCommunityMessages = async () => {
+    const refreshCommunityMessages = async (options = {}) => {
+      if (options && options.page !== undefined) {
+        communityPaginationState.messages = Math.max(1, parseInt(options.page, 10) || 1);
+      }
       const filters = getCommunityMonitorFilters();
       const data = await fetchMonitorJson('/realtime/community/monitor/messages', {
         user_id: filters.user_id,
         room_id: filters.room_id,
         room_type: filters.room_type,
         text: filters.text,
-        limit: filters.limit
+        limit: filters.limit,
+        page: String(communityPaginationState.messages)
       });
+      communityPaginationState.messages = Math.max(1, Number(data && data.page) || communityPaginationState.messages);
       renderCommunityMessages(data);
       return data;
     };
@@ -1445,6 +1531,19 @@
         });
     });
     communityMessagesOutput.addEventListener('click', (event) => {
+      const pagerButton = event.target && event.target.closest
+        ? event.target.closest('.community-page-btn[data-scope="messages"]')
+        : null;
+      if (pagerButton) {
+        refreshCommunityMessages({ page: pagerButton.dataset.page || '1' })
+          .then(() => {
+            communityMonitorStatus.textContent = 'messages ok';
+          })
+          .catch((err) => {
+            communityMonitorStatus.textContent = err.message;
+          });
+        return;
+      }
       const button = event.target && event.target.closest
         ? event.target.closest('.community-delete-message-btn')
         : null;
@@ -1456,6 +1555,19 @@
       })
         .then(() => {
           communityMonitorStatus.textContent = 'message deleted';
+        })
+        .catch((err) => {
+          communityMonitorStatus.textContent = err.message;
+        });
+    });
+    communityAuditOutput.addEventListener('click', (event) => {
+      const pagerButton = event.target && event.target.closest
+        ? event.target.closest('.community-page-btn[data-scope="audit"]')
+        : null;
+      if (!pagerButton) return;
+      refreshCommunityAudit({ page: pagerButton.dataset.page || '1' })
+        .then(() => {
+          communityMonitorStatus.textContent = 'audit ok';
         })
         .catch((err) => {
           communityMonitorStatus.textContent = err.message;
@@ -1500,6 +1612,26 @@
         });
     });
     el('refresh-community-all').addEventListener('click', refreshCommunityAll);
+    [
+      'community-user-filter',
+      'community-uuid-filter',
+      'community-room-filter',
+      'community-room-type',
+      'community-text-filter',
+      'community-audit-type',
+      'community-audit-limit'
+    ].forEach((id) => {
+      const node = el(id);
+      if (!node) return;
+      node.addEventListener('change', () => {
+        resetCommunityPagination();
+      });
+      if (node.tagName === 'INPUT') {
+        node.addEventListener('input', () => {
+          resetCommunityPagination();
+        });
+      }
+    });
 
     connect();
     refreshCommunityAll().catch((err) => {

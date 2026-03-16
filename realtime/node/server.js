@@ -2367,15 +2367,31 @@ const listCommunityMonitorPushTokens = ({ userId = '', uuid = '', platform = '' 
   };
 };
 
-const readCommunityAuditEvents = ({ userId = '', roomId = '', uuid = '', type = '', limit = 100 } = {}) => {
+const readCommunityAuditEvents = ({
+  userId = '',
+  roomId = '',
+  uuid = '',
+  type = '',
+  limit = 100,
+  page = 1
+} = {}) => {
   const safeUserId = pickFirstString(userId);
   const safeRoomId = pickFirstString(roomId);
   const safeUuid = pickFirstString(uuid);
   const safeType = pickFirstString(type);
   const safeLimit = Math.min(toPositiveInteger(limit, 100), 1000);
+  const safePage = Math.max(1, toPositiveInteger(page, 1));
   try {
     if (!fs.existsSync(communityAuditFile)) {
-      return { count: 0, events: [] };
+      return {
+        count: 0,
+        page: 1,
+        limit: safeLimit,
+        pages: 1,
+        has_prev: false,
+        has_next: false,
+        events: []
+      };
     }
     const raw = fs.readFileSync(communityAuditFile, 'utf8');
     const events = String(raw || '')
@@ -2397,14 +2413,29 @@ const readCommunityAuditEvents = ({ userId = '', roomId = '', uuid = '', type = 
         if (safeType && pickFirstString(event && event.type) !== safeType) return false;
         return true;
       });
+    const ordered = events.reverse();
+    const totalCount = ordered.length;
+    const totalPages = Math.max(1, Math.ceil(totalCount / safeLimit));
+    const currentPage = Math.min(safePage, totalPages);
+    const startIndex = (currentPage - 1) * safeLimit;
     return {
-      count: events.length,
-      events: events.slice(-safeLimit).reverse()
+      count: totalCount,
+      page: currentPage,
+      limit: safeLimit,
+      pages: totalPages,
+      has_prev: currentPage > 1,
+      has_next: currentPage < totalPages,
+      events: ordered.slice(startIndex, startIndex + safeLimit)
     };
   } catch (err) {
     return {
       count: 0,
       error: err && err.message ? err.message : 'audit_read_failed',
+      page: 1,
+      limit: safeLimit,
+      pages: 1,
+      has_prev: false,
+      has_next: false,
       events: []
     };
   }
@@ -2630,13 +2661,15 @@ const listCommunityMonitorMessages = ({
   roomId = '',
   roomType = '',
   text = '',
-  limit = 100
+  limit = 100,
+  page = 1
 } = {}) => {
   const safeUserId = pickFirstString(userId);
   const safeRoomId = pickFirstString(roomId);
   const safeRoomType = pickFirstString(roomType).toLowerCase();
   const safeText = pickFirstString(text).toLowerCase();
   const safeLimit = Math.min(toPositiveInteger(limit, 100), 500);
+  const safePage = Math.max(1, toPositiveInteger(page, 1));
   const auditMeta = buildCommunityAuditMessageMetaMap();
   const rows = [];
   const pushRows = (messages, type, currentRoomId) => {
@@ -2692,9 +2725,19 @@ const listCommunityMonitorMessages = ({
     return (Number.isFinite(rightTs) ? rightTs : 0) - (Number.isFinite(leftTs) ? leftTs : 0);
   });
 
+  const totalCount = rows.length;
+  const totalPages = Math.max(1, Math.ceil(totalCount / safeLimit));
+  const currentPage = Math.min(safePage, totalPages);
+  const startIndex = (currentPage - 1) * safeLimit;
+
   return {
-    count: rows.length,
-    messages: rows.slice(0, safeLimit)
+    count: totalCount,
+    page: currentPage,
+    limit: safeLimit,
+    pages: totalPages,
+    has_prev: currentPage > 1,
+    has_next: currentPage < totalPages,
+    messages: rows.slice(startIndex, startIndex + safeLimit)
   };
 };
 
@@ -6101,7 +6144,8 @@ app.get('/realtime/community/monitor/messages', (req, res) => {
     roomId: pickFirstString(req.query.room_id, req.query.roomId),
     roomType: pickFirstString(req.query.room_type, req.query.roomType),
     text: pickFirstString(req.query.text, req.query.q),
-    limit: req.query.limit
+    limit: req.query.limit,
+    page: req.query.page
   });
   res.json({
     ok: true,
@@ -6152,7 +6196,8 @@ app.get('/realtime/community/monitor/audit', (req, res) => {
     roomId: pickFirstString(req.query.room_id, req.query.roomId),
     uuid: pickFirstString(req.query.uuid),
     type: pickFirstString(req.query.type),
-    limit: req.query.limit
+    limit: req.query.limit,
+    page: req.query.page
   });
   const statusCode = payload && payload.error ? 500 : 200;
   res.status(statusCode).json({

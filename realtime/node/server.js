@@ -2388,8 +2388,11 @@ const saveCommunityModerationState = (state) => {
   writeJsonFile(communityModerationFile, state);
 };
 
-const normalizeCommunityModerationStatus = (value) =>
-  pickFirstString(value).toLowerCase() === 'muted' ? 'muted' : 'active';
+const normalizeCommunityModerationStatus = (value) => {
+  const status = pickFirstString(value).toLowerCase();
+  if (status === 'muted' || status === 'suspended') return status;
+  return 'active';
+};
 
 const normalizeCommunityModerationUntil = (value) => {
   const raw = pickFirstString(value);
@@ -2409,7 +2412,7 @@ const normalizeCommunityModerationEntry = (entry, userId = '') => {
   return {
     user_id: safeUserId,
     status: expired ? 'active' : status,
-    active: !expired && status === 'muted',
+    active: !expired && status !== 'active',
     reason: pickFirstString(safeEntry.reason),
     note: pickFirstString(safeEntry.note),
     until: expired ? '' : until,
@@ -2481,7 +2484,7 @@ const upsertCommunityModerationEntry = ({
   const safeUntil = normalizeCommunityModerationUntil(until);
   const nowIso = new Date().toISOString();
   const state = getMutableCommunityModerationState();
-  if (safeStatus !== 'muted') {
+  if (safeStatus === 'active') {
     delete state.users[safeUserId];
     state.updated_at = nowIso;
     saveCommunityModerationState(state);
@@ -2503,7 +2506,7 @@ const upsertCommunityModerationEntry = ({
   const existing = normalizeCommunityModerationEntry(state.users[safeUserId], safeUserId);
   state.users[safeUserId] = {
     user_id: safeUserId,
-    status: 'muted',
+    status: safeStatus,
     active: true,
     reason: pickFirstString(reason),
     note: pickFirstString(note),
@@ -2520,30 +2523,37 @@ const upsertCommunityModerationEntry = ({
   };
 };
 
-const isCommunityUserMuted = (userId) => {
+const getCommunityModerationBlockedResponse = ({
+  userId,
+  scope = 'send',
+  roomType,
+  roomId = '',
+  channel = '',
+  clientMeta = {}
+}) => {
   const entry = getCommunityModerationEntry(userId);
-  return Boolean(entry && entry.active && entry.status === 'muted');
-};
+  if (!entry || !entry.active) return null;
+  const safeScope = pickFirstString(scope, 'send').toLowerCase();
+  const isSend = safeScope === 'send';
+  const isAccess = safeScope === 'access';
+  if (isAccess && entry.status !== 'suspended') return null;
+  if (!isSend && !isAccess) return null;
 
-const getCommunityBlockedResponse = ({ userId, roomType, roomId = '', clientMeta = {} }) => {
-  const entry = getCommunityModerationEntry(userId);
-  appendCommunityAuditEvent('message_blocked', {
+  const eventType = isAccess ? 'community_access_blocked' : 'message_blocked';
+  appendCommunityAuditEvent(eventType, {
     room_type: pickFirstString(roomType),
     room_id: pickFirstString(roomId),
+    channel: pickFirstString(channel),
     user_id: pickFirstString(userId),
     ip: normalizeClientIp(clientMeta.ip),
-    reason: pickFirstString(entry && entry.reason, 'muted')
+    reason: pickFirstString(entry.reason, entry.status),
+    moderation_status: pickFirstString(entry.status)
   });
   return {
     ok: false,
-    error: 'community_user_muted',
+    error: entry.status === 'suspended' ? 'community_user_suspended' : 'community_user_muted',
     statusCode: 403,
-    moderation: entry || {
-      user_id: pickFirstString(userId),
-      status: 'muted',
-      active: true,
-      reason: ''
-    }
+    moderation: entry
   };
 };
 
@@ -2611,6 +2621,9 @@ const listCommunityMonitorMessages = ({
         ),
         text: messageText,
         delivered_at: pickFirstString(message && message.delivered_at),
+        deleted_at: pickFirstString(message && message.deleted_at),
+        deleted_by: pickFirstString(message && message.deleted_by),
+        delete_reason: pickFirstString(message && message.delete_reason),
         ip: normalizeClientIp(meta.ip),
         uuid: pickFirstString(meta.uuid)
       });
@@ -3231,6 +3244,25 @@ const removeCommunityPresenceSession = ({ roomId, userId, sessionId, now = Date.
   state.updated_at = room.updated_at;
   saveCommunityPresenceState(state);
   return { ok: true, summary: summarizeCommunityPresenceRoom(room) };
+};
+
+const removeCommunityPresenceUserFromAllRooms = (userId, { now = Date.now() } = {}) => {
+  const safeUserId = pickFirstString(userId);
+  if (!safeUserId) return { ok: false, error: 'user_id_required' };
+  const state = getMutableCommunityPresenceState(now);
+  let changed = false;
+  Object.keys(state.rooms || {}).forEach((roomId) => {
+    const room = ensurePresenceRoom(state, roomId);
+    if (!room.users || typeof room.users !== 'object' || !room.users[safeUserId]) return;
+    delete room.users[safeUserId];
+    room.updated_at = new Date(now).toISOString();
+    changed = true;
+  });
+  if (changed) {
+    state.updated_at = new Date(now).toISOString();
+    saveCommunityPresenceState(state);
+  }
+  return { ok: true, removed: changed };
 };
 
 const compareCommunityUserIds = (left, right) => {
@@ -4177,6 +4209,101 @@ const buildCommunityDmDeliveryUpdatePayload = (message) => ({
   delivery_updated_at: pickFirstString(message && message.delivery_updated_at)
 });
 
+const COMMUNITY_MODERATED_MESSAGE_TEXT = 'Message removed by moderator.';
+
+const buildCommunityMessageModerationUpdatePayload = (message) => ({
+  room_type: pickFirstString(message && message.room_type),
+  room_id: pickFirstString(message && message.room_id),
+  message_id: pickFirstString(message && message.id),
+  text: normalizeCommunityText(message && message.text),
+  deleted_at: pickFirstString(message && message.deleted_at),
+  deleted_by: pickFirstString(message && message.deleted_by),
+  delete_reason: pickFirstString(message && message.delete_reason)
+});
+
+const syncCommunityDmRoomPreviewFromHistory = (identity, history) => {
+  const safeIdentity = identity && typeof identity === 'object' ? identity : null;
+  if (!safeIdentity || !safeIdentity.room_id) return;
+  const state = getMutableCommunityDmRoomsState();
+  const room = state.rooms[safeIdentity.room_id];
+  if (!room || typeof room !== 'object') return;
+  const messages = Array.isArray(history && history.messages) ? history.messages : [];
+  const lastMessage = messages.length ? messages[messages.length - 1] : null;
+  if (lastMessage) {
+    room.last_message_at = pickFirstString(lastMessage.created_at, lastMessage.published, room.last_message_at);
+    room.last_message_preview = normalizeCommunityText(lastMessage.text || '').slice(0, 240);
+    room.last_message_actor_id = pickFirstString(lastMessage.actor && lastMessage.actor.id);
+    room.last_message_actor_name = pickFirstString(
+      lastMessage.actor && (lastMessage.actor.name || lastMessage.actor.displayName || lastMessage.actor.email)
+    );
+  } else {
+    room.last_message_preview = '';
+  }
+  state.rooms[safeIdentity.room_id] = room;
+  saveCommunityDmRoomsState(state);
+};
+
+const softDeleteCommunityMessage = ({
+  roomType = 'public',
+  roomId = '',
+  messageId = '',
+  deletedBy = '',
+  reason = ''
+} = {}) => {
+  const safeRoomType = pickFirstString(roomType, 'public').toLowerCase();
+  const safeRoomId =
+    safeRoomType === 'public' ? COMMUNITY_PUBLIC_CHANNEL : pickFirstString(roomId);
+  const safeMessageId = pickFirstString(messageId);
+  const safeDeletedBy = pickFirstString(deletedBy, 'monitor');
+  const safeReason = pickFirstString(reason);
+  if (!safeMessageId) return { ok: false, error: 'message_id_required' };
+  if (safeRoomType !== 'public' && !safeRoomId) return { ok: false, error: 'room_id_required' };
+
+  let history;
+  let identity = null;
+  let saveHistory = null;
+  if (safeRoomType === 'public') {
+    history = loadCommunityHistory();
+    saveHistory = saveCommunityHistory;
+  } else if (safeRoomType === 'dm') {
+    identity = buildCommunityDmIdentity(...String(safeRoomId).split('_'));
+    if (!identity) return { ok: false, error: 'invalid_room_id' };
+    history = loadCommunityDmHistory(identity);
+    saveHistory = saveCommunityDmHistory;
+  } else {
+    return { ok: false, error: 'invalid_room_type' };
+  }
+
+  const messages = Array.isArray(history && history.messages) ? history.messages : [];
+  const messageIndex = messages.findIndex((message) => pickFirstString(message && message.id) === safeMessageId);
+  if (messageIndex < 0) return { ok: false, error: 'message_not_found' };
+
+  const currentMessage = messages[messageIndex] && typeof messages[messageIndex] === 'object'
+    ? messages[messageIndex]
+    : null;
+  if (!currentMessage) return { ok: false, error: 'message_not_found' };
+
+  const nowIso = new Date().toISOString();
+  const nextMessage = {
+    ...currentMessage,
+    original_text: pickFirstString(currentMessage.original_text, currentMessage.text),
+    text: COMMUNITY_MODERATED_MESSAGE_TEXT,
+    deleted_at: pickFirstString(currentMessage.deleted_at, nowIso),
+    deleted_by: safeDeletedBy,
+    delete_reason: safeReason
+  };
+  messages[messageIndex] = nextMessage;
+  saveHistory(history);
+  if (safeRoomType === 'dm' && identity) {
+    syncCommunityDmRoomPreviewFromHistory(identity, history);
+  }
+  return {
+    ok: true,
+    updated: true,
+    message: nextMessage
+  };
+};
+
 const ensureCommunityDmRoom = async ({
   userId,
   peerUserId,
@@ -4225,13 +4352,15 @@ const emitCommunityDmMessage = async ({ source, appName, clientMeta = {} }) => {
   if (!identity.user_ids.includes(senderId)) {
     return { ok: false, error: 'sender_not_in_dm_room', statusCode: 403 };
   }
-  if (isCommunityUserMuted(senderId)) {
-    return getCommunityBlockedResponse({
+  const moderationBlocked = getCommunityModerationBlockedResponse({
       userId: senderId,
+      scope: 'send',
       roomType: 'dm',
       roomId: identity.room_id,
       clientMeta
     });
+  if (moderationBlocked) {
+    return moderationBlocked;
   }
   const text = normalizeCommunityText(source.text || source.message || source.body || source.content || '');
   if (!text) {
@@ -4973,6 +5102,10 @@ const authHandler = (req, res) => {
 
   const isPresence = channelName.startsWith('presence-');
   const safeUserId = pickFirstString(userId, userInfo && userInfo.id);
+  const communityDmIdentity = parseCommunityDmChannel(channelName);
+  const isCommunityPresenceChannel = channelName === COMMUNITY_PUBLIC_PRESENCE_CHANNEL;
+  const isCommunityInboxChannel = channelName.startsWith(COMMUNITY_USER_INBOX_CHANNEL_PREFIX);
+  const isCommunityDmChannel = Boolean(communityDmIdentity);
 
   if (!isPresence) {
     if (channelName.startsWith('private-coach')) {
@@ -4991,7 +5124,17 @@ const authHandler = (req, res) => {
       res.json(pusher.authenticate(socketId, channelName));
       return;
     }
-    if (channelName.startsWith(COMMUNITY_USER_INBOX_CHANNEL_PREFIX)) {
+    if (isCommunityInboxChannel) {
+      const blocked = getCommunityModerationBlockedResponse({
+        userId: safeUserId,
+        scope: 'access',
+        channel: channelName,
+        clientMeta
+      });
+      if (blocked) {
+        res.status(blocked.statusCode || 403).json(blocked);
+        return;
+      }
       const ownerUserId = parseCommunityUserInboxChannel(channelName);
       if (!safeUserId || !ownerUserId || safeUserId !== ownerUserId) {
         res.status(403).json({ error: 'unauthorized_channel' });
@@ -5008,7 +5151,21 @@ const authHandler = (req, res) => {
       return;
     }
     if (channelName.startsWith('private-')) {
-      const identity = parseCommunityDmChannel(channelName);
+      const blocked = isCommunityDmChannel
+        ? getCommunityModerationBlockedResponse({
+            userId: safeUserId,
+            scope: 'access',
+            roomType: 'dm',
+            roomId: pickFirstString(communityDmIdentity && communityDmIdentity.room_id),
+            channel: channelName,
+            clientMeta
+          })
+        : null;
+      if (blocked) {
+        res.status(blocked.statusCode || 403).json(blocked);
+        return;
+      }
+      const identity = communityDmIdentity;
       if (!identity || !safeUserId || !identity.user_ids.includes(safeUserId)) {
         res.status(403).json({ error: 'unauthorized_channel' });
         return;
@@ -5038,6 +5195,20 @@ const authHandler = (req, res) => {
   if (!safeUserId) {
     res.status(400).json({ error: 'user_id required for presence channels' });
     return;
+  }
+  if (isCommunityPresenceChannel) {
+    const blocked = getCommunityModerationBlockedResponse({
+      userId: safeUserId,
+      scope: 'access',
+      roomType: 'public',
+      roomId: COMMUNITY_PUBLIC_CHANNEL,
+      channel: channelName,
+      clientMeta
+    });
+    if (blocked) {
+      res.status(blocked.statusCode || 403).json(blocked);
+      return;
+    }
   }
 
   const safePresenceUserInfo = isPresence
@@ -5106,6 +5277,16 @@ app.get('/realtime/community/rooms', (req, res) => {
     res.status(400).json({ ok: false, error: 'user_id_required' });
     return;
   }
+  const blocked = getCommunityModerationBlockedResponse({
+    userId,
+    scope: 'access',
+    roomType: scope === 'dm' ? 'dm' : 'public',
+    clientMeta: getRequestClientMeta(req)
+  });
+  if (blocked) {
+    res.status(blocked.statusCode || 403).json(blocked);
+    return;
+  }
   const response = {
     ok: true,
     scope,
@@ -5132,6 +5313,16 @@ app.post('/realtime/community/rooms/dm', async (req, res) => {
   const peerUserId = pickFirstString(source.peer_user_id, source.peerUserId, source.user2, source.peer);
   if (!userId || !peerUserId) {
     res.status(400).json({ ok: false, error: 'user_id_and_peer_user_id_required' });
+    return;
+  }
+  const blocked = getCommunityModerationBlockedResponse({
+    userId,
+    scope: 'access',
+    roomType: 'dm',
+    clientMeta: getRequestClientMeta(req)
+  });
+  if (blocked) {
+    res.status(blocked.statusCode || 403).json(blocked);
     return;
   }
   try {
@@ -5161,6 +5352,17 @@ app.post('/realtime/community/rooms/dm/read', (req, res) => {
   const roomId = pickFirstString(source.room_id, source.roomId);
   const userId = pickFirstString(source.user_id, source.userId, source.id);
   const messageId = pickFirstString(source.message_id, source.messageId);
+  const blocked = getCommunityModerationBlockedResponse({
+    userId,
+    scope: 'access',
+    roomType: 'dm',
+    roomId,
+    clientMeta: getRequestClientMeta(req)
+  });
+  if (blocked) {
+    res.status(blocked.statusCode || 403).json(blocked);
+    return;
+  }
   const payload = markCommunityDmRoomRead({
     roomId,
     userId,
@@ -5176,6 +5378,17 @@ app.post('/realtime/community/rooms/dm/delivered', async (req, res) => {
   const userId = pickFirstString(source.user_id, source.userId, source.id);
   const messageId = pickFirstString(source.message_id, source.messageId);
   const uuid = pickFirstString(source.uuid, source.device_id, source.deviceId);
+  const blocked = getCommunityModerationBlockedResponse({
+    userId,
+    scope: 'access',
+    roomType: 'dm',
+    roomId,
+    clientMeta: getRequestClientMeta(req)
+  });
+  if (blocked) {
+    res.status(blocked.statusCode || 403).json(blocked);
+    return;
+  }
   const payload = markCommunityDmMessageDelivered({
     roomId,
     userId,
@@ -5205,8 +5418,20 @@ app.post('/realtime/community/rooms/dm/delivered', async (req, res) => {
 });
 
 app.get('/realtime/community/messages', (req, res) => {
+  const userId = pickFirstString(req.query && (req.query.user_id || req.query.userId));
   const roomType = pickFirstString(req.query && (req.query.room_type || req.query.roomType), 'public').toLowerCase();
   const roomId = pickFirstString(req.query && (req.query.room_id || req.query.roomId));
+  const blocked = getCommunityModerationBlockedResponse({
+    userId,
+    scope: 'access',
+    roomType,
+    roomId,
+    clientMeta: getRequestClientMeta(req)
+  });
+  if (blocked) {
+    res.status(blocked.statusCode || 403).json(blocked);
+    return;
+  }
   const payload = getCommunityMessages({
     roomType,
     roomId: roomType === 'public' ? COMMUNITY_PUBLIC_CHANNEL : roomId,
@@ -5220,6 +5445,18 @@ app.get('/realtime/community/messages', (req, res) => {
 });
 
 app.get('/realtime/community/public/messages', (req, res) => {
+  const userId = pickFirstString(req.query && (req.query.user_id || req.query.userId));
+  const blocked = getCommunityModerationBlockedResponse({
+    userId,
+    scope: 'access',
+    roomType: 'public',
+    roomId: COMMUNITY_PUBLIC_CHANNEL,
+    clientMeta: getRequestClientMeta(req)
+  });
+  if (blocked) {
+    res.status(blocked.statusCode || 403).json(blocked);
+    return;
+  }
   const payload = getCommunityMessages({
     roomType: 'public',
     roomId: COMMUNITY_PUBLIC_CHANNEL,
@@ -5287,6 +5524,18 @@ app.post('/realtime/community/public/presence', (req, res) => {
     return;
   }
 
+  const blocked = getCommunityModerationBlockedResponse({
+    userId: pickFirstString(actor.id),
+    scope: 'access',
+    roomType: 'public',
+    roomId,
+    clientMeta
+  });
+  if (blocked) {
+    res.status(blocked.statusCode || 403).json(blocked);
+    return;
+  }
+
   const result = upsertCommunityPresence({
     roomId,
     actor,
@@ -5344,13 +5593,15 @@ const emitPublicCommunityMessage = async ({ source, appName, clientMeta = {} }) 
       statusCode: 400
     };
   }
-  if (isCommunityUserMuted(actor.id)) {
-    return getCommunityBlockedResponse({
+  const moderationBlocked = getCommunityModerationBlockedResponse({
       userId: actor.id,
+      scope: 'send',
       roomType: 'public',
       roomId: COMMUNITY_PUBLIC_CHANNEL,
       clientMeta
     });
+  if (moderationBlocked) {
+    return moderationBlocked;
   }
   const message = buildPublicCommunityMessage({
     text,
@@ -5816,6 +6067,42 @@ app.get('/realtime/community/monitor/messages', (req, res) => {
   });
 });
 
+app.post('/realtime/community/monitor/messages/delete', async (req, res) => {
+  if (!authorizeMonitor(req, res)) return;
+  const source = Object.assign({}, req.query || {}, req.body || {});
+  const result = softDeleteCommunityMessage({
+    roomType: pickFirstString(source.room_type, source.roomType, 'public'),
+    roomId: pickFirstString(source.room_id, source.roomId),
+    messageId: pickFirstString(source.message_id, source.messageId),
+    deletedBy: pickFirstString(source.deleted_by, source.deletedBy, source.updated_by, source.updatedBy, 'monitor'),
+    reason: pickFirstString(source.reason)
+  });
+  if (result.ok && result.message) {
+    const payload = buildCommunityMessageModerationUpdatePayload(result.message);
+    try {
+      if (pickFirstString(result.message.room_type) === 'dm') {
+        await pusher.trigger(
+          pickFirstString(result.message.channel) || `${COMMUNITY_DM_CHANNEL_PREFIX}${pickFirstString(result.message.room_id)}`,
+          'message_moderation_update',
+          payload
+        );
+      } else {
+        await pusher.trigger(COMMUNITY_PUBLIC_CHANNEL, 'message_moderation_update', payload);
+      }
+    } catch (err) {
+      console.warn('[community] moderation emit failed', err && err.message ? err.message : err);
+    }
+    appendCommunityAuditEvent('message_deleted', {
+      room_type: pickFirstString(result.message.room_type),
+      room_id: pickFirstString(result.message.room_id),
+      message_id: pickFirstString(result.message.id),
+      deleted_by: pickFirstString(source.deleted_by, source.deletedBy, source.updated_by, source.updatedBy, 'monitor'),
+      reason: pickFirstString(source.reason)
+    });
+  }
+  res.status(result.ok ? 200 : 400).json(result);
+});
+
 app.get('/realtime/community/monitor/audit', (req, res) => {
   if (!authorizeMonitor(req, res)) return;
   const payload = readCommunityAuditEvents({
@@ -5855,6 +6142,9 @@ app.post('/realtime/community/monitor/moderation', (req, res) => {
     updatedBy: pickFirstString(source.updated_by, source.updatedBy)
   });
   if (result.ok) {
+    if (pickFirstString(result.entry && result.entry.status) === 'suspended') {
+      removeCommunityPresenceUserFromAllRooms(pickFirstString(result.entry && result.entry.user_id));
+    }
     appendCommunityAuditEvent('moderation_update', {
       user_id: pickFirstString(result.entry && result.entry.user_id),
       status: pickFirstString(result.entry && result.entry.status),

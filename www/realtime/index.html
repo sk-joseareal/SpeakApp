@@ -74,6 +74,11 @@
       background: #fff;
       color: #0f172a;
     }
+    button.danger {
+      background: #7f1d1d;
+      border-color: #7f1d1d;
+      color: #fff;
+    }
     button:disabled {
       opacity: 0.5;
       cursor: not-allowed;
@@ -92,6 +97,14 @@
     }
     .status-pill[data-state="failed"],
     .status-pill[data-state="disconnected"] {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+    .status-pill[data-state="muted"] {
+      background: #fef3c7;
+      color: #92400e;
+    }
+    .status-pill[data-state="suspended"] {
       background: #fee2e2;
       color: #991b1b;
     }
@@ -146,6 +159,39 @@
     .muted {
       color: #6b7280;
       font-size: 0.85rem;
+    }
+    .quick-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      flex: 1;
+      min-width: 220px;
+    }
+    .inspector-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 10px;
+    }
+    .inspector-card {
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 10px 12px;
+      background: #f8fafc;
+    }
+    .inspector-card .label {
+      display: block;
+      color: #6b7280;
+      font-size: 0.78rem;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+    }
+    .inspector-card .value {
+      display: block;
+      color: #111827;
+      font-size: 0.95rem;
+      font-weight: 600;
+      word-break: break-word;
     }
     @media (max-width: 640px) {
       .row label {
@@ -280,6 +326,7 @@
         <button id="refresh-community-tokens" class="secondary">Push devices</button>
         <button id="refresh-community-messages" class="secondary">Messages</button>
         <button id="refresh-community-audit" class="secondary">Audit</button>
+        <button id="inspect-community-user" class="secondary">Inspect user</button>
         <button id="refresh-community-all" class="secondary">Refresh all</button>
       </div>
       <div id="community-monitor-status" class="muted">No data yet.</div>
@@ -311,6 +358,7 @@
         <select id="community-moderation-status">
           <option value="active">active</option>
           <option value="muted">muted</option>
+          <option value="suspended">suspended</option>
         </select>
       </div>
       <div class="row">
@@ -334,8 +382,23 @@
         <button id="save-community-moderation">Save</button>
         <button id="clear-community-moderation" class="secondary">Clear</button>
       </div>
+      <div class="row">
+        <label>Quick actions</label>
+        <div class="quick-actions">
+          <button type="button" class="secondary community-quick-moderation-btn" data-status="muted" data-hours="1" data-reason="mute_1h">Mute 1h</button>
+          <button type="button" class="secondary community-quick-moderation-btn" data-status="muted" data-hours="24" data-reason="mute_24h">Mute 24h</button>
+          <button type="button" class="danger community-quick-moderation-btn" data-status="suspended" data-hours="1" data-reason="suspend_1h">Suspend 1h</button>
+          <button type="button" class="danger community-quick-moderation-btn" data-status="suspended" data-hours="24" data-reason="suspend_24h">Suspend 24h</button>
+          <button type="button" class="secondary community-quick-moderation-btn" data-status="active" data-hours="0" data-reason="clear">Clear</button>
+        </div>
+      </div>
       <div id="community-moderation-status" class="muted">No data yet.</div>
       <div id="community-moderation-output" class="muted">No data yet.</div>
+    </section>
+
+    <section class="card">
+      <h2>User Inspector</h2>
+      <div id="community-inspector-output" class="muted">No data yet.</div>
     </section>
 
     <section class="card">
@@ -362,6 +425,7 @@
     const communityMessagesOutput = el('community-messages-output');
     const communityModerationStatus = el('community-moderation-status');
     const communityModerationOutput = el('community-moderation-output');
+    const communityInspectorOutput = el('community-inspector-output');
     const communityAuditOutput = el('community-audit-output');
 
     const log = (line) => {
@@ -389,6 +453,17 @@
       const date = new Date(text);
       if (Number.isNaN(date.getTime())) return escapeHtml(text);
       return escapeHtml(date.toLocaleString());
+    };
+
+    const buildStatusPillHtml = (value, fallback = 'active') => {
+      const status = String(value || fallback).trim().toLowerCase() || fallback;
+      return `<span class="status-pill" data-state="${escapeHtml(status)}">${escapeHtml(status)}</span>`;
+    };
+
+    const isoAfterHours = (hours) => {
+      const safeHours = Number(hours);
+      if (!Number.isFinite(safeHours) || safeHours <= 0) return '';
+      return new Date(Date.now() + safeHours * 60 * 60 * 1000).toISOString();
     };
 
     const getMonitorToken = () => el('monitor-token').value.trim();
@@ -428,6 +503,18 @@
 
     const getCommunityModerationUserId = () =>
       el('community-moderation-user-id').value.trim() || el('community-user-filter').value.trim();
+
+    const setCommunityModerationForm = ({ userId = '', status = 'active', until = '', reason = '', note = '' } = {}) => {
+      if (userId) {
+        el('community-moderation-user-id').value = userId;
+      }
+      el('community-moderation-status').value = status || 'active';
+      el('community-moderation-until').value = toDateTimeLocalValue(until);
+      el('community-moderation-reason').value = reason || '';
+      if (note !== undefined) {
+        el('community-moderation-note').value = note || '';
+      }
+    };
 
     const toDateTimeLocalValue = (value) => {
       const text = String(value == null ? '' : value).trim();
@@ -748,6 +835,17 @@
             <td>${formatTs(entry.delivered_at)}</td>
             <td class="mono">${escapeHtml(formatText(entry.uuid))}</td>
             <td class="mono">${escapeHtml(formatText(entry.ip))}</td>
+            <td>
+              ${entry.deleted_at
+                ? `<span class="pill">deleted</span>`
+                : `<button
+                    type="button"
+                    class="secondary community-delete-message-btn"
+                    data-room-type="${escapeHtml(formatText(entry.room_type, 'public'))}"
+                    data-room-id="${escapeHtml(formatText(entry.room_id, ''))}"
+                    data-message-id="${escapeHtml(formatText(entry.message_id, ''))}"
+                  >Delete</button>`}
+            </td>
           </tr>
         `)
         .join('');
@@ -765,9 +863,187 @@
                 <th>Delivered</th>
                 <th>UUID</th>
                 <th>IP</th>
+                <th>Action</th>
               </tr>
             </thead>
             <tbody>${rows}</tbody>
+          </table>
+        </div>
+      `;
+    };
+
+    const renderCommunityInspector = ({ userId, presence, tokens, messages, moderation, audit }) => {
+      const safeUserId = String(userId || '').trim();
+      if (!safeUserId) {
+        communityInspectorOutput.textContent = 'Set a user id filter first.';
+        return;
+      }
+      const presenceUser = Array.isArray(presence && presence.users)
+        ? presence.users.find((entry) => String(entry && entry.user_id || '') === safeUserId) || null
+        : null;
+      const tokenRows = Array.isArray(tokens && tokens.tokens) ? tokens.tokens : [];
+      const messageRows = Array.isArray(messages && messages.messages) ? messages.messages : [];
+      const auditRows = Array.isArray(audit && audit.events) ? audit.events.slice(0, 10) : [];
+      const moderationEntry = Array.isArray(moderation && moderation.entries)
+        ? moderation.entries.find((entry) => String(entry && entry.user_id || '') === safeUserId) || null
+        : null;
+      const recentIps = Array.from(
+        new Set(
+          [
+            ...(presenceUser && Array.isArray(presenceUser.sessions)
+              ? presenceUser.sessions.map((session) => formatText(session && session.ip, ''))
+              : []),
+            ...tokenRows.map((entry) => formatText(entry && entry.last_ip, '')),
+            ...messageRows.map((entry) => formatText(entry && entry.ip, '')),
+            ...auditRows.map((entry) => formatText(entry && entry.ip, ''))
+          ].filter(Boolean)
+        )
+      );
+      const recentRooms = Array.from(new Set(messageRows.map((entry) => formatText(entry && entry.room_id, '')).filter(Boolean)));
+      const sessionsRows = presenceUser && Array.isArray(presenceUser.sessions) ? presenceUser.sessions : [];
+      const recentMessagesHtml = messageRows.slice(0, 5).map((entry) => `
+        <tr>
+          <td>${formatTs(entry.created_at)}</td>
+          <td>${escapeHtml(formatText(entry.room_type))}</td>
+          <td>${escapeHtml(formatText(entry.room_id))}</td>
+          <td>${escapeHtml(formatText(entry.text))}</td>
+        </tr>
+      `).join('');
+      const sessionsHtml = sessionsRows.map((session) => `
+        <tr>
+          <td class="mono">${escapeHtml(formatText(session && session.uuid))}</td>
+          <td>${escapeHtml(formatText(session && session.platform))}</td>
+          <td>${escapeHtml(formatText(session && session.context && session.context.app_state))}</td>
+          <td>${escapeHtml(formatText(session && session.context && session.context.active_room_id))}</td>
+          <td class="mono">${escapeHtml(formatText(session && session.ip))}</td>
+          <td>${formatTs(session && session.last_seen_at)}</td>
+        </tr>
+      `).join('');
+      const deviceHtml = tokenRows.slice(0, 8).map((entry) => `
+        <tr>
+          <td class="mono">${escapeHtml(formatText(entry && entry.uuid))}</td>
+          <td>${escapeHtml(formatText(entry && entry.platform))}</td>
+          <td>${escapeHtml(formatText(entry && entry.token_type))}</td>
+          <td class="mono">${escapeHtml(formatText(entry && entry.last_ip))}</td>
+          <td>${formatTs(entry && entry.updated_at)}</td>
+        </tr>
+      `).join('');
+      const recentAuditHtml = auditRows.map((entry) => `
+        <tr>
+          <td>${formatTs(entry.ts)}</td>
+          <td>${escapeHtml(formatText(entry.type))}</td>
+          <td class="mono">${escapeHtml(formatText(entry.ip))}</td>
+        </tr>
+      `).join('');
+      communityInspectorOutput.innerHTML = `
+        <div class="inspector-grid">
+          <div class="inspector-card">
+            <span class="label">User</span>
+            <span class="value mono">${escapeHtml(safeUserId)}</span>
+          </div>
+          <div class="inspector-card">
+            <span class="label">Name</span>
+            <span class="value">${escapeHtml(formatText(presenceUser && presenceUser.name, '-'))}</span>
+          </div>
+          <div class="inspector-card">
+            <span class="label">Moderation</span>
+            <span class="value">${buildStatusPillHtml(moderationEntry ? moderationEntry.status : 'active')}</span>
+          </div>
+          <div class="inspector-card">
+            <span class="label">Until</span>
+            <span class="value">${formatTs(moderationEntry && moderationEntry.until)}</span>
+          </div>
+          <div class="inspector-card">
+            <span class="label">Devices</span>
+            <span class="value">${escapeHtml(String(tokenRows.length))}</span>
+          </div>
+          <div class="inspector-card">
+            <span class="label">Sessions</span>
+            <span class="value">${escapeHtml(String(presenceUser && presenceUser.sessions_count ? presenceUser.sessions_count : 0))}</span>
+          </div>
+          <div class="inspector-card">
+            <span class="label">Rooms</span>
+            <span class="value">${escapeHtml(recentRooms.join(', ') || '-')}</span>
+          </div>
+          <div class="inspector-card">
+            <span class="label">IPs</span>
+            <span class="value mono">${escapeHtml(recentIps.join(' · ') || '-')}</span>
+          </div>
+        </div>
+        <div class="row" style="margin-top:12px;">
+          <label>Quick actions</label>
+          <div class="quick-actions">
+            <button type="button" class="secondary community-quick-moderation-btn" data-user-id="${escapeHtml(safeUserId)}" data-status="muted" data-hours="1" data-reason="mute_1h">Mute 1h</button>
+            <button type="button" class="secondary community-quick-moderation-btn" data-user-id="${escapeHtml(safeUserId)}" data-status="muted" data-hours="24" data-reason="mute_24h">Mute 24h</button>
+            <button type="button" class="danger community-quick-moderation-btn" data-user-id="${escapeHtml(safeUserId)}" data-status="suspended" data-hours="1" data-reason="suspend_1h">Suspend 1h</button>
+            <button type="button" class="danger community-quick-moderation-btn" data-user-id="${escapeHtml(safeUserId)}" data-status="suspended" data-hours="24" data-reason="suspend_24h">Suspend 24h</button>
+            <button type="button" class="secondary community-quick-moderation-btn" data-user-id="${escapeHtml(safeUserId)}" data-status="active" data-hours="0" data-reason="clear">Clear</button>
+          </div>
+        </div>
+        <div class="table-wrap" style="margin-top:12px;">
+          <table>
+            <thead>
+              <tr>
+                <th colspan="6">Sessions</th>
+              </tr>
+              <tr>
+                <th>UUID</th>
+                <th>Platform</th>
+                <th>State</th>
+                <th>Active room</th>
+                <th>IP</th>
+                <th>Seen</th>
+              </tr>
+            </thead>
+            <tbody>${sessionsHtml || '<tr><td colspan="6" class="muted">No active sessions.</td></tr>'}</tbody>
+          </table>
+        </div>
+        <div class="table-wrap" style="margin-top:12px;">
+          <table>
+            <thead>
+              <tr>
+                <th colspan="5">Push devices</th>
+              </tr>
+              <tr>
+                <th>UUID</th>
+                <th>Platform</th>
+                <th>Type</th>
+                <th>Last IP</th>
+                <th>Updated</th>
+              </tr>
+            </thead>
+            <tbody>${deviceHtml || '<tr><td colspan="5" class="muted">No push devices.</td></tr>'}</tbody>
+          </table>
+        </div>
+        <div class="table-wrap" style="margin-top:12px;">
+          <table>
+            <thead>
+              <tr>
+                <th colspan="4">Recent messages</th>
+              </tr>
+              <tr>
+                <th>Timestamp</th>
+                <th>Type</th>
+                <th>Room</th>
+                <th>Text</th>
+              </tr>
+            </thead>
+            <tbody>${recentMessagesHtml || '<tr><td colspan="4" class="muted">No messages.</td></tr>'}</tbody>
+          </table>
+        </div>
+        <div class="table-wrap" style="margin-top:12px;">
+          <table>
+            <thead>
+              <tr>
+                <th colspan="3">Recent audit</th>
+              </tr>
+              <tr>
+                <th>Timestamp</th>
+                <th>Type</th>
+                <th>IP</th>
+              </tr>
+            </thead>
+            <tbody>${recentAuditHtml || '<tr><td colspan="3" class="muted">No audit.</td></tr>'}</tbody>
           </table>
         </div>
       `;
@@ -783,7 +1059,7 @@
         .map((entry) => `
           <tr>
             <td>${escapeHtml(formatText(entry.user_id))}</td>
-            <td>${escapeHtml(formatText(entry.status))}</td>
+            <td>${buildStatusPillHtml(entry.status)}</td>
             <td>${escapeHtml(formatText(entry.reason))}</td>
             <td>${formatTs(entry.until)}</td>
             <td>${escapeHtml(formatText(entry.updated_by))}</td>
@@ -905,18 +1181,61 @@
       renderCommunityModeration(data);
       const entry = Array.isArray(data && data.entries) && data.entries.length ? data.entries[0] : null;
       if (entry && userId) {
-        el('community-moderation-user-id').value = entry.user_id || userId;
-        el('community-moderation-status').value = entry.status || 'muted';
-        el('community-moderation-until').value = toDateTimeLocalValue(entry.until);
-        el('community-moderation-reason').value = entry.reason || '';
-        el('community-moderation-note').value = entry.note || '';
+        setCommunityModerationForm({
+          userId: entry.user_id || userId,
+          status: entry.status || 'muted',
+          until: entry.until,
+          reason: entry.reason || '',
+          note: entry.note || ''
+        });
       } else if (userId) {
-        el('community-moderation-user-id').value = userId;
-        el('community-moderation-status').value = 'active';
-        el('community-moderation-until').value = '';
-        el('community-moderation-reason').value = '';
-        el('community-moderation-note').value = '';
+        setCommunityModerationForm({ userId, status: 'active', until: '', reason: '', note: '' });
       }
+      return data;
+    };
+
+    const inspectCommunityUser = async () => {
+      const filters = getCommunityMonitorFilters();
+      const userId = filters.user_id || getCommunityModerationUserId();
+      if (!userId) {
+        throw new Error('user_id required');
+      }
+      const [presence, tokens, messages, moderation, audit] = await Promise.all([
+        fetchMonitorJson('/realtime/community/monitor/presence', { user_id: userId }),
+        fetchMonitorJson('/realtime/community/monitor/push-tokens', { user_id: userId }),
+        fetchMonitorJson('/realtime/community/monitor/messages', { user_id: userId, limit: filters.limit || '25' }),
+        fetchMonitorJson('/realtime/community/monitor/moderation', { user_id: userId }),
+        fetchMonitorJson('/realtime/community/monitor/audit', { user_id: userId, limit: '25' })
+      ]);
+      renderCommunityInspector({ userId, presence, tokens, messages, moderation, audit });
+      return { presence, tokens, messages, moderation, audit };
+    };
+
+    const deleteCommunityMessage = async ({ roomType, roomId, messageId }) => {
+      const userId = getCommunityModerationUserId();
+      const headers = { 'Content-Type': 'application/json' };
+      const token = getMonitorToken();
+      if (token) headers['x-monitor-token'] = token;
+      const res = await fetch(buildMonitorUrl('/realtime/community/monitor/messages/delete'), {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          room_type: roomType || 'public',
+          room_id: roomId || '',
+          message_id: messageId || '',
+          deleted_by: el('community-moderation-updated-by').value.trim() || 'monitor',
+          reason: el('community-moderation-reason').value.trim() || 'moderator_delete'
+        })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.ok === false) {
+        throw new Error(data && (data.error || data.message) ? data.error || data.message : `status ${res.status}`);
+      }
+      await Promise.all([
+        refreshCommunityMessages(),
+        refreshCommunityAudit(),
+        userId ? inspectCommunityUser().catch(() => null) : Promise.resolve()
+      ]);
       return data;
     };
 
@@ -947,6 +1266,7 @@
       }
       await refreshCommunityModeration({ userId });
       await refreshCommunityAudit();
+      await inspectCommunityUser().catch(() => null);
       return data;
     };
 
@@ -984,6 +1304,29 @@
       resetCommunityModerationForm();
       await refreshCommunityModeration();
       await refreshCommunityAudit();
+      await inspectCommunityUser().catch(() => null);
+      return true;
+    };
+
+    const applyCommunityQuickModerationAction = async ({ userId = '', status = 'active', hours = 0, reason = '' } = {}) => {
+      const safeUserId = String(userId || '').trim() || getCommunityModerationUserId();
+      if (!safeUserId) {
+        throw new Error('user_id required');
+      }
+      const safeStatus = String(status || 'active').trim().toLowerCase() || 'active';
+      setCommunityModerationForm({
+        userId: safeUserId,
+        status: safeStatus,
+        until: safeStatus === 'active' ? '' : isoAfterHours(hours),
+        reason: reason || '',
+        note: ''
+      });
+      if (safeStatus === 'active') {
+        await clearCommunityModeration();
+      } else {
+        await saveCommunityModeration();
+      }
+      await inspectCommunityUser().catch(() => null);
       return true;
     };
 
@@ -997,6 +1340,9 @@
           refreshCommunityModeration(),
           refreshCommunityAudit()
         ]);
+        if (getCommunityMonitorFilters().user_id || getCommunityModerationUserId()) {
+          await inspectCommunityUser().catch(() => null);
+        }
         communityMonitorStatus.textContent = 'ok';
       } catch (err) {
         communityMonitorStatus.textContent = err.message;
@@ -1045,6 +1391,15 @@
           communityMonitorStatus.textContent = err.message;
         });
     });
+    el('inspect-community-user').addEventListener('click', () => {
+      inspectCommunityUser()
+        .then(() => {
+          communityMonitorStatus.textContent = 'inspector ok';
+        })
+        .catch((err) => {
+          communityMonitorStatus.textContent = err.message;
+        });
+    });
     el('load-community-moderation').addEventListener('click', () => {
       refreshCommunityModeration()
         .then(() => {
@@ -1052,6 +1407,43 @@
         })
         .catch((err) => {
           communityModerationStatus.textContent = err.message;
+        });
+    });
+    communityMessagesOutput.addEventListener('click', (event) => {
+      const button = event.target && event.target.closest
+        ? event.target.closest('.community-delete-message-btn')
+        : null;
+      if (!button) return;
+      deleteCommunityMessage({
+        roomType: button.dataset.roomType || 'public',
+        roomId: button.dataset.roomId || '',
+        messageId: button.dataset.messageId || ''
+      })
+        .then(() => {
+          communityMonitorStatus.textContent = 'message deleted';
+        })
+        .catch((err) => {
+          communityMonitorStatus.textContent = err.message;
+        });
+    });
+    document.body.addEventListener('click', (event) => {
+      const button = event.target && event.target.closest
+        ? event.target.closest('.community-quick-moderation-btn')
+        : null;
+      if (!button) return;
+      applyCommunityQuickModerationAction({
+        userId: button.dataset.userId || '',
+        status: button.dataset.status || 'active',
+        hours: Number(button.dataset.hours || 0),
+        reason: button.dataset.reason || ''
+      })
+        .then(() => {
+          communityModerationStatus.textContent = 'moderation updated';
+          communityMonitorStatus.textContent = 'moderation updated';
+        })
+        .catch((err) => {
+          communityModerationStatus.textContent = err.message;
+          communityMonitorStatus.textContent = err.message;
         });
     });
     el('save-community-moderation').addEventListener('click', () => {

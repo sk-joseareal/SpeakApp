@@ -1636,6 +1636,20 @@ class PageChat extends HTMLElement {
       }
     };
 
+    const handleCommunityAccessDenied = ({ notify = true } = {}) => {
+      communityRoomsLoaded = false;
+      communityRoomsLoading = false;
+      communityHistoryLoading = false;
+      activeCommunityDmRoomId = '';
+      disconnectRealtime();
+      updateCommunityViewUi();
+      renderCommunityLists();
+      setHint(uiCopy.communityRoomsError || uiCopy.communityHistoryError || uiCopy.serverUnavailable);
+      if (notify) {
+        presentSystemToast(uiCopy.communityRoomsError || uiCopy.serverUnavailable);
+      }
+    };
+
     const getCommunityPresenceContextPayload = () => {
       const activeTab = pickFirstText(currentAppTab).toLowerCase();
       const appState =
@@ -1757,7 +1771,12 @@ class PageChat extends HTMLElement {
           body: JSON.stringify(payload),
           keepalive
         });
-        if (!response.ok) throw new Error(`community_presence_${action}_${response.status}`);
+        if (!response.ok) {
+          if (response.status === 403) {
+            handleCommunityAccessDenied({ notify: false });
+          }
+          throw new Error(`community_presence_${action}_${response.status}`);
+        }
         const data = await response.json();
         communityPresenceCount = resolvePresenceCount(null, data);
         communityPresenceUsers = Array.isArray(data && data.users) ? data.users : [];
@@ -1823,6 +1842,7 @@ class PageChat extends HTMLElement {
     const loadCommunityHistory = async ({ force = false } = {}) => {
       if (chatMode !== 'community' && !force) return false;
       const endpoint = getCommunityPublicMessagesEndpoint();
+      const currentUserId = pickFirstText(lastUserId);
       if (!endpoint) return false;
       if (communityHistoryLoading) return false;
       communityHistoryLoading = true;
@@ -1830,13 +1850,22 @@ class PageChat extends HTMLElement {
         setHint(uiCopy.communityHistoryLoading || uiCopy.loadingUser);
       }
       try {
-        const response = await fetch(endpoint, {
+        const url = new URL(endpoint, window.location.origin);
+        if (currentUserId) {
+          url.searchParams.set('user_id', currentUserId);
+        }
+        const response = await fetch(url.toString(), {
           method: 'GET',
           headers: {
             Accept: 'application/json'
           }
         });
-        if (!response.ok) throw new Error(`community_history_${response.status}`);
+        if (!response.ok) {
+          if (response.status === 403) {
+            handleCommunityAccessDenied();
+          }
+          throw new Error(`community_history_${response.status}`);
+        }
         const data = await response.json();
         const messages = Array.isArray(data && data.messages)
           ? data.messages
@@ -2358,7 +2387,12 @@ class PageChat extends HTMLElement {
           method: 'GET',
           headers: { Accept: 'application/json' }
         });
-        if (!response.ok) throw new Error(`community_rooms_${response.status}`);
+        if (!response.ok) {
+          if (response.status === 403) {
+            handleCommunityAccessDenied();
+          }
+          throw new Error(`community_rooms_${response.status}`);
+        }
         const data = await response.json();
         communityDmRooms = Array.isArray(data && data.rooms)
           ? data.rooms.map(normalizeCommunityRoom).filter(Boolean)
@@ -2397,9 +2431,10 @@ class PageChat extends HTMLElement {
 
     const loadCommunityDmHistory = async (roomId, { force = false } = {}) => {
       const safeRoomId = pickFirstText(roomId, activeCommunityDmRoomId);
+      const currentUserId = pickFirstText(lastUserId);
       if (!safeRoomId) return false;
       const endpoint = getCommunityMessagesEndpoint();
-      if (!endpoint) return false;
+      if (!endpoint || !currentUserId) return false;
       const thread = ensureCommunityDmThread(safeRoomId);
       if (thread.length && !force) {
         await syncVisibleCommunityDmReadState(safeRoomId, { silent: true });
@@ -2409,11 +2444,17 @@ class PageChat extends HTMLElement {
         const url = new URL(endpoint, window.location.origin);
         url.searchParams.set('room_type', 'dm');
         url.searchParams.set('room_id', safeRoomId);
+        url.searchParams.set('user_id', currentUserId);
         const response = await fetch(url.toString(), {
           method: 'GET',
           headers: { Accept: 'application/json' }
         });
-        if (!response.ok) throw new Error(`community_dm_history_${response.status}`);
+        if (!response.ok) {
+          if (response.status === 403) {
+            handleCommunityAccessDenied();
+          }
+          throw new Error(`community_dm_history_${response.status}`);
+        }
         const data = await response.json();
         const messages = Array.isArray(data && data.messages)
           ? data.messages
@@ -2473,7 +2514,12 @@ class PageChat extends HTMLElement {
             peer_avatar: pickFirstText(peer && peer.avatar)
           })
         });
-        if (!response.ok) throw new Error(`community_dm_open_${response.status}`);
+        if (!response.ok) {
+          if (response.status === 403) {
+            handleCommunityAccessDenied();
+          }
+          throw new Error(`community_dm_open_${response.status}`);
+        }
         const data = await response.json();
         if (!data || data.ok !== true || !data.room) throw new Error('community_dm_open_invalid');
         const room = upsertCommunityRoom(data.room);
@@ -4164,6 +4210,34 @@ class PageChat extends HTMLElement {
       return thread;
     };
 
+    const applyCommunityMessageModerationUpdate = (scope, roomId, data) => {
+      const safeScope = pickFirstText(scope, 'public');
+      const safeRoomId = pickFirstText(roomId);
+      const messageId = pickFirstText(data && (data.message_id || data.messageId));
+      const moderatedText = normalizeChatText(data && data.text);
+      if (!messageId || !moderatedText) return false;
+      const updated = updateThreadMessage(
+        'community',
+        messageId,
+        (current) => ({
+          ...current,
+          text: moderatedText,
+          speakText: moderatedText,
+          deletedAt: pickFirstText(data && (data.deleted_at || data.deletedAt)),
+          deleteReason: pickFirstText(data && (data.delete_reason || data.deleteReason))
+        }),
+        {
+          scope: safeScope,
+          roomId: safeRoomId,
+          rerender: true
+        }
+      );
+      if (safeScope === 'dm' && safeRoomId) {
+        loadCommunityDmRooms({ force: true }).catch(() => {});
+      }
+      return Boolean(updated);
+    };
+
     const loadTalkTimelinesForUser = (userId) => {
       const nextKey = resolveTalkStorageKey(userId);
       talkStorageKey = nextKey;
@@ -4980,6 +5054,9 @@ class PageChat extends HTMLElement {
           );
         }
       });
+      channel.bind('message_moderation_update', (data) => {
+        applyCommunityMessageModerationUpdate('dm', room.roomId, data);
+      });
       pusherCommunityDmChannels.set(room.roomId, channel);
       return channel;
     };
@@ -5262,6 +5339,9 @@ class PageChat extends HTMLElement {
         });
         pusherCommunityPublicChannel.bind('chat_message', (data) => {
           handleCommunityIncoming(data, 'public', COMMUNITY_PUBLIC_CHANNEL);
+        });
+        pusherCommunityPublicChannel.bind('message_moderation_update', (data) => {
+          applyCommunityMessageModerationUpdate('public', COMMUNITY_PUBLIC_CHANNEL, data);
         });
         const communityInboxChannelName = buildCommunityInboxChannelName(userId);
         if (communityInboxChannelName) {

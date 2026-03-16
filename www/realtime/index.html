@@ -256,6 +256,18 @@
         <input id="community-room-filter" placeholder="optional">
       </div>
       <div class="row">
+        <label>Room type</label>
+        <select id="community-room-type">
+          <option value="">all</option>
+          <option value="public">public</option>
+          <option value="dm">dm</option>
+        </select>
+      </div>
+      <div class="row">
+        <label>Text</label>
+        <input id="community-text-filter" placeholder="optional">
+      </div>
+      <div class="row">
         <label>Audit type</label>
         <input id="community-audit-type" placeholder="optional">
       </div>
@@ -266,6 +278,7 @@
       <div class="row">
         <button id="refresh-community-presence">Presence</button>
         <button id="refresh-community-tokens" class="secondary">Push devices</button>
+        <button id="refresh-community-messages" class="secondary">Messages</button>
         <button id="refresh-community-audit" class="secondary">Audit</button>
         <button id="refresh-community-all" class="secondary">Refresh all</button>
       </div>
@@ -280,6 +293,49 @@
     <section class="card">
       <h2>Push Devices</h2>
       <div id="community-tokens-output" class="muted">No data yet.</div>
+    </section>
+
+    <section class="card">
+      <h2>Community Messages</h2>
+      <div id="community-messages-output" class="muted">No data yet.</div>
+    </section>
+
+    <section class="card">
+      <h2>Moderation</h2>
+      <div class="row">
+        <label>User id</label>
+        <input id="community-moderation-user-id" placeholder="required">
+      </div>
+      <div class="row">
+        <label>Status</label>
+        <select id="community-moderation-status">
+          <option value="active">active</option>
+          <option value="muted">muted</option>
+        </select>
+      </div>
+      <div class="row">
+        <label>Until</label>
+        <input id="community-moderation-until" type="datetime-local">
+      </div>
+      <div class="row">
+        <label>Reason</label>
+        <input id="community-moderation-reason" placeholder="optional">
+      </div>
+      <div class="row">
+        <label>Note</label>
+        <textarea id="community-moderation-note" placeholder="optional"></textarea>
+      </div>
+      <div class="row">
+        <label>Updated by</label>
+        <input id="community-moderation-updated-by" value="monitor">
+      </div>
+      <div class="row">
+        <button id="load-community-moderation">Load</button>
+        <button id="save-community-moderation">Save</button>
+        <button id="clear-community-moderation" class="secondary">Clear</button>
+      </div>
+      <div id="community-moderation-status" class="muted">No data yet.</div>
+      <div id="community-moderation-output" class="muted">No data yet.</div>
     </section>
 
     <section class="card">
@@ -303,6 +359,9 @@
     const communityMonitorStatus = el('community-monitor-status');
     const communityPresenceOutput = el('community-presence-output');
     const communityTokensOutput = el('community-tokens-output');
+    const communityMessagesOutput = el('community-messages-output');
+    const communityModerationStatus = el('community-moderation-status');
+    const communityModerationOutput = el('community-moderation-output');
     const communityAuditOutput = el('community-audit-output');
 
     const log = (line) => {
@@ -361,9 +420,30 @@
       user_id: el('community-user-filter').value.trim(),
       uuid: el('community-uuid-filter').value.trim(),
       room_id: el('community-room-filter').value.trim(),
+      room_type: el('community-room-type').value.trim(),
+      text: el('community-text-filter').value.trim(),
       type: el('community-audit-type').value.trim(),
       limit: el('community-audit-limit').value.trim()
     });
+
+    const getCommunityModerationUserId = () =>
+      el('community-moderation-user-id').value.trim() || el('community-user-filter').value.trim();
+
+    const toDateTimeLocalValue = (value) => {
+      const text = String(value == null ? '' : value).trim();
+      if (!text) return '';
+      const date = new Date(text);
+      if (Number.isNaN(date.getTime())) return '';
+      const pad = (num) => String(num).padStart(2, '0');
+      return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+    };
+
+    const fromDateTimeLocalValue = (value) => {
+      const text = String(value == null ? '' : value).trim();
+      if (!text) return '';
+      const date = new Date(text);
+      return Number.isNaN(date.getTime()) ? '' : date.toISOString();
+    };
 
     let pusher = null;
     let channel = null;
@@ -646,6 +726,91 @@
       `;
     };
 
+    const renderCommunityMessages = (data) => {
+      const messages = Array.isArray(data && data.messages) ? data.messages : [];
+      if (!messages.length) {
+        communityMessagesOutput.textContent = 'No messages found.';
+        return;
+      }
+      const rows = messages
+        .map((entry) => `
+          <tr>
+            <td>${formatTs(entry.created_at)}</td>
+            <td>${escapeHtml(formatText(entry.room_type))}</td>
+            <td>${escapeHtml(formatText(entry.room_id))}</td>
+            <td>
+              <div class="cell-stack">
+                <strong>${escapeHtml(formatText(entry.actor_name))}</strong>
+                <span class="mono">${escapeHtml(formatText(entry.actor_id))}</span>
+              </div>
+            </td>
+            <td>${escapeHtml(formatText(entry.text))}</td>
+            <td>${formatTs(entry.delivered_at)}</td>
+            <td class="mono">${escapeHtml(formatText(entry.uuid))}</td>
+            <td class="mono">${escapeHtml(formatText(entry.ip))}</td>
+          </tr>
+        `)
+        .join('');
+      communityMessagesOutput.innerHTML = `
+        <div class="muted">Messages: ${escapeHtml(String(data.count ?? messages.length))}</div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Timestamp</th>
+                <th>Type</th>
+                <th>Room</th>
+                <th>Actor</th>
+                <th>Text</th>
+                <th>Delivered</th>
+                <th>UUID</th>
+                <th>IP</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+      `;
+    };
+
+    const renderCommunityModeration = (data) => {
+      const entries = Array.isArray(data && data.entries) ? data.entries : [];
+      if (!entries.length) {
+        communityModerationOutput.textContent = 'No active moderation rules.';
+        return;
+      }
+      const rows = entries
+        .map((entry) => `
+          <tr>
+            <td>${escapeHtml(formatText(entry.user_id))}</td>
+            <td>${escapeHtml(formatText(entry.status))}</td>
+            <td>${escapeHtml(formatText(entry.reason))}</td>
+            <td>${formatTs(entry.until)}</td>
+            <td>${escapeHtml(formatText(entry.updated_by))}</td>
+            <td>${formatTs(entry.updated_at)}</td>
+          </tr>
+        `)
+        .join('');
+      communityModerationOutput.innerHTML = `
+        <div class="muted">Rules: ${escapeHtml(String(data.count ?? entries.length))}</div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>User</th>
+                <th>Status</th>
+                <th>Reason</th>
+                <th>Until</th>
+                <th>Updated by</th>
+                <th>Updated</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+      `;
+    };
+
     const renderCommunityAudit = (data) => {
       const events = Array.isArray(data && data.events) ? data.events : [];
       if (!events.length) {
@@ -719,12 +884,117 @@
       return data;
     };
 
+    const refreshCommunityMessages = async () => {
+      const filters = getCommunityMonitorFilters();
+      const data = await fetchMonitorJson('/realtime/community/monitor/messages', {
+        user_id: filters.user_id,
+        room_id: filters.room_id,
+        room_type: filters.room_type,
+        text: filters.text,
+        limit: filters.limit
+      });
+      renderCommunityMessages(data);
+      return data;
+    };
+
+    const refreshCommunityModeration = async (options = {}) => {
+      const userId = options.userId !== undefined ? String(options.userId || '').trim() : getCommunityModerationUserId();
+      const data = await fetchMonitorJson('/realtime/community/monitor/moderation', {
+        user_id: userId
+      });
+      renderCommunityModeration(data);
+      const entry = Array.isArray(data && data.entries) && data.entries.length ? data.entries[0] : null;
+      if (entry && userId) {
+        el('community-moderation-user-id').value = entry.user_id || userId;
+        el('community-moderation-status').value = entry.status || 'muted';
+        el('community-moderation-until').value = toDateTimeLocalValue(entry.until);
+        el('community-moderation-reason').value = entry.reason || '';
+        el('community-moderation-note').value = entry.note || '';
+      } else if (userId) {
+        el('community-moderation-user-id').value = userId;
+        el('community-moderation-status').value = 'active';
+        el('community-moderation-until').value = '';
+        el('community-moderation-reason').value = '';
+        el('community-moderation-note').value = '';
+      }
+      return data;
+    };
+
+    const saveCommunityModeration = async () => {
+      const userId = getCommunityModerationUserId();
+      if (!userId) {
+        throw new Error('user_id required');
+      }
+      const payload = {
+        user_id: userId,
+        status: el('community-moderation-status').value.trim() || 'active',
+        until: fromDateTimeLocalValue(el('community-moderation-until').value),
+        reason: el('community-moderation-reason').value.trim(),
+        note: el('community-moderation-note').value.trim(),
+        updated_by: el('community-moderation-updated-by').value.trim() || 'monitor'
+      };
+      const headers = { 'Content-Type': 'application/json' };
+      const token = getMonitorToken();
+      if (token) headers['x-monitor-token'] = token;
+      const res = await fetch(buildMonitorUrl('/realtime/community/monitor/moderation'), {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.ok === false) {
+        throw new Error(data && (data.error || data.message) ? data.error || data.message : `status ${res.status}`);
+      }
+      await refreshCommunityModeration({ userId });
+      await refreshCommunityAudit();
+      return data;
+    };
+
+    const resetCommunityModerationForm = () => {
+      el('community-moderation-user-id').value = '';
+      el('community-moderation-status').value = 'active';
+      el('community-moderation-until').value = '';
+      el('community-moderation-reason').value = '';
+      el('community-moderation-note').value = '';
+    };
+
+    const clearCommunityModeration = async () => {
+      const userId = getCommunityModerationUserId();
+      if (!userId) {
+        resetCommunityModerationForm();
+        communityModerationStatus.textContent = 'form cleared';
+        return true;
+      }
+      const headers = { 'Content-Type': 'application/json' };
+      const token = getMonitorToken();
+      if (token) headers['x-monitor-token'] = token;
+      const res = await fetch(buildMonitorUrl('/realtime/community/monitor/moderation'), {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          user_id: userId,
+          status: 'active',
+          updated_by: el('community-moderation-updated-by').value.trim() || 'monitor'
+        })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.ok === false) {
+        throw new Error(data && (data.error || data.message) ? data.error || data.message : `status ${res.status}`);
+      }
+      resetCommunityModerationForm();
+      await refreshCommunityModeration();
+      await refreshCommunityAudit();
+      return true;
+    };
+
     const refreshCommunityAll = async () => {
       communityMonitorStatus.textContent = 'loading...';
       try {
         await Promise.all([
           refreshCommunityPresence(),
           refreshCommunityTokens(),
+          refreshCommunityMessages(),
+          refreshCommunityModeration(),
           refreshCommunityAudit()
         ]);
         communityMonitorStatus.textContent = 'ok';
@@ -757,6 +1027,15 @@
           communityMonitorStatus.textContent = err.message;
         });
     });
+    el('refresh-community-messages').addEventListener('click', () => {
+      refreshCommunityMessages()
+        .then(() => {
+          communityMonitorStatus.textContent = 'messages ok';
+        })
+        .catch((err) => {
+          communityMonitorStatus.textContent = err.message;
+        });
+    });
     el('refresh-community-audit').addEventListener('click', () => {
       refreshCommunityAudit()
         .then(() => {
@@ -764,6 +1043,33 @@
         })
         .catch((err) => {
           communityMonitorStatus.textContent = err.message;
+        });
+    });
+    el('load-community-moderation').addEventListener('click', () => {
+      refreshCommunityModeration()
+        .then(() => {
+          communityModerationStatus.textContent = 'moderation loaded';
+        })
+        .catch((err) => {
+          communityModerationStatus.textContent = err.message;
+        });
+    });
+    el('save-community-moderation').addEventListener('click', () => {
+      saveCommunityModeration()
+        .then(() => {
+          communityModerationStatus.textContent = 'moderation saved';
+        })
+        .catch((err) => {
+          communityModerationStatus.textContent = err.message;
+        });
+    });
+    el('clear-community-moderation').addEventListener('click', () => {
+      clearCommunityModeration()
+        .then(() => {
+          communityModerationStatus.textContent = 'moderation cleared';
+        })
+        .catch((err) => {
+          communityModerationStatus.textContent = err.message;
         });
     });
     el('refresh-community-all').addEventListener('click', refreshCommunityAll);

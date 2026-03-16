@@ -2223,6 +2223,7 @@ const communityPresenceFile = path.join(communityDir, 'presence.json');
 const communityDmRoomsFile = path.join(communityDir, 'dm-rooms.json');
 const communityPushTokensFile = path.join(communityDir, 'push-tokens.json');
 const communityAuditFile = path.join(communityDir, 'audit.jsonl');
+const communityModerationFile = path.join(communityDir, 'moderation.json');
 
 const ensureDir = (dirPath) => {
   try {
@@ -2368,6 +2369,282 @@ const readCommunityAuditEvents = ({ userId = '', roomId = '', uuid = '', type = 
       events: []
     };
   }
+};
+
+const newCommunityModerationState = () => ({
+  schema: 1,
+  updated_at: null,
+  users: {}
+});
+
+const loadCommunityModerationState = () => {
+  const data = loadJsonFile(communityModerationFile, null);
+  if (!data || typeof data !== 'object') return newCommunityModerationState();
+  if (!data.users || typeof data.users !== 'object') data.users = {};
+  return data;
+};
+
+const saveCommunityModerationState = (state) => {
+  writeJsonFile(communityModerationFile, state);
+};
+
+const normalizeCommunityModerationStatus = (value) =>
+  pickFirstString(value).toLowerCase() === 'muted' ? 'muted' : 'active';
+
+const normalizeCommunityModerationUntil = (value) => {
+  const raw = pickFirstString(value);
+  if (!raw) return '';
+  const ts = Date.parse(raw);
+  return Number.isFinite(ts) ? new Date(ts).toISOString() : '';
+};
+
+const normalizeCommunityModerationEntry = (entry, userId = '') => {
+  const safeEntry = entry && typeof entry === 'object' ? entry : {};
+  const safeUserId = pickFirstString(userId, safeEntry.user_id);
+  const until = normalizeCommunityModerationUntil(safeEntry.until);
+  const status = normalizeCommunityModerationStatus(safeEntry.status);
+  const now = Date.now();
+  const untilTs = until ? Date.parse(until) : NaN;
+  const expired = Number.isFinite(untilTs) && untilTs < now;
+  return {
+    user_id: safeUserId,
+    status: expired ? 'active' : status,
+    active: !expired && status === 'muted',
+    reason: pickFirstString(safeEntry.reason),
+    note: pickFirstString(safeEntry.note),
+    until: expired ? '' : until,
+    created_at: pickFirstString(safeEntry.created_at),
+    updated_at: pickFirstString(safeEntry.updated_at),
+    updated_by: pickFirstString(safeEntry.updated_by)
+  };
+};
+
+const pruneCommunityModerationState = (state) => {
+  const safeState = state && typeof state === 'object' ? state : newCommunityModerationState();
+  if (!safeState.users || typeof safeState.users !== 'object') safeState.users = {};
+  Object.keys(safeState.users).forEach((userId) => {
+    const normalized = normalizeCommunityModerationEntry(safeState.users[userId], userId);
+    if (!normalized.user_id || !normalized.active) {
+      delete safeState.users[userId];
+      return;
+    }
+    safeState.users[userId] = normalized;
+  });
+  return safeState;
+};
+
+let communityModerationState = pruneCommunityModerationState(loadCommunityModerationState());
+saveCommunityModerationState(communityModerationState);
+
+const getMutableCommunityModerationState = () => {
+  communityModerationState = pruneCommunityModerationState(communityModerationState);
+  return communityModerationState;
+};
+
+const getCommunityModerationEntry = (userId) => {
+  const safeUserId = pickFirstString(userId);
+  if (!safeUserId) return null;
+  const state = getMutableCommunityModerationState();
+  const entry = normalizeCommunityModerationEntry(state.users[safeUserId], safeUserId);
+  return entry.user_id ? entry : null;
+};
+
+const listCommunityModerationEntries = ({ userId = '' } = {}) => {
+  const safeUserId = pickFirstString(userId);
+  const state = getMutableCommunityModerationState();
+  const rows = Object.keys(state.users || {})
+    .map((id) => normalizeCommunityModerationEntry(state.users[id], id))
+    .filter((entry) => entry && entry.active)
+    .filter((entry) => !safeUserId || entry.user_id === safeUserId)
+    .sort((left, right) => {
+      const leftTs = Date.parse(left && left.updated_at ? left.updated_at : '');
+      const rightTs = Date.parse(right && right.updated_at ? right.updated_at : '');
+      return (Number.isFinite(rightTs) ? rightTs : 0) - (Number.isFinite(leftTs) ? leftTs : 0);
+    });
+  return {
+    updated_at: pickFirstString(state.updated_at),
+    count: rows.length,
+    entries: rows
+  };
+};
+
+const upsertCommunityModerationEntry = ({
+  userId,
+  status = 'active',
+  reason = '',
+  note = '',
+  until = '',
+  updatedBy = ''
+} = {}) => {
+  const safeUserId = pickFirstString(userId);
+  if (!safeUserId) return { ok: false, error: 'user_id_required' };
+  const safeStatus = normalizeCommunityModerationStatus(status);
+  const safeUntil = normalizeCommunityModerationUntil(until);
+  const nowIso = new Date().toISOString();
+  const state = getMutableCommunityModerationState();
+  if (safeStatus !== 'muted') {
+    delete state.users[safeUserId];
+    state.updated_at = nowIso;
+    saveCommunityModerationState(state);
+    return {
+      ok: true,
+      entry: {
+        user_id: safeUserId,
+        status: 'active',
+        active: false,
+        reason: '',
+        note: '',
+        until: '',
+        created_at: '',
+        updated_at: nowIso,
+        updated_by: pickFirstString(updatedBy)
+      }
+    };
+  }
+  const existing = normalizeCommunityModerationEntry(state.users[safeUserId], safeUserId);
+  state.users[safeUserId] = {
+    user_id: safeUserId,
+    status: 'muted',
+    active: true,
+    reason: pickFirstString(reason),
+    note: pickFirstString(note),
+    until: safeUntil,
+    created_at: pickFirstString(existing && existing.created_at, nowIso),
+    updated_at: nowIso,
+    updated_by: pickFirstString(updatedBy)
+  };
+  state.updated_at = nowIso;
+  saveCommunityModerationState(state);
+  return {
+    ok: true,
+    entry: normalizeCommunityModerationEntry(state.users[safeUserId], safeUserId)
+  };
+};
+
+const isCommunityUserMuted = (userId) => {
+  const entry = getCommunityModerationEntry(userId);
+  return Boolean(entry && entry.active && entry.status === 'muted');
+};
+
+const getCommunityBlockedResponse = ({ userId, roomType, roomId = '', clientMeta = {} }) => {
+  const entry = getCommunityModerationEntry(userId);
+  appendCommunityAuditEvent('message_blocked', {
+    room_type: pickFirstString(roomType),
+    room_id: pickFirstString(roomId),
+    user_id: pickFirstString(userId),
+    ip: normalizeClientIp(clientMeta.ip),
+    reason: pickFirstString(entry && entry.reason, 'muted')
+  });
+  return {
+    ok: false,
+    error: 'community_user_muted',
+    statusCode: 403,
+    moderation: entry || {
+      user_id: pickFirstString(userId),
+      status: 'muted',
+      active: true,
+      reason: ''
+    }
+  };
+};
+
+const buildCommunityAuditMessageMetaMap = () => {
+  const map = new Map();
+  try {
+    if (!fs.existsSync(communityAuditFile)) return map;
+    const raw = fs.readFileSync(communityAuditFile, 'utf8');
+    String(raw || '')
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .forEach((line) => {
+        try {
+          const event = JSON.parse(line);
+          const type = pickFirstString(event && event.type);
+          const messageId = pickFirstString(event && event.message_id);
+          if (!messageId || (type !== 'message_public' && type !== 'message_dm')) return;
+          map.set(messageId, {
+            ip: normalizeClientIp(event && event.ip),
+            uuid: pickFirstString(event && event.uuid)
+          });
+        } catch (_err) {
+          // no-op
+        }
+      });
+  } catch (_err) {
+    // no-op
+  }
+  return map;
+};
+
+const listCommunityMonitorMessages = ({
+  userId = '',
+  roomId = '',
+  roomType = '',
+  text = '',
+  limit = 100
+} = {}) => {
+  const safeUserId = pickFirstString(userId);
+  const safeRoomId = pickFirstString(roomId);
+  const safeRoomType = pickFirstString(roomType).toLowerCase();
+  const safeText = pickFirstString(text).toLowerCase();
+  const safeLimit = Math.min(toPositiveInteger(limit, 100), 500);
+  const auditMeta = buildCommunityAuditMessageMetaMap();
+  const rows = [];
+  const pushRows = (messages, type, currentRoomId) => {
+    (Array.isArray(messages) ? messages : []).forEach((message) => {
+      const actorId = pickFirstString(message && message.actor && message.actor.id);
+      const messageText = normalizeCommunityText(message && message.text);
+      if (safeUserId && actorId !== safeUserId) return;
+      if (safeRoomId && pickFirstString(currentRoomId) !== safeRoomId) return;
+      if (safeRoomType && safeRoomType !== type) return;
+      if (safeText && !String(messageText || '').toLowerCase().includes(safeText)) return;
+      const messageId = pickFirstString(message && message.id);
+      const meta = messageId ? auditMeta.get(messageId) || {} : {};
+      rows.push({
+        room_type: type,
+        room_id: pickFirstString(currentRoomId),
+        message_id: messageId,
+        created_at: pickFirstString(message && (message.created_at || message.published)),
+        actor_id: actorId,
+        actor_name: pickFirstString(
+          message && message.actor && (message.actor.name || message.actor.displayName || message.actor.email)
+        ),
+        text: messageText,
+        delivered_at: pickFirstString(message && message.delivered_at),
+        ip: normalizeClientIp(meta.ip),
+        uuid: pickFirstString(meta.uuid)
+      });
+    });
+  };
+
+  const publicHistory = loadCommunityHistory();
+  pushRows(publicHistory && publicHistory.messages, 'public', COMMUNITY_PUBLIC_CHANNEL);
+
+  try {
+    if (fs.existsSync(communityDmDir)) {
+      fs.readdirSync(communityDmDir)
+        .filter((fileName) => fileName.endsWith('.json'))
+        .forEach((fileName) => {
+          const data = loadJsonFile(path.join(communityDmDir, fileName), null);
+          if (!data || typeof data !== 'object') return;
+          pushRows(data.messages, 'dm', pickFirstString(data.room_id, fileName.replace(/\.json$/i, '')));
+        });
+    }
+  } catch (_err) {
+    // no-op
+  }
+
+  rows.sort((left, right) => {
+    const leftTs = Date.parse(left && left.created_at ? left.created_at : '');
+    const rightTs = Date.parse(right && right.created_at ? right.created_at : '');
+    return (Number.isFinite(rightTs) ? rightTs : 0) - (Number.isFinite(leftTs) ? leftTs : 0);
+  });
+
+  return {
+    count: rows.length,
+    messages: rows.slice(0, safeLimit)
+  };
 };
 
 const sanitizeOwner = (value) => {
@@ -3946,6 +4223,14 @@ const emitCommunityDmMessage = async ({ source, appName, clientMeta = {} }) => {
   if (!identity.user_ids.includes(senderId)) {
     return { ok: false, error: 'sender_not_in_dm_room', statusCode: 403 };
   }
+  if (isCommunityUserMuted(senderId)) {
+    return getCommunityBlockedResponse({
+      userId: senderId,
+      roomType: 'dm',
+      roomId: identity.room_id,
+      clientMeta
+    });
+  }
   const text = normalizeCommunityText(source.text || source.message || source.body || source.content || '');
   if (!text) {
     return { ok: false, error: 'text_required', statusCode: 400 };
@@ -5057,6 +5342,14 @@ const emitPublicCommunityMessage = async ({ source, appName, clientMeta = {} }) 
       statusCode: 400
     };
   }
+  if (isCommunityUserMuted(actor.id)) {
+    return getCommunityBlockedResponse({
+      userId: actor.id,
+      roomType: 'public',
+      roomId: COMMUNITY_PUBLIC_CHANNEL,
+      clientMeta
+    });
+  }
   const message = buildPublicCommunityMessage({
     text,
     actor
@@ -5506,6 +5799,21 @@ app.get('/realtime/community/monitor/push-tokens', (req, res) => {
   });
 });
 
+app.get('/realtime/community/monitor/messages', (req, res) => {
+  if (!authorizeMonitor(req, res)) return;
+  const payload = listCommunityMonitorMessages({
+    userId: pickFirstString(req.query.user_id, req.query.userId),
+    roomId: pickFirstString(req.query.room_id, req.query.roomId),
+    roomType: pickFirstString(req.query.room_type, req.query.roomType),
+    text: pickFirstString(req.query.text, req.query.q),
+    limit: req.query.limit
+  });
+  res.json({
+    ok: true,
+    ...payload
+  });
+});
+
 app.get('/realtime/community/monitor/audit', (req, res) => {
   if (!authorizeMonitor(req, res)) return;
   const payload = readCommunityAuditEvents({
@@ -5520,6 +5828,39 @@ app.get('/realtime/community/monitor/audit', (req, res) => {
     ok: !payload.error,
     ...payload
   });
+});
+
+app.get('/realtime/community/monitor/moderation', (req, res) => {
+  if (!authorizeMonitor(req, res)) return;
+  const payload = listCommunityModerationEntries({
+    userId: pickFirstString(req.query.user_id, req.query.userId)
+  });
+  res.json({
+    ok: true,
+    ...payload
+  });
+});
+
+app.post('/realtime/community/monitor/moderation', (req, res) => {
+  if (!authorizeMonitor(req, res)) return;
+  const source = Object.assign({}, req.query || {}, req.body || {});
+  const result = upsertCommunityModerationEntry({
+    userId: pickFirstString(source.user_id, source.userId),
+    status: pickFirstString(source.status),
+    reason: pickFirstString(source.reason),
+    note: pickFirstString(source.note),
+    until: pickFirstString(source.until),
+    updatedBy: pickFirstString(source.updated_by, source.updatedBy)
+  });
+  if (result.ok) {
+    appendCommunityAuditEvent('moderation_update', {
+      user_id: pickFirstString(result.entry && result.entry.user_id),
+      status: pickFirstString(result.entry && result.entry.status),
+      until: pickFirstString(result.entry && result.entry.until),
+      updated_by: pickFirstString(result.entry && result.entry.updated_by)
+    });
+  }
+  res.status(result.ok ? 200 : 400).json(result);
 });
 
 app.get('/realtime/tts/usage/daily', (req, res) => {

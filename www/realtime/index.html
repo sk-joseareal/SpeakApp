@@ -649,21 +649,35 @@
       if (!channelValue || !text) return;
       const cfg = readConfig();
       try {
-        if (channelValue === 'site-wide-chat-channel') {
+        if (channelValue === 'site-wide-chat-channel' || channelValue.startsWith('private-')) {
           const userId = cfg.userId.trim();
           const userName = cfg.userName.trim();
           if (!userId) {
-            throw new Error('user_id required for community public messages');
+            throw new Error('user_id required for community messages');
           }
-          const res = await fetch(buildMonitorUrl('/realtime/community/public/messages'), {
+          const isCommunityDm = channelValue.startsWith('private-');
+          const pathname = isCommunityDm
+            ? '/realtime/community/messages'
+            : '/realtime/community/public/messages';
+          const payload = isCommunityDm
+            ? {
+                room_type: 'dm',
+                channel: channelValue,
+                user_id: userId,
+                user_name: userName || userId,
+                text,
+                app: 'monitor'
+              }
+            : {
+                user_id: userId,
+                user_name: userName || userId,
+                text,
+                app: 'monitor'
+              };
+          const res = await fetch(buildMonitorUrl(pathname), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              user_id: userId,
-              user_name: userName || userId,
-              text,
-              app: 'monitor'
-            })
+            body: JSON.stringify(payload)
           });
           const data = await res.json().catch(() => ({}));
           log(`community send status: ${res.status} ${JSON.stringify(data)}`);

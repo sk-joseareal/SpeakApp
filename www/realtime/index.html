@@ -647,13 +647,34 @@
       const eventValue = el('event').value.trim() || 'bot_message';
       const text = el('message').value.trim();
       if (!channelValue || !text) return;
-      const payload = {
-        channel: channelValue,
-        event: eventValue,
-        data: { text, role: 'bot' }
-      };
+      const cfg = readConfig();
       try {
-        const res = await fetch('https://realtime.curso-ingles.com/realtime/emit', {
+        if (channelValue === 'site-wide-chat-channel') {
+          const userId = cfg.userId.trim();
+          const userName = cfg.userName.trim();
+          if (!userId) {
+            throw new Error('user_id required for community public messages');
+          }
+          const res = await fetch(buildMonitorUrl('/realtime/community/public/messages'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              user_id: userId,
+              user_name: userName || userId,
+              text,
+              app: 'monitor'
+            })
+          });
+          const data = await res.json().catch(() => ({}));
+          log(`community send status: ${res.status} ${JSON.stringify(data)}`);
+          return;
+        }
+        const payload = {
+          channel: channelValue,
+          event: eventValue,
+          data: { text, role: 'bot' }
+        };
+        const res = await fetch(buildMonitorUrl('/realtime/emit'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)

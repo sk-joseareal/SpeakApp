@@ -55,6 +55,10 @@ Human chat in SpeakApp is implemented natively in this realtime gateway:
 - private DM rooms
 - presence / push / monitor endpoints
 
+Operational docs:
+
+- `realtime/MONITOR_GUIDE.md` for monitor, supervision, and moderation usage
+
 ## Client config (Pusher JS)
 
 Soketi (self hosted):

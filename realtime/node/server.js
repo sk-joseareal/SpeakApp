@@ -162,6 +162,7 @@ const pronAssessDailySecondsLimits = new Map();
 const COMMUNITY_PUBLIC_CHANNEL = 'site-wide-chat-channel';
 const COMMUNITY_PUBLIC_PRESENCE_CHANNEL = `presence-${COMMUNITY_PUBLIC_CHANNEL}`;
 const COMMUNITY_DM_CHANNEL_PREFIX = 'private-';
+const COMMUNITY_USER_INBOX_CHANNEL_PREFIX = 'private-community-user-';
 const COMMUNITY_HISTORY_MAX_MESSAGES = (() => {
   const numeric = Number(env('COMMUNITY_HISTORY_MAX_MESSAGES', '240'));
   if (!Number.isFinite(numeric)) return 240;
@@ -173,12 +174,6 @@ const COMMUNITY_PRESENCE_ACTIVE_WINDOW_MS = (() => {
   if (!Number.isFinite(numeric)) return 25000;
   const parsed = Math.floor(numeric);
   return parsed > 0 ? parsed : 25000;
-})();
-const COMMUNITY_PRESENCE_LEGACY_WINDOW_MS = (() => {
-  const numeric = Number(env('COMMUNITY_PRESENCE_LEGACY_WINDOW_MS', '900000'));
-  if (!Number.isFinite(numeric)) return 900000;
-  const parsed = Math.floor(numeric);
-  return parsed > 0 ? parsed : 900000;
 })();
 const COMMUNITY_PUSH_ENABLED = env('COMMUNITY_PUSH_ENABLED', 'true') === 'true';
 const COMMUNITY_PUSH_PROVIDER_URL = env('COMMUNITY_PUSH_PROVIDER_URL', 'https://api.curso-ingles.com/send_push');
@@ -2825,7 +2820,6 @@ const summarizeCommunityPresenceUser = (userId, entry, { includePrivateSessions 
     premium: Boolean(entry && entry.premium),
     last_seen_at: entry && entry.last_seen_at ? entry.last_seen_at : null,
     sessions_count: sessions.length,
-    legacy_sessions_count: sessions.filter((session) => session && session.source === 'legacy').length,
     app_state: latestSession && latestSession.context ? latestSession.context.app_state : 'foreground',
     tab: latestSession && latestSession.context ? latestSession.context.tab : '',
     chat_mode: latestSession && latestSession.context ? latestSession.context.chat_mode : '',
@@ -2933,18 +2927,6 @@ const upsertCommunityPresence = ({
   return { ok: true, summary: summarizeCommunityPresenceRoom(room) };
 };
 
-const upsertLegacyCommunityPresence = ({ roomId, actor, sessionId, context, sessionMeta, now = Date.now() }) =>
-  upsertCommunityPresence({
-    roomId,
-    actor,
-    sessionId,
-    context,
-    sessionMeta,
-    source: 'legacy',
-    activeWindowMs: COMMUNITY_PRESENCE_LEGACY_WINDOW_MS,
-    now
-  });
-
 const removeCommunityPresenceSession = ({ roomId, userId, sessionId, now = Date.now() }) => {
   const safeUserId = pickFirstString(userId);
   const safeSessionId = pickFirstString(sessionId);
@@ -3012,6 +2994,17 @@ const parseCommunityDmChannel = (channelName) => {
   const match = /^private-(.+)_(.+)$/.exec(raw);
   if (!match) return null;
   return buildCommunityDmIdentity(match[1], match[2]);
+};
+
+const buildCommunityUserInboxChannel = (userId) => {
+  const safeUserId = pickFirstString(userId);
+  return safeUserId ? `${COMMUNITY_USER_INBOX_CHANNEL_PREFIX}${safeUserId}` : '';
+};
+
+const parseCommunityUserInboxChannel = (channelName) => {
+  const raw = pickFirstString(channelName);
+  if (!raw || !raw.startsWith(COMMUNITY_USER_INBOX_CHANNEL_PREFIX)) return '';
+  return pickFirstString(raw.slice(COMMUNITY_USER_INBOX_CHANNEL_PREFIX.length));
 };
 
 const newCommunityDmRoomsState = () => ({
@@ -3211,7 +3204,6 @@ const buildCommunityParticipantSummary = (participant) => {
     name: pickFirstString(entry.name, entry.displayName, entry.email),
     avatar: pickPublicAvatar(entry.avatar),
     email: pickFirstString(entry.email),
-    app: pickFirstString(entry.app) || 'speakapp',
     premium: Boolean(entry.premium)
   };
 };
@@ -3232,7 +3224,6 @@ const summarizeCommunityDmRoom = (room, viewerId = '') => {
       name: '',
       avatar: '',
       email: '',
-      app: '',
       premium: false
     };
   return {
@@ -3246,7 +3237,6 @@ const summarizeCommunityDmRoom = (room, viewerId = '') => {
     last_message_preview: pickFirstString(safeRoom.last_message_preview),
     last_message_actor_id: pickFirstString(safeRoom.last_message_actor_id),
     last_message_actor_name: pickFirstString(safeRoom.last_message_actor_name),
-    last_message_actor_app: pickFirstString(safeRoom.last_message_actor_app),
     unread_count: getCommunityDmUnreadCount(safeRoom, safeViewerId),
     participants,
     peer
@@ -3273,7 +3263,6 @@ const ensureCommunityDmRoomRecord = ({
       last_message_preview: '',
       last_message_actor_id: '',
       last_message_actor_name: '',
-      last_message_actor_app: '',
       read_state: {},
       participants: {}
     };
@@ -3300,7 +3289,6 @@ const ensureCommunityDmRoomRecord = ({
       ),
       email: pickFirstString(safeCandidate.email, existing.email),
       avatar: pickPublicAvatar(safeCandidate.avatar, existing.avatar),
-      app: pickFirstString(safeCandidate.app, existing.app) || 'speakapp',
       premium: safeCandidate.premium === true || existing.premium === true
     };
   };
@@ -3689,7 +3677,6 @@ const hydrateCommunityDmRoom = (room, viewerId = '') => {
       ...safeParticipant,
       name: pickFirstString(safeParticipant.name, online.name),
       avatar: pickPublicAvatar(safeParticipant.avatar, online.avatar),
-      app: pickFirstString(safeParticipant.app, online.app) || 'speakapp',
       premium: safeParticipant.premium === true || online.premium === true
     };
   };
@@ -3777,7 +3764,6 @@ const appendCommunityDmMessage = ({ identity, actor, peerActor, message }) => {
   room.last_message_actor_name = pickFirstString(
     message.actor && (message.actor.name || message.actor.displayName || message.actor.email)
   );
-  room.last_message_actor_app = pickFirstString(message.actor && message.actor.app);
   room.updated_at = history.updated_at;
   const actorId = pickFirstString(actor && actor.id);
   if (actorId && Array.isArray(room.user_ids) && room.user_ids.includes(actorId)) {
@@ -3795,18 +3781,11 @@ const appendCommunityDmMessage = ({ identity, actor, peerActor, message }) => {
   return { history, room };
 };
 
-const buildLegacyPrivateChatPayload = (identity) => ({
-  user1: identity.user_ids[0],
-  user2: identity.user_ids[1],
-  private_channel: identity.channel
-});
-
-const buildCommunityDmNoticePayload = (identity, message) => ({
-  room_id: identity.room_id,
-  private_channel: identity.channel,
-  user1: identity.user_ids[0],
-  user2: identity.user_ids[1],
+const buildCommunityDmInboxMessagePayload = (message) => ({
+  id: pickFirstString(message && message.id),
   client_message_id: pickFirstString(message && message.client_message_id),
+  room_id: pickFirstString(message && message.room_id),
+  channel: pickFirstString(message && message.channel),
   created_at: pickFirstString(message && (message.created_at || message.published)),
   text: normalizeCommunityText(message && message.text),
   actor: {
@@ -3818,28 +3797,17 @@ const buildCommunityDmNoticePayload = (identity, message) => ({
   }
 });
 
-const emitLegacyPrivateChatOpen = async (identity) => {
-  await pusher.trigger(
-    COMMUNITY_PUBLIC_CHANNEL,
-    'private_chat',
-    buildLegacyPrivateChatPayload(identity)
-  );
-};
-
-const emitLegacyPrivateChatClose = async (identity) => {
-  await pusher.trigger(
-    COMMUNITY_PUBLIC_CHANNEL,
-    'destroy_private_chat',
-    buildLegacyPrivateChatPayload(identity)
-  );
+const emitCommunityUserInboxEvent = async (userId, eventName, payload) => {
+  const channelName = buildCommunityUserInboxChannel(userId);
+  if (!channelName || !eventName) return;
+  await pusher.trigger(channelName, eventName, payload || {});
 };
 
 const ensureCommunityDmRoom = async ({
   userId,
   peerUserId,
   actor,
-  peerActor,
-  emitLegacyOpen = false
+  peerActor
 }) => {
   const identity = buildCommunityDmIdentity(userId, peerUserId);
   if (!identity) {
@@ -3852,9 +3820,13 @@ const ensureCommunityDmRoom = async ({
     peerActor,
     createdAt: nowIso
   });
-  if (emitLegacyOpen) {
-    await emitLegacyPrivateChatOpen(identity);
-  }
+  await Promise.all(
+    identity.user_ids.map((participantId) =>
+      emitCommunityUserInboxEvent(participantId, 'dm_room_upsert', {
+        room: hydrateCommunityDmRoom(room, participantId)
+      })
+    )
+  );
   return {
     ok: true,
     room: hydrateCommunityDmRoom(room, pickFirstString(userId)),
@@ -3862,7 +3834,7 @@ const ensureCommunityDmRoom = async ({
   };
 };
 
-const emitCommunityDmMessage = async ({ source, appName, emitLegacyOpen = false, clientMeta = {} }) => {
+const emitCommunityDmMessage = async ({ source, appName, clientMeta = {} }) => {
   const requestedRoomId = pickFirstString(source.room_id, source.roomId);
   const requestedChannel = pickFirstString(source.channel);
   const requestedIdentity =
@@ -3888,20 +3860,18 @@ const emitCommunityDmMessage = async ({ source, appName, emitLegacyOpen = false,
     {
       user_id: identity.user_ids.find((candidate) => candidate !== senderId) || '',
       user_name: pickFirstString(source.peer_name, source.peerName),
-      avatar: pickFirstString(source.peer_avatar, source.peerAvatar),
-      app: pickFirstString(source.peer_app, source.peerApp)
+      avatar: pickFirstString(source.peer_avatar, source.peerAvatar)
     },
     {
       id: identity.user_ids.find((candidate) => candidate !== senderId) || '',
-      app: 'english-course'
+      app: 'speakapp'
     }
   );
   const ensured = await ensureCommunityDmRoom({
     userId: identity.user_ids[0],
     peerUserId: identity.user_ids[1],
     actor,
-    peerActor,
-    emitLegacyOpen
+    peerActor
   });
   if (!ensured.ok) return ensured;
   const message = buildCommunityDmMessage({
@@ -3915,7 +3885,7 @@ const emitCommunityDmMessage = async ({ source, appName, emitLegacyOpen = false,
       source.messageId
     )
   });
-  appendCommunityDmMessage({
+  const appended = appendCommunityDmMessage({
     identity,
     actor,
     peerActor,
@@ -3930,27 +3900,16 @@ const emitCommunityDmMessage = async ({ source, appName, emitLegacyOpen = false,
     ip: normalizeClientIp(clientMeta.ip),
     app: pickFirstString(actor.app)
   });
-  if ((actor.app || '').toLowerCase() === 'english-course') {
-    upsertLegacyCommunityPresence({
-      roomId: COMMUNITY_PUBLIC_CHANNEL,
-      actor,
-      sessionId: `legacy-send:${actor.id}`,
-      sessionMeta: normalizeCommunityPresenceSessionMeta(source, clientMeta),
-      context: {
-        app_state: 'foreground',
-        tab: 'chat',
-        chat_mode: 'community',
-        community_view: 'dm',
-        active_room_type: 'dm',
-        active_room_id: identity.room_id
-      }
-    });
-  }
   await pusher.trigger(identity.channel, 'chat_message', message);
-  await pusher.trigger(
-    COMMUNITY_PUBLIC_CHANNEL,
-    'private_chat_message',
-    buildCommunityDmNoticePayload(identity, message)
+  await Promise.all(
+    identity.user_ids
+      .filter((participantId) => pickFirstString(participantId) !== pickFirstString(actor.id))
+      .map((participantId) =>
+        emitCommunityUserInboxEvent(participantId, 'dm_message_notice', {
+          room: hydrateCommunityDmRoom(appended.room, participantId),
+          message: buildCommunityDmInboxMessagePayload(message)
+        })
+      )
   );
   const delivery = buildCommunityDmDelivery({
     identity,
@@ -3996,21 +3955,6 @@ const getCommunityMessages = ({ roomType, roomId, limit }) => {
     updated_at: history.updated_at || null,
     messages: history.messages.slice(-safeLimit)
   };
-};
-
-const toLegacyChatRows = (messages, { newestFirst = true } = {}) => {
-  const rows = (Array.isArray(messages) ? messages : []).map((message) => ({
-    message_id: pickFirstString(message && message.id),
-    created_at: pickFirstString(message && (message.created_at || message.published)),
-    body: normalizeCommunityText(message && message.text),
-    user_id: pickFirstString(message && message.actor && message.actor.id),
-    display_name: pickFirstString(
-      message && message.actor && (message.actor.displayName || message.actor.name || message.actor.email)
-    ),
-    image: pickFirstString(message && message.actor && message.actor.avatar),
-    style: ''
-  }));
-  return newestFirst ? rows.slice().reverse() : rows;
 };
 
 const normalizeCommunityText = (value) =>
@@ -4665,6 +4609,22 @@ const authHandler = (req, res) => {
       res.json(pusher.authenticate(socketId, channelName));
       return;
     }
+    if (channelName.startsWith(COMMUNITY_USER_INBOX_CHANNEL_PREFIX)) {
+      const ownerUserId = parseCommunityUserInboxChannel(channelName);
+      if (!safeUserId || !ownerUserId || safeUserId !== ownerUserId) {
+        res.status(403).json({ error: 'unauthorized_channel' });
+        return;
+      }
+      appendCommunityAuditEvent('auth', {
+        channel: channelName,
+        socket_id: socketId,
+        user_id: safeUserId,
+        uuid: pickFirstString(sessionMeta.uuid),
+        ip: clientMeta.ip
+      });
+      res.json(pusher.authenticate(socketId, channelName));
+      return;
+    }
     if (channelName.startsWith('private-')) {
       const identity = parseCommunityDmChannel(channelName);
       if (!identity || !safeUserId || !identity.user_ids.includes(safeUserId)) {
@@ -4706,7 +4666,7 @@ const authHandler = (req, res) => {
         },
         {
           id: String(safeUserId),
-          app: pickFirstString(userInfo && userInfo.app, userInfo && userInfo.origin, 'english-course')
+          app: pickFirstString(userInfo && userInfo.app, userInfo && userInfo.origin, 'speakapp')
         }
       )
     : userInfo || {};
@@ -4714,31 +4674,6 @@ const authHandler = (req, res) => {
     user_id: String(safeUserId),
     user_info: safePresenceUserInfo
   };
-  if (channelName === COMMUNITY_PUBLIC_PRESENCE_CHANNEL) {
-    upsertLegacyCommunityPresence({
-      roomId: COMMUNITY_PUBLIC_CHANNEL,
-      actor: normalizeCommunityActor(
-        {
-          ...(safePresenceUserInfo && typeof safePresenceUserInfo === 'object' ? safePresenceUserInfo : {}),
-          user_id: safeUserId
-        },
-        {
-          id: String(safeUserId),
-          app: pickFirstString(userInfo && userInfo.app, userInfo && userInfo.origin, 'english-course')
-        }
-      ),
-      sessionId: `legacy-auth:${String(socketId)}`,
-      sessionMeta,
-      context: {
-        app_state: 'foreground',
-        tab: 'chat',
-        chat_mode: 'community',
-        community_view: 'public',
-        active_room_type: 'public',
-        active_room_id: COMMUNITY_PUBLIC_CHANNEL
-      }
-    });
-  }
   appendCommunityAuditEvent('auth', {
     channel: channelName,
     socket_id: socketId,
@@ -4751,10 +4686,6 @@ const authHandler = (req, res) => {
 
 app.post('/realtime/auth', authHandler);
 app.get('/realtime/auth', authHandler);
-app.post('/chats/auth_v2', authHandler);
-app.get('/chats/auth_v2', authHandler);
-app.post('/chats/auth', authHandler);
-app.get('/chats/auth', authHandler);
 
 app.post('/realtime/push/register', (req, res) => {
   if (!authorizeState(req, res)) return;
@@ -4830,12 +4761,10 @@ app.post('/realtime/community/rooms/dm', async (req, res) => {
         {
           user_id: peerUserId,
           user_name: pickFirstString(source.peer_name, source.peerName, source.user2_name),
-          avatar: pickFirstString(source.peer_avatar, source.peerAvatar),
-          app: pickFirstString(source.peer_app, source.peerApp)
+          avatar: pickFirstString(source.peer_avatar, source.peerAvatar)
         },
-        { id: peerUserId, app: 'english-course' }
-      ),
-      emitLegacyOpen: true
+        { id: peerUserId, app: 'speakapp' }
+      )
     });
     const statusCode = payload && payload.ok === false && payload.error === 'invalid_dm_users' ? 400 : 200;
     res.status(statusCode).json(payload);
@@ -5012,22 +4941,6 @@ const emitPublicCommunityMessage = async ({ source, appName, clientMeta = {} }) 
     ip: normalizeClientIp(clientMeta.ip),
     app: pickFirstString(actor.app)
   });
-  if ((actor.app || '').toLowerCase() === 'english-course') {
-    upsertLegacyCommunityPresence({
-      roomId: COMMUNITY_PUBLIC_CHANNEL,
-      actor,
-      sessionId: `legacy-send:${actor.id}`,
-      sessionMeta: normalizeCommunityPresenceSessionMeta(source, clientMeta),
-      context: {
-        app_state: 'foreground',
-        tab: 'chat',
-        chat_mode: 'community',
-        community_view: 'public',
-        active_room_type: 'public',
-        active_room_id: COMMUNITY_PUBLIC_CHANNEL
-      }
-    });
-  }
   await pusher.trigger(COMMUNITY_PUBLIC_CHANNEL, 'chat_message', message);
   return {
     ok: true,
@@ -5046,7 +4959,6 @@ app.post('/realtime/community/messages', async (req, res) => {
       payload = await emitCommunityDmMessage({
         source,
         appName: pickFirstString(source.app, source.origen, source.origin, 'speakapp'),
-        emitLegacyOpen: true,
         clientMeta
       });
     } else {
@@ -5085,106 +4997,6 @@ app.post('/realtime/community/public/messages', async (req, res) => {
     console.error('[realtime] community public message error', err.message || err);
     res.status(500).json({ ok: false, error: 'public_message_failed' });
   }
-});
-
-app.post('/v4/sendMessage', async (req, res) => {
-  const source = Object.assign({}, req.query || {}, req.body || {});
-  const clientMeta = getRequestClientMeta(req);
-  const channel = pickFirstString(source.channel, COMMUNITY_PUBLIC_CHANNEL);
-  try {
-    let payload;
-    if (channel === COMMUNITY_PUBLIC_CHANNEL) {
-      payload = await emitPublicCommunityMessage({
-        source,
-        appName: 'english-course',
-        clientMeta
-      });
-    } else {
-      payload = await emitCommunityDmMessage({
-        source: {
-          ...source,
-          room_type: 'dm',
-          channel,
-          user_name: pickFirstString(source.nickname, source.user_name, source.userName, source.name),
-          avatar: pickFirstString(source.image, source.avatar, source.img),
-          app: 'english-course'
-        },
-        appName: 'english-course',
-        emitLegacyOpen: true,
-        clientMeta
-      });
-    }
-    const statusCode = payload && payload.statusCode ? payload.statusCode : 200;
-    if (payload && Object.prototype.hasOwnProperty.call(payload, 'statusCode')) {
-      delete payload.statusCode;
-    }
-    res.status(statusCode).json(payload);
-  } catch (err) {
-    console.error('[realtime] legacy sendMessage error', err.message || err);
-    res.status(500).json({ ok: false, error: 'legacy_send_failed' });
-  }
-});
-
-app.post('/v4/createPrivate', async (req, res) => {
-  const source = Object.assign({}, req.query || {}, req.body || {});
-  const userId = pickFirstString(source.user1, source.user_id, source.userId, source.id);
-  const peerUserId = pickFirstString(source.user2, source.peer_user_id, source.peerUserId);
-  try {
-    const payload = await ensureCommunityDmRoom({
-      userId,
-      peerUserId,
-      actor: normalizeCommunityActor(
-        {
-          user_id: userId,
-          user_name: pickFirstString(source.user1_name, source.user_name, source.userName, source.name),
-          app: 'english-course'
-        },
-        { id: userId, app: 'english-course' }
-      ),
-      peerActor: normalizeCommunityActor(
-        {
-          user_id: peerUserId,
-          user_name: pickFirstString(source.user2_name, source.peer_name, source.peerName),
-          app: 'english-course'
-        },
-        { id: peerUserId, app: 'english-course' }
-      ),
-      emitLegacyOpen: true
-    });
-    const statusCode = payload && payload.ok === false ? 400 : 200;
-    res.status(statusCode).json(payload);
-  } catch (err) {
-    console.error('[realtime] legacy createPrivate error', err.message || err);
-    res.status(500).json({ ok: false, error: 'legacy_create_private_failed' });
-  }
-});
-
-app.post('/v4/getLastChats', (req, res) => {
-  const source = Object.assign({}, req.query || {}, req.body || {});
-  const channel = pickFirstString(source.channel, COMMUNITY_PUBLIC_CHANNEL);
-  let payload;
-  if (channel === COMMUNITY_PUBLIC_CHANNEL) {
-    payload = getCommunityMessages({
-      roomType: 'public',
-      roomId: COMMUNITY_PUBLIC_CHANNEL,
-      limit: source.limit || 60
-    });
-  } else {
-    const identity = parseCommunityDmChannel(channel);
-    payload = getCommunityMessages({
-      roomType: 'dm',
-      roomId: identity ? identity.room_id : '',
-      limit: source.limit || 60
-    });
-  }
-  if (!payload || payload.ok === false) {
-    res.status(payload && payload.statusCode ? payload.statusCode : 400).json(payload || { ok: false });
-    return;
-  }
-  res.json({
-    ok: true,
-    data: toLegacyChatRows(payload.messages, { newestFirst: true })
-  });
 });
 
 app.post('/realtime/emit', async (req, res) => {

@@ -49,9 +49,11 @@ There is a minimal Node gateway in `realtime/node/server.js`. It provides:
 
 The same code works with Soketi or Pusher by flipping env vars.
 
-Shared human chat compatibility plan with legacy `wwwV4`:
+Human chat in SpeakApp is implemented natively in this realtime gateway:
 
-- `CHAT_COMPAT_SPEC.md`
+- public room delivery
+- private DM rooms
+- presence / push / monitor endpoints
 
 ## Client config (Pusher JS)
 

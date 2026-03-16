@@ -45,11 +45,13 @@ class PageChat extends HTMLElement {
                   <button type="button" class="chat-mode-btn" data-mode="private">${uiCopy.modePrivate}</button>
                   <button type="button" class="chat-mode-btn" data-mode="coach">${uiCopy.modeCoach}</button>
                 </div>
-                <h3 id="chat-coach-title">${uiCopy.coachCatbotTitle}</h3>
+                <div class="chat-title-row">
+                  <h3 id="chat-coach-title">${uiCopy.coachCatbotTitle}</h3>
+                  <div class="chat-community-presence" id="chat-community-presence" hidden></div>
+                </div>
                 <p class="muted" id="chat-coach-subtitle">
                   ${uiCopy.coachCatbotSubtitle}
                 </p>
-                <div class="chat-community-presence" id="chat-community-presence" hidden></div>
               </div>
               <div class="coach-avatar coach-avatar-cat" id="chat-coach-avatar" aria-label="Coach">
                 <img
@@ -183,7 +185,6 @@ class PageChat extends HTMLElement {
     const coachTitleEl = this.querySelector('#chat-coach-title');
     const coachSubtitleEl = this.querySelector('#chat-coach-subtitle');
     const communityPresenceEl = this.querySelector('#chat-community-presence');
-    const communityNavEl = this.querySelector('#chat-community-nav');
     const communityListsEl = this.querySelector('#chat-community-lists');
     const communityRoomListEl = this.querySelector('#chat-community-room-list');
     const communityPeerListEl = this.querySelector('#chat-community-peer-list');
@@ -251,6 +252,7 @@ class PageChat extends HTMLElement {
     let pusherCommunityInboxChannel = null;
     const pusherCommunityDmChannels = new Map();
     const communityDmReadRequests = new Map();
+    const communityDmDeliveredAcks = new Set();
     let realtimeConnected = false;
     let communityPresenceHeartbeatTimer = null;
     let communityPresenceSessionId = '';
@@ -1024,6 +1026,9 @@ class PageChat extends HTMLElement {
         audioKind,
         speakText,
         createdAt: pickFirstText(data.created_at, data.createdAt, data.published, data.timestamp),
+        deliveredAt: pickFirstText(data.delivered_at, data.deliveredAt),
+        deliveredUserId: pickFirstText(data.delivered_user_id, data.deliveredUserId),
+        deliveredUuid: pickFirstText(data.delivered_uuid, data.deliveredUuid),
         actorId,
         actorName,
         actorAvatar,
@@ -1200,17 +1205,17 @@ class PageChat extends HTMLElement {
       currentAppTab === 'chat' && chatMode === 'community' && communityView === 'dm';
 
     const updateCommunityNavUnreadUi = (count = getCommunityTotalUnreadCount()) => {
-      if (!communityNavEl) return;
-      const publicButton = communityNavEl.querySelector('[data-community-view="public"]');
-      const dmButton = communityNavEl.querySelector('[data-community-view="dm"]');
+      if (!modeToggle) return;
+      const publicButton = modeToggle.querySelector('[data-mode="public"]');
+      const dmButton = modeToggle.querySelector('[data-mode="private"]');
       const dmUnread = Math.max(0, Math.round(Number(count) || 0));
       const publicUnread = Math.max(0, Math.round(Number(communityPublicUnreadCount) || 0));
       if (publicButton) {
-        const showPublicDot = publicUnread > 0 && communityView !== 'public';
+        const showPublicDot = publicUnread > 0 && !isCommunityPublicVisible();
         publicButton.classList.toggle('has-unread', showPublicDot);
       }
       if (dmButton) {
-        const showDmDot = dmUnread > 0 && communityView !== 'dm';
+        const showDmDot = dmUnread > 0 && !isCommunityDmVisible();
         dmButton.classList.toggle('has-unread', showDmDot);
       }
     };
@@ -1233,6 +1238,11 @@ class PageChat extends HTMLElement {
     const getCommunityDmReadEndpoint = () =>
       typeof (window.realtimeConfig || {}).communityDmReadEndpoint === 'string'
         ? window.realtimeConfig.communityDmReadEndpoint.trim()
+        : '';
+
+    const getCommunityDmDeliveredEndpoint = () =>
+      typeof (window.realtimeConfig || {}).communityDmDeliveredEndpoint === 'string'
+        ? window.realtimeConfig.communityDmDeliveredEndpoint.trim()
         : '';
 
     const getCommunityUnreadStorageKey = (userId = lastUserId) => {
@@ -2086,6 +2096,73 @@ class PageChat extends HTMLElement {
       });
     };
 
+    const buildCommunityDeliveredAckKey = (roomId, messageId) =>
+      `${pickFirstText(roomId)}::${pickFirstText(messageId)}`;
+
+    const markCommunityDmMessageDelivered = async (roomId, message, options = {}) => {
+      const safeRoomId = pickFirstText(roomId);
+      const currentUserId = pickFirstText(lastUserId);
+      const endpoint = getCommunityDmDeliveredEndpoint();
+      const safeMessage = message && typeof message === 'object' ? message : {};
+      const messageId = pickFirstText(options.messageId, safeMessage.id);
+      const actorId = pickFirstText(safeMessage.actorId, safeMessage.actor_id);
+      const deliveredAt = pickFirstText(safeMessage.deliveredAt, safeMessage.delivered_at);
+      if (!safeRoomId || !currentUserId || !endpoint || !messageId) return false;
+      if (!actorId || actorId === currentUserId || deliveredAt) return false;
+      const ackKey = buildCommunityDeliveredAckKey(safeRoomId, messageId);
+      if (communityDmDeliveredAcks.has(ackKey)) return true;
+      communityDmDeliveredAcks.add(ackKey);
+      try {
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json'
+          },
+          body: JSON.stringify({
+            room_id: safeRoomId,
+            user_id: currentUserId,
+            message_id: messageId,
+            uuid: getClientUuid(),
+            platform: getClientPlatform()
+          })
+        });
+        if (!response.ok) {
+          throw new Error(`community_dm_delivered_${response.status}`);
+        }
+        const data = await response.json();
+        if (!data || data.ok !== true) {
+          throw new Error('community_dm_delivered_invalid');
+        }
+        if (data.message) {
+          updateThreadMessage(
+            'community',
+            pickFirstText(data.message.id, messageId),
+            (current) => ({
+              ...current,
+              deliveredAt:
+                pickFirstText(data.message.delivered_at, data.message.deliveredAt) || current.deliveredAt,
+              deliveredUserId:
+                pickFirstText(data.message.delivered_user_id, data.message.deliveredUserId) ||
+                current.deliveredUserId,
+              deliveredUuid:
+                pickFirstText(data.message.delivered_uuid, data.message.deliveredUuid) || current.deliveredUuid,
+              sendState: current.sendState === 'failed' ? current.sendState : 'sent',
+              failed: false
+            }),
+            { scope: 'dm', roomId: safeRoomId, rerender: true }
+          );
+        }
+        return true;
+      } catch (err) {
+        communityDmDeliveredAcks.delete(ackKey);
+        if (!options.silent) {
+          console.warn('[chat] community dm delivered error', err);
+        }
+        return false;
+      }
+    };
+
     const updateCommunityDmHeader = () => {
       if (!communityDmHeaderEl || !communityDmAvatarEl || !communityDmNameEl || !communityDmStatusEl) return;
       const isCommunityDmThread =
@@ -2348,6 +2425,13 @@ class PageChat extends HTMLElement {
           scope: 'dm',
           roomId: safeRoomId
         });
+        const latestIncomingMessage =
+          [...messages]
+            .reverse()
+            .find((item) => item && item.role !== 'user' && pickFirstText(item.id)) || null;
+        if (latestIncomingMessage) {
+          markCommunityDmMessageDelivered(safeRoomId, latestIncomingMessage, { silent: true }).catch(() => {});
+        }
         if (!messages.length && communityView === 'dm' && safeRoomId === activeCommunityDmRoomId) {
           ensureIntroMessage('community');
         }
@@ -3969,6 +4053,9 @@ class PageChat extends HTMLElement {
         failed,
         sendState,
         createdAt,
+        deliveredAt: pickFirstText(message.deliveredAt, message.delivered_at),
+        deliveredUserId: pickFirstText(message.deliveredUserId, message.delivered_user_id),
+        deliveredUuid: pickFirstText(message.deliveredUuid, message.delivered_uuid),
         actorId: pickFirstText(message.actorId, message.actor_id),
         actorName: pickFirstText(message.actorName, message.actor_name),
         actorAvatar: pickFirstText(message.actorAvatar, message.actor_avatar),
@@ -4226,7 +4313,20 @@ class PageChat extends HTMLElement {
     };
 
     const renderMessage = (
-      { id, clientMessageId, role, text, audioUrl, audioKind, speakText, failed, sendState, createdAt, actorName },
+      {
+        id,
+        clientMessageId,
+        role,
+        text,
+        audioUrl,
+        audioKind,
+        speakText,
+        failed,
+        sendState,
+        createdAt,
+        deliveredAt,
+        actorName
+      },
       mode
     ) => {
       if (!threadEl) return;
@@ -4256,18 +4356,45 @@ class PageChat extends HTMLElement {
         copyEl.appendChild(textEl);
         bodyEl.appendChild(copyEl);
 
-        const effectiveSendState = role === 'user' ? sendState : '';
+        const isCommunityDmThread = mode === 'community' && communityView === 'dm';
+        const effectiveSendState =
+          role === 'user'
+            ? pickFirstText(sendState) || (isCommunityDmThread ? 'sent' : '')
+            : '';
+        const isDelivered = role === 'user' && isCommunityDmThread && Boolean(pickFirstText(deliveredAt));
         const bubbleTime = formatCommunityBubbleTime(createdAt);
-        const showBubbleTime =
-          Boolean(bubbleTime) &&
-          (role !== 'user' || !effectiveSendState || effectiveSendState === 'sent');
-        const showStateIcon = effectiveSendState === 'sending' || effectiveSendState === 'failed';
+        const showBubbleTime = Boolean(bubbleTime) && effectiveSendState !== 'sending';
+        const showStateIcon =
+          role === 'user' &&
+          (effectiveSendState === 'sending' ||
+            effectiveSendState === 'failed' ||
+            effectiveSendState === 'sent' ||
+            isDelivered);
         if (showBubbleTime || showStateIcon) {
+          const effectiveStateClass =
+            effectiveSendState === 'failed'
+              ? 'failed'
+              : effectiveSendState === 'sending'
+                ? 'sending'
+                : isDelivered
+                  ? 'delivered'
+                  : effectiveSendState === 'sent'
+                    ? 'sent'
+                    : '';
           const stateEl = document.createElement('div');
-          stateEl.className = `chat-msg-state${showStateIcon ? ` chat-msg-state-${effectiveSendState}` : ''}`;
+          stateEl.className = `chat-msg-state${effectiveStateClass ? ` chat-msg-state-${effectiveStateClass}` : ''}`;
           if (showStateIcon) {
             const iconEl = document.createElement('ion-icon');
-            iconEl.setAttribute('name', effectiveSendState === 'failed' ? 'alert-circle-outline' : 'time-outline');
+            iconEl.setAttribute(
+              'name',
+              effectiveSendState === 'failed'
+                ? 'alert-circle-outline'
+                : effectiveSendState === 'sending'
+                  ? 'time-outline'
+                  : isDelivered
+                    ? 'checkmark-done'
+                    : 'checkmark'
+            );
             stateEl.appendChild(iconEl);
           }
           if (showBubbleTime) {
@@ -4411,7 +4538,25 @@ class PageChat extends HTMLElement {
     };
 
     const appendMessage = (
-      { id, clientMessageId, role, text, audioUrl, audioKind, speakText, failed, sendState, createdAt, actorId, actorName, actorAvatar, actorApp },
+      {
+        id,
+        clientMessageId,
+        role,
+        text,
+        audioUrl,
+        audioKind,
+        speakText,
+        failed,
+        sendState,
+        createdAt,
+        deliveredAt,
+        deliveredUserId,
+        deliveredUuid,
+        actorId,
+        actorName,
+        actorAvatar,
+        actorApp
+      },
       options = {}
     ) => {
       const targetMode = options.mode || chatMode;
@@ -4453,6 +4598,9 @@ class PageChat extends HTMLElement {
         failed: normalizedFailed,
         sendState: normalizedSendState,
         createdAt: normalizedCreatedAt,
+        deliveredAt: pickFirstText(deliveredAt),
+        deliveredUserId: pickFirstText(deliveredUserId),
+        deliveredUuid: pickFirstText(deliveredUuid),
         actorId: pickFirstText(actorId),
         actorName: pickFirstText(actorName),
         actorAvatar: pickFirstText(actorAvatar),
@@ -4774,6 +4922,63 @@ class PageChat extends HTMLElement {
             message
           });
         }
+        if (!isOwnMessage) {
+          markCommunityDmMessageDelivered(room.roomId, message, { silent: true }).catch(() => {});
+        }
+      });
+      channel.bind('message_delivery_update', (data) => {
+        const messageId = pickFirstText(data && (data.message_id || data.messageId));
+        const clientMessageId = pickFirstText(data && (data.client_message_id || data.clientMessageId));
+        const deliveredAt = pickFirstText(data && (data.delivered_at || data.deliveredAt));
+        const deliveredUserId = pickFirstText(data && (data.delivered_user_id || data.deliveredUserId));
+        const deliveredUuid = pickFirstText(data && (data.delivered_uuid || data.deliveredUuid));
+        if (!messageId && !clientMessageId) return;
+        const updated =
+          (messageId
+            ? updateThreadMessage(
+                'community',
+                messageId,
+                (current) => ({
+                  ...current,
+                  deliveredAt: deliveredAt || current.deliveredAt,
+                  deliveredUserId: deliveredUserId || current.deliveredUserId,
+                  deliveredUuid: deliveredUuid || current.deliveredUuid,
+                  sendState: current.sendState === 'failed' ? current.sendState : 'sent',
+                  failed: false
+                }),
+                { scope: 'dm', roomId: room.roomId, rerender: true }
+              )
+            : null) ||
+          (clientMessageId
+            ? updateThreadMessage(
+                'community',
+                clientMessageId,
+                (current) => ({
+                  ...current,
+                  deliveredAt: deliveredAt || current.deliveredAt,
+                  deliveredUserId: deliveredUserId || current.deliveredUserId,
+                  deliveredUuid: deliveredUuid || current.deliveredUuid,
+                  sendState: current.sendState === 'failed' ? current.sendState : 'sent',
+                  failed: false
+                }),
+                { scope: 'dm', roomId: room.roomId, rerender: true }
+              )
+            : null);
+        if (!updated && clientMessageId) {
+          updateThreadMessageBy(
+            'community',
+            (current) => current && current.clientMessageId === clientMessageId,
+            (current) => ({
+              ...current,
+              deliveredAt: deliveredAt || current.deliveredAt,
+              deliveredUserId: deliveredUserId || current.deliveredUserId,
+              deliveredUuid: deliveredUuid || current.deliveredUuid,
+              sendState: current.sendState === 'failed' ? current.sendState : 'sent',
+              failed: false
+            }),
+            { scope: 'dm', roomId: room.roomId, rerender: true }
+          );
+        }
       });
       pusherCommunityDmChannels.set(room.roomId, channel);
       return channel;
@@ -5041,6 +5246,12 @@ class PageChat extends HTMLElement {
             syncCommunityDmSubscriptions();
           }
           renderCommunityLists();
+          if (actorId !== userId) {
+            markCommunityDmMessageDelivered(room.roomId, normalizeIncoming(message, 'user', {
+              mode: 'community',
+              viewerId: userId
+            }) || message, { silent: true }).catch(() => {});
+          }
         };
 
         pusherCommunityPublicChannel = pusherClient.subscribe(COMMUNITY_PUBLIC_CHANNEL);
@@ -5319,8 +5530,9 @@ class PageChat extends HTMLElement {
 	      if (userChanged) {
 	        setChatbotDailyLimitBlocked(false);
 	        clearChatbotAlignedTtsLimitStatus();
-	        loadTalkTimelinesForUser(userId);
+        loadTalkTimelinesForUser(userId);
           communityDmReadRequests.clear();
+          communityDmDeliveredAcks.clear();
           communityPublicUnreadCount = 0;
           communityDmRooms = [];
           communityRoomsLoaded = false;
@@ -5773,11 +5985,6 @@ class PageChat extends HTMLElement {
     loginBtn?.addEventListener('click', () => {
       openLoginModal().catch((err) => {
         console.error('[chat] error abriendo login', err);
-      });
-    });
-    communityNavEl?.querySelectorAll('[data-community-view]').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        setCommunityView(btn.dataset.communityView || 'public');
       });
     });
     communityDmBackBtn?.addEventListener('click', () => {

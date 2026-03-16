@@ -3185,6 +3185,84 @@ const markCommunityDmRoomRead = ({
   };
 };
 
+const markCommunityDmMessageDelivered = ({
+  roomId,
+  userId,
+  messageId,
+  uuid = '',
+  deliveredAt = new Date().toISOString()
+}) => {
+  const safeRoomId = pickFirstString(roomId);
+  const safeUserId = pickFirstString(userId);
+  const safeMessageId = pickFirstString(messageId);
+  const safeUuid = pickFirstString(uuid);
+  if (!safeRoomId || !safeUserId || !safeMessageId) {
+    return { ok: false, error: 'room_id_user_id_message_id_required' };
+  }
+
+  const state = getMutableCommunityDmRoomsState();
+  const room = state.rooms[safeRoomId];
+  if (!room || !Array.isArray(room.user_ids) || !room.user_ids.includes(safeUserId)) {
+    return { ok: false, error: 'dm_room_not_found' };
+  }
+
+  const identity =
+    parseCommunityDmChannel(pickFirstString(room.channel)) ||
+    buildCommunityDmIdentity(...String(safeRoomId).split('_'));
+  if (!identity) {
+    return { ok: false, error: 'invalid_dm_room_id' };
+  }
+
+  const history = loadCommunityDmHistory(identity);
+  const messages = Array.isArray(history.messages) ? history.messages : [];
+  const messageIndex = messages.findIndex(
+    (message) => pickFirstString(message && message.id) === safeMessageId
+  );
+  if (messageIndex < 0) {
+    return { ok: false, error: 'message_not_found' };
+  }
+
+  const currentMessage = messages[messageIndex] && typeof messages[messageIndex] === 'object'
+    ? messages[messageIndex]
+    : null;
+  if (!currentMessage) {
+    return { ok: false, error: 'message_not_found' };
+  }
+  const actorId = pickFirstString(currentMessage.actor && currentMessage.actor.id);
+  if (!actorId || actorId === safeUserId) {
+    return {
+      ok: true,
+      updated: false,
+      message: currentMessage
+    };
+  }
+
+  if (pickFirstString(currentMessage.delivered_at)) {
+    return {
+      ok: true,
+      updated: false,
+      message: currentMessage
+    };
+  }
+
+  const nowIso = new Date().toISOString();
+  const nextMessage = {
+    ...currentMessage,
+    delivered_at: pickFirstString(deliveredAt, nowIso),
+    delivered_user_id: safeUserId,
+    delivered_uuid: safeUuid,
+    delivery_updated_at: nowIso
+  };
+  messages[messageIndex] = nextMessage;
+  saveCommunityDmHistory(history);
+
+  return {
+    ok: true,
+    updated: true,
+    message: nextMessage
+  };
+};
+
 let communityDmRoomsState = loadCommunityDmRoomsState();
 
 const getMutableCommunityDmRoomsState = () => {
@@ -3731,6 +3809,10 @@ const buildCommunityDmMessage = ({ identity, text, actor, id, createdAt, clientM
     created_at: timestamp,
     published: timestamp,
     text: normalizeCommunityText(text),
+    delivered_at: '',
+    delivered_user_id: '',
+    delivered_uuid: '',
+    delivery_updated_at: '',
     actor: {
       id: actorId,
       name: actorName,
@@ -3787,6 +3869,9 @@ const buildCommunityDmInboxMessagePayload = (message) => ({
   room_id: pickFirstString(message && message.room_id),
   channel: pickFirstString(message && message.channel),
   created_at: pickFirstString(message && (message.created_at || message.published)),
+  delivered_at: pickFirstString(message && message.delivered_at),
+  delivered_user_id: pickFirstString(message && message.delivered_user_id),
+  delivered_uuid: pickFirstString(message && message.delivered_uuid),
   text: normalizeCommunityText(message && message.text),
   actor: {
     id: pickFirstString(message && message.actor && message.actor.id),
@@ -3802,6 +3887,16 @@ const emitCommunityUserInboxEvent = async (userId, eventName, payload) => {
   if (!channelName || !eventName) return;
   await pusher.trigger(channelName, eventName, payload || {});
 };
+
+const buildCommunityDmDeliveryUpdatePayload = (message) => ({
+  room_id: pickFirstString(message && message.room_id),
+  message_id: pickFirstString(message && message.id),
+  client_message_id: pickFirstString(message && message.client_message_id),
+  delivered_at: pickFirstString(message && message.delivered_at),
+  delivered_user_id: pickFirstString(message && message.delivered_user_id),
+  delivered_uuid: pickFirstString(message && message.delivered_uuid),
+  delivery_updated_at: pickFirstString(message && message.delivery_updated_at)
+});
 
 const ensureCommunityDmRoom = async ({
   userId,
@@ -4784,6 +4879,40 @@ app.post('/realtime/community/rooms/dm/read', (req, res) => {
     userId,
     messageId
   });
+  const statusCode = payload && payload.ok === false ? 400 : 200;
+  res.status(statusCode).json(payload);
+});
+
+app.post('/realtime/community/rooms/dm/delivered', async (req, res) => {
+  const source = Object.assign({}, req.query || {}, req.body || {});
+  const roomId = pickFirstString(source.room_id, source.roomId);
+  const userId = pickFirstString(source.user_id, source.userId, source.id);
+  const messageId = pickFirstString(source.message_id, source.messageId);
+  const uuid = pickFirstString(source.uuid, source.device_id, source.deviceId);
+  const payload = markCommunityDmMessageDelivered({
+    roomId,
+    userId,
+    messageId,
+    uuid
+  });
+  if (payload && payload.ok && payload.updated && payload.message) {
+    try {
+      await pusher.trigger(
+        pickFirstString(payload.message.channel) || `${COMMUNITY_DM_CHANNEL_PREFIX}${roomId}`,
+        'message_delivery_update',
+        buildCommunityDmDeliveryUpdatePayload(payload.message)
+      );
+    } catch (err) {
+      console.warn('[community] dm delivery emit failed', err && err.message ? err.message : err);
+    }
+    appendCommunityAuditEvent('message_dm_delivered', {
+      room_id: pickFirstString(roomId),
+      message_id: pickFirstString(payload.message.id),
+      user_id: pickFirstString(userId),
+      uuid,
+      ip: normalizeClientIp(getRequestClientMeta(req).ip)
+    });
+  }
   const statusCode = payload && payload.ok === false ? 400 : 200;
   res.status(statusCode).json(payload);
 });

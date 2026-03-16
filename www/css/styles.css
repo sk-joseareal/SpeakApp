@@ -1455,10 +1455,10 @@ ion-modal.login-modal page-login .page-shell {
 .app-tab-bar ion-tab-button.has-unread::before {
   content: "";
   position: absolute;
-  top: 8px;
-  right: 24px;
-  width: 10px;
-  height: 10px;
+  top: 6px;
+  right: 18px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
   background: #ef4444;
   border: 2px solid #ffffff;
@@ -2296,6 +2296,18 @@ page-chat ion-content::part(scroll) {
   min-width: 0;
 }
 
+.chat-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.chat-title-row h3 {
+  margin: 0;
+}
+
 .coach-avatar {
   width: 96px;
   height: 96px;
@@ -2365,6 +2377,7 @@ page-chat ion-content::part(scroll) {
 
 .chat-mode-btn {
   flex: 0 0 auto;
+  position: relative;
   border: none;
   background: transparent;
   padding: 6px 16px;
@@ -2376,6 +2389,18 @@ page-chat ion-content::part(scroll) {
   text-align: center;
   min-width: 0;
   white-space: nowrap;
+}
+
+.chat-mode-btn.has-unread::after {
+  content: "";
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: #ef4444;
+  border: 2px solid #ffffff;
 }
 
 .chat-mode-btn.is-active {
@@ -2763,11 +2788,20 @@ page-chat ion-content::part(scroll) {
   color: #d34d62;
 }
 
+.chat-msg-state-sent {
+  color: #8a90a8;
+}
+
+.chat-msg-state-delivered {
+  color: #5d73ff;
+}
+
 .chat-community-presence {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  margin-top: 6px;
+  margin-top: 0;
+  margin-left: auto;
   padding: 6px 10px;
   border-radius: 999px;
   background: rgba(76, 126, 255, 0.08);

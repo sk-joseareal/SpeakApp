@@ -256,6 +256,8 @@ class PageChat extends HTMLElement {
     let realtimeConnected = false;
     let communityPresenceHeartbeatTimer = null;
     let communityPresenceSessionId = '';
+    let communityPresenceLastHeartbeatAt = 0;
+    let communityPresenceLastHeartbeatSignature = '';
     let controlsBaseEnabled = false;
     let chatbotDailyLimitBlocked = false;
     let chatbotDailyLimitInfo = null;
@@ -313,6 +315,7 @@ class PageChat extends HTMLElement {
     const COMMUNITY_PUBLIC_CHANNEL = 'site-wide-chat-channel';
     const COMMUNITY_USER_INBOX_CHANNEL_PREFIX = 'private-community-user-';
     const COMMUNITY_PRESENCE_HEARTBEAT_MS = 8000;
+    const COMMUNITY_PRESENCE_IMMEDIATE_THROTTLE_MS = 3000;
     const RECORDING_TIMESLICE = 500;
     const VOSK_SAMPLE_RATE_DEFAULT = 16000;
 	    const TALK_STORAGE_PREFIX = 'appv5:talk-timelines:';
@@ -1720,11 +1723,29 @@ class PageChat extends HTMLElement {
       communityPresenceHeartbeatTimer = null;
     };
 
+    const getCommunityPresenceThrottleSignature = (payload) => {
+      if (!payload || typeof payload !== 'object') return '';
+      return JSON.stringify({
+        action: pickFirstText(payload.action),
+        roomId: pickFirstText(payload.room_id, payload.roomId),
+        sessionId: pickFirstText(payload.session_id, payload.sessionId),
+        userId: pickFirstText(payload.user_id, payload.userId),
+        uuid: pickFirstText(payload.uuid),
+        appState: pickFirstText(payload.app_state),
+        tab: pickFirstText(payload.tab),
+        chatMode: pickFirstText(payload.chat_mode),
+        communityView: pickFirstText(payload.community_view),
+        activeRoomType: pickFirstText(payload.active_room_type),
+        activeRoomId: pickFirstText(payload.active_room_id)
+      });
+    };
+
     const sendCommunityPresence = async ({
       action = 'heartbeat',
       keepalive = false,
       silent = false,
-      contextOverride = null
+      contextOverride = null,
+      throttleMs = 0
     } = {}) => {
       const endpoint = getCommunityPublicPresenceEndpoint();
       const user = window.user;
@@ -1748,6 +1769,28 @@ class PageChat extends HTMLElement {
         getCommunityPresenceContextPayload(),
         contextOverride && typeof contextOverride === 'object' ? contextOverride : {}
       );
+      const effectiveThrottleMs =
+        action === 'heartbeat' && !keepalive
+          ? Math.max(0, Math.floor(Number(throttleMs) || 0))
+          : 0;
+      if (effectiveThrottleMs > 0) {
+        const signature = getCommunityPresenceThrottleSignature(payload);
+        const now = Date.now();
+        const elapsed = communityPresenceLastHeartbeatAt > 0 ? now - communityPresenceLastHeartbeatAt : Infinity;
+        if (
+          signature &&
+          signature === communityPresenceLastHeartbeatSignature &&
+          elapsed >= 0 &&
+          elapsed < effectiveThrottleMs
+        ) {
+          return {
+            ok: true,
+            sent: false,
+            throttled: true,
+            retryAfterMs: Math.max(0, effectiveThrottleMs - elapsed)
+          };
+        }
+      }
       const realtimeStateToken = getRealtimeStateToken();
       if (realtimeStateToken) {
         payload.rt_token = realtimeStateToken;
@@ -1763,7 +1806,11 @@ class PageChat extends HTMLElement {
           if (!queued) {
             throw new Error(`community_presence_${action}_beacon_failed`);
           }
-          return true;
+          if (action === 'heartbeat') {
+            communityPresenceLastHeartbeatAt = Date.now();
+            communityPresenceLastHeartbeatSignature = getCommunityPresenceThrottleSignature(payload);
+          }
+          return { ok: true, sent: true, throttled: false };
         }
         const response = await fetch(endpoint, {
           method: 'POST',
@@ -1782,12 +1829,16 @@ class PageChat extends HTMLElement {
         communityPresenceUsers = Array.isArray(data && data.users) ? data.users : [];
         updateCommunityPresenceUi();
         renderCommunityLists();
-        return true;
+        if (action === 'heartbeat') {
+          communityPresenceLastHeartbeatAt = Date.now();
+          communityPresenceLastHeartbeatSignature = getCommunityPresenceThrottleSignature(payload);
+        }
+        return { ok: true, sent: true, throttled: false };
       } catch (err) {
         if (!silent) {
           console.warn('[chat] community presence send error', action, err);
         }
-        return false;
+        return { ok: false, sent: false, throttled: false };
       }
     };
 
@@ -1801,8 +1852,16 @@ class PageChat extends HTMLElement {
       if (chatMode !== 'community' || !isChatEnabledUser(currentUser) || !currentUserId) return;
       const run = async () => {
         communityPresenceHeartbeatTimer = null;
-        await sendCommunityPresence({ action: 'heartbeat', silent: true });
-        communityPresenceHeartbeatTimer = setTimeout(run, COMMUNITY_PRESENCE_HEARTBEAT_MS);
+        const result = await sendCommunityPresence({
+          action: 'heartbeat',
+          silent: true,
+          throttleMs: immediate ? COMMUNITY_PRESENCE_IMMEDIATE_THROTTLE_MS : 0
+        });
+        const nextDelay =
+          result && result.throttled
+            ? Math.max(1000, Math.min(COMMUNITY_PRESENCE_HEARTBEAT_MS, Number(result.retryAfterMs) || 0))
+            : COMMUNITY_PRESENCE_HEARTBEAT_MS;
+        communityPresenceHeartbeatTimer = setTimeout(run, nextDelay);
       };
       if (immediate) {
         run();

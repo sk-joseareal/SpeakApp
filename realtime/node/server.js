@@ -2224,6 +2224,13 @@ const communityDmRoomsFile = path.join(communityDir, 'dm-rooms.json');
 const communityPushTokensFile = path.join(communityDir, 'push-tokens.json');
 const communityAuditFile = path.join(communityDir, 'audit.jsonl');
 const communityModerationFile = path.join(communityDir, 'moderation.json');
+const COMMUNITY_AUDIT_HEARTBEAT_DEDUPE_MS = (() => {
+  const numeric = Number(env('COMMUNITY_AUDIT_HEARTBEAT_DEDUPE_MS', '10000'));
+  if (!Number.isFinite(numeric)) return 10000;
+  const parsed = Math.floor(numeric);
+  return parsed > 0 ? parsed : 10000;
+})();
+const communityHeartbeatAuditState = new Map();
 
 const ensureDir = (dirPath) => {
   try {
@@ -2242,6 +2249,38 @@ ensureDir(communityDmDir);
 const appendCommunityAuditEvent = (type, payload = {}) => {
   const eventType = pickFirstString(type);
   if (!eventType) return;
+  if (eventType === 'presence_heartbeat' && COMMUNITY_AUDIT_HEARTBEAT_DEDUPE_MS > 0) {
+    const dedupeKey = [
+      pickFirstString(payload.user_id),
+      pickFirstString(payload.session_id),
+      pickFirstString(payload.room_id)
+    ].join('|');
+    const dedupeSignature = JSON.stringify({
+      uuid: pickFirstString(payload.uuid),
+      platform: pickFirstString(payload.platform),
+      ip: pickFirstString(payload.ip),
+      appState: pickFirstString(payload.app_state),
+      tab: pickFirstString(payload.tab),
+      chatMode: pickFirstString(payload.chat_mode),
+      activeRoomType: pickFirstString(payload.active_room_type),
+      activeRoomId: pickFirstString(payload.active_room_id)
+    });
+    const now = Date.now();
+    const previous = dedupeKey ? communityHeartbeatAuditState.get(dedupeKey) : null;
+    if (
+      previous &&
+      previous.signature === dedupeSignature &&
+      now - previous.at < COMMUNITY_AUDIT_HEARTBEAT_DEDUPE_MS
+    ) {
+      return;
+    }
+    if (dedupeKey) {
+      communityHeartbeatAuditState.set(dedupeKey, {
+        at: now,
+        signature: dedupeSignature
+      });
+    }
+  }
   const event = {
     ts: new Date().toISOString(),
     type: eventType,
@@ -5509,6 +5548,9 @@ app.post('/realtime/community/public/presence', (req, res) => {
       uuid: pickFirstString(sessionMeta.uuid),
       ip: clientMeta.ip
     });
+    communityHeartbeatAuditState.delete(
+      [pickFirstString(actor.id), pickFirstString(sessionId), pickFirstString(roomId)].join('|')
+    );
     res.json({
       ok: true,
       action: 'leave',

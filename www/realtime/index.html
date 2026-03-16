@@ -122,8 +122,8 @@
       background: #f8faff;
       border: 1px solid #e0e4ec;
       border-radius: 14px;
-      min-height: 120px;
-      max-height: 320px;
+      height: 260px;
+      max-height: 260px;
       overflow-y: auto;
       padding: 12px;
       display: flex;
@@ -337,6 +337,7 @@
         <button id="subscribe">Subscribe</button>
         <button id="unsubscribe" class="secondary">Unsubscribe</button>
         <button id="send">Send</button>
+        <button id="clear-channel-timeline" class="secondary">Clear timeline</button>
       </div>
       <div class="row">
         <label>Timeline</label>
@@ -1636,6 +1637,7 @@
     el('subscribe').addEventListener('click', subscribe);
     el('unsubscribe').addEventListener('click', unsubscribe);
     el('send').addEventListener('click', send);
+    el('clear-channel-timeline').addEventListener('click', resetChannelTimeline);
     el('refresh-channels').addEventListener('click', refreshChannels);
     el('refresh-community-presence').addEventListener('click', () => {
       refreshCommunityPresence()

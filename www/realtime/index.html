@@ -83,6 +83,18 @@
       opacity: 0.5;
       cursor: not-allowed;
     }
+    .monitor-tab-btn[data-active="true"] {
+      background: #0f172a;
+      color: #fff;
+      border-color: #0f172a;
+    }
+    .monitor-tab-btn[data-active="false"] {
+      background: #fff;
+      color: #0f172a;
+    }
+    .monitor-panel[hidden] {
+      display: none !important;
+    }
     .status-pill {
       padding: 4px 10px;
       border-radius: 999px;
@@ -403,27 +415,27 @@
         <input id="community-audit-limit" type="number" value="10" min="1" max="1000">
       </div>
       <div class="row">
-        <button id="refresh-community-presence">Presence</button>
-        <button id="refresh-community-tokens" class="secondary">Push devices</button>
-        <button id="refresh-community-messages" class="secondary">Messages</button>
-        <button id="refresh-community-audit" class="secondary">Audit</button>
-        <button id="inspect-community-user" class="secondary">Inspect user</button>
+        <button id="refresh-community-presence" class="monitor-tab-btn" data-community-view="presence" data-active="true">Presence</button>
+        <button id="refresh-community-tokens" class="secondary monitor-tab-btn" data-community-view="tokens" data-active="false">Push devices</button>
+        <button id="refresh-community-messages" class="secondary monitor-tab-btn" data-community-view="messages" data-active="false">Messages</button>
+        <button id="refresh-community-audit" class="secondary monitor-tab-btn" data-community-view="audit" data-active="false">Audit</button>
+        <button id="inspect-community-user" class="secondary monitor-tab-btn" data-community-view="inspector" data-active="false">Inspect user</button>
         <button id="refresh-community-all" class="secondary">Refresh all</button>
       </div>
       <div id="community-monitor-status" class="muted">No data yet.</div>
     </section>
 
-    <section class="card">
+    <section class="card monitor-panel" data-community-panel="presence">
       <h2>Community Presence</h2>
       <div id="community-presence-output" class="muted">No data yet.</div>
     </section>
 
-    <section class="card">
+    <section class="card monitor-panel" data-community-panel="tokens" hidden>
       <h2>Push Devices</h2>
       <div id="community-tokens-output" class="muted">No data yet.</div>
     </section>
 
-    <section class="card">
+    <section class="card monitor-panel" data-community-panel="messages" hidden>
       <h2>Community Messages</h2>
       <div id="community-messages-output" class="muted">No data yet.</div>
     </section>
@@ -477,12 +489,12 @@
       <div id="community-moderation-output" class="muted">No data yet.</div>
     </section>
 
-    <section class="card">
+    <section class="card monitor-panel" data-community-panel="inspector" hidden>
       <h2>User Inspector</h2>
       <div id="community-inspector-output" class="muted">No data yet.</div>
     </section>
 
-    <section class="card">
+    <section class="card monitor-panel" data-community-panel="audit" hidden>
       <h2>Community Audit</h2>
       <div id="community-audit-output" class="muted">No data yet.</div>
     </section>
@@ -509,10 +521,13 @@
     const communityInspectorOutput = el('community-inspector-output');
     const communityAuditOutput = el('community-audit-output');
     const channelTimelineOutput = el('channel-timeline');
+    const communityTabButtons = Array.from(document.querySelectorAll('[data-community-view]'));
+    const communityPanels = Array.from(document.querySelectorAll('[data-community-panel]'));
     const communityPaginationState = {
       messages: 1,
       audit: 1
     };
+    let activeCommunityPanel = 'presence';
     const channelTimelineEntries = [];
     const CHANNEL_TIMELINE_MAX_ITEMS = 40;
 
@@ -592,6 +607,19 @@
     const resetCommunityPagination = (scope = '') => {
       if (!scope || scope === 'messages') communityPaginationState.messages = 1;
       if (!scope || scope === 'audit') communityPaginationState.audit = 1;
+    };
+
+    const setCommunityPanel = (panelName) => {
+      const safePanel = String(panelName || '').trim() || 'presence';
+      activeCommunityPanel = safePanel;
+      communityTabButtons.forEach((button) => {
+        const isActive = button.dataset.communityView === safePanel;
+        button.dataset.active = isActive ? 'true' : 'false';
+        button.classList.toggle('secondary', !isActive);
+      });
+      communityPanels.forEach((panel) => {
+        panel.hidden = panel.dataset.communityPanel !== safePanel;
+      });
     };
 
     const buildPaginationHtml = (scope, data) => {
@@ -1640,6 +1668,7 @@
     el('clear-channel-timeline').addEventListener('click', resetChannelTimeline);
     el('refresh-channels').addEventListener('click', refreshChannels);
     el('refresh-community-presence').addEventListener('click', () => {
+      setCommunityPanel('presence');
       refreshCommunityPresence()
         .then(() => {
           communityMonitorStatus.textContent = 'presence ok';
@@ -1649,6 +1678,7 @@
         });
     });
     el('refresh-community-tokens').addEventListener('click', () => {
+      setCommunityPanel('tokens');
       refreshCommunityTokens()
         .then(() => {
           communityMonitorStatus.textContent = 'push devices ok';
@@ -1658,6 +1688,7 @@
         });
     });
     el('refresh-community-messages').addEventListener('click', () => {
+      setCommunityPanel('messages');
       refreshCommunityMessages()
         .then(() => {
           communityMonitorStatus.textContent = 'messages ok';
@@ -1667,6 +1698,7 @@
         });
     });
     el('refresh-community-audit').addEventListener('click', () => {
+      setCommunityPanel('audit');
       refreshCommunityAudit()
         .then(() => {
           communityMonitorStatus.textContent = 'audit ok';
@@ -1676,6 +1708,7 @@
         });
     });
     el('inspect-community-user').addEventListener('click', () => {
+      setCommunityPanel('inspector');
       inspectCommunityUser()
         .then(() => {
           communityMonitorStatus.textContent = 'inspector ok';
@@ -1795,6 +1828,7 @@
         });
       }
     });
+    setCommunityPanel(activeCommunityPanel);
 
     connect();
     refreshCommunityAll().catch((err) => {

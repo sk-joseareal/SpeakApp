@@ -2077,6 +2077,7 @@ class PageChat extends HTMLElement {
     };
 
     const isVisibleCommunityDmRoom = (roomId) =>
+      currentAppTab === 'chat' &&
       chatMode === 'community' &&
       communityView === 'dm' &&
       pickFirstText(activeCommunityDmRoomId) === pickFirstText(roomId);

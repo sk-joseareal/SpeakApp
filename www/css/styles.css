@@ -3047,6 +3047,7 @@ page-chat ion-content::part(scroll) {
 }
 
 .chat-community-dm-back {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -3057,6 +3058,18 @@ page-chat ion-content::part(scroll) {
   background: rgba(15, 27, 45, 0.03);
   color: var(--app-text);
   cursor: pointer;
+}
+
+.chat-community-dm-back.has-unread::after {
+  content: '';
+  position: absolute;
+  top: -1px;
+  right: -1px;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #ef4444;
+  box-shadow: 0 0 0 2px #fff;
 }
 
 .chat-community-dm-avatar {

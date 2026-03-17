@@ -1260,6 +1260,25 @@ class PageChat extends HTMLElement {
         0
       );
 
+    const getCommunityOtherDmUnreadCount = () => {
+      const activeRoomId = pickFirstText(activeCommunityDmRoomId);
+      return communityDmRooms.reduce((total, room) => {
+        if (!room || pickFirstText(room.roomId) === activeRoomId) return total;
+        return total + Math.max(0, Number(room.unreadCount) || 0);
+      }, 0);
+    };
+
+    const updateCommunityDmBackUnreadUi = () => {
+      if (!communityDmBackBtn) return;
+      const showUnreadDot =
+        currentAppTab === 'chat' &&
+        chatMode === 'community' &&
+        communityView === 'dm' &&
+        Boolean(activeCommunityDmRoomId) &&
+        getCommunityOtherDmUnreadCount() > 0;
+      communityDmBackBtn.classList.toggle('has-unread', showUnreadDot);
+    };
+
     const setCommunityPublicUnreadCount = (count, { sync = true } = {}) => {
       communityPublicUnreadCount = Math.max(0, Math.round(Number(count) || 0));
       if (sync) syncCommunityUnreadIndicators();
@@ -1269,6 +1288,7 @@ class PageChat extends HTMLElement {
     const syncCommunityUnreadIndicators = (userId = lastUserId) => {
       if (!isCommunityFeatureEnabled()) {
         updateCommunityNavUnreadUi(0);
+        updateCommunityDmBackUnreadUi();
         const storageKey = getCommunityUnreadStorageKey(userId);
         try {
           if (storageKey) {
@@ -1301,6 +1321,7 @@ class PageChat extends HTMLElement {
       const dmUnread = getCommunityTotalUnreadCount();
       const publicUnread = Math.max(0, Number(communityPublicUnreadCount) || 0);
       updateCommunityNavUnreadUi(dmUnread);
+      updateCommunityDmBackUnreadUi();
       const showTabDot =
         (publicUnread > 0 && !isCommunityPublicVisible()) || (dmUnread > 0 && !isCommunityDmVisible());
       const count = dmUnread + publicUnread;
@@ -2270,6 +2291,7 @@ class PageChat extends HTMLElement {
       const isCommunityDmThread =
         chatMode === 'community' && communityView === 'dm' && Boolean(activeCommunityDmRoomId);
       communityDmHeaderEl.hidden = !isCommunityDmThread;
+      updateCommunityDmBackUnreadUi();
       if (!isCommunityDmThread) return;
       const room = getCommunityActiveRoom();
       const peer = room && room.peer ? room.peer : null;
@@ -6396,6 +6418,7 @@ class PageChat extends HTMLElement {
       const hasActiveCommunityDm = isCommunityDm && Boolean(activeCommunityDmRoomId);
       updateModeToggleUi();
       updateCommunityNavUnreadUi();
+      updateCommunityDmBackUnreadUi();
       if (communityDmBackBtn) {
         communityDmBackBtn.setAttribute('aria-label', uiCopy.communityBackToChats || uiCopy.communityTabChats);
         communityDmBackBtn.title = uiCopy.communityBackToChats || uiCopy.communityTabChats;

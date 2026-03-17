@@ -363,7 +363,7 @@
       <h2>Channels</h2>
       <div class="row">
         <label>Prefix</label>
-        <input id="channel-prefix" value="private-coach-">
+        <input id="channel-prefix" value="">
       </div>
       <div class="row">
         <label>Monitor token</label>
@@ -507,6 +507,7 @@
 
   <script src="/vendor/pusher/pusher.min.js"></script>
   <script>
+    const MONITOR_TOKEN_STORAGE_KEY = 'realtime-monitor:monitor-token';
     const el = (id) => document.getElementById(id);
     const logEl = el('log');
     const statusEl = el('conn-status');
@@ -570,6 +571,25 @@
     };
 
     const getMonitorToken = () => el('monitor-token').value.trim();
+    const loadStoredMonitorToken = () => {
+      try {
+        return String(sessionStorage.getItem(MONITOR_TOKEN_STORAGE_KEY) || '').trim();
+      } catch (_err) {
+        return '';
+      }
+    };
+    const storeMonitorToken = (value) => {
+      try {
+        const token = String(value || '').trim();
+        if (token) {
+          sessionStorage.setItem(MONITOR_TOKEN_STORAGE_KEY, token);
+        } else {
+          sessionStorage.removeItem(MONITOR_TOKEN_STORAGE_KEY);
+        }
+      } catch (_err) {
+        // no-op
+      }
+    };
 
     const buildMonitorUrl = (pathname) => {
       const channelsEndpoint = el('channels-endpoint').value.trim() || window.location.href;
@@ -1828,6 +1848,16 @@
         });
       }
     });
+    const monitorTokenInput = el('monitor-token');
+    if (monitorTokenInput) {
+      monitorTokenInput.value = loadStoredMonitorToken();
+      monitorTokenInput.addEventListener('input', () => {
+        storeMonitorToken(monitorTokenInput.value);
+      });
+      monitorTokenInput.addEventListener('change', () => {
+        storeMonitorToken(monitorTokenInput.value);
+      });
+    }
     setCommunityPanel(activeCommunityPanel);
 
     connect();

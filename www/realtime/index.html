@@ -317,11 +317,11 @@
       </div>
       <div class="row">
         <label>User id</label>
-        <input id="auth-user-id" placeholder="optional for presence">
+        <input id="auth-user-id" value="monitor" placeholder="optional for presence">
       </div>
       <div class="row">
         <label>User name</label>
-        <input id="auth-user-name" placeholder="optional for presence">
+        <input id="auth-user-name" value="Monitor" placeholder="optional for presence">
       </div>
       <div class="row">
         <button id="connect">Connect</button>
@@ -335,11 +335,11 @@
       <h2>Send / Subscribe</h2>
       <div class="row">
         <label>Channel</label>
-        <input id="channel" value="demo-public">
+        <input id="channel" value="site-wide-chat-channel">
       </div>
       <div class="row">
         <label>Event</label>
-        <input id="event" value="bot_message">
+        <input id="event" value="chat_message">
       </div>
       <div class="row">
         <label>Message</label>
@@ -508,6 +508,12 @@
   <script src="/vendor/pusher/pusher.min.js"></script>
   <script>
     const MONITOR_TOKEN_STORAGE_KEY = 'realtime-monitor:monitor-token';
+    const MONITOR_FIELD_STORAGE_KEYS = {
+      authUserId: 'realtime-monitor:auth-user-id',
+      authUserName: 'realtime-monitor:auth-user-name',
+      channel: 'realtime-monitor:channel',
+      event: 'realtime-monitor:event'
+    };
     const el = (id) => document.getElementById(id);
     const logEl = el('log');
     const statusEl = el('conn-status');
@@ -589,6 +595,37 @@
       } catch (_err) {
         // no-op
       }
+    };
+
+    const loadStoredLocalValue = (key) => {
+      try {
+        const value = localStorage.getItem(key);
+        return value == null ? null : String(value);
+      } catch (_err) {
+        return null;
+      }
+    };
+
+    const storeLocalValue = (key, value) => {
+      try {
+        localStorage.setItem(key, String(value == null ? '' : value));
+      } catch (_err) {
+        // no-op
+      }
+    };
+
+    const bindPersistedInputValue = (id, storageKey) => {
+      const input = el(id);
+      if (!input) return;
+      const storedValue = loadStoredLocalValue(storageKey);
+      if (storedValue != null) {
+        input.value = storedValue;
+      }
+      const persist = () => {
+        storeLocalValue(storageKey, input.value);
+      };
+      input.addEventListener('input', persist);
+      input.addEventListener('change', persist);
     };
 
     const buildMonitorUrl = (pathname) => {
@@ -1929,6 +1966,10 @@
         storeMonitorToken(monitorTokenInput.value);
       });
     }
+    bindPersistedInputValue('auth-user-id', MONITOR_FIELD_STORAGE_KEYS.authUserId);
+    bindPersistedInputValue('auth-user-name', MONITOR_FIELD_STORAGE_KEYS.authUserName);
+    bindPersistedInputValue('channel', MONITOR_FIELD_STORAGE_KEYS.channel);
+    bindPersistedInputValue('event', MONITOR_FIELD_STORAGE_KEYS.event);
     setCommunityPanel(activeCommunityPanel);
 
     connect();

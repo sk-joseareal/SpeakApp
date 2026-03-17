@@ -793,17 +793,85 @@
       userName: el('auth-user-name').value.trim()
     });
 
-    const parseCommunityDmChannel = (channelValue) => {
-      const text = String(channelValue || '').trim();
-      const match = text.match(/^private-(.+)$/);
-      if (!match) return null;
-      const roomId = match[1].trim();
-      if (!roomId || roomId.indexOf('_') < 0) return null;
-      const parts = roomId.split('_').map((part) => part.trim()).filter(Boolean);
-      if (parts.length !== 2) return null;
+    const compareCommunityUserIds = (left, right) => {
+      const a = String(left || '').trim();
+      const b = String(right || '').trim();
+      if (a === b) return 0;
+      const aIsNumeric = /^\d+$/.test(a);
+      const bIsNumeric = /^\d+$/.test(b);
+      if (aIsNumeric && bIsNumeric) {
+        try {
+          const aInt = BigInt(a);
+          const bInt = BigInt(b);
+          if (aInt < bInt) return -1;
+          if (aInt > bInt) return 1;
+          return 0;
+        } catch (err) {
+          // Fall through to lexical compare.
+        }
+      }
+      return a.localeCompare(b, 'en', { numeric: true, sensitivity: 'base' });
+    };
+
+    const buildCommunityDmIdentity = (userA, userB) => {
+      const left = String(userA || '').trim();
+      const right = String(userB || '').trim();
+      if (!left || !right || left === right) return null;
+      const ordered = [left, right].sort(compareCommunityUserIds);
+      const roomId = `${ordered[0]}_${ordered[1]}`;
       return {
         roomId,
-        userIds: parts
+        userIds: ordered,
+        channelName: `private-${roomId}`
+      };
+    };
+
+    const parseCommunityDmChannel = (channelValue, currentUserId = '') => {
+      const text = String(channelValue || '').trim();
+      if (!text) return null;
+      const canonicalMatch = text.match(/^private-(.+)$/);
+      if (canonicalMatch) {
+        const roomId = canonicalMatch[1].trim();
+        if (!roomId || roomId.indexOf('_') < 0) return null;
+        const parts = roomId.split('_').map((part) => part.trim()).filter(Boolean);
+        if (parts.length !== 2) return null;
+        const identity = buildCommunityDmIdentity(parts[0], parts[1]);
+        if (!identity) return null;
+        return {
+          ...identity,
+          alias: text,
+          isAlias: text !== identity.channelName
+        };
+      }
+      const aliasMatch = text.match(/^([^_\-\s]+)[_\-]([^_\-\s]+)$/);
+      if (!aliasMatch) return null;
+      const current = String(currentUserId || '').trim();
+      const left = aliasMatch[1].trim();
+      const right = aliasMatch[2].trim();
+      if (current && current !== left && current !== right) return null;
+      const identity = buildCommunityDmIdentity(left, right);
+      if (!identity) return null;
+      return {
+        ...identity,
+        alias: text,
+        isAlias: true
+      };
+    };
+
+    const resolveMonitorChannel = (channelValue, currentUserId = '') => {
+      const raw = String(channelValue || '').trim();
+      const dmIdentity = parseCommunityDmChannel(raw, currentUserId);
+      if (dmIdentity) {
+        return {
+          rawChannel: raw,
+          channelName: dmIdentity.channelName,
+          communityDmIdentity: dmIdentity
+        };
+      }
+      return {
+        rawChannel: raw,
+        channelName: raw,
+        communityDmIdentity: null
       };
     };
 
@@ -893,16 +961,18 @@
       if (!name) return;
       if (!pusher) connect();
       if (!pusher) return;
+      const cfg = readConfig();
+      const resolved = resolveMonitorChannel(name, cfg.userId);
 
       if (channel) {
         channel.unbind_all();
         pusher.unsubscribe(channelName);
       }
       resetChannelTimeline();
-      channelName = name;
-      channel = pusher.subscribe(name);
+      channelName = resolved.channelName;
+      channel = pusher.subscribe(channelName);
       bindChannel(channel);
-      log(`subscribing: ${name}`);
+      log(resolved.channelName === name ? `subscribing: ${name}` : `subscribing: ${name} -> ${resolved.channelName}`);
     };
 
     const unsubscribe = () => {
@@ -921,15 +991,16 @@
       const text = el('message').value.trim();
       if (!channelValue || !text) return;
       const cfg = readConfig();
+      const resolved = resolveMonitorChannel(channelValue, cfg.userId);
       try {
-        if (channelValue === 'site-wide-chat-channel' || channelValue.startsWith('private-')) {
+        if (resolved.channelName === 'site-wide-chat-channel' || resolved.communityDmIdentity) {
           const userId = cfg.userId.trim();
           const userName = cfg.userName.trim();
           if (!userId) {
             throw new Error('user_id required for community messages');
           }
-          const isCommunityDm = channelValue.startsWith('private-');
-          const dmIdentity = isCommunityDm ? parseCommunityDmChannel(channelValue) : null;
+          const isCommunityDm = Boolean(resolved.communityDmIdentity);
+          const dmIdentity = resolved.communityDmIdentity;
           if (isCommunityDm && (!dmIdentity || !dmIdentity.userIds.includes(userId))) {
             const expected = dmIdentity && Array.isArray(dmIdentity.userIds) ? dmIdentity.userIds.join(' or ') : 'a room participant';
             throw new Error(`For DM channels, user_id must be ${expected}`);
@@ -940,7 +1011,7 @@
           const payload = isCommunityDm
             ? {
                 room_type: 'dm',
-                channel: channelValue,
+                channel: resolved.channelName,
                 user_id: userId,
                 user_name: userName || userId,
                 text,
@@ -962,7 +1033,7 @@
           return;
         }
         const payload = {
-          channel: channelValue,
+          channel: resolved.channelName,
           event: eventValue,
           data: { text, role: 'bot' }
         };

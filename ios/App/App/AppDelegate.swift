@@ -4,6 +4,7 @@ import Capacitor
 import Firebase
 import UserNotifications
 import FirebaseMessaging
+import Security
 
 import UIKit
 import Capacitor
@@ -12,6 +13,14 @@ import Capacitor
 class AppDelegate: UIResponder, UIApplicationDelegate {
 
     var window: UIWindow?
+
+    private func currentApnsEnvironment() -> String {
+        guard let task = SecTaskCreateFromSelf(nil) else { return "" }
+        guard let value = SecTaskCopyValueForEntitlement(task, "aps-environment" as CFString, nil) else {
+            return ""
+        }
+        return (value as? String) ?? ""
+    }
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch.
@@ -83,12 +92,14 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         print(">#N00#> Intentando obtener APNs token.")
         let tokenParts = deviceToken.map { data in String(format: "%02.2hhx", data) }
         let token = tokenParts.joined()
+        let apnsEnvironment = currentApnsEnvironment()
         print(">#N00#> APNs Token obtenido: \(token)")
+        print(">#N00#> APNs environment detectado: \(apnsEnvironment)")
         
         // Inyectar el evento window.fcmToken en JS.
         print(">#N00#> Inyectando el evento JS apnsToken.")
         let js = """
-        window.dispatchEvent(new CustomEvent('apnsToken', { detail: { token: '\(token)' } }));
+        window.dispatchEvent(new CustomEvent('apnsToken', { detail: { token: '\(token)', environment: '\(apnsEnvironment)' } }));
         """
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
             if let webView = (self.window?.rootViewController as? CAPBridgeViewController)?.webView {
@@ -115,7 +126,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
                 // Inyectar el evento window.fcmToken en JS
                 print(">#N00#> Inyectando el evento JS fcmToken.")
                 let js = """
-                window.dispatchEvent(new CustomEvent('fcmToken', { detail: { token: '\(token)' } }));
+                window.dispatchEvent(new CustomEvent('fcmToken', { detail: { token: '\(token)', apnsEnvironment: '\(apnsEnvironment)' } }));
                 """
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                     if let webView = (self.window?.rootViewController as? CAPBridgeViewController)?.webView {

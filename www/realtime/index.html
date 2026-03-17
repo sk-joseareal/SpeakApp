@@ -1213,6 +1213,7 @@
             <td class="mono">${escapeHtml(formatText(entry.uuid))}</td>
             <td>${escapeHtml(formatText(entry.platform))}</td>
             <td>${escapeHtml(formatText(entry.token_type))}</td>
+            <td>${escapeHtml(formatText(entry.apns_environment))}</td>
             <td class="mono">${escapeHtml(formatText(entry.token_masked))}</td>
             <td class="mono">${escapeHtml(formatText(entry.last_ip))}</td>
             <td>${formatTs(entry.updated_at)}</td>
@@ -1229,6 +1230,7 @@
                 <th>UUID</th>
                 <th>Platform</th>
                 <th>Type</th>
+                <th>APNS env</th>
                 <th>Token</th>
                 <th>Last IP</th>
                 <th>Updated</th>
@@ -1355,6 +1357,7 @@
           <td class="mono">${escapeHtml(formatText(entry && entry.uuid))}</td>
           <td>${escapeHtml(formatText(entry && entry.platform))}</td>
           <td>${escapeHtml(formatText(entry && entry.token_type))}</td>
+          <td>${escapeHtml(formatText(entry && entry.apns_environment))}</td>
           <td class="mono">${escapeHtml(formatText(entry && entry.last_ip))}</td>
           <td>${formatTs(entry && entry.updated_at)}</td>
         </tr>
@@ -1439,6 +1442,7 @@
                 <th>UUID</th>
                 <th>Platform</th>
                 <th>Type</th>
+                <th>APNS env</th>
                 <th>Last IP</th>
                 <th>Updated</th>
               </tr>

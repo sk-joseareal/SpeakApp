@@ -1008,7 +1008,8 @@ async function PushNotificationsInit()
         token: token.value,
         source: 'registration',
         type: platform === 'android' ? 'fcm' : platform === 'ios' ? 'apns' : '',
-        platform
+        platform,
+        apns_environment: platform === 'ios' ? pickFirstString(window.__APNsEnvironment, window.__apnsEnvironment) : ''
       });
     }
 
@@ -1040,6 +1041,7 @@ async function PushNotificationsInit()
   window.addEventListener('apnsToken', function(e) {
     console.log('>#C04#> apnsToken: 📲 Token APNs obtenido desde nativo:', e.detail.token);
     window.__APNsToken = e.detail.token;
+    window.__APNsEnvironment = pickFirstString(e && e.detail && e.detail.environment, e && e.detail && e.detail.apnsEnvironment);
     // Registrarlo en el backend
     if (window.pushTokenReceived) {
       console.log("|||||||||||||||| window.pushTokenReceived(e.detail.token) ||||||||||||||||");
@@ -1047,7 +1049,8 @@ async function PushNotificationsInit()
         token: e.detail.token,
         source: 'apns',
         type: 'apns',
-        platform: 'ios'
+        platform: 'ios',
+        apns_environment: pickFirstString(window.__APNsEnvironment)
       });
     }
   });
@@ -1063,7 +1066,8 @@ async function PushNotificationsInit()
         platform:
           window.Capacitor && typeof window.Capacitor.getPlatform === 'function'
             ? window.Capacitor.getPlatform()
-            : 'unknown'
+            : 'unknown',
+        apns_environment: pickFirstString(window.__APNsEnvironment, e && e.detail && e.detail.apnsEnvironment)
       });
     }
   });
@@ -2470,6 +2474,7 @@ const normalizePushTokenInput = (input) => {
     token,
     token_type: tokenType,
     platform,
+    apns_environment: pickFirstString(source.apns_environment, source.apnsEnvironment),
     source: pickFirstString(source.source, 'push'),
     uuid,
     user_id: userId,
@@ -2532,6 +2537,7 @@ const registerPushTokenRemote = async (record) => {
     token: record.token,
     token_type: record.token_type,
     platform: record.platform,
+    apns_environment: pickFirstString(record.apns_environment),
     source: record.source,
     destination: record.destination || 'speak',
     uuid: pickFirstString(record.uuid, window.uuid || window.localStorage.getItem('uuid') || ''),

@@ -13,6 +13,7 @@ const token = String(args.token || '').trim();
 const title = String(args.title || 'Nuevo mensaje').trim();
 const body = String(args.body || 'Tienes un mensaje nuevo.').trim();
 const destination = String(args.destination || 'cursoingles').trim().toLowerCase() || 'cursoingles';
+const requestedEnvironment = String(args.environment || '').trim().toLowerCase();
 const image = String(args.image || '').trim();
 const delaySeconds = Number.isFinite(Number(args.delay)) ? Math.max(0, Math.floor(Number(args.delay))) : 0;
 const legacyKeyPath = '/opt/backendV4/send_push/AuthKey_5J64U76FC9.p8';
@@ -28,7 +29,7 @@ const apnsKeyPath = String(
 ).trim();
 const apnsKeyId = String(process.env.COMMUNITY_PUSH_APNS_KEY_ID || '5J64U76FC9').trim();
 const apnsTeamId = String(process.env.COMMUNITY_PUSH_APNS_TEAM_ID || 'T4LYZV6KKS').trim();
-const apnsProduction = String(process.env.COMMUNITY_PUSH_APNS_PRODUCTION || 'false').trim() === 'true';
+const apnsProductionDefault = String(process.env.COMMUNITY_PUSH_APNS_PRODUCTION || 'false').trim() === 'true';
 const apnsTopicSpeak = String(process.env.COMMUNITY_PUSH_APNS_TOPIC_SPEAK || 'com.sokinternet.speak').trim();
 const apnsTopicCurso = String(
   process.env.COMMUNITY_PUSH_APNS_TOPIC_CURSOINGLES || 'com.sokinternet.cursoingles'
@@ -44,7 +45,15 @@ if (!fs.existsSync(apnsKeyPath)) {
   process.exit(1);
 }
 
-const host = apnsProduction ? 'https://api.push.apple.com' : 'https://api.sandbox.push.apple.com';
+const apnsEnvironment =
+  requestedEnvironment === 'production' || requestedEnvironment === 'prod'
+    ? 'production'
+    : requestedEnvironment === 'sandbox' || requestedEnvironment === 'development' || requestedEnvironment === 'dev'
+      ? 'sandbox'
+      : (apnsProductionDefault ? 'production' : 'sandbox');
+const host = apnsEnvironment === 'production'
+  ? 'https://api.push.apple.com'
+  : 'https://api.sandbox.push.apple.com';
 const privateKeyPem = fs.readFileSync(apnsKeyPath, 'utf8');
 
 const buildJwt = () =>
@@ -99,7 +108,8 @@ if (image) {
     console.log(JSON.stringify({
       ok: true,
       transport: 'apns',
-      statusCode: response.statusCode
+      statusCode: response.statusCode,
+      environment: apnsEnvironment
     }));
     process.exit(0);
   } catch (err) {

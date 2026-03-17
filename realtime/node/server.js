@@ -2352,6 +2352,7 @@ const listCommunityMonitorPushTokens = ({ userId = '', uuid = '', platform = '' 
       uuid: pickFirstString(entry && entry.uuid),
       platform: pickFirstString(entry && entry.platform),
       token_type: pickFirstString(entry && entry.token_type),
+      apns_environment: pickFirstString(entry && entry.apns_environment),
       destination: pickFirstString(entry && entry.destination),
       app: pickFirstString(entry && entry.app),
       first_ip: normalizeClientIp(entry && entry.first_ip),
@@ -2954,6 +2955,13 @@ const normalizePushTokenType = (value, platformHint = '') => {
   return '';
 };
 
+const normalizeApnsEnvironment = (value) => {
+  const safeValue = pickFirstString(value).toLowerCase();
+  if (safeValue === 'production' || safeValue === 'prod') return 'production';
+  if (safeValue === 'sandbox' || safeValue === 'development' || safeValue === 'dev') return 'sandbox';
+  return '';
+};
+
 const buildCommunityPushTokenKey = (tokenType, token) =>
   crypto.createHash('sha1').update(`${tokenType || 'auto'}:${token}`).digest('hex');
 
@@ -2961,6 +2969,9 @@ const normalizeCommunityPushTokenRecord = (source) => {
   const token = pickFirstString(source && (source.token || source.regid || source.value));
   const platform = pickFirstString(source && source.platform).toLowerCase();
   const tokenType = normalizePushTokenType(source && (source.token_type || source.type || source.source), platform);
+  const apnsEnvironment = normalizeApnsEnvironment(
+    source && (source.apns_environment || source.apnsEnvironment || source.environment)
+  );
   const uuid = pickFirstString(source && (source.uuid || source.device_id || source.deviceId));
   const userId = pickFirstString(source && (source.user_id || source.userId || source.id));
   const clientMeta = normalizeCommunityPresenceSessionMeta(source);
@@ -2970,6 +2981,7 @@ const normalizeCommunityPushTokenRecord = (source) => {
     token,
     token_type: tokenType,
     platform: platform || 'unknown',
+    apns_environment: tokenType === 'apns' ? apnsEnvironment : '',
     uuid,
     user_id: userId,
     source: pickFirstString(source && source.source, 'push'),
@@ -2998,6 +3010,7 @@ const upsertCommunityPushToken = (source) => {
   state.tokens[normalized.key] = {
     ...previous,
     ...normalized,
+    apns_environment: pickFirstString(normalized.apns_environment, previous.apns_environment),
     first_ip: pickFirstString(previous.first_ip, normalized.last_ip),
     first_seen_at: pickFirstString(previous.first_seen_at, normalized.updated_at)
   };
@@ -4002,11 +4015,20 @@ const resolveCommunityPushScriptPath = (tokenType) => {
   return fs.existsSync(scriptPath) ? scriptPath : '';
 };
 
-const sendCommunityPushViaScript = async ({ tokenType, token, title, body, destination, image }) => {
+const sendCommunityPushViaScript = async ({
+  tokenType,
+  token,
+  title,
+  body,
+  destination,
+  image,
+  apnsEnvironment
+}) => {
   const scriptPath = resolveCommunityPushScriptPath(tokenType);
   if (!scriptPath) {
     throw new Error(`push_script_not_found:${tokenType || 'unknown'}`);
   }
+  const safeType = pickFirstString(tokenType).toLowerCase();
   const args = [
     '--token',
     token,
@@ -4021,6 +4043,9 @@ const sendCommunityPushViaScript = async ({ tokenType, token, title, body, desti
   ];
   if (pickFirstString(image)) {
     args.push('--image', pickFirstString(image));
+  }
+  if (safeType === 'apns' && pickFirstString(apnsEnvironment)) {
+    args.push('--environment', pickFirstString(apnsEnvironment));
   }
   const result = await runNodeScript(scriptPath, args, {
     timeoutMs: COMMUNITY_PUSH_PROVIDER_TIMEOUT_MS
@@ -4045,6 +4070,7 @@ const sendCommunityPushToToken = async ({ tokenRecord, title, body, image }) => 
     tokenRecord && tokenRecord.token_type,
     tokenRecord && tokenRecord.platform
   );
+  const safeApnsEnvironment = normalizeApnsEnvironment(tokenRecord && tokenRecord.apns_environment);
   if (!safeToken || !safeType) {
     return { ok: false, error: 'invalid_token_record' };
   }
@@ -4066,7 +4092,8 @@ const sendCommunityPushToToken = async ({ tokenRecord, title, body, image }) => 
       title: payload.title,
       body: payload.body,
       destination: payload.destination,
-      image: payload.image
+      image: payload.image,
+      apnsEnvironment: safeApnsEnvironment
     });
   } else {
     const httpResult = await postJson(COMMUNITY_PUSH_PROVIDER_URL, payload, {
@@ -4083,7 +4110,8 @@ const sendCommunityPushToToken = async ({ tokenRecord, title, body, image }) => 
     ...result,
     token_type: safeType,
     platform: pickFirstString(tokenRecord && tokenRecord.platform),
-    uuid: pickFirstString(tokenRecord && tokenRecord.uuid)
+    uuid: pickFirstString(tokenRecord && tokenRecord.uuid),
+    apns_environment: safeApnsEnvironment
   };
 };
 

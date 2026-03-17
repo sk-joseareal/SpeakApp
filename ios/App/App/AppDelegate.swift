@@ -4,7 +4,6 @@ import Capacitor
 import Firebase
 import UserNotifications
 import FirebaseMessaging
-import Security
 
 import UIKit
 import Capacitor
@@ -15,11 +14,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
 
     private func currentApnsEnvironment() -> String {
-        guard let task = SecTaskCreateFromSelf(nil) else { return "" }
-        guard let value = SecTaskCopyValueForEntitlement(task, "aps-environment" as CFString, nil) else {
-            return ""
-        }
-        return (value as? String) ?? ""
+        let value = Bundle.main.object(forInfoDictionaryKey: "SpeakAPNSEnvironment") as? String
+        return (value ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {

@@ -1334,6 +1334,18 @@ class PageChat extends HTMLElement {
       return count;
     };
 
+    const syncCommunityUnreadStateForCurrentView = () => {
+      if (isCommunityPublicVisible()) {
+        setCommunityPublicUnreadCount(0);
+        return;
+      }
+      if (isCommunityDmVisible() && activeCommunityDmRoomId) {
+        syncVisibleCommunityDmReadState(activeCommunityDmRoomId, { silent: true }).catch(() => {});
+        return;
+      }
+      syncCommunityUnreadIndicators();
+    };
+
     const resetCommunityUnreadIndicators = (userId = lastUserId) => {
       communityPublicUnreadCount = 0;
       communityDmRooms = communityDmRooms.map((room) => (room ? { ...room, unreadCount: 0 } : room));
@@ -6625,11 +6637,7 @@ class PageChat extends HTMLElement {
     this._tabChangeHandler = (event) => {
       const tab = event && event.detail ? String(event.detail.tab || '').trim().toLowerCase() : '';
       currentAppTab = tab || currentAppTab;
-      if (tab === 'chat' && isCommunityPublicVisible()) {
-        setCommunityPublicUnreadCount(0);
-      } else {
-        syncCommunityUnreadIndicators();
-      }
+      syncCommunityUnreadStateForCurrentView();
       if (chatMode === 'community') {
         refreshCommunityPresenceNow({ silent: true });
       }
@@ -6641,11 +6649,7 @@ class PageChat extends HTMLElement {
     this._tabUserClickHandler = (event) => {
       const tab = event && event.detail ? String(event.detail.tab || '').trim().toLowerCase() : '';
       currentAppTab = tab || currentAppTab;
-      if (tab === 'chat' && isCommunityPublicVisible()) {
-        setCommunityPublicUnreadCount(0);
-      } else {
-        syncCommunityUnreadIndicators();
-      }
+      syncCommunityUnreadStateForCurrentView();
       if (chatMode === 'community') {
         refreshCommunityPresenceNow({ silent: true });
       }

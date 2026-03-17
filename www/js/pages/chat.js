@@ -2183,7 +2183,8 @@ class PageChat extends HTMLElement {
 
     const syncVisibleCommunityDmReadState = (roomId, options = {}) => {
       const safeRoomId = pickFirstText(roomId);
-      if (!safeRoomId || !isVisibleCommunityDmRoom(safeRoomId)) return Promise.resolve(false);
+      const force = options.force === true;
+      if (!safeRoomId || (!force && !isVisibleCommunityDmRoom(safeRoomId))) return Promise.resolve(false);
       const latestMessage = options.message || getCommunityDmLatestMessage(safeRoomId);
       if (!latestMessage) {
         setCommunityRoomUnreadCount(safeRoomId, 0);
@@ -5849,6 +5850,7 @@ class PageChat extends HTMLElement {
                   });
                 }
                 syncVisibleCommunityDmReadState(roomId, {
+                  force: true,
                   silent: true,
                   message: normalizedMessage
                 });

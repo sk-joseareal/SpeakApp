@@ -3055,6 +3055,31 @@ const selectPreferredCommunityPushTokens = (entries) => {
   return selected;
 };
 
+const groupCommunityPushTokensByDevice = (entries) => {
+  const groups = new Map();
+  (Array.isArray(entries) ? entries : []).forEach((entry) => {
+    if (!entry || !pickFirstString(entry.token)) return;
+    const groupKey = pickFirstString(entry.uuid, `${pickFirstString(entry.platform)}:${pickFirstString(entry.token)}`);
+    if (!groups.has(groupKey)) groups.set(groupKey, []);
+    groups.get(groupKey).push(entry);
+  });
+  return Array.from(groups.values())
+    .map((group) =>
+      group
+        .slice()
+        .sort((left, right) => {
+          const scoreDiff = scoreCommunityPushToken(right) - scoreCommunityPushToken(left);
+          if (scoreDiff !== 0) return scoreDiff;
+          const leftTs = Date.parse(left && left.updated_at ? left.updated_at : '');
+          const rightTs = Date.parse(right && right.updated_at ? right.updated_at : '');
+          const safeLeft = Number.isFinite(leftTs) ? leftTs : 0;
+          const safeRight = Number.isFinite(rightTs) ? rightTs : 0;
+          return safeRight - safeLeft;
+        })
+    )
+    .filter((group) => group.length > 0);
+};
+
 const ensurePresenceRoom = (state, roomId) => {
   const safeRoomId = pickFirstString(roomId) || COMMUNITY_PUBLIC_CHANNEL;
   if (!state.rooms[safeRoomId] || typeof state.rooms[safeRoomId] !== 'object') {
@@ -4075,8 +4100,8 @@ const dispatchCommunityDmPushes = async ({ message, delivery }) => {
   for (const recipient of recipients) {
     const safeUserId = pickFirstString(recipient && recipient.user_id);
     if (!safeUserId || !recipient) continue;
-    const selectedTokens = selectPreferredCommunityPushTokens(listCommunityPushTokensForUser(safeUserId));
-    if (!selectedTokens.length) {
+    const tokenGroups = groupCommunityPushTokensByDevice(listCommunityPushTokensForUser(safeUserId));
+    if (!tokenGroups.length) {
       results.push({
         user_id: safeUserId,
         ok: false,
@@ -4084,10 +4109,12 @@ const dispatchCommunityDmPushes = async ({ message, delivery }) => {
       });
       continue;
     }
-    for (const tokenRecord of selectedTokens) {
+    for (const tokenGroup of tokenGroups) {
+      const primaryToken = tokenGroup[0] || null;
+      if (!primaryToken) continue;
       const deviceDelivery = buildCommunityDeviceDeliveryForToken({
         recipient,
-        tokenRecord,
+        tokenRecord: primaryToken,
         roomType: 'dm',
         roomId: pickFirstString(delivery && delivery.room_id)
       });
@@ -4096,30 +4123,57 @@ const dispatchCommunityDmPushes = async ({ message, delivery }) => {
           user_id: safeUserId,
           ok: false,
           skipped: 'active_device',
-          uuid: pickFirstString(tokenRecord && tokenRecord.uuid),
-          platform: pickFirstString(tokenRecord && tokenRecord.platform),
+          uuid: pickFirstString(primaryToken && primaryToken.uuid),
+          platform: pickFirstString(primaryToken && primaryToken.platform),
           reason: deviceDelivery.reason
         });
         continue;
       }
-      try {
-        const pushResult = await sendCommunityPushToToken({
-          tokenRecord,
-          title,
-          body,
-          image
-        });
-        results.push({
-          user_id: safeUserId,
-          reason: deviceDelivery.reason,
-          ...pushResult
-        });
-      } catch (err) {
+      let delivered = false;
+      for (let index = 0; index < tokenGroup.length; index += 1) {
+        const tokenRecord = tokenGroup[index];
+        const fallbackIndex = index;
+        try {
+          const pushResult = await sendCommunityPushToToken({
+            tokenRecord,
+            title,
+            body,
+            image
+          });
+          results.push({
+            user_id: safeUserId,
+            reason: deviceDelivery.reason,
+            fallback_index: fallbackIndex,
+            ...pushResult
+          });
+          if (pushResult && pushResult.ok) {
+            delivered = true;
+            break;
+          }
+        } catch (err) {
+          results.push({
+            user_id: safeUserId,
+            ok: false,
+            reason: deviceDelivery.reason,
+            uuid: pickFirstString(tokenRecord && tokenRecord.uuid),
+            platform: pickFirstString(tokenRecord && tokenRecord.platform),
+            token_type: normalizePushTokenType(
+              tokenRecord && tokenRecord.token_type,
+              tokenRecord && tokenRecord.platform
+            ),
+            fallback_index: fallbackIndex,
+            error: err && err.message ? err.message : 'push_send_failed'
+          });
+        }
+      }
+      if (!delivered) {
         results.push({
           user_id: safeUserId,
           ok: false,
+          uuid: pickFirstString(primaryToken && primaryToken.uuid),
+          platform: pickFirstString(primaryToken && primaryToken.platform),
           reason: deviceDelivery.reason,
-          error: err && err.message ? err.message : 'push_send_failed'
+          error: 'all_device_tokens_failed'
         });
       }
     }

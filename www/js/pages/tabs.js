@@ -192,6 +192,7 @@ class TabsPage extends HTMLElement {
     const forceTab = (tab) => {
       if (!tabsEl || typeof tabsEl.select !== 'function') return;
       const normalizedTab = normalizeTab(tab);
+      if (!normalizedTab || !isAllowedTab(normalizedTab)) return;
       forcingTab = true;
       tabsEl
         .select(normalizedTab)
@@ -211,6 +212,26 @@ class TabsPage extends HTMLElement {
         });
     };
 
+    const resolvePreferredTab = ({ preferred = '' } = {}) => {
+      const allowedTabs = getAllowedTabs();
+      const preferredTab = normalizeTab(preferred);
+      if (preferredTab && allowedTabs.includes(preferredTab)) {
+        return preferredTab;
+      }
+      const storedTab = normalizeTab(readStoredTab());
+      if (storedTab && allowedTabs.includes(storedTab)) {
+        return storedTab;
+      }
+      const selectedFromAttr = normalizeTab(tabsEl?.getAttribute('selected-tab') || '');
+      const selectedFromProp =
+        tabsEl && typeof tabsEl.selectedTab === 'string' ? normalizeTab(tabsEl.selectedTab) : '';
+      const selectedTab = selectedFromProp || selectedFromAttr;
+      if (selectedTab && allowedTabs.includes(selectedTab)) {
+        return selectedTab;
+      }
+      return allowedTabs[0] || 'home';
+    };
+
     const applyTabVisibility = () => {
       const allowedTabs = getAllowedTabs();
       TAB_ORDER.forEach((tab) => {
@@ -226,16 +247,11 @@ class TabsPage extends HTMLElement {
       if (tabBarEl) {
         tabBarEl.hidden = allowedTabs.length < 2;
       }
-      const storedTab = normalizeTab(readStoredTab());
       const selectedFromAttr = normalizeTab(tabsEl?.getAttribute('selected-tab') || '');
       const selectedFromProp =
         tabsEl && typeof tabsEl.selectedTab === 'string' ? normalizeTab(tabsEl.selectedTab) : '';
       const selectedTab = selectedFromProp || selectedFromAttr;
-      const preferredTab = allowedTabs.includes(storedTab)
-        ? storedTab
-        : allowedTabs.includes(selectedTab)
-          ? selectedTab
-          : allowedTabs[0] || 'home';
+      const preferredTab = resolvePreferredTab();
       if (!selectedTab || selectedTab !== preferredTab || !allowedTabs.includes(selectedTab)) {
         writeStoredTab(preferredTab);
         forceTab(preferredTab);
@@ -347,8 +363,9 @@ class TabsPage extends HTMLElement {
       applyChatUnreadBadge();
       enforceLoginTabsLock(false);
       if (justLoggedIn) {
-        writeStoredTab('home');
-        forceTab('home');
+        const nextTab = resolvePreferredTab({ preferred: 'home' });
+        writeStoredTab(nextTab);
+        forceTab(nextTab);
       }
     };
     window.addEventListener('app:user-change', this._userChangeHandler);

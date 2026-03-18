@@ -533,6 +533,39 @@ class PageDiagnostics extends HTMLElement {
 	              <div class="diag-tts-status" id="diag-tts-status">Listo.</div>
 	            </div>
 
+              <h4 style="margin-top:16px;">Detección de idioma</h4>
+              <div class="diag-speak-block">
+                <div class="pill">NLLanguageRecognizer / ML Kit</div>
+                <textarea
+                  id="diag-language-input"
+                  class="chat-text-input diag-tts-input"
+                  rows="3"
+                  placeholder="Texto para detectar idioma"
+                >Hello, how are you today? I am practicing English.</textarea>
+                <div class="diag-actions diag-tts-actions">
+                  <ion-button size="small" fill="outline" id="diag-language-detect">Detectar idioma</ion-button>
+                </div>
+                <div class="diag-tts-status" id="diag-language-status">Listo.</div>
+                <pre class="diag-json" id="diag-language-output"></pre>
+              </div>
+
+              <h4 style="margin-top:16px;">Moderación OpenAI</h4>
+              <div class="diag-speak-block">
+                <div class="pill">OpenAI Moderation</div>
+                <textarea
+                  id="diag-openai-moderation-input"
+                  class="chat-text-input diag-tts-input"
+                  rows="4"
+                  placeholder="Texto para analizar con el endpoint de moderación"
+                >Hello, can you help me practice this lesson in English?</textarea>
+                <div class="diag-actions diag-tts-actions">
+                  <ion-button size="small" fill="outline" id="diag-openai-moderation-run">Analizar moderación</ion-button>
+                </div>
+                <div class="diag-tts-status" id="diag-openai-moderation-status">Listo.</div>
+                <div id="diag-openai-moderation-summary" hidden></div>
+                <pre class="diag-json" id="diag-openai-moderation-output"></pre>
+              </div>
+
               <h4 style="margin-top:16px;">Audio UI (SFX)</h4>
               <div class="diag-actions">
                 <ion-button size="small" fill="outline" id="diag-sfx-green">Green</ion-button>
@@ -783,6 +816,15 @@ class PageDiagnostics extends HTMLElement {
     const ttsInputEl = this.querySelector('#diag-tts-input');
     const ttsPlayBtn = this.querySelector('#diag-tts-play');
     const ttsStatusEl = this.querySelector('#diag-tts-status');
+    const languageInputEl = this.querySelector('#diag-language-input');
+    const languageDetectBtn = this.querySelector('#diag-language-detect');
+    const languageStatusEl = this.querySelector('#diag-language-status');
+    const languageOutputEl = this.querySelector('#diag-language-output');
+    const moderationInputEl = this.querySelector('#diag-openai-moderation-input');
+    const moderationRunBtn = this.querySelector('#diag-openai-moderation-run');
+    const moderationStatusEl = this.querySelector('#diag-openai-moderation-status');
+    const moderationSummaryEl = this.querySelector('#diag-openai-moderation-summary');
+    const moderationOutputEl = this.querySelector('#diag-openai-moderation-output');
     const sfxGreenBtn = this.querySelector('#diag-sfx-green');
     const sfxYellowBtn = this.querySelector('#diag-sfx-yellow');
     const sfxRedBtn = this.querySelector('#diag-sfx-red');
@@ -1068,6 +1110,172 @@ class PageDiagnostics extends HTMLElement {
       sfxStatusEl.textContent = text || '';
     };
 
+    const setLanguageStatus = (text) => {
+      if (!languageStatusEl) return;
+      languageStatusEl.textContent = text || '';
+    };
+
+    const setLanguageOutput = (value) => {
+      if (!languageOutputEl) return;
+      languageOutputEl.textContent = value || '';
+    };
+
+    const setModerationStatus = (text) => {
+      if (!moderationStatusEl) return;
+      moderationStatusEl.textContent = text || '';
+    };
+
+    const setModerationOutput = (value) => {
+      if (!moderationOutputEl) return;
+      moderationOutputEl.textContent = value || '';
+    };
+
+    const setModerationSummary = (html, hidden = false) => {
+      if (!moderationSummaryEl) return;
+      moderationSummaryEl.hidden = Boolean(hidden);
+      moderationSummaryEl.innerHTML = hidden ? '' : html || '';
+    };
+
+    const formatLanguageConfidence = (value) => {
+      const confidence = Number(value);
+      if (!Number.isFinite(confidence) || confidence <= 0) return '0%';
+      const normalized = Math.max(0, Math.min(1, confidence));
+      return `${Math.round(normalized * 100)}%`;
+    };
+
+    const formatLanguageDetectionResult = (result) => {
+      const formattedResult = {
+        ...(result || {}),
+        confidence: formatLanguageConfidence(result && result.confidence),
+        alternatives: Array.isArray(result && result.alternatives)
+          ? result.alternatives.map((item) => ({
+              ...(item || {}),
+              confidence: formatLanguageConfidence(item && item.confidence)
+            }))
+          : []
+      };
+      try {
+        return JSON.stringify(formattedResult, null, 2);
+      } catch (err) {
+        return String(formattedResult || '');
+      }
+    };
+
+    const formatDurationMs = (value) => {
+      const ms = Number(value);
+      if (!Number.isFinite(ms) || ms < 0) return 'n/a';
+      return `${Math.round(ms)} ms`;
+    };
+
+    const formatModerationResult = (result) => {
+      const moderation = result && typeof result.moderation === 'object' ? result.moderation : {};
+      const formatted = {
+        ...(result || {}),
+        timings: {
+          ...(result && result.timings ? result.timings : {}),
+          total_ms: formatDurationMs(result && result.timings ? result.timings.total_ms : NaN),
+          openai_ms: formatDurationMs(result && result.timings ? result.timings.openai_ms : NaN),
+          client_ms: formatDurationMs(result && result.timings ? result.timings.client_ms : NaN)
+        },
+        moderation: {
+          ...moderation,
+          category_scores:
+            moderation && moderation.category_scores && typeof moderation.category_scores === 'object'
+              ? Object.fromEntries(
+                  Object.entries(moderation.category_scores).map(([key, value]) => [
+                    key,
+                    formatLanguageConfidence(value)
+                  ])
+                )
+              : {}
+        }
+      };
+      try {
+        return JSON.stringify(formatted, null, 2);
+      } catch (err) {
+        return String(formatted || '');
+      }
+    };
+
+    const moderationCategoryLabels = {
+      sexual: 'Sexual',
+      'sexual/minors': 'Sexual menores',
+      harassment: 'Acoso',
+      'harassment/threatening': 'Acoso amenazante',
+      hate: 'Odio',
+      'hate/threatening': 'Odio amenazante',
+      illicit: 'Ilícito',
+      'illicit/violent': 'Ilícito violento',
+      'self-harm': 'Autolesión',
+      'self-harm/intent': 'Autolesión intención',
+      'self-harm/instructions': 'Autolesión instrucciones',
+      violence: 'Violencia',
+      'violence/graphic': 'Violencia gráfica'
+    };
+
+    const escapeInlineHtml = (value) =>
+      String(value == null ? '' : value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+
+    const buildModerationSummary = (result) => {
+      const moderation = result && typeof result.moderation === 'object' ? result.moderation : {};
+      const scores =
+        moderation && moderation.category_scores && typeof moderation.category_scores === 'object'
+          ? moderation.category_scores
+          : {};
+      const sortedScores = Object.entries(scores)
+        .map(([key, value]) => ({
+          key,
+          label: moderationCategoryLabels[key] || key,
+          score: Number(value) || 0
+        }))
+        .sort((a, b) => b.score - a.score);
+      const topCategories = sortedScores.slice(0, 3);
+      const maxScore = topCategories.length ? topCategories[0].score : 0;
+      const flagged = Boolean(moderation && moderation.flagged);
+      const tone = flagged ? 'bad' : maxScore >= 0.1 ? 'warn' : 'ok';
+      const title = flagged ? 'Bloqueado' : maxScore >= 0.1 ? 'Revisar' : 'Limpio';
+      const subtitle = flagged
+        ? 'OpenAI ha marcado este contenido como potencialmente problemático.'
+        : maxScore >= 0.1
+          ? 'No está marcado, pero conviene revisarlo.'
+          : 'No se detectan señales relevantes.';
+      const badges = [
+        `<span class="diag-moderation-chip free-ride-detail-badge is-${tone}">${escapeInlineHtml(title)}</span>`,
+        `<span class="diag-moderation-chip">Cliente ${escapeInlineHtml(formatDurationMs(result && result.timings ? result.timings.client_ms : NaN))}</span>`,
+        `<span class="diag-moderation-chip">OpenAI ${escapeInlineHtml(formatDurationMs(result && result.timings ? result.timings.openai_ms : NaN))}</span>`
+      ];
+      const topMarkup = topCategories.length
+        ? topCategories
+            .map(
+              (item) => `
+                <div class="diag-moderation-top-item">
+                  <span class="diag-moderation-top-label">${escapeInlineHtml(item.label)}</span>
+                  <span class="diag-moderation-top-score">${escapeInlineHtml(formatLanguageConfidence(item.score))}</span>
+                </div>`
+            )
+            .join('')
+        : `<div class="diag-moderation-top-empty">Sin categorías relevantes.</div>`;
+
+      return `
+        <div class="diag-moderation-summary diag-moderation-summary-${tone}">
+          <div class="diag-moderation-header">
+            <div>
+              <div class="diag-moderation-title">${escapeInlineHtml(title)}</div>
+              <div class="diag-moderation-subtitle">${escapeInlineHtml(subtitle)}</div>
+            </div>
+            <div class="diag-moderation-badges">${badges.join('')}</div>
+          </div>
+          <div class="diag-moderation-top">
+            ${topMarkup}
+          </div>
+        </div>`;
+    };
+
     const playSfx = async (key, label) => {
       if (typeof window.playSpeakUiSound !== 'function') {
         setSfxStatus('playSpeakUiSound no disponible en este entorno.');
@@ -1290,6 +1498,20 @@ class PageDiagnostics extends HTMLElement {
       const dailyEndpoint = resolveUsageEndpoint();
       if (dailyEndpoint) {
         return dailyEndpoint.replace(/\/daily$/, '/limit');
+      }
+      return '';
+    };
+
+    const resolveOpenAIModerationEndpoint = () => {
+      const cfg = window.realtimeConfig || {};
+      const direct = cfg.openaiModerationEndpoint;
+      if (typeof direct === 'string' && direct.trim()) return direct.trim();
+      const emitEndpoint = cfg.emitEndpoint;
+      if (typeof emitEndpoint === 'string' && emitEndpoint.trim()) {
+        const trimmed = emitEndpoint.trim().replace(/\/+$/, '');
+        if (trimmed.endsWith('/emit')) {
+          return `${trimmed.slice(0, -5)}/openai/moderation`;
+        }
       }
       return '';
     };
@@ -2625,6 +2847,118 @@ class PageDiagnostics extends HTMLElement {
             ttsUtter = null;
             setTtsButtonPlaying(false);
             setTtsStatus(`Error al iniciar TTS: ${err.message || String(err)}`);
+          }
+        });
+      }
+    }
+
+    if (languageDetectBtn) {
+      const nativePlugin = window.Capacitor?.Plugins?.P4w4Plugin;
+      const canDetectLanguage = nativePlugin && typeof nativePlugin.detectLanguage === 'function';
+      if (!canDetectLanguage) {
+        languageDetectBtn.disabled = true;
+        setLanguageStatus('Detección nativa no disponible en este entorno.');
+        setLanguageOutput('');
+      } else {
+        setLanguageStatus('Listo.');
+        languageDetectBtn.addEventListener('click', async () => {
+          const text = String(languageInputEl ? languageInputEl.value : '').trim();
+          if (!text) {
+            setLanguageStatus('Introduce un texto para detectar el idioma.');
+            setLanguageOutput('');
+            return;
+          }
+
+          languageDetectBtn.disabled = true;
+          setLanguageStatus('Detectando...');
+          try {
+            const result = await nativePlugin.detectLanguage({ text });
+            setLanguageOutput(formatLanguageDetectionResult(result));
+            if (!result || result.available === false) {
+              setLanguageStatus('Detector no disponible en este entorno.');
+            } else if (result.dominantLanguage) {
+              const confidence = Number(result.confidence || 0);
+              setLanguageStatus(
+                `Idioma dominante: ${result.dominantLanguage}${confidence > 0 ? ` (${formatLanguageConfidence(confidence)})` : ''}`
+              );
+            } else {
+              setLanguageStatus('No se pudo determinar un idioma dominante.');
+            }
+          } catch (err) {
+            setLanguageStatus(`Error detectando idioma: ${err.message || String(err)}`);
+            setLanguageOutput('');
+          } finally {
+            languageDetectBtn.disabled = false;
+          }
+        });
+      }
+    }
+
+    if (moderationRunBtn) {
+      const moderationEndpoint = resolveOpenAIModerationEndpoint();
+      if (!moderationEndpoint) {
+        moderationRunBtn.disabled = true;
+        setModerationStatus('Endpoint de moderación no configurado.');
+        setModerationSummary('', true);
+        setModerationOutput('');
+      } else {
+        setModerationStatus('Listo.');
+        moderationRunBtn.addEventListener('click', async () => {
+          const text = String(moderationInputEl ? moderationInputEl.value : '').trim();
+          if (!text) {
+            setModerationStatus('Introduce un texto para analizar.');
+            setModerationSummary('', true);
+            setModerationOutput('');
+            return;
+          }
+
+          moderationRunBtn.disabled = true;
+          setModerationStatus('Consultando moderación...');
+          try {
+            const startedAt = performance.now();
+            const response = await fetch(moderationEndpoint, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                ...buildUsageHeaders()
+              },
+              body: JSON.stringify({ text })
+            });
+            const payload = await response.json().catch(() => ({}));
+            const clientElapsedMs = performance.now() - startedAt;
+            const result =
+              payload && typeof payload === 'object'
+                ? {
+                    ...payload,
+                    timings: {
+                      ...(payload.timings || {}),
+                      client_ms: Math.round(clientElapsedMs)
+                    }
+                  }
+                : {
+                    ok: false,
+                    error: `HTTP ${response.status}`,
+                    timings: {
+                      client_ms: Math.round(clientElapsedMs)
+                    }
+                  };
+
+            if (!response.ok || result.ok === false) {
+              throw new Error(result.error || `HTTP ${response.status}`);
+            }
+
+            setModerationSummary(buildModerationSummary(result));
+            setModerationOutput(formatModerationResult(result));
+            const flagged = result.moderation && result.moderation.flagged ? 'marcado' : 'limpio';
+            setModerationStatus(
+              `Resultado: ${flagged} · cliente ${formatDurationMs(result.timings && result.timings.client_ms)} · OpenAI ${formatDurationMs(result.timings && result.timings.openai_ms)}`
+            );
+          } catch (err) {
+            setModerationStatus(`Error moderando texto: ${err.message || String(err)}`);
+            setModerationSummary('', true);
+            setModerationOutput('');
+          } finally {
+            moderationRunBtn.disabled = false;
           }
         });
       }

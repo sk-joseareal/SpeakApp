@@ -5605,6 +5605,10 @@ class PageChat extends HTMLElement {
     };
 
     const openLoginModal = async () => {
+      if (typeof window.openLoginModal === 'function') {
+        await window.openLoginModal({ locked: false });
+        return;
+      }
       let modal = document.querySelector('ion-modal.login-modal');
       if (!modal) {
         modal = document.createElement('ion-modal');

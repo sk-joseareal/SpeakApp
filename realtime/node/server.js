@@ -66,6 +66,7 @@ const chatbotMaxHistory = Number(env('CHATBOT_MAX_HISTORY', '16'));
 const chatbotHistoryLimit = Number.isFinite(chatbotMaxHistory) ? chatbotMaxHistory : 16;
 const openaiApiKey = env('OPENAI_API_KEY', '');
 const openaiApiBase = env('OPENAI_API_BASE', 'https://api.openai.com/v1');
+const openaiModerationModel = env('OPENAI_MODERATION_MODEL', 'omni-moderation-latest');
 const openaiUsageLog = env('OPENAI_USAGE_LOG', 'openai-usage.log');
 const openaiUsageDailyFile = env('OPENAI_USAGE_DAILY_FILE', 'openai-usage-daily.json');
 const openaiUsageDailyRetentionDays = Number(env('OPENAI_USAGE_DAILY_RETENTION_DAYS', '120'));
@@ -149,6 +150,7 @@ const pusher = new Pusher(config);
 
 const chatbotSessions = new Map();
 const openaiEndpoint = `${openaiApiBase.replace(/\/$/, '')}/chat/completions`;
+const openaiModerationEndpoint = `${openaiApiBase.replace(/\/$/, '')}/moderations`;
 const openaiDailyUsageByUserDay = new Map();
 let openaiDailyUsageFlushTimer = null;
 const chatbotDailyTokenLimits = new Map();
@@ -1963,14 +1965,9 @@ const extractOpenAIReply = (payload) => {
   return '';
 };
 
-const requestOpenAI = (messages) => {
-  const url = new URL(openaiEndpoint);
-  const payload = JSON.stringify({
-    model: chatbotModel,
-    messages,
-    temperature: Number.isFinite(chatbotTemperature) ? chatbotTemperature : 0.6,
-    max_tokens: Number.isFinite(chatbotMaxTokens) ? chatbotMaxTokens : 200
-  });
+const requestOpenAIJson = (targetUrl, payloadObject, { timeoutMs = 15000 } = {}) => {
+  const url = new URL(targetUrl);
+  const payload = JSON.stringify(payloadObject || {});
 
   const options = {
     protocol: url.protocol,
@@ -2006,11 +2003,32 @@ const requestOpenAI = (messages) => {
         }
       });
     });
+    req.setTimeout(timeoutMs, () => {
+      req.destroy(new Error(`OpenAI timeout after ${timeoutMs}ms`));
+    });
     req.on('error', reject);
     req.write(payload);
     req.end();
   });
 };
+
+const requestOpenAI = (messages) =>
+  requestOpenAIJson(openaiEndpoint, {
+    model: chatbotModel,
+    messages,
+    temperature: Number.isFinite(chatbotTemperature) ? chatbotTemperature : 0.6,
+    max_tokens: Number.isFinite(chatbotMaxTokens) ? chatbotMaxTokens : 200
+  });
+
+const requestOpenAIModeration = (input, { model = openaiModerationModel, timeoutMs = 15000 } = {}) =>
+  requestOpenAIJson(
+    openaiModerationEndpoint,
+    {
+      model,
+      input
+    },
+    { timeoutMs }
+  );
 
 const postJson = (targetUrl, payload, { timeoutMs = 8000, headers = {} } = {}) => {
   const url = new URL(targetUrl);
@@ -6545,6 +6563,78 @@ app.post('/realtime/chatbot/usage/limit', (req, res) => {
     updated: true,
     ...status
   });
+});
+
+app.post('/realtime/openai/moderation', async (req, res) => {
+  if (!authorizeUsage(req, res)) return;
+  if (!openaiApiKey) {
+    res.status(503).json({ error: 'openai_not_configured' });
+    return;
+  }
+
+  const body = req.body && typeof req.body === 'object' ? req.body : {};
+  const text = pickFirstString(body.text, body.input, body.message);
+  if (!text) {
+    res.status(400).json({ error: 'text required' });
+    return;
+  }
+
+  const requestedTimeoutMs = Number(body.timeout_ms ?? body.timeoutMs);
+  const timeoutMs =
+    Number.isFinite(requestedTimeoutMs) && requestedTimeoutMs >= 1000
+      ? Math.min(Math.floor(requestedTimeoutMs), 30000)
+      : 15000;
+  const startedAt = Date.now();
+  const startedHr = process.hrtime.bigint();
+
+  try {
+    const openaiStartedHr = process.hrtime.bigint();
+    const response = await requestOpenAIModeration(text, { timeoutMs });
+    const openaiElapsedMs = Number(process.hrtime.bigint() - openaiStartedHr) / 1e6;
+    const totalElapsedMs = Number(process.hrtime.bigint() - startedHr) / 1e6;
+    const result = Array.isArray(response && response.results) ? response.results[0] || {} : {};
+    const alphaChars = String(text)
+      .trim()
+      .split('')
+      .reduce((count, char) => count + (/\p{L}/u.test(char) ? 1 : 0), 0);
+
+    res.json({
+      ok: true,
+      model:
+        pickFirstString(response && response.model, result && result.model) || openaiModerationModel,
+      created_at: new Date(startedAt).toISOString(),
+      input: {
+        text_length: String(text).length,
+        alpha_chars: alphaChars
+      },
+      timings: {
+        total_ms: Math.round(totalElapsedMs),
+        openai_ms: Math.round(openaiElapsedMs),
+        timeout_ms: timeoutMs
+      },
+      moderation: {
+        flagged: Boolean(result && result.flagged),
+        categories: result && typeof result.categories === 'object' ? result.categories : {},
+        category_scores:
+          result && typeof result.category_scores === 'object' ? result.category_scores : {},
+        category_applied_input_types:
+          result && typeof result.category_applied_input_types === 'object'
+            ? result.category_applied_input_types
+            : {}
+      },
+      raw: response && typeof response === 'object' ? response : {}
+    });
+  } catch (err) {
+    const totalElapsedMs = Number(process.hrtime.bigint() - startedHr) / 1e6;
+    res.status(502).json({
+      ok: false,
+      error: err && err.message ? err.message : 'openai_moderation_failed',
+      timings: {
+        total_ms: Math.round(totalElapsedMs),
+        timeout_ms: timeoutMs
+      }
+    });
+  }
 });
 
 app.get('/realtime/state/summary', (req, res) => {

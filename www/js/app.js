@@ -207,7 +207,11 @@ function setupLoginModal() {
       document.body.appendChild(modal);
     }
 
-    const locked = Boolean(options && options.locked) || (hasLoginTabsLock() && !isLoggedIn());
+    const hasExplicitLockedOption =
+      options && Object.prototype.hasOwnProperty.call(options, 'locked');
+    const locked = hasExplicitLockedOption
+      ? Boolean(options.locked)
+      : hasLoginTabsLock() && !isLoggedIn();
     applyLoginModalLock(locked);
 
     if (modal.presented || modal.isOpen) {

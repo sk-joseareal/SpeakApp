@@ -35,6 +35,7 @@ import android.net.Uri;
 
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.json.JSONArray;
 import org.vosk.Model;
 import org.vosk.Recognizer;
 
@@ -48,6 +49,9 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 
+import com.google.mlkit.nl.languageid.IdentifiedLanguage;
+import com.google.mlkit.nl.languageid.LanguageIdentification;
+import com.google.mlkit.nl.languageid.LanguageIdentifier;
 
 @CapacitorPlugin(name = "P4w4Plugin")
 public class P4w4PluginPlugin extends Plugin {
@@ -194,6 +198,65 @@ public class P4w4PluginPlugin extends Plugin {
         call.resolve(ret);
     }
 
+    @PluginMethod
+    public void detectLanguage(PluginCall call) {
+        String rawText = call.getString("text", "");
+        String text = rawText == null ? "" : rawText.trim();
+        JSObject result = new JSObject();
+        result.put("available", true);
+        result.put("textLength", text.length());
+        result.put("alphaChars", countAlphaChars(text));
+
+        if (text.isEmpty()) {
+            result.put("dominantLanguage", "");
+            result.put("confidence", 0);
+            result.put("alternatives", new JSONArray());
+            call.resolve(result);
+            return;
+        }
+
+        LanguageIdentifier identifier = LanguageIdentification.getClient();
+        identifier
+            .identifyPossibleLanguages(text)
+            .addOnSuccessListener(identifiedLanguages -> {
+                JSONArray alternatives = new JSONArray();
+                String dominantLanguage = "";
+                double confidence = 0;
+
+                for (IdentifiedLanguage identifiedLanguage : identifiedLanguages) {
+                    String languageTag = identifiedLanguage.getLanguageTag();
+                    float languageConfidence = identifiedLanguage.getConfidence();
+                    if (languageTag == null || languageTag.isEmpty() || "und".equals(languageTag)) {
+                        continue;
+                    }
+                    JSObject language = new JSObject();
+                    language.put("language", languageTag);
+                    language.put("confidence", languageConfidence);
+                    alternatives.put(language);
+                    if (dominantLanguage.isEmpty()) {
+                        dominantLanguage = languageTag;
+                        confidence = languageConfidence;
+                    }
+                }
+
+                result.put("dominantLanguage", dominantLanguage);
+                result.put("confidence", confidence);
+                result.put("alternatives", alternatives);
+                try {
+                    identifier.close();
+                } catch (Exception ignored) {
+                }
+                call.resolve(result);
+            })
+            .addOnFailureListener(error -> {
+                try {
+                    identifier.close();
+                } catch (Exception ignored) {
+                }
+                call.reject("Error detectando idioma: " + error.getMessage(), error);
+            });
+    }
+
 
     @PluginMethod
     public void setStartupHtml(PluginCall call) {
@@ -256,6 +319,19 @@ public class P4w4PluginPlugin extends Plugin {
             return decoded != null ? decoded : path.replace("file://", "");
         }
         return path;
+    }
+
+    private int countAlphaChars(String text) {
+        if (text == null || text.isEmpty()) return 0;
+        int count = 0;
+        for (int i = 0; i < text.length(); ) {
+            int codePoint = text.codePointAt(i);
+            if (Character.isLetter(codePoint)) {
+                count += 1;
+            }
+            i += Character.charCount(codePoint);
+        }
+        return count;
     }
 
     private InputStream openInputStream(String path) throws IOException {

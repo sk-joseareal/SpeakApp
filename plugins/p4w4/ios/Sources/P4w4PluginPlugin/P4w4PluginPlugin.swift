@@ -3,6 +3,7 @@ import Capacitor
 import UIKit
 import Speech
 import AudioToolbox
+import NaturalLanguage
 
 /**
  * Please read the Capacitor iOS Plugin Development Guide
@@ -18,6 +19,7 @@ public class P4w4PluginPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "resizeWebView", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "offsetTopWebView", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "getStatusBarHeight", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "detectLanguage", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "setStartupHtml", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "reloadWebView", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "restartApp", returnType: CAPPluginReturnPromise),
@@ -109,6 +111,52 @@ public class P4w4PluginPlugin: CAPPlugin, CAPBridgedPlugin {
 
         call.resolve([
             "height": height
+        ])
+    }
+
+    @objc func detectLanguage(_ call: CAPPluginCall) {
+        let text = (call.getString("text") ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let alphaChars = text.unicodeScalars.reduce(0) { count, scalar in
+            count + (CharacterSet.letters.contains(scalar) ? 1 : 0)
+        }
+
+        if text.isEmpty {
+            call.resolve([
+                "available": true,
+                "dominantLanguage": "",
+                "confidence": 0,
+                "alternatives": [],
+                "textLength": 0,
+                "alphaChars": alphaChars
+            ])
+            return
+        }
+
+        let recognizer = NLLanguageRecognizer()
+        recognizer.processString(text)
+        let dominantLanguage = recognizer.dominantLanguage?.rawValue ?? ""
+        let hypotheses = recognizer
+            .languageHypotheses(withMaximum: 3)
+            .sorted { $0.value > $1.value }
+
+        let alternatives = hypotheses.map { hypothesis in
+            [
+                "language": hypothesis.key.rawValue,
+                "confidence": hypothesis.value
+            ]
+        }
+
+        let confidence = hypotheses.first { $0.key.rawValue == dominantLanguage }?.value
+            ?? hypotheses.first?.value
+            ?? 0
+
+        call.resolve([
+            "available": true,
+            "dominantLanguage": dominantLanguage,
+            "confidence": confidence,
+            "alternatives": alternatives,
+            "textLength": text.count,
+            "alphaChars": alphaChars
         ])
     }
 

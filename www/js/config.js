@@ -9,7 +9,7 @@
 
   window.appMeta = window.appMeta || {
     version: window.APP_VERSION || '1.0.1',
-    build: window.APP_BUILD || '24'
+    build: window.APP_BUILD || '25'
   };
 
   const emitAppMeta = () => {
@@ -105,6 +105,11 @@
     window.realtimeConfig.chatbotUsageLimitEndpoint =
       window.REALTIME_CHATBOT_USAGE_LIMIT_ENDPOINT ||
       'https://realtime.curso-ingles.com/realtime/chatbot/usage/limit';
+  }
+  if (window.realtimeConfig.openaiModerationEndpoint === undefined) {
+    window.realtimeConfig.openaiModerationEndpoint =
+      window.REALTIME_OPENAI_MODERATION_ENDPOINT ||
+      'https://realtime.curso-ingles.com/realtime/openai/moderation';
   }
   if (window.realtimeConfig.ttsAlignedEndpoint === undefined) {
     window.realtimeConfig.ttsAlignedEndpoint =

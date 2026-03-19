@@ -236,6 +236,7 @@ function setupLoginModal() {
       }
       if (modal) {
         applyLoginModalLock(false);
+        modal.dismiss().catch(() => {});
       }
       return;
     }

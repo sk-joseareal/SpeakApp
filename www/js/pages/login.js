@@ -107,7 +107,7 @@ class PageLogin extends HTMLElement {
               </div>
               <div id="magic-sent" hidden>
                 <h3>${copy.magicSentTitle}</h3>
-                <p class="muted">${copy.magicSentMessage}</p>
+                <p class="muted">${copy.magicSentMessage}<br><strong id="magic-sent-email"></strong></p>
                 <div class="login-inputs" style="margin-top:12px">
                   <label class="login-field" for="magic-otp-input">
                     <span class="login-label">${copy.magicOtpLabel}</span>
@@ -535,6 +535,8 @@ class PageLogin extends HTMLElement {
       magicLastUid = (result.data && result.data.uid) ? String(result.data.uid) : '';
       const form = this.querySelector('#magic-form');
       const sent = this.querySelector('#magic-sent');
+      const sentEmail = this.querySelector('#magic-sent-email');
+      if (sentEmail) sentEmail.textContent = email;
       if (form) form.hidden = true;
       if (sent) sent.hidden = false;
     };
@@ -572,6 +574,7 @@ class PageLogin extends HTMLElement {
         try { localStorage.setItem('appv5:user', JSON.stringify(user)); } catch (_) {}
         window.dispatchEvent(new CustomEvent('app:user-change', { detail: user }));
       }
+      closeLogin();
     };
 
     const recoverPassword = async () => {

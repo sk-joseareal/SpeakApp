@@ -60,6 +60,7 @@ routerReady.then((router) => {
   setupNotificationsModal();
   setupLoginModal();
   setupLoginNotificationsSeed();
+  checkMagicSession();
 });
 
 function setupSecretDiagnostics(router) {
@@ -245,6 +246,26 @@ function setupLoginModal() {
       applyLoginModalLock(true);
     }
   });
+}
+
+function checkMagicSession() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const magicSession = params.get('magic_session');
+    if (!magicSession) return;
+    params.delete('magic_session');
+    const cleanUrl = window.location.pathname +
+      (params.toString() ? '?' + params.toString() : '') +
+      window.location.hash;
+    window.history.replaceState({}, '', cleanUrl);
+    // magic_session ya está decodificado por URLSearchParams — hay que re-encodarlo
+    // para que procesarLoginDesdeCallback pueda parsearlo como loginData
+    if (typeof window.loginCallbackFromBrowser === 'function') {
+      window.loginCallbackFromBrowser('app://callback?loginData=' + encodeURIComponent(magicSession));
+    }
+  } catch (err) {
+    console.warn('[magic] error procesando magic_session:', err);
+  }
 }
 
 function setupLoginNotificationsSeed() {

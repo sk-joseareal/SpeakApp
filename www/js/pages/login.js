@@ -108,7 +108,15 @@ class PageLogin extends HTMLElement {
               <div id="magic-sent" hidden>
                 <h3>${copy.magicSentTitle}</h3>
                 <p class="muted">${copy.magicSentMessage}</p>
-                <div class="login-links">
+                <div class="login-inputs" style="margin-top:12px">
+                  <label class="login-field" for="magic-otp-input">
+                    <span class="login-label">${copy.magicOtpLabel}</span>
+                    <input class="chat-text-input login-text-input" id="magic-otp-input" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" maxlength="6" placeholder="${copy.magicOtpPlaceholder}">
+                  </label>
+                </div>
+                <p id="magic-otp-error" style="display:none; margin:4px 0 0; color: var(--ion-color-danger, #eb445a); font-size:0.9rem;"></p>
+                <ion-button expand="block" shape="round" id="magic-otp-submit" style="margin-top:8px">${copy.magicOtpSubmit}</ion-button>
+                <div class="login-links" style="margin-top:8px">
                   <button class="login-link-btn" type="button" id="magic-resend">${copy.magicResend}</button>
                   <button class="login-link-btn" type="button" id="magic-back-from-sent">${copy.magicBack}</button>
                 </div>
@@ -137,7 +145,8 @@ class PageLogin extends HTMLElement {
     const loginErrorEl = () => this.querySelector('#login-error');
     const registerErrorEl = () => this.querySelector('#register-error');
     const recoverErrorEl = () => this.querySelector('#recover-error');
-    const magicErrorEl = () => this.querySelector('#magic-error');
+    const magicErrorEl    = () => this.querySelector('#magic-error');
+    const magicOtpErrorEl = () => this.querySelector('#magic-otp-error');
     const setError = (el, message) => {
       if (!el) return;
       if (message) {
@@ -151,7 +160,8 @@ class PageLogin extends HTMLElement {
     const setLoginError = (message) => setError(loginErrorEl(), message);
     const setRegisterError = (message) => setError(registerErrorEl(), message);
     const setRecoverError = (message) => setError(recoverErrorEl(), message);
-    const setMagicError = (message) => setError(magicErrorEl(), message);
+    const setMagicError    = (message) => setError(magicErrorEl(), message);
+    const setMagicOtpError = (message) => setError(magicOtpErrorEl(), message);
 
     const isLoginLocked = () => {
       const modal = this.closest('ion-modal');
@@ -192,6 +202,7 @@ class PageLogin extends HTMLElement {
       setRegisterError('');
       setRecoverError('');
       setMagicError('');
+      setMagicOtpError('');
     };
 
     const resetMagicPanel = () => {
@@ -199,6 +210,10 @@ class PageLogin extends HTMLElement {
       const sent = this.querySelector('#magic-sent');
       if (form) form.hidden = false;
       if (sent) sent.hidden = true;
+      const otpInput = this.querySelector('#magic-otp-input');
+      if (otpInput) otpInput.value = '';
+      setMagicOtpError('');
+      magicLastUid = '';
     };
 
     const setPanel = (name) => {
@@ -424,6 +439,8 @@ class PageLogin extends HTMLElement {
     let registerPending = false;
     let recoverPending = false;
     let magicLinkPending = false;
+    let magicLastUid     = '';
+    let otpPending       = false;
 
     const registerAccount = async () => {
       if (registerPending) return;
@@ -515,10 +532,46 @@ class PageLogin extends HTMLElement {
         return;
       }
 
+      magicLastUid = (result.data && result.data.uid) ? String(result.data.uid) : '';
       const form = this.querySelector('#magic-form');
       const sent = this.querySelector('#magic-sent');
       if (form) form.hidden = true;
       if (sent) sent.hidden = false;
+    };
+
+    const submitOtp = async () => {
+      if (otpPending) return;
+      const otpInput = this.querySelector('#magic-otp-input');
+      const otp = otpInput && otpInput.value ? String(otpInput.value).trim() : '';
+      if (!otp || otp.length !== 6) {
+        setMagicOtpError(copy.errors.magicOtpRequired);
+        return;
+      }
+      otpPending = true;
+      const otpBtn = this.querySelector('#magic-otp-submit');
+      if (otpBtn) otpBtn.disabled = true;
+      setMagicOtpError('');
+
+      const result = await doPost('/auth/magic/otp-exchange', null, { otp, uid: magicLastUid });
+
+      otpPending = false;
+      if (otpBtn) otpBtn.disabled = false;
+
+      if (!result.ok || (result.data && result.data.error)) {
+        const message = (result.data && result.data.error) || copy.errors.magicOtpFailed;
+        setMagicOtpError(message);
+        return;
+      }
+
+      const user = result.data && result.data.user ? { ...result.data.user } : null;
+      if (!user) { setMagicOtpError(copy.errors.magicOtpFailed); return; }
+      if (typeof window.setUser === 'function') {
+        window.setUser(user);
+      } else {
+        window.user = user;
+        try { localStorage.setItem('appv5:user', JSON.stringify(user)); } catch (_) {}
+        window.dispatchEvent(new CustomEvent('app:user-change', { detail: user }));
+      }
     };
 
     const recoverPassword = async () => {
@@ -575,6 +628,10 @@ class PageLogin extends HTMLElement {
     this.querySelector('#register-submit')?.addEventListener('click', registerAccount);
     this.querySelector('#recover-submit')?.addEventListener('click', recoverPassword);
     this.querySelector('#magic-submit')?.addEventListener('click', requestMagicLink);
+    this.querySelector('#magic-otp-submit')?.addEventListener('click', submitOtp);
+    this.querySelector('#magic-otp-input')?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') submitOtp();
+    });
     setPanel('login');
     syncLockedLoginUi();
 

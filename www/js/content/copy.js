@@ -137,6 +137,9 @@ const APP_COPY = {
       magicSentTitle: '¡Enlace enviado!',
       magicSentMessage: 'Revisa tu bandeja de entrada. El enlace expira en 15 minutos.',
       magicResend: 'Reenviar enlace',
+      magicOtpLabel: 'O introduce el código del email:',
+      magicOtpPlaceholder: '123456',
+      magicOtpSubmit: 'Entrar con código',
       alertHeader: 'Atencion',
       alertOk: 'Ok',
       errors: {
@@ -160,7 +163,9 @@ const APP_COPY = {
         recoverEmailRequired: 'Debes introducir tu email.',
         recoverFailed: 'No se pudo enviar el email',
         magicEmailRequired: 'Debes introducir tu email.',
-        magicFailed: 'No se pudo enviar el enlace. Inténtalo de nuevo.'
+        magicFailed: 'No se pudo enviar el enlace. Inténtalo de nuevo.',
+        magicOtpRequired: 'Introduce el código de 6 dígitos.',
+        magicOtpFailed: 'Código incorrecto o expirado.'
       },
       info: {
         registerSuccess: 'Gracias. Revisa tu email para activar tu cuenta.',
@@ -512,6 +517,9 @@ const APP_COPY = {
       magicSentTitle: 'Link sent!',
       magicSentMessage: 'Check your inbox. The link expires in 15 minutes.',
       magicResend: 'Resend link',
+      magicOtpLabel: 'Or enter the code from the email:',
+      magicOtpPlaceholder: '123456',
+      magicOtpSubmit: 'Sign in with code',
       alertHeader: 'Notice',
       alertOk: 'Ok',
       errors: {
@@ -535,7 +543,9 @@ const APP_COPY = {
         recoverEmailRequired: 'You must enter your email.',
         recoverFailed: 'Could not send email',
         magicEmailRequired: 'Please enter your email.',
-        magicFailed: 'Could not send the link. Please try again.'
+        magicFailed: 'Could not send the link. Please try again.',
+        magicOtpRequired: 'Enter the 6-digit code.',
+        magicOtpFailed: 'Incorrect or expired code.'
       },
       info: {
         registerSuccess: 'Thanks. Check your email to activate your account.',

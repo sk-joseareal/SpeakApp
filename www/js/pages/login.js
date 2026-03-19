@@ -111,7 +111,7 @@ class PageLogin extends HTMLElement {
                 <div style="margin-top:14px">
                   <span class="login-label">${copy.magicOtpLabel}</span>
                   <div id="otp-digits" style="display:flex;gap:8px;justify-content:center;margin-top:10px">
-                    <input class="otp-digit" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" maxlength="1" data-idx="0" style="width:44px;height:52px;text-align:center;font-size:22px;font-family:monospace;font-weight:700;border:2px solid var(--ion-color-medium,#92949c);border-radius:8px;background:transparent;color:inherit;outline:none">
+                    <input class="otp-digit" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" data-idx="0" style="width:44px;height:52px;text-align:center;font-size:22px;font-family:monospace;font-weight:700;border:2px solid var(--ion-color-medium,#92949c);border-radius:8px;background:transparent;color:inherit;outline:none">
                     <input class="otp-digit" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" data-idx="1" style="width:44px;height:52px;text-align:center;font-size:22px;font-family:monospace;font-weight:700;border:2px solid var(--ion-color-medium,#92949c);border-radius:8px;background:transparent;color:inherit;outline:none">
                     <input class="otp-digit" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" data-idx="2" style="width:44px;height:52px;text-align:center;font-size:22px;font-family:monospace;font-weight:700;border:2px solid var(--ion-color-medium,#92949c);border-radius:8px;background:transparent;color:inherit;outline:none">
                     <input class="otp-digit" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" data-idx="3" style="width:44px;height:52px;text-align:center;font-size:22px;font-family:monospace;font-weight:700;border:2px solid var(--ion-color-medium,#92949c);border-radius:8px;background:transparent;color:inherit;outline:none">
@@ -517,6 +517,8 @@ class PageLogin extends HTMLElement {
       setPanel('login');
     };
 
+    const isValidEmail = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+
     const requestMagicLink = async () => {
       if (magicLinkPending) return;
       magicLinkPending = true;
@@ -525,9 +527,16 @@ class PageLogin extends HTMLElement {
       setMagicError('');
 
       const emailEl = this.querySelector('#magic-email');
-      const email = emailEl && emailEl.value ? String(emailEl.value).trim() : '';
+      const email = emailEl && emailEl.value ? String(emailEl.value).trim().toLowerCase() : '';
+      if (emailEl) emailEl.value = email; // normaliza visualmente
       if (!email) {
         setMagicError(copy.errors.magicEmailRequired);
+        magicLinkPending = false;
+        if (submitBtn) submitBtn.disabled = false;
+        return;
+      }
+      if (!isValidEmail(email)) {
+        setMagicError(copy.errors.magicEmailInvalid);
         magicLinkPending = false;
         if (submitBtn) submitBtn.disabled = false;
         return;
@@ -556,6 +565,7 @@ class PageLogin extends HTMLElement {
 
     const submitOtp = async () => {
       if (otpPending) return;
+      getOtpInputs().forEach(i => i.blur());
       const otp = getOtpValue();
       if (otp.length !== 6) {
         setMagicOtpError(copy.errors.magicOtpRequired);
@@ -648,6 +658,9 @@ class PageLogin extends HTMLElement {
     this.querySelector('#register-submit')?.addEventListener('click', registerAccount);
     this.querySelector('#recover-submit')?.addEventListener('click', recoverPassword);
     this.querySelector('#magic-submit')?.addEventListener('click', requestMagicLink);
+    this.querySelector('#magic-email')?.addEventListener('blur', (e) => {
+      e.target.value = e.target.value.trim().toLowerCase();
+    });
 
     // OTP: 6-digit box navigation
     const otpContainer = this.querySelector('#otp-digits');
@@ -659,9 +672,12 @@ class PageLogin extends HTMLElement {
         const inputs = getOtpInputs();
         const raw = input.value.replace(/\D/g, '');
         if (raw.length > 1) {
-          // iOS autocomplete or desktop paste fills first input with full code
-          raw.split('').slice(0, 6).forEach((d, i) => { if (inputs[i]) inputs[i].value = d; });
-          focusOtpInput(Math.min(raw.length - 1, 5));
+          // iOS autocomplete o paste llena el primer input con el código completo
+          const digits = raw.split('').slice(0, 6);
+          digits.forEach((d, i) => { if (inputs[i]) inputs[i].value = d; });
+          // Corregir el primer input que puede tener el valor completo antes de truncar
+          if (inputs[0]) inputs[0].value = digits[0] || '';
+          focusOtpInput(Math.min(digits.length - 1, 5));
           if (getOtpValue().length === 6) submitOtp();
           return;
         }

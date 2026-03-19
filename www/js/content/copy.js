@@ -163,6 +163,7 @@ const APP_COPY = {
         recoverEmailRequired: 'Debes introducir tu email.',
         recoverFailed: 'No se pudo enviar el email',
         magicEmailRequired: 'Debes introducir tu email.',
+        magicEmailInvalid: 'El email no tiene un formato válido.',
         magicFailed: 'No se pudo enviar el enlace. Inténtalo de nuevo.',
         magicOtpRequired: 'Introduce el código de 6 dígitos.',
         magicOtpFailed: 'Código incorrecto o expirado.'
@@ -543,6 +544,7 @@ const APP_COPY = {
         recoverEmailRequired: 'You must enter your email.',
         recoverFailed: 'Could not send email',
         magicEmailRequired: 'Please enter your email.',
+        magicEmailInvalid: 'Please enter a valid email address.',
         magicFailed: 'Could not send the link. Please try again.',
         magicOtpRequired: 'Enter the 6-digit code.',
         magicOtpFailed: 'Incorrect or expired code.'

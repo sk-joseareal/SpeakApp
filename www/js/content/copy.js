@@ -127,6 +127,16 @@ const APP_COPY = {
       recoverEmailPlaceholder: 'tu email',
       recoverSubmit: 'Enviar instrucciones',
       recoverBack: 'Volver a iniciar sesion',
+      magicLoginLink: 'Entrar sin contraseña',
+      magicTitle: 'Acceso rápido',
+      magicSubtitle: 'Te enviamos un enlace a tu correo. Un clic y ya estás dentro.',
+      magicEmailLabel: 'Tu email',
+      magicEmailPlaceholder: 'tu@email.com',
+      magicSubmit: 'Enviar enlace de acceso',
+      magicBack: 'Volver',
+      magicSentTitle: '¡Enlace enviado!',
+      magicSentMessage: 'Revisa tu bandeja de entrada. El enlace expira en 15 minutos.',
+      magicResend: 'Reenviar enlace',
       alertHeader: 'Atencion',
       alertOk: 'Ok',
       errors: {
@@ -148,7 +158,9 @@ const APP_COPY = {
         registerTermsRequired: 'Debes aceptar las condiciones de uso.',
         registerFailed: 'Error creando la cuenta',
         recoverEmailRequired: 'Debes introducir tu email.',
-        recoverFailed: 'No se pudo enviar el email'
+        recoverFailed: 'No se pudo enviar el email',
+        magicEmailRequired: 'Debes introducir tu email.',
+        magicFailed: 'No se pudo enviar el enlace. Inténtalo de nuevo.'
       },
       info: {
         registerSuccess: 'Gracias. Revisa tu email para activar tu cuenta.',
@@ -490,6 +502,16 @@ const APP_COPY = {
       recoverEmailPlaceholder: 'your email',
       recoverSubmit: 'Send instructions',
       recoverBack: 'Back to login',
+      magicLoginLink: 'Sign in without password',
+      magicTitle: 'Quick access',
+      magicSubtitle: 'We send a link to your email. One click and you are in.',
+      magicEmailLabel: 'Your email',
+      magicEmailPlaceholder: 'you@email.com',
+      magicSubmit: 'Send access link',
+      magicBack: 'Back',
+      magicSentTitle: 'Link sent!',
+      magicSentMessage: 'Check your inbox. The link expires in 15 minutes.',
+      magicResend: 'Resend link',
       alertHeader: 'Notice',
       alertOk: 'Ok',
       errors: {
@@ -511,7 +533,9 @@ const APP_COPY = {
         registerTermsRequired: 'You must accept the terms of use.',
         registerFailed: 'Error creating account',
         recoverEmailRequired: 'You must enter your email.',
-        recoverFailed: 'Could not send email'
+        recoverFailed: 'Could not send email',
+        magicEmailRequired: 'Please enter your email.',
+        magicFailed: 'Could not send the link. Please try again.'
       },
       info: {
         registerSuccess: 'Thanks. Check your email to activate your account.',

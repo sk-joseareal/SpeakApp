@@ -38,6 +38,7 @@ class PageLogin extends HTMLElement {
                   <span>${copy.socialApple}</span>
                 </ion-button>
               </div>
+              <button class="login-link-btn login-create-email-btn login-magic-cta" type="button" id="login-magic-link">${copy.magicLoginLink}</button>
               <button class="login-link-btn login-create-email-btn" type="button" id="login-register-link">${copy.createWithEmail}</button>
               <div class="login-email-block">
                 <div class="login-inputs">
@@ -88,6 +89,31 @@ class PageLogin extends HTMLElement {
                 <button class="login-link-btn" type="button" id="register-back">${copy.registerBack}</button>
               </div>
             </div>
+            <div class="login-panel" data-panel="magic" hidden>
+              <div id="magic-form">
+                <h3>${copy.magicTitle}</h3>
+                <p class="muted">${copy.magicSubtitle}</p>
+                <div class="login-inputs">
+                  <label class="login-field" for="magic-email">
+                    <span class="login-label">${copy.magicEmailLabel}</span>
+                    <input class="chat-text-input login-text-input" autocomplete="email" name="magic-email" id="magic-email" type="email" inputmode="email" placeholder="${copy.magicEmailPlaceholder}">
+                  </label>
+                </div>
+                <p id="magic-error" style="display:none; margin:4px 0 0; color: var(--ion-color-danger, #eb445a); font-size:0.9rem;"></p>
+                <ion-button expand="block" shape="round" id="magic-submit">${copy.magicSubmit}</ion-button>
+                <div class="login-links">
+                  <button class="login-link-btn" type="button" id="magic-back">${copy.magicBack}</button>
+                </div>
+              </div>
+              <div id="magic-sent" hidden>
+                <h3>${copy.magicSentTitle}</h3>
+                <p class="muted">${copy.magicSentMessage}</p>
+                <div class="login-links">
+                  <button class="login-link-btn" type="button" id="magic-resend">${copy.magicResend}</button>
+                  <button class="login-link-btn" type="button" id="magic-back-from-sent">${copy.magicBack}</button>
+                </div>
+              </div>
+            </div>
             <div class="login-panel" data-panel="recover" hidden>
               <h3>${copy.recoverTitle}</h3>
               <p class="muted">${copy.recoverSubtitle}</p>
@@ -111,6 +137,7 @@ class PageLogin extends HTMLElement {
     const loginErrorEl = () => this.querySelector('#login-error');
     const registerErrorEl = () => this.querySelector('#register-error');
     const recoverErrorEl = () => this.querySelector('#recover-error');
+    const magicErrorEl = () => this.querySelector('#magic-error');
     const setError = (el, message) => {
       if (!el) return;
       if (message) {
@@ -124,6 +151,7 @@ class PageLogin extends HTMLElement {
     const setLoginError = (message) => setError(loginErrorEl(), message);
     const setRegisterError = (message) => setError(registerErrorEl(), message);
     const setRecoverError = (message) => setError(recoverErrorEl(), message);
+    const setMagicError = (message) => setError(magicErrorEl(), message);
 
     const isLoginLocked = () => {
       const modal = this.closest('ion-modal');
@@ -155,13 +183,22 @@ class PageLogin extends HTMLElement {
     const panels = {
       login: this.querySelector('[data-panel="login"]'),
       register: this.querySelector('[data-panel="register"]'),
-      recover: this.querySelector('[data-panel="recover"]')
+      recover: this.querySelector('[data-panel="recover"]'),
+      magic: this.querySelector('[data-panel="magic"]')
     };
 
     const clearErrors = () => {
       setLoginError('');
       setRegisterError('');
       setRecoverError('');
+      setMagicError('');
+    };
+
+    const resetMagicPanel = () => {
+      const form = this.querySelector('#magic-form');
+      const sent = this.querySelector('#magic-sent');
+      if (form) form.hidden = false;
+      if (sent) sent.hidden = true;
     };
 
     const setPanel = (name) => {
@@ -170,6 +207,7 @@ class PageLogin extends HTMLElement {
         panel.hidden = key !== name;
       });
       clearErrors();
+      if (name !== 'magic') resetMagicPanel();
     };
 
     const presentInfo = async (message) => {
@@ -385,6 +423,7 @@ class PageLogin extends HTMLElement {
 
     let registerPending = false;
     let recoverPending = false;
+    let magicLinkPending = false;
 
     const registerAccount = async () => {
       if (registerPending) return;
@@ -448,6 +487,44 @@ class PageLogin extends HTMLElement {
       setPanel('login');
     };
 
+    const requestMagicLink = async () => {
+      if (magicLinkPending) return;
+      magicLinkPending = true;
+      const submitBtn = this.querySelector('#magic-submit');
+      if (submitBtn) submitBtn.disabled = true;
+      setMagicError('');
+
+      const emailEl = this.querySelector('#magic-email');
+      const email = emailEl && emailEl.value ? String(emailEl.value).trim() : '';
+      if (!email) {
+        setMagicError(copy.errors.magicEmailRequired);
+        magicLinkPending = false;
+        if (submitBtn) submitBtn.disabled = false;
+        return;
+      }
+
+      const isMobile = typeof window.Capacitor !== 'undefined' &&
+                       typeof window.Capacitor.isNativePlatform === 'function' &&
+                       window.Capacitor.isNativePlatform();
+      const platform = isMobile ? 'mobile' : 'web';
+      const locale = resolveUiLocale();
+      const result = await doPost('/auth/magic', null, { email, platform, locale, lang: locale });
+
+      magicLinkPending = false;
+      if (submitBtn) submitBtn.disabled = false;
+
+      if (!result.ok || (result.data && result.data.error)) {
+        const message = (result.data && result.data.error) || copy.errors.magicFailed;
+        setMagicError(message);
+        return;
+      }
+
+      const form = this.querySelector('#magic-form');
+      const sent = this.querySelector('#magic-sent');
+      if (form) form.hidden = true;
+      if (sent) sent.hidden = false;
+    };
+
     const recoverPassword = async () => {
       if (recoverPending) return;
       recoverPending = true;
@@ -488,12 +565,20 @@ class PageLogin extends HTMLElement {
     this.querySelector('#login-google')?.addEventListener('click', loginGoogle);
     this.querySelector('#login-fb')?.addEventListener('click', loginFb);
     this.querySelector('#login-close')?.addEventListener('click', closeLogin);
+    this.querySelector('#login-magic-link')?.addEventListener('click', () => setPanel('magic'));
     this.querySelector('#login-register-link')?.addEventListener('click', () => setPanel('register'));
     this.querySelector('#login-forgot-link')?.addEventListener('click', () => setPanel('recover'));
     this.querySelector('#register-back')?.addEventListener('click', () => setPanel('login'));
     this.querySelector('#recover-back')?.addEventListener('click', () => setPanel('login'));
+    this.querySelector('#magic-back')?.addEventListener('click', () => setPanel('login'));
+    this.querySelector('#magic-back-from-sent')?.addEventListener('click', () => setPanel('login'));
+    this.querySelector('#magic-resend')?.addEventListener('click', () => {
+      resetMagicPanel();
+      requestMagicLink();
+    });
     this.querySelector('#register-submit')?.addEventListener('click', registerAccount);
     this.querySelector('#recover-submit')?.addEventListener('click', recoverPassword);
+    this.querySelector('#magic-submit')?.addEventListener('click', requestMagicLink);
     setPanel('login');
     syncLockedLoginUi();
 

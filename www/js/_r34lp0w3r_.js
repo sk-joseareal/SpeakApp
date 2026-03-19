@@ -607,6 +607,25 @@ if (!window.loginCallbackFromBrowser) {
   };
 }
 
+// Detectar callback de magic link en web (?magic_session=... en la URL)
+(function() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const magicSession = params.get('magic_session');
+    if (!magicSession) return;
+    // Limpiar el param de la URL antes de procesar
+    params.delete('magic_session');
+    const cleanUrl = window.location.pathname +
+      (params.toString() ? '?' + params.toString() : '') +
+      window.location.hash;
+    window.history.replaceState({}, '', cleanUrl);
+    // Reutilizar el mismo parser que usa el callback OAuth
+    procesarLoginDesdeCallback('app://callback?loginData=' + magicSession);
+  } catch (err) {
+    console.warn('> magic_session parse error:', err);
+  }
+})();
+
 /// ----------------------------------------------------------------------------------- Plugin AdMob
 if (window.Capacitor)
   window.AdMob = Capacitor.Plugins.AdMob;

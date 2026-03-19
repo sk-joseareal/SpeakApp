@@ -503,10 +503,9 @@ class PageLogin extends HTMLElement {
         return;
       }
 
-      const isMobile = typeof window.Capacitor !== 'undefined' &&
-                       typeof window.Capacitor.isNativePlatform === 'function' &&
-                       window.Capacitor.isNativePlatform();
-      const platform = isMobile ? 'mobile' : 'web';
+      const cap = window.Capacitor;
+      const capPlatform = (cap && typeof cap.getPlatform === 'function') ? cap.getPlatform() : 'web';
+      const platform = (capPlatform === 'ios' || capPlatform === 'android') ? 'mobile' : 'web';
       const locale = resolveUiLocale();
       const result = await doPost('/auth/magic', null, { email, platform, locale, lang: locale });
 

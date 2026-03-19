@@ -60,7 +60,7 @@ routerReady.then((router) => {
   setupNotificationsModal();
   setupLoginModal();
   setupLoginNotificationsSeed();
-  checkMagicSession();
+  checkMagicToken();
 });
 
 function setupSecretDiagnostics(router) {
@@ -248,23 +248,41 @@ function setupLoginModal() {
   });
 }
 
-function checkMagicSession() {
+function checkMagicToken() {
   try {
     const params = new URLSearchParams(window.location.search);
-    const magicSession = params.get('magic_session');
-    if (!magicSession) return;
-    params.delete('magic_session');
+    const token = params.get('magic_token');
+    const uid   = params.get('magic_uid');
+    if (!token || !uid) return;
+
+    params.delete('magic_token');
+    params.delete('magic_uid');
     const cleanUrl = window.location.pathname +
       (params.toString() ? '?' + params.toString() : '') +
       window.location.hash;
     window.history.replaceState({}, '', cleanUrl);
-    // magic_session ya está decodificado por URLSearchParams — hay que re-encodarlo
-    // para que procesarLoginDesdeCallback pueda parsearlo como loginData
-    if (typeof window.loginCallbackFromBrowser === 'function') {
-      window.loginCallbackFromBrowser('app://callback?loginData=' + encodeURIComponent(magicSession));
+
+    if (typeof window.doPost !== 'function') {
+      console.warn('[magic] doPost no disponible');
+      return;
     }
+    window.doPost('/auth/magic/exchange', null, { token, uid }).then(result => {
+      if (!result || !result.ok) {
+        console.warn('[magic] intercambio fallido:', result && result.data && result.data.error);
+        return;
+      }
+      const user = result.data && result.data.user ? { ...result.data.user } : null;
+      if (!user) { console.warn('[magic] sesión sin usuario'); return; }
+      if (typeof window.setUser === 'function') {
+        window.setUser(user);
+      } else {
+        window.user = user;
+        try { localStorage.setItem('appv5:user', JSON.stringify(user)); } catch (_) {}
+        window.dispatchEvent(new CustomEvent('app:user-change', { detail: user }));
+      }
+    }).catch(err => console.warn('[magic] error en exchange:', err));
   } catch (err) {
-    console.warn('[magic] error procesando magic_session:', err);
+    console.warn('[magic] error procesando magic_token:', err);
   }
 }
 

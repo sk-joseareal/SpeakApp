@@ -3077,6 +3077,36 @@ document.addEventListener('DOMContentLoaded', async function() {
   //
 
   //
+  ///// Magic link handler (Universal Links desde cliente de correo nativo)
+  const handleMagicLinkUrl = async (url) => {
+    try {
+      const parsed = new URL(url);
+      const token = parsed.searchParams.get('magic_token');
+      const uid   = parsed.searchParams.get('magic_uid');
+      if (!token || !uid) return false;
+      console.log('>#magic#> handleMagicLinkUrl: magic_token detectado');
+      if (typeof window.doPost !== 'function') return false;
+      const result = await window.doPost('/auth/magic/exchange', null, { token, uid });
+      if (!result || !result.ok) {
+        console.warn('>#magic#> intercambio fallido:', result && result.data && result.data.error);
+        return true; // consumido, aunque fallara
+      }
+      const user = result.data && result.data.user ? { ...result.data.user } : null;
+      if (!user) { console.warn('>#magic#> sesión sin usuario'); return true; }
+      if (typeof window.setUser === 'function') {
+        window.setUser(user);
+      } else {
+        window.user = user;
+        try { localStorage.setItem('appv5:user', JSON.stringify(user)); } catch (_) {}
+        window.dispatchEvent(new CustomEvent('app:user-change', { detail: user }));
+      }
+      return true;
+    } catch (err) {
+      console.warn('>#magic#> handleMagicLinkUrl error:', err);
+      return false;
+    }
+  };
+
   ///// Registrar los listeners de Capacitor.App
   if (plugins.App && typeof plugins.App.addListener === 'function') {
     console.log(">#C02#> Plugin App (loginSocial): 📲 Registrando listener appUrlOpen.");
@@ -3084,6 +3114,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     // Registrar el listener para appUrlOpen para manejar URLs con esquema app://
     plugins.App.addListener('appUrlOpen', async function(info) {
       console.log(">#C02#> Plugin App (loginSocial): 📥 appUrlOpen ACTIVADO con URL:", info.url);
+      if (await handleMagicLinkUrl(info.url)) return;
       await handleSocialLoginCallbackUrl(info.url, {
         closeBrowser: true,
         source: 'appUrlOpen'
@@ -3095,10 +3126,12 @@ document.addEventListener('DOMContentLoaded', async function() {
         const launchData = await plugins.App.getLaunchUrl();
         if (launchData && launchData.url) {
           console.log('>#C02#> Plugin App (loginSocial): getLaunchUrl detectó URL:', launchData.url);
-          await handleSocialLoginCallbackUrl(launchData.url, {
-            closeBrowser: true,
-            source: 'getLaunchUrl'
-          });
+          if (!(await handleMagicLinkUrl(launchData.url))) {
+            await handleSocialLoginCallbackUrl(launchData.url, {
+              closeBrowser: true,
+              source: 'getLaunchUrl'
+            });
+          }
         }
       } catch (err) {
         console.log('>#C02#> Plugin App (loginSocial): Error en getLaunchUrl:', err);

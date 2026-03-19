@@ -108,14 +108,18 @@ class PageLogin extends HTMLElement {
               <div id="magic-sent" hidden>
                 <h3>${copy.magicSentTitle}</h3>
                 <p class="muted">${copy.magicSentMessage}<br><strong id="magic-sent-email"></strong></p>
-                <div class="login-inputs" style="margin-top:12px">
-                  <label class="login-field" for="magic-otp-input">
-                    <span class="login-label">${copy.magicOtpLabel}</span>
-                    <input class="chat-text-input login-text-input" id="magic-otp-input" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" maxlength="6" placeholder="${copy.magicOtpPlaceholder}">
-                  </label>
+                <div style="margin-top:14px">
+                  <span class="login-label">${copy.magicOtpLabel}</span>
+                  <div id="otp-digits" style="display:flex;gap:8px;justify-content:center;margin-top:10px">
+                    <input class="otp-digit" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" maxlength="1" data-idx="0" style="width:44px;height:52px;text-align:center;font-size:22px;font-family:monospace;font-weight:700;border:2px solid var(--ion-color-medium,#92949c);border-radius:8px;background:transparent;color:inherit;outline:none">
+                    <input class="otp-digit" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" data-idx="1" style="width:44px;height:52px;text-align:center;font-size:22px;font-family:monospace;font-weight:700;border:2px solid var(--ion-color-medium,#92949c);border-radius:8px;background:transparent;color:inherit;outline:none">
+                    <input class="otp-digit" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" data-idx="2" style="width:44px;height:52px;text-align:center;font-size:22px;font-family:monospace;font-weight:700;border:2px solid var(--ion-color-medium,#92949c);border-radius:8px;background:transparent;color:inherit;outline:none">
+                    <input class="otp-digit" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" data-idx="3" style="width:44px;height:52px;text-align:center;font-size:22px;font-family:monospace;font-weight:700;border:2px solid var(--ion-color-medium,#92949c);border-radius:8px;background:transparent;color:inherit;outline:none">
+                    <input class="otp-digit" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" data-idx="4" style="width:44px;height:52px;text-align:center;font-size:22px;font-family:monospace;font-weight:700;border:2px solid var(--ion-color-medium,#92949c);border-radius:8px;background:transparent;color:inherit;outline:none">
+                    <input class="otp-digit" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" data-idx="5" style="width:44px;height:52px;text-align:center;font-size:22px;font-family:monospace;font-weight:700;border:2px solid var(--ion-color-medium,#92949c);border-radius:8px;background:transparent;color:inherit;outline:none">
+                  </div>
                 </div>
-                <p id="magic-otp-error" style="display:none; margin:4px 0 0; color: var(--ion-color-danger, #eb445a); font-size:0.9rem;"></p>
-                <ion-button expand="block" shape="round" id="magic-otp-submit" style="margin-top:8px">${copy.magicOtpSubmit}</ion-button>
+                <p id="magic-otp-error" style="display:none; margin:8px 0 0; color: var(--ion-color-danger, #eb445a); font-size:0.9rem; text-align:center;"></p>
                 <div class="login-links" style="margin-top:8px">
                   <button class="login-link-btn" type="button" id="magic-resend">${copy.magicResend}</button>
                   <button class="login-link-btn" type="button" id="magic-back-from-sent">${copy.magicBack}</button>
@@ -197,6 +201,16 @@ class PageLogin extends HTMLElement {
       magic: this.querySelector('[data-panel="magic"]')
     };
 
+    const getOtpInputs  = () => Array.from(this.querySelectorAll('.otp-digit'));
+    const getOtpValue   = () => getOtpInputs().map(i => i.value).join('');
+    const clearOtpInputs = () => {
+      getOtpInputs().forEach(i => { i.value = ''; i.style.borderColor = ''; });
+    };
+    const focusOtpInput = (idx) => {
+      const inputs = getOtpInputs();
+      if (inputs[idx]) { inputs[idx].focus(); inputs[idx].select(); }
+    };
+
     const clearErrors = () => {
       setLoginError('');
       setRegisterError('');
@@ -210,8 +224,7 @@ class PageLogin extends HTMLElement {
       const sent = this.querySelector('#magic-sent');
       if (form) form.hidden = false;
       if (sent) sent.hidden = true;
-      const otpInput = this.querySelector('#magic-otp-input');
-      if (otpInput) otpInput.value = '';
+      clearOtpInputs();
       setMagicOtpError('');
       magicLastUid = '';
     };
@@ -543,30 +556,34 @@ class PageLogin extends HTMLElement {
 
     const submitOtp = async () => {
       if (otpPending) return;
-      const otpInput = this.querySelector('#magic-otp-input');
-      const otp = otpInput && otpInput.value ? String(otpInput.value).trim() : '';
-      if (!otp || otp.length !== 6) {
+      const otp = getOtpValue();
+      if (otp.length !== 6) {
         setMagicOtpError(copy.errors.magicOtpRequired);
+        focusOtpInput(otp.length < 6 ? otp.length : 0);
         return;
       }
       otpPending = true;
-      const otpBtn = this.querySelector('#magic-otp-submit');
-      if (otpBtn) otpBtn.disabled = true;
       setMagicOtpError('');
 
       const result = await doPost('/auth/magic/otp-exchange', null, { otp, uid: magicLastUid });
 
       otpPending = false;
-      if (otpBtn) otpBtn.disabled = false;
 
       if (!result.ok || (result.data && result.data.error)) {
         const message = (result.data && result.data.error) || copy.errors.magicOtpFailed;
         setMagicOtpError(message);
+        clearOtpInputs();
+        focusOtpInput(0);
         return;
       }
 
       const user = result.data && result.data.user ? { ...result.data.user } : null;
-      if (!user) { setMagicOtpError(copy.errors.magicOtpFailed); return; }
+      if (!user) {
+        setMagicOtpError(copy.errors.magicOtpFailed);
+        clearOtpInputs();
+        focusOtpInput(0);
+        return;
+      }
       if (typeof window.setUser === 'function') {
         window.setUser(user);
       } else {
@@ -631,10 +648,61 @@ class PageLogin extends HTMLElement {
     this.querySelector('#register-submit')?.addEventListener('click', registerAccount);
     this.querySelector('#recover-submit')?.addEventListener('click', recoverPassword);
     this.querySelector('#magic-submit')?.addEventListener('click', requestMagicLink);
-    this.querySelector('#magic-otp-submit')?.addEventListener('click', submitOtp);
-    this.querySelector('#magic-otp-input')?.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') submitOtp();
-    });
+
+    // OTP: 6-digit box navigation
+    const otpContainer = this.querySelector('#otp-digits');
+    if (otpContainer) {
+      otpContainer.addEventListener('input', (e) => {
+        const input = e.target;
+        if (!input.classList.contains('otp-digit')) return;
+        const idx = parseInt(input.dataset.idx, 10);
+        const inputs = getOtpInputs();
+        const raw = input.value.replace(/\D/g, '');
+        if (raw.length > 1) {
+          // iOS autocomplete or desktop paste fills first input with full code
+          raw.split('').slice(0, 6).forEach((d, i) => { if (inputs[i]) inputs[i].value = d; });
+          focusOtpInput(Math.min(raw.length - 1, 5));
+          if (getOtpValue().length === 6) submitOtp();
+          return;
+        }
+        input.value = raw;
+        if (raw && idx < 5) focusOtpInput(idx + 1);
+        if (raw && idx === 5 && getOtpValue().length === 6) submitOtp();
+      });
+
+      otpContainer.addEventListener('keydown', (e) => {
+        const input = e.target;
+        if (!input.classList.contains('otp-digit')) return;
+        const idx = parseInt(input.dataset.idx, 10);
+        if (e.key === 'Backspace') {
+          e.preventDefault();
+          if (input.value) { input.value = ''; } else if (idx > 0) { focusOtpInput(idx - 1); }
+        }
+        if (e.key === 'ArrowLeft'  && idx > 0) focusOtpInput(idx - 1);
+        if (e.key === 'ArrowRight' && idx < 5) focusOtpInput(idx + 1);
+      });
+
+      otpContainer.addEventListener('paste', (e) => {
+        e.preventDefault();
+        const pasted = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '');
+        if (!pasted) return;
+        const inputs = getOtpInputs();
+        pasted.split('').slice(0, 6).forEach((d, i) => { if (inputs[i]) inputs[i].value = d; });
+        focusOtpInput(Math.min(pasted.length - 1, 5));
+        if (pasted.length >= 6) submitOtp();
+      });
+
+      otpContainer.addEventListener('focus', (e) => {
+        if (!e.target.classList.contains('otp-digit')) return;
+        e.target.style.borderColor = 'var(--ion-color-primary, #4a90d9)';
+        e.target.select();
+      }, true);
+
+      otpContainer.addEventListener('blur', (e) => {
+        if (!e.target.classList.contains('otp-digit')) return;
+        e.target.style.borderColor = '';
+      }, true);
+    }
     setPanel('login');
     syncLockedLoginUi();
 

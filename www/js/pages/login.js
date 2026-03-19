@@ -503,11 +503,8 @@ class PageLogin extends HTMLElement {
         return;
       }
 
-      const cap = window.Capacitor;
-      const capPlatform = (cap && typeof cap.getPlatform === 'function') ? cap.getPlatform() : 'web';
-      const platform = (capPlatform === 'ios' || capPlatform === 'android') ? 'mobile' : 'web';
       const locale = resolveUiLocale();
-      const result = await doPost('/auth/magic', null, { email, platform, locale, lang: locale });
+      const result = await doPost('/auth/magic', null, { email, locale, lang: locale });
 
       magicLinkPending = false;
       if (submitBtn) submitBtn.disabled = false;

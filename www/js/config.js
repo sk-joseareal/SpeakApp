@@ -9,7 +9,7 @@
 
   window.appMeta = window.appMeta || {
     version: window.APP_VERSION || '1.0.1',
-    build: window.APP_BUILD || '26'
+    build: window.APP_BUILD || '27'
   };
 
   const emitAppMeta = () => {
@@ -203,12 +203,12 @@
     window.speakSummaryConfig.phrases = {
       en: {
         good: ['You sound like a native', 'Great job!'],
-        okay: ['Almost correct!', 'Keep practicing'],
+        okay: ['Good! Continue practicing', 'Almost Correct!'],
         bad: ['Keep practicing', 'Try again']
       },
       es: {
         good: ['Suena como un nativo', 'Gran trabajo'],
-        okay: ['Casi correcto', 'Sigue practicando'],
+        okay: ['Bien. Sigue practicando', 'Casi correcto'],
         bad: ['Sigue practicando', 'Intentalo de nuevo']
       }
     };

@@ -1,5 +1,6 @@
-import { getAppLocale } from '../state.js';
-import { getChatCopy, normalizeLocale as normalizeCopyLocale } from '../content/copy.js';
+import { getAppLocale, setAppLocale } from '../state.js';
+import { renderAppHeader } from '../components/app-header.js';
+import { getChatCopy, getNextLocaleCode, getTabsCopy, normalizeLocale as normalizeCopyLocale } from '../content/copy.js';
 
 class PageChat extends HTMLElement {
   connectedCallback() {
@@ -17,23 +18,7 @@ class PageChat extends HTMLElement {
       (_, idx) => `<span class="talk-wave-bar" style="--i:${idx}"></span>`
     ).join('');
     this.innerHTML = `
-      <ion-header translucent="true">
-        <ion-toolbar class="secret-title">
-          <div class="app-header-actions" slot="end">
-            <div class="app-user-info" id="chat-user-info" hidden>
-              <img class="app-user-avatar" id="chat-user-avatar" alt="Avatar">
-              <span class="app-user-name" id="chat-user-name"></span>
-            </div>
-            <div class="reward-badges" id="chat-reward-badges"></div>
-            <ion-button fill="clear" size="small" class="app-notify-btn">
-              <ion-icon slot="icon-only" name="notifications-outline"></ion-icon>
-            </ion-button>
-            <ion-button fill="clear" size="small" class="app-logout-btn" id="chat-logout-btn" hidden>
-              <ion-icon slot="icon-only" name="log-out-outline"></ion-icon>
-            </ion-button>
-          </div>
-        </ion-toolbar>
-      </ion-header>
+      ${renderAppHeader({ title: getTabsCopy(uiLocale).chat, rewardBadgesId: 'chat-reward-badges', nextLocale: getNextLocaleCode(uiLocale).toUpperCase() })}
       <ion-content fullscreen class="secret-content" scroll-y="false">
         <div class="page-shell">
           <div class="card chat-chat-card">
@@ -160,11 +145,7 @@ class PageChat extends HTMLElement {
     const loginPanel = this.querySelector('#chat-login-panel');
     const lockedPanel = this.querySelector('#chat-locked-panel');
     const loadingPanel = this.querySelector('#chat-loading-panel');
-    const userInfoEl = this.querySelector('#chat-user-info');
-    const userAvatarEl = this.querySelector('#chat-user-avatar');
-    const userNameEl = this.querySelector('#chat-user-name');
     const rewardsEl = this.querySelector('#chat-reward-badges');
-    const logoutBtn = this.querySelector('#chat-logout-btn');
     const recordBtn = this.querySelector('#chat-record-btn');
     const previewBtn = this.querySelector('#chat-preview-btn');
     const sendBtn = this.querySelector('#chat-send-btn');
@@ -5632,27 +5613,6 @@ class PageChat extends HTMLElement {
       await modal.present();
     };
 
-    const updateUserHeader = (user, loggedIn) => {
-      if (userInfoEl) userInfoEl.hidden = !loggedIn;
-      if (logoutBtn) logoutBtn.hidden = !loggedIn;
-      if (!loggedIn || !user) {
-        if (userNameEl) userNameEl.textContent = '';
-        if (userAvatarEl) {
-          userAvatarEl.src = '';
-          userAvatarEl.hidden = true;
-        }
-        return;
-      }
-      const name = getUserDisplayName(user);
-      const avatar = getUserAvatar(user);
-      if (userNameEl) userNameEl.textContent = name || 'Usuario';
-      if (userAvatarEl) {
-        userAvatarEl.src = avatar || '';
-        userAvatarEl.alt = name ? `Avatar ${name}` : 'Avatar';
-        userAvatarEl.hidden = !avatar;
-      }
-    };
-
     const updateHeaderRewards = () => {
       if (!rewardsEl) return;
       const rewards =
@@ -5698,8 +5658,6 @@ class PageChat extends HTMLElement {
         chatThreads.catbot.length > 0 ||
         chatThreads.chatbot.length > 0 ||
         chatThreads.community.length > 0;
-
-      updateUserHeader(user, loggedIn);
 
       if (loginPanel) loginPanel.hidden = loggedIn;
       if (lockedPanel) lockedPanel.hidden = !loggedIn || chatEnabled;
@@ -6170,20 +6128,6 @@ class PageChat extends HTMLElement {
     communityDmBackBtn?.addEventListener('click', () => {
       closeCommunityDmRoom();
     });
-    logoutBtn?.addEventListener('click', () => {
-      if (typeof window.setUser === 'function') {
-        window.setUser(null);
-        return;
-      }
-      window.user = null;
-      try {
-        localStorage.removeItem('appv5:user');
-      } catch (err) {
-        console.error('[user] error borrando localStorage', err);
-      }
-      window.dispatchEvent(new CustomEvent('app:user-change', { detail: null }));
-    });
-
     chatPanel?.addEventListener('pointerdown', handleChatPanelPointerDown);
     composerRow?.addEventListener('pointerdown', handleControlPointerDown);
     recordBtn?.addEventListener('pointerdown', handleControlPointerDown);
@@ -6208,7 +6152,6 @@ class PageChat extends HTMLElement {
     } else {
       loadTalkTimelinesForUser(null);
     }
-    updateUserHeader(initialUser, Boolean(initialLoggedIn));
     updateHeaderRewards();
     showLoadingState();
     accessLoadingTimer = setTimeout(() => {
@@ -6273,6 +6216,10 @@ class PageChat extends HTMLElement {
       uiLocale = normalized;
       uiCopy = getChatCopy(uiLocale);
       tokenFmt = new Intl.NumberFormat(uiLocale === 'es' ? 'es-ES' : 'en-US');
+      const localeLabelEl = this.querySelector('.app-locale-label');
+      if (localeLabelEl) localeLabelEl.textContent = getNextLocaleCode(normalized).toUpperCase();
+      const toolbarTitleEl = this.querySelector('.app-toolbar-title');
+      if (toolbarTitleEl) toolbarTitleEl.textContent = getTabsCopy(normalized).chat;
 
       if (modeToggle) {
         const catBtn = modeToggle.querySelector('[data-mode="catbot"]');
@@ -6636,6 +6583,14 @@ class PageChat extends HTMLElement {
     window.r34lp0w3r = window.r34lp0w3r || {};
     window.r34lp0w3r.chatCatbotEnabled = catbotFeatureEnabled;
     applyLocaleCopy(uiLocale, { force: true, rerenderThread: false });
+    this.querySelector('.app-locale-btn')?.addEventListener('click', () => {
+      const nextLocale = getNextLocaleCode(getAppLocale() || 'en');
+      setAppLocale(nextLocale);
+      if (window.varGlobal && typeof window.varGlobal === 'object') {
+        window.varGlobal.locale = nextLocale;
+      }
+      window.dispatchEvent(new CustomEvent('app:locale-change', { detail: { locale: nextLocale } }));
+    });
     this._localeHandler = (event) => {
       const nextLocale = event && event.detail ? event.detail.locale : '';
       applyLocaleCopy(nextLocale, { rerenderThread: true });

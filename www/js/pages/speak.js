@@ -98,9 +98,8 @@ class PageSpeak extends HTMLElement {
     const SWIPE_VERTICAL_RATIO = 1.2;
     const DEBUG_PANEL_OPEN_KEY = 'appv5:speak-debug-panel-open';
     const SPEAK_SESSION_PERCENTAGES_VISIBLE_KEY = 'appv5:speak-session-percentages-visible';
-    const SESSION_DIAMOND_REWARD_QTY = 1;
-    const SESSION_DIAMOND_REWARD_LABEL = 'diamonds';
-    const SESSION_DIAMOND_REWARD_ICON = 'diamond';
+    const MODULE_TROPHY_REWARD_QTY = 1;
+    const MODULE_TROPHY_REWARD_ICON = 'trophy';
     const MAX_ROUTE_BADGE_COUNT = 5;
     const HERO_MASCOT_FRAME_COUNT = 9;
     const HERO_MASCOT_REST_FRAME = HERO_MASCOT_FRAME_COUNT - 1;
@@ -1098,12 +1097,11 @@ class PageSpeak extends HTMLElement {
       { min: 0, tone: 'bad' }
     ];
 
-    const DEFAULT_LABEL_SCALE = [
-      { min: 85, label: 'You sound like a native' },
-      { min: 70, label: 'Good! Continue practicing' },
-      { min: 60, label: 'Almost Correct!' },
-      { min: 0, label: 'Keep practicing' }
-    ];
+    const DEFAULT_FEEDBACK_PHRASES = {
+      good: ['You sound like a native', 'Great job!'],
+      okay: ['Good! Continue practicing', 'Almost Correct!'],
+      bad: ['Keep practicing', 'Try again']
+    };
 
     const DEFAULT_SUMMARY_TITLE_TEMPLATES = {
       good: ['Great! You learned {{session}}'],
@@ -1112,9 +1110,9 @@ class PageSpeak extends HTMLElement {
     };
 
     const DEFAULT_SUMMARY_PHRASES = {
-      good: ['You sound like a native', 'Great job!'],
-      okay: ['Almost correct!', 'Keep practicing'],
-      bad: ['Keep practicing', 'Try again']
+      good: DEFAULT_FEEDBACK_PHRASES.good.slice(),
+      okay: DEFAULT_FEEDBACK_PHRASES.okay.slice(),
+      bad: DEFAULT_FEEDBACK_PHRASES.bad.slice()
     };
 
     const blobToBase64 = (blob) =>
@@ -1303,6 +1301,31 @@ class PageSpeak extends HTMLElement {
       return fallback;
     };
 
+    const getDefaultTonePhrases = (locale = getHintUiLocale()) => {
+      const normalized = normalizeHintLocale(locale) || 'en';
+      if (normalized === 'es') {
+        return {
+          good: [getSpeakUiText('feedbackNative', locale, 'You sound like a native'), 'Gran trabajo'],
+          okay: [
+            getSpeakUiText('feedbackGood', locale, 'Good! Continue practicing'),
+            getSpeakUiText('feedbackAlmost', locale, 'Almost Correct!')
+          ],
+          bad: [getSpeakUiText('feedbackKeep', locale, 'Keep practicing'), 'Intentalo de nuevo']
+        };
+      }
+      return {
+        good: [
+          getSpeakUiText('feedbackNative', locale, 'You sound like a native'),
+          DEFAULT_FEEDBACK_PHRASES.good[1]
+        ],
+        okay: [
+          getSpeakUiText('feedbackGood', locale, 'Good! Continue practicing'),
+          getSpeakUiText('feedbackAlmost', locale, 'Almost Correct!')
+        ],
+        bad: [getSpeakUiText('feedbackKeep', locale, 'Keep practicing'), DEFAULT_FEEDBACK_PHRASES.bad[1]]
+      };
+    };
+
     const getDefaultLabelScale = (locale = getHintUiLocale()) => [
       { min: 85, label: getSpeakUiText('feedbackNative', locale, 'You sound like a native') },
       { min: 70, label: getSpeakUiText('feedbackGood', locale, 'Good! Continue practicing') },
@@ -1341,15 +1364,29 @@ class PageSpeak extends HTMLElement {
       return null;
     };
 
+    const resolveTonePhrasesFromConfig = (config, locale) => {
+      if (!config || typeof config !== 'object') return null;
+      return (
+        resolveLocaleConfigBlock(config.tonePhrasesByLocale, locale) ||
+        resolveLocaleConfigBlock(config.labelPhrasesByLocale, locale) ||
+        resolveLocaleConfigBlock(config.tonePhrases_i18n, locale) ||
+        resolveLocaleConfigBlock(config.tonePhrases, locale)
+      );
+    };
+
     const getFeedbackConfig = (locale = getHintUiLocale()) => {
       const config = window.r34lp0w3r && window.r34lp0w3r.speakFeedback;
       const toneScale =
         config && Array.isArray(config.toneScale) ? config.toneScale : DEFAULT_TONE_SCALE;
+      const fallbackTonePhrases = getDefaultTonePhrases(locale);
       const labelScaleFromConfig = resolveLabelScaleFromConfig(config, locale);
-      const labelScale = Array.isArray(labelScaleFromConfig)
-        ? labelScaleFromConfig
-        : getDefaultLabelScale(locale);
-      return { toneScale, labelScale };
+      const labelScale = Array.isArray(labelScaleFromConfig) ? labelScaleFromConfig : getDefaultLabelScale(locale);
+      const configuredTonePhrases = resolveTonePhrasesFromConfig(config, locale);
+      const tonePhrases = resolveToneListMap(
+        configuredTonePhrases,
+        deriveTonePhrasesFromLabelScale(labelScale, toneScale, fallbackTonePhrases)
+      );
+      return { toneScale, tonePhrases };
     };
 
     const normalizeScale = (scale, key) => {
@@ -1366,10 +1403,38 @@ class PageSpeak extends HTMLElement {
       return fallback;
     };
 
+    const deriveTonePhrasesFromLabelScale = (labelScale, toneScale, fallbackTonePhrases) => {
+      const normalizedLabels = normalizeScale(labelScale, 'label');
+      const normalizedTones = normalizeScale(toneScale, 'tone');
+      const derived = {};
+      normalizedTones.forEach((entry, index) => {
+        const previous = normalizedTones[index - 1];
+        const max = index === 0 ? Number.POSITIVE_INFINITY : previous.min - 1;
+        derived[entry.tone] = normalizedLabels
+          .filter((item) => item.min >= entry.min && item.min <= max)
+          .map((item) => item.label);
+      });
+      return resolveToneListMap(derived, fallbackTonePhrases);
+    };
+
+    const pickStableTonePhrase = (items, seed, fallback = '') => {
+      const list = Array.isArray(items)
+        ? items.map((item) => String(item || '').trim()).filter(Boolean)
+        : [];
+      if (!list.length) return fallback;
+      const base = String(seed || list.join('|'));
+      let hash = 0;
+      for (let idx = 0; idx < base.length; idx += 1) {
+        hash = (hash * 31 + base.charCodeAt(idx)) >>> 0;
+      }
+      return list[hash % list.length];
+    };
+
     const getSummaryConfig = (locale = getHintUiLocale()) => {
       const copy = getSpeakUiCopy(locale);
       const config = window.speakSummaryConfig || {};
-      const fallbackPhrases = resolveToneListMap(copy.summaryPhrases, DEFAULT_SUMMARY_PHRASES);
+      const { tonePhrases } = getFeedbackConfig(locale);
+      const fallbackPhrases = resolveToneListMap(tonePhrases, DEFAULT_SUMMARY_PHRASES);
       const configuredPhrases = resolveLocaleConfigBlock(config.phrases, locale);
       const phrases = resolveToneListMap(configuredPhrases, fallbackPhrases);
       let labelPrefix = '';
@@ -1433,12 +1498,11 @@ class PageSpeak extends HTMLElement {
       const percent = clampPercent(getSessionPercent());
       const tone = getScoreTone(percent, locale);
       const phraseList = phrases && phrases[tone] ? phrases[tone] : [];
-      const phraseFallback = getScoreLabel(percent, locale);
+      const phraseFallback = getScoreLabel(percent, locale, `summary:${currentSessionId}:${percent}`);
       const phrase = pickRandom(phraseList) || phraseFallback;
       const canGrantReward = progressUpdatedThisRun === true;
       const reward =
-        tone === 'good' && canGrantReward ? awardDiamondForSession(currentSessionId) : null;
-      const awardedBadge = canGrantReward ? awardBadgeForCurrentRouteIfEligible() : null;
+        tone === 'good' && canGrantReward ? awardTrophyForCurrentModuleIfEligible(locale) : null;
       progressUpdatedThisRun = false;
       return {
         percent,
@@ -1448,7 +1512,7 @@ class PageSpeak extends HTMLElement {
         rewardLabel: reward ? reward.rewardLabel : '',
         rewardIcon: reward ? reward.rewardIcon : 'diamond',
         labelPrefix,
-        awardedBadge
+        awardedBadge: null
       };
     };
 
@@ -1459,7 +1523,7 @@ class PageSpeak extends HTMLElement {
       const phraseList = phrases && Array.isArray(phrases[tone]) ? phrases[tone] : [];
       const percent =
         typeof state.percent === 'number' && Number.isFinite(state.percent) ? state.percent : 0;
-      const phrase = pickRandom(phraseList) || getScoreLabel(percent, locale);
+      const phrase = pickRandom(phraseList) || getScoreLabel(percent, locale, `summary:${tone}:${percent}`);
       return {
         ...state,
         phrase,
@@ -1762,6 +1826,24 @@ class PageSpeak extends HTMLElement {
       return { started: true, percent, tone: getScoreTone(percent) };
     };
 
+    const getModuleProgressForRewards = (module) => {
+      const sessions = module && Array.isArray(module.sessions) ? module.sessions : [];
+      if (!sessions.length) return { started: false, percent: 0, tone: 'neutral' };
+      const started = sessions.some((session) => hasSessionAttemptsForRouteChecks(session));
+      if (!started) return { started: false, percent: 0, tone: 'neutral' };
+      const total = sessions.reduce(
+        (sum, session) => sum + getSessionPercentForRouteChecks(session),
+        0
+      );
+      const percent = Math.round(total / sessions.length);
+      return { started: true, percent, tone: getScoreTone(percent) };
+    };
+
+    const getModuleRewardLabel = (locale = getHintUiLocale()) => {
+      const normalized = normalizeHintLocale(locale) || 'en';
+      return normalized === 'es' ? 'copa' : 'cup';
+    };
+
     const resolveRouteBadgeMeta = (route) => {
       if (!route || !route.id) return null;
       const routes = Array.isArray(getRoutes()) ? getRoutes() : [];
@@ -1814,22 +1896,24 @@ class PageSpeak extends HTMLElement {
       }
     };
 
-    const awardDiamondForSession = (sessionId) => {
-      if (!sessionId) return null;
-      const previous = getStoredSessionReward(sessionId);
-      const prevQty =
-        previous && typeof previous.rewardQty === 'number' ? Math.max(0, previous.rewardQty) : 0;
-      const nextQty = prevQty + SESSION_DIAMOND_REWARD_QTY;
-      setStoredSessionReward(sessionId, {
-        rewardQty: nextQty,
-        rewardLabel: SESSION_DIAMOND_REWARD_LABEL,
-        rewardIcon: SESSION_DIAMOND_REWARD_ICON
+    const awardTrophyForCurrentModuleIfEligible = (locale = getHintUiLocale()) => {
+      const { module } = resolveSelection(getSelection());
+      if (!module || !module.id) return null;
+      const moduleProgress = getModuleProgressForRewards(module);
+      if (!moduleProgress.started || moduleProgress.tone !== 'good') return null;
+      const rewardId = `module:${module.id}`;
+      if (getStoredSessionReward(rewardId)) return null;
+      const rewardLabel = getModuleRewardLabel(locale);
+      setStoredSessionReward(rewardId, {
+        rewardQty: MODULE_TROPHY_REWARD_QTY,
+        rewardLabel,
+        rewardIcon: MODULE_TROPHY_REWARD_ICON
       });
       return {
-        rewardQty: SESSION_DIAMOND_REWARD_QTY,
-        totalQty: nextQty,
-        rewardLabel: SESSION_DIAMOND_REWARD_LABEL,
-        rewardIcon: SESSION_DIAMOND_REWARD_ICON
+        rewardQty: MODULE_TROPHY_REWARD_QTY,
+        totalQty: MODULE_TROPHY_REWARD_QTY,
+        rewardLabel,
+        rewardIcon: MODULE_TROPHY_REWARD_ICON
       };
     };
 
@@ -2071,15 +2155,19 @@ class PageSpeak extends HTMLElement {
       return resolveFromScale(normalized, value, 'tone', 'bad');
     };
 
-    const getScoreLabel = (percent, locale = getHintUiLocale()) => {
+    const getScoreLabel = (percent, locale = getHintUiLocale(), seed = '') => {
       const value = typeof percent === 'number' ? percent : 0;
-      const { labelScale } = getFeedbackConfig(locale);
-      const normalized = normalizeScale(labelScale, 'label');
-      return resolveFromScale(
-        normalized,
-        value,
-        'label',
-        getSpeakUiText('feedbackKeep', locale, 'Keep practicing')
+      const tone = getScoreTone(value, locale);
+      const { tonePhrases } = getFeedbackConfig(locale);
+      const fallbackTonePhrases = getDefaultTonePhrases(locale);
+      const fallbackList =
+        fallbackTonePhrases && Array.isArray(fallbackTonePhrases[tone])
+          ? fallbackTonePhrases[tone]
+          : [];
+      return pickStableTonePhrase(
+        tonePhrases && Array.isArray(tonePhrases[tone]) ? tonePhrases[tone] : [],
+        seed || `${locale}:${tone}:${value}`,
+        fallbackList[0] || getSpeakUiText('feedbackKeep', locale, 'Keep practicing')
       );
     };
 
@@ -2879,7 +2967,7 @@ class PageSpeak extends HTMLElement {
       return {
         percent,
         tone: getScoreTone(percent, locale),
-        label: getScoreLabel(percent, locale)
+        label: getScoreLabel(percent, locale, `${currentSessionId}:${key}:${percent}`)
       };
     };
 
@@ -3206,7 +3294,7 @@ class PageSpeak extends HTMLElement {
       const label = transcribing
         ? getSpeakUiText('transcribing', locale, 'Transcribing...')
         : hasScore
-        ? getScoreLabel(percent, locale)
+        ? getScoreLabel(percent, locale, `spelling:${selectedWord}:${percent}`)
         : getSpeakUiText('practiceWords', locale, 'Practice the words');
       const percentMarkup = showPercentages && percent !== null ? `${percent}%` : '';
       const noPercentClass = !showPercentages ? ' speak-score-no-percent' : '';

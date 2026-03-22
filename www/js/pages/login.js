@@ -722,6 +722,16 @@ class PageLogin extends HTMLElement {
     setPanel('login');
     syncLockedLoginUi();
 
+    // Dev autologin: ?autologin=1
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('autologin') === '1') {
+      const emailEl = this.querySelector('#login-user');
+      const passEl = this.querySelector('#login-pass');
+      if (emailEl) emailEl.value = 'johndoe@sokinternet.com';
+      if (passEl) passEl.value = 'testing';
+      setTimeout(() => loginCI(), 300);
+    }
+
   }
 
   disconnectedCallback() {

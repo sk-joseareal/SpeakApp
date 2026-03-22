@@ -1,4 +1,5 @@
-import { getAppLocale } from '../state.js';
+import { getAppLocale, setAppLocale } from '../state.js';
+import { renderAppHeader } from '../components/app-header.js';
 import {
   ensureReferenceData,
   getLocalizedMapField,
@@ -14,7 +15,6 @@ import {
   getReferenceTestsLoadInfo
 } from '../data/reference-tests.js';
 import {
-  getLocaleMeta,
   getNextLocaleCode,
   getReferenceCopy,
   getTabsCopy,
@@ -52,6 +52,7 @@ class PageReference extends HTMLElement {
     };
     this.expandedCourseCode = '';
     this.expandedUnitCode = '';
+    this._accordionInitialized = false;
     this._floatingHintsObserver = null;
     this.currentHeroMessage = '';
     this.currentHeroLocale = 'en';
@@ -97,7 +98,6 @@ class PageReference extends HTMLElement {
     };
     window.addEventListener('app:profile-locale-toggle', this._profileLocaleToggleHandler);
     this._userHandler = (event) => {
-      this.updateHeaderUser(event && event.detail ? event.detail : null);
       this.ensureReferenceTestsPersistenceLoaded(true);
       if (this.querySelector('#reference-tests-section')) {
         this.renderReferenceTestsSection(this.getUiLocale());
@@ -583,53 +583,10 @@ class PageReference extends HTMLElement {
   }
 
   renderHeaderHtml() {
-    return `
-      <ion-header translucent="true">
-        <ion-toolbar class="secret-title">
-          <ion-title class="secret-title"></ion-title>
-          <div class="app-header-actions" slot="end">
-            <div class="app-user-info" id="reference-user-info" hidden>
-              <img class="app-user-avatar" id="reference-user-avatar" alt="Avatar">
-              <span class="app-user-name" id="reference-user-name"></span>
-            </div>
-            <div class="reward-badges" id="reference-reward-badges"></div>
-            <ion-button fill="clear" size="small" class="app-notify-btn">
-              <ion-icon slot="icon-only" name="notifications-outline"></ion-icon>
-            </ion-button>
-            <ion-button fill="clear" size="small" class="app-logout-btn" id="reference-logout-btn" hidden>
-              <ion-icon slot="icon-only" name="log-out-outline"></ion-icon>
-            </ion-button>
-          </div>
-        </ion-toolbar>
-      </ion-header>
-    `;
-  }
-
-  updateHeaderUser(user) {
-    const infoEl = this.querySelector('#reference-user-info');
-    const nameEl = this.querySelector('#reference-user-name');
-    const avatarEl = this.querySelector('#reference-user-avatar');
-    const logoutBtn = this.querySelector('#reference-logout-btn');
-    if (!infoEl) return;
-    const loggedIn = Boolean(user && user.id !== undefined && user.id !== null);
-    infoEl.hidden = !loggedIn;
-    if (logoutBtn) logoutBtn.hidden = !loggedIn;
-    if (!loggedIn || !user) {
-      if (nameEl) nameEl.textContent = '';
-      if (avatarEl) {
-        avatarEl.src = '';
-        avatarEl.hidden = true;
-      }
-      return;
-    }
-    const name = user.name || user.first_name || user.email || user.social_id || '';
-    const avatar = user.image_local || user.image || '';
-    if (nameEl) nameEl.textContent = name || 'Usuario';
-    if (avatarEl) {
-      avatarEl.src = avatar || '';
-      avatarEl.alt = name ? `Avatar ${name}` : 'Avatar';
-      avatarEl.hidden = !avatar;
-    }
+    const currentLocale = getAppLocale() || 'en';
+    const nextLocale = getNextLocaleCode(currentLocale);
+    const tabTitle = getReferenceCopy(currentLocale).title;
+    return renderAppHeader({ title: tabTitle, rewardBadgesId: 'reference-reward-badges', nextLocale: nextLocale.toUpperCase() });
   }
 
   updateHeaderRewards() {
@@ -659,20 +616,6 @@ class PageReference extends HTMLElement {
           `<div class="training-badge reward-badge"><ion-icon name="${icon}"></ion-icon><span>${qty}</span></div>`
       )
       .join('');
-  }
-
-  logoutUser() {
-    if (typeof window.setUser === 'function') {
-      window.setUser(null);
-      return;
-    }
-    window.user = null;
-    try {
-      localStorage.removeItem('appv5:user');
-    } catch (err) {
-      // no-op
-    }
-    window.dispatchEvent(new CustomEvent('app:user-change', { detail: null }));
   }
 
   isReferenceTabActive() {
@@ -2515,10 +2458,6 @@ class PageReference extends HTMLElement {
     const uiLocale = this.getUiLocale(baseLocale);
     const tabsCopy = getTabsCopy(uiLocale);
     const copy = getReferenceCopy(uiLocale);
-    const flag = getLocaleMeta(uiLocale);
-    const nextLocale = getNextLocaleCode(uiLocale);
-    const nextLocaleMeta = getLocaleMeta(nextLocale);
-    const toggleLanguageLabel = String(copy.toggleLanguage || '').replace('{lang}', nextLocaleMeta.label);
     const heroMascotSrc = this.getHeroMascotSrc();
     const referenceTestsEnabled = this.isReferenceTestsEnabled();
     this.ensureReferenceTestsPersistenceLoaded();
@@ -2542,21 +2481,13 @@ class PageReference extends HTMLElement {
         ${this.renderHeaderHtml()}
         <ion-content fullscreen class="home-journey secret-content">
           <div class="journey-shell reference-shell">
-            <div class="journey-title">
-              <h2 class="onboarding-intro-title">${this.escapeHtml(copy.title)}</h2>
-            </div>
             <section class="journey-plan-card onboarding-intro-card reference-hero-card">
-              <button class="onboarding-intro-flag-btn journey-plan-flag-btn" type="button" data-action="toggle-language" aria-label="${this.escapeHtml(
-                toggleLanguageLabel
-              )}" title="${this.escapeHtml(toggleLanguageLabel)}">
-                <img class="onboarding-intro-flag" src="${flag.flag}" alt="${flag.alt}">
-              </button>
               <span class="journey-plan-mascot-wrap" aria-hidden="true">
                 <img id="reference-hero-mascot" class="onboarding-intro-cat" src="${heroMascotSrc}" alt="">
               </span>
-              <p class="onboarding-intro-bubble journey-plan-bubble reference-hero-bubble">${this.escapeHtml(
-                copy.subtitle
-              )}</p>
+              <div class="journey-plan-body">
+                <p class="onboarding-intro-bubble journey-plan-bubble reference-hero-bubble">${this.escapeHtml(copy.subtitle)}</p>
+              </div>
             </section>
             <section class="reference-content-card">
               <div class="reference-empty">${this.escapeHtml(copy.loading)}</div>
@@ -2565,29 +2496,23 @@ class PageReference extends HTMLElement {
         </ion-content>
       `;
 
-      this.querySelector('[data-action="toggle-language"]')?.addEventListener('click', () => {
-        const nextCode = getNextLocaleCode(uiLocale);
-        this.state.localeOverride = nextCode === baseLocale ? '' : nextCode;
-        this.render({ forceNarration: true, narrationDelayMs: 80 });
+      this.querySelector('.app-locale-btn')?.addEventListener('click', () => {
+        const nextLocale = getNextLocaleCode(getAppLocale() || 'en');
+        setAppLocale(nextLocale);
+        if (window.varGlobal && typeof window.varGlobal === 'object') {
+          window.varGlobal.locale = nextLocale;
+        }
+        window.dispatchEvent(new CustomEvent('app:locale-change', { detail: { locale: nextLocale } }));
       });
       this.querySelector('.reference-hero-card')?.addEventListener('click', (event) => {
         if (this.isEventInHeaderZone(event)) return;
         const target = event && event.target instanceof Element ? event.target : null;
         if (!target) return;
-        if (
-          target.closest(
-            'button, a, input, textarea, select, label, [role="button"], [contenteditable="true"], [data-action]'
-          )
-        ) {
-          return;
-        }
+        const inNarrationZone = target.closest('.journey-plan-mascot-wrap, .onboarding-intro-bubble, .reference-hero-bubble, .journey-plan-bubble');
+        if (!inNarrationZone) return;
         this.scheduleHeroNarration(0, true);
       });
-      this.updateHeaderUser(window.user || null);
       this.updateHeaderRewards();
-      this.querySelector('#reference-logout-btn')?.addEventListener('click', () => {
-        this.logoutUser();
-      });
       this.currentHeroMessage = copy.subtitle;
       this.currentHeroLocale = uiLocale;
       this.scheduleHeroNarration(narrationDelayMs, forceNarration);
@@ -2616,15 +2541,10 @@ class PageReference extends HTMLElement {
     const selectedUnitCode = String(selectedUnit.code);
     const selectedLessonCode = String(selectedLesson.code);
 
-    if (!this.expandedCourseCode || !courses.some((item) => String(item.code) === this.expandedCourseCode)) {
+    if (!this._accordionInitialized) {
+      this._accordionInitialized = true;
       this.expandedCourseCode = selectedCourseCode;
-    }
-    const expandedCourse =
-      courses.find((item) => String(item.code) === this.expandedCourseCode) || selectedCourse;
-    const expandedUnits = expandedCourse && Array.isArray(expandedCourse.unidades) ? expandedCourse.unidades : [];
-    if (!this.expandedUnitCode || !expandedUnits.some((item) => String(item.code) === this.expandedUnitCode)) {
-      this.expandedUnitCode =
-        expandedCourse.code === selectedCourse.code && selectedUnit ? String(selectedUnit.code) : expandedUnits[0] ? String(expandedUnits[0].code) : '';
+      this.expandedUnitCode = selectedUnitCode;
     }
 
     const lessonSequence = [];
@@ -2785,21 +2705,13 @@ class PageReference extends HTMLElement {
       ${this.renderHeaderHtml()}
       <ion-content fullscreen class="home-journey secret-content">
         <div class="journey-shell reference-shell">
-          <div class="journey-title">
-            <h2 class="onboarding-intro-title">${this.escapeHtml(tabsCopy.reference || copy.title)}</h2>
-          </div>
           <section class="journey-plan-card onboarding-intro-card reference-hero-card">
-            <button class="onboarding-intro-flag-btn journey-plan-flag-btn" type="button" data-action="toggle-language" aria-label="${this.escapeHtml(
-              toggleLanguageLabel
-            )}" title="${this.escapeHtml(toggleLanguageLabel)}">
-              <img class="onboarding-intro-flag" src="${flag.flag}" alt="${flag.alt}">
-            </button>
             <span class="journey-plan-mascot-wrap" aria-hidden="true">
               <img id="reference-hero-mascot" class="onboarding-intro-cat" src="${heroMascotSrc}" alt="">
             </span>
-            <p class="onboarding-intro-bubble journey-plan-bubble reference-hero-bubble">${this.escapeHtml(
-              copy.subtitle
-            )}</p>
+            <div class="journey-plan-body">
+              <p class="onboarding-intro-bubble journey-plan-bubble reference-hero-bubble">${this.escapeHtml(copy.subtitle)}</p>
+            </div>
           </section>
 
           <div class="journey-accordion reference-accordion">
@@ -2829,29 +2741,23 @@ class PageReference extends HTMLElement {
       </ion-content>
     `;
 
-    this.querySelector('[data-action="toggle-language"]')?.addEventListener('click', () => {
-      const nextCode = getNextLocaleCode(uiLocale);
-      this.state.localeOverride = nextCode === baseLocale ? '' : nextCode;
-      this.render({ forceNarration: true, narrationDelayMs: 80 });
+    this.querySelector('.app-locale-btn')?.addEventListener('click', () => {
+      const nextLocale = getNextLocaleCode(getAppLocale() || 'en');
+      setAppLocale(nextLocale);
+      if (window.varGlobal && typeof window.varGlobal === 'object') {
+        window.varGlobal.locale = nextLocale;
+      }
+      window.dispatchEvent(new CustomEvent('app:locale-change', { detail: { locale: nextLocale } }));
     });
     this.querySelector('.reference-hero-card')?.addEventListener('click', (event) => {
       if (this.isEventInHeaderZone(event)) return;
       const target = event && event.target instanceof Element ? event.target : null;
       if (!target) return;
-      if (
-        target.closest(
-          'button, a, input, textarea, select, label, [role="button"], [contenteditable="true"], [data-action]'
-        )
-      ) {
-        return;
-      }
+      const inNarrationZone = target.closest('.journey-plan-mascot-wrap, .onboarding-intro-bubble, .reference-hero-bubble, .journey-plan-bubble');
+      if (!inNarrationZone) return;
       this.scheduleHeroNarration(0, true);
     });
-    this.updateHeaderUser(window.user || null);
     this.updateHeaderRewards();
-    this.querySelector('#reference-logout-btn')?.addEventListener('click', () => {
-      this.logoutUser();
-    });
     this.currentHeroMessage = copy.subtitle;
     this.currentHeroLocale = uiLocale;
     this.scheduleHeroNarration(narrationDelayMs, forceNarration);
@@ -2880,7 +2786,9 @@ class PageReference extends HTMLElement {
       if (!lessonCardEl) return false;
       const rect = lessonCardEl.getBoundingClientRect();
       const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
-      return rect.bottom > 0 && rect.top < viewportHeight;
+      if (!viewportHeight) return false;
+      const visibleHeight = Math.min(rect.bottom, viewportHeight) - Math.max(rect.top, 0);
+      return visibleHeight / viewportHeight >= 0.5;
     };
     const isInteractiveTarget = (target) => {
       if (!(target instanceof Element)) return false;
@@ -2899,11 +2807,10 @@ class PageReference extends HTMLElement {
         floatingHintsEl.classList.toggle('is-card-visible', Boolean(visible));
       };
       const observer = new IntersectionObserver(
-        (entries) => {
-          const entry = entries && entries[0] ? entries[0] : null;
-          applyVisibility(Boolean(entry && entry.isIntersecting && entry.intersectionRatio > 0));
+        () => {
+          applyVisibility(isLessonCardVisible());
         },
-        { threshold: [0, 0.01, 0.2] }
+        { threshold: Array.from({ length: 21 }, (_, i) => i / 20) }
       );
       observer.observe(lessonCardEl);
       this._floatingHintsObserver = observer;
@@ -3025,9 +2932,8 @@ class PageReference extends HTMLElement {
         this.expandedCourseCode = isClosing ? '' : courseCode;
         if (!isClosing) {
           const course = courses.find((item) => String(item.code) === courseCode);
-          const firstUnit =
-            course && Array.isArray(course.unidades) && course.unidades.length ? course.unidades[0] : null;
-          this.expandedUnitCode = firstUnit ? String(firstUnit.code) : '';
+          const units = course && Array.isArray(course.unidades) ? course.unidades : [];
+          this.expandedUnitCode = units.length ? String(units[0].code) : '';
         }
         this.render();
       });

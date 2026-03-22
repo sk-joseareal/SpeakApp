@@ -1,4 +1,5 @@
-import { getAppLocale } from '../state.js';
+import { getAppLocale, setAppLocale } from '../state.js';
+import { renderAppHeader } from '../components/app-header.js';
 import {
   getFreeRideCopy,
   getLocaleMeta,
@@ -6,7 +7,6 @@ import {
   normalizeLocale as normalizeCopyLocale
 } from '../content/copy.js';
 
-const FREE_RIDE_LOCALE_OVERRIDE_KEY = 'appv5:free-ride-locale-override';
 const FREE_RIDE_TEXT_PREFIX = 'appv5:free-ride:text:';
 const RECORDING_TIMESLICE = 500;
 const MIN_RECORDING_BLOB_BYTES = 128;
@@ -40,6 +40,20 @@ const FREE_RIDE_EVAL_MODE_STANDARD = 'standard';
 const FREE_RIDE_EVAL_MODE_ADVANCED = 'advanced';
 const FREE_RIDE_ADVANCED_ENABLED_KEY = 'appv5:free-ride-advanced-enabled';
 const FREE_RIDE_ADVANCED_AUDIO_SAMPLE_RATE = 16000;
+const FREE_RIDE_LANGUAGE_CHECK_DEBOUNCE_MS = 260;
+const FREE_RIDE_LANGUAGE_CHECK_MIN_ALPHA_CHARS = 6;
+const FREE_RIDE_LANGUAGE_CHECK_MIXED_MIN_ALPHA_CHARS = 10;
+const FREE_RIDE_LANGUAGE_CHECK_ALT_CONFIDENCE = 0.2;
+const FREE_RIDE_LANGUAGE_CHECK_STRONG_CONFIDENCE = 0.8;
+const FREE_RIDE_FALLBACK_ENGLISH_MARKERS = new Set([
+  'a', 'an', 'and', 'are', 'can', 'do', 'for', 'good', 'hello', 'how', 'i', 'is', 'it',
+  'like', 'my', 'of', 'please', 'thanks', 'the', 'to', 'want', 'what', 'where', 'you', 'your'
+]);
+const FREE_RIDE_FALLBACK_SPANISH_MARKERS = new Set([
+  'como', 'de', 'el', 'ella', 'en', 'eres', 'es', 'esta', 'estoy', 'favor', 'gracias', 'hola',
+  'la', 'las', 'los', 'me', 'mi', 'muchas', 'para', 'pero', 'por', 'puedo', 'que', 'quiero',
+  'si', 'tu', 'un', 'una', 'y'
+]);
 const AZURE_PHONEME_IPA_MAP = {
   aa: 'ɑ',
   ae: 'æ',
@@ -95,7 +109,7 @@ class PageFreeRide extends HTMLElement {
   constructor() {
     super();
     this.state = {
-      localeOverride: this.readLocaleOverride(),
+      localeOverride: '',
       expectedText: '',
       transcript: '',
       percent: null,
@@ -135,6 +149,9 @@ class PageFreeRide extends HTMLElement {
     this.keyboardResizePrevMode = '';
     this.keyboardResizeApplied = false;
     this.keyboardResizeRequestId = 0;
+    this.practiceLanguageValidation = this.createEmptyPracticeLanguageValidation();
+    this.practiceLanguageValidationTimer = null;
+    this.practiceLanguageValidationSeq = 0;
     this.alignedTtsCache = new Map();
     this.alignedTtsLimitStatus = null;
     this.advancedAssessLimitStatus = null;
@@ -174,7 +191,6 @@ class PageFreeRide extends HTMLElement {
       const currentUiLocale = this.getUiLocale(baseLocale);
       const nextUiLocale = getNextLocaleCode(currentUiLocale);
       this.state.localeOverride = nextUiLocale === baseLocale ? '' : nextUiLocale;
-      this.persistLocaleOverride(this.state.localeOverride);
       this.stopActiveCapture();
       this.stopPlayback();
       this.refreshPhraseForCurrentLocale();
@@ -187,7 +203,6 @@ class PageFreeRide extends HTMLElement {
     window.addEventListener('app:profile-locale-toggle', this._profileLocaleToggleHandler);
 
     this._userHandler = (event) => {
-      this.updateHeaderUser(event && event.detail ? event.detail : null);
       this.clearAlignedTtsLimitStatus();
       this.clearAdvancedAssessLimitStatus();
       this.clearAdvancedAssessmentState({ skipRender: true });
@@ -282,7 +297,6 @@ class PageFreeRide extends HTMLElement {
       this.scheduleHeroNarration(initialDelayMs, firstAutoNarration);
     }
 
-    this.updateHeaderUser(window.user || null);
     this.updateHeaderRewards();
   }
 
@@ -369,6 +383,11 @@ class PageFreeRide extends HTMLElement {
       this._layoutViewportHandler = null;
     }
 
+    if (this.practiceLanguageValidationTimer) {
+      clearTimeout(this.practiceLanguageValidationTimer);
+      this.practiceLanguageValidationTimer = null;
+    }
+
     this.restoreIOSKeyboardResizeMode();
     this.classList.remove('free-ride-keyboard-open');
     this.clearLayoutSync();
@@ -386,6 +405,403 @@ class PageFreeRide extends HTMLElement {
   getUiLocale(baseLocale = this.getBaseLocale()) {
     const override = this.normalizeLocale(this.state.localeOverride);
     return override || this.normalizeLocale(baseLocale) || 'en';
+  }
+
+  createEmptyPracticeLanguageValidation() {
+    return {
+      status: 'idle',
+      checkedText: '',
+      blocking: false,
+      message: '',
+      detection: null
+    };
+  }
+
+  applyPracticeLanguageValidationState(nextState, options = {}) {
+    const state = nextState && typeof nextState === 'object' ? nextState : {};
+    this.practiceLanguageValidation = {
+      ...this.createEmptyPracticeLanguageValidation(),
+      ...state
+    };
+    if (!options.skipPreview) {
+      this.updatePhrasePreview(this.currentCopy);
+    }
+    return this.practiceLanguageValidation;
+  }
+
+  isPracticeLanguageValidationFinalStatus(status) {
+    return (
+      status === 'idle' ||
+      status === 'ok' ||
+      status === 'warning' ||
+      status === 'unavailable' ||
+      status === 'error'
+    );
+  }
+
+  getLanguageValidationMessage(key, fallback = '') {
+    const copy = this.currentCopy || {};
+    const value = copy && Object.prototype.hasOwnProperty.call(copy, key) ? copy[key] : fallback;
+    return String(value || fallback || '').trim();
+  }
+
+  getLanguageDetectionPlugin() {
+    const plugin = this.getNativeTranscribePlugin();
+    return plugin && typeof plugin.detectLanguage === 'function' ? plugin : null;
+  }
+
+  getFallbackLanguageTokens(text) {
+    const normalized = String(text || '')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/\p{M}/gu, '');
+    return normalized.match(/[a-z']+/g) || [];
+  }
+
+  detectPracticeLanguageFallback(text) {
+    const source = String(text || '').trim();
+    const tokens = this.getFallbackLanguageTokens(source);
+    const alphaChars = Array.from(source).reduce(
+      (count, char) => count + (/\p{L}/u.test(char) ? 1 : 0),
+      0
+    );
+    let englishScore = 0;
+    let spanishScore = 0;
+
+    tokens.forEach((token) => {
+      if (FREE_RIDE_FALLBACK_ENGLISH_MARKERS.has(token)) {
+        englishScore += token.length <= 2 ? 0.75 : 1;
+      }
+      if (FREE_RIDE_FALLBACK_SPANISH_MARKERS.has(token)) {
+        spanishScore += token.length <= 2 ? 0.75 : 1;
+      }
+    });
+
+    if (/\b(?:i'm|you're|we're|they're|it's|don't|can't|won't|let's)\b/i.test(source)) {
+      englishScore += 1.5;
+    }
+    if (/[áéíóúñü¿¡]/i.test(source)) {
+      spanishScore += 1.5;
+    }
+
+    const alternatives = [];
+    let dominantLanguage = '';
+    let confidence = 0;
+    if (englishScore > 0 || spanishScore > 0) {
+      const total = englishScore + spanishScore;
+      if (englishScore >= spanishScore) {
+        dominantLanguage = 'en';
+        confidence = total > 0 ? englishScore / total : 0;
+      } else {
+        dominantLanguage = 'es';
+        confidence = total > 0 ? spanishScore / total : 0;
+      }
+      if (englishScore > 0) {
+        alternatives.push({ language: 'en', confidence: total > 0 ? englishScore / total : 0 });
+      }
+      if (spanishScore > 0) {
+        alternatives.push({ language: 'es', confidence: total > 0 ? spanishScore / total : 0 });
+      }
+    }
+
+    return {
+      available: true,
+      dominantLanguage,
+      confidence,
+      alternatives,
+      textLength: source.length,
+      alphaChars
+    };
+  }
+
+  normalizeDetectedLanguageCode(value) {
+    const raw = String(value || '').trim().toLowerCase();
+    if (!raw) return '';
+    return raw.split(/[-_]/)[0] || raw;
+  }
+
+  getDetectedLanguageLabel(languageCode, locale = this.getUiLocale(this.currentUiLocale)) {
+    const normalized = this.normalizeDetectedLanguageCode(languageCode);
+    const labels =
+      locale === 'es'
+        ? {
+            en: 'ingles',
+            es: 'espanol',
+            fr: 'frances',
+            de: 'aleman',
+            it: 'italiano',
+            pt: 'portugues',
+            ca: 'catalan',
+            nl: 'neerlandes'
+          }
+        : {
+            en: 'English',
+            es: 'Spanish',
+            fr: 'French',
+            de: 'German',
+            it: 'Italian',
+            pt: 'Portuguese',
+            ca: 'Catalan',
+            nl: 'Dutch'
+          };
+    if (labels[normalized]) return labels[normalized];
+    return normalized ? normalized.toUpperCase() : '';
+  }
+
+  formatDetectedLanguageConfidence(value) {
+    const confidence = Number(value);
+    if (!Number.isFinite(confidence) || confidence <= 0) return '';
+    return `${Math.round(Math.max(0, Math.min(1, confidence)) * 100)}%`;
+  }
+
+  getEnglishConfidenceFromLanguageDetection(result) {
+    if (!result || typeof result !== 'object') return 0;
+    const dominant = this.normalizeDetectedLanguageCode(result.dominantLanguage);
+    if (dominant === 'en') {
+      const confidence = Number(result.confidence || 0);
+      return Number.isFinite(confidence) ? Math.max(0, Math.min(1, confidence)) : 0;
+    }
+    const alternatives = Array.isArray(result.alternatives) ? result.alternatives : [];
+    const englishAlt = alternatives.find(
+      (item) => this.normalizeDetectedLanguageCode(item && item.language) === 'en'
+    );
+    const confidence = Number(englishAlt && englishAlt.confidence);
+    return Number.isFinite(confidence) ? Math.max(0, Math.min(1, confidence)) : 0;
+  }
+
+  buildPracticeLanguageMessage(baseMessage, languageCode, confidence, locale = this.getUiLocale(this.currentUiLocale)) {
+    return String(baseMessage || '').trim();
+  }
+
+  buildPracticeLanguageValidationState(text, result) {
+    const normalizedText = String(text || '').trim();
+    if (!normalizedText) {
+      return this.createEmptyPracticeLanguageValidation();
+    }
+    if (!result || result.available === false) {
+      return {
+        status: 'unavailable',
+        checkedText: normalizedText,
+        blocking: false,
+        message: '',
+        detection: result || null
+      };
+    }
+
+    const alphaCharsRaw = Number(result.alphaChars);
+    const alphaChars = Number.isFinite(alphaCharsRaw) ? Math.max(0, Math.round(alphaCharsRaw)) : 0;
+    const dominantRaw = String(result.dominantLanguage || '').trim();
+    const dominant = this.normalizeDetectedLanguageCode(dominantRaw);
+    const confidence = Number(result.confidence || 0);
+    const alternatives = Array.isArray(result.alternatives)
+      ? result.alternatives
+          .map((item) => ({
+            language: this.normalizeDetectedLanguageCode(item && item.language),
+            confidence: Number(item && item.confidence)
+          }))
+          .filter((item) => item.language)
+          .sort(
+            (a, b) =>
+              (Number.isFinite(b.confidence) ? b.confidence : 0) -
+              (Number.isFinite(a.confidence) ? a.confidence : 0)
+          )
+      : [];
+    const englishAlt = alternatives.find((item) => item.language === 'en');
+    const strongOtherAlt = alternatives.find(
+      (item) =>
+        item.language &&
+        item.language !== 'en' &&
+        item.confidence >= FREE_RIDE_LANGUAGE_CHECK_ALT_CONFIDENCE
+    );
+    const longEnough = alphaChars >= FREE_RIDE_LANGUAGE_CHECK_MIN_ALPHA_CHARS;
+    const likelyMixed =
+      alphaChars >= FREE_RIDE_LANGUAGE_CHECK_MIXED_MIN_ALPHA_CHARS &&
+      ((dominant === 'en' && strongOtherAlt) ||
+        (dominant &&
+          dominant !== 'en' &&
+          englishAlt &&
+          englishAlt.confidence >= FREE_RIDE_LANGUAGE_CHECK_ALT_CONFIDENCE));
+
+    if (dominant === 'en' && !likelyMixed) {
+      return {
+        status: 'ok',
+        checkedText: normalizedText,
+        blocking: false,
+        message: '',
+        detection: result
+      };
+    }
+
+    if (likelyMixed) {
+      return {
+        status: 'warning',
+        checkedText: normalizedText,
+        blocking: true,
+        message: this.buildPracticeLanguageMessage(
+          this.getLanguageValidationMessage(
+            'englishOnlyMixed',
+            'Mixed languages detected. Use a 100% English text to practice.'
+          ),
+          dominant || (strongOtherAlt && strongOtherAlt.language) || '',
+          confidence
+        ),
+        detection: result
+      };
+    }
+
+    if (
+      dominant &&
+      dominant !== 'en' &&
+      (longEnough || confidence >= FREE_RIDE_LANGUAGE_CHECK_STRONG_CONFIDENCE)
+    ) {
+      return {
+        status: 'warning',
+        checkedText: normalizedText,
+        blocking: true,
+        message: this.buildPracticeLanguageMessage(
+          this.getLanguageValidationMessage(
+            'englishOnlyAdvice',
+            'To practice better and optimize resources, write a 100% English text.'
+          ),
+          dominant,
+          confidence
+        ),
+        detection: result
+      };
+    }
+
+    return {
+      status: 'ok',
+      checkedText: normalizedText,
+      blocking: false,
+      message: '',
+      detection: result
+    };
+  }
+
+  schedulePracticeTextLanguageValidation(options = {}) {
+    const text = Object.prototype.hasOwnProperty.call(options, 'text')
+      ? options.text
+      : this.getExpectedText();
+    const normalizedText = String(text || '').trim();
+    const immediate = options.immediate === true;
+    if (this.practiceLanguageValidationTimer) {
+      clearTimeout(this.practiceLanguageValidationTimer);
+      this.practiceLanguageValidationTimer = null;
+    }
+    if (!normalizedText) {
+      this.applyPracticeLanguageValidationState(this.createEmptyPracticeLanguageValidation());
+      return;
+    }
+
+    const current = this.practiceLanguageValidation || this.createEmptyPracticeLanguageValidation();
+    if (
+      current.checkedText === normalizedText &&
+      this.isPracticeLanguageValidationFinalStatus(current.status)
+    ) {
+      return;
+    }
+
+    this.applyPracticeLanguageValidationState({
+      status: 'checking',
+      checkedText: normalizedText,
+      blocking: false,
+      message: this.getLanguageValidationMessage(
+        'englishOnlyChecking',
+        'Checking whether the text is in English...'
+      ),
+      detection: null
+    });
+
+    const run = () => {
+      this.validatePracticeTextLanguage(normalizedText).catch(() => {});
+    };
+    if (immediate) {
+      run();
+    } else {
+      this.practiceLanguageValidationTimer = setTimeout(run, FREE_RIDE_LANGUAGE_CHECK_DEBOUNCE_MS);
+    }
+  }
+
+  async validatePracticeTextLanguage(text, options = {}) {
+    const normalizedText = String(text || '').trim();
+    if (this.practiceLanguageValidationTimer) {
+      clearTimeout(this.practiceLanguageValidationTimer);
+      this.practiceLanguageValidationTimer = null;
+    }
+    if (!normalizedText) {
+      return this.applyPracticeLanguageValidationState(this.createEmptyPracticeLanguageValidation());
+    }
+
+    const current = this.practiceLanguageValidation || this.createEmptyPracticeLanguageValidation();
+    if (
+      !options.force &&
+      current.checkedText === normalizedText &&
+      this.isPracticeLanguageValidationFinalStatus(current.status)
+    ) {
+      return current;
+    }
+
+    const plugin = this.getLanguageDetectionPlugin();
+    if (!plugin) {
+      return this.applyPracticeLanguageValidationState(
+        this.buildPracticeLanguageValidationState(
+          normalizedText,
+          this.detectPracticeLanguageFallback(normalizedText)
+        )
+      );
+    }
+
+    if (!options.silent) {
+      this.applyPracticeLanguageValidationState({
+        status: 'checking',
+        checkedText: normalizedText,
+        blocking: false,
+        message: this.getLanguageValidationMessage(
+          'englishOnlyChecking',
+          'Checking whether the text is in English...'
+        ),
+        detection: null
+      });
+    }
+
+    const requestSeq = ++this.practiceLanguageValidationSeq;
+    try {
+      const nativeResult = await plugin.detectLanguage({ text: normalizedText });
+      if (requestSeq !== this.practiceLanguageValidationSeq) {
+        return this.practiceLanguageValidation;
+      }
+      const result =
+        nativeResult && nativeResult.available === false
+          ? this.detectPracticeLanguageFallback(normalizedText)
+          : nativeResult;
+      return this.applyPracticeLanguageValidationState(
+        this.buildPracticeLanguageValidationState(normalizedText, result)
+      );
+    } catch (err) {
+      if (requestSeq !== this.practiceLanguageValidationSeq) {
+        return this.practiceLanguageValidation;
+      }
+      return this.applyPracticeLanguageValidationState(
+        this.buildPracticeLanguageValidationState(
+          normalizedText,
+          this.detectPracticeLanguageFallback(normalizedText)
+        )
+      );
+    }
+  }
+
+  async ensurePracticeTextLanguageAllowed() {
+    const text = this.getExpectedTextTrimmed();
+    if (!text) return false;
+    const validation = await this.validatePracticeTextLanguage(text, { force: true, silent: true });
+    if (validation && validation.blocking) {
+      if (validation.message) {
+        this.presentFreeRideToast(validation.message);
+      }
+      return false;
+    }
+    return true;
   }
 
   getFlagSpeechLocale(locale = this.getUiLocale()) {
@@ -938,27 +1354,6 @@ class PageFreeRide extends HTMLElement {
     shellEl.style.setProperty('--free-ride-shell-height', `${nextHeight}px`);
   }
 
-  readLocaleOverride() {
-    try {
-      return this.normalizeLocale(localStorage.getItem(FREE_RIDE_LOCALE_OVERRIDE_KEY));
-    } catch (err) {
-      return '';
-    }
-  }
-
-  persistLocaleOverride(value) {
-    const normalized = this.normalizeLocale(value);
-    try {
-      if (normalized) {
-        localStorage.setItem(FREE_RIDE_LOCALE_OVERRIDE_KEY, normalized);
-      } else {
-        localStorage.removeItem(FREE_RIDE_LOCALE_OVERRIDE_KEY);
-      }
-    } catch (err) {
-      // no-op
-    }
-  }
-
   getTextStorageKey(locale = this.getUiLocale()) {
     const normalized = this.normalizeLocale(locale) || 'en';
     return `${FREE_RIDE_TEXT_PREFIX}${normalized}`;
@@ -1103,8 +1498,9 @@ class PageFreeRide extends HTMLElement {
     return { ok: true, action, item: savedItem };
   }
 
-  saveCurrentPhraseToLibrary() {
+  async saveCurrentPhraseToLibrary() {
     if (this.state.isRecording || this.state.isTranscribing) return;
+    if (!(await this.ensurePracticeTextLanguageAllowed())) return;
     const result = this.savePhraseToLibrary(this.getExpectedText());
     if (!result || result.ok !== true) return;
     if (this._freeRideSavedPhrasesModal) {
@@ -1149,6 +1545,7 @@ class PageFreeRide extends HTMLElement {
     this.stopPlayback();
     this.state.expectedText = String(text || '');
     this.persistPhrase(this.state.expectedText, this.currentUiLocale);
+    this.schedulePracticeTextLanguageValidation({ text: this.state.expectedText });
     this.clearPracticeResult({ skipRender: false, clearRecording: true });
   }
 
@@ -1290,6 +1687,7 @@ class PageFreeRide extends HTMLElement {
     this.currentUiLocale = locale;
     this.currentCopy = getFreeRideCopy(locale);
     this.state.expectedText = this.readStoredPhrase(locale);
+    this.practiceLanguageValidation = this.createEmptyPracticeLanguageValidation();
   }
 
   getExpectedText() {
@@ -3615,20 +4013,156 @@ class PageFreeRide extends HTMLElement {
     this.applyPracticeScore(byTone[normalizedTone]);
   }
 
-  getFeedbackLabel(percent, copy) {
-    const value = typeof percent === 'number' ? percent : 0;
-    if (value >= 85) return copy.feedbackNative || 'You sound like a native';
-    if (value >= 70) return copy.feedbackGood || 'Good! Continue practicing';
-    if (value >= 60) return copy.feedbackAlmost || 'Almost Correct!';
-    return copy.feedbackKeep || 'Keep practicing';
+  resolveToneListMap(source, fallback) {
+    const tones = ['good', 'okay', 'bad'];
+    const safeSource = source && typeof source === 'object' ? source : {};
+    const safeFallback = fallback && typeof fallback === 'object' ? fallback : {};
+    const output = {};
+    tones.forEach((tone) => {
+      const fromSource = Array.isArray(safeSource[tone])
+        ? safeSource[tone].map((item) => String(item || '').trim()).filter(Boolean)
+        : [];
+      const fromFallback = Array.isArray(safeFallback[tone])
+        ? safeFallback[tone].map((item) => String(item || '').trim()).filter(Boolean)
+        : [];
+      output[tone] = fromSource.length ? fromSource : fromFallback;
+    });
+    return output;
   }
 
-  getFeedbackLabelKey(percent) {
+  normalizeFeedbackScale(scale, key) {
+    const list = (scale || []).filter(
+      (item) => item && typeof item.min === 'number' && typeof item[key] === 'string' && item[key]
+    );
+    if (!list.length) return [];
+    return list.slice().sort((a, b) => b.min - a.min);
+  }
+
+  getDefaultFeedbackTonePhrases(copy = this.currentCopy, locale = this.getUiLocale(this.currentUiLocale)) {
+    const normalizedLocale = this.getUiLocale(locale);
+    return {
+      good: [
+        copy.feedbackNative || 'You sound like a native',
+        normalizedLocale === 'es' ? 'Gran trabajo' : 'Great job!'
+      ],
+      okay: [
+        copy.feedbackGood || 'Good! Continue practicing',
+        copy.feedbackAlmost || 'Almost Correct!'
+      ],
+      bad: [
+        copy.feedbackKeep || 'Keep practicing',
+        normalizedLocale === 'es' ? 'Intentalo de nuevo' : 'Try again'
+      ]
+    };
+  }
+
+  getConfiguredFeedbackTonePhrases(locale) {
+    const config = window.r34lp0w3r && window.r34lp0w3r.speakFeedback;
+    if (!config || typeof config !== 'object') return null;
+    const candidates = [
+      config.tonePhrasesByLocale,
+      config.labelPhrasesByLocale,
+      config.tonePhrases_i18n,
+      config.tonePhrases
+    ];
+    for (let idx = 0; idx < candidates.length; idx += 1) {
+      const source = candidates[idx];
+      if (!source || typeof source !== 'object' || Array.isArray(source)) continue;
+      const localized = source[locale];
+      if (localized && typeof localized === 'object' && !Array.isArray(localized)) {
+        return localized;
+      }
+      if (
+        Array.isArray(source.good) ||
+        Array.isArray(source.okay) ||
+        Array.isArray(source.bad)
+      ) {
+        return source;
+      }
+    }
+    return null;
+  }
+
+  getConfiguredFeedbackLabelScale(locale) {
+    const config = window.r34lp0w3r && window.r34lp0w3r.speakFeedback;
+    if (!config || typeof config !== 'object') return null;
+    if (
+      config.labelScaleByLocale &&
+      typeof config.labelScaleByLocale === 'object' &&
+      Array.isArray(config.labelScaleByLocale[locale])
+    ) {
+      return config.labelScaleByLocale[locale];
+    }
+    if (
+      config.labelScale_i18n &&
+      typeof config.labelScale_i18n === 'object' &&
+      Array.isArray(config.labelScale_i18n[locale])
+    ) {
+      return config.labelScale_i18n[locale];
+    }
+    if (locale === 'en' && Array.isArray(config.labelScale)) {
+      return config.labelScale;
+    }
+    return null;
+  }
+
+  deriveTonePhrasesFromLabelScale(labelScale, toneScale, fallbackTonePhrases) {
+    const normalizedLabels = this.normalizeFeedbackScale(labelScale, 'label');
+    const normalizedTones = this.normalizeFeedbackScale(toneScale, 'tone');
+    const derived = {};
+    normalizedTones.forEach((entry, index) => {
+      const previous = normalizedTones[index - 1];
+      const max = index === 0 ? Number.POSITIVE_INFINITY : previous.min - 1;
+      derived[entry.tone] = normalizedLabels
+        .filter((item) => item.min >= entry.min && item.min <= max)
+        .map((item) => item.label);
+    });
+    return this.resolveToneListMap(derived, fallbackTonePhrases);
+  }
+
+  getFeedbackTonePhrases(copy = this.currentCopy) {
+    const locale = this.getUiLocale(this.currentUiLocale);
+    const fallbackTonePhrases = this.getDefaultFeedbackTonePhrases(copy, locale);
+    const toneScale = this.getToneScale();
+    const configuredTonePhrases = this.getConfiguredFeedbackTonePhrases(locale);
+    const labelScale = this.getConfiguredFeedbackLabelScale(locale);
+    return this.resolveToneListMap(
+      configuredTonePhrases,
+      this.deriveTonePhrasesFromLabelScale(labelScale, toneScale, fallbackTonePhrases)
+    );
+  }
+
+  pickStableListItem(items, seed, fallback = '') {
+    const list = Array.isArray(items)
+      ? items.map((item) => String(item || '').trim()).filter(Boolean)
+      : [];
+    if (!list.length) return fallback;
+    const base = String(seed || list.join('|'));
+    let hash = 0;
+    for (let idx = 0; idx < base.length; idx += 1) {
+      hash = (hash * 31 + base.charCodeAt(idx)) >>> 0;
+    }
+    return list[hash % list.length];
+  }
+
+  getFeedbackLabel(percent, copy, options = {}) {
     const value = typeof percent === 'number' ? percent : 0;
-    if (value >= 85) return 'feedbackNative';
-    if (value >= 70) return 'feedbackGood';
-    if (value >= 60) return 'feedbackAlmost';
-    return 'feedbackKeep';
+    const tone = this.getScoreTone(value);
+    const tonePhrases = this.getFeedbackTonePhrases(copy);
+    const fallbackTonePhrases = this.getDefaultFeedbackTonePhrases(copy);
+    const fallbackList =
+      fallbackTonePhrases && Array.isArray(fallbackTonePhrases[tone])
+        ? fallbackTonePhrases[tone]
+        : [];
+    const seed =
+      typeof options.seed === 'string' && options.seed.trim()
+        ? options.seed.trim()
+        : `${this.getExpectedTextTrimmed()}|${tone}|${value}`;
+    return this.pickStableListItem(
+      tonePhrases && Array.isArray(tonePhrases[tone]) ? tonePhrases[tone] : [],
+      seed,
+      fallbackList[0] || copy.feedbackKeep || 'Keep practicing'
+    );
   }
 
   getFeedbackState(copy = this.currentCopy) {
@@ -3640,9 +4174,10 @@ class PageFreeRide extends HTMLElement {
     }
     const percent = Math.max(0, Math.min(100, Math.round(this.state.percent)));
     const tone = this.getScoreTone(percent);
-    const labelKey = this.getFeedbackLabelKey(percent);
-    const label = this.getFeedbackLabel(percent, copy);
-    return { tone, label, labelKey, percent, hasScore: true };
+    const label = this.getFeedbackLabel(percent, copy, {
+      seed: `${this.getExpectedTextTrimmed()}|${tone}|${percent}`
+    });
+    return { tone, label, labelKey: '', percent, hasScore: true };
   }
 
   normalizeText(value) {
@@ -4916,9 +5451,10 @@ class PageFreeRide extends HTMLElement {
     }
   }
 
-  playPhrase(triggerBtn) {
+  async playPhrase(triggerBtn) {
     const text = this.getExpectedTextTrimmed();
     if (!text) return;
+    if (!(await this.ensurePracticeTextLanguageAllowed())) return;
     // Prevent overlap with hero narration timers/playback that can hijack Web Speech on Chrome.
     const stopNarrationPromise = this.stopNarration().catch(() => {});
     if (triggerBtn && this.activePlayButton === triggerBtn) {
@@ -5216,6 +5752,7 @@ class PageFreeRide extends HTMLElement {
   async startRecording() {
     if (this.state.isRecording || this.state.isTranscribing) return;
     if (!this.hasExpectedText()) return;
+    if (!(await this.ensurePracticeTextLanguageAllowed())) return;
     if (!this.canRecord()) return;
 
     this.stopPlayback();
@@ -5357,22 +5894,11 @@ class PageFreeRide extends HTMLElement {
     this.runAdvancedAssessmentIfEnabled(recordedBlob, expected);
   }
 
-  toggleLocaleFromFlag() {
-    if (this.state.isRecording || this.state.isTranscribing) return;
-    const baseLocale = this.getBaseLocale();
-    const current = this.getUiLocale(baseLocale);
-    const next = getNextLocaleCode(current);
-    this.state.localeOverride = next === baseLocale ? '' : next;
-    this.persistLocaleOverride(this.state.localeOverride);
-    this.stopPlayback();
-    this.refreshPhraseForCurrentLocale();
-    this.clearPracticeResult({ skipRender: false, clearRecording: true, forceNarration: true });
-  }
-
   onInputText(text) {
     this.stopPlayback();
     this.state.expectedText = String(text || '');
     this.persistPhrase(this.state.expectedText, this.currentUiLocale);
+    this.schedulePracticeTextLanguageValidation({ text: this.state.expectedText });
     this.clearPracticeResult({ skipRender: true, clearRecording: true });
   }
 
@@ -5608,36 +6134,6 @@ class PageFreeRide extends HTMLElement {
     `;
   }
 
-  updateHeaderUser(user) {
-    const infoEl = this.querySelector('#free-ride-user-info');
-    const nameEl = this.querySelector('#free-ride-user-name');
-    const avatarEl = this.querySelector('#free-ride-user-avatar');
-    const logoutBtn = this.querySelector('#free-ride-logout-btn');
-    if (!infoEl) return;
-
-    const loggedIn = Boolean(user && user.id !== undefined && user.id !== null);
-    infoEl.hidden = !loggedIn;
-    if (logoutBtn) logoutBtn.hidden = !loggedIn;
-
-    if (!loggedIn || !user) {
-      if (nameEl) nameEl.textContent = '';
-      if (avatarEl) {
-        avatarEl.src = '';
-        avatarEl.hidden = true;
-      }
-      return;
-    }
-
-    const name = user.name || user.first_name || user.email || user.social_id || '';
-    const avatar = user.image_local || user.image || '';
-    if (nameEl) nameEl.textContent = name || 'Usuario';
-    if (avatarEl) {
-      avatarEl.src = avatar || '';
-      avatarEl.alt = name ? `Avatar ${name}` : 'Avatar';
-      avatarEl.hidden = !avatar;
-    }
-  }
-
   updateHeaderRewards() {
     const container = this.querySelector('#free-ride-reward-badges');
     if (!container) return;
@@ -5667,20 +6163,6 @@ class PageFreeRide extends HTMLElement {
       .join('');
   }
 
-  logoutUser() {
-    if (typeof window.setUser === 'function') {
-      window.setUser(null);
-      return;
-    }
-    window.user = null;
-    try {
-      localStorage.removeItem('appv5:user');
-    } catch (err) {
-      // no-op
-    }
-    window.dispatchEvent(new CustomEvent('app:user-change', { detail: null }));
-  }
-
   updatePhrasePreview(copy = this.currentCopy) {
     const phraseEl = this.querySelector('#free-ride-target');
     const playBtn = this.querySelector('#free-ride-play');
@@ -5690,7 +6172,11 @@ class PageFreeRide extends HTMLElement {
     const debugRecordBtn = this.querySelector('#free-ride-debug-record');
     const debugRecordLabelEl = this.querySelector('#free-ride-debug-record-label');
     const debugVoiceBtn = this.querySelector('#free-ride-debug-voice');
+    const savePhraseBtn = this.querySelector('#free-ride-save-phrase');
+    const openSavedPhrasesBtn = this.querySelector('#free-ride-open-saved-phrases');
     const inputEl = this.querySelector('#free-ride-input');
+    const inputLanguageStatusEl = this.querySelector('#free-ride-input-language-status');
+    const inputLanguageNoteEl = this.querySelector('#free-ride-input-language-note');
     const scoreLineEl = this.querySelector('#free-ride-score-line');
     const scoreValueEl = this.querySelector('#free-ride-score-value');
     const scoreTextEl = this.querySelector('#free-ride-score-text');
@@ -5704,15 +6190,28 @@ class PageFreeRide extends HTMLElement {
 
     const expected = this.getExpectedTextTrimmed();
     const hasText = Boolean(expected);
+    const languageValidation =
+      this.practiceLanguageValidation || this.createEmptyPracticeLanguageValidation();
+    const languageBlocked =
+      hasText &&
+      languageValidation.checkedText === expected &&
+      languageValidation.blocking === true;
+    const libraryActionsDisabled = this.state.isRecording || this.state.isTranscribing;
+    const showDebugLanguageInfo = this.isSpeakDebugEnabled();
+    const englishConfidence = this.getEnglishConfidenceFromLanguageDetection(languageValidation.detection);
+    const debugLanguageSuffix =
+      showDebugLanguageInfo && englishConfidence > 0
+        ? ` · EN ${this.formatDetectedLanguageConfidence(englishConfidence)}`
+        : '';
 
     if (phraseEl) {
       this.restorePhrasePreviewText(copy);
     }
     if (playBtn) {
-      playBtn.disabled = !hasText || this.state.isRecording || this.state.isTranscribing;
+      playBtn.disabled = !hasText || this.state.isRecording || this.state.isTranscribing || languageBlocked;
     }
     if (recordBtn) {
-      recordBtn.disabled = !hasText || this.state.isTranscribing;
+      recordBtn.disabled = !hasText || this.state.isTranscribing || languageBlocked;
       recordBtn.classList.toggle('is-recording', this.state.isRecording);
       recordBtn.setAttribute('aria-pressed', this.state.isRecording ? 'true' : 'false');
     }
@@ -5728,7 +6227,7 @@ class PageFreeRide extends HTMLElement {
       voiceBtn.disabled = !this.state.recordingUrl || this.state.isRecording || this.state.isTranscribing;
     }
     if (debugRecordBtn) {
-      debugRecordBtn.disabled = !hasText || this.state.isTranscribing;
+      debugRecordBtn.disabled = !hasText || this.state.isTranscribing || languageBlocked;
       debugRecordBtn.classList.toggle('is-recording', this.state.isRecording);
       debugRecordBtn.setAttribute('aria-pressed', this.state.isRecording ? 'true' : 'false');
     }
@@ -5743,8 +6242,36 @@ class PageFreeRide extends HTMLElement {
     if (debugVoiceBtn) {
       debugVoiceBtn.disabled = !this.state.recordingUrl || this.state.isRecording || this.state.isTranscribing;
     }
+    if (savePhraseBtn) {
+      savePhraseBtn.disabled = !hasText || libraryActionsDisabled || languageBlocked;
+      savePhraseBtn.hidden = Boolean(languageBlocked);
+    }
+    if (openSavedPhrasesBtn) {
+      openSavedPhrasesBtn.disabled = libraryActionsDisabled;
+      openSavedPhrasesBtn.hidden = Boolean(languageBlocked);
+    }
     if (inputEl) {
       inputEl.disabled = this.state.isRecording || this.state.isTranscribing;
+    }
+    if (inputLanguageStatusEl) {
+      const showStatus =
+        hasText &&
+        languageValidation.checkedText === expected &&
+        languageValidation.status === 'checking';
+      inputLanguageStatusEl.hidden = !showStatus;
+      inputLanguageStatusEl.textContent = showStatus ? languageValidation.message || '' : '';
+    }
+    if (inputLanguageNoteEl) {
+      const shouldShowNote =
+        hasText &&
+        languageValidation.checkedText === expected &&
+        languageValidation.blocking;
+      inputLanguageNoteEl.hidden = !shouldShowNote;
+      inputLanguageNoteEl.classList.remove('is-checking');
+      inputLanguageNoteEl.classList.toggle('is-warning', Boolean(shouldShowNote));
+      inputLanguageNoteEl.textContent = shouldShowNote
+        ? `${languageValidation.message || ''}${debugLanguageSuffix}`
+        : '';
     }
 
     const feedback = this.getFeedbackState(copy);
@@ -5906,7 +6433,6 @@ class PageFreeRide extends HTMLElement {
 
   bindUi(copy) {
     const inputEl = this.querySelector('#free-ride-input');
-    const flagBtn = this.querySelector('#free-ride-toggle-language');
     const playBtn = this.querySelector('#free-ride-play');
     const recordBtn = this.querySelector('#free-ride-record');
     const voiceBtn = this.querySelector('#free-ride-voice');
@@ -5943,7 +6469,7 @@ class PageFreeRide extends HTMLElement {
     }
 
     savePhraseBtn?.addEventListener('click', () => {
-      this.saveCurrentPhraseToLibrary();
+      this.saveCurrentPhraseToLibrary().catch(() => {});
     });
 
     openSavedPhrasesBtn?.addEventListener('click', () => {
@@ -5953,17 +6479,22 @@ class PageFreeRide extends HTMLElement {
       });
     });
 
-    flagBtn?.addEventListener('click', () => {
-      this.toggleLocaleFromFlag();
+    this.querySelector('.app-locale-btn')?.addEventListener('click', () => {
+      const nextLocale = getNextLocaleCode(getAppLocale() || 'en');
+      setAppLocale(nextLocale);
+      if (window.varGlobal && typeof window.varGlobal === 'object') {
+        window.varGlobal.locale = nextLocale;
+      }
+      window.dispatchEvent(new CustomEvent('app:locale-change', { detail: { locale: nextLocale } }));
     });
 
     const heroCardEl = this.querySelector('.free-ride-hero-card');
     heroCardEl?.addEventListener('click', (event) => {
       if (this.isEventInHeaderZone(event)) return;
-      const target = event && event.target && typeof event.target.closest === 'function'
-        ? event.target.closest('button, [data-action], a, input, textarea, select')
-        : null;
-      if (target) return;
+      const target = event && event.target && typeof event.target.closest === 'function' ? event.target : null;
+      if (!target) return;
+      const inNarrationZone = target.closest('.free-ride-mascot-wrap, .journey-plan-mascot-wrap, .onboarding-intro-bubble, .free-ride-hero-bubble, .journey-plan-bubble');
+      if (!inNarrationZone) return;
       this.playHeroNarration();
     });
 
@@ -6032,14 +6563,14 @@ class PageFreeRide extends HTMLElement {
     });
 
     playBtn?.addEventListener('click', () => {
-      this.playPhrase(playBtn);
+      this.playPhrase(playBtn).catch(() => {});
     });
 
     recordBtn?.addEventListener('click', () => {
       if (this.state.isRecording) {
         this.stopRecording();
       } else {
-        this.startRecording();
+        this.startRecording().catch(() => {});
       }
     });
 
@@ -6047,7 +6578,7 @@ class PageFreeRide extends HTMLElement {
       if (this.state.isRecording) {
         this.stopRecording();
       } else {
-        this.startRecording();
+        this.startRecording().catch(() => {});
       }
     });
 
@@ -6105,15 +6636,9 @@ class PageFreeRide extends HTMLElement {
     this.currentUiLocale = uiLocale;
     const copy = getFreeRideCopy(uiLocale);
     this.currentCopy = copy;
-    const localeMeta = getLocaleMeta(uiLocale);
     const nextLocaleCode = getNextLocaleCode(uiLocale);
-    const nextLocaleMeta = getLocaleMeta(nextLocaleCode);
     const debugEnabled = this.isSpeakDebugEnabled();
     const heroMascotSrc = this.getHeroMascotFramePath(this.heroMascotFrameIndex);
-    const toggleLanguageLabel = String(copy.toggleLanguage || '').replace(
-      '{lang}',
-      nextLocaleMeta.label
-    );
     const bilingualPlaceholder = this.getFreeRideCopyBilingualPlainText('inputPlaceholder', {
       fallbackEs: 'Ejemplo: I would like to order a coffee, please.',
       fallbackEn: 'Example: I would like to order a coffee, please.'
@@ -6123,32 +6648,9 @@ class PageFreeRide extends HTMLElement {
     const savePhraseDisabled = !hasExpectedText || libraryActionsDisabled;
 
     this.innerHTML = `
-      <ion-header translucent="true">
-        <ion-toolbar class="secret-title">
-          <ion-title class="secret-title"></ion-title>
-          <div class="app-header-actions" slot="end">
-            <div class="app-user-info" id="free-ride-user-info" hidden>
-              <img class="app-user-avatar" id="free-ride-user-avatar" alt="Avatar">
-              <span class="app-user-name" id="free-ride-user-name"></span>
-            </div>
-            <div class="reward-badges" id="free-ride-reward-badges"></div>
-            <ion-button fill="clear" size="small" class="app-notify-btn">
-              <ion-icon slot="icon-only" name="notifications-outline"></ion-icon>
-            </ion-button>
-            <ion-button fill="clear" size="small" class="app-logout-btn" id="free-ride-logout-btn" hidden>
-              <ion-icon slot="icon-only" name="log-out-outline"></ion-icon>
-            </ion-button>
-          </div>
-        </ion-toolbar>
-      </ion-header>
+      ${renderAppHeader({ title: copy.title, rewardBadgesId: 'free-ride-reward-badges', nextLocale: nextLocaleCode.toUpperCase() })}
       <ion-content fullscreen class="free-ride-content speak-content secret-content">
         <div class="speak-shell free-ride-shell">
-          <div class="journey-title free-ride-title-wrap">
-            <h2 class="onboarding-intro-title free-ride-screen-title">${this.renderFreeRideCopyBilingualHtml('title', {
-              fallbackEs: 'Práctica libre',
-              fallbackEn: 'Free ride'
-            })}</h2>
-          </div>
           <section class="free-ride-hero-card onboarding-intro-card">
             <span class="journey-plan-mascot-wrap free-ride-mascot-wrap" aria-hidden="true">
               <img
@@ -6158,10 +6660,12 @@ class PageFreeRide extends HTMLElement {
                 alt=""
               >
             </span>
-            <p class="onboarding-intro-bubble free-ride-hero-bubble journey-plan-bubble">${this.renderFreeRideCopyBilingualHtml('subtitle', {
+            <div class="journey-plan-body">
+              <p class="onboarding-intro-bubble free-ride-hero-bubble journey-plan-bubble">${this.renderFreeRideCopyBilingualHtml('subtitle', {
               fallbackEs: copy.subtitle || '',
               fallbackEn: copy.subtitle || ''
             })}</p>
+            </div>
             <div class="free-ride-hero-flag-wrap">
               ${
                 debugEnabled
@@ -6176,27 +6680,19 @@ class PageFreeRide extends HTMLElement {
               </button>`
                   : ''
               }
-              <button
-                class="onboarding-intro-flag-btn free-ride-flag-btn"
-                id="free-ride-toggle-language"
-                type="button"
-                aria-label="${this.escapeHtml(toggleLanguageLabel)}"
-                title="${this.escapeHtml(toggleLanguageLabel)}"
-              >
-                <img class="onboarding-intro-flag" src="${this.escapeHtml(localeMeta.flag)}" alt="${this.escapeHtml(
-                  localeMeta.alt
-                )}">
-              </button>
             </div>
           </section>
 
           <section class="free-ride-card">
             <div class="free-ride-card-main">
               <div class="free-ride-input-wrap">
-                <label class="free-ride-label" for="free-ride-input">${this.renderFreeRideCopyBilingualHtml('inputLabel', {
-                  fallbackEs: 'Tu frase',
-                  fallbackEn: 'Your phrase'
-                })}</label>
+                <label class="free-ride-label" for="free-ride-input">
+                  <span>${this.renderFreeRideCopyBilingualHtml('inputLabel', {
+                    fallbackEs: 'Tu frase',
+                    fallbackEn: 'Your phrase'
+                  })}</span>
+                  <span class="free-ride-label-status" id="free-ride-input-language-status" hidden></span>
+                </label>
                 <textarea
                   id="free-ride-input"
                   class="free-ride-input"
@@ -6204,6 +6700,7 @@ class PageFreeRide extends HTMLElement {
                   placeholder="${this.escapeHtml(bilingualPlaceholder || copy.inputPlaceholder || '')}"
                 ></textarea>
                 <div class="free-ride-input-actions">
+                  <div class="free-ride-input-inline-message" id="free-ride-input-language-note" hidden></div>
                   <button
                     id="free-ride-save-phrase"
                     class="free-ride-input-action-btn is-primary"
@@ -6247,13 +6744,10 @@ class PageFreeRide extends HTMLElement {
     `;
 
     this.bindUi(copy);
-    this.updateHeaderUser(window.user || null);
     this.updateHeaderRewards();
-    this.querySelector('#free-ride-logout-btn')?.addEventListener('click', () => {
-      this.logoutUser();
-    });
     this.renderHeroMascotFrame(this.heroMascotFrameIndex);
     this.setHeroBubbleSpeaking(this.heroMascotIsTalking);
+    this.schedulePracticeTextLanguageValidation({ immediate: true });
     this.scheduleLayoutSync(0);
     this.scheduleLayoutSync(140);
 

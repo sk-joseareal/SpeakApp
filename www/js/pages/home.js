@@ -6,28 +6,35 @@ import {
   resolveSelection,
   setSelection
 } from '../data/training-data.js';
-import { getAppLocale } from '../state.js';
+import { getAppLocale, setAppLocale } from '../state.js';
 import { goToSpeak } from '../nav.js';
 import {
   getHomeCopy,
-  getLocaleMeta,
   getNextLocaleCode,
   getSpeakCopy,
   normalizeLocale as normalizeCopyLocale
 } from '../content/copy.js';
+import { renderAppHeader } from '../components/app-header.js';
 
 const TTS_LANG_BY_LOCALE = {
   es: 'es-ES',
   en: 'en-US'
 };
 
-const PLAN_MASCOT_FRAME_COUNT = 9;
-const PLAN_MASCOT_REST_FRAME = PLAN_MASCOT_FRAME_COUNT - 1;
+const PLAN_MASCOT_FRAMES = [
+  'assets/mascot/nena/frame_0.png',
+  'assets/mascot/nena/frame_1.png',
+  'assets/mascot/nena/frame_2.png',
+  'assets/mascot/nena/frame_3.png'
+];
+const PLAN_MASCOT_REST_FRAME = 0;
+const PLAN_MASCOT_TALK_FRAME_SEQUENCE = [1, 2, 3];
 const PLAN_MASCOT_FRAME_INTERVAL_MS = 150;
 const BROWSER_AUTONARRATION_EXTRA_DELAY_MS = 120;
 const SPEAK_SESSION_PERCENTAGES_VISIBLE_KEY = 'appv5:speak-session-percentages-visible';
 const HOME_ALIGNED_CACHE_MAX_ITEMS = 24;
 const HOME_PLAN_AUTONARRATION_PLAYED_KEY = 'appv5:home-plan-auto-narration-played';
+const HOME_EXPANDED_ROUTE_KEY = 'appv5:home-expanded-route-id';
 
 class PageHome extends HTMLElement {
   constructor() {
@@ -35,7 +42,7 @@ class PageHome extends HTMLElement {
     this.state = {
       localeOverride: ''
     };
-    this.expandedRouteId = '';
+    this.expandedRouteId = (() => { try { const v = localStorage.getItem(HOME_EXPANDED_ROUTE_KEY); return v !== null ? v : null; } catch { return null; } })();
     this.expandedModuleId = '';
     this.currentUiLocale = 'en';
     this.currentPlanMessage = '';
@@ -57,53 +64,19 @@ class PageHome extends HTMLElement {
 
   connectedCallback() {
     this.classList.add('ion-page');
-    const logoutUser = () => {
-      if (typeof window.setUser === 'function') {
-        window.setUser(null);
-        return;
-      }
-      window.user = null;
-      try {
-        localStorage.removeItem('appv5:user');
-      } catch (err) {
-        console.error('[user] error borrando localStorage', err);
-      }
-      window.dispatchEvent(new CustomEvent('app:user-change', { detail: null }));
-    };
-    this._logoutUser = logoutUser;
     this.handleSelectionChange = () => {
       const { route, module } = resolveSelection(getSelection());
-      if (route) this.expandedRouteId = route.id;
+      if (route) {
+        const stored = (() => { try { return localStorage.getItem(HOME_EXPANDED_ROUTE_KEY); } catch { return null; } })();
+        if (stored === null) {
+          this.expandedRouteId = route.id;
+          try { localStorage.setItem(HOME_EXPANDED_ROUTE_KEY, route.id); } catch {}
+        }
+      }
       if (module) this.expandedModuleId = module.id;
       this.render();
     };
     window.addEventListener('training:selection-change', this.handleSelectionChange);
-    this.updateHeaderUser = (user) => {
-      const infoEl = this.querySelector('#home-user-info');
-      const nameEl = this.querySelector('#home-user-name');
-      const avatarEl = this.querySelector('#home-user-avatar');
-      const logoutBtn = this.querySelector('#home-logout-btn');
-      if (!infoEl) return;
-      const loggedIn = Boolean(user && user.id !== undefined && user.id !== null);
-      infoEl.hidden = !loggedIn;
-      if (logoutBtn) logoutBtn.hidden = !loggedIn;
-      if (!loggedIn || !user) {
-        if (nameEl) nameEl.textContent = '';
-        if (avatarEl) {
-          avatarEl.src = '';
-          avatarEl.hidden = true;
-        }
-        return;
-      }
-      const name = user.name || user.first_name || user.email || user.social_id || '';
-      const avatar = user.image_local || user.image || '';
-      if (nameEl) nameEl.textContent = name || 'Usuario';
-      if (avatarEl) {
-        avatarEl.src = avatar || '';
-        avatarEl.alt = name ? `Avatar ${name}` : 'Avatar';
-        avatarEl.hidden = !avatar;
-      }
-    };
     this.updateHeaderRewards = () => {
       const container = this.querySelector('#home-reward-badges');
       if (!container) return;
@@ -132,8 +105,6 @@ class PageHome extends HTMLElement {
         )
         .join('');
     };
-    this._userHandler = (event) => this.updateHeaderUser(event.detail);
-    window.addEventListener('app:user-change', this._userHandler);
     this._rewardsHandler = () => this.render();
     window.addEventListener('app:speak-stores-change', this._rewardsHandler);
     this._debugHandler = () => this.render();
@@ -201,9 +172,6 @@ class PageHome extends HTMLElement {
     if (this.handleSelectionChange) {
       window.removeEventListener('training:selection-change', this.handleSelectionChange);
     }
-    if (this._userHandler) {
-      window.removeEventListener('app:user-change', this._userHandler);
-    }
     if (this._rewardsHandler) {
       window.removeEventListener('app:speak-stores-change', this._rewardsHandler);
     }
@@ -243,13 +211,12 @@ class PageHome extends HTMLElement {
     const value = Number(frameIndex);
     if (!Number.isFinite(value)) return PLAN_MASCOT_REST_FRAME;
     const rounded = Math.round(value);
-    return Math.min(Math.max(rounded, 0), PLAN_MASCOT_FRAME_COUNT - 1);
+    return Math.min(Math.max(rounded, 0), PLAN_MASCOT_FRAMES.length - 1);
   }
 
   getPlanMascotFramePath(frameIndex = PLAN_MASCOT_REST_FRAME) {
     const normalized = this.normalizePlanMascotFrameIndex(frameIndex);
-    const padded = String(normalized).padStart(2, '0');
-    return `assets/mascot/mascota-boca-${padded}.png`;
+    return PLAN_MASCOT_FRAMES[normalized] || PLAN_MASCOT_FRAMES[PLAN_MASCOT_REST_FRAME];
   }
 
   getPlanMascotImageEl() {
@@ -285,12 +252,12 @@ class PageHome extends HTMLElement {
       clearInterval(this.planMascotFrameTimer);
       this.planMascotFrameTimer = null;
     }
-    let frame = 0;
-    this.renderPlanMascotFrame(frame);
+    let sequenceIndex = 0;
+    this.renderPlanMascotFrame(PLAN_MASCOT_TALK_FRAME_SEQUENCE[sequenceIndex]);
     this.planMascotFrameTimer = setInterval(() => {
       if (!this.planMascotIsTalking) return;
-      frame = (frame + 1) % (PLAN_MASCOT_FRAME_COUNT - 1);
-      this.renderPlanMascotFrame(frame);
+      sequenceIndex = (sequenceIndex + 1) % PLAN_MASCOT_TALK_FRAME_SEQUENCE.length;
+      this.renderPlanMascotFrame(PLAN_MASCOT_TALK_FRAME_SEQUENCE[sequenceIndex]);
     }, PLAN_MASCOT_FRAME_INTERVAL_MS);
   }
 
@@ -442,13 +409,8 @@ class PageHome extends HTMLElement {
     const uiLocale = this.getUiLocale(baseLocale);
     const copy = getHomeCopy(uiLocale);
     const speakCopy = getSpeakCopy(uiLocale) || {};
-    const planFlag = getLocaleMeta(uiLocale);
     const nextLocaleCode = getNextLocaleCode(uiLocale);
-    const nextLocaleMeta = getLocaleMeta(nextLocaleCode);
-    const toggleLanguageLabel = String(copy.toggleLanguage || '').replace(
-      '{lang}',
-      nextLocaleMeta.label
-    );
+    const tabTitle = copy.planTitle;
     this.currentUiLocale = uiLocale;
     this.currentPlanMessage = copy.planMessage || '';
     const planLines = this.extractNarrationLines(this.currentPlanMessage);
@@ -471,33 +433,10 @@ class PageHome extends HTMLElement {
     const getSessionTitle = (session) => readLocalizedField(session, 'title');
     if (!routes.length) {
       this.innerHTML = `
-        <ion-header translucent="true">
-          <ion-toolbar class="secret-title">
-            <ion-title class="secret-title"></ion-title>
-            <div class="app-header-actions" slot="end">
-              <div class="app-user-info" id="home-user-info" hidden>
-                <img class="app-user-avatar" id="home-user-avatar" alt="Avatar">
-                <span class="app-user-name" id="home-user-name"></span>
-              </div>
-              <div class="reward-badges" id="home-reward-badges"></div>
-              <ion-button fill="clear" size="small" class="app-notify-btn">
-                <ion-icon slot="icon-only" name="notifications-outline"></ion-icon>
-              </ion-button>
-              <ion-button fill="clear" size="small" class="app-logout-btn" id="home-logout-btn" hidden>
-                <ion-icon slot="icon-only" name="log-out-outline"></ion-icon>
-              </ion-button>
-            </div>
-          </ion-toolbar>
-        </ion-header>
+        ${renderAppHeader({ title: tabTitle, rewardBadgesId: 'home-reward-badges', nextLocale: nextLocaleCode.toUpperCase() })}
         <ion-content fullscreen class="home-journey secret-content">
           <div class="journey-shell">
-            <div class="journey-title">
-              <h2 class="onboarding-intro-title">${copy.planTitle}</h2>
-            </div>
             <section class="journey-plan-card onboarding-intro-card">
-              <button class="onboarding-intro-flag-btn journey-plan-flag-btn" type="button" data-action="toggle-language" aria-label="${toggleLanguageLabel}" title="${toggleLanguageLabel}">
-                <img class="onboarding-intro-flag" src="${planFlag.flag}" alt="${planFlag.alt}">
-              </button>
               <span class="journey-plan-mascot-wrap" aria-hidden="true">
                 <img
                   class="onboarding-intro-cat"
@@ -506,9 +445,19 @@ class PageHome extends HTMLElement {
                   alt=""
                 >
               </span>
-              <p class="onboarding-intro-bubble journey-plan-bubble">
-                ${planRestHtml}
-              </p>
+              <div class="journey-plan-body">
+                <p class="onboarding-intro-bubble journey-plan-bubble">
+                  ${planRestHtml}
+                </p>
+                <div class="journey-start-pill" style="visibility:hidden" aria-hidden="true">
+                  <ion-icon name="headset-outline"></ion-icon>
+                  &nbsp;
+                </div>
+              </div>
+              <button class="journey-start-btn" type="button" style="visibility:hidden" aria-hidden="true" disabled>
+                <ion-icon name="play" class="journey-start-btn-icon"></ion-icon>
+                ${copy.go}
+              </button>
             </section>
           </div>
         </ion-content>
@@ -526,7 +475,6 @@ class PageHome extends HTMLElement {
             if (this.isConnected) this.render();
           });
       }
-      this.updateHeaderUser(window.user);
       this.updateHeaderRewards();
       this.renderPlanMascotFrame(this.planMascotFrameIndex);
       this.setPlanBubbleSpeaking(this.planMascotIsTalking);
@@ -540,15 +488,54 @@ class PageHome extends HTMLElement {
     } = resolveSelection(getSelection());
     if (!activeRoute || !activeModule || !activeSession) return;
 
-    const getDefaultLabelScale = () => [
-      { min: 85, label: speakCopy.feedbackNative || 'You sound like a native' },
-      { min: 70, label: speakCopy.feedbackGood || 'Good! Continue practicing' },
-      { min: 60, label: speakCopy.feedbackAlmost || 'Almost Correct!' },
-      { min: 0, label: speakCopy.feedbackKeep || 'Keep practicing' }
+    const DEFAULT_TONE_SCALE = [
+      { min: 80, tone: 'good' },
+      { min: 60, tone: 'okay' },
+      { min: 0, tone: 'bad' }
     ];
+
+    const getDefaultTonePhrases = () => ({
+      good: [
+        speakCopy.feedbackNative || 'You sound like a native',
+        uiLocale === 'es' ? 'Gran trabajo' : 'Great job!'
+      ],
+      okay: [
+        speakCopy.feedbackGood || 'Good! Continue practicing',
+        speakCopy.feedbackAlmost || 'Almost Correct!'
+      ],
+      bad: [
+        speakCopy.feedbackKeep || 'Keep practicing',
+        uiLocale === 'es' ? 'Intentalo de nuevo' : 'Try again'
+      ]
+    });
+
+    const resolveToneListMap = (source, fallback) => {
+      const tones = ['good', 'okay', 'bad'];
+      const safeSource = source && typeof source === 'object' ? source : {};
+      const safeFallback = fallback && typeof fallback === 'object' ? fallback : {};
+      const output = {};
+      tones.forEach((tone) => {
+        const fromSource = Array.isArray(safeSource[tone])
+          ? safeSource[tone].map((item) => String(item || '').trim()).filter(Boolean)
+          : [];
+        const fromFallback = Array.isArray(safeFallback[tone])
+          ? safeFallback[tone].map((item) => String(item || '').trim()).filter(Boolean)
+          : [];
+        output[tone] = fromSource.length ? fromSource : fromFallback;
+      });
+      return output;
+    };
 
     const getFeedbackConfig = () => {
       const config = window.r34lp0w3r && window.r34lp0w3r.speakFeedback;
+      const toneScale =
+        config && Array.isArray(config.toneScale) ? config.toneScale : DEFAULT_TONE_SCALE;
+      const tonePhrasesByLocale =
+        config && config.tonePhrasesByLocale && typeof config.tonePhrasesByLocale === 'object'
+          ? config.tonePhrasesByLocale
+          : config && config.labelPhrasesByLocale && typeof config.labelPhrasesByLocale === 'object'
+            ? config.labelPhrasesByLocale
+            : null;
       const labelScaleByLocale =
         config && config.labelScaleByLocale && typeof config.labelScaleByLocale === 'object'
           ? config.labelScaleByLocale
@@ -564,13 +551,19 @@ class PageHome extends HTMLElement {
           : null;
       const fallbackLabelScale =
         config && Array.isArray(config.labelScale) && uiLocale === 'en' ? config.labelScale : null;
+      const fallbackTonePhrases = getDefaultTonePhrases();
+      const preferredTonePhrases = tonePhrasesByLocale ? tonePhrasesByLocale[uiLocale] : null;
+      const labelScale = Array.isArray(preferredLabelScale)
+        ? preferredLabelScale
+        : Array.isArray(fallbackLabelScale)
+          ? fallbackLabelScale
+          : [];
       return {
-        toneScale: config && Array.isArray(config.toneScale) ? config.toneScale : [],
-        labelScale: Array.isArray(preferredLabelScale)
-          ? preferredLabelScale
-          : Array.isArray(fallbackLabelScale)
-            ? fallbackLabelScale
-            : getDefaultLabelScale()
+        toneScale,
+        tonePhrases: resolveToneListMap(
+          preferredTonePhrases,
+          deriveTonePhrasesFromLabelScale(labelScale, toneScale, fallbackTonePhrases)
+        )
       };
     };
 
@@ -588,6 +581,33 @@ class PageHome extends HTMLElement {
       return fallback;
     };
 
+    const deriveTonePhrasesFromLabelScale = (labelScale, toneScale, fallbackTonePhrases) => {
+      const normalizedLabels = normalizeScale(labelScale, 'label');
+      const normalizedTones = normalizeScale(toneScale, 'tone');
+      const derived = {};
+      normalizedTones.forEach((entry, index) => {
+        const previous = normalizedTones[index - 1];
+        const max = index === 0 ? Number.POSITIVE_INFINITY : previous.min - 1;
+        derived[entry.tone] = normalizedLabels
+          .filter((item) => item.min >= entry.min && item.min <= max)
+          .map((item) => item.label);
+      });
+      return resolveToneListMap(derived, fallbackTonePhrases);
+    };
+
+    const pickStableListItem = (items, seed, fallback) => {
+      const list = Array.isArray(items)
+        ? items.map((item) => String(item || '').trim()).filter(Boolean)
+        : [];
+      if (!list.length) return fallback;
+      const base = String(seed || list.join('|'));
+      let hash = 0;
+      for (let idx = 0; idx < base.length; idx += 1) {
+        hash = (hash * 31 + base.charCodeAt(idx)) >>> 0;
+      }
+      return list[hash % list.length];
+    };
+
     const getScoreTone = (percent) => {
       const value = typeof percent === 'number' ? percent : 0;
       const { toneScale } = getFeedbackConfig();
@@ -595,15 +615,19 @@ class PageHome extends HTMLElement {
       return resolveFromScale(normalized, value, 'tone', 'bad');
     };
 
-    const getScoreLabel = (percent) => {
+    const getScoreLabel = (percent, seed = '') => {
       const value = typeof percent === 'number' ? percent : 0;
-      const { labelScale } = getFeedbackConfig();
-      const normalized = normalizeScale(labelScale, 'label');
-      return resolveFromScale(
-        normalized,
-        value,
-        'label',
-        speakCopy.feedbackKeep || 'Keep practicing'
+      const tone = getScoreTone(value);
+      const { tonePhrases } = getFeedbackConfig();
+      const fallbackTonePhrases = getDefaultTonePhrases();
+      const fallbackList =
+        fallbackTonePhrases && Array.isArray(fallbackTonePhrases[tone])
+          ? fallbackTonePhrases[tone]
+          : [];
+      return pickStableListItem(
+        tonePhrases && Array.isArray(tonePhrases[tone]) ? tonePhrases[tone] : [],
+        `${seed}|${tone}|${value}`,
+        fallbackList[0] || speakCopy.feedbackKeep || 'Keep practicing'
       );
     };
 
@@ -776,16 +800,21 @@ class PageHome extends HTMLElement {
       return;
     }
 
-    if (!this.expandedRouteId || !routes.some((item) => item.id === this.expandedRouteId)) {
+    if (this.expandedRouteId === null) {
       this.expandedRouteId = activeRoute.id;
+      try { localStorage.setItem(HOME_EXPANDED_ROUTE_KEY, this.expandedRouteId); } catch {}
+    } else if (this.expandedRouteId && !routes.some((item) => item.id === this.expandedRouteId)) {
+      this.expandedRouteId = activeRoute.id;
+      try { localStorage.setItem(HOME_EXPANDED_ROUTE_KEY, this.expandedRouteId); } catch {}
     }
     const expandedRoute = routes.find((item) => item.id === this.expandedRouteId) || activeRoute;
     const expandedRouteIndex = routes.findIndex((item) => item.id === expandedRoute.id);
     const expandedRouteUnlocked =
       expandedRouteIndex === 0 || routeUnlockList[expandedRouteIndex] === true;
     if (
-      !this.expandedModuleId ||
-      !expandedRoute.modules.some((item) => item.id === this.expandedModuleId)
+      this.expandedRouteId &&
+      (!this.expandedModuleId ||
+      !expandedRoute.modules.some((item) => item.id === this.expandedModuleId))
     ) {
       this.expandedModuleId =
         expandedRoute.id === activeRoute.id
@@ -816,36 +845,25 @@ class PageHome extends HTMLElement {
         const isRouteOpen = route.id === this.expandedRouteId;
         const routeUnlocked = routeIndex === 0 || routeUnlockList[routeIndex] === true;
         const routeProgress = routeProgressList[routeIndex];
-        const routeRewards = getRouteRewards(route);
-        const rewardEntries = Object.entries(routeRewards).filter(([, qty]) => qty > 0);
-        const hasRouteRewards = rewardEntries.length > 0;
-        const routeRewardsMarkup = hasRouteRewards
-          ? `<div class="route-badges">${rewardEntries
-              .sort(([a], [b]) => a.localeCompare(b))
-              .map(
-                ([icon, qty]) =>
-                  `<div class="training-badge reward-badge"><ion-icon name="${icon}"></ion-icon><span>${qty}</span></div>`
-              )
-              .join('')}</div>`
-          : '';
         const routePercentMarkup =
           routeProgress && routeProgress.started
-            ? showSessionPercentages
-              ? `<span class="route-progress ${routeProgress.tone}">${routeProgress.percent}%</span>`
-              : renderProgressBars(routeProgress.percent, routeProgress.tone, 'is-route')
+            ? `<span class="route-progress ${routeProgress.tone}"><ion-icon name="star"></ion-icon>${routeProgress.percent}% ${copy.routeProgress}</span>`
             : '';
         const modulesMarkup = route.modules
           .map((module) => {
             const isActive = route.id === activeRoute.id && module.id === activeModule.id;
             const isModuleOpen = isRouteOpen && module.id === this.expandedModuleId;
             const progress = getModulePercent(module);
-            const moduleClass = progress.started ? '' : 'module-item-neutral';
             const lockedClass = routeUnlocked ? '' : 'module-item-locked';
-            const progressMarkup = progress.started
-              ? showSessionPercentages
-                ? `<span class="module-progress ${progress.tone}">${progress.percent}%</span>`
-                : renderProgressBars(progress.percent, progress.tone, 'is-module')
-              : '';
+            const toneCls = progress.started ? progress.tone : 'neutral';
+            const isMastered = progress.started && progress.tone === 'good';
+            const totalSessions = module.sessions.length;
+            const greenSessions = module.sessions.filter(item => {
+              if (!hasSessionAttempts(item)) return false;
+              const pct = getSessionPercent(item);
+              return pct !== null && getScoreTone(pct) === 'good';
+            }).length;
+            const showChevron = !isModuleOpen;
             const sessionsMarkup =
               routeUnlocked && isModuleOpen
                 ? `<div class="module-sessions training-list">${module.sessions
@@ -854,38 +872,19 @@ class PageHome extends HTMLElement {
                       const progressText = `${sessionProgress.correct}/${sessionProgress.total}`;
                       const started = hasSessionAttempts(item);
                       const sessionPercent = started ? getSessionPercent(item) : null;
-                      const labelText =
-                        showSessionPercentages && started && sessionPercent !== null
-                          ? getScoreLabel(sessionPercent)
-                          : '';
                       const tone =
                         started && sessionPercent !== null ? getScoreTone(sessionPercent) : 'neutral';
                       const toneClass =
-                        tone === 'good'
-                          ? 'good'
-                          : tone === 'okay'
-                            ? 'warn'
-                            : tone === 'bad'
-                              ? 'bad'
-                              : 'neutral';
-                      const scoreText =
-                        showSessionPercentages && started && sessionPercent !== null ? `${sessionPercent}%` : '';
-                      const reward = rewardsStore[item.id];
-                      const rewardIcon = reward && reward.rewardIcon ? reward.rewardIcon : 'diamond';
-                      const rewardQty =
-                        reward && typeof reward.rewardQty === 'number' ? reward.rewardQty : null;
-                      const rewardMarkup =
-                        rewardQty !== null && started
-                          ? `<div class="training-row-reward">
-                          <ion-icon name="${rewardIcon}"></ion-icon>
-                          <span>${rewardQty}</span>
-                        </div>`
+                        tone === 'good' ? 'good' : tone === 'okay' ? 'okay' : tone === 'bad' ? 'bad' : 'neutral';
+                      const labelText =
+                        started && sessionPercent !== null
+                          ? getScoreLabel(sessionPercent, `${route.id}:${module.id}:${item.id}`)
                           : '';
+                      const scoreText = started && sessionPercent !== null ? `${sessionPercent}%` : '';
                       const isCurrentSession =
                         route.id === activeRoute.id &&
                         module.id === activeModule.id &&
                         item.id === activeSession.id;
-                      const iconClass = toneClass !== 'neutral' ? `training-row-icon-${toneClass}` : '';
                       return `
                         <div
                           class="training-row ${isCurrentSession ? 'is-active' : ''}"
@@ -894,18 +893,14 @@ class PageHome extends HTMLElement {
                           data-module-id="${module.id}"
                           data-locked="${routeUnlocked ? '0' : '1'}"
                         >
-                          <div class="training-row-icon ${iconClass}">
-                            <ion-icon name="play"></ion-icon>
+                          <div class="session-circle session-circle-${toneClass}">
+                            <ion-icon name="play-circle-outline"></ion-icon>
                           </div>
-                          <div class="training-row-body">
-                            <div class="training-row-title">${getSessionTitle(item)}</div>
-                            <div class="training-row-sub">${progressText}</div>
+                          <div class="session-body">
+                            <div class="session-title">${getSessionTitle(item)}</div>
+                            ${labelText ? `<div class="session-label session-label-${toneClass}">${labelText}</div>` : ''}
                           </div>
-                          <div class="training-row-status training-row-status-${toneClass}">
-                            ${rewardMarkup}
-                            ${scoreText ? `<span>${scoreText}</span>` : ''}
-                            ${labelText ? `<span>${labelText}</span>` : ''}
-                          </div>
+                          <div class="session-percent session-percent-${toneClass}">${scoreText}</div>
                           <ion-icon name="chevron-forward" class="training-row-arrow"></ion-icon>
                         </div>
                       `;
@@ -914,7 +909,7 @@ class PageHome extends HTMLElement {
                 : '';
 
             return `
-              <div class="module-item ${moduleClass} ${lockedClass} ${isActive ? 'is-active' : ''} ${isModuleOpen ? 'is-open' : ''}">
+              <div class="module-item ${lockedClass} ${isActive ? 'is-active' : ''} ${isModuleOpen ? 'is-open' : ''}">
                 <button
                   class="module-header"
                   type="button"
@@ -922,14 +917,21 @@ class PageHome extends HTMLElement {
                   data-route-id="${route.id}"
                   data-module-id="${module.id}"
                 >
-                  <div>
-                    <div class="module-title">${getModuleTitle(module)}</div>
-                    <div class="module-sub">${getModuleSubtitle(module)}</div>
+                  <div class="module-header-inner">
+                    <div class="module-circle module-circle-${toneCls}">
+                      <ion-icon name="${toneCls === 'good' ? 'checkmark-circle-outline' : 'play-circle-outline'}"></ion-icon>
+                    </div>
+                    <div class="module-info">
+                      <div class="module-header-row">
+                        <span class="module-title">${getModuleTitle(module)}</span>
+                        ${isMastered ? `<span class="module-mastered-pill"><ion-icon name="trophy"></ion-icon>Mastered!</span>` : ''}
+                      </div>
+                      <div class="module-sub module-sub-${toneCls}">${getModuleSubtitle(module)}</div>
+                      <div class="module-sessions-count">${greenSessions}/${totalSessions} ${copy.sessionsCompleted}</div>
+                    </div>
+                    ${showChevron ? `<ion-icon name="${isModuleOpen ? 'chevron-up' : 'chevron-down'}" class="module-chevron"></ion-icon>` : ''}
                   </div>
-                  <div class="module-meta">
-                    ${progressMarkup}
-                    <ion-icon name="${isModuleOpen ? 'chevron-down' : 'chevron-forward'}"></ion-icon>
-                  </div>
+                  ${progress.started ? `<div class="module-progress-wrap"><div class="module-progress-fill module-progress-fill-${toneCls}" style="width:${Math.min(100, progress.percent)}%"></div></div>` : ''}
                 </button>
                 ${sessionsMarkup}
               </div>
@@ -937,22 +939,33 @@ class PageHome extends HTMLElement {
           })
           .join('');
 
+        const routeNote = getRouteNote(route);
+        const prevRouteTitle = !routeUnlocked && routeIndex > 0 ? getRouteTitle(routes[routeIndex - 1]) : '';
+        const routeUnlockText = !routeUnlocked ? `${copy.unlockAfter} ${prevRouteTitle}` : '';
+
         return `
-          <div class="route-item ${isRouteOpen ? 'is-open' : ''} ${hasRouteRewards ? 'has-rewards' : ''}">
+          <div class="route-item ${isRouteOpen ? 'is-open' : ''}">
             <button
               class="route-header"
               type="button"
               data-route-id="${route.id}"
               data-locked="${routeUnlocked ? '0' : '1'}"
             >
-              <span>${getRouteTitle(route)}</span>
+              <span class="route-header-title">
+                <ion-icon name="headset-outline"></ion-icon>
+                <span class="route-header-text">
+                  <span class="route-header-name">${getRouteTitle(route)}</span>
+                  ${routeNote ? `<span class="route-header-sub">${routeNote}</span>` : ''}
+                  ${routeUnlockText ? `<span class="route-header-sub route-header-unlock">${routeUnlockText}</span>` : ''}
+                </span>
+              </span>
               <div class="route-header-meta">
-                ${routePercentMarkup}
-                <ion-icon name="chevron-down"></ion-icon>
+                ${routeUnlocked
+                  ? `${routePercentMarkup}<ion-icon name="chevron-down"></ion-icon>`
+                  : `<span class="route-lock-pill"><ion-icon name="lock-closed-outline"></ion-icon></span>`
+                }
               </div>
             </button>
-            ${getRouteNote(route) ? `<div class="route-note">${getRouteNote(route)}</div>` : ''}
-            ${routeRewardsMarkup}
             <div class="route-modules">
               ${modulesMarkup}
             </div>
@@ -962,34 +975,10 @@ class PageHome extends HTMLElement {
       .join('');
 
     this.innerHTML = `
-      <ion-header translucent="true">
-        <ion-toolbar class="secret-title">
-          <ion-title class="secret-title"></ion-title>
-          <div class="app-header-actions" slot="end">
-            <div class="app-user-info" id="home-user-info" hidden>
-              <img class="app-user-avatar" id="home-user-avatar" alt="Avatar">
-              <span class="app-user-name" id="home-user-name"></span>
-            </div>
-            <div class="reward-badges" id="home-reward-badges"></div>
-            <ion-button fill="clear" size="small" class="app-notify-btn">
-              <ion-icon slot="icon-only" name="notifications-outline"></ion-icon>
-            </ion-button>
-            <ion-button fill="clear" size="small" class="app-logout-btn" id="home-logout-btn" hidden>
-              <ion-icon slot="icon-only" name="log-out-outline"></ion-icon>
-            </ion-button>
-          </div>
-        </ion-toolbar>
-      </ion-header>
+      ${renderAppHeader({ title: tabTitle, rewardBadgesId: 'home-reward-badges', nextLocale: nextLocaleCode.toUpperCase() })}
       <ion-content fullscreen class="home-journey secret-content">
         <div class="journey-shell">
-          <div class="journey-title">
-            <h2 class="onboarding-intro-title">${copy.planTitle}</h2>
-          </div>
-
           <section class="journey-plan-card onboarding-intro-card">
-            <button class="onboarding-intro-flag-btn journey-plan-flag-btn" type="button" data-action="toggle-language" aria-label="${toggleLanguageLabel}" title="${toggleLanguageLabel}">
-              <img class="onboarding-intro-flag" src="${planFlag.flag}" alt="${planFlag.alt}">
-            </button>
             <span class="journey-plan-mascot-wrap" aria-hidden="true">
               <img
                 class="onboarding-intro-cat"
@@ -998,17 +987,20 @@ class PageHome extends HTMLElement {
                 alt=""
               >
             </span>
-            <p class="onboarding-intro-bubble journey-plan-bubble">
-              ${planRestHtml}
-            </p>
-          </section>
-
-          <div class="journey-start">
-            <div class="journey-start-pill">${getRouteTitle(expandedRoute)}</div>
+            <div class="journey-plan-body">
+              <p class="onboarding-intro-bubble journey-plan-bubble">
+                ${planRestHtml}
+              </p>
+              <div class="journey-start-pill">
+                <ion-icon name="headset-outline"></ion-icon>
+                ${getRouteTitle(expandedRoute)}
+              </div>
+            </div>
             <button class="journey-start-btn ${expandedRouteUnlocked ? '' : 'is-locked'}" type="button">
-              go
+              <ion-icon name="play" class="journey-start-btn-icon"></ion-icon>
+              ${copy.go}
             </button>
-          </div>
+          </section>
 
           <div class="journey-accordion">
             ${accordionMarkup}
@@ -1017,7 +1009,8 @@ class PageHome extends HTMLElement {
       </ion-content>
     `;
 
-    this.querySelector('.journey-start-btn')?.addEventListener('click', () => {
+    this.querySelector('.journey-start-btn')?.addEventListener('click', (event) => {
+      event.stopPropagation();
       if (!expandedRouteUnlocked) {
         showLockedRouteToast(expandedRouteIndex);
         return;
@@ -1052,7 +1045,10 @@ class PageHome extends HTMLElement {
           showLockedRouteToast(routeIndex);
           return;
         }
-        this.expandedRouteId = routeId;
+        const isClosingRoute = this.expandedRouteId === routeId;
+        this.expandedRouteId = isClosingRoute ? '' : routeId;
+        try { localStorage.setItem(HOME_EXPANDED_ROUTE_KEY, this.expandedRouteId); } catch {}
+        if (isClosingRoute) { this.render(); return; }
         const route = routes.find((item) => item.id === routeId);
         if (!route) return;
         if (!route.modules.some((item) => item.id === this.expandedModuleId)) {
@@ -1153,8 +1149,6 @@ class PageHome extends HTMLElement {
       });
     });
 
-    this.querySelector('#home-logout-btn')?.addEventListener('click', this._logoutUser);
-    this.updateHeaderUser(window.user);
     this.updateHeaderRewards();
     this.bindPlanHeroEvents(options);
     this.flushRoutesCenterScroll();
@@ -1163,17 +1157,23 @@ class PageHome extends HTMLElement {
   }
 
   bindPlanHeroEvents(options = {}) {
-    const toggleLanguageBtn = this.querySelector('[data-action="toggle-language"]');
-    toggleLanguageBtn?.addEventListener('click', () => {
-      this.toggleLocaleFromFlag();
+    this.querySelector('.app-locale-btn')?.addEventListener('click', () => {
+      const nextLocale = getNextLocaleCode(getAppLocale() || 'en');
+      setAppLocale(nextLocale);
+      if (window.varGlobal && typeof window.varGlobal === 'object') {
+        window.varGlobal.locale = nextLocale;
+      }
+      window.dispatchEvent(new CustomEvent('app:locale-change', { detail: { locale: nextLocale } }));
     });
     const planCardEl = this.querySelector('.journey-plan-card');
     planCardEl?.addEventListener('click', (event) => {
       if (this.isEventInHeaderZone(event)) return;
       const target = event && event.target && typeof event.target.closest === 'function'
-        ? event.target.closest('button, [data-action], a, input, textarea, select')
+        ? event.target
         : null;
-      if (target) return;
+      if (!target) return;
+      const inNarrationZone = target.closest('.journey-plan-mascot-wrap, .onboarding-intro-bubble');
+      if (!inNarrationZone) return;
       this.playPlanNarration({ manual: true });
     });
     if (options.skipNarration) {
@@ -1276,14 +1276,6 @@ class PageHome extends HTMLElement {
       return normalizedTabName === 'home';
     }
     return true;
-  }
-
-  toggleLocaleFromFlag() {
-    const baseLocale = this.getBaseLocale();
-    const currentUiLocale = this.getUiLocale(baseLocale);
-    const nextLocale = currentUiLocale === 'en' ? 'es' : 'en';
-    this.state.localeOverride = nextLocale === baseLocale ? '' : nextLocale;
-    this.render({ forceNarration: true, narrationDelayMs: 80 });
   }
 
   getNativeTtsPlugin() {

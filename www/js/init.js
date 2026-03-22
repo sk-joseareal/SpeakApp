@@ -447,13 +447,39 @@ window.speakWebUtterance = (utter) => {
   return true;
 };
 
-window.r34lp0w3r.speakFeedback = window.r34lp0w3r.speakFeedback || {
-  toneScale: [
+window.r34lp0w3r.speakFeedback = window.r34lp0w3r.speakFeedback || {};
+
+if (!Array.isArray(window.r34lp0w3r.speakFeedback.toneScale)) {
+  window.r34lp0w3r.speakFeedback.toneScale = [
     { min: 80, tone: 'good' },
     { min: 60, tone: 'okay' },
     { min: 0, tone: 'bad' }
-  ],
-  labelScaleByLocale: {
+  ];
+}
+
+if (
+  !window.r34lp0w3r.speakFeedback.tonePhrasesByLocale ||
+  typeof window.r34lp0w3r.speakFeedback.tonePhrasesByLocale !== 'object'
+) {
+  window.r34lp0w3r.speakFeedback.tonePhrasesByLocale = {
+    en: {
+      good: ['You sound like a native', 'Great job!'],
+      okay: ['Good! Continue practicing', 'Almost Correct!'],
+      bad: ['Keep practicing', 'Try again']
+    },
+    es: {
+      good: ['Suena como un nativo', 'Gran trabajo'],
+      okay: ['Bien. Sigue practicando', 'Casi correcto'],
+      bad: ['Sigue practicando', 'Intentalo de nuevo']
+    }
+  };
+}
+
+if (
+  !window.r34lp0w3r.speakFeedback.labelScaleByLocale ||
+  typeof window.r34lp0w3r.speakFeedback.labelScaleByLocale !== 'object'
+) {
+  window.r34lp0w3r.speakFeedback.labelScaleByLocale = {
     en: [
       { min: 85, label: 'You sound like a native' },
       { min: 70, label: 'Good! Continue practicing' },
@@ -466,14 +492,17 @@ window.r34lp0w3r.speakFeedback = window.r34lp0w3r.speakFeedback || {
       { min: 60, label: 'Casi correcto' },
       { min: 0, label: 'Sigue practicando' }
     ]
-  },
-  labelScale: [
+  };
+}
+
+if (!Array.isArray(window.r34lp0w3r.speakFeedback.labelScale)) {
+  window.r34lp0w3r.speakFeedback.labelScale = [
     { min: 85, label: 'You sound like a native' },
     { min: 70, label: 'Good! Continue practicing' },
     { min: 60, label: 'Almost Correct!' },
     { min: 0, label: 'Keep practicing' }
-  ]
-};
+  ];
+}
 
 window.r34lp0w3r.speakSummaryTitles = window.r34lp0w3r.speakSummaryTitles || {
   en: {

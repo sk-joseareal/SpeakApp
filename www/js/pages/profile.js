@@ -1,6 +1,7 @@
 import { getAppLocale, setAppLocale } from '../state.js';
+import { renderAppHeader } from '../components/app-header.js';
 import { ensureTrainingData, getRoutes, setSelection } from '../data/training-data.js';
-import { getLocaleMeta, getNextLocaleCode, getProfileCopy, resolveLocale } from '../content/copy.js';
+import { getNextLocaleCode, getProfileCopy, getTabsCopy, resolveLocale } from '../content/copy.js';
 import { goToSpeak } from '../nav.js';
 
 class PageProfile extends HTMLElement {
@@ -13,19 +14,6 @@ class PageProfile extends HTMLElement {
       const storedTone = window.r34lp0w3r && window.r34lp0w3r.profileReviewTone;
       this.reviewTone = storedTone === 'okay' ? 'okay' : 'bad';
     }
-    this._logoutUser = () => {
-      if (typeof window.setUser === 'function') {
-        window.setUser(null);
-        return;
-      }
-      window.user = null;
-      try {
-        localStorage.removeItem('appv5:user');
-      } catch (err) {
-        console.error('[user] error borrando localStorage', err);
-      }
-      window.dispatchEvent(new CustomEvent('app:user-change', { detail: null }));
-    };
     this.render();
     this._userHandler = () => this.render();
     this._storesHandler = () => this.render();
@@ -143,9 +131,7 @@ class PageProfile extends HTMLElement {
       'es'
     );
     const profileCopy = getProfileCopy(rawLocaleSetting);
-    const profileLocaleUi = getLocaleMeta(rawLocaleSetting);
-    const nextLocaleCode = getNextLocaleCode(profileLocaleUi.code);
-    const nextLocaleLabel = getLocaleMeta(nextLocaleCode).label;
+    const nextLocaleCode = getNextLocaleCode(rawLocaleSetting);
 
     const reviewTone = this.reviewTone === 'okay' ? 'okay' : 'bad';
     const reviewToneLabel =
@@ -482,23 +468,7 @@ class PageProfile extends HTMLElement {
         )}</div>`;
 
     this.innerHTML = `
-      <ion-header translucent="true">
-        <ion-toolbar class="secret-title">
-          <div class="app-header-actions" slot="end">
-            <div class="app-user-info" id="profile-user-info" hidden>
-              <img class="app-user-avatar" id="profile-user-avatar" alt="Avatar">
-              <span class="app-user-name" id="profile-user-name"></span>
-            </div>
-            <div class="reward-badges" id="profile-reward-badges"></div>
-            <ion-button fill="clear" size="small" class="app-notify-btn">
-              <ion-icon slot="icon-only" name="notifications-outline"></ion-icon>
-            </ion-button>
-            <ion-button fill="clear" size="small" class="app-logout-btn" id="profile-logout-btn" hidden>
-              <ion-icon slot="icon-only" name="log-out-outline"></ion-icon>
-            </ion-button>
-          </div>
-        </ion-toolbar>
-      </ion-header>
+      ${renderAppHeader({ title: getTabsCopy(rawLocaleSetting).you, rewardBadgesId: 'profile-reward-badges', nextLocale: nextLocaleCode.toUpperCase() })}
       <ion-content fullscreen class="secret-content">
         <div class="page-shell profile-shell">
           <div class="card placeholder-card" id="profile-login-panel" ${loggedIn ? 'hidden' : ''}>
@@ -529,29 +499,6 @@ class PageProfile extends HTMLElement {
                       profileCopy.progressLabel || 'Progress'
                     )}</div>
                   </div>
-                  <button
-                    class="profile-locale-indicator"
-                    id="profile-locale-toggle"
-                    type="button"
-                    data-next-locale="${escapeHtml(nextLocaleCode)}"
-                    aria-label="${escapeHtml(
-                      String(profileCopy.toggleLanguageAria || 'Switch language to {lang}').replace(
-                        '{lang}',
-                        nextLocaleLabel
-                      )
-                    )}"
-                    title="${escapeHtml(
-                      String(profileCopy.toggleLanguageAria || 'Switch language to {lang}').replace(
-                        '{lang}',
-                        nextLocaleLabel
-                      )
-                    )}"
-                  >
-                    <img class="profile-locale-flag" src="${escapeHtml(profileLocaleUi.flag)}" alt="${escapeHtml(
-                      profileLocaleUi.alt
-                    )}">
-                    <span class="profile-locale-name">${escapeHtml(profileLocaleUi.label)}</span>
-                  </button>
                 </div>
               </div>
             </div>
@@ -674,6 +621,12 @@ class PageProfile extends HTMLElement {
                     profileNote ? escapeHtml(profileNote) : ''
                   }</p>
                 </div>
+                <div class="profile-logout-row">
+                  <ion-button expand="block" shape="round" fill="outline" class="profile-logout-btn" id="profile-logout-btn">
+                    <ion-icon slot="start" name="log-out-outline"></ion-icon>
+                    ${escapeHtml(profileCopy.logout || 'Log out')}
+                  </ion-button>
+                </div>
               </div>
             </div>
             <div class="profile-tab-panel" ${reviewActive ? '' : 'hidden'}>
@@ -704,10 +657,6 @@ class PageProfile extends HTMLElement {
     `;
 
     const loginBtn = this.querySelector('#profile-login-btn');
-    const logoutBtn = this.querySelector('#profile-logout-btn');
-    const userInfoEl = this.querySelector('#profile-user-info');
-    const userNameEl = this.querySelector('#profile-user-name');
-    const userAvatarEl = this.querySelector('#profile-user-avatar');
     const rewardsEl = this.querySelector('#profile-reward-badges');
     const linksLogin = this.querySelector('#profile-links-login');
     const linksFooter = this.querySelector('#profile-links-footer');
@@ -721,7 +670,6 @@ class PageProfile extends HTMLElement {
     const profilePasswordConfirm = this.querySelector('#profile-password-confirm');
     const profileSaveBtn = this.querySelector('#profile-save-btn');
     const profileSaveNote = this.querySelector('#profile-save-note');
-    const profileLocaleToggle = this.querySelector('#profile-locale-toggle');
     const profileEarnedBadgesEl = this.querySelector('#profile-earned-badges');
 
     const updateProfileState = (nextUser) => {
@@ -737,26 +685,6 @@ class PageProfile extends HTMLElement {
       const shouldShowAppMeta = !isLoggedIn || this.activeTab === 'prefs';
       if (linksFooter) linksFooter.hidden = !shouldShowFooterLinks;
       if (appMetaEl) appMetaEl.hidden = !shouldShowAppMeta;
-      if (logoutBtn) logoutBtn.hidden = !isLoggedIn;
-      if (userInfoEl) userInfoEl.hidden = !isLoggedIn;
-      if (!isLoggedIn || !nextUser) {
-        if (userNameEl) userNameEl.textContent = '';
-        if (userAvatarEl) {
-          userAvatarEl.src = '';
-          userAvatarEl.hidden = true;
-        }
-        return;
-      }
-      const name = getUserDisplayName(nextUser);
-      const avatar = getUserAvatar(nextUser);
-      if (userNameEl) userNameEl.textContent = name || (profileCopy.userFallbackName || 'User');
-      if (userAvatarEl) {
-        userAvatarEl.src = avatar || '';
-        userAvatarEl.alt = name
-          ? String(profileCopy.avatarAltWithName || 'Avatar {name}').replace('{name}', name)
-          : profileCopy.avatarAltDefault || 'Avatar';
-        userAvatarEl.hidden = !avatar;
-      }
     };
 
     const updateHeaderRewards = () => {
@@ -821,17 +749,13 @@ class PageProfile extends HTMLElement {
       });
     });
 
-    profileLocaleToggle?.addEventListener('click', () => {
-      const nextLocale = String(profileLocaleToggle.dataset.nextLocale || '').toLowerCase() === 'en' ? 'en' : 'es';
+    this.querySelector('.app-locale-btn')?.addEventListener('click', () => {
+      const nextLocale = getNextLocaleCode(getAppLocale() || 'en');
       setAppLocale(nextLocale);
       if (window.varGlobal && typeof window.varGlobal === 'object') {
         window.varGlobal.locale = nextLocale;
       }
       window.dispatchEvent(new CustomEvent('app:locale-change', { detail: { locale: nextLocale } }));
-      window.dispatchEvent(
-        new CustomEvent('app:profile-locale-toggle', { detail: { locale: nextLocale } })
-      );
-      this.render();
     });
 
     profileEarnedBadgesEl?.addEventListener('click', (event) => {
@@ -844,8 +768,6 @@ class PageProfile extends HTMLElement {
         window.openSpeakBadgePopup(badgeId).catch(() => {});
       }
     });
-
-    logoutBtn?.addEventListener('click', this._logoutUser);
 
     const updateProfileNote = () => {
       if (!profileSaveNote) return;
@@ -1025,6 +947,12 @@ class PageProfile extends HTMLElement {
         console.error('[profile] error guardando perfil', err);
         setProfileMessage(profileCopy.profileUpdateFailed || 'Could not update profile.', true);
       });
+    });
+
+    this.querySelector('#profile-logout-btn')?.addEventListener('click', () => {
+      if (typeof window.setUser === 'function') {
+        window.setUser(null);
+      }
     });
 
     const uploadAvatar = async (file) => {

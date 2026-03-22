@@ -1,5 +1,5 @@
 import { ensureInitialHash, setRouter, goToHome } from './nav.js';
-import { clearLoginTabsLock, hasLoginTabsLock, onboardingDone, setLoginTabsLock } from './state.js';
+import { clearLoginTabsLock, hasLoginTabsLock, onboardingDone, setOnboardingDone, setLoginTabsLock } from './state.js';
 import { generateDemoNotifications, getUnreadCount, markAllNotificationsRead } from './notifications-store.js';
 import './pages/onboarding.js';
 import './pages/home.js';
@@ -14,6 +14,10 @@ import './pages/login.js';
 import './pages/notifications.js';
 
 const routerReady = customElements.whenDefined('ion-router').then(() => document.querySelector('ion-router'));
+
+if (new URLSearchParams(window.location.search).get('autologin') === '1') {
+  setOnboardingDone();
+}
 
 routerReady.then((router) => {
   setRouter(router);
@@ -61,6 +65,14 @@ routerReady.then((router) => {
   setupLoginModal();
   setupLoginNotificationsSeed();
   checkMagicToken();
+
+  if (new URLSearchParams(window.location.search).get('autologin') === '1') {
+    setTimeout(() => {
+      if (typeof window.openLoginModal === 'function') {
+        window.openLoginModal({ locked: false });
+      }
+    }, 400);
+  }
 });
 
 function setupSecretDiagnostics(router) {

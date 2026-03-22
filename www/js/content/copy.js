@@ -23,7 +23,7 @@ const APP_COPY = {
       training: 'Training',
       lab: 'Lab',
       reference: 'Referencia',
-      you: 'You',
+      you: 'Profile',
       chat: 'Chat'
     },
     reference: {
@@ -204,7 +204,11 @@ const APP_COPY = {
       planTitle: 'Tu plan',
       planMessage:
         'Este es tu plan para sonar como nativo.<br>Toca esta tarjeta para escucharlo otra vez.',
-      toggleLanguage: 'Cambiar idioma a {lang}'
+      toggleLanguage: 'Cambiar idioma a {lang}',
+      go: 'ir',
+      routeProgress: 'progreso',
+      unlockAfter: 'Desbloquea después de',
+      sessionsCompleted: 'sesiones completadas'
     },
     freeRide: {
       tabLabel: 'Free ride',
@@ -219,6 +223,10 @@ const APP_COPY = {
       endLabel: 'Fin',
       yourVoiceLabel: 'Tu voz',
       feedbackHint: 'Practica la frase',
+      englishOnlyChecking: 'checking input',
+      englishOnlyAdvice: 'Para practicar mejor, escribe un texto 100% en ingles.',
+      englishOnlyMixed: 'Se detecta mezcla de idiomas. Usa un texto 100% en ingles para practicar.',
+      englishOnlyDetected: 'Detectado: {language}.',
       feedbackNative: 'Suena como un nativo',
       feedbackGood: 'Bien. Sigue practicando',
       feedbackAlmost: 'Casi correcto',
@@ -241,7 +249,7 @@ const APP_COPY = {
       },
       summaryPhrases: {
         good: ['Suena como un nativo', 'Gran trabajo'],
-        okay: ['Casi correcto', 'Sigue practicando'],
+        okay: ['Bien. Sigue practicando', 'Casi correcto'],
         bad: ['Sigue practicando', 'Intentalo de nuevo']
       },
       summaryLabelPrefix: 'GANAS',
@@ -371,6 +379,7 @@ const APP_COPY = {
       email: 'Email',
       subscriptionUntil: 'Suscripción hasta',
       saveChanges: 'Guardar cambios',
+      logout: 'Cerrar sesión',
       reviewWordsTitle: 'Palabras a revisar',
       reviewPhrasesTitle: 'Frases a revisar',
       reviewRed: 'Rojo',
@@ -404,7 +413,7 @@ const APP_COPY = {
       training: 'Training',
       lab: 'Lab',
       reference: 'Reference',
-      you: 'You',
+      you: 'Profile',
       chat: 'Chat'
     },
     reference: {
@@ -585,7 +594,11 @@ const APP_COPY = {
       planTitle: 'Your plan',
       planMessage:
         'This is your plan to sound like a native.<br>Tap this card to hear it again.',
-      toggleLanguage: 'Switch language to {lang}'
+      toggleLanguage: 'Switch language to {lang}',
+      go: 'go',
+      routeProgress: 'progress',
+      unlockAfter: 'Unlock after',
+      sessionsCompleted: 'sessions completed'
     },
     freeRide: {
       tabLabel: 'Free ride',
@@ -600,6 +613,10 @@ const APP_COPY = {
       endLabel: 'End',
       yourVoiceLabel: 'Your voice',
       feedbackHint: 'Practice the phrase',
+      englishOnlyChecking: 'checking input',
+      englishOnlyAdvice: 'To practice better, write a 100% English text.',
+      englishOnlyMixed: 'Mixed languages detected. Use a 100% English text to practice.',
+      englishOnlyDetected: 'Detected: {language}.',
       feedbackNative: 'You sound like a native',
       feedbackGood: 'Good! Continue practicing',
       feedbackAlmost: 'Almost Correct!',
@@ -622,7 +639,7 @@ const APP_COPY = {
       },
       summaryPhrases: {
         good: ['You sound like a native', 'Great job!'],
-        okay: ['Almost correct!', 'Keep practicing'],
+        okay: ['Good! Continue practicing', 'Almost Correct!'],
         bad: ['Keep practicing', 'Try again']
       },
       summaryLabelPrefix: 'YOU WIN',
@@ -752,6 +769,7 @@ const APP_COPY = {
       email: 'Email',
       subscriptionUntil: 'Subscription until',
       saveChanges: 'Save changes',
+      logout: 'Log out',
       reviewWordsTitle: 'Words to review',
       reviewPhrasesTitle: 'Phrases to review',
       reviewRed: 'Red',

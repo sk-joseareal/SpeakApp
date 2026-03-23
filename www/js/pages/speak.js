@@ -82,6 +82,7 @@ class PageSpeak extends HTMLElement {
     const debugToggleBtn = this.querySelector('#speak-debug-toggle');
 
     const AVATAR_BASE = 'assets/speak/avatar';
+    const AVATAR_CHICA_BASE = 'assets/speak/avatar-chica';
     const MFA_BASE = 'assets/speak/mfa';
     const MFA_ITEMS_URL = `${MFA_BASE}/items.json`;
     const MFA_AUDIO_BASE = `${MFA_BASE}/audio`;
@@ -98,6 +99,9 @@ class PageSpeak extends HTMLElement {
     const SWIPE_VERTICAL_RATIO = 1.2;
     const DEBUG_PANEL_OPEN_KEY = 'appv5:speak-debug-panel-open';
     const SPEAK_SESSION_PERCENTAGES_VISIBLE_KEY = 'appv5:speak-session-percentages-visible';
+    const SPEAK_PRONUNCIATION_AVATAR_MODE_KEY = 'appv5:speak-pronunciation-avatar-mode';
+    const SPEAK_PRONUNCIATION_AVATAR_OLD = 'old';
+    const SPEAK_PRONUNCIATION_AVATAR_NEW = 'new';
     const MODULE_TROPHY_REWARD_QTY = 1;
     const MODULE_TROPHY_REWARD_ICON = 'trophy';
     const MAX_ROUTE_BADGE_COUNT = 5;
@@ -157,6 +161,7 @@ class PageSpeak extends HTMLElement {
     let mouthImgB = null;
     let activeMouth = null;
     let inactiveMouth = null;
+    let currentPronunciationAvatarConfig = null;
     let rafId = null;
     let isRecording = false;
     let isTranscribing = false;
@@ -192,6 +197,68 @@ class PageSpeak extends HTMLElement {
     };
 
     const getSpeechRecognition = () => window.SpeechRecognition || window.webkitSpeechRecognition;
+    const normalizePronunciationAvatarMode = (value) => {
+      const normalized = String(value || '')
+        .trim()
+        .toLowerCase();
+      return normalized === SPEAK_PRONUNCIATION_AVATAR_NEW
+        ? SPEAK_PRONUNCIATION_AVATAR_NEW
+        : SPEAK_PRONUNCIATION_AVATAR_OLD;
+    };
+    const getStoredPronunciationAvatarMode = () => {
+      const globalValue =
+        window.r34lp0w3r &&
+        typeof window.r34lp0w3r.speakPronunciationAvatarMode === 'string'
+          ? window.r34lp0w3r.speakPronunciationAvatarMode
+          : '';
+      if (globalValue) return normalizePronunciationAvatarMode(globalValue);
+      try {
+        return normalizePronunciationAvatarMode(
+          localStorage.getItem(SPEAK_PRONUNCIATION_AVATAR_MODE_KEY)
+        );
+      } catch (err) {
+        return SPEAK_PRONUNCIATION_AVATAR_OLD;
+      }
+    };
+    const getPronunciationAvatarConfig = () => {
+      const mode = getStoredPronunciationAvatarMode();
+      if (mode === SPEAK_PRONUNCIATION_AVATAR_NEW) {
+        return {
+          mode,
+          headSrc: `${AVATAR_CHICA_BASE}/chica-sin-boca.png`,
+          wrapperClass: 'avatar-wrapper avatar-wrapper-wide',
+          mouthBaseClass: 'speak-mouth speak-mouth-crop',
+          mouthMap: {
+            NEUTRAL: `${AVATAR_CHICA_BASE}/7-R.png`,
+            A: `${AVATAR_CHICA_BASE}/1-AEI.png`,
+            E: `${AVATAR_CHICA_BASE}/11-EE.png`,
+            I: `${AVATAR_CHICA_BASE}/11-EE.png`,
+            O: `${AVATAR_CHICA_BASE}/12-O.png`,
+            U: `${AVATAR_CHICA_BASE}/6-U.png`,
+            M: `${AVATAR_CHICA_BASE}/9-BMP.png`,
+            F: `${AVATAR_CHICA_BASE}/2-FV.png`,
+            TH: `${AVATAR_CHICA_BASE}/10-TH.png`
+          }
+        };
+      }
+      return {
+        mode,
+        headSrc: `${AVATAR_BASE}/avatar-head.png`,
+        wrapperClass: 'avatar-wrapper',
+        mouthBaseClass: 'speak-mouth',
+        mouthMap: {
+          NEUTRAL: `${AVATAR_BASE}/mouth-neutral.png`,
+          A: `${AVATAR_BASE}/mouth-a.png`,
+          E: `${AVATAR_BASE}/mouth-e.png`,
+          I: `${AVATAR_BASE}/mouth-e.png`,
+          O: `${AVATAR_BASE}/mouth-o.png`,
+          U: `${AVATAR_BASE}/mouth-o.png`,
+          M: `${AVATAR_BASE}/mouth-m.png`,
+          F: `${AVATAR_BASE}/mouth-f.png`,
+          TH: `${AVATAR_BASE}/mouth-th.png`
+        }
+      };
+    };
     const getNativeTranscribePlugin = () =>
       window.Capacitor && window.Capacitor.Plugins ? window.Capacitor.Plugins.P4w4Plugin : null;
     const getVoskSampleRate = () => {
@@ -2872,33 +2939,21 @@ class PageSpeak extends HTMLElement {
 
     const setMouthViseme = (visemeKeyRaw) => {
       if (!mouthImgA || !mouthImgB) return;
+      const avatarConfig = currentPronunciationAvatarConfig || getPronunciationAvatarConfig();
       const visemeKey = (visemeKeyRaw || 'NEUTRAL').toUpperCase();
       if (visemeKey === lastVisemeKey) return;
-
-      const map = {
-        NEUTRAL: 'mouth-neutral.png',
-        A: 'mouth-a.png',
-        E: 'mouth-e.png',
-        I: 'mouth-e.png',
-        O: 'mouth-o.png',
-        U: 'mouth-o.png',
-        M: 'mouth-m.png',
-        F: 'mouth-f.png',
-        TH: 'mouth-th.png'
-      };
-
-      const imgName = map[visemeKey] || map.NEUTRAL;
-      const imgPath = `${AVATAR_BASE}/${imgName}`;
+      const imgSrc = avatarConfig.mouthMap[visemeKey] || avatarConfig.mouthMap.NEUTRAL;
+      const mouthBaseClass = avatarConfig.mouthBaseClass || 'speak-mouth';
 
       const next = inactiveMouth;
       const prev = activeMouth;
 
-      if (!next.src.endsWith(imgName)) {
-        next.src = imgPath;
+      if (next.getAttribute('src') !== imgSrc) {
+        next.setAttribute('src', imgSrc);
       }
 
-      next.className = `speak-mouth mouth-layer mouth-layer-active viseme-${visemeKey.toLowerCase()}`;
-      prev.className = `speak-mouth mouth-layer viseme-${lastVisemeKey.toLowerCase()}`;
+      next.className = `${mouthBaseClass} mouth-layer mouth-layer-active viseme-${visemeKey.toLowerCase()}`;
+      prev.className = `${mouthBaseClass} mouth-layer viseme-${lastVisemeKey.toLowerCase()}`;
 
       activeMouth = next;
       inactiveMouth = prev;
@@ -3221,6 +3276,8 @@ class PageSpeak extends HTMLElement {
     };
 
     const renderSoundStep = () => {
+      currentPronunciationAvatarConfig = getPronunciationAvatarConfig();
+      const avatarConfig = currentPronunciationAvatarConfig;
       const locale = activeHintLocale || getHintUiLocale();
       const score = getScoreForStep('sound', locale);
       const hasRecording = Boolean(stepState.sound.recordingUrl);
@@ -3242,19 +3299,19 @@ class PageSpeak extends HTMLElement {
         <div class="speak-step speak-step-sound">
           <div class="speak-step-main">
             <div class="speak-avatar">
-              <div class="avatar-wrapper">
-                <img class="avatar-head" src="${AVATAR_BASE}/avatar-head.png" alt="Avatar">
+              <div class="${avatarConfig.wrapperClass}">
+                <img class="avatar-head" src="${avatarConfig.headSrc}" alt="Avatar">
                 <div class="avatar-mouth-container">
                   <img
                     id="speak-mouth-a"
-                    class="speak-mouth mouth-layer mouth-layer-active viseme-neutral"
-                    src="${AVATAR_BASE}/mouth-neutral.png"
+                    class="${avatarConfig.mouthBaseClass} mouth-layer mouth-layer-active viseme-neutral"
+                    src="${avatarConfig.mouthMap.NEUTRAL}"
                     alt="Mouth"
                   />
                   <img
                     id="speak-mouth-b"
-                    class="speak-mouth mouth-layer viseme-neutral"
-                    src="${AVATAR_BASE}/mouth-neutral.png"
+                    class="${avatarConfig.mouthBaseClass} mouth-layer viseme-neutral"
+                    src="${avatarConfig.mouthMap.NEUTRAL}"
                     alt="Mouth"
                   />
                 </div>
@@ -3593,6 +3650,7 @@ class PageSpeak extends HTMLElement {
       mouthImgA = stepRoot.querySelector('#speak-mouth-a');
       mouthImgB = stepRoot.querySelector('#speak-mouth-b');
       if (mouthImgA && mouthImgB) {
+        currentPronunciationAvatarConfig = getPronunciationAvatarConfig();
         activeMouth = mouthImgA;
         inactiveMouth = mouthImgB;
       }
@@ -4097,6 +4155,16 @@ class PageSpeak extends HTMLElement {
       handleSessionPercentagesVisibilityChange
     );
 
+    const handlePronunciationAvatarModeChange = () => {
+      stopPlayback();
+      renderStep();
+    };
+    this._handleSpeakPronunciationAvatarMode = handlePronunciationAvatarModeChange;
+    window.addEventListener(
+      'app:speak-pronunciation-avatar-mode-change',
+      handlePronunciationAvatarModeChange
+    );
+
     const handleAppLocaleChange = () => {
       const baseLocale = getBaseHintLocale();
       if (normalizeHintLocale(hintLocaleOverride) === baseLocale) {
@@ -4156,6 +4224,12 @@ class PageSpeak extends HTMLElement {
         window.removeEventListener(
           'app:speak-session-percentages-visible-change',
           this._handleSpeakSessionPercentagesVisibility
+        );
+      }
+      if (this._handleSpeakPronunciationAvatarMode) {
+        window.removeEventListener(
+          'app:speak-pronunciation-avatar-mode-change',
+          this._handleSpeakPronunciationAvatarMode
         );
       }
       if (this._handleSpeakLocaleChange) {

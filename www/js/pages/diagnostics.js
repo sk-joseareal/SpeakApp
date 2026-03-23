@@ -35,6 +35,9 @@ class PageDiagnostics extends HTMLElement {
     const FREE_RIDE_ADVANCED_ENABLED_KEY = 'appv5:free-ride-advanced-enabled';
     const FREE_RIDE_WORD_TAP_AUDIO_ENABLED_KEY = 'appv5:free-ride-word-tap-audio-enabled';
     const SPEAK_SESSION_PERCENTAGES_VISIBLE_KEY = 'appv5:speak-session-percentages-visible';
+    const SPEAK_PRONUNCIATION_AVATAR_MODE_KEY = 'appv5:speak-pronunciation-avatar-mode';
+    const SPEAK_PRONUNCIATION_AVATAR_OLD = 'old';
+    const SPEAK_PRONUNCIATION_AVATAR_NEW = 'new';
     const REFERENCE_TAB_ENABLED_KEY = 'appv5:reference-tab-enabled';
     const REFERENCE_TESTS_ENABLED_KEY = 'appv5:reference-tests-enabled';
     const CHAT_CATBOT_ENABLED_KEY = 'appv5:chat-catbot-enabled';
@@ -160,6 +163,29 @@ class PageDiagnostics extends HTMLElement {
         return true;
       }
     };
+    const normalizeSpeakPronunciationAvatarMode = (value) => {
+      const normalized = String(value || '')
+        .trim()
+        .toLowerCase();
+      return normalized === SPEAK_PRONUNCIATION_AVATAR_NEW
+        ? SPEAK_PRONUNCIATION_AVATAR_NEW
+        : SPEAK_PRONUNCIATION_AVATAR_OLD;
+    };
+    const getStoredSpeakPronunciationAvatarMode = () => {
+      const globalValue =
+        window.r34lp0w3r &&
+        typeof window.r34lp0w3r.speakPronunciationAvatarMode === 'string'
+          ? window.r34lp0w3r.speakPronunciationAvatarMode
+          : '';
+      if (globalValue) return normalizeSpeakPronunciationAvatarMode(globalValue);
+      try {
+        return normalizeSpeakPronunciationAvatarMode(
+          localStorage.getItem(SPEAK_PRONUNCIATION_AVATAR_MODE_KEY)
+        );
+      } catch (err) {
+        return SPEAK_PRONUNCIATION_AVATAR_OLD;
+      }
+    };
     const normalizeTabVisibilityEnabled = (tab, value) => {
       if (typeof value === 'boolean') return value;
       const normalized = String(value || '')
@@ -272,6 +298,23 @@ class PageDiagnostics extends HTMLElement {
                 <div class="diag-debug-sub" id="diag-speak-session-percentages-sub"></div>
               </div>
               <ion-toggle id="diag-speak-session-percentages-toggle" ${getStoredSpeakSessionPercentagesVisible() ? 'checked' : ''}></ion-toggle>
+            </div>
+            <div class="diag-speak-block">
+              <div class="diag-debug-title">Avatar pronunciación</div>
+              <div class="diag-audio-mode-wrap">
+                <ion-segment
+                  id="diag-speak-pronunciation-avatar-mode"
+                  value="${getStoredSpeakPronunciationAvatarMode()}"
+                >
+                  <ion-segment-button value="old">
+                    <ion-label>Antiguo</ion-label>
+                  </ion-segment-button>
+                  <ion-segment-button value="new">
+                    <ion-label>Nuevo</ion-label>
+                  </ion-segment-button>
+                </ion-segment>
+                <div class="diag-debug-sub" id="diag-speak-pronunciation-avatar-sub"></div>
+              </div>
             </div>
 
             ${buildTabVisibilityToggleMarkup()}
@@ -838,6 +881,8 @@ class PageDiagnostics extends HTMLElement {
     const freeRideWordTapAudioSubEl = this.querySelector('#diag-free-ride-word-tap-audio-sub');
     const speakSessionPercentagesToggleEl = this.querySelector('#diag-speak-session-percentages-toggle');
     const speakSessionPercentagesSubEl = this.querySelector('#diag-speak-session-percentages-sub');
+    const speakPronunciationAvatarModeEl = this.querySelector('#diag-speak-pronunciation-avatar-mode');
+    const speakPronunciationAvatarSubEl = this.querySelector('#diag-speak-pronunciation-avatar-sub');
     const tabVisibilityToggleEls = Object.fromEntries(
       TAB_VISIBILITY_ORDER.map((tab) => [tab, this.querySelector(`#diag-tab-${tab}-toggle`)])
     );
@@ -979,6 +1024,37 @@ class PageDiagnostics extends HTMLElement {
         speakSessionPercentagesSubEl.textContent = normalized
           ? 'Activado: muestra los porcentajes (%) en las pantallas de la sesión.'
           : 'Desactivado: oculta los porcentajes en la sesión; el color sigue indicando el resultado.';
+      }
+      return normalized;
+    };
+
+    const setSpeakPronunciationAvatarMode = (mode) => {
+      const normalized = normalizeSpeakPronunciationAvatarMode(mode);
+      window.r34lp0w3r = window.r34lp0w3r || {};
+      window.r34lp0w3r.speakPronunciationAvatarMode = normalized;
+      try {
+        localStorage.setItem(SPEAK_PRONUNCIATION_AVATAR_MODE_KEY, normalized);
+      } catch (err) {
+        // no-op
+      }
+      window.dispatchEvent(
+        new CustomEvent('app:speak-pronunciation-avatar-mode-change', {
+          detail: { mode: normalized }
+        })
+      );
+      return normalized;
+    };
+
+    const updateSpeakPronunciationAvatarUi = (mode) => {
+      const normalized = normalizeSpeakPronunciationAvatarMode(mode);
+      if (speakPronunciationAvatarModeEl) {
+        speakPronunciationAvatarModeEl.value = normalized;
+      }
+      if (speakPronunciationAvatarSubEl) {
+        speakPronunciationAvatarSubEl.textContent =
+          normalized === SPEAK_PRONUNCIATION_AVATAR_NEW
+            ? 'Nuevo: usa la chica con overlays de boca por visema.'
+            : 'Antiguo: usa el avatar actual con las bocas simples.';
       }
       return normalized;
     };
@@ -2463,6 +2539,10 @@ class PageDiagnostics extends HTMLElement {
     updateFreeRideWordTapAudioUi(setFreeRideWordTapAudioEnabled(initialFreeRideWordTapAudioEnabled));
     const initialSpeakSessionPercentagesVisible = getStoredSpeakSessionPercentagesVisible();
     updateSpeakSessionPercentagesUi(setSpeakSessionPercentagesVisible(initialSpeakSessionPercentagesVisible));
+    const initialSpeakPronunciationAvatarMode = getStoredSpeakPronunciationAvatarMode();
+    updateSpeakPronunciationAvatarUi(
+      setSpeakPronunciationAvatarMode(initialSpeakPronunciationAvatarMode)
+    );
     TAB_VISIBILITY_ORDER.forEach((tab) => {
       updateTabVisibilityUi(tab, setTabVisibility(tab, getStoredTabVisibility(tab)));
     });
@@ -2644,6 +2724,11 @@ class PageDiagnostics extends HTMLElement {
           ? Boolean(event.detail.checked)
           : Boolean(speakSessionPercentagesToggleEl.checked);
       updateSpeakSessionPercentagesUi(setSpeakSessionPercentagesVisible(nextVisible));
+    });
+    speakPronunciationAvatarModeEl?.addEventListener('ionChange', (event) => {
+      const nextMode =
+        event && event.detail ? event.detail.value : speakPronunciationAvatarModeEl.value;
+      updateSpeakPronunciationAvatarUi(setSpeakPronunciationAvatarMode(nextMode));
     });
     TAB_VISIBILITY_ORDER.forEach((tab) => {
       tabVisibilityToggleEls[tab]?.addEventListener('ionChange', (event) => {

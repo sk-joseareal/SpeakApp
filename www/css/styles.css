@@ -3826,6 +3826,13 @@ page-chat ion-content::part(scroll) {
   height: 210px;
 }
 
+.avatar-wrapper-wide {
+  width: 250px;
+  max-width: 100%;
+  height: auto;
+  aspect-ratio: 3 / 2;
+}
+
 .avatar-head {
   position: absolute;
   inset: 0;
@@ -3851,9 +3858,21 @@ page-chat ion-content::part(scroll) {
   transform-origin: center center;
 }
 
+.speak-mouth-crop {
+  width: 19.9%;
+  left: 49.4%;
+  top: 52.8%;
+  transform: translate(-50%, -50%);
+}
+
 .speak-mouth.viseme-o,
 .speak-mouth.viseme-u {
   transform: translate(-50%, -50%) scale(0.9);
+}
+
+.speak-mouth-crop.viseme-o,
+.speak-mouth-crop.viseme-u {
+  transform: translate(-50%, -50%);
 }
 
 .mouth-layer {

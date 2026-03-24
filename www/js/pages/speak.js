@@ -3176,16 +3176,16 @@ class PageSpeak extends HTMLElement {
       }
       const locale = normalizeHintLocale(options.locale) || activeHintLocale || getHintUiLocale();
       heroStepTitleEl.textContent = getLocalizedStepTitle(source, locale);
-      // Display fixed text in the visible bubble
+      // Display fixed narration text in the visible bubble — also used for TTS
       const speakCopy = getSpeakCopyBundle(locale);
       const heroText = (speakCopy && speakCopy.heroNarration) || "Let's keep practicing!";
       if (heroHintDisplayEl) {
         heroHintDisplayEl.textContent = heroText;
         heroHintDisplayEl.hidden = false;
       }
-      // heroHintEl (hidden) carries the TTS narration text
-      const hint = resolveHeroHintText(source, locale);
-      const lines = extractHeroNarrationLines(hint);
+      // heroHintEl (hidden) carries the same text for TTS playback
+      if (heroHintEl) heroHintEl.textContent = heroText;
+      const lines = extractHeroNarrationLines(heroText);
       const restLineText = String(lines[0] && lines[0].text ? lines[0].text : '').trim();
       if (lines.length > 1) {
         const maxHeight = measureHeroHintMaxHeight(lines);

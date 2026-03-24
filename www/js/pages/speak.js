@@ -939,7 +939,8 @@ class PageSpeak extends HTMLElement {
         if (heroNarrationInProgress) return false;
       }
       const locale = normalizeHintLocale(options.locale) || activeHintLocale || getHintUiLocale();
-      const hint = resolveHeroHintText(source, locale);
+      const speakCopy = getSpeakCopyBundle(locale);
+      const hint = (speakCopy && speakCopy.heroNarration) || "Let's keep practicing!";
       const lines = extractHeroNarrationLines(hint);
       if (!lines.length || !heroHintEl || showSummary) {
         await stopHeroNarration().catch(() => {});

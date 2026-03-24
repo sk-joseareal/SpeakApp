@@ -178,6 +178,7 @@ class PageSpeak extends HTMLElement {
     let swipeAnimating = false;
     let heroCardLockedHeight = 0;
     let lastHeroNarratedStepKey = '';
+    let heroNarrationPlayedOnce = false;
     let heroNarrationToken = 0;
     let heroNarrationTimer = null;
     let heroMascotFrameIndex = HERO_MASCOT_REST_FRAME;
@@ -3271,6 +3272,7 @@ class PageSpeak extends HTMLElement {
       selectedWord = matchedWord || (spellingWords.length ? spellingWords[0] : '');
       stepIndex = startStep !== null ? resolveStartStepIndex(startStep) : 0;
       lastHeroNarratedStepKey = '';
+      heroNarrationPlayedOnce = false;
       showSummary = false;
       summaryState = null;
       lastSummaryAudioCue = '';
@@ -3593,9 +3595,14 @@ class PageSpeak extends HTMLElement {
       if (stepKey !== lastHeroNarratedStepKey) {
         const isInitialStepNarration = !lastHeroNarratedStepKey;
         lastHeroNarratedStepKey = stepKey;
-        scheduleHeroNarration(source, isInitialStepNarration ? 1000 : 120, {
-          locale: uiLocale
-        });
+        const alreadyPlayedGlobally = localStorage.getItem('appv5:speak-hero-narration-played') === '1';
+        if (!heroNarrationPlayedOnce && !alreadyPlayedGlobally) {
+          heroNarrationPlayedOnce = true;
+          localStorage.setItem('appv5:speak-hero-narration-played', '1');
+          scheduleHeroNarration(source, isInitialStepNarration ? 1000 : 120, {
+            locale: uiLocale
+          });
+        }
       }
     };
 

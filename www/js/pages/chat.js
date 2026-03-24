@@ -1570,6 +1570,7 @@ class PageChat extends HTMLElement {
     };
 
     const clearCommunityDmPendingRequestFromData = (data) => {
+      const currentUserId = pickFirstText(lastUserId);
       let changed = removeCommunityDmPendingRequestByRequestId(
         pickFirstText(data && (data.request_id || data.requestId))
       );
@@ -1580,9 +1581,10 @@ class PageChat extends HTMLElement {
       [
         pickFirstText(data && (data.peer_user_id || data.peerUserId)),
         pickFirstText(data && (data.from_user_id || data.fromUserId)),
+        pickFirstText(data && (data.to_user_id || data.toUserId)),
         pickFirstText(data && (data.user_id || data.userId))
       ]
-        .filter(Boolean)
+        .filter((peerUserId) => peerUserId && peerUserId !== currentUserId)
         .forEach((peerUserId) => {
           changed = removeCommunityDmPendingRequestByPeer(peerUserId) || changed;
         });

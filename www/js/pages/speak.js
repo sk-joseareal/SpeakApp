@@ -2185,8 +2185,10 @@ class PageSpeak extends HTMLElement {
       const dotsHtml = stepOrder.map((_, i) =>
         `<span class="speak-step-dot${i === stepIndex ? ' is-active' : ''}"></span>`
       ).join('');
+      const scoreHtml = options.scoreHtml || '';
       return `
         <div class="speak-step-bottom">
+          ${scoreHtml}
           <div class="speak-voice-actions">
             <button class="speak-circle-btn speak-record-btn ${isRecording ? 'is-recording' : ''}" id="speak-record" type="button" aria-pressed="${isRecording}">
               <span class="record-visual" aria-hidden="true">
@@ -3348,12 +3350,7 @@ class PageSpeak extends HTMLElement {
 
           </div>
 
-          <div class="speak-score speak-score-${tone}${noPercentClass}">
-            <div class="speak-score-label">${label}</div>
-            <div class="speak-score-value">${percentMarkup}</div>
-          </div>
-
-          ${renderBottomPanel('sound', { hasVoiceRecording: hasRecording, voiceTone })}
+          ${renderBottomPanel('sound', { hasVoiceRecording: hasRecording, voiceTone, scoreHtml: `<div class="speak-score speak-score-${tone}${noPercentClass}"><div class="speak-score-label">${label}</div><div class="speak-score-value">${percentMarkup}</div></div>` })}
         </div>
       `;
     };
@@ -3403,12 +3400,7 @@ class PageSpeak extends HTMLElement {
             <div class="speak-word-grid speak-word-grid--single">${words}</div>
           </div>
 
-          <div class="speak-score speak-score-${tone}${noPercentClass}">
-            <div class="speak-score-label">${label}</div>
-            <div class="speak-score-value">${percentMarkup}</div>
-          </div>
-
-          ${renderBottomPanel('spelling', { hasVoiceRecording: hasRecording, voiceTone })}
+          ${renderBottomPanel('spelling', { hasVoiceRecording: hasRecording, voiceTone, scoreHtml: `<div class="speak-score speak-score-${tone}${noPercentClass}"><div class="speak-score-label">${label}</div><div class="speak-score-value">${percentMarkup}</div></div>` })}
         </div>
       `;
     };
@@ -3448,12 +3440,7 @@ class PageSpeak extends HTMLElement {
             ${sentenceScoreLine}
           </div>
 
-          <div class="speak-score speak-score-${tone}${showPercentages ? '' : ' speak-score-no-percent'}">
-            <div class="speak-score-label">${label}</div>
-            <div class="speak-score-value">${sentenceScorePercentMarkup}</div>
-          </div>
-
-          ${renderBottomPanel('sentence', { hasVoiceRecording: hasRecordingUrl, voiceTone })}
+          ${renderBottomPanel('sentence', { hasVoiceRecording: hasRecordingUrl, voiceTone, scoreHtml: `<div class="speak-score speak-score-${tone}${showPercentages ? '' : ' speak-score-no-percent'}"><div class="speak-score-label">${label}</div><div class="speak-score-value">${sentenceScorePercentMarkup}</div></div>` })}
         </div>
       `;
     };

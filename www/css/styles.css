@@ -187,6 +187,12 @@ a {
   box-shadow: 0 16px 36px rgba(15, 27, 45, 0.08);
 }
 
+/* Variante sin gradiente: fondo blanco plano, igual que training-row */
+.card--plain {
+  background: #ffffff;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+}
+
 .card h2,
 .card h3,
 .card h4 {
@@ -779,6 +785,7 @@ ion-modal.login-modal page-login .page-shell {
 
 .profile-label {
   font-size: 0.75rem;
+  font-weight: 500;
   color: var(--app-muted);
 }
 
@@ -840,13 +847,13 @@ ion-modal.login-modal page-login .page-shell {
 .profile-panel {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 18px;
 }
 
 .profile-overview {
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 14px;
 }
 
 .profile-earned-badges-card {
@@ -859,21 +866,22 @@ ion-modal.login-modal page-login .page-shell {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-  justify-content: center;
 }
 
 .profile-earned-badge-btn {
-  border: 1px solid #dbe3f2;
-  background: #f8fbff;
-  border-radius: 14px;
-  padding: 8px;
   display: inline-flex;
-  flex-direction: column;
   align-items: center;
-  gap: 4px;
-  min-width: 68px;
+  gap: 6px;
+  border: none;
+  border-radius: 12px;
+  padding: 8px 12px;
+  background: #fee2e2;
+  color: #b91c1c;
+  font-size: 0.85rem;
+  font-weight: 600;
   cursor: pointer;
   font-family: inherit;
+  line-height: 1;
 }
 
 .profile-earned-badge-btn:focus-visible {
@@ -882,8 +890,8 @@ ion-modal.login-modal page-login .page-shell {
 }
 
 .profile-earned-badge-img {
-  width: 52px;
-  height: 52px;
+  width: 20px;
+  height: 20px;
   object-fit: contain;
 }
 
@@ -894,58 +902,76 @@ ion-modal.login-modal page-login .page-shell {
 
 .profile-progress {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  gap: 8px;
+  gap: 14px;
+  flex: 1;
+  min-width: 0;
 }
 
 .profile-progress-top {
   display: flex;
-  align-items: flex-start;
-  justify-content: center;
+  align-items: center;
   gap: 14px;
+  flex: 1;
+  min-width: 0;
 }
 
 .profile-progress-main {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
 }
 
 .profile-progress-head {
-  width: 72px;
-  height: 72px;
+  width: 52px;
+  height: 52px;
   flex: 0 0 auto;
+}
+
+.profile-overview-avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--app-border);
 }
 
 .profile-progress-circle {
   width: 100%;
   height: 100%;
   border-radius: 50%;
-  border: 6px solid #cbd5f5;
+  border: 5px solid #cbd5f5;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 700;
-  font-size: 1.2rem;
-  color: #334155;
-  background: #f8fafc;
+  font-size: 1rem;
+  color: #64748b;
+  background: #dbeafe;
+}
+
+.profile-progress-circle.neutral {
+  border-color: #93c5fd;
+  color: #3b82f6;
 }
 
 .profile-progress-circle.good {
-  border-color: #22c55e;
-  color: #0f9d58;
+  border-color: #10b981;
+  color: #10b981;
 }
 
 .profile-progress-circle.okay {
   border-color: #f59e0b;
-  color: #d97706;
+  color: #f59e0b;
 }
 
 .profile-progress-circle.bad {
   border-color: #ef4444;
-  color: #dc2626;
+  color: #ef4444;
 }
 
 .profile-locale-indicator {
@@ -992,39 +1018,68 @@ ion-modal.login-modal page-login .page-shell {
   color: #334155;
 }
 
+.profile-progress-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.profile-progress-name {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--app-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .profile-progress-label {
-  font-size: 0.85rem;
+  font-size: 0.78rem;
   color: var(--app-muted);
-  text-align: center;
+  text-align: left;
+  min-width: 0;
 }
 
 .profile-tabs {
   display: flex;
-  gap: 12px;
+  gap: 0;
+  border-bottom: 2px solid var(--app-border);
 }
 
 .profile-tab-btn {
   flex: 1;
   border: none;
-  border-radius: 999px;
-  padding: 10px 12px;
-  background: #e5e7eb;
-  color: #334155;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  border-radius: 0;
+  padding: 12px 12px;
+  background: transparent;
+  color: var(--app-muted);
   font-weight: 600;
-  font-size: 0.85rem;
-  letter-spacing: 0.02em;
+  font-size: 1rem;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  font-family: inherit;
+  transition: color 120ms ease, border-color 120ms ease;
 }
 
 .profile-tab-btn.active {
-  background: #dbeafe;
-  color: #1e3a8a;
+  color: var(--ion-color-primary, #4b5dff);
+  border-bottom-color: var(--ion-color-primary, #4b5dff);
+}
+
+.profile-review-block {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .profile-section-title {
-  margin: 0 0 8px;
-  font-size: 1rem;
-  font-weight: 700;
-  color: #0f172a;
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--app-text);
 }
 
 .review-words {
@@ -3270,6 +3325,11 @@ page-chat ion-content::part(scroll) {
   text-transform: uppercase;
 }
 
+.chat-community-item-flag.is-blocked {
+  background: rgba(194, 65, 12, 0.12);
+  color: #c2410c;
+}
+
 .chat-community-status-dot {
   width: 8px;
   height: 8px;
@@ -3804,13 +3864,13 @@ page-chat ion-content::part(scroll) {
 
 .speak-route-banner {
   margin: -20px -20px 16px;
-  padding: 10px 20px;
+  padding: 14px 20px;
   background: linear-gradient(90deg, #f59e0b 0%, #fbbf24 100%);
   border-radius: 20px 20px 0 0;
-  font-size: 0.8rem;
-  font-weight: 700;
+  font-size: 1rem;
+  font-weight: 600;
   color: #ffffff;
-  letter-spacing: 0.01em;
+  letter-spacing: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -4034,8 +4094,8 @@ page-chat ion-content::part(scroll) {
   width: 100%;
   display: flex;
   flex-direction: column;
-  align-items: stretch;
-  gap: 14px;
+  align-items: center;
+  gap: 10px;
   margin-top: auto;
   padding-top: 2px;
 }
@@ -4614,10 +4674,20 @@ page-chat ion-content::part(scroll) {
 }
 .speak-word-grid--single {
   grid-template-columns: 1fr;
-  gap: 6px;
+  gap: 8px;
 }
 .speak-word-grid--single .speak-word {
-  padding: 7px 12px;
+  padding: 11px 48px 11px 18px;
+  font-size: 1.3rem;
+  border-radius: 18px;
+}
+.speak-word-grid--single .speak-word-icon {
+  font-size: 1.3rem;
+  right: 16px;
+  width: 20px;
+}
+.speak-word-grid--single .speak-word-tone-okay .speak-word-icon {
+  font-size: 42px;
 }
 .speak-step-sound {
   gap: 4px;
@@ -6423,7 +6493,8 @@ page-free-ride.free-ride-keyboard-open .free-ride-bottom {
   height: 90px;
 }
 
-.training-content {
+.training-content,
+.profile-content {
   --background: #f7f8fc;
 }
 

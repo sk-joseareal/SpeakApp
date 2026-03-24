@@ -469,7 +469,7 @@ class PageProfile extends HTMLElement {
 
     this.innerHTML = `
       ${renderAppHeader({ title: getTabsCopy(rawLocaleSetting).you, rewardBadgesId: 'profile-reward-badges', nextLocale: nextLocaleCode.toUpperCase() })}
-      <ion-content fullscreen class="secret-content">
+      <ion-content fullscreen class="secret-content profile-content">
         <div class="page-shell profile-shell">
           <div class="card placeholder-card" id="profile-login-panel" ${loggedIn ? 'hidden' : ''}>
             <div class="pill">${escapeHtml(profileCopy.accessPill || 'Access')}</div>
@@ -488,36 +488,40 @@ class PageProfile extends HTMLElement {
             </div>
           </div>
           <div class="profile-panel" id="profile-content-panel" ${loggedIn ? '' : 'hidden'}>
-            <div class="card profile-overview">
+            <div class="card card--plain profile-overview">
               <div class="profile-progress">
                 <div class="profile-progress-top">
                   <div class="profile-progress-main">
                     <div class="profile-progress-head">
+                      <img class="profile-overview-avatar" src="${escapeHtml(getUserAvatar(user) || 'https://s3.amazonaws.com/sk.CursoIngles/no-avatar.gif')}" alt="">
+                    </div>
+                    <div class="profile-progress-head">
                       <div class="profile-progress-circle ${globalTone}">${globalPercent}</div>
                     </div>
-                    <div class="profile-progress-label">${escapeHtml(
-                      profileCopy.progressLabel || 'Progress'
-                    )}</div>
+                    <div class="profile-progress-info">
+                      <div class="profile-progress-name">${escapeHtml(getUserDisplayName(user) || profileCopy.progressLabel || 'Progress')}</div>
+                      <div class="profile-progress-label">${escapeHtml(profileCopy.progressLabel || 'Progress')}</div>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-            <div class="card profile-earned-badges-card">
+            <div class="card card--plain profile-earned-badges-card">
               <div class="pill">${escapeHtml(profileCopy.badgesTitle || 'Badges')}</div>
               <div class="profile-earned-badges" id="profile-earned-badges">
                 ${earnedBadgesMarkup}
               </div>
             </div>
-            <div class="profile-tabs">
-              <button class="profile-tab-btn ${prefsActive ? 'active' : ''}" type="button" data-tab="prefs">
+            <div class="profile-tabs" role="tablist">
+              <button class="profile-tab-btn ${prefsActive ? 'active' : ''}" type="button" data-tab="prefs" role="tab">
                 ${escapeHtml(profileCopy.tabPrefs || 'Profile')}
               </button>
-              <button class="profile-tab-btn ${reviewActive ? 'active' : ''}" type="button" data-tab="review">
+              <button class="profile-tab-btn ${reviewActive ? 'active' : ''}" type="button" data-tab="review" role="tab">
                 ${escapeHtml(profileCopy.tabReview || 'Review')}
               </button>
             </div>
             <div class="profile-tab-panel" ${prefsActive ? '' : 'hidden'}>
-              <div class="card profile-settings">
+              <div class="card card--plain profile-settings">
                 <div class="profile-avatar-block">
                   <div class="profile-avatar-wrap">
                     <img
@@ -528,10 +532,10 @@ class PageProfile extends HTMLElement {
                     >
                   </div>
                   <div class="profile-avatar-actions">
-                    <ion-button size="small" fill="outline" id="profile-avatar-upload">${escapeHtml(
+                    <ion-button size="small" shape="round" fill="outline" id="profile-avatar-upload">${escapeHtml(
                       profileCopy.changePhoto || 'Change photo'
                     )}</ion-button>
-                    <ion-button size="small" fill="outline" color="medium" id="profile-avatar-delete">${escapeHtml(
+                    <ion-button size="small" shape="round" fill="clear" color="medium" id="profile-avatar-delete">${escapeHtml(
                       profileCopy.deletePhoto || 'Delete'
                     )}</ion-button>
                   </div>
@@ -631,14 +635,18 @@ class PageProfile extends HTMLElement {
             </div>
             <div class="profile-tab-panel" ${reviewActive ? '' : 'hidden'}>
               ${reviewFiltersMarkup}
-              <h3 class="profile-section-title">${escapeHtml(
-                profileCopy.reviewWordsTitle || 'Words to review'
-              )}</h3>
-              ${reviewWordsMarkup}
-              <h3 class="profile-section-title" style="margin-top:16px;">${escapeHtml(
-                profileCopy.reviewPhrasesTitle || 'Phrases to review'
-              )}</h3>
-              ${reviewPhrasesMarkup}
+              <div class="card card--plain profile-review-block">
+                <h3 class="profile-section-title">${escapeHtml(
+                  profileCopy.reviewWordsTitle || 'Words to review'
+                )}</h3>
+                ${reviewWordsMarkup}
+              </div>
+              <div class="card card--plain profile-review-block">
+                <h3 class="profile-section-title">${escapeHtml(
+                  profileCopy.reviewPhrasesTitle || 'Phrases to review'
+                )}</h3>
+                ${reviewPhrasesMarkup}
+              </div>
             </div>
           </div>
           <div class="profile-links profile-links--footer" id="profile-links-footer" ${showFooterLinks ? '' : 'hidden'}>

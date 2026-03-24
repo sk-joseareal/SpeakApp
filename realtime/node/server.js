@@ -4605,6 +4605,129 @@ const upsertCommunityDmBlock = ({ blockerUserId, blockedUserId } = {}) => {
   };
 };
 
+const normalizeCommunityDmBlockRecord = (entry) => {
+  const safeEntry = entry && typeof entry === 'object' ? entry : {};
+  return {
+    blocker_user_id: pickFirstString(safeEntry.blocker_user_id, safeEntry.blockerUserId),
+    blocked_user_id: pickFirstString(
+      safeEntry.blocked_user_id,
+      safeEntry.blockedUserId,
+      safeEntry.peer_user_id,
+      safeEntry.peerUserId
+    ),
+    created_at: pickFirstString(safeEntry.created_at, safeEntry.createdAt),
+    updated_at: pickFirstString(safeEntry.updated_at, safeEntry.updatedAt)
+  };
+};
+
+const listCommunityDmBlocksForUser = (userId) => {
+  const safeUserId = pickFirstString(userId);
+  if (!safeUserId) return [];
+  const state = getMutableCommunityDmBlocksState();
+  return Object.values(state.blocks || {})
+    .map((entry) => normalizeCommunityDmBlockRecord(entry))
+    .filter((entry) => entry.blocker_user_id === safeUserId && entry.blocked_user_id)
+    .sort((left, right) => {
+      const leftTs = Date.parse(pickFirstString(left && left.updated_at, left && left.created_at)) || 0;
+      const rightTs = Date.parse(pickFirstString(right && right.updated_at, right && right.created_at)) || 0;
+      return rightTs - leftTs;
+    });
+};
+
+const removeCommunityDmBlock = ({ blockerUserId, blockedUserId } = {}) => {
+  const safeBlockerId = pickFirstString(blockerUserId);
+  const safeBlockedId = pickFirstString(blockedUserId);
+  if (!safeBlockerId || !safeBlockedId) {
+    return { ok: false, error: 'blocker_user_id_and_blocked_user_id_required' };
+  }
+  const state = getMutableCommunityDmBlocksState();
+  const key = buildCommunityDmBlockKey(safeBlockerId, safeBlockedId);
+  const existed = Boolean(state.blocks[key]);
+  if (existed) {
+    delete state.blocks[key];
+    state.updated_at = new Date().toISOString();
+    saveCommunityDmBlocksState(state);
+  }
+  return {
+    ok: true,
+    removed: existed,
+    blocker_user_id: safeBlockerId,
+    blocked_user_id: safeBlockedId
+  };
+};
+
+const resolveCommunityDmRequestsForBlock = ({ userId, peerUserId } = {}) => {
+  const safeUserId = pickFirstString(userId);
+  const safePeerUserId = pickFirstString(peerUserId);
+  if (!safeUserId || !safePeerUserId) return [];
+  const state = getMutableCommunityDmRequestsState();
+  const nowIso = new Date().toISOString();
+  const resolvedRequests = [];
+  Object.keys(state.requests || {}).forEach((requestId) => {
+    const request = state.requests[requestId];
+    if (!request || typeof request !== 'object') return;
+    if (normalizeCommunityDmRequestStatus(request.status) !== 'pending') return;
+    const fromUserId = pickFirstString(request.from_user_id);
+    const toUserId = pickFirstString(request.to_user_id);
+    const matchesPair =
+      (fromUserId === safeUserId && toUserId === safePeerUserId) ||
+      (fromUserId === safePeerUserId && toUserId === safeUserId);
+    if (!matchesPair) return;
+    request.status = 'blocked';
+    request.updated_at = nowIso;
+    request.resolved_at = nowIso;
+    request.resolved_by_user_id = safeUserId;
+    request.resolution = 'blocked';
+    state.requests[requestId] = request;
+    resolvedRequests.push(request);
+  });
+  if (resolvedRequests.length) {
+    state.updated_at = nowIso;
+    saveCommunityDmRequestsState(state);
+  }
+  return resolvedRequests;
+};
+
+const blockCommunityDmPeer = async ({ userId, peerUserId } = {}) => {
+  const safeUserId = pickFirstString(userId);
+  const safePeerUserId = pickFirstString(peerUserId);
+  if (!safeUserId || !safePeerUserId) {
+    return { ok: false, error: 'user_id_and_peer_user_id_required', statusCode: 400 };
+  }
+  if (safeUserId === safePeerUserId) {
+    return { ok: false, error: 'invalid_dm_users', statusCode: 400 };
+  }
+  const blockResult = upsertCommunityDmBlock({
+    blockerUserId: safeUserId,
+    blockedUserId: safePeerUserId
+  });
+  if (!blockResult.ok) {
+    return { ok: false, error: blockResult.error || 'block_failed', statusCode: 400 };
+  }
+  const resolvedRequests = resolveCommunityDmRequestsForBlock({
+    userId: safeUserId,
+    peerUserId: safePeerUserId
+  });
+  await Promise.all(
+    resolvedRequests.map((request) =>
+      emitCommunityDmRequestResolved({
+        request,
+        resolution: 'blocked',
+        room: pickFirstString(request.room_id)
+          ? getMutableCommunityDmRoomsState().rooms[pickFirstString(request.room_id)] || null
+          : getCommunityDmRoomRecordByUsers(request.from_user_id, request.to_user_id)
+      })
+    )
+  );
+  return {
+    ok: true,
+    user_id: safeUserId,
+    peer_user_id: safePeerUserId,
+    block: normalizeCommunityDmBlockRecord(blockResult.block),
+    resolved_request_ids: resolvedRequests.map((request) => pickFirstString(request.request_id)).filter(Boolean)
+  };
+};
+
 const getCommunityDmRequestEligibilityError = ({ fromUserId, toUserId } = {}) => {
   const safeFromUserId = pickFirstString(fromUserId);
   const safeToUserId = pickFirstString(toUserId);
@@ -6056,6 +6179,100 @@ app.post('/realtime/community/rooms/dm/settings', (req, res) => {
     ip: normalizeClientIp(getRequestClientMeta(req).ip)
   });
   res.json(result);
+});
+
+app.get('/realtime/community/rooms/dm/blocks', (req, res) => {
+  if (!authorizeState(req, res)) return;
+  const userId = pickFirstString(req.query && (req.query.user_id || req.query.userId));
+  if (!userId) {
+    res.status(400).json({ ok: false, error: 'user_id_required' });
+    return;
+  }
+  const blocked = getCommunityModerationBlockedResponse({
+    userId,
+    scope: 'access',
+    roomType: 'dm',
+    clientMeta: getRequestClientMeta(req)
+  });
+  if (blocked) {
+    res.status(blocked.statusCode || 403).json(blocked);
+    return;
+  }
+  res.json({
+    ok: true,
+    user_id: userId,
+    blocks: listCommunityDmBlocksForUser(userId)
+  });
+});
+
+app.post('/realtime/community/rooms/dm/blocks', async (req, res) => {
+  if (!authorizeState(req, res)) return;
+  const source = Object.assign({}, req.query || {}, req.body || {});
+  const clientMeta = getRequestClientMeta(req);
+  const userId = pickFirstString(source.user_id, source.userId, source.id);
+  const peerUserId = pickFirstString(source.peer_user_id, source.peerUserId, source.user2, source.peer);
+  if (!userId || !peerUserId) {
+    res.status(400).json({ ok: false, error: 'user_id_and_peer_user_id_required' });
+    return;
+  }
+  const blocked = getCommunityModerationBlockedResponse({
+    userId,
+    scope: 'access',
+    roomType: 'dm',
+    clientMeta
+  });
+  if (blocked) {
+    res.status(blocked.statusCode || 403).json(blocked);
+    return;
+  }
+  try {
+    const result = await blockCommunityDmPeer({ userId, peerUserId });
+    appendCommunityAuditEvent('dm_peer_block', {
+      user_id: userId,
+      peer_user_id: peerUserId,
+      uuid: pickFirstString(source.uuid, source.device_id, source.deviceId),
+      ip: normalizeClientIp(clientMeta.ip),
+      app: pickFirstString(source.app, 'speakapp')
+    });
+    res.status(result && result.statusCode ? result.statusCode : result.ok === false ? 400 : 200).json(result);
+  } catch (err) {
+    console.error('[realtime] block dm peer error', err.message || err);
+    res.status(500).json({ ok: false, error: 'dm_peer_block_failed' });
+  }
+});
+
+app.post('/realtime/community/rooms/dm/blocks/unblock', (req, res) => {
+  if (!authorizeState(req, res)) return;
+  const source = Object.assign({}, req.query || {}, req.body || {});
+  const clientMeta = getRequestClientMeta(req);
+  const userId = pickFirstString(source.user_id, source.userId, source.id);
+  const peerUserId = pickFirstString(source.peer_user_id, source.peerUserId, source.user2, source.peer);
+  if (!userId || !peerUserId) {
+    res.status(400).json({ ok: false, error: 'user_id_and_peer_user_id_required' });
+    return;
+  }
+  const blocked = getCommunityModerationBlockedResponse({
+    userId,
+    scope: 'access',
+    roomType: 'dm',
+    clientMeta
+  });
+  if (blocked) {
+    res.status(blocked.statusCode || 403).json(blocked);
+    return;
+  }
+  const result = removeCommunityDmBlock({
+    blockerUserId: userId,
+    blockedUserId: peerUserId
+  });
+  appendCommunityAuditEvent('dm_peer_unblock', {
+    user_id: userId,
+    peer_user_id: peerUserId,
+    uuid: pickFirstString(source.uuid, source.device_id, source.deviceId),
+    ip: normalizeClientIp(clientMeta.ip),
+    app: pickFirstString(source.app, 'speakapp')
+  });
+  res.status(result && result.statusCode ? result.statusCode : result.ok === false ? 400 : 200).json(result);
 });
 
 app.get('/realtime/community/rooms/dm/requests', (req, res) => {

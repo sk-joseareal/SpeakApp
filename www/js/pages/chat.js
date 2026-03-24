@@ -270,10 +270,13 @@ class PageChat extends HTMLElement {
     let communityRoomsLoaded = false;
     let communityRequestsLoading = false;
     let communityRequestsLoaded = false;
+    let communityBlocksLoading = false;
+    let communityBlocksLoaded = false;
     let communityPublicUnreadCount = 0;
     let communityDmRooms = [];
     let communityDmRequests = [];
     let communityDmPendingRequestsMap = {};
+    let communityDmBlockedMap = {};
     let communityDmManageMode = false;
     let communityDmShowArchived = false;
     let communityDmArchivedMap = {};
@@ -1279,24 +1282,43 @@ class PageChat extends HTMLElement {
         ? window.realtimeConfig.communityDmRequestBlockEndpoint.trim()
         : '';
 
+    const getCommunityDmBlocksEndpoint = () =>
+      typeof (window.realtimeConfig || {}).communityDmBlocksEndpoint === 'string'
+        ? window.realtimeConfig.communityDmBlocksEndpoint.trim()
+        : '';
+
+    const getCommunityDmUnblockEndpoint = () =>
+      typeof (window.realtimeConfig || {}).communityDmUnblockEndpoint === 'string'
+        ? window.realtimeConfig.communityDmUnblockEndpoint.trim()
+        : '';
+
     const getCommunityUnreadStorageKey = (userId = lastUserId) => {
       const safeUserId =
         userId !== undefined && userId !== null ? String(userId).trim() : '';
       return safeUserId ? `${COMMUNITY_CHAT_UNREAD_STORAGE_PREFIX}${safeUserId}` : '';
     };
 
+    const getCommunityPendingIncomingRequestCount = () =>
+      communityDmRequests.reduce((total, request) => {
+        if (!request || pickFirstText(request.status).toLowerCase() !== 'pending') return total;
+        return total + 1;
+      }, 0);
+
     const getCommunityTotalUnreadCount = () =>
       communityDmRooms.reduce(
         (total, room) => total + Math.max(0, Number(room && room.unreadCount) || 0),
-        0
+        getCommunityPendingIncomingRequestCount()
       );
 
     const getCommunityOtherDmUnreadCount = () => {
       const activeRoomId = pickFirstText(activeCommunityDmRoomId);
-      return communityDmRooms.reduce((total, room) => {
-        if (!room || pickFirstText(room.roomId) === activeRoomId) return total;
-        return total + Math.max(0, Number(room.unreadCount) || 0);
-      }, 0);
+      return communityDmRooms.reduce(
+        (total, room) => {
+          if (!room || pickFirstText(room.roomId) === activeRoomId) return total;
+          return total + Math.max(0, Number(room.unreadCount) || 0);
+        },
+        getCommunityPendingIncomingRequestCount()
+      );
     };
 
     const updateCommunityDmBackUnreadUi = () => {
@@ -1783,11 +1805,31 @@ class PageChat extends HTMLElement {
         toUserId,
         fromUser: {
           id: fromUserId,
-          name: pickFirstText(fromUser && fromUser.name, value.from_user_name, value.fromUserName),
+          name: pickFirstText(
+            fromUser && fromUser.name,
+            fromUser && fromUser.display_name,
+            fromUser && fromUser.displayName,
+            fromUser && fromUser.user_name,
+            fromUser && fromUser.userName,
+            fromUser && fromUser.email,
+            value.from_user_name,
+            value.fromUserName,
+            value.from_user_display_name,
+            value.fromUserDisplayName,
+            value.from_user_email,
+            value.fromUserEmail
+          ),
           avatar: pickFirstText(
-            fromUser && (fromUser.avatar || fromUser.image || fromUser.img),
+            fromUser &&
+              (fromUser.avatar ||
+                fromUser.image ||
+                fromUser.img ||
+                fromUser.public_avatar ||
+                fromUser.publicAvatar),
             value.from_user_avatar,
-            value.fromUserAvatar
+            value.fromUserAvatar,
+            value.from_user_public_avatar,
+            value.fromUserPublicAvatar
           ),
           premium:
             (fromUser && fromUser.premium === true) ||
@@ -1796,11 +1838,31 @@ class PageChat extends HTMLElement {
         },
         toUser: {
           id: toUserId,
-          name: pickFirstText(toUser && toUser.name, value.to_user_name, value.toUserName),
+          name: pickFirstText(
+            toUser && toUser.name,
+            toUser && toUser.display_name,
+            toUser && toUser.displayName,
+            toUser && toUser.user_name,
+            toUser && toUser.userName,
+            toUser && toUser.email,
+            value.to_user_name,
+            value.toUserName,
+            value.to_user_display_name,
+            value.toUserDisplayName,
+            value.to_user_email,
+            value.toUserEmail
+          ),
           avatar: pickFirstText(
-            toUser && (toUser.avatar || toUser.image || toUser.img),
+            toUser &&
+              (toUser.avatar ||
+                toUser.image ||
+                toUser.img ||
+                toUser.public_avatar ||
+                toUser.publicAvatar),
             value.to_user_avatar,
-            value.toUserAvatar
+            value.toUserAvatar,
+            value.to_user_public_avatar,
+            value.toUserPublicAvatar
           ),
           premium:
             (toUser && toUser.premium === true) ||
@@ -1811,6 +1873,22 @@ class PageChat extends HTMLElement {
         createdAt: pickFirstText(value.created_at, value.createdAt),
         room: normalizeCommunityRoom(value.room),
         resolution: pickFirstText(value.resolution, value.action).toLowerCase()
+      };
+    };
+
+    const normalizeCommunityDmBlock = (value) => {
+      if (!value || typeof value !== 'object') return null;
+      const peerUserId = pickFirstText(
+        value.blocked_user_id,
+        value.blockedUserId,
+        value.peer_user_id,
+        value.peerUserId
+      );
+      if (!peerUserId) return null;
+      return {
+        peerUserId,
+        createdAt: pickFirstText(value.created_at, value.createdAt),
+        updatedAt: pickFirstText(value.updated_at, value.updatedAt)
       };
     };
 
@@ -1857,6 +1935,23 @@ class PageChat extends HTMLElement {
       communityDmRequests = communityDmRequests.filter(
         (entry) => !entry || entry.requestId !== safeRequestId
       );
+      return communityDmRequests.length !== previousLength;
+    };
+
+    const removeCommunityDmRequestsByPeer = (peerUserId) => {
+      const safePeerUserId = pickFirstText(peerUserId);
+      const currentUserId = pickFirstText(lastUserId);
+      if (!safePeerUserId || !currentUserId) return false;
+      const previousLength = communityDmRequests.length;
+      communityDmRequests = communityDmRequests.filter((entry) => {
+        if (!entry) return false;
+        const fromUserId = pickFirstText(entry.fromUser && entry.fromUser.id, entry.fromUserId);
+        const toUserId = pickFirstText(entry.toUser && entry.toUser.id, entry.toUserId);
+        const matchesPair =
+          (fromUserId === safePeerUserId && toUserId === currentUserId) ||
+          (fromUserId === currentUserId && toUserId === safePeerUserId);
+        return !matchesPair;
+      });
       return communityDmRequests.length !== previousLength;
     };
 
@@ -1909,6 +2004,135 @@ class PageChat extends HTMLElement {
       communityDmPendingRequestsMap = nextMap;
       persistCommunityDmPendingRequests();
       return nextMap;
+    };
+
+    const syncCommunityDmBlocksFromServer = (blocks) => {
+      const nextMap = {};
+      (Array.isArray(blocks) ? blocks : []).forEach((block) => {
+        const normalized = normalizeCommunityDmBlock(block);
+        if (!normalized || !normalized.peerUserId) return;
+        nextMap[normalized.peerUserId] = normalized;
+      });
+      communityDmBlockedMap = nextMap;
+      return nextMap;
+    };
+
+    const isCommunityPeerBlocked = (peerUserId) =>
+      Boolean(communityDmBlockedMap[pickFirstText(peerUserId)]);
+
+    const loadCommunityDmBlocks = async ({ force = false } = {}) => {
+      const endpoint = getCommunityDmBlocksEndpoint();
+      const currentUserId = pickFirstText(lastUserId, window.user && window.user.id);
+      if (!endpoint || !currentUserId) return false;
+      if (communityBlocksLoading) return false;
+      if (communityBlocksLoaded && !force) return true;
+      communityBlocksLoading = true;
+      try {
+        const url = new URL(endpoint, window.location.origin);
+        url.searchParams.set('user_id', currentUserId);
+        const response = await fetch(url.toString(), {
+          method: 'GET',
+          headers: buildRealtimeStateHeaders({ Accept: 'application/json' })
+        });
+        if (!response.ok) {
+          if (response.status === 403) {
+            handleCommunityAccessDenied();
+          }
+          throw new Error(`community_dm_blocks_${response.status}`);
+        }
+        const data = await response.json();
+        syncCommunityDmBlocksFromServer(data && data.blocks);
+        communityBlocksLoaded = true;
+        renderCommunityLists();
+        return true;
+      } catch (err) {
+        console.warn('[chat] community dm blocks error', err);
+        communityDmBlockedMap = {};
+        renderCommunityLists();
+        return false;
+      } finally {
+        communityBlocksLoading = false;
+      }
+    };
+
+    const updateCommunityDmPeerBlockStatus = async (peer, blocked) => {
+      const shouldBlock = blocked !== false;
+      const endpoint = shouldBlock ? getCommunityDmBlocksEndpoint() : getCommunityDmUnblockEndpoint();
+      const currentUser = window.user;
+      const currentUserId =
+        currentUser && currentUser.id !== undefined && currentUser.id !== null
+          ? String(currentUser.id).trim()
+          : '';
+      const peerUserId = pickFirstText(peer && (peer.id || peer.user_id || peer.userId));
+      if (!endpoint || !currentUserId || !peerUserId) {
+        return { ok: false, reason: 'invalid' };
+      }
+      try {
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: buildRealtimeStateHeaders({
+            'Content-Type': 'application/json',
+            Accept: 'application/json'
+          }),
+          body: JSON.stringify({
+            uuid: getClientUuid(),
+            platform: getClientPlatform(),
+            user_id: currentUserId,
+            user_name: getUserDisplayName(currentUser),
+            avatar: getUserPublicAvatar(currentUser),
+            app: 'speakapp',
+            peer_user_id: peerUserId,
+            peer_name: pickFirstText(peer && peer.name),
+            peer_avatar: pickFirstText(peer && peer.avatar)
+          })
+        });
+        let data = null;
+        try {
+          data = await response.json();
+        } catch (err) {
+          data = null;
+        }
+        if (!response.ok) {
+          if (response.status === 403) {
+            handleCommunityAccessDenied();
+          }
+          return {
+            ok: false,
+            reason: pickFirstText(data && (data.reason || data.error)),
+            status: response.status,
+            data
+          };
+        }
+        if (shouldBlock) {
+          communityDmBlockedMap = {
+            ...communityDmBlockedMap,
+            [peerUserId]:
+              normalizeCommunityDmBlock(data && data.block) || {
+                peerUserId,
+                updatedAt: new Date().toISOString()
+              }
+          };
+          removeCommunityDmPendingRequestByPeer(peerUserId);
+          removeCommunityDmRequestsByPeer(peerUserId);
+        } else if (communityDmBlockedMap[peerUserId]) {
+          const nextMap = { ...communityDmBlockedMap };
+          delete nextMap[peerUserId];
+          communityDmBlockedMap = nextMap;
+        }
+        syncCommunityUnreadIndicators();
+        renderCommunityLists();
+        loadCommunityDmBlocks({ force: true }).catch(() => {});
+        loadCommunityDmRequests({ force: true }).catch(() => {});
+        return {
+          ok: !data || data.ok !== false,
+          blocked: shouldBlock,
+          block: normalizeCommunityDmBlock(data && data.block),
+          data
+        };
+      } catch (err) {
+        console.warn('[chat] community dm block update error', err);
+        return { ok: false, reason: 'network_error' };
+      }
     };
 
     const loadCommunityDmRequests = async ({ force = false } = {}) => {
@@ -1968,6 +2192,7 @@ class PageChat extends HTMLElement {
       } finally {
         communityRequestsLoading = false;
         renderCommunityLists();
+        syncCommunityUnreadIndicators();
       }
     };
 
@@ -2114,6 +2339,24 @@ class PageChat extends HTMLElement {
           }
           return { ok: false, status: response.status, data };
         }
+        if (normalizedAction === 'block') {
+          const blockedPeerUserId = pickFirstText(
+            request && request.fromUser && request.fromUser.id,
+            request && request.fromUserId
+          );
+          if (blockedPeerUserId) {
+            communityDmBlockedMap = {
+              ...communityDmBlockedMap,
+              [blockedPeerUserId]: {
+                peerUserId: blockedPeerUserId,
+                updatedAt: new Date().toISOString()
+              }
+            };
+            removeCommunityDmPendingRequestByPeer(blockedPeerUserId);
+            removeCommunityDmRequestsByPeer(blockedPeerUserId);
+            loadCommunityDmBlocks({ force: true }).catch(() => {});
+          }
+        }
         removeCommunityDmRequest(safeRequestId);
         const room = normalizeCommunityRoom(data && data.room);
         if (room) {
@@ -2123,6 +2366,7 @@ class PageChat extends HTMLElement {
           }
         }
         renderCommunityLists();
+        syncCommunityUnreadIndicators();
         return { ok: true, room, data };
       } catch (err) {
         console.warn('[chat] community dm request resolve error', err);
@@ -2138,7 +2382,23 @@ class PageChat extends HTMLElement {
           (room) => pickFirstText(room && room.peer && room.peer.id) === peerUserId
         ) || null;
       if (existingRoom) {
+        if (
+          isCommunityRoomDeleted(existingRoom.roomId) ||
+          isCommunityRoomArchived(existingRoom.roomId)
+        ) {
+          clearCommunityRoomLocalState(existingRoom.roomId, { archived: true, deleted: true });
+          renderCommunityLists();
+        }
         return openCommunityDmRoom(existingRoom.roomId, { forceHistory: true });
+      }
+      if (!communityBlocksLoaded) {
+        await loadCommunityDmBlocks({ force: true });
+      }
+      if (isCommunityPeerBlocked(peerUserId)) {
+        presentSystemToast(
+          uiCopy.communityRequestBlockedNotice || uiCopy.communityRequestSendError || uiCopy.serverUnavailable
+        );
+        return false;
       }
       if (!communityRequestsLoaded) {
         await loadCommunityDmRequests({ force: true });
@@ -2285,6 +2545,54 @@ class PageChat extends HTMLElement {
         return uiCopy.communityOnlineNow;
       }
       return fallbackText || '';
+    };
+
+    const appendCommunityPeerBlockedBadge = (headingEl, peerUserId) => {
+      if (!headingEl || !isCommunityPeerBlocked(peerUserId)) return;
+      const blockedBadgeEl = document.createElement('span');
+      blockedBadgeEl.className = 'chat-community-item-flag is-blocked';
+      blockedBadgeEl.textContent = uiCopy.communityBlockedBadge || uiCopy.communityRequestBlock;
+      headingEl.appendChild(blockedBadgeEl);
+    };
+
+    const buildCommunityPeerBlockActionButton = (peer) => {
+      const peerUserId = pickFirstText(peer && (peer.id || peer.user_id || peer.userId));
+      if (!peerUserId) return null;
+      const blocked = isCommunityPeerBlocked(peerUserId);
+      const actionBtn = document.createElement('button');
+      actionBtn.type = 'button';
+      actionBtn.className = blocked
+        ? 'chat-community-action-btn'
+        : 'chat-community-action-btn is-danger';
+      actionBtn.setAttribute(
+        'aria-label',
+        blocked
+          ? uiCopy.communityUnblockUser || uiCopy.communityRequestAccept
+          : uiCopy.communityBlockUser || uiCopy.communityRequestBlock
+      );
+      actionBtn.title = blocked
+        ? uiCopy.communityUnblockUser || uiCopy.communityRequestAccept
+        : uiCopy.communityBlockUser || uiCopy.communityRequestBlock;
+      actionBtn.innerHTML = blocked
+        ? '<ion-icon name="lock-open-outline"></ion-icon>'
+        : '<ion-icon name="ban-outline"></ion-icon>';
+      actionBtn.addEventListener('click', async (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        actionBtn.disabled = true;
+        const result = await updateCommunityDmPeerBlockStatus(peer, !blocked);
+        actionBtn.disabled = false;
+        if (!result || !result.ok) {
+          presentSystemToast(uiCopy.communityBlockActionError || uiCopy.serverUnavailable);
+          return;
+        }
+        presentSystemToast(
+          blocked
+            ? uiCopy.communityUserUnblocked || uiCopy.communityRequestAccepted
+            : uiCopy.communityRequestBlocked
+        );
+      });
+      return actionBtn;
     };
 
     const updateCommunityRoomsManageUi = () => {
@@ -3261,6 +3569,7 @@ class PageChat extends HTMLElement {
           );
           headingEl.appendChild(buildCommunityStatusDot({ online }));
           headingEl.appendChild(titleEl);
+          appendCommunityPeerBlockedBadge(headingEl, peer && peer.id);
           if (archived) {
             const archivedBadgeEl = document.createElement('span');
             archivedBadgeEl.className = 'chat-community-item-flag';
@@ -3303,6 +3612,11 @@ class PageChat extends HTMLElement {
               });
               actionsEl.appendChild(restoreBtn);
 
+              const blockBtn = buildCommunityPeerBlockActionButton(peer);
+              if (blockBtn) {
+                actionsEl.appendChild(blockBtn);
+              }
+
               const deleteBtn = document.createElement('button');
               deleteBtn.type = 'button';
               deleteBtn.className = 'chat-community-action-btn is-danger';
@@ -3341,6 +3655,11 @@ class PageChat extends HTMLElement {
                 renderCommunityLists();
               });
               actionsEl.appendChild(archiveBtn);
+
+              const blockBtn = buildCommunityPeerBlockActionButton(peer);
+              if (blockBtn) {
+                actionsEl.appendChild(blockBtn);
+              }
             }
             trailingEl.appendChild(actionsEl);
           } else {
@@ -3367,12 +3686,15 @@ class PageChat extends HTMLElement {
         communityPeerListEl.appendChild(emptyEl);
       } else {
         peers.forEach((peer) => {
-          const itemEl = document.createElement('button');
-          itemEl.type = 'button';
+          const itemEl = document.createElement('div');
           itemEl.className = 'chat-community-item';
           const peerUserId = pickFirstText(peer && (peer.id || peer.user_id || peer.userId));
           const label = pickFirstText(peer.name, peer.id) || uiCopy.communityNoPeerName;
           const hasPendingRequest = hasCommunityDmPendingRequest(peerUserId);
+          const blockedPeer = isCommunityPeerBlocked(peerUserId);
+          const openBtn = document.createElement('button');
+          openBtn.type = 'button';
+          openBtn.className = 'chat-community-item-open';
           const mainEl = document.createElement('span');
           mainEl.className = 'chat-community-item-main';
           const headingEl = document.createElement('span');
@@ -3382,22 +3704,50 @@ class PageChat extends HTMLElement {
           titleEl.textContent = label;
           const subtitleEl = document.createElement('span');
           subtitleEl.className = 'chat-community-item-subtitle';
-          subtitleEl.textContent = hasPendingRequest
-            ? uiCopy.communityRequestPendingOutgoing || uiCopy.communityRequestSent
-            : uiCopy.communityStartChat;
-          itemEl.appendChild(
+          subtitleEl.textContent = blockedPeer
+            ? uiCopy.communityBlockedBadge || uiCopy.communityRequestBlocked
+            : hasPendingRequest
+              ? uiCopy.communityRequestPendingOutgoing || uiCopy.communityRequestSent
+              : uiCopy.communityStartChat;
+          const sideEl = document.createElement('span');
+          sideEl.className = 'chat-community-item-side';
+          const timeEl = document.createElement('span');
+          timeEl.className = 'chat-community-item-time';
+          timeEl.textContent = '';
+          const trailingEl = document.createElement('span');
+          trailingEl.className = 'chat-community-item-trailing';
+          openBtn.appendChild(
             buildCommunityAvatar(peer, {
               online: false
             })
           );
           headingEl.appendChild(buildCommunityStatusDot({ online: true }));
           headingEl.appendChild(titleEl);
+          appendCommunityPeerBlockedBadge(headingEl, peerUserId);
           mainEl.appendChild(headingEl);
           mainEl.appendChild(subtitleEl);
-          itemEl.appendChild(mainEl);
-          itemEl.addEventListener('click', () => {
+          openBtn.appendChild(mainEl);
+          openBtn.addEventListener('click', () => {
             startCommunityDmWithPeer(peer).catch(() => {});
           });
+          itemEl.appendChild(openBtn);
+          if (communityDmManageMode) {
+            const actionsEl = document.createElement('span');
+            actionsEl.className = 'chat-community-item-actions';
+            const blockBtn = buildCommunityPeerBlockActionButton(peer);
+            if (blockBtn) {
+              actionsEl.appendChild(blockBtn);
+            }
+            trailingEl.appendChild(actionsEl);
+          } else {
+            const chevronEl = document.createElement('ion-icon');
+            chevronEl.className = 'chat-community-item-chevron';
+            chevronEl.setAttribute('name', 'chevron-forward');
+            trailingEl.appendChild(chevronEl);
+          }
+          sideEl.appendChild(timeEl);
+          sideEl.appendChild(trailingEl);
+          itemEl.appendChild(sideEl);
           communityPeerListEl.appendChild(itemEl);
         });
       }
@@ -3407,6 +3757,12 @@ class PageChat extends HTMLElement {
       const currentUserId = pickFirstText(lastUserId);
       const existingRoomPeerIds = new Set(
         communityDmRooms
+          .filter(
+            (room) =>
+              room &&
+              !isCommunityRoomDeleted(room.roomId) &&
+              !isCommunityRoomArchived(room.roomId)
+          )
           .map((room) => pickFirstText(room && room.peer && room.peer.id))
           .filter(Boolean)
       );
@@ -3591,10 +3947,21 @@ class PageChat extends HTMLElement {
             text
           })
         });
-        if (!response.ok) {
-          return { ok: false, status: response.status };
+        let data = null;
+        try {
+          data = await response.json();
+        } catch (err) {
+          data = null;
         }
-        return response.json();
+        if (!response.ok) {
+          return {
+            ok: false,
+            status: response.status,
+            reason: pickFirstText(data && (data.reason || data.error)),
+            data
+          };
+        }
+        return data;
       } catch (err) {
         console.warn('[chat] community dm send error', err);
         return { ok: false, error: err && err.message ? err.message : 'community_dm_send_failed' };
@@ -6364,6 +6731,7 @@ class PageChat extends HTMLElement {
           if (!request || request.status !== 'pending') return;
           upsertCommunityDmRequest(request);
           renderCommunityLists();
+          syncCommunityUnreadIndicators();
         };
 
         const handleCommunityDmRequestResolved = (data) => {
@@ -6384,6 +6752,7 @@ class PageChat extends HTMLElement {
             }
           }
           renderCommunityLists();
+          syncCommunityUnreadIndicators();
           loadCommunityDmRequests({ force: true }).catch(() => {});
           if (!wasIncomingPending && resolution === 'declined') {
             presentSystemToast(uiCopy.communityRequestDeclinedNotice || uiCopy.communityRequestDeclined);
@@ -6663,6 +7032,9 @@ class PageChat extends HTMLElement {
         communityPublicUnreadCount = 0;
         communityDmRequests = [];
         communityRequestsLoaded = false;
+        communityDmBlockedMap = {};
+        communityBlocksLoaded = false;
+        communityBlocksLoading = false;
         communityDmRooms = [];
         communityRoomsLoaded = false;
         activeCommunityDmRoomId = '';
@@ -6693,6 +7065,7 @@ class PageChat extends HTMLElement {
           if (communityView === 'dm') {
             loadCommunityDmRooms({ force: true });
             loadCommunityDmRequests({ force: true });
+            loadCommunityDmBlocks({ force: true });
           }
           scheduleCommunityPresenceHeartbeat({ immediate: true });
         }
@@ -6844,7 +7217,12 @@ class PageChat extends HTMLElement {
               }),
               { scope: 'dm', roomId, rerender: true }
             );
-            presentSystemToast(uiCopy.communityDmSendError || uiCopy.serverUnavailable);
+            const reason = pickFirstText(result && (result.reason || (result.data && result.data.error)));
+            presentSystemToast(
+              reason === 'blocked' || reason === 'disabled'
+                ? uiCopy.communityRequestBlockedNotice || uiCopy.communityDmSendError || uiCopy.serverUnavailable
+                : uiCopy.communityDmSendError || uiCopy.serverUnavailable
+            );
           });
           return;
         }
@@ -7029,6 +7407,7 @@ class PageChat extends HTMLElement {
       }
       refreshCommunityPresenceNow({ silent: true });
       await loadCommunityDmRooms({ force: true });
+      await loadCommunityDmBlocks({ force: true });
       if (communityView === 'dm' && activeCommunityDmRoomId) {
         await loadCommunityDmHistory(activeCommunityDmRoomId, { force: true });
       } else if (communityView === 'public') {
@@ -7430,6 +7809,7 @@ class PageChat extends HTMLElement {
       if (changed && nextView === 'dm') {
         loadCommunityDmRooms({ force: !communityRoomsLoaded });
         loadCommunityDmRequests({ force: !communityRequestsLoaded });
+        loadCommunityDmBlocks({ force: !communityBlocksLoaded });
         if (activeCommunityDmRoomId) {
           loadCommunityDmHistory(activeCommunityDmRoomId, { force: false });
         }

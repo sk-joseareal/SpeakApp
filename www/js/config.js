@@ -116,6 +116,16 @@
       window.REALTIME_COMMUNITY_DM_SETTINGS_ENDPOINT ||
       'https://realtime.curso-ingles.com/realtime/community/rooms/dm/settings';
   }
+  if (window.realtimeConfig.communityDmBlocksEndpoint === undefined) {
+    window.realtimeConfig.communityDmBlocksEndpoint =
+      window.REALTIME_COMMUNITY_DM_BLOCKS_ENDPOINT ||
+      'https://realtime.curso-ingles.com/realtime/community/rooms/dm/blocks';
+  }
+  if (window.realtimeConfig.communityDmUnblockEndpoint === undefined) {
+    window.realtimeConfig.communityDmUnblockEndpoint =
+      window.REALTIME_COMMUNITY_DM_UNBLOCK_ENDPOINT ||
+      'https://realtime.curso-ingles.com/realtime/community/rooms/dm/blocks/unblock';
+  }
   if (window.realtimeConfig.pushRegisterEndpoint === undefined) {
     window.realtimeConfig.pushRegisterEndpoint =
       window.REALTIME_PUSH_REGISTER_ENDPOINT ||

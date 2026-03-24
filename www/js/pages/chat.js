@@ -273,6 +273,7 @@ class PageChat extends HTMLElement {
     let communityPublicUnreadCount = 0;
     let communityDmRooms = [];
     let communityDmRequests = [];
+    let communityDmPendingRequestsMap = {};
     let communityDmManageMode = false;
     let communityDmShowArchived = false;
     let communityDmArchivedMap = {};
@@ -333,6 +334,7 @@ class PageChat extends HTMLElement {
 	    const COMMUNITY_PRESENCE_SESSION_KEY = 'appv5:community-presence-session-id';
 	    const COMMUNITY_CHAT_UNREAD_STORAGE_PREFIX = 'appv5:chat-community-unread:';
       const COMMUNITY_DM_ROOM_PREFS_PREFIX = 'appv5:chat-community-dm-prefs:';
+      const COMMUNITY_DM_PENDING_REQUESTS_PREFIX = 'appv5:chat-community-dm-pending:';
 	    const APP_TAB_STORAGE_KEY = 'appv5:active-tab';
 	    const SHARED_AUDIO_MODE_KEY = 'appv5:free-ride-audio-mode';
 	    const SHARED_AUDIO_MODE_GENERATED = 'generated';
@@ -1471,6 +1473,122 @@ class PageChat extends HTMLElement {
       return prefs;
     };
 
+    const resolveCommunityDmPendingRequestsKey = (userId = lastUserId) =>
+      `${COMMUNITY_DM_PENDING_REQUESTS_PREFIX}${pickFirstText(userId, 'anon')}`;
+
+    const normalizeStoredCommunityDmPendingRequests = (value) => {
+      if (!value || typeof value !== 'object') return {};
+      return Object.entries(value).reduce((out, [peerId, entry]) => {
+        const safePeerId = pickFirstText(peerId, entry && entry.peerUserId, entry && entry.peer_id);
+        if (!safePeerId) return out;
+        out[safePeerId] = {
+          peerUserId: safePeerId,
+          requestId: pickFirstText(entry && entry.requestId, entry && entry.request_id),
+          peerName: pickFirstText(entry && entry.peerName, entry && entry.peer_name),
+          createdAt: Math.max(0, Math.round(Number((entry && entry.createdAt) || entry && entry.ts || Date.now()) || 0))
+        };
+        return out;
+      }, {});
+    };
+
+    const readStoredCommunityDmPendingRequests = (userId = lastUserId) => {
+      try {
+        const raw = localStorage.getItem(resolveCommunityDmPendingRequestsKey(userId));
+        if (!raw) return {};
+        return normalizeStoredCommunityDmPendingRequests(JSON.parse(raw));
+      } catch (err) {
+        return {};
+      }
+    };
+
+    const persistCommunityDmPendingRequests = () => {
+      try {
+        localStorage.setItem(
+          resolveCommunityDmPendingRequestsKey(),
+          JSON.stringify(communityDmPendingRequestsMap || {})
+        );
+      } catch (err) {
+        // no-op
+      }
+    };
+
+    const loadCommunityDmPendingRequests = (userId = lastUserId) => {
+      communityDmPendingRequestsMap = readStoredCommunityDmPendingRequests(userId);
+      return communityDmPendingRequestsMap;
+    };
+
+    const hasCommunityDmPendingRequest = (peerUserId) =>
+      Boolean(communityDmPendingRequestsMap[pickFirstText(peerUserId)]);
+
+    const upsertCommunityDmPendingRequest = ({ peerUserId, requestId = '', peerName = '' } = {}) => {
+      const safePeerId = pickFirstText(peerUserId);
+      if (!safePeerId) return null;
+      const existing = communityDmPendingRequestsMap[safePeerId] || {};
+      communityDmPendingRequestsMap = {
+        ...communityDmPendingRequestsMap,
+        [safePeerId]: {
+          peerUserId: safePeerId,
+          requestId: pickFirstText(requestId, existing.requestId),
+          peerName: pickFirstText(peerName, existing.peerName),
+          createdAt: Date.now()
+        }
+      };
+      persistCommunityDmPendingRequests();
+      return communityDmPendingRequestsMap[safePeerId];
+    };
+
+    const removeCommunityDmPendingRequestByPeer = (peerUserId) => {
+      const safePeerId = pickFirstText(peerUserId);
+      if (!safePeerId || !communityDmPendingRequestsMap[safePeerId]) return false;
+      const nextMap = { ...communityDmPendingRequestsMap };
+      delete nextMap[safePeerId];
+      communityDmPendingRequestsMap = nextMap;
+      persistCommunityDmPendingRequests();
+      return true;
+    };
+
+    const removeCommunityDmPendingRequestByRequestId = (requestId) => {
+      const safeRequestId = pickFirstText(requestId);
+      if (!safeRequestId) return false;
+      const match = Object.values(communityDmPendingRequestsMap).find(
+        (entry) => pickFirstText(entry && entry.requestId) === safeRequestId
+      );
+      return match ? removeCommunityDmPendingRequestByPeer(match.peerUserId) : false;
+    };
+
+    const reconcileCommunityDmPendingRequests = () => {
+      let changed = false;
+      Object.keys(communityDmPendingRequestsMap).forEach((peerUserId) => {
+        const hasRoom = communityDmRooms.some(
+          (room) => pickFirstText(room && room.peer && room.peer.id) === peerUserId
+        );
+        if (hasRoom) {
+          changed = removeCommunityDmPendingRequestByPeer(peerUserId) || changed;
+        }
+      });
+      return changed;
+    };
+
+    const clearCommunityDmPendingRequestFromData = (data) => {
+      let changed = removeCommunityDmPendingRequestByRequestId(
+        pickFirstText(data && (data.request_id || data.requestId))
+      );
+      const room = normalizeCommunityRoom(data && data.room);
+      if (room && room.peer && room.peer.id) {
+        changed = removeCommunityDmPendingRequestByPeer(room.peer.id) || changed;
+      }
+      [
+        pickFirstText(data && (data.peer_user_id || data.peerUserId)),
+        pickFirstText(data && (data.from_user_id || data.fromUserId)),
+        pickFirstText(data && (data.user_id || data.userId))
+      ]
+        .filter(Boolean)
+        .forEach((peerUserId) => {
+          changed = removeCommunityDmPendingRequestByPeer(peerUserId) || changed;
+        });
+      return changed;
+    };
+
     const getCommunityRoomArchivedAt = (roomId) =>
       Math.max(0, Number(communityDmArchivedMap[pickFirstText(roomId)] || 0) || 0);
 
@@ -1731,10 +1849,10 @@ class PageChat extends HTMLElement {
         const url = new URL(endpoint, window.location.origin);
         url.searchParams.set('user_id', currentUserId);
         url.searchParams.set('scope', 'incoming');
-        url.searchParams.set('status', 'pending');
+       url.searchParams.set('status', 'pending');
         const response = await fetch(url.toString(), {
           method: 'GET',
-          headers: { Accept: 'application/json' }
+          headers: buildRealtimeStateHeaders({ Accept: 'application/json' })
         });
         if (!response.ok) {
           if (response.status === 403) {
@@ -1817,10 +1935,10 @@ class PageChat extends HTMLElement {
       try {
         const response = await fetch(endpoint, {
           method: 'POST',
-          headers: {
+          headers: buildRealtimeStateHeaders({
             'Content-Type': 'application/json',
             Accept: 'application/json'
-          },
+          }),
           body: JSON.stringify({
             uuid: getClientUuid(),
             platform: getClientPlatform(),
@@ -1853,7 +1971,7 @@ class PageChat extends HTMLElement {
           };
         }
         return {
-          ok: Boolean(data && data.ok !== false),
+          ok: !data || data.ok !== false,
           room: normalizeCommunityRoom(data && data.room),
           request: normalizeCommunityDmRequest(data && data.request),
           data
@@ -1880,10 +1998,10 @@ class PageChat extends HTMLElement {
       try {
         const response = await fetch(endpoint, {
           method: 'POST',
-          headers: {
+          headers: buildRealtimeStateHeaders({
             'Content-Type': 'application/json',
             Accept: 'application/json'
-          },
+          }),
           body: JSON.stringify({
             request_id: safeRequestId,
             user_id: currentUserId,
@@ -1930,16 +2048,32 @@ class PageChat extends HTMLElement {
       if (existingRoom) {
         return openCommunityDmRoom(existingRoom.roomId, { forceHistory: true });
       }
+      if (hasCommunityDmPendingRequest(peerUserId)) {
+        presentSystemToast(uiCopy.communityRequestAlreadyPending || uiCopy.communityRequestSent);
+        return true;
+      }
       const requestText = await promptCommunityDmRequestText(peer);
       const safeText = normalizeChatText(requestText);
       if (!safeText) return false;
       const result = await createCommunityDmRequest(peer, safeText);
       if (result && result.ok && result.room) {
+        removeCommunityDmPendingRequestByPeer(peerUserId);
         renderCommunityLists();
         await openCommunityDmRoom(result.room.roomId, { forceHistory: true });
         return true;
       }
       if (result && result.ok) {
+        const requestDirection = pickFirstText(result.request && result.request.direction);
+        if (requestDirection === 'incoming') {
+          presentSystemToast(uiCopy.communityRequestAlreadyPending || uiCopy.communityRequestSent);
+          return true;
+        }
+        upsertCommunityDmPendingRequest({
+          peerUserId,
+          requestId: pickFirstText(result.request && result.request.requestId),
+          peerName: pickFirstText(peer && peer.name)
+        });
+        renderCommunityLists();
         presentSystemToast(uiCopy.communityRequestSent);
         return true;
       }
@@ -3132,7 +3266,9 @@ class PageChat extends HTMLElement {
           const itemEl = document.createElement('button');
           itemEl.type = 'button';
           itemEl.className = 'chat-community-item';
+          const peerUserId = pickFirstText(peer && (peer.id || peer.user_id || peer.userId));
           const label = pickFirstText(peer.name, peer.id) || uiCopy.communityNoPeerName;
+          const hasPendingRequest = hasCommunityDmPendingRequest(peerUserId);
           const mainEl = document.createElement('span');
           mainEl.className = 'chat-community-item-main';
           const headingEl = document.createElement('span');
@@ -3142,7 +3278,9 @@ class PageChat extends HTMLElement {
           titleEl.textContent = label;
           const subtitleEl = document.createElement('span');
           subtitleEl.className = 'chat-community-item-subtitle';
-          subtitleEl.textContent = uiCopy.communityStartChat;
+          subtitleEl.textContent = hasPendingRequest
+            ? uiCopy.communityRequestPendingOutgoing || uiCopy.communityRequestSent
+            : uiCopy.communityStartChat;
           itemEl.appendChild(
             buildCommunityAvatar(peer, {
               online: false
@@ -3227,6 +3365,7 @@ class PageChat extends HTMLElement {
                 return room;
               })
           : [];
+        reconcileCommunityDmPendingRequests();
         sortCommunityDmRooms();
         syncCommunityUnreadIndicators(currentUserId);
         communityRoomsLoaded = true;
@@ -6083,6 +6222,9 @@ class PageChat extends HTMLElement {
           if (!room) return;
           const alreadySubscribed = pusherCommunityDmChannels.has(room.roomId);
           upsertCommunityRoom(room);
+          if (room.peer && room.peer.id) {
+            removeCommunityDmPendingRequestByPeer(room.peer.id);
+          }
           if (!alreadySubscribed) {
             syncCommunityDmSubscriptions();
           }
@@ -6127,6 +6269,7 @@ class PageChat extends HTMLElement {
           const wasIncomingPending = requestId
             ? communityDmRequests.some((entry) => entry && entry.requestId === requestId)
             : false;
+          clearCommunityDmPendingRequestFromData(data);
           if (requestId) {
             removeCommunityDmRequest(requestId);
           }
@@ -6409,6 +6552,7 @@ class PageChat extends HTMLElement {
         clearChatbotAlignedTtsLimitStatus();
         loadTalkTimelinesForUser(userId);
         loadCommunityDmPrefs(userId);
+        loadCommunityDmPendingRequests(userId);
         communityDmReadRequests.clear();
         communityDmDeliveredAcks.clear();
         communityPublicUnreadCount = 0;
@@ -6908,9 +7052,11 @@ class PageChat extends HTMLElement {
     if (initialUser && initialUser.id !== undefined && initialUser.id !== null) {
       loadTalkTimelinesForUser(initialUser.id);
       loadCommunityDmPrefs(initialUser.id);
+      loadCommunityDmPendingRequests(initialUser.id);
     } else {
       loadTalkTimelinesForUser(null);
       loadCommunityDmPrefs(null);
+      loadCommunityDmPendingRequests(null);
     }
     updateHeaderRewards();
     showLoadingState();

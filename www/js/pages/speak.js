@@ -12,19 +12,21 @@ import {
   getSpeakCopy as getSpeakCopyBundle,
   resolveLocale as resolveCopyLocale
 } from '../content/copy.js';
-import { getAppLocale } from '../state.js';
+import { renderAppHeader } from '../components/app-header.js';
+import { getAppLocale, setAppLocale } from '../state.js';
 import { addNotification } from '../notifications-store.js';
 import { goToHome } from '../nav.js';
 
 class PageSpeak extends HTMLElement {
   connectedCallback() {
     this.classList.add('ion-page');
+    const appLocale = getAppLocale();
+    const initNextLocale = getNextLocaleCode(appLocale).toUpperCase();
     this.innerHTML = `
+      ${renderAppHeader({ title: '', rewardBadgesId: 'speak-reward-badges', nextLocale: initNextLocale })}
       <ion-content fullscreen class="speak-content secret-content">
         <div class="speak-shell">
-          <div class="speak-session-title-wrap">
-            <h2 class="speak-session-title secret-title" id="speak-session-title"></h2>
-          </div>
+          <h2 class="speak-session-title secret-title" id="speak-session-title" hidden></h2>
           <section class="speak-hero-card onboarding-intro-card" id="speak-hero-card">
             <button
               class="speak-hero-debug-btn"
@@ -44,19 +46,20 @@ class PageSpeak extends HTMLElement {
             >
               <img class="onboarding-intro-flag" src="assets/flags/eeuu.png" alt="English">
             </button>
-            <div class="speak-hero-head">
-              <span class="speak-hero-mascot-wrap" aria-hidden="true">
-                <img
-                  class="onboarding-intro-cat speak-hero-cat"
-                  id="speak-hero-mascot"
-                  src="assets/mascot/mascota-boca-08.png"
-                  alt=""
-                  aria-hidden="true"
-                >
-              </span>
-              <p class="speak-hero-step-title" id="speak-hero-step-title"></p>
+            <span class="speak-hero-mascot-wrap" aria-hidden="true">
+              <img
+                class="onboarding-intro-cat speak-hero-cat"
+                id="speak-hero-mascot"
+                src="assets/mascot/mascota-boca-08.png"
+                alt=""
+                aria-hidden="true"
+              >
+            </span>
+            <div class="speak-hero-body">
+              <p class="onboarding-intro-bubble speak-hero-bubble" id="speak-hero-hint-display"></p>
+              <p class="speak-hero-step-title secret-title" id="speak-hero-step-title"></p>
             </div>
-            <p class="onboarding-intro-bubble speak-hero-bubble" id="speak-hero-hint"></p>
+            <p class="secret-title" id="speak-hero-hint" aria-hidden="true"></p>
           </section>
           <div class="speak-sheet">
             <div class="speak-route-banner" id="speak-route-banner" aria-hidden="true"></div>
@@ -73,6 +76,8 @@ class PageSpeak extends HTMLElement {
     const ghostRoot = this.querySelector('#speak-ghost');
     const swipeStage = this.querySelector('.speak-swipe-stage');
     const sessionTitleEl = this.querySelector('#speak-session-title');
+    const headerTitleEl = this.querySelector('.app-toolbar-title');
+    const heroHintDisplayEl = this.querySelector('#speak-hero-hint-display');
     const heroCardEl = this.querySelector('#speak-hero-card');
     const routeBannerEl = this.querySelector('#speak-route-banner');
     const heroStepTitleEl = this.querySelector('#speak-hero-step-title');
@@ -3179,11 +3184,17 @@ class PageSpeak extends HTMLElement {
       }
       const locale = normalizeHintLocale(options.locale) || activeHintLocale || getHintUiLocale();
       heroStepTitleEl.textContent = getLocalizedStepTitle(source, locale);
+      // Display fixed text in the visible bubble
+      const speakCopy = getSpeakCopyBundle(locale);
+      const heroText = (speakCopy && speakCopy.heroNarration) || "Let's keep practicing!";
+      if (heroHintDisplayEl) {
+        heroHintDisplayEl.textContent = heroText;
+        heroHintDisplayEl.hidden = false;
+      }
+      // heroHintEl (hidden) carries the TTS narration text
       const hint = resolveHeroHintText(source, locale);
       const lines = extractHeroNarrationLines(hint);
       const restLineText = String(lines[0] && lines[0].text ? lines[0].text : '').trim();
-      heroHintEl.textContent = restLineText || hint;
-      heroHintEl.hidden = !(restLineText || hint);
       if (lines.length > 1) {
         const maxHeight = measureHeroHintMaxHeight(lines);
         heroHintEl.style.minHeight = maxHeight > 0 ? `${maxHeight}px` : '';
@@ -3245,9 +3256,8 @@ class PageSpeak extends HTMLElement {
       currentSessionId = session.id;
       currentSessionData = session;
       sessionTitle = getLocalizedSessionTitle(session, getHintUiLocale(getBaseHintLocale()));
-      if (sessionTitleEl) {
-        sessionTitleEl.textContent = sessionTitle;
-      }
+      if (sessionTitleEl) sessionTitleEl.textContent = sessionTitle;
+      if (headerTitleEl) headerTitleEl.textContent = sessionTitle;
       focusKey = session.focus || (session.speak && session.speak.focus) || '';
       hintLocaleOverride = '';
       activeHintLocale = getHintUiLocale(getBaseHintLocale());
@@ -3305,9 +3315,11 @@ class PageSpeak extends HTMLElement {
       const displayText = getSoundDisplayText();
 
       const stepTitle = getSpeakUiText('stepTitleSound', locale, 'Listen carefully and Say');
+      const stepSubtitle = getSpeakUiText('soundStepSubtitle', locale, 'Listen to the audio and repeat the sound');
       return `
         <div class="speak-step speak-step-sound">
           <p class="speak-step-heading">${stepTitle}</p>
+          <p class="speak-step-subtitle">${stepSubtitle}</p>
           <div class="speak-step-main">
             <div class="speak-avatar">
               <div class="${avatarConfig.wrapperClass}">
@@ -3435,14 +3447,9 @@ class PageSpeak extends HTMLElement {
         <div class="speak-step speak-step-sentence">
           <p class="speak-step-heading">${stepTitle}</p>
           <div class="speak-step-main">
-            <div class="speak-sentence-row">
-              <div class="speak-sentence" id="speak-sentence-text">
-                ${highlightSentence(sentenceStep.sentence, focusKey)}
-              </div>
-              <button class="speak-play-btn" id="speak-play-sentence" type="button">
-                <ion-icon name="volume-high"></ion-icon>
-              </button>
-            </div>
+            <button class="speak-sentence" id="speak-play-sentence" type="button">
+              <span id="speak-sentence-text">${highlightSentence(sentenceStep.sentence, focusKey)}</span>
+            </button>
             ${sentenceScoreLine}
           </div>
 
@@ -3509,8 +3516,10 @@ class PageSpeak extends HTMLElement {
       const summaryPercentMarkup = showPercentages ? `<span>${percent}%</span>` : '';
       const confettiMarkup = showConfetti ? buildSummaryConfettiHtml(40) : '';
       const continueLabel = getSpeakUiText('summaryContinue', locale, 'Continue');
+      const resultBannerText = getSpeakUiText('resultBanner', locale, 'Result');
       return `
         <div class="speak-step speak-step-summary">
+          <div class="speak-route-banner speak-route-banner--result" aria-hidden="true">${resultBannerText}</div>
           <div class="summary-stage ${showConfetti ? 'is-tone-good' : ''}">
             ${showConfetti ? `<div class="summary-confetti" aria-hidden="true">${confettiMarkup}</div>` : ''}
             <div class="summary-panel summary-panel-${tone}">
@@ -3531,10 +3540,10 @@ class PageSpeak extends HTMLElement {
                     : ''
                 }
                 ${badgeLabel ? `<div class="summary-badge-earned">${badgeLabel}</div>` : ''}
-                <button class="speak-next-btn" id="speak-next-step" type="button">${continueLabel}</button>
               </div>
             </div>
           </div>
+          <button class="speak-next-btn speak-next-btn--summary" id="speak-next-step" type="button">${continueLabel}</button>
         </div>
       `;
     };
@@ -3550,6 +3559,8 @@ class PageSpeak extends HTMLElement {
       if (!heroCardEl || !heroStepTitleEl || !heroHintEl) return;
       if (showSummary) {
         heroCardEl.hidden = true;
+        if (routeBannerEl) routeBannerEl.hidden = true;
+        swipeSurface?.classList.add('has-summary');
         lastHeroNarratedStepKey = '';
         stopHeroNarration().catch(() => {});
         if (debugToggleBtn) {
@@ -3559,6 +3570,8 @@ class PageSpeak extends HTMLElement {
         }
         return;
       }
+      if (routeBannerEl) routeBannerEl.hidden = false;
+      swipeSurface?.classList.remove('has-summary');
       heroCardEl.hidden = false;
       const uiLocale = getHintUiLocale(getBaseHintLocale());
       activeHintLocale = uiLocale;
@@ -3572,9 +3585,8 @@ class PageSpeak extends HTMLElement {
       }
       applyHeroSource(source, { locale: uiLocale });
       sessionTitle = getLocalizedSessionTitle(currentSessionData, uiLocale);
-      if (sessionTitleEl) {
-        sessionTitleEl.textContent = sessionTitle || '';
-      }
+      if (sessionTitleEl) sessionTitleEl.textContent = sessionTitle || '';
+      if (headerTitleEl) headerTitleEl.textContent = sessionTitle || '';
       if (routeBannerEl) {
         const speakCopy = getSpeakCopyBundle(uiLocale);
         const stepBannerTemplate = speakCopy && speakCopy.stepBanner ? speakCopy.stepBanner : 'Step {step} of {total}';
@@ -4231,6 +4243,39 @@ class PageSpeak extends HTMLElement {
     heroCardEl?.addEventListener('click', handleHeroCardReplayClick);
     debugToggleBtn?.addEventListener('click', toggleDebugPanel);
 
+    const updateHeaderRewards = () => {
+      const container = this.querySelector('#speak-reward-badges');
+      if (!container) return;
+      const rewards = window.r34lp0w3r && window.r34lp0w3r.speakSessionRewards
+        ? window.r34lp0w3r.speakSessionRewards : {};
+      const totals = {};
+      Object.values(rewards).forEach((entry) => {
+        if (!entry || typeof entry.rewardQty !== 'number') return;
+        const icon = entry.rewardIcon || 'diamond';
+        totals[icon] = (totals[icon] || 0) + entry.rewardQty;
+      });
+      const entries = Object.entries(totals).filter(([, qty]) => qty > 0);
+      if (!entries.length) { container.innerHTML = ''; container.hidden = true; return; }
+      container.hidden = false;
+      container.innerHTML = entries.sort(([a], [b]) => a.localeCompare(b))
+        .map(([icon, qty]) => `<div class="training-badge reward-badge"><ion-icon name="${icon}"></ion-icon><span>${qty}</span></div>`)
+        .join('');
+    };
+    updateHeaderRewards();
+    this._handleSpeakRewards = updateHeaderRewards;
+    window.addEventListener('app:speak-stores-change', this._handleSpeakRewards);
+
+    const localeBtnEl = this.querySelector('.app-locale-btn');
+    const handleLocaleBtn = () => {
+      const nextLocale = getNextLocaleCode(getAppLocale() || 'en');
+      setAppLocale(nextLocale);
+      if (window.varGlobal && typeof window.varGlobal === 'object') window.varGlobal.locale = nextLocale;
+      window.dispatchEvent(new CustomEvent('app:locale-change', { detail: { locale: nextLocale } }));
+      const localeLabelEl = localeBtnEl?.querySelector('.app-locale-label');
+      if (localeLabelEl) localeLabelEl.textContent = getNextLocaleCode(nextLocale).toUpperCase();
+    };
+    localeBtnEl?.addEventListener('click', handleLocaleBtn);
+
     this._cleanupSpeak = () => {
       stopHeroNarration().catch(() => {});
       stopPlayback();
@@ -4267,6 +4312,10 @@ class PageSpeak extends HTMLElement {
       if (heroFlagBtn) {
         heroFlagBtn.removeEventListener('click', toggleHintLocaleFromFlag);
       }
+      if (this._handleSpeakRewards) {
+        window.removeEventListener('app:speak-stores-change', this._handleSpeakRewards);
+      }
+      localeBtnEl?.removeEventListener('click', handleLocaleBtn);
       if (heroCardEl) {
         heroCardEl.removeEventListener('click', handleHeroCardReplayClick);
       }

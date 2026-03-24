@@ -19,9 +19,9 @@ class PageChat extends HTMLElement {
     ).join('');
     this.innerHTML = `
       ${renderAppHeader({ title: getTabsCopy(uiLocale).chat, rewardBadgesId: 'chat-reward-badges', nextLocale: getNextLocaleCode(uiLocale).toUpperCase() })}
-      <ion-content fullscreen class="secret-content" scroll-y="false">
+      <ion-content fullscreen class="secret-content chat-content" scroll-y="false">
         <div class="page-shell">
-          <div class="card chat-chat-card">
+          <div class="card card--plain chat-chat-card">
             <div class="chat-card-header">
               <div>
                 <div class="chat-mode-toggle" id="chat-mode-toggle" hidden>
@@ -269,6 +269,7 @@ class PageChat extends HTMLElement {
     let communityRoomsLoading = false;
     let communityRoomsLoaded = false;
     let communityRequestsLoading = false;
+    let communityRequestsLoadingVisible = false;
     let communityRequestsLoaded = false;
     let communityBlocksLoading = false;
     let communityBlocksLoaded = false;
@@ -1958,12 +1959,43 @@ class PageChat extends HTMLElement {
     const formatCommunityCopyWithName = (template, name) =>
       String(template || '').replace('{name}', pickFirstText(name, uiCopy.communityNoPeerName));
 
-    const getCommunityRequestLabel = (request) => {
-      const peerLabel = pickFirstText(
-        request && request.fromUser && request.fromUser.name,
+    const sanitizeCommunityPeerLabel = (label, userId = '') => {
+      const safeLabel = pickFirstText(label);
+      const safeUserId = pickFirstText(userId);
+      if (!safeLabel) return '';
+      if (safeUserId && safeLabel === safeUserId) return '';
+      return safeLabel;
+    };
+
+    const getCommunityRequestPeer = (request) => {
+      const fromUserId = pickFirstText(
         request && request.fromUser && request.fromUser.id,
-        uiCopy.communityNoPeerName
+        request && request.fromUserId
       );
+      const presenceUser = getCommunityPresenceUser(fromUserId);
+      return {
+        id: fromUserId,
+        name: pickFirstText(
+          sanitizeCommunityPeerLabel(request && request.fromUser && request.fromUser.name, fromUserId),
+          sanitizeCommunityPeerLabel(
+            presenceUser && (presenceUser.name || presenceUser.displayName || presenceUser.email),
+            fromUserId
+          ),
+          uiCopy.communityNoPeerName
+        ),
+        avatar: pickFirstText(
+          request && request.fromUser && request.fromUser.avatar,
+          presenceUser && presenceUser.avatar
+        ),
+        premium:
+          (request && request.fromUser && request.fromUser.premium === true) ||
+          (presenceUser && presenceUser.premium === true)
+      };
+    };
+
+    const getCommunityRequestLabel = (request) => {
+      const requestPeer = getCommunityRequestPeer(request);
+      const peerLabel = pickFirstText(requestPeer && requestPeer.name, uiCopy.communityNoPeerName);
       return formatCommunityCopyWithName(uiCopy.communityRequestIncomingLabel, peerLabel) || peerLabel;
     };
 
@@ -2122,7 +2154,7 @@ class PageChat extends HTMLElement {
         syncCommunityUnreadIndicators();
         renderCommunityLists();
         loadCommunityDmBlocks({ force: true }).catch(() => {});
-        loadCommunityDmRequests({ force: true }).catch(() => {});
+        loadCommunityDmRequests({ force: true, silent: true }).catch(() => {});
         return {
           ok: !data || data.ok !== false,
           blocked: shouldBlock,
@@ -2135,14 +2167,17 @@ class PageChat extends HTMLElement {
       }
     };
 
-    const loadCommunityDmRequests = async ({ force = false } = {}) => {
+    const loadCommunityDmRequests = async ({ force = false, silent = false } = {}) => {
       const endpoint = getCommunityDmRequestsEndpoint();
       const currentUserId = pickFirstText(lastUserId);
       if (!endpoint || !currentUserId) return false;
       if (communityRequestsLoading) return false;
       if (communityRequestsLoaded && !force) return true;
       communityRequestsLoading = true;
-      renderCommunityLists();
+      communityRequestsLoadingVisible = !silent && !communityRequestsLoaded && !communityDmRequests.length;
+      if (communityRequestsLoadingVisible) {
+        renderCommunityLists();
+      }
       try {
         const buildRequestsUrl = (scope) => {
           const url = new URL(endpoint, window.location.origin);
@@ -2182,16 +2217,23 @@ class PageChat extends HTMLElement {
         syncCommunityDmPendingRequestsFromServer(outgoingRequests);
         sortCommunityDmRequests();
         communityRequestsLoaded = true;
-        renderCommunityLists();
+        if (!silent) {
+          renderCommunityLists();
+        }
         return true;
       } catch (err) {
         console.warn('[chat] community dm requests error', err);
         communityDmRequests = [];
-        renderCommunityLists();
+        if (!silent) {
+          renderCommunityLists();
+        }
         return false;
       } finally {
         communityRequestsLoading = false;
-        renderCommunityLists();
+        communityRequestsLoadingVisible = false;
+        if (!silent) {
+          renderCommunityLists();
+        }
         syncCommunityUnreadIndicators();
       }
     };
@@ -3420,7 +3462,7 @@ class PageChat extends HTMLElement {
 
       if (communityRequestsBlockEl && communityRequestListEl) {
         communityRequestListEl.innerHTML = '';
-        if (communityRequestsLoading && !communityDmRequests.length) {
+        if (communityRequestsLoadingVisible && !communityDmRequests.length) {
           const loadingEl = document.createElement('div');
           loadingEl.className = 'chat-community-empty';
           loadingEl.textContent = uiCopy.communityRequestsLoading || uiCopy.loadingUser;
@@ -3428,6 +3470,7 @@ class PageChat extends HTMLElement {
           communityRequestsBlockEl.hidden = false;
         } else if (communityDmRequests.length) {
           communityDmRequests.forEach((request) => {
+            const requestPeer = getCommunityRequestPeer(request);
             const itemEl = document.createElement('div');
             itemEl.className = 'chat-community-request-card';
             const headerEl = document.createElement('div');
@@ -3445,8 +3488,8 @@ class PageChat extends HTMLElement {
             timeEl.className = 'chat-community-item-time';
             timeEl.textContent = formatCommunityTimestamp(request && request.createdAt);
             headerEl.appendChild(
-              buildCommunityAvatar(request && request.fromUser, {
-                online: isCommunityUserOnline(request && request.fromUser && request.fromUser.id)
+              buildCommunityAvatar(requestPeer, {
+                online: isCommunityUserOnline(requestPeer && requestPeer.id)
               })
             );
             mainEl.appendChild(titleEl);
@@ -6753,7 +6796,7 @@ class PageChat extends HTMLElement {
           }
           renderCommunityLists();
           syncCommunityUnreadIndicators();
-          loadCommunityDmRequests({ force: true }).catch(() => {});
+          loadCommunityDmRequests({ force: true, silent: true }).catch(() => {});
           if (!wasIncomingPending && resolution === 'declined') {
             presentSystemToast(uiCopy.communityRequestDeclinedNotice || uiCopy.communityRequestDeclined);
           } else if (!wasIncomingPending && resolution === 'blocked') {

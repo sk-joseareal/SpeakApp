@@ -383,11 +383,11 @@ class PageProfile extends HTMLElement {
 
     const reviewFiltersMarkup = `
       <div class="review-filters">
-        <button class="review-filter-btn ${reviewTone === 'bad' ? 'active' : ''}" type="button" data-tone="bad">
+        <button class="review-filter-btn bad ${reviewTone === 'bad' ? 'active' : ''}" type="button" data-tone="bad">
           <span class="review-dot bad"></span>
           <span>${escapeHtml(profileCopy.reviewRed || 'Red')}</span>
         </button>
-        <button class="review-filter-btn ${reviewTone === 'okay' ? 'active' : ''}" type="button" data-tone="okay">
+        <button class="review-filter-btn okay ${reviewTone === 'okay' ? 'active' : ''}" type="button" data-tone="okay">
           <span class="review-dot okay"></span>
           <span>${escapeHtml(profileCopy.reviewYellow || 'Yellow')}</span>
         </button>
@@ -507,7 +507,7 @@ class PageProfile extends HTMLElement {
               </div>
             </div>
             <div class="card card--plain profile-earned-badges-card">
-              <div class="pill">${escapeHtml(profileCopy.badgesTitle || 'Badges')}</div>
+              <h3 class="profile-section-title">${escapeHtml(profileCopy.badgesTitle || 'Badges')}</h3>
               <div class="profile-earned-badges" id="profile-earned-badges">
                 ${earnedBadgesMarkup}
               </div>
@@ -532,10 +532,10 @@ class PageProfile extends HTMLElement {
                     >
                   </div>
                   <div class="profile-avatar-actions">
-                    <ion-button size="small" shape="round" fill="outline" id="profile-avatar-upload">${escapeHtml(
+                    <ion-button size="small" shape="round" id="profile-avatar-upload">${escapeHtml(
                       profileCopy.changePhoto || 'Change photo'
                     )}</ion-button>
-                    <ion-button size="small" shape="round" fill="clear" color="medium" id="profile-avatar-delete">${escapeHtml(
+                    <ion-button size="small" shape="round" color="medium" id="profile-avatar-delete">${escapeHtml(
                       profileCopy.deletePhoto || 'Delete'
                     )}</ion-button>
                   </div>

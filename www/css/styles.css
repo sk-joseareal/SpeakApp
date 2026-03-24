@@ -859,24 +859,25 @@ ion-modal.login-modal page-login .page-shell {
 .profile-earned-badges-card {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 
 .profile-earned-badges {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 8px;
+  justify-content: center;
 }
 
 .profile-earned-badge-btn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   border: none;
   border-radius: 12px;
-  padding: 8px 12px;
-  background: #fee2e2;
-  color: #b91c1c;
+  padding: 8px 14px;
+  background: #dbeafe;
+  color: #1e40af;
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
@@ -890,8 +891,8 @@ ion-modal.login-modal page-login .page-shell {
 }
 
 .profile-earned-badge-img {
-  width: 20px;
-  height: 20px;
+  width: 56px;
+  height: 56px;
   object-fit: contain;
 }
 
@@ -1069,6 +1070,12 @@ ion-modal.login-modal page-login .page-shell {
   border-bottom-color: var(--ion-color-primary, #4b5dff);
 }
 
+.profile-tab-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
 .profile-review-block {
   display: flex;
   flex-direction: column;
@@ -1124,28 +1131,33 @@ ion-modal.login-modal page-login .page-shell {
 .review-filters {
   display: flex;
   gap: 10px;
-  margin-bottom: 12px;
+  padding-bottom: 4px;
 }
 
 .review-filter-btn {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  border: 1px solid #e2e8f0;
-  border-radius: 999px;
-  background: #ffffff;
-  color: #334155;
+  border: none;
+  border-radius: 12px;
+  background: #f1f5f9;
+  color: #64748b;
   font-weight: 600;
-  font-size: 0.78rem;
-  padding: 6px 12px;
+  font-size: 0.85rem;
+  padding: 8px 14px;
   cursor: pointer;
   font-family: inherit;
+  transition: background 120ms ease, color 120ms ease;
 }
 
-.review-filter-btn.active {
-  background: #eef2ff;
-  border-color: #c7d2fe;
-  color: #1e3a8a;
+.review-filter-btn.active.bad {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.review-filter-btn.active.okay {
+  background: #fef3c7;
+  color: #b45309;
 }
 
 .review-dot {
@@ -2564,8 +2576,9 @@ page-chat ion-content::part(scroll) {
 }
 
 .chat-mode-btn.is-active {
-  background: #111827;
-  color: #ffffff;
+  background: #eef5ff;
+  color: #1e3a8a;
+  border: 1px solid #8ab7ff;
 }
 
 .chat-text-row {
@@ -2794,7 +2807,7 @@ page-chat ion-content::part(scroll) {
   gap: 10px;
   padding: 12px;
   border-radius: 16px;
-  background: var(--app-surface-2);
+  background: #f1f5f9;
   border: 1px solid var(--app-border);
   min-height: 220px;
   max-height: 45vh;
@@ -6494,7 +6507,8 @@ page-free-ride.free-ride-keyboard-open .free-ride-bottom {
 }
 
 .training-content,
-.profile-content {
+.profile-content,
+.chat-content {
   --background: #f7f8fc;
 }
 

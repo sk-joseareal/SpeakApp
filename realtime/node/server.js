@@ -4498,9 +4498,15 @@ const hydrateCommunityDmRequest = (request, viewerId = '') => {
     const summary = buildCommunityDmRequestActorSummary(actor);
     const online = presenceUsers.get(pickFirstString(summary && summary.id));
     if (!online) return summary;
+    const summaryId = pickFirstString(summary && summary.id);
+    const summaryName = pickFirstString(summary && summary.name);
+    const onlineName = pickFirstString(online && (online.name || online.displayName || online.email));
+    const preferOnlineName =
+      onlineName &&
+      (!summaryName || summaryName === summaryId || summaryName.toLowerCase() === summaryId.toLowerCase());
     return {
       ...summary,
-      name: pickFirstString(summary.name, online.name),
+      name: pickFirstString(preferOnlineName ? onlineName : summaryName, onlineName, summaryName),
       avatar: pickPublicAvatar(summary.avatar, online.avatar),
       premium: summary.premium === true || online.premium === true
     };
@@ -5471,6 +5477,10 @@ const normalizeEvent = (rawEvent) => {
       payload.meta ||
       null
   };
+
+  if (event.type === 'badge_unlock') {
+    event.type = 'badge_awarded';
+  }
 
   if (!event.type) {
     if (event.session_id && event.word) {

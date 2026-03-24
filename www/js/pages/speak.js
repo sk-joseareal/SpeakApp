@@ -1571,6 +1571,8 @@ class PageSpeak extends HTMLElement {
       const canGrantReward = progressUpdatedThisRun === true;
       const reward =
         tone === 'good' && canGrantReward ? awardTrophyForCurrentModuleIfEligible(locale) : null;
+      const awardedBadge =
+        tone === 'good' && canGrantReward ? awardBadgeForCurrentRouteIfEligible() : null;
       progressUpdatedThisRun = false;
       return {
         percent,
@@ -1580,7 +1582,7 @@ class PageSpeak extends HTMLElement {
         rewardLabel: reward ? reward.rewardLabel : '',
         rewardIcon: reward ? reward.rewardIcon : 'diamond',
         labelPrefix,
-        awardedBadge: null
+        awardedBadge
       };
     };
 
@@ -1622,6 +1624,8 @@ class PageSpeak extends HTMLElement {
         return false;
       }
     };
+
+    const shouldSimulateSpeakAwards = () => isSpeakDebugEnabled();
 
     const areSpeakSessionPercentagesVisible = () => {
       const globalValue =
@@ -1930,14 +1934,22 @@ class PageSpeak extends HTMLElement {
       };
     };
 
-    const showBadgePopupSoon = (badgeId) => {
+    const showBadgePopupSoon = (badgeId, delayMs = 80) => {
       const id = String(badgeId || '').trim();
       if (!id) return;
       setTimeout(() => {
         if (typeof window.openSpeakBadgePopup === 'function') {
           window.openSpeakBadgePopup(id).catch(() => {});
         }
-      }, 80);
+      }, Math.max(0, Number(delayMs) || 0));
+    };
+
+    const pickFirstText = (...values) => {
+      for (let idx = 0; idx < values.length; idx += 1) {
+        const value = String(values[idx] || '').trim();
+        if (value) return value;
+      }
+      return '';
     };
 
     const addBadgeNotification = (badgeEntry) => {
@@ -1964,19 +1976,40 @@ class PageSpeak extends HTMLElement {
       }
     };
 
+    const syncSpeakAwardsNow = (reason) => {
+      if (typeof window.syncSpeakProgress !== 'function') return;
+      window
+        .syncSpeakProgress({
+          reason: reason || 'speak-award',
+          force: true,
+          includeSnapshot: true
+        })
+        .catch(() => {});
+    };
+
     const awardTrophyForCurrentModuleIfEligible = (locale = getHintUiLocale()) => {
       const { module } = resolveSelection(getSelection());
       if (!module || !module.id) return null;
       const moduleProgress = getModuleProgressForRewards(module);
       if (!moduleProgress.started || moduleProgress.tone !== 'good') return null;
+      const rewardLabel = getModuleRewardLabel(locale);
+      if (shouldSimulateSpeakAwards()) {
+        return {
+          rewardQty: MODULE_TROPHY_REWARD_QTY,
+          totalQty: MODULE_TROPHY_REWARD_QTY,
+          rewardLabel,
+          rewardIcon: MODULE_TROPHY_REWARD_ICON,
+          simulated: true
+        };
+      }
       const rewardId = `module:${module.id}`;
       if (getStoredSessionReward(rewardId)) return null;
-      const rewardLabel = getModuleRewardLabel(locale);
       setStoredSessionReward(rewardId, {
         rewardQty: MODULE_TROPHY_REWARD_QTY,
         rewardLabel,
         rewardIcon: MODULE_TROPHY_REWARD_ICON
       });
+      syncSpeakAwardsNow('session-reward');
       return {
         rewardQty: MODULE_TROPHY_REWARD_QTY,
         totalQty: MODULE_TROPHY_REWARD_QTY,
@@ -1992,6 +2025,18 @@ class PageSpeak extends HTMLElement {
       if (!routeProgress.started || routeProgress.tone !== 'good') return null;
       const meta = resolveRouteBadgeMeta(route);
       if (!meta) return null;
+      if (shouldSimulateSpeakAwards()) {
+        return {
+          id: meta.id,
+          routeId: meta.routeId,
+          routeTitle: meta.routeTitle,
+          badgeIndex: meta.badgeIndex,
+          image: meta.image,
+          title: meta.title,
+          ts: Date.now(),
+          simulated: true
+        };
+      }
       const badgeStore = getBadgeStore();
       if (badgeStore[meta.id]) return null;
       const now = Date.now();
@@ -2007,7 +2052,7 @@ class PageSpeak extends HTMLElement {
       persistSpeakStores();
       if (typeof window.queueSpeakEvent === 'function') {
         window.queueSpeakEvent({
-          type: 'badge_unlock',
+          type: 'badge_awarded',
           badge_id: meta.id,
           route_id: meta.routeId,
           route_title: meta.routeTitle,
@@ -2018,7 +2063,7 @@ class PageSpeak extends HTMLElement {
         });
       }
       addBadgeNotification({ id: meta.id, ...entry });
-      showBadgePopupSoon(meta.id);
+      syncSpeakAwardsNow('badge-awarded');
       return { id: meta.id, ...entry };
     };
 
@@ -4032,7 +4077,13 @@ class PageSpeak extends HTMLElement {
       stopAvatarPlayback();
       stopRecording();
       if (showSummary) {
-        if (goBackToReviewIfNeeded()) return;
+        const summaryBadgeId = pickFirstText(
+          summaryState && summaryState.awardedBadge && summaryState.awardedBadge.id
+        );
+        if (goBackToReviewIfNeeded()) {
+          showBadgePopupSoon(summaryBadgeId, 220);
+          return;
+        }
         const { route, module, session } = resolveSelection(getSelection());
         if (route && module && session) {
           setSelection({
@@ -4050,6 +4101,7 @@ class PageSpeak extends HTMLElement {
           // no-op
         }
         goToHome('back');
+        showBadgePopupSoon(summaryBadgeId, 220);
         return;
       }
       if (stepIndex < stepOrder.length - 1) {

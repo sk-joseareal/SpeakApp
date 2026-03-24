@@ -67,8 +67,21 @@ class PageChat extends HTMLElement {
             </div>
             <div class="chat-panel" id="chat-chat-panel">
               <div class="chat-community-lists" id="chat-community-lists" hidden>
+                <section class="chat-community-list-block" id="chat-community-requests-block" hidden>
+                  <div class="chat-community-list-title" id="chat-community-requests-title">${uiCopy.communityRequestsTitle}</div>
+                  <div class="chat-community-list" id="chat-community-request-list"></div>
+                </section>
                 <section class="chat-community-list-block">
-                  <div class="chat-community-list-title" id="chat-community-rooms-title">${uiCopy.communityChatsTitle}</div>
+                  <div class="chat-community-list-header">
+                    <div class="chat-community-list-title" id="chat-community-rooms-title">${uiCopy.communityChatsTitle}</div>
+                    <div class="chat-community-list-tools" id="chat-community-room-tools">
+                      <label class="chat-community-archived-toggle" id="chat-community-archived-toggle-wrap">
+                        <span class="chat-community-archived-toggle-label" id="chat-community-archived-label">${uiCopy.communityShowArchived}</span>
+                        <ion-toggle id="chat-community-archived-toggle"></ion-toggle>
+                      </label>
+                      <button type="button" class="chat-community-manage-btn" id="chat-community-manage-btn">${uiCopy.communityManage}</button>
+                    </div>
+                  </div>
                   <div class="chat-community-list" id="chat-community-room-list"></div>
                 </section>
                 <section class="chat-community-list-block">
@@ -167,7 +180,14 @@ class PageChat extends HTMLElement {
     const coachSubtitleEl = this.querySelector('#chat-coach-subtitle');
     const communityPresenceEl = this.querySelector('#chat-community-presence');
     const communityListsEl = this.querySelector('#chat-community-lists');
+    const communityRequestsBlockEl = this.querySelector('#chat-community-requests-block');
+    const communityRequestsTitleEl = this.querySelector('#chat-community-requests-title');
+    const communityRequestListEl = this.querySelector('#chat-community-request-list');
     const communityRoomListEl = this.querySelector('#chat-community-room-list');
+    const communityManageBtn = this.querySelector('#chat-community-manage-btn');
+    const communityArchivedToggleWrapEl = this.querySelector('#chat-community-archived-toggle-wrap');
+    const communityArchivedToggleEl = this.querySelector('#chat-community-archived-toggle');
+    const communityArchivedLabelEl = this.querySelector('#chat-community-archived-label');
     const communityPeerListEl = this.querySelector('#chat-community-peer-list');
     const communityRoomsTitleEl = this.querySelector('#chat-community-rooms-title');
     const communityOnlineTitleEl = this.querySelector('#chat-community-online-title');
@@ -248,8 +268,15 @@ class PageChat extends HTMLElement {
     let communityView = 'public';
     let communityRoomsLoading = false;
     let communityRoomsLoaded = false;
+    let communityRequestsLoading = false;
+    let communityRequestsLoaded = false;
     let communityPublicUnreadCount = 0;
     let communityDmRooms = [];
+    let communityDmRequests = [];
+    let communityDmManageMode = false;
+    let communityDmShowArchived = false;
+    let communityDmArchivedMap = {};
+    let communityDmDeletedMap = {};
     let activeCommunityDmRoomId = '';
     let currentAppTab = (() => {
       try {
@@ -305,6 +332,7 @@ class PageChat extends HTMLElement {
 	    const CHAT_CATBOT_ENABLED_KEY = 'appv5:chat-catbot-enabled';
 	    const COMMUNITY_PRESENCE_SESSION_KEY = 'appv5:community-presence-session-id';
 	    const COMMUNITY_CHAT_UNREAD_STORAGE_PREFIX = 'appv5:chat-community-unread:';
+      const COMMUNITY_DM_ROOM_PREFS_PREFIX = 'appv5:chat-community-dm-prefs:';
 	    const APP_TAB_STORAGE_KEY = 'appv5:active-tab';
 	    const SHARED_AUDIO_MODE_KEY = 'appv5:free-ride-audio-mode';
 	    const SHARED_AUDIO_MODE_GENERATED = 'generated';
@@ -1229,6 +1257,26 @@ class PageChat extends HTMLElement {
         ? window.realtimeConfig.communityDmDeliveredEndpoint.trim()
         : '';
 
+    const getCommunityDmRequestsEndpoint = () =>
+      typeof (window.realtimeConfig || {}).communityDmRequestsEndpoint === 'string'
+        ? window.realtimeConfig.communityDmRequestsEndpoint.trim()
+        : '';
+
+    const getCommunityDmRequestAcceptEndpoint = () =>
+      typeof (window.realtimeConfig || {}).communityDmRequestAcceptEndpoint === 'string'
+        ? window.realtimeConfig.communityDmRequestAcceptEndpoint.trim()
+        : '';
+
+    const getCommunityDmRequestDeclineEndpoint = () =>
+      typeof (window.realtimeConfig || {}).communityDmRequestDeclineEndpoint === 'string'
+        ? window.realtimeConfig.communityDmRequestDeclineEndpoint.trim()
+        : '';
+
+    const getCommunityDmRequestBlockEndpoint = () =>
+      typeof (window.realtimeConfig || {}).communityDmRequestBlockEndpoint === 'string'
+        ? window.realtimeConfig.communityDmRequestBlockEndpoint.trim()
+        : '';
+
     const getCommunityUnreadStorageKey = (userId = lastUserId) => {
       const safeUserId =
         userId !== undefined && userId !== null ? String(userId).trim() : '';
@@ -1364,6 +1412,168 @@ class PageChat extends HTMLElement {
       });
     };
 
+    const resolveCommunityDmPrefsKey = (userId = lastUserId) =>
+      `${COMMUNITY_DM_ROOM_PREFS_PREFIX}${pickFirstText(userId, 'anon')}`;
+
+    const normalizeStoredRoomStateMap = (value) => {
+      if (!value || typeof value !== 'object') return {};
+      return Object.entries(value).reduce((out, [roomId, timestamp]) => {
+        const safeRoomId = pickFirstText(roomId);
+        const safeTimestamp = Math.max(0, Math.round(Number(timestamp) || 0));
+        if (safeRoomId && safeTimestamp > 0) {
+          out[safeRoomId] = safeTimestamp;
+        }
+        return out;
+      }, {});
+    };
+
+    const readStoredCommunityDmPrefs = (userId = lastUserId) => {
+      try {
+        const raw = localStorage.getItem(resolveCommunityDmPrefsKey(userId));
+        if (!raw) {
+          return { archived: {}, deleted: {}, showArchived: false };
+        }
+        const parsed = JSON.parse(raw);
+        return {
+          archived: normalizeStoredRoomStateMap(parsed && parsed.archived),
+          deleted: normalizeStoredRoomStateMap(parsed && parsed.deleted),
+          showArchived: parsed && parsed.showArchived === true
+        };
+      } catch (err) {
+        return { archived: {}, deleted: {}, showArchived: false };
+      }
+    };
+
+    const persistCommunityDmPrefs = () => {
+      try {
+        localStorage.setItem(
+          resolveCommunityDmPrefsKey(),
+          JSON.stringify({
+            archived: communityDmArchivedMap,
+            deleted: communityDmDeletedMap,
+            showArchived: communityDmShowArchived === true
+          })
+        );
+      } catch (err) {
+        // no-op
+      }
+    };
+
+    const loadCommunityDmPrefs = (userId = lastUserId) => {
+      const prefs = readStoredCommunityDmPrefs(userId);
+      communityDmArchivedMap = prefs.archived;
+      communityDmDeletedMap = prefs.deleted;
+      communityDmShowArchived = prefs.showArchived === true;
+      communityDmManageMode = false;
+      if (communityArchivedToggleEl) {
+        communityArchivedToggleEl.checked = communityDmShowArchived;
+      }
+      return prefs;
+    };
+
+    const getCommunityRoomArchivedAt = (roomId) =>
+      Math.max(0, Number(communityDmArchivedMap[pickFirstText(roomId)] || 0) || 0);
+
+    const getCommunityRoomDeletedAt = (roomId) =>
+      Math.max(0, Number(communityDmDeletedMap[pickFirstText(roomId)] || 0) || 0);
+
+    const isCommunityRoomArchived = (roomId) => getCommunityRoomArchivedAt(roomId) > 0;
+
+    const isCommunityRoomDeleted = (roomId) => getCommunityRoomDeletedAt(roomId) > 0;
+
+    const getCommunityRoomActivityAt = (room) => {
+      const ts = Date.parse(pickFirstText(room && room.lastMessageAt));
+      return Number.isFinite(ts) ? ts : 0;
+    };
+
+    const clearCommunityRoomLocalState = (roomId, options = {}) => {
+      const safeRoomId = pickFirstText(roomId);
+      if (!safeRoomId) return false;
+      let changed = false;
+      if (options.deleted !== false && communityDmDeletedMap[safeRoomId]) {
+        delete communityDmDeletedMap[safeRoomId];
+        changed = true;
+      }
+      if (options.archived !== false && communityDmArchivedMap[safeRoomId]) {
+        delete communityDmArchivedMap[safeRoomId];
+        changed = true;
+      }
+      if (changed) {
+        persistCommunityDmPrefs();
+      }
+      return changed;
+    };
+
+    const maybeRestoreCommunityRoomVisibility = (room) => {
+      const safeRoomId = pickFirstText(room && room.roomId);
+      if (!safeRoomId) return false;
+      const activityAt = getCommunityRoomActivityAt(room);
+      const archivedAt = getCommunityRoomArchivedAt(safeRoomId);
+      const deletedAt = getCommunityRoomDeletedAt(safeRoomId);
+      let changed = false;
+      if (deletedAt > 0 && activityAt > 0 && activityAt > deletedAt) {
+        delete communityDmDeletedMap[safeRoomId];
+        changed = true;
+      }
+      if (archivedAt > 0 && activityAt > 0 && activityAt > archivedAt) {
+        delete communityDmArchivedMap[safeRoomId];
+        changed = true;
+      }
+      if (changed) {
+        persistCommunityDmPrefs();
+      }
+      return changed;
+    };
+
+    const archiveCommunityRoomLocally = (roomId) => {
+      const safeRoomId = pickFirstText(roomId);
+      if (!safeRoomId) return false;
+      communityDmArchivedMap[safeRoomId] = Date.now();
+      if (communityDmDeletedMap[safeRoomId]) {
+        delete communityDmDeletedMap[safeRoomId];
+      }
+      persistCommunityDmPrefs();
+      return true;
+    };
+
+    const restoreCommunityRoomLocally = (roomId) =>
+      clearCommunityRoomLocalState(roomId, { archived: true, deleted: true });
+
+    const deleteCommunityRoomLocally = (roomId) => {
+      const safeRoomId = pickFirstText(roomId);
+      if (!safeRoomId) return false;
+      communityDmDeletedMap[safeRoomId] = Date.now();
+      if (communityDmArchivedMap[safeRoomId]) {
+        delete communityDmArchivedMap[safeRoomId];
+      }
+      delete communityDmThreads[safeRoomId];
+      if (activeCommunityDmRoomId === safeRoomId) {
+        closeCommunityDmRoom();
+      }
+      persistCommunityDmPrefs();
+      return true;
+    };
+
+    const getRenderableCommunityDmRooms = () => {
+      const showArchived = communityDmManageMode && communityDmShowArchived;
+      return communityDmRooms
+        .filter((room) => {
+          if (!room || !room.roomId) return false;
+          if (isCommunityRoomDeleted(room.roomId)) return false;
+          if (isCommunityRoomArchived(room.roomId) && !showArchived) return false;
+          return true;
+        })
+        .slice()
+        .sort((left, right) => {
+          const leftArchived = isCommunityRoomArchived(left && left.roomId) ? 1 : 0;
+          const rightArchived = isCommunityRoomArchived(right && right.roomId) ? 1 : 0;
+          if (leftArchived !== rightArchived) {
+            return leftArchived - rightArchived;
+          }
+          return getCommunityRoomActivityAt(right) - getCommunityRoomActivityAt(left);
+        });
+    };
+
     const normalizeCommunityRoom = (value) => {
       if (!value || typeof value !== 'object') return null;
       const roomId = pickFirstText(value.room_id, value.roomId);
@@ -1413,6 +1623,341 @@ class PageChat extends HTMLElement {
         lastMessageActorName: pickFirstText(value.last_message_actor_name, value.lastMessageActorName),
         unreadCount: Math.max(0, Math.round(Number(value.unread_count || value.unreadCount || 0) || 0))
       };
+    };
+
+    const normalizeCommunityDmRequest = (value) => {
+      if (!value || typeof value !== 'object') return null;
+      const requestId = pickFirstText(value.request_id, value.requestId, value.id);
+      const fromUser =
+        value.from_user && typeof value.from_user === 'object'
+          ? value.from_user
+          : value.actor && typeof value.actor === 'object'
+            ? value.actor
+            : value.peer && typeof value.peer === 'object'
+              ? value.peer
+              : value;
+      const fromUserId = pickFirstText(
+        value.from_user_id,
+        value.fromUserId,
+        fromUser && (fromUser.id || fromUser.user_id || fromUser.userId)
+      );
+      if (!requestId || !fromUserId) return null;
+      return {
+        requestId,
+        status: pickFirstText(value.status, 'pending').toLowerCase(),
+        fromUser: {
+          id: fromUserId,
+          name: pickFirstText(fromUser && fromUser.name, value.from_user_name, value.fromUserName),
+          avatar: pickFirstText(
+            fromUser && (fromUser.avatar || fromUser.image || fromUser.img),
+            value.from_user_avatar,
+            value.fromUserAvatar
+          ),
+          premium:
+            (fromUser && fromUser.premium === true) ||
+            value.from_user_premium === true ||
+            value.fromUserPremium === true
+        },
+        initialText: pickFirstText(value.initial_text, value.initialText, value.text, value.message),
+        createdAt: pickFirstText(value.created_at, value.createdAt),
+        room: normalizeCommunityRoom(value.room),
+        resolution: pickFirstText(value.resolution, value.action).toLowerCase()
+      };
+    };
+
+    const sortCommunityDmRequests = () => {
+      communityDmRequests.sort((left, right) => {
+        const leftTs = Date.parse((left && left.createdAt) || '');
+        const rightTs = Date.parse((right && right.createdAt) || '');
+        const safeLeft = Number.isFinite(leftTs) ? leftTs : 0;
+        const safeRight = Number.isFinite(rightTs) ? rightTs : 0;
+        return safeRight - safeLeft;
+      });
+    };
+
+    const upsertCommunityDmRequest = (request) => {
+      const normalized = normalizeCommunityDmRequest(request);
+      if (!normalized) return null;
+      const index = communityDmRequests.findIndex(
+        (entry) => entry && entry.requestId === normalized.requestId
+      );
+      if (index >= 0) {
+        communityDmRequests[index] = {
+          ...communityDmRequests[index],
+          ...normalized,
+          fromUser: {
+            ...(communityDmRequests[index].fromUser || {}),
+            ...(normalized.fromUser || {})
+          }
+        };
+      } else {
+        communityDmRequests.push(normalized);
+      }
+      sortCommunityDmRequests();
+      return normalized;
+    };
+
+    const removeCommunityDmRequest = (requestId) => {
+      const safeRequestId = pickFirstText(requestId);
+      if (!safeRequestId) return false;
+      const previousLength = communityDmRequests.length;
+      communityDmRequests = communityDmRequests.filter(
+        (entry) => !entry || entry.requestId !== safeRequestId
+      );
+      return communityDmRequests.length !== previousLength;
+    };
+
+    const formatCommunityCopyWithName = (template, name) =>
+      String(template || '').replace('{name}', pickFirstText(name, uiCopy.communityNoPeerName));
+
+    const getCommunityRequestLabel = (request) => {
+      const peerLabel = pickFirstText(
+        request && request.fromUser && request.fromUser.name,
+        request && request.fromUser && request.fromUser.id,
+        uiCopy.communityNoPeerName
+      );
+      return formatCommunityCopyWithName(uiCopy.communityRequestIncomingLabel, peerLabel) || peerLabel;
+    };
+
+    const loadCommunityDmRequests = async ({ force = false } = {}) => {
+      const endpoint = getCommunityDmRequestsEndpoint();
+      const currentUserId = pickFirstText(lastUserId);
+      if (!endpoint || !currentUserId) return false;
+      if (communityRequestsLoading) return false;
+      if (communityRequestsLoaded && !force) return true;
+      communityRequestsLoading = true;
+      renderCommunityLists();
+      try {
+        const url = new URL(endpoint, window.location.origin);
+        url.searchParams.set('user_id', currentUserId);
+        url.searchParams.set('scope', 'incoming');
+        url.searchParams.set('status', 'pending');
+        const response = await fetch(url.toString(), {
+          method: 'GET',
+          headers: { Accept: 'application/json' }
+        });
+        if (!response.ok) {
+          if (response.status === 403) {
+            handleCommunityAccessDenied();
+          }
+          throw new Error(`community_dm_requests_${response.status}`);
+        }
+        const data = await response.json();
+        communityDmRequests = Array.isArray(data && data.requests)
+          ? data.requests.map(normalizeCommunityDmRequest).filter(Boolean)
+          : [];
+        sortCommunityDmRequests();
+        communityRequestsLoaded = true;
+        renderCommunityLists();
+        return true;
+      } catch (err) {
+        console.warn('[chat] community dm requests error', err);
+        communityDmRequests = [];
+        renderCommunityLists();
+        return false;
+      } finally {
+        communityRequestsLoading = false;
+        renderCommunityLists();
+      }
+    };
+
+    const promptCommunityDmRequestText = async (peer) => {
+      const peerLabel = pickFirstText(peer && peer.name, peer && peer.id, uiCopy.communityNoPeerName);
+      const title = uiCopy.communityRequestPromptTitle;
+      const message = formatCommunityCopyWithName(uiCopy.communityRequestPromptMessage, peerLabel);
+      const placeholder = uiCopy.communityRequestPlaceholder;
+      if (!window.customElements || typeof window.customElements.get !== 'function') {
+        return window.prompt(`${title}\n\n${message}`, '') || '';
+      }
+      const hasIonAlert = window.customElements.get('ion-alert');
+      if (!hasIonAlert) {
+        return window.prompt(`${title}\n\n${message}`, '') || '';
+      }
+      const alert = document.createElement('ion-alert');
+      alert.header = title;
+      alert.message = message;
+      alert.inputs = [
+        {
+          name: 'text',
+          type: 'textarea',
+          placeholder
+        }
+      ];
+      alert.buttons = [
+        {
+          text: uiCopy.cancel || 'Cancel',
+          role: 'cancel'
+        },
+        {
+          text: uiCopy.communityRequestSend,
+          role: 'confirm'
+        }
+      ];
+      document.body.appendChild(alert);
+      await alert.present();
+      const result = await alert.onDidDismiss();
+      alert.remove();
+      if (!result || result.role !== 'confirm') return '';
+      const values = result.data && result.data.values ? result.data.values : {};
+      return normalizeChatText(values && values.text);
+    };
+
+    const createCommunityDmRequest = async (peer, text) => {
+      const endpoint = getCommunityDmRequestsEndpoint();
+      const currentUser = window.user;
+      const currentUserId =
+        currentUser && currentUser.id !== undefined && currentUser.id !== null
+          ? String(currentUser.id).trim()
+          : '';
+      const peerUserId = pickFirstText(peer && (peer.id || peer.user_id || peer.userId));
+      const safeText = normalizeChatText(text);
+      if (!endpoint || !currentUserId || !peerUserId || !safeText) {
+        return { ok: false, reason: 'invalid' };
+      }
+      try {
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json'
+          },
+          body: JSON.stringify({
+            uuid: getClientUuid(),
+            platform: getClientPlatform(),
+            user_id: currentUserId,
+            user_name: getUserDisplayName(currentUser),
+            avatar: getUserPublicAvatar(currentUser),
+            app: 'speakapp',
+            premium: isChatEnabledUser(currentUser),
+            peer_user_id: peerUserId,
+            peer_name: pickFirstText(peer && peer.name),
+            peer_avatar: pickFirstText(peer && peer.avatar),
+            initial_text: safeText
+          })
+        });
+        let data = null;
+        try {
+          data = await response.json();
+        } catch (err) {
+          data = null;
+        }
+        if (!response.ok) {
+          if (response.status === 403) {
+            handleCommunityAccessDenied();
+          }
+          return {
+            ok: false,
+            reason: pickFirstText(data && (data.reason || data.error)),
+            status: response.status,
+            data
+          };
+        }
+        return {
+          ok: Boolean(data && data.ok !== false),
+          room: normalizeCommunityRoom(data && data.room),
+          request: normalizeCommunityDmRequest(data && data.request),
+          data
+        };
+      } catch (err) {
+        console.warn('[chat] community dm request create error', err);
+        return { ok: false, reason: 'network_error' };
+      }
+    };
+
+    const resolveCommunityDmRequest = async (request, action) => {
+      const normalizedAction = action === 'block' ? 'block' : action === 'decline' ? 'decline' : 'accept';
+      const endpoint =
+        normalizedAction === 'accept'
+          ? getCommunityDmRequestAcceptEndpoint()
+          : normalizedAction === 'decline'
+            ? getCommunityDmRequestDeclineEndpoint()
+            : getCommunityDmRequestBlockEndpoint();
+      const currentUserId = pickFirstText(lastUserId);
+      const safeRequestId = pickFirstText(request && request.requestId);
+      if (!endpoint || !currentUserId || !safeRequestId) {
+        return { ok: false };
+      }
+      try {
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json'
+          },
+          body: JSON.stringify({
+            request_id: safeRequestId,
+            user_id: currentUserId,
+            uuid: getClientUuid(),
+            platform: getClientPlatform(),
+            app: 'speakapp'
+          })
+        });
+        let data = null;
+        try {
+          data = await response.json();
+        } catch (err) {
+          data = null;
+        }
+        if (!response.ok) {
+          if (response.status === 403) {
+            handleCommunityAccessDenied();
+          }
+          return { ok: false, status: response.status, data };
+        }
+        removeCommunityDmRequest(safeRequestId);
+        const room = normalizeCommunityRoom(data && data.room);
+        if (room) {
+          upsertCommunityRoom(room);
+          if (pusherClient && chatMode === 'community') {
+            syncCommunityDmSubscriptions();
+          }
+        }
+        renderCommunityLists();
+        return { ok: true, room, data };
+      } catch (err) {
+        console.warn('[chat] community dm request resolve error', err);
+        return { ok: false };
+      }
+    };
+
+    const startCommunityDmWithPeer = async (peer) => {
+      const peerUserId = pickFirstText(peer && (peer.id || peer.user_id || peer.userId));
+      if (!peerUserId) return false;
+      const existingRoom =
+        communityDmRooms.find(
+          (room) => pickFirstText(room && room.peer && room.peer.id) === peerUserId
+        ) || null;
+      if (existingRoom) {
+        return openCommunityDmRoom(existingRoom.roomId, { forceHistory: true });
+      }
+      const requestText = await promptCommunityDmRequestText(peer);
+      const safeText = normalizeChatText(requestText);
+      if (!safeText) return false;
+      const result = await createCommunityDmRequest(peer, safeText);
+      if (result && result.ok && result.room) {
+        renderCommunityLists();
+        await openCommunityDmRoom(result.room.roomId, { forceHistory: true });
+        return true;
+      }
+      if (result && result.ok) {
+        presentSystemToast(uiCopy.communityRequestSent);
+        return true;
+      }
+      const reason = pickFirstText(result && result.reason);
+      if (reason === 'blocked' || reason === 'disabled') {
+        presentSystemToast(
+          uiCopy.communityRequestBlockedNotice || uiCopy.communityRequestSendError || uiCopy.serverUnavailable
+        );
+        return false;
+      }
+      if (reason === 'declined') {
+        presentSystemToast(
+          uiCopy.communityRequestDeclinedNotice || uiCopy.communityRequestSendError || uiCopy.serverUnavailable
+        );
+        return false;
+      }
+      presentSystemToast(uiCopy.communityRequestSendError || uiCopy.serverUnavailable);
+      return false;
     };
 
     const ensureCommunityDmThread = (roomId) => {
@@ -1502,6 +2047,27 @@ class PageChat extends HTMLElement {
         return uiCopy.communityOnlineNow;
       }
       return fallbackText || '';
+    };
+
+    const updateCommunityRoomsManageUi = () => {
+      if (communityManageBtn) {
+        communityManageBtn.textContent = communityDmManageMode
+          ? uiCopy.communityDone || 'Done'
+          : uiCopy.communityManage || 'Manage';
+        communityManageBtn.setAttribute(
+          'aria-pressed',
+          communityDmManageMode ? 'true' : 'false'
+        );
+      }
+      if (communityArchivedToggleWrapEl) {
+        communityArchivedToggleWrapEl.classList.toggle('is-visible', communityDmManageMode);
+      }
+      if (communityArchivedLabelEl) {
+        communityArchivedLabelEl.textContent = uiCopy.communityShowArchived || 'Show archived';
+      }
+      if (communityArchivedToggleEl) {
+        communityArchivedToggleEl.checked = communityDmShowArchived;
+      }
     };
 
     const getCommunityRoomPreview = (room) => {
@@ -2060,6 +2626,7 @@ class PageChat extends HTMLElement {
       } else {
         communityDmRooms.push(room);
       }
+      maybeRestoreCommunityRoomVisibility(communityDmRooms[index >= 0 ? index : communityDmRooms.length - 1] || room);
       sortCommunityDmRooms();
       syncCommunityUnreadIndicators();
       return room;
@@ -2099,6 +2666,7 @@ class PageChat extends HTMLElement {
     const openCommunityDmRoom = async (roomId, options = {}) => {
       const safeRoomId = pickFirstText(roomId);
       if (!safeRoomId) return false;
+      communityDmManageMode = false;
       activeCommunityDmRoomId = safeRoomId;
       refreshCommunityPresenceNow({ silent: true });
       updateCommunityViewUi();
@@ -2114,6 +2682,7 @@ class PageChat extends HTMLElement {
     };
 
     const closeCommunityDmRoom = () => {
+      communityDmManageMode = false;
       activeCommunityDmRoomId = '';
       updateCommunityViewUi();
       updateTextRowVisibility();
@@ -2298,28 +2867,138 @@ class PageChat extends HTMLElement {
       updateCommunityDmHeader();
       if (!isCommunityDmList) return;
 
+      if (communityRequestsTitleEl) communityRequestsTitleEl.textContent = uiCopy.communityRequestsTitle;
       if (communityRoomsTitleEl) communityRoomsTitleEl.textContent = uiCopy.communityChatsTitle;
       if (communityOnlineTitleEl) communityOnlineTitleEl.textContent = uiCopy.communityOnlineUsersTitle;
+      updateCommunityRoomsManageUi();
+
+      if (communityRequestsBlockEl && communityRequestListEl) {
+        communityRequestListEl.innerHTML = '';
+        if (communityRequestsLoading && !communityDmRequests.length) {
+          const loadingEl = document.createElement('div');
+          loadingEl.className = 'chat-community-empty';
+          loadingEl.textContent = uiCopy.communityRequestsLoading || uiCopy.loadingUser;
+          communityRequestListEl.appendChild(loadingEl);
+          communityRequestsBlockEl.hidden = false;
+        } else if (communityDmRequests.length) {
+          communityDmRequests.forEach((request) => {
+            const itemEl = document.createElement('div');
+            itemEl.className = 'chat-community-request-card';
+            const headerEl = document.createElement('div');
+            headerEl.className = 'chat-community-request-header';
+            const mainEl = document.createElement('div');
+            mainEl.className = 'chat-community-request-main';
+            const titleEl = document.createElement('div');
+            titleEl.className = 'chat-community-item-title';
+            titleEl.textContent = getCommunityRequestLabel(request);
+            const subtitleEl = document.createElement('div');
+            subtitleEl.className = 'chat-community-item-subtitle';
+            subtitleEl.textContent =
+              pickFirstText(request && request.initialText) || uiCopy.communityStartChat;
+            const timeEl = document.createElement('div');
+            timeEl.className = 'chat-community-item-time';
+            timeEl.textContent = formatCommunityTimestamp(request && request.createdAt);
+            headerEl.appendChild(
+              buildCommunityAvatar(request && request.fromUser, {
+                online: isCommunityUserOnline(request && request.fromUser && request.fromUser.id)
+              })
+            );
+            mainEl.appendChild(titleEl);
+            mainEl.appendChild(subtitleEl);
+            headerEl.appendChild(mainEl);
+            headerEl.appendChild(timeEl);
+            itemEl.appendChild(headerEl);
+
+            const actionsEl = document.createElement('div');
+            actionsEl.className = 'chat-community-request-actions';
+            const acceptBtn = document.createElement('button');
+            acceptBtn.type = 'button';
+            acceptBtn.className = 'chat-community-request-btn is-primary';
+            acceptBtn.textContent = uiCopy.communityRequestAccept;
+            acceptBtn.addEventListener('click', async () => {
+              const result = await resolveCommunityDmRequest(request, 'accept');
+              if (!result || !result.ok) {
+                presentSystemToast(uiCopy.communityRequestResolveError || uiCopy.serverUnavailable);
+                return;
+              }
+              presentSystemToast(uiCopy.communityRequestAccepted);
+              if (result.room) {
+                await openCommunityDmRoom(result.room.roomId, { forceHistory: true });
+              } else {
+                renderCommunityLists();
+              }
+            });
+            const declineBtn = document.createElement('button');
+            declineBtn.type = 'button';
+            declineBtn.className = 'chat-community-request-btn';
+            declineBtn.textContent = uiCopy.communityRequestDecline;
+            declineBtn.addEventListener('click', async () => {
+              const result = await resolveCommunityDmRequest(request, 'decline');
+              if (!result || !result.ok) {
+                presentSystemToast(uiCopy.communityRequestResolveError || uiCopy.serverUnavailable);
+                return;
+              }
+              presentSystemToast(uiCopy.communityRequestDeclined);
+              renderCommunityLists();
+            });
+            const blockBtn = document.createElement('button');
+            blockBtn.type = 'button';
+            blockBtn.className = 'chat-community-request-btn is-danger';
+            blockBtn.textContent = uiCopy.communityRequestBlock;
+            blockBtn.addEventListener('click', async () => {
+              const result = await resolveCommunityDmRequest(request, 'block');
+              if (!result || !result.ok) {
+                presentSystemToast(uiCopy.communityRequestResolveError || uiCopy.serverUnavailable);
+                return;
+              }
+              presentSystemToast(uiCopy.communityRequestBlocked);
+              renderCommunityLists();
+            });
+            actionsEl.appendChild(acceptBtn);
+            actionsEl.appendChild(declineBtn);
+            actionsEl.appendChild(blockBtn);
+            itemEl.appendChild(actionsEl);
+            communityRequestListEl.appendChild(itemEl);
+          });
+          communityRequestsBlockEl.hidden = false;
+        } else {
+          communityRequestsBlockEl.hidden = true;
+        }
+      }
 
       communityRoomListEl.innerHTML = '';
-      if (communityRoomsLoading && !communityDmRooms.length) {
+      const visibleRooms = getRenderableCommunityDmRooms();
+      const hasAnyRooms = communityDmRooms.some((room) => room && room.roomId);
+      if (communityRoomsLoading && !hasAnyRooms) {
         const loadingEl = document.createElement('div');
         loadingEl.className = 'chat-community-empty';
         loadingEl.textContent = uiCopy.communityRoomsLoading || uiCopy.loadingUser;
         communityRoomListEl.appendChild(loadingEl);
-      } else if (!communityDmRooms.length) {
+      } else if (!hasAnyRooms) {
         const emptyEl = document.createElement('div');
         emptyEl.className = 'chat-community-empty';
         emptyEl.textContent = uiCopy.communityNoChats;
         communityRoomListEl.appendChild(emptyEl);
+      } else if (!visibleRooms.length) {
+        const emptyEl = document.createElement('div');
+        emptyEl.className = 'chat-community-empty';
+        emptyEl.textContent =
+          communityDmManageMode && communityDmShowArchived
+            ? uiCopy.communityNoArchivedChats || uiCopy.communityNoChats
+            : uiCopy.communityNoVisibleChats || uiCopy.communityNoChats;
+        communityRoomListEl.appendChild(emptyEl);
       } else {
-        communityDmRooms.forEach((room) => {
-          const itemEl = document.createElement('button');
-          itemEl.type = 'button';
+        visibleRooms.forEach((room) => {
+          const archived = isCommunityRoomArchived(room.roomId);
+          const itemEl = document.createElement('div');
           itemEl.className = 'chat-community-item';
+          if (archived) itemEl.classList.add('is-archived');
           const peerLabel = getCommunityPeerLabel(room);
           const peer = room && room.peer ? room.peer : {};
           const online = isCommunityUserOnline(peer.id);
+          const openBtn = document.createElement('button');
+          openBtn.type = 'button';
+          openBtn.className = 'chat-community-item-open';
           const mainEl = document.createElement('span');
           mainEl.className = 'chat-community-item-main';
           const headingEl = document.createElement('span');
@@ -2337,32 +3016,104 @@ class PageChat extends HTMLElement {
           timeEl.textContent = formatCommunityTimestamp(room.lastMessageAt);
           const trailingEl = document.createElement('span');
           trailingEl.className = 'chat-community-item-trailing';
-          const chevronEl = document.createElement('ion-icon');
-          chevronEl.className = 'chat-community-item-chevron';
-          chevronEl.setAttribute('name', 'chevron-forward');
-          itemEl.appendChild(
+          openBtn.appendChild(
             buildCommunityAvatar(peer, {
               online: false
             })
           );
           headingEl.appendChild(buildCommunityStatusDot({ online }));
           headingEl.appendChild(titleEl);
+          if (archived) {
+            const archivedBadgeEl = document.createElement('span');
+            archivedBadgeEl.className = 'chat-community-item-flag';
+            archivedBadgeEl.textContent = uiCopy.communityArchivedBadge || 'Archived';
+            headingEl.appendChild(archivedBadgeEl);
+          }
           mainEl.appendChild(headingEl);
           mainEl.appendChild(subtitleEl);
-          itemEl.appendChild(mainEl);
+          openBtn.appendChild(mainEl);
+          openBtn.addEventListener('click', () => {
+            communityDmManageMode = false;
+            updateCommunityRoomsManageUi();
+            openCommunityDmRoom(room.roomId, { forceHistory: true });
+          });
+          itemEl.appendChild(openBtn);
           if (room.unreadCount > 0) {
             const badgeEl = document.createElement('span');
             badgeEl.className = 'chat-community-item-badge';
             badgeEl.textContent = room.unreadCount > 99 ? '99+' : String(room.unreadCount);
             trailingEl.appendChild(badgeEl);
           }
-          trailingEl.appendChild(chevronEl);
+          if (communityDmManageMode) {
+            const actionsEl = document.createElement('span');
+            actionsEl.className = 'chat-community-item-actions';
+            if (archived) {
+              const restoreBtn = document.createElement('button');
+              restoreBtn.type = 'button';
+              restoreBtn.className = 'chat-community-action-btn';
+              restoreBtn.setAttribute(
+                'aria-label',
+                uiCopy.communityRestoreChat || 'Restore chat'
+              );
+              restoreBtn.title = uiCopy.communityRestoreChat || 'Restore chat';
+              restoreBtn.innerHTML = '<ion-icon name="arrow-undo-outline"></ion-icon>';
+              restoreBtn.addEventListener('click', (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                restoreCommunityRoomLocally(room.roomId);
+                renderCommunityLists();
+              });
+              actionsEl.appendChild(restoreBtn);
+
+              const deleteBtn = document.createElement('button');
+              deleteBtn.type = 'button';
+              deleteBtn.className = 'chat-community-action-btn is-danger';
+              deleteBtn.setAttribute(
+                'aria-label',
+                uiCopy.communityDeleteChatLocal || 'Delete local'
+              );
+              deleteBtn.title = uiCopy.communityDeleteChatLocal || 'Delete local';
+              deleteBtn.innerHTML = '<ion-icon name="trash-outline"></ion-icon>';
+              deleteBtn.addEventListener('click', (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                const confirmed = window.confirm(
+                  uiCopy.communityDeleteLocalConfirm ||
+                    'This chat will be hidden only on this device. Continue?'
+                );
+                if (!confirmed) return;
+                deleteCommunityRoomLocally(room.roomId);
+                renderCommunityLists();
+              });
+              actionsEl.appendChild(deleteBtn);
+            } else {
+              const archiveBtn = document.createElement('button');
+              archiveBtn.type = 'button';
+              archiveBtn.className = 'chat-community-action-btn';
+              archiveBtn.setAttribute(
+                'aria-label',
+                uiCopy.communityArchiveChat || 'Archive chat'
+              );
+              archiveBtn.title = uiCopy.communityArchiveChat || 'Archive chat';
+              archiveBtn.innerHTML = '<ion-icon name="archive-outline"></ion-icon>';
+              archiveBtn.addEventListener('click', (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                archiveCommunityRoomLocally(room.roomId);
+                renderCommunityLists();
+              });
+              actionsEl.appendChild(archiveBtn);
+            }
+            trailingEl.appendChild(actionsEl);
+          } else {
+            const chevronEl = document.createElement('ion-icon');
+            chevronEl.className = 'chat-community-item-chevron';
+            chevronEl.setAttribute('name', 'chevron-forward');
+            trailingEl.appendChild(chevronEl);
+          }
           sideEl.appendChild(timeEl);
           sideEl.appendChild(trailingEl);
           itemEl.appendChild(sideEl);
-          itemEl.addEventListener('click', () => {
-            openCommunityDmRoom(room.roomId, { forceHistory: true });
-          });
           communityRoomListEl.appendChild(itemEl);
         });
       }
@@ -2403,10 +3154,7 @@ class PageChat extends HTMLElement {
           mainEl.appendChild(subtitleEl);
           itemEl.appendChild(mainEl);
           itemEl.addEventListener('click', () => {
-            ensureCommunityDmRoomOpen(peer).then((room) => {
-              if (!room) return;
-              openCommunityDmRoom(room.roomId, { forceHistory: false });
-            });
+            startCommunityDmWithPeer(peer).catch(() => {});
           });
           communityPeerListEl.appendChild(itemEl);
         });
@@ -2471,7 +3219,13 @@ class PageChat extends HTMLElement {
         }
         const data = await response.json();
         communityDmRooms = Array.isArray(data && data.rooms)
-          ? data.rooms.map(normalizeCommunityRoom).filter(Boolean)
+          ? data.rooms
+              .map(normalizeCommunityRoom)
+              .filter(Boolean)
+              .map((room) => {
+                maybeRestoreCommunityRoomVisibility(room);
+                return room;
+              })
           : [];
         sortCommunityDmRooms();
         syncCommunityUnreadIndicators(currentUserId);
@@ -2560,55 +3314,6 @@ class PageChat extends HTMLElement {
       } catch (err) {
         console.warn('[chat] community dm history error', err);
         return false;
-      }
-    };
-
-    const ensureCommunityDmRoomOpen = async (peer) => {
-      const endpoint = getCommunityDmRoomEndpoint();
-      const currentUser = window.user;
-      const currentUserId =
-        currentUser && currentUser.id !== undefined && currentUser.id !== null ? String(currentUser.id).trim() : '';
-      const peerUserId = pickFirstText(peer && (peer.id || peer.user_id || peer.userId));
-      if (!endpoint || !currentUserId || !peerUserId) return null;
-      try {
-        const response = await fetch(endpoint, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Accept: 'application/json'
-          },
-          body: JSON.stringify({
-            uuid: getClientUuid(),
-            platform: getClientPlatform(),
-            user_id: currentUserId,
-            user_name: getUserDisplayName(currentUser),
-            avatar: getUserPublicAvatar(currentUser),
-            app: 'speakapp',
-            premium: isChatEnabledUser(currentUser),
-            peer_user_id: peerUserId,
-            peer_name: pickFirstText(peer && peer.name),
-            peer_avatar: pickFirstText(peer && peer.avatar)
-          })
-        });
-        if (!response.ok) {
-          if (response.status === 403) {
-            handleCommunityAccessDenied();
-          }
-          throw new Error(`community_dm_open_${response.status}`);
-        }
-        const data = await response.json();
-        if (!data || data.ok !== true || !data.room) throw new Error('community_dm_open_invalid');
-        const room = upsertCommunityRoom(data.room);
-        renderCommunityLists();
-        if (room && pusherClient && chatMode === 'community') {
-          syncCommunityDmSubscriptions();
-          await loadCommunityDmHistory(room.roomId, { force: true });
-        }
-        return room;
-      } catch (err) {
-        console.warn('[chat] community dm open error', err);
-        presentSystemToast(uiCopy.communityDmOpenError || uiCopy.serverUnavailable);
-        return null;
       }
     };
 
@@ -5318,6 +6023,7 @@ class PageChat extends HTMLElement {
           loadCommunityDmRooms({ force: false }).then(() => {
             syncCommunityDmSubscriptions();
           });
+          loadCommunityDmRequests({ force: false });
         }
       });
       pusherClient.connection.bind('disconnected', () => {
@@ -5407,6 +6113,37 @@ class PageChat extends HTMLElement {
           }
         };
 
+        const handleCommunityDmRequestUpsert = (data) => {
+          const request = normalizeCommunityDmRequest(data && data.request ? data.request : data);
+          if (!request || request.status !== 'pending') return;
+          upsertCommunityDmRequest(request);
+          renderCommunityLists();
+        };
+
+        const handleCommunityDmRequestResolved = (data) => {
+          const requestId = pickFirstText(data && (data.request_id || data.requestId));
+          const resolution = pickFirstText(data && (data.resolution || data.action)).toLowerCase();
+          const room = normalizeCommunityRoom(data && data.room);
+          const wasIncomingPending = requestId
+            ? communityDmRequests.some((entry) => entry && entry.requestId === requestId)
+            : false;
+          if (requestId) {
+            removeCommunityDmRequest(requestId);
+          }
+          if (room) {
+            upsertCommunityRoom(room);
+            if (pusherClient && chatMode === 'community') {
+              syncCommunityDmSubscriptions();
+            }
+          }
+          renderCommunityLists();
+          if (!wasIncomingPending && resolution === 'declined') {
+            presentSystemToast(uiCopy.communityRequestDeclinedNotice || uiCopy.communityRequestDeclined);
+          } else if (!wasIncomingPending && resolution === 'blocked') {
+            presentSystemToast(uiCopy.communityRequestBlockedNotice || uiCopy.communityRequestBlocked);
+          }
+        };
+
         pusherCommunityPublicChannel = pusherClient.subscribe(COMMUNITY_PUBLIC_CHANNEL);
         pusherCommunityPublicChannel.bind('pusher:subscription_error', (status) => {
           console.warn('[chat] subscription error', status);
@@ -5427,11 +6164,14 @@ class PageChat extends HTMLElement {
           });
           pusherCommunityInboxChannel.bind('dm_room_upsert', handleCommunityDmRoomUpsert);
           pusherCommunityInboxChannel.bind('dm_message_notice', handleCommunityDmNotice);
+          pusherCommunityInboxChannel.bind('dm_request_upsert', handleCommunityDmRequestUpsert);
+          pusherCommunityInboxChannel.bind('dm_request_resolved', handleCommunityDmRequestResolved);
         }
 
         loadCommunityDmRooms({ force: false }).then(() => {
           syncCommunityDmSubscriptions();
         });
+        loadCommunityDmRequests({ force: false });
       }
 
       if (connectedMode === 'community') {
@@ -5664,20 +6404,23 @@ class PageChat extends HTMLElement {
       if (accessPanel) accessPanel.hidden = chatEnabled;
       if (chatPanel) chatPanel.hidden = !chatEnabled;
 
-	      if (userChanged) {
-	        setChatbotDailyLimitBlocked(false);
-	        clearChatbotAlignedTtsLimitStatus();
+      if (userChanged) {
+        setChatbotDailyLimitBlocked(false);
+        clearChatbotAlignedTtsLimitStatus();
         loadTalkTimelinesForUser(userId);
-          communityDmReadRequests.clear();
-          communityDmDeliveredAcks.clear();
-          communityPublicUnreadCount = 0;
-          communityDmRooms = [];
-          communityRoomsLoaded = false;
-          activeCommunityDmRoomId = '';
-          communityPresenceUsers = [];
-	        clearThread();
-          updateCommunityViewUi();
-	      }
+        loadCommunityDmPrefs(userId);
+        communityDmReadRequests.clear();
+        communityDmDeliveredAcks.clear();
+        communityPublicUnreadCount = 0;
+        communityDmRequests = [];
+        communityRequestsLoaded = false;
+        communityDmRooms = [];
+        communityRoomsLoaded = false;
+        activeCommunityDmRoomId = '';
+        communityPresenceUsers = [];
+        clearThread();
+        updateCommunityViewUi();
+      }
 
       if (!chatEnabled) {
         setChatbotDailyLimitBlocked(false);
@@ -5700,6 +6443,7 @@ class PageChat extends HTMLElement {
           loadCommunityHistory({ force: true });
           if (communityView === 'dm') {
             loadCommunityDmRooms({ force: true });
+            loadCommunityDmRequests({ force: true });
           }
           scheduleCommunityPresenceHeartbeat({ immediate: true });
         }
@@ -6128,6 +6872,20 @@ class PageChat extends HTMLElement {
     communityDmBackBtn?.addEventListener('click', () => {
       closeCommunityDmRoom();
     });
+    communityManageBtn?.addEventListener('click', () => {
+      communityDmManageMode = !communityDmManageMode;
+      updateCommunityRoomsManageUi();
+      renderCommunityLists();
+    });
+    communityArchivedToggleEl?.addEventListener('ionChange', (event) => {
+      const nextValue =
+        event && event.detail && event.detail.checked !== undefined
+          ? Boolean(event.detail.checked)
+          : Boolean(communityArchivedToggleEl.checked);
+      communityDmShowArchived = nextValue;
+      persistCommunityDmPrefs();
+      renderCommunityLists();
+    });
     chatPanel?.addEventListener('pointerdown', handleChatPanelPointerDown);
     composerRow?.addEventListener('pointerdown', handleControlPointerDown);
     recordBtn?.addEventListener('pointerdown', handleControlPointerDown);
@@ -6149,8 +6907,10 @@ class PageChat extends HTMLElement {
       initialUser && initialUser.id !== undefined && initialUser.id !== null;
     if (initialUser && initialUser.id !== undefined && initialUser.id !== null) {
       loadTalkTimelinesForUser(initialUser.id);
+      loadCommunityDmPrefs(initialUser.id);
     } else {
       loadTalkTimelinesForUser(null);
+      loadCommunityDmPrefs(null);
     }
     updateHeaderRewards();
     showLoadingState();
@@ -6232,6 +6992,7 @@ class PageChat extends HTMLElement {
         if (coachBtn) coachBtn.textContent = uiCopy.modeCoach;
       }
       updateModeToggleUi();
+      if (communityRequestsTitleEl) communityRequestsTitleEl.textContent = uiCopy.communityRequestsTitle;
       if (communityRoomsTitleEl) communityRoomsTitleEl.textContent = uiCopy.communityChatsTitle;
       if (communityOnlineTitleEl) communityOnlineTitleEl.textContent = uiCopy.communityOnlineUsersTitle;
 
@@ -6407,6 +7168,9 @@ class PageChat extends HTMLElement {
       const nextView = view === 'dm' ? 'dm' : 'public';
       const changed = communityView !== nextView;
       communityView = nextView;
+      if (nextView !== 'dm') {
+        communityDmManageMode = false;
+      }
       if (nextView === 'public') {
         setCommunityPublicUnreadCount(0);
       } else {
@@ -6414,6 +7178,7 @@ class PageChat extends HTMLElement {
       }
       if (changed && nextView === 'dm') {
         loadCommunityDmRooms({ force: !communityRoomsLoaded });
+        loadCommunityDmRequests({ force: !communityRequestsLoaded });
         if (activeCommunityDmRoomId) {
           loadCommunityDmHistory(activeCommunityDmRoomId, { force: false });
         }

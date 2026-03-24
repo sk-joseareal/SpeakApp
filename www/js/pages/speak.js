@@ -59,6 +59,7 @@ class PageSpeak extends HTMLElement {
             <p class="onboarding-intro-bubble speak-hero-bubble" id="speak-hero-hint"></p>
           </section>
           <div class="speak-sheet">
+            <div class="speak-route-banner" id="speak-route-banner" aria-hidden="true"></div>
             <div class="speak-swipe-stage">
               <div class="speak-swipe-ghost" id="speak-ghost" aria-hidden="true"></div>
               <div id="speak-step" class="speak-swipe-active"></div>
@@ -73,6 +74,7 @@ class PageSpeak extends HTMLElement {
     const swipeStage = this.querySelector('.speak-swipe-stage');
     const sessionTitleEl = this.querySelector('#speak-session-title');
     const heroCardEl = this.querySelector('#speak-hero-card');
+    const routeBannerEl = this.querySelector('#speak-route-banner');
     const heroStepTitleEl = this.querySelector('#speak-hero-step-title');
     const heroHintEl = this.querySelector('#speak-hero-hint');
     const heroFlagBtn = this.querySelector('.speak-hero-flag-btn');
@@ -201,9 +203,9 @@ class PageSpeak extends HTMLElement {
       const normalized = String(value || '')
         .trim()
         .toLowerCase();
-      return normalized === SPEAK_PRONUNCIATION_AVATAR_NEW
-        ? SPEAK_PRONUNCIATION_AVATAR_NEW
-        : SPEAK_PRONUNCIATION_AVATAR_OLD;
+      return normalized === SPEAK_PRONUNCIATION_AVATAR_OLD
+        ? SPEAK_PRONUNCIATION_AVATAR_OLD
+        : SPEAK_PRONUNCIATION_AVATAR_NEW;
     };
     const getStoredPronunciationAvatarMode = () => {
       const globalValue =
@@ -2181,32 +2183,39 @@ class PageSpeak extends HTMLElement {
           </div>
         `;
       }
+      const dotsHtml = stepOrder.map((_, i) =>
+        `<span class="speak-step-dot${i === stepIndex ? ' is-active' : ''}"></span>`
+      ).join('');
       return `
         <div class="speak-step-bottom">
+          <div class="speak-voice-actions">
+            <button class="speak-circle-btn speak-record-btn ${isRecording ? 'is-recording' : ''}" id="speak-record" type="button" aria-pressed="${isRecording}">
+              <span class="record-visual" aria-hidden="true">
+                <ion-icon class="record-mic-icon" name="mic"></ion-icon>
+                <span class="record-live-wave">
+                  <span></span><span></span><span></span><span></span><span></span>
+                </span>
+              </span>
+              <span class="record-label">${isRecording ? 'End' : 'Say'}</span>
+            </button>
+            <button
+              class="speak-circle-btn speak-voice-btn${voiceTone ? ` tone-${voiceTone}` : ''}"
+              id="speak-voice"
+              type="button"
+              ${hasVoiceRecording ? '' : 'disabled'}
+            >
+              <svg class="speak-voice-icon" width="22" height="22" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <path d="M13 2.16664C10.8573 2.16664 8.76282 2.802 6.98129 3.99238C5.19976 5.18276 3.81123 6.87469 2.99128 8.85422C2.17133 10.8337 1.9568 13.012 2.3748 15.1134C2.7928 17.2149 3.82458 19.1452 5.33965 20.6603C6.85471 22.1753 8.78502 23.2071 10.8865 23.6252C12.9879 24.0431 15.1662 23.8286 17.1456 23.0086C19.1252 22.1887 20.8172 20.8002 22.0075 19.0186C23.1979 17.2371 23.8333 15.1426 23.8333 13C23.8333 10.7014 22.9201 8.49702 21.2949 6.87171C19.6696 5.24639 17.4651 4.3333 15.1666 4.3333C12.8681 4.3333 10.6637 5.24639 9.03837 6.87171C7.41305 8.49702 6.49996 10.7014 6.49996 13V15.1666" stroke="currentColor" stroke-width="2.1658" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M10.8333 13C10.8333 11.8507 11.2898 10.7485 12.1025 9.93587C12.9151 9.12321 14.0173 8.66667 15.1666 8.66667" stroke="currentColor" stroke-width="2.1658" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span>Your voice</span>
+            </button>
+          </div>
           <div class="speak-voice-nav">
             <button class="speak-step-arrow-btn" id="speak-prev-inline" type="button" aria-label="Previous step">
               <ion-icon name="chevron-back"></ion-icon>
             </button>
-            <div class="speak-voice-actions">
-              <button class="speak-circle-btn speak-record-btn ${isRecording ? 'is-recording' : ''}" id="speak-record" type="button" aria-pressed="${isRecording}">
-                <span class="record-visual" aria-hidden="true">
-                  <ion-icon class="record-mic-icon" name="mic"></ion-icon>
-                  <span class="record-live-wave">
-                    <span></span><span></span><span></span><span></span><span></span>
-                  </span>
-                </span>
-                <span class="record-label">${isRecording ? 'End' : 'Say'}</span>
-              </button>
-              <button
-                class="speak-circle-btn speak-voice-btn${voiceTone ? ` tone-${voiceTone}` : ''}"
-                id="speak-voice"
-                type="button"
-                ${hasVoiceRecording ? '' : 'disabled'}
-              >
-                <ion-icon name="ear"></ion-icon>
-                <span>Your voice</span>
-              </button>
-            </div>
+            <div class="speak-step-dots">${dotsHtml}</div>
             <button class="speak-step-arrow-btn" id="speak-next-inline" type="button" aria-label="Next step">
               <ion-icon name="chevron-forward"></ion-icon>
             </button>
@@ -3295,8 +3304,10 @@ class PageSpeak extends HTMLElement {
       const noPercentClass = !showPercentages ? ' speak-score-no-percent' : '';
       const displayText = getSoundDisplayText();
 
+      const stepTitle = getSpeakUiText('stepTitleSound', locale, 'Listen carefully and Say');
       return `
         <div class="speak-step speak-step-sound">
+          <p class="speak-step-heading">${stepTitle}</p>
           <div class="speak-step-main">
             <div class="speak-avatar">
               <div class="${avatarConfig.wrapperClass}">
@@ -3319,18 +3330,20 @@ class PageSpeak extends HTMLElement {
             </div>
 
             <div class="speak-phonetic">
-              <button class="speak-play-btn" id="speak-play-ref" type="button">
+              <button class="speak-play-btn speak-play-btn--wide" id="speak-play-ref" type="button">
                 <ion-icon name="volume-high"></ion-icon>
+                <span>${(getSpeakCopyBundle(locale) || {}).listen || 'Listen'}</span>
               </button>
               <span class="speak-phonetic-text" id="speak-phonetic-text">
                 ${highlightLetter(displayText, focusKey)}
               </span>
             </div>
 
-            <div class="speak-score speak-score-${tone}${noPercentClass}">
-              <div class="speak-score-label">${label}</div>
-              <div class="speak-score-value">${percentMarkup}</div>
-            </div>
+          </div>
+
+          <div class="speak-score speak-score-${tone}${noPercentClass}">
+            <div class="speak-score-label">${label}</div>
+            <div class="speak-score-value">${percentMarkup}</div>
           </div>
 
           ${renderBottomPanel('sound', { hasVoiceRecording: hasRecording, voiceTone })}
@@ -3362,28 +3375,30 @@ class PageSpeak extends HTMLElement {
           const wordTone =
             result && typeof result.percent === 'number' ? getScoreTone(result.percent, locale) : '';
           const toneClass = wordTone ? `speak-word-tone-${wordTone}` : '';
+          const toneIcon = wordTone === 'good' ? '<span class="speak-word-icon">✓</span>'
+            : wordTone === 'bad' ? '<span class="speak-word-icon">✕</span>'
+            : wordTone === 'okay' ? '<span class="speak-word-icon">~</span>'
+            : '';
           return `
             <button class="speak-word ${toneClass} ${word === selectedWord ? 'is-active' : ''}" data-word="${word}" type="button">
               <span>${highlightLetter(word, focusKey)}</span>
+              ${toneIcon}
             </button>
           `;
         })
         .join('');
 
+      const stepTitle = getSpeakUiText('stepTitleSpelling', locale, 'Say the sound in words');
       return `
         <div class="speak-step speak-step-spelling">
+          <p class="speak-step-heading">${stepTitle}</p>
           <div class="speak-step-main">
-            <div class="speak-word-grid">${words}</div>
-            <div class="speak-word-play">
-              <button class="speak-play-btn" id="speak-play-word" type="button" ${selectedWord ? '' : 'disabled'}>
-                <ion-icon name="volume-high"></ion-icon>
-              </button>
-            </div>
+            <div class="speak-word-grid speak-word-grid--single">${words}</div>
+          </div>
 
-            <div class="speak-score speak-score-${tone}${noPercentClass}">
-              <div class="speak-score-label">${label}</div>
-              <div class="speak-score-value">${percentMarkup}</div>
-            </div>
+          <div class="speak-score speak-score-${tone}${noPercentClass}">
+            <div class="speak-score-label">${label}</div>
+            <div class="speak-score-value">${percentMarkup}</div>
           </div>
 
           ${renderBottomPanel('spelling', { hasVoiceRecording: hasRecording, voiceTone })}
@@ -3407,24 +3422,18 @@ class PageSpeak extends HTMLElement {
         ? score.label
         : getSpeakUiText('practicePhrase', locale, 'Practice the phrase');
       const sentenceScorePercentMarkup = showPercentages ? `${percent}%` : '';
-      const scoreLine = hasScore && !transcribing
+      const sentenceScoreLine = hasScore && !transcribing
         ? `
           <div class="speak-score-line ${tone}">
             <div class="speak-score-line-value">${sentenceScorePercentMarkup}</div>
-            <div class="speak-score-line-text">${label}</div>
           </div>
         `
-        : `
-          <div class="speak-score-line placeholder">
-            <div class="speak-score-line-value">&nbsp;</div>
-            <div class="speak-score-line-text">&nbsp;</div>
-          </div>
-        `;
-      const feedbackMarkup =
-        transcribing || !hasScore ? `<div class="speak-feedback ${tone}">${label}</div>` : '';
+        : '';
 
+      const stepTitle = getSpeakUiText('stepTitleSentence', locale, 'Say a whole sentence');
       return `
         <div class="speak-step speak-step-sentence">
+          <p class="speak-step-heading">${stepTitle}</p>
           <div class="speak-step-main">
             <div class="speak-sentence-row">
               <div class="speak-sentence" id="speak-sentence-text">
@@ -3434,8 +3443,12 @@ class PageSpeak extends HTMLElement {
                 <ion-icon name="volume-high"></ion-icon>
               </button>
             </div>
-            ${feedbackMarkup}
-            ${scoreLine}
+            ${sentenceScoreLine}
+          </div>
+
+          <div class="speak-score speak-score-${tone}${showPercentages ? '' : ' speak-score-no-percent'}">
+            <div class="speak-score-label">${label}</div>
+            <div class="speak-score-value">${sentenceScorePercentMarkup}</div>
           </div>
 
           ${renderBottomPanel('sentence', { hasVoiceRecording: hasRecordingUrl, voiceTone })}
@@ -3561,6 +3574,16 @@ class PageSpeak extends HTMLElement {
       sessionTitle = getLocalizedSessionTitle(currentSessionData, uiLocale);
       if (sessionTitleEl) {
         sessionTitleEl.textContent = sessionTitle || '';
+      }
+      if (routeBannerEl) {
+        const speakCopy = getSpeakCopyBundle(uiLocale);
+        const stepBannerTemplate = speakCopy && speakCopy.stepBanner ? speakCopy.stepBanner : 'Step {step} of {total}';
+        const bannerPrefix = stepBannerTemplate
+          .replace('{step}', stepIndex + 1)
+          .replace('{total}', stepOrder.length);
+        const stepSource = getHeroSourceByStepKey(stepKey);
+        const stepTitle = getLocalizedStepTitle(stepSource, uiLocale);
+        routeBannerEl.textContent = stepTitle ? `${bannerPrefix} – ${stepTitle}` : bannerPrefix;
       }
       if (stepKey !== lastHeroNarratedStepKey) {
         const isInitialStepNarration = !lastHeroNarratedStepKey;

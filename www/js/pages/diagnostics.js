@@ -167,9 +167,9 @@ class PageDiagnostics extends HTMLElement {
       const normalized = String(value || '')
         .trim()
         .toLowerCase();
-      return normalized === SPEAK_PRONUNCIATION_AVATAR_NEW
-        ? SPEAK_PRONUNCIATION_AVATAR_NEW
-        : SPEAK_PRONUNCIATION_AVATAR_OLD;
+      return normalized === SPEAK_PRONUNCIATION_AVATAR_OLD
+        ? SPEAK_PRONUNCIATION_AVATAR_OLD
+        : SPEAK_PRONUNCIATION_AVATAR_NEW;
     };
     const getStoredSpeakPronunciationAvatarMode = () => {
       const globalValue =
@@ -306,11 +306,11 @@ class PageDiagnostics extends HTMLElement {
                   id="diag-speak-pronunciation-avatar-mode"
                   value="${getStoredSpeakPronunciationAvatarMode()}"
                 >
-                  <ion-segment-button value="old">
-                    <ion-label>Antiguo</ion-label>
-                  </ion-segment-button>
                   <ion-segment-button value="new">
                     <ion-label>Nuevo</ion-label>
+                  </ion-segment-button>
+                  <ion-segment-button value="old">
+                    <ion-label>Antiguo</ion-label>
                   </ion-segment-button>
                 </ion-segment>
                 <div class="diag-debug-sub" id="diag-speak-pronunciation-avatar-sub"></div>

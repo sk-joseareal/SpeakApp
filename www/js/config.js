@@ -9,7 +9,7 @@
 
   window.appMeta = window.appMeta || {
     version: window.APP_VERSION || '1.0.1',
-    build: window.APP_BUILD || '28'
+    build: window.APP_BUILD || '29'
   };
 
   const emitAppMeta = () => {
@@ -90,6 +90,31 @@
     window.realtimeConfig.communityDmDeliveredEndpoint =
       window.REALTIME_COMMUNITY_DM_DELIVERED_ENDPOINT ||
       'https://realtime.curso-ingles.com/realtime/community/rooms/dm/delivered';
+  }
+  if (window.realtimeConfig.communityDmRequestsEndpoint === undefined) {
+    window.realtimeConfig.communityDmRequestsEndpoint =
+      window.REALTIME_COMMUNITY_DM_REQUESTS_ENDPOINT ||
+      'https://realtime.curso-ingles.com/realtime/community/rooms/dm/requests';
+  }
+  if (window.realtimeConfig.communityDmRequestAcceptEndpoint === undefined) {
+    window.realtimeConfig.communityDmRequestAcceptEndpoint =
+      window.REALTIME_COMMUNITY_DM_REQUEST_ACCEPT_ENDPOINT ||
+      'https://realtime.curso-ingles.com/realtime/community/rooms/dm/requests/accept';
+  }
+  if (window.realtimeConfig.communityDmRequestDeclineEndpoint === undefined) {
+    window.realtimeConfig.communityDmRequestDeclineEndpoint =
+      window.REALTIME_COMMUNITY_DM_REQUEST_DECLINE_ENDPOINT ||
+      'https://realtime.curso-ingles.com/realtime/community/rooms/dm/requests/decline';
+  }
+  if (window.realtimeConfig.communityDmRequestBlockEndpoint === undefined) {
+    window.realtimeConfig.communityDmRequestBlockEndpoint =
+      window.REALTIME_COMMUNITY_DM_REQUEST_BLOCK_ENDPOINT ||
+      'https://realtime.curso-ingles.com/realtime/community/rooms/dm/requests/block';
+  }
+  if (window.realtimeConfig.communityDmSettingsEndpoint === undefined) {
+    window.realtimeConfig.communityDmSettingsEndpoint =
+      window.REALTIME_COMMUNITY_DM_SETTINGS_ENDPOINT ||
+      'https://realtime.curso-ingles.com/realtime/community/rooms/dm/settings';
   }
   if (window.realtimeConfig.pushRegisterEndpoint === undefined) {
     window.realtimeConfig.pushRegisterEndpoint =

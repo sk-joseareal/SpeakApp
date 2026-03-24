@@ -1756,15 +1756,31 @@ class PageChat extends HTMLElement {
             : value.peer && typeof value.peer === 'object'
               ? value.peer
               : value;
+      const toUser =
+        value.to_user && typeof value.to_user === 'object'
+          ? value.to_user
+          : value.target && typeof value.target === 'object'
+            ? value.target
+            : value.recipient && typeof value.recipient === 'object'
+              ? value.recipient
+              : null;
       const fromUserId = pickFirstText(
         value.from_user_id,
         value.fromUserId,
         fromUser && (fromUser.id || fromUser.user_id || fromUser.userId)
       );
+      const toUserId = pickFirstText(
+        value.to_user_id,
+        value.toUserId,
+        toUser && (toUser.id || toUser.user_id || toUser.userId)
+      );
       if (!requestId || !fromUserId) return null;
       return {
         requestId,
         status: pickFirstText(value.status, 'pending').toLowerCase(),
+        direction: pickFirstText(value.direction).toLowerCase(),
+        fromUserId,
+        toUserId,
         fromUser: {
           id: fromUserId,
           name: pickFirstText(fromUser && fromUser.name, value.from_user_name, value.fromUserName),
@@ -1777,6 +1793,19 @@ class PageChat extends HTMLElement {
             (fromUser && fromUser.premium === true) ||
             value.from_user_premium === true ||
             value.fromUserPremium === true
+        },
+        toUser: {
+          id: toUserId,
+          name: pickFirstText(toUser && toUser.name, value.to_user_name, value.toUserName),
+          avatar: pickFirstText(
+            toUser && (toUser.avatar || toUser.image || toUser.img),
+            value.to_user_avatar,
+            value.toUserAvatar
+          ),
+          premium:
+            (toUser && toUser.premium === true) ||
+            value.to_user_premium === true ||
+            value.toUserPremium === true
         },
         initialText: pickFirstText(value.initial_text, value.initialText, value.text, value.message),
         createdAt: pickFirstText(value.created_at, value.createdAt),
@@ -1808,6 +1837,10 @@ class PageChat extends HTMLElement {
           fromUser: {
             ...(communityDmRequests[index].fromUser || {}),
             ...(normalized.fromUser || {})
+          },
+          toUser: {
+            ...(communityDmRequests[index].toUser || {}),
+            ...(normalized.toUser || {})
           }
         };
       } else {
@@ -1860,6 +1893,24 @@ class PageChat extends HTMLElement {
       );
     };
 
+    const syncCommunityDmPendingRequestsFromServer = (requests) => {
+      const nextMap = {};
+      (Array.isArray(requests) ? requests : []).forEach((request) => {
+        if (!request) return;
+        const peerUserId = pickFirstText(request.toUser && request.toUser.id, request.toUserId);
+        if (!peerUserId) return;
+        nextMap[peerUserId] = {
+          peerUserId,
+          requestId: pickFirstText(request.requestId),
+          peerName: pickFirstText(request.toUser && request.toUser.name),
+          createdAt: Date.parse(pickFirstText(request.createdAt)) || Date.now()
+        };
+      });
+      communityDmPendingRequestsMap = nextMap;
+      persistCommunityDmPendingRequests();
+      return nextMap;
+    };
+
     const loadCommunityDmRequests = async ({ force = false } = {}) => {
       const endpoint = getCommunityDmRequestsEndpoint();
       const currentUserId = pickFirstText(lastUserId);
@@ -1869,24 +1920,42 @@ class PageChat extends HTMLElement {
       communityRequestsLoading = true;
       renderCommunityLists();
       try {
-        const url = new URL(endpoint, window.location.origin);
-        url.searchParams.set('user_id', currentUserId);
-        url.searchParams.set('scope', 'incoming');
-       url.searchParams.set('status', 'pending');
-        const response = await fetch(url.toString(), {
-          method: 'GET',
-          headers: buildRealtimeStateHeaders({ Accept: 'application/json' })
-        });
-        if (!response.ok) {
-          if (response.status === 403) {
+        const buildRequestsUrl = (scope) => {
+          const url = new URL(endpoint, window.location.origin);
+          url.searchParams.set('user_id', currentUserId);
+          url.searchParams.set('scope', scope);
+          url.searchParams.set('status', 'pending');
+          return url.toString();
+        };
+        const [incomingResponse, outgoingResponse] = await Promise.all([
+          fetch(buildRequestsUrl('incoming'), {
+            method: 'GET',
+            headers: buildRealtimeStateHeaders({ Accept: 'application/json' })
+          }),
+          fetch(buildRequestsUrl('outgoing'), {
+            method: 'GET',
+            headers: buildRealtimeStateHeaders({ Accept: 'application/json' })
+          })
+        ]);
+        if (!incomingResponse.ok || !outgoingResponse.ok) {
+          if (incomingResponse.status === 403 || outgoingResponse.status === 403) {
             handleCommunityAccessDenied();
           }
-          throw new Error(`community_dm_requests_${response.status}`);
+          throw new Error(
+            `community_dm_requests_${incomingResponse.ok ? outgoingResponse.status : incomingResponse.status}`
+          );
         }
-        const data = await response.json();
-        communityDmRequests = Array.isArray(data && data.requests)
-          ? data.requests.map(normalizeCommunityDmRequest).filter(Boolean)
+        const [incomingData, outgoingData] = await Promise.all([
+          incomingResponse.json(),
+          outgoingResponse.json()
+        ]);
+        communityDmRequests = Array.isArray(incomingData && incomingData.requests)
+          ? incomingData.requests.map(normalizeCommunityDmRequest).filter(Boolean)
           : [];
+        const outgoingRequests = Array.isArray(outgoingData && outgoingData.requests)
+          ? outgoingData.requests.map(normalizeCommunityDmRequest).filter(Boolean)
+          : [];
+        syncCommunityDmPendingRequestsFromServer(outgoingRequests);
         sortCommunityDmRequests();
         communityRequestsLoaded = true;
         renderCommunityLists();
@@ -2084,20 +2153,6 @@ class PageChat extends HTMLElement {
         return true;
       }
       if (hasCommunityDmPendingRequest(peerUserId)) {
-        presentSystemToast(uiCopy.communityRequestAlreadyPending || uiCopy.communityRequestSent);
-        return true;
-      }
-      const outgoingRequest = findCommunityDmRequestByPeer(peerUserId, {
-        direction: 'outgoing',
-        status: 'pending'
-      });
-      if (outgoingRequest) {
-        upsertCommunityDmPendingRequest({
-          peerUserId,
-          requestId: pickFirstText(outgoingRequest.requestId),
-          peerName: pickFirstText(peer && peer.name)
-        });
-        renderCommunityLists();
         presentSystemToast(uiCopy.communityRequestAlreadyPending || uiCopy.communityRequestSent);
         return true;
       }
@@ -6329,6 +6384,7 @@ class PageChat extends HTMLElement {
             }
           }
           renderCommunityLists();
+          loadCommunityDmRequests({ force: true }).catch(() => {});
           if (!wasIncomingPending && resolution === 'declined') {
             presentSystemToast(uiCopy.communityRequestDeclinedNotice || uiCopy.communityRequestDeclined);
           } else if (!wasIncomingPending && resolution === 'blocked') {

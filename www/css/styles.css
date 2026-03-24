@@ -4267,7 +4267,6 @@ page-chat ion-content::part(scroll) {
   align-items: center;
   font-weight: 600;
   min-height: 2.4rem;
-  margin-top: auto;
   padding-bottom: 4px;
 }
 
@@ -4625,7 +4624,7 @@ page-chat ion-content::part(scroll) {
 }
 .speak-step-sound .speak-step-main {
   gap: 6px;
-  justify-content: flex-start;
+  justify-content: center;
 }
 .speak-step-sound .avatar-wrapper {
   width: 160px;
@@ -4643,8 +4642,7 @@ page-chat ion-content::part(scroll) {
   overflow-y: auto;
   min-height: 0;
   justify-content: center;
-  flex: 0 1 auto;
-  margin: auto 0;
+  flex: 1 1 auto;
 }
 
 .speak-word {

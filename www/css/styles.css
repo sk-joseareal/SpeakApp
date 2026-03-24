@@ -3798,6 +3798,7 @@ page-chat ion-content::part(scroll) {
   padding: 14px;
   width: 100%;
   align-self: stretch;
+  flex: 0 0 auto;
   box-sizing: border-box;
 }
 
@@ -3851,28 +3852,42 @@ page-chat ion-content::part(scroll) {
   min-width: 0;
 }
 
-/* New lab-style hero layout */
+/* Lab-style hero layout — matches journey-plan-card proportions */
 .speak-hero-card.onboarding-intro-card {
   flex-direction: row !important;
-  align-items: flex-end;
-  gap: 12px;
-  padding-right: 48px;
-  min-height: 0;
+  align-items: center;
+  gap: 4px;
+  padding: 14px;
+  min-height: 0 !important;
 }
 
 .speak-hero-body {
-  flex: 1 1 auto;
+  position: relative;
+  z-index: 1;
+  flex: 1;
   min-width: 0;
-  overflow: hidden;
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding-bottom: 4px;
+  padding-left: 12px;
+}
+
+.speak-hero-body::before {
+  content: '';
+  position: absolute;
+  left: 6px;
+  top: 15px;
+  transform: translateY(-50%);
+  width: 0;
+  height: 0;
+  border-top: 7px solid transparent;
+  border-bottom: 7px solid transparent;
+  border-right: 10px solid rgba(255, 255, 255, 0.95);
 }
 
 .speak-hero-mascot-wrap {
-  width: 72px;
-  height: 84px;
+  width: 52px;
+  height: 60px;
   flex: 0 0 auto;
   display: inline-flex;
   align-items: flex-end;
@@ -3891,6 +3906,7 @@ page-chat ion-content::part(scroll) {
 .speak-hero-step-title {
   display: none;
 }
+
 #speak-hero-hint {
   position: absolute;
   pointer-events: none;
@@ -3902,16 +3918,22 @@ page-chat ion-content::part(scroll) {
 
 .speak-hero-bubble {
   margin: 0 !important;
-  width: 100%;
-  box-sizing: border-box;
-  font-size: clamp(0.94rem, 3.7vw, 1.06rem);
+  padding: 7px 10px;
+  border-radius: 12px;
+  font-size: clamp(0.8rem, 3vw, 0.9rem);
   line-height: 1.24;
   font-weight: 600;
   text-transform: none;
   letter-spacing: 0;
-  width: 100%;
-  min-width: 0;
-  box-sizing: border-box;
+  background: rgba(255, 255, 255, 0.95);
+  color: #1f2937;
+  border: none;
+  box-shadow: none;
+  width: fit-content;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .speak-sheet {
@@ -4598,6 +4620,22 @@ page-chat ion-content::part(scroll) {
 .speak-word-grid--single .speak-word {
   padding: 7px 12px;
 }
+.speak-step-sound {
+  gap: 4px;
+}
+.speak-step-sound .speak-step-main {
+  gap: 6px;
+  justify-content: flex-start;
+}
+.speak-step-sound .avatar-wrapper {
+  width: 160px;
+  height: 160px;
+}
+.speak-step-sound .avatar-wrapper-wide {
+  width: 200px;
+  height: auto;
+}
+
 .speak-step-spelling {
   gap: 10px;
 }

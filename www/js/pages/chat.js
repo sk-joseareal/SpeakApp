@@ -1837,6 +1837,27 @@ class PageChat extends HTMLElement {
       return formatCommunityCopyWithName(uiCopy.communityRequestIncomingLabel, peerLabel) || peerLabel;
     };
 
+    const findCommunityDmRequestByPeer = (peerUserId, options = {}) => {
+      const safePeerUserId = pickFirstText(peerUserId);
+      if (!safePeerUserId) return null;
+      const direction = pickFirstText(options.direction, 'any').toLowerCase();
+      const status = pickFirstText(options.status, 'pending').toLowerCase();
+      return (
+        communityDmRequests.find((request) => {
+          if (!request) return false;
+          const requestStatus = pickFirstText(request.status).toLowerCase();
+          if (status && status !== 'any' && requestStatus !== status) return false;
+          const fromUserId = pickFirstText(request.fromUser && request.fromUser.id, request.fromUserId);
+          const toUserId = pickFirstText(request.toUser && request.toUser.id, request.toUserId);
+          const isIncoming = fromUserId === safePeerUserId && toUserId === pickFirstText(lastUserId);
+          const isOutgoing = toUserId === safePeerUserId && fromUserId === pickFirstText(lastUserId);
+          if (direction === 'incoming') return isIncoming;
+          if (direction === 'outgoing') return isOutgoing;
+          return isIncoming || isOutgoing;
+        }) || null
+      );
+    };
+
     const loadCommunityDmRequests = async ({ force = false } = {}) => {
       const endpoint = getCommunityDmRequestsEndpoint();
       const currentUserId = pickFirstText(lastUserId);
@@ -2048,7 +2069,33 @@ class PageChat extends HTMLElement {
       if (existingRoom) {
         return openCommunityDmRoom(existingRoom.roomId, { forceHistory: true });
       }
+      if (!communityRequestsLoaded) {
+        await loadCommunityDmRequests({ force: true });
+      }
+      const incomingRequest = findCommunityDmRequestByPeer(peerUserId, {
+        direction: 'incoming',
+        status: 'pending'
+      });
+      if (incomingRequest) {
+        renderCommunityLists();
+        presentSystemToast(getCommunityRequestLabel(incomingRequest));
+        return true;
+      }
       if (hasCommunityDmPendingRequest(peerUserId)) {
+        presentSystemToast(uiCopy.communityRequestAlreadyPending || uiCopy.communityRequestSent);
+        return true;
+      }
+      const outgoingRequest = findCommunityDmRequestByPeer(peerUserId, {
+        direction: 'outgoing',
+        status: 'pending'
+      });
+      if (outgoingRequest) {
+        upsertCommunityDmPendingRequest({
+          peerUserId,
+          requestId: pickFirstText(outgoingRequest.requestId),
+          peerName: pickFirstText(peer && peer.name)
+        });
+        renderCommunityLists();
         presentSystemToast(uiCopy.communityRequestAlreadyPending || uiCopy.communityRequestSent);
         return true;
       }

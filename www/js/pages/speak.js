@@ -38,14 +38,6 @@ class PageSpeak extends HTMLElement {
             >
               Debug
             </button>
-            <button
-              class="onboarding-intro-flag-btn journey-plan-flag-btn speak-hero-flag-btn"
-              type="button"
-              aria-label="English"
-              title="English"
-            >
-              <img class="onboarding-intro-flag" src="assets/flags/eeuu.png" alt="English">
-            </button>
             <span class="speak-hero-mascot-wrap" aria-hidden="true">
               <img
                 class="onboarding-intro-cat speak-hero-cat"
@@ -3315,11 +3307,11 @@ class PageSpeak extends HTMLElement {
       const displayText = getSoundDisplayText();
 
       const stepTitle = getSpeakUiText('stepTitleSound', locale, 'Listen carefully and Say');
-      const stepSubtitle = getSpeakUiText('soundStepSubtitle', locale, 'Listen to the audio and repeat the sound');
+      const stepSubtitle = resolveHeroHintText(soundStep, locale);
       return `
         <div class="speak-step speak-step-sound">
           <p class="speak-step-heading">${stepTitle}</p>
-          <p class="speak-step-subtitle">${stepSubtitle}</p>
+          ${stepSubtitle ? `<p class="speak-step-subtitle">${stepSubtitle}</p>` : ''}
           <div class="speak-step-main">
             <div class="speak-avatar">
               <div class="${avatarConfig.wrapperClass}">

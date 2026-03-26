@@ -56,7 +56,8 @@ curl -X POST http://localhost:8787/realtime/tts/aligned \
   -H 'Content-Type: application/json' \
   -d '{
     "text": "This is a Free ride test sentence.",
-    "locale": "en-US"
+    "locale": "en-US",
+    "voice_profile": "child"
   }'
 ```
 
@@ -64,3 +65,12 @@ Response includes:
 
 - `audio_url`: playable mp3 in S3
 - `words[]`: `{ text, start_ms, end_ms }` for live highlight
+- optional response metadata: `voice`, `engine`, `rate`, `pitch`, `voice_profile`
+
+Supported request overrides:
+
+- `voice`: explicit Polly voice id
+- `engine`: `standard`, `neural`, `generative`
+- `rate`: Polly prosody rate, for example `105%`
+- `pitch`: Polly prosody pitch, for example `+3%`
+- `voice_profile`: preset bundle. `child` currently resolves to `Lucia` for `es-ES` and `Mia` for English, with `neural`, `rate=105%`, `pitch=+3%`

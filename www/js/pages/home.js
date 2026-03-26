@@ -35,6 +35,19 @@ const SPEAK_SESSION_PERCENTAGES_VISIBLE_KEY = 'appv5:speak-session-percentages-v
 const HOME_ALIGNED_CACHE_MAX_ITEMS = 24;
 const HOME_PLAN_AUTONARRATION_PLAYED_KEY = 'appv5:home-plan-auto-narration-played';
 const HOME_EXPANDED_ROUTE_KEY = 'appv5:home-expanded-route-id';
+const HOME_RETURN_SCROLL_KEY = 'appv5:home-return-scroll-top';
+const HOME_RETURN_REVEAL_KEY = 'appv5:home-return-reveal-target';
+const MODULE_AUDIO_ICON = `
+  <span class="module-audio-icon" aria-hidden="true">
+    <svg viewBox="0 0 24 24" fill="none">
+      <path d="M4.5 14.5V9.5"></path>
+      <path d="M8.5 17.5V6.5"></path>
+      <path d="M12.5 20V4"></path>
+      <path d="M16.5 16.5V7.5"></path>
+      <path d="M20.5 13.5V10.5"></path>
+    </svg>
+  </span>
+`;
 
 class PageHome extends HTMLElement {
   constructor() {
@@ -60,11 +73,19 @@ class PageHome extends HTMLElement {
     this.narrationAudio = null;
     this.alignedTtsCache = new Map();
     this.planNarrationPromise = null;
+    this.homeScrollTop = 0;
+    this._homeScrollEl = null;
+    this._homeScrollHandler = null;
+    this._homeScrollBindToken = 0;
+    this._pendingHomeReturnRestoreTimers = [];
+    this._pendingHomeReturnRevealTimers = [];
+    this._pendingHomeReturnRevealScheduleToken = 0;
   }
 
   connectedCallback() {
     this.classList.add('ion-page');
     this.handleSelectionChange = () => {
+      const restoreScrollTop = this.homeScrollTop;
       const { route, module } = resolveSelection(getSelection());
       if (route) {
         const stored = (() => { try { return localStorage.getItem(HOME_EXPANDED_ROUTE_KEY); } catch { return null; } })();
@@ -74,7 +95,7 @@ class PageHome extends HTMLElement {
         }
       }
       if (module) this.expandedModuleId = module.id;
-      this.render();
+      this.render({ restoreScrollTop });
     };
     window.addEventListener('training:selection-change', this.handleSelectionChange);
     this.updateHeaderRewards = () => {
@@ -151,6 +172,8 @@ class PageHome extends HTMLElement {
       }
       const firstAutoNarration = !this.initialPlanNarrationStarted;
       const delayMs = firstAutoNarration ? 0 : this.getAutoNarrationDelay(90);
+      this.schedulePendingHomeReturnScrollRestore();
+      this.schedulePendingHomeReturnReveal();
       this.schedulePlanNarration(delayMs, firstAutoNarration);
     };
     this._tabsEl = this.getTabsEl();
@@ -159,6 +182,14 @@ class PageHome extends HTMLElement {
       this._tabsDidChangeHandler(event);
     };
     window.addEventListener('app:tab-change', this._appTabChangeHandler);
+    this._routerEl = document.querySelector('ion-router');
+    this._routeDidChangeHandler = (event) => {
+      const to = String(event && event.detail ? event.detail.to || '' : '').trim();
+      if (to !== '/tabs') return;
+      this.schedulePendingHomeReturnScrollRestore();
+      this.schedulePendingHomeReturnReveal();
+    };
+    this._routerEl?.addEventListener('ionRouteDidChange', this._routeDidChangeHandler);
     const firstAutoNarration = !this.initialPlanNarrationStarted;
     const initialDelayMs = firstAutoNarration ? 0 : this.getAutoNarrationDelay(950);
     this.render({
@@ -201,7 +232,15 @@ class PageHome extends HTMLElement {
       window.removeEventListener('app:tab-change', this._appTabChangeHandler);
       this._appTabChangeHandler = null;
     }
+    if (this._routeDidChangeHandler) {
+      this._routerEl?.removeEventListener('ionRouteDidChange', this._routeDidChangeHandler);
+      this._routeDidChangeHandler = null;
+      this._routerEl = null;
+    }
     this.clearRoutesCenterScrollTimers();
+    this.detachHomeScrollTracking();
+    this.clearPendingHomeReturnScrollRestoreTimers();
+    this.clearPendingHomeReturnRevealTimers();
     this.stopPlanMascotTalk({ settle: true });
     this.clearNarrationTimer();
     this.stopNarration().catch(() => {});
@@ -285,6 +324,34 @@ class PageHome extends HTMLElement {
     this.routesCenterScrollTimers = [];
   }
 
+  async cancelRoutesCentering() {
+    this.pendingRoutesCenterScroll = null;
+    this.clearRoutesCenterScrollTimers();
+    const contentEl = this.getHomeContentEl();
+    if (!contentEl || typeof contentEl.getScrollElement !== 'function') return;
+    let scrollEl = null;
+    try {
+      scrollEl = await contentEl.getScrollElement();
+    } catch (err) {
+      scrollEl = null;
+    }
+    if (!scrollEl) return;
+    const currentTop = Math.max(0, Number(scrollEl.scrollTop) || 0);
+    if (typeof contentEl.scrollToPoint === 'function') {
+      try {
+        await contentEl.scrollToPoint(0, currentTop, 0);
+      } catch (err) {
+        scrollEl.scrollTop = currentTop;
+      }
+    } else {
+      scrollEl.scrollTo({
+        top: currentTop,
+        behavior: 'auto'
+      });
+    }
+    this.homeScrollTop = currentTop;
+  }
+
   queueRoutesCenterScroll(request = {}) {
     this.pendingRoutesCenterScroll = {
       routeId: request.routeId || '',
@@ -318,6 +385,265 @@ class PageHome extends HTMLElement {
         return true;
       }) || null
     );
+  }
+
+  getHomeContentEl() {
+    return this.querySelector('ion-content.home-journey');
+  }
+
+  detachHomeScrollTracking() {
+    this._homeScrollBindToken += 1;
+    if (this._homeScrollEl && this._homeScrollHandler) {
+      this._homeScrollEl.removeEventListener('scroll', this._homeScrollHandler);
+    }
+    this._homeScrollEl = null;
+  }
+
+  async bindHomeScrollTracking() {
+    const contentEl = this.getHomeContentEl();
+    if (!contentEl || typeof contentEl.getScrollElement !== 'function') {
+      this.detachHomeScrollTracking();
+      return;
+    }
+    const bindToken = ++this._homeScrollBindToken;
+    let scrollEl = null;
+    try {
+      scrollEl = await contentEl.getScrollElement();
+    } catch (err) {
+      scrollEl = null;
+    }
+    if (!scrollEl || bindToken !== this._homeScrollBindToken || !this.isConnected) return;
+    if (!this._homeScrollHandler) {
+      this._homeScrollHandler = () => {
+        if (!this._homeScrollEl) return;
+        this.homeScrollTop = Math.max(0, Number(this._homeScrollEl.scrollTop) || 0);
+      };
+    }
+    if (this._homeScrollEl !== scrollEl) {
+      if (this._homeScrollEl) {
+        this._homeScrollEl.removeEventListener('scroll', this._homeScrollHandler);
+      }
+      this._homeScrollEl = scrollEl;
+      this._homeScrollEl.addEventListener('scroll', this._homeScrollHandler, { passive: true });
+    }
+    this.homeScrollTop = Math.max(0, Number(scrollEl.scrollTop) || 0);
+  }
+
+  waitForNextFrame() {
+    return new Promise((resolve) => {
+      requestAnimationFrame(() => resolve());
+    });
+  }
+
+  setPendingHomeReturnScroll(scrollTop = this.homeScrollTop) {
+    const nextTop = Number(scrollTop);
+    if (!Number.isFinite(nextTop) || nextTop < 0) return;
+    try {
+      sessionStorage.setItem(HOME_RETURN_SCROLL_KEY, String(Math.round(nextTop)));
+    } catch (err) {
+      // no-op
+    }
+  }
+
+  getPendingHomeReturnScroll() {
+    try {
+      const raw = sessionStorage.getItem(HOME_RETURN_SCROLL_KEY);
+      const value = Number(raw);
+      return Number.isFinite(value) && value >= 0 ? value : null;
+    } catch (err) {
+      return null;
+    }
+  }
+
+  clearPendingHomeReturnScroll() {
+    try {
+      sessionStorage.removeItem(HOME_RETURN_SCROLL_KEY);
+    } catch (err) {
+      // no-op
+    }
+  }
+
+  clearPendingHomeReturnScrollRestoreTimers() {
+    if (!Array.isArray(this._pendingHomeReturnRestoreTimers) || !this._pendingHomeReturnRestoreTimers.length) {
+      this._pendingHomeReturnRestoreTimers = [];
+      return;
+    }
+    this._pendingHomeReturnRestoreTimers.forEach((timerId) => clearTimeout(timerId));
+    this._pendingHomeReturnRestoreTimers = [];
+  }
+
+  setPendingHomeReturnRevealTarget(target) {
+    if (!target || !target.routeId || !target.moduleId || !target.sessionId) {
+      this.clearPendingHomeReturnRevealTarget();
+      return;
+    }
+    try {
+      sessionStorage.setItem(
+        HOME_RETURN_REVEAL_KEY,
+        JSON.stringify({
+          routeId: String(target.routeId || ''),
+          moduleId: String(target.moduleId || ''),
+          sessionId: String(target.sessionId || '')
+        })
+      );
+    } catch (err) {
+      // no-op
+    }
+  }
+
+  getPendingHomeReturnRevealTarget() {
+    try {
+      const raw = sessionStorage.getItem(HOME_RETURN_REVEAL_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== 'object') return null;
+      const routeId = String(parsed.routeId || '').trim();
+      const moduleId = String(parsed.moduleId || '').trim();
+      const sessionId = String(parsed.sessionId || '').trim();
+      if (!routeId || !moduleId || !sessionId) return null;
+      return { routeId, moduleId, sessionId };
+    } catch (err) {
+      return null;
+    }
+  }
+
+  clearPendingHomeReturnRevealTarget() {
+    try {
+      sessionStorage.removeItem(HOME_RETURN_REVEAL_KEY);
+    } catch (err) {
+      // no-op
+    }
+  }
+
+  clearPendingHomeReturnRevealTimers() {
+    if (!Array.isArray(this._pendingHomeReturnRevealTimers) || !this._pendingHomeReturnRevealTimers.length) {
+      this._pendingHomeReturnRevealTimers = [];
+      return;
+    }
+    this._pendingHomeReturnRevealTimers.forEach((timerId) => clearTimeout(timerId));
+    this._pendingHomeReturnRevealTimers = [];
+  }
+
+  async restoreHomeScrollPosition(scrollTop = this.homeScrollTop) {
+    const desiredTop = Number(scrollTop);
+    if (!Number.isFinite(desiredTop) || desiredTop <= 0) return;
+    const contentEl = this.getHomeContentEl();
+    if (!contentEl || typeof contentEl.getScrollElement !== 'function') return;
+    await this.waitForNextFrame();
+    let scrollEl = null;
+    try {
+      scrollEl = await contentEl.getScrollElement();
+    } catch (err) {
+      scrollEl = null;
+    }
+    if (!scrollEl) return;
+    const maxTop = Math.max(0, (scrollEl.scrollHeight || 0) - (scrollEl.clientHeight || 0));
+    const nextTop = Math.max(0, Math.min(Math.round(desiredTop), maxTop));
+    if (typeof contentEl.scrollToPoint === 'function') {
+      try {
+        await contentEl.scrollToPoint(0, nextTop, 0);
+      } catch (err) {
+        scrollEl.scrollTop = nextTop;
+      }
+    } else {
+      scrollEl.scrollTop = nextTop;
+    }
+    this.homeScrollTop = nextTop;
+  }
+
+  schedulePendingHomeReturnScrollRestore() {
+    const pendingTop = this.getPendingHomeReturnScroll();
+    if (!Number.isFinite(pendingTop) || pendingTop <= 0) return;
+    this.clearPendingHomeReturnScrollRestoreTimers();
+    [0, 90, 240, 520].forEach((delayMs, idx, list) => {
+      const timerId = setTimeout(() => {
+        if (!this.isConnected || !this.isTabActive('home')) return;
+        this.restoreHomeScrollPosition(pendingTop).catch(() => {});
+        if (idx === list.length - 1) {
+          this.clearPendingHomeReturnScroll();
+        }
+      }, delayMs);
+      this._pendingHomeReturnRestoreTimers.push(timerId);
+    });
+  }
+
+  async isRoutesTargetVisible(targetEl, padding = 20) {
+    if (!targetEl || !this.isConnected) return false;
+    const contentEl = this.getHomeContentEl();
+    if (!contentEl || typeof contentEl.getScrollElement !== 'function') return false;
+    let scrollEl = null;
+    try {
+      scrollEl = await contentEl.getScrollElement();
+    } catch (err) {
+      scrollEl = null;
+    }
+    if (!scrollEl) return false;
+    const scrollRect = scrollEl.getBoundingClientRect();
+    const targetRect = targetEl.getBoundingClientRect();
+    return (
+      targetRect.top >= scrollRect.top + padding &&
+      targetRect.bottom <= scrollRect.bottom - padding
+    );
+  }
+
+  async ensureRoutesTargetVisible(targetEl, padding = 20, durationMs = 240) {
+    if (!targetEl || !this.isConnected) return false;
+    const contentEl = this.getHomeContentEl();
+    if (!contentEl || typeof contentEl.getScrollElement !== 'function') return false;
+    let scrollEl = null;
+    try {
+      scrollEl = await contentEl.getScrollElement();
+    } catch (err) {
+      scrollEl = null;
+    }
+    if (!scrollEl) return false;
+    const scrollRect = scrollEl.getBoundingClientRect();
+    const targetRect = targetEl.getBoundingClientRect();
+    const topLimit = scrollRect.top + padding;
+    const bottomLimit = scrollRect.bottom - padding;
+    let delta = 0;
+    if (targetRect.top < topLimit) {
+      delta = targetRect.top - topLimit;
+    } else if (targetRect.bottom > bottomLimit) {
+      delta = targetRect.bottom - bottomLimit;
+    }
+    if (Math.abs(delta) < 2) return false;
+    const maxTop = Math.max(0, (scrollEl.scrollHeight || 0) - (scrollEl.clientHeight || 0));
+    const nextTop = Math.max(0, Math.min(Math.round(scrollEl.scrollTop + delta), maxTop));
+    if (typeof contentEl.scrollToPoint === 'function') {
+      try {
+        await contentEl.scrollToPoint(0, nextTop, Math.max(0, durationMs));
+      } catch (err) {
+        scrollEl.scrollTop = nextTop;
+      }
+    } else {
+      scrollEl.scrollTo({
+        top: nextTop,
+        behavior: durationMs > 0 ? 'smooth' : 'auto'
+      });
+    }
+    this.homeScrollTop = nextTop;
+    return true;
+  }
+
+  async revealRoutesTarget(targetEl, padding = 24, durationMs = 220) {
+    if (!targetEl || !this.isConnected) return false;
+    const targetHeight = Math.max(0, Math.round(targetEl.getBoundingClientRect().height || 0));
+    const effectivePadding = Math.max(
+      padding,
+      Math.min(44, Math.max(30, Math.round(targetHeight * 0.45)))
+    );
+    const didScroll = await this.ensureRoutesTargetVisible(targetEl, effectivePadding, durationMs);
+    await this.waitForNextFrame();
+    await this.waitForNextFrame();
+    await this.ensureRoutesTargetVisible(targetEl, effectivePadding, 0);
+    return didScroll;
+  }
+
+  schedulePendingHomeReturnReveal() {
+    this.clearPendingHomeReturnRevealTimers();
+    this._pendingHomeReturnRevealScheduleToken += 1;
+    this.clearPendingHomeReturnRevealTarget();
   }
 
   resolveRoutesCenterTarget(request = {}) {
@@ -409,7 +735,6 @@ class PageHome extends HTMLElement {
     const uiLocale = this.getUiLocale(baseLocale);
     const copy = getHomeCopy(uiLocale);
     const speakCopy = getSpeakCopy(uiLocale) || {};
-    const nextLocaleCode = getNextLocaleCode(uiLocale);
     const tabTitle = copy.planTitle;
     this.currentUiLocale = uiLocale;
     this.currentPlanMessage = copy.planMessage || '';
@@ -433,7 +758,7 @@ class PageHome extends HTMLElement {
     const getSessionTitle = (session) => readLocalizedField(session, 'title');
     if (!routes.length) {
       this.innerHTML = `
-        ${renderAppHeader({ title: tabTitle, rewardBadgesId: 'home-reward-badges', nextLocale: nextLocaleCode.toUpperCase() })}
+        ${renderAppHeader({ title: tabTitle, rewardBadgesId: 'home-reward-badges', locale: uiLocale })}
         <ion-content fullscreen class="home-journey secret-content">
           <div class="journey-shell">
             <section class="journey-plan-card onboarding-intro-card">
@@ -494,23 +819,38 @@ class PageHome extends HTMLElement {
       { min: 0, tone: 'bad' }
     ];
 
-    const getDefaultTonePhrases = () => ({
-      good: [
-        speakCopy.feedbackNative || 'You sound like a native',
-        uiLocale === 'es' ? 'Gran trabajo' : 'Great job!'
-      ],
-      okay: [
-        speakCopy.feedbackGood || 'Good! Continue practicing',
-        speakCopy.feedbackAlmost || 'Almost Correct!'
-      ],
-      bad: [
-        speakCopy.feedbackKeep || 'Keep practicing',
-        uiLocale === 'es' ? 'Intentalo de nuevo' : 'Try again'
-      ]
-    });
+    const getDefaultTonePhrases = () => {
+      const summaryPhrases =
+        speakCopy && speakCopy.summaryPhrases && typeof speakCopy.summaryPhrases === 'object'
+          ? speakCopy.summaryPhrases
+          : {};
+      const pickPhraseList = (tone, fallback) => {
+        const preferred = Array.isArray(summaryPhrases[tone])
+          ? summaryPhrases[tone].map((item) => String(item || '').trim()).filter(Boolean)
+          : [];
+        return preferred.length ? preferred : fallback;
+      };
+      return {
+        good: pickPhraseList('good', [
+          speakCopy.feedbackNative || 'You sound like a native',
+          uiLocale === 'es' ? 'Gran trabajo' : 'Great job!'
+        ]),
+        okay: pickPhraseList('okay', [
+          speakCopy.feedbackGood || 'Good! Continue practicing',
+          speakCopy.feedbackAlmost || 'Almost Correct!'
+        ]),
+        bad: pickPhraseList('bad', [
+          speakCopy.feedbackKeep || 'Keep practicing',
+          uiLocale === 'es' ? 'Intentalo de nuevo' : 'Try again'
+        ]),
+        neutral: pickPhraseList('neutral', [
+          uiLocale === 'es' ? 'Aún no iniciada' : 'Not started yet'
+        ])
+      };
+    };
 
     const resolveToneListMap = (source, fallback) => {
-      const tones = ['good', 'okay', 'bad'];
+      const tones = ['good', 'okay', 'bad', 'neutral'];
       const safeSource = source && typeof source === 'object' ? source : {};
       const safeFallback = fallback && typeof fallback === 'object' ? fallback : {};
       const output = {};
@@ -610,6 +950,7 @@ class PageHome extends HTMLElement {
 
     const getScoreTone = (percent) => {
       const value = typeof percent === 'number' ? percent : 0;
+      if (value <= 0) return 'neutral';
       const { toneScale } = getFeedbackConfig();
       const normalized = normalizeScale(toneScale, 'tone');
       return resolveFromScale(normalized, value, 'tone', 'bad');
@@ -864,23 +1205,30 @@ class PageHome extends HTMLElement {
               return pct !== null && getScoreTone(pct) === 'good';
             }).length;
             const showChevron = !isModuleOpen;
+            const moduleLeadIcon =
+              toneCls === 'good'
+                ? `<div class="module-circle module-circle-good"><ion-icon name="checkmark"></ion-icon></div>`
+                : MODULE_AUDIO_ICON;
             const sessionsMarkup =
               routeUnlocked && isModuleOpen
                 ? `<div class="module-sessions training-list">${module.sessions
                     .map((item) => {
                       const sessionProgress = getCorrectCount(item);
                       const progressText = `${sessionProgress.correct}/${sessionProgress.total}`;
-                      const started = hasSessionAttempts(item);
-                      const sessionPercent = started ? getSessionPercent(item) : null;
-                      const tone =
-                        started && sessionPercent !== null ? getScoreTone(sessionPercent) : 'neutral';
+                      const sessionPercent = hasSessionAttempts(item) ? getSessionPercent(item) : 0;
+                      const tone = getScoreTone(sessionPercent);
                       const toneClass =
                         tone === 'good' ? 'good' : tone === 'okay' ? 'okay' : tone === 'bad' ? 'bad' : 'neutral';
-                      const labelText =
-                        started && sessionPercent !== null
-                          ? getScoreLabel(sessionPercent, `${route.id}:${module.id}:${item.id}`)
+                      const sessionIcon = toneClass === 'good' ? 'checkmark' : 'play-outline';
+                      const labelText = getScoreLabel(
+                        sessionPercent,
+                        `${route.id}:${module.id}:${item.id}`
+                      );
+                      const secondaryLabelText =
+                        toneClass === 'good'
+                          ? speakCopy.practiceAgainAnytime || '(Practice again anytime)'
                           : '';
-                      const scoreText = started && sessionPercent !== null ? `${sessionPercent}%` : '';
+                      const scoreText = `${sessionPercent}%`;
                       const isCurrentSession =
                         route.id === activeRoute.id &&
                         module.id === activeModule.id &&
@@ -893,12 +1241,13 @@ class PageHome extends HTMLElement {
                           data-module-id="${module.id}"
                           data-locked="${routeUnlocked ? '0' : '1'}"
                         >
-                          <div class="session-circle session-circle-${toneClass}">
-                            <ion-icon name="play-circle-outline"></ion-icon>
+                          <div class="session-circle">
+                            <ion-icon name="${sessionIcon}"></ion-icon>
                           </div>
                           <div class="session-body">
                             <div class="session-title">${getSessionTitle(item)}</div>
                             ${labelText ? `<div class="session-label session-label-${toneClass}">${labelText}</div>` : ''}
+                            ${secondaryLabelText ? `<div class="session-label-secondary">${secondaryLabelText}</div>` : ''}
                           </div>
                           <div class="session-percent session-percent-${toneClass}">${scoreText}</div>
                           <ion-icon name="chevron-forward" class="training-row-arrow"></ion-icon>
@@ -918,13 +1267,11 @@ class PageHome extends HTMLElement {
                   data-module-id="${module.id}"
                 >
                   <div class="module-header-inner">
-                    <div class="module-circle module-circle-${toneCls}">
-                      <ion-icon name="${toneCls === 'good' ? 'checkmark-circle-outline' : 'play-circle-outline'}"></ion-icon>
-                    </div>
+                    ${moduleLeadIcon}
                     <div class="module-info">
                       <div class="module-header-row">
                         <span class="module-title">${getModuleTitle(module)}</span>
-                        ${isMastered ? `<span class="module-mastered-pill"><ion-icon name="trophy"></ion-icon>Mastered!</span>` : ''}
+                        ${isMastered ? `<span class="module-mastered-pill"><ion-icon name="checkmark"></ion-icon>Mastered!</span>` : ''}
                       </div>
                       <div class="module-sub module-sub-${toneCls}">${getModuleSubtitle(module)}</div>
                       <div class="module-sessions-count">${greenSessions}/${totalSessions} ${copy.sessionsCompleted}</div>
@@ -975,7 +1322,7 @@ class PageHome extends HTMLElement {
       .join('');
 
     this.innerHTML = `
-      ${renderAppHeader({ title: tabTitle, rewardBadgesId: 'home-reward-badges', nextLocale: nextLocaleCode.toUpperCase() })}
+      ${renderAppHeader({ title: tabTitle, rewardBadgesId: 'home-reward-badges', locale: uiLocale })}
       <ion-content fullscreen class="home-journey secret-content">
         <div class="journey-shell">
           <section class="journey-plan-card onboarding-intro-card">
@@ -1032,6 +1379,8 @@ class PageHome extends HTMLElement {
         moduleId: startModule.id,
         sessionId: startSession.id
       });
+      this.setPendingHomeReturnScroll(this.homeScrollTop);
+      this.cancelRoutesCentering().catch(() => {});
       goToSpeak('forward');
     });
 
@@ -1145,6 +1494,8 @@ class PageHome extends HTMLElement {
           moduleId,
           sessionId
         });
+        this.setPendingHomeReturnScroll(this.homeScrollTop);
+        this.cancelRoutesCentering().catch(() => {});
         goToSpeak('forward');
       });
     });
@@ -1154,6 +1505,15 @@ class PageHome extends HTMLElement {
     this.flushRoutesCenterScroll();
     this.renderPlanMascotFrame(this.planMascotFrameIndex);
     this.setPlanBubbleSpeaking(this.planMascotIsTalking);
+    const restoreScrollTop = Number.isFinite(Number(options.restoreScrollTop))
+      ? Number(options.restoreScrollTop)
+      : null;
+    this.bindHomeScrollTracking().catch(() => {});
+    if (restoreScrollTop !== null) {
+      this.restoreHomeScrollPosition(restoreScrollTop).catch(() => {});
+    }
+    this.schedulePendingHomeReturnScrollRestore();
+    this.schedulePendingHomeReturnReveal();
   }
 
   bindPlanHeroEvents(options = {}) {

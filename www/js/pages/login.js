@@ -11,7 +11,9 @@ class PageLogin extends HTMLElement {
     };
     const uiLocale = resolveUiLocale();
     const copy = getLoginCopy(uiLocale);
+    const embedded = this.hasAttribute('embedded');
     this.innerHTML = `
+      ${embedded ? '' : `
       <ion-header translucent="true">
         <ion-toolbar>
           <ion-title>${copy.title}</ion-title>
@@ -22,23 +24,24 @@ class PageLogin extends HTMLElement {
       </ion-header>
       <ion-content>
         <div class="page-shell">
-          <div class="card">
+      `}
+          <div class="card card--plain ${embedded ? 'login-embedded-card' : ''}">
             <div class="login-panel" data-panel="login">
+              <button class="login-link-btn login-create-email-btn login-magic-cta" type="button" id="login-magic-link">${copy.magicLoginLink}</button>
               <div class="login-social-stack">
-                <ion-button expand="block" fill="outline" id="login-google" class="login-social-btn">
+                <ion-button expand="block" shape="round" id="login-google" class="login-social-btn">
                   <img class="login-social-icon" src="assets/social/google.png" alt="" slot="start" aria-hidden="true">
                   <span>${copy.socialGoogle}</span>
                 </ion-button>
-                <ion-button expand="block" fill="outline" id="login-fb" class="login-social-btn">
+                <ion-button expand="block" shape="round" id="login-fb" class="login-social-btn">
                   <img class="login-social-icon" src="assets/social/facebook.png" alt="" slot="start" aria-hidden="true">
                   <span>${copy.socialFacebook}</span>
                 </ion-button>
-                <ion-button expand="block" fill="outline" id="login-apple" class="login-social-btn">
+                <ion-button expand="block" shape="round" id="login-apple" class="login-social-btn">
                   <img class="login-social-icon login-social-icon-apple" src="assets/social/apple.png" alt="" slot="start" aria-hidden="true">
                   <span>${copy.socialApple}</span>
                 </ion-button>
               </div>
-              <button class="login-link-btn login-create-email-btn login-magic-cta" type="button" id="login-magic-link">${copy.magicLoginLink}</button>
               <button class="login-link-btn login-create-email-btn" type="button" id="login-register-link">${copy.createWithEmail}</button>
               <div class="login-email-block">
                 <div class="login-inputs">
@@ -53,9 +56,7 @@ class PageLogin extends HTMLElement {
                 </div>
                 <p id="login-error" style="display:none; margin:4px 0 0; color: var(--ion-color-danger, #eb445a); font-size:0.9rem;"></p>
                 <ion-button expand="block" shape="round" id="login-enter">${copy.enter}</ion-button>
-                <div class="login-links login-links-bottom">
-                  <button class="login-link-btn" type="button" id="login-forgot-link">${copy.forgotPassword}</button>
-                </div>
+                <button class="login-link-btn login-create-email-btn" type="button" id="login-forgot-secondary">${copy.forgotPassword}</button>
               </div>
             </div>
             <div class="login-panel" data-panel="register" hidden>
@@ -91,7 +92,10 @@ class PageLogin extends HTMLElement {
             </div>
             <div class="login-panel" data-panel="magic" hidden>
               <div id="magic-form">
-                <h3>${copy.magicTitle}</h3>
+                <div class="login-panel-header">
+                  <h3>${copy.magicTitle}</h3>
+                  <button class="login-back-top" type="button" id="magic-back">${copy.magicBack}</button>
+                </div>
                 <p class="muted">${copy.magicSubtitle}</p>
                 <div class="login-inputs">
                   <label class="login-field" for="magic-email">
@@ -101,9 +105,6 @@ class PageLogin extends HTMLElement {
                 </div>
                 <p id="magic-error" style="display:none; margin:4px 0 0; color: var(--ion-color-danger, #eb445a); font-size:0.9rem;"></p>
                 <ion-button expand="block" shape="round" id="magic-submit">${copy.magicSubmit}</ion-button>
-                <div class="login-links">
-                  <button class="login-link-btn" type="button" id="magic-back">${copy.magicBack}</button>
-                </div>
               </div>
               <div id="magic-sent" hidden>
                 <h3>${copy.magicSentTitle}</h3>
@@ -127,7 +128,10 @@ class PageLogin extends HTMLElement {
               </div>
             </div>
             <div class="login-panel" data-panel="recover" hidden>
-              <h3>${copy.recoverTitle}</h3>
+              <div class="login-panel-header">
+                <h3>${copy.recoverTitle}</h3>
+                <button class="login-back-top" type="button" id="recover-back">${copy.recoverBack}</button>
+              </div>
               <p class="muted">${copy.recoverSubtitle}</p>
               <div class="login-inputs">
                 <label class="login-field" for="recover-email">
@@ -137,13 +141,9 @@ class PageLogin extends HTMLElement {
               </div>
               <p id="recover-error" style="display:none; margin:4px 0 0; color: var(--ion-color-danger, #eb445a); font-size:0.9rem;"></p>
               <ion-button expand="block" shape="round" id="recover-submit">${copy.recoverSubmit}</ion-button>
-              <div class="login-links">
-                <button class="login-link-btn" type="button" id="recover-back">${copy.recoverBack}</button>
-              </div>
             </div>
           </div>
-        </div>
-      </ion-content>
+        ${embedded ? '' : '</div></ion-content>'}
     `;
 
     const loginErrorEl = () => this.querySelector('#login-error');
@@ -647,6 +647,7 @@ class PageLogin extends HTMLElement {
     this.querySelector('#login-magic-link')?.addEventListener('click', () => setPanel('magic'));
     this.querySelector('#login-register-link')?.addEventListener('click', () => setPanel('register'));
     this.querySelector('#login-forgot-link')?.addEventListener('click', () => setPanel('recover'));
+    this.querySelector('#login-forgot-secondary')?.addEventListener('click', () => setPanel('recover'));
     this.querySelector('#register-back')?.addEventListener('click', () => setPanel('login'));
     this.querySelector('#recover-back')?.addEventListener('click', () => setPanel('login'));
     this.querySelector('#magic-back')?.addEventListener('click', () => setPanel('login'));

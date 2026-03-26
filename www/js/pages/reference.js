@@ -35,7 +35,6 @@ const HERO_MASCOT_FRAME_INTERVAL_MS = 150;
 const BROWSER_AUTONARRATION_EXTRA_DELAY_MS = 120;
 const REFERENCE_ALIGNED_CACHE_MAX_ITEMS = 80;
 const REFERENCE_HERO_AUTONARRATION_PLAYED_KEY = 'appv5:reference-hero-auto-narration-played';
-const REFERENCE_TESTS_ENABLED_KEY = 'appv5:reference-tests-enabled';
 const REFERENCE_TESTS_PROGRESS_STORAGE_PREFIX = 'appv5:reference-tests-progress';
 const REFERENCE_TEST_REWARD_ENTRY_PREFIX = 'reference-test';
 const REFERENCE_TEST_DIAMOND_REWARD_QTY = 1;
@@ -52,6 +51,7 @@ class PageReference extends HTMLElement {
     };
     this.expandedCourseCode = '';
     this.expandedUnitCode = '';
+    this.lessonView = false;
     this._accordionInitialized = false;
     this._floatingHintsObserver = null;
     this.currentHeroMessage = '';
@@ -134,11 +134,6 @@ class PageReference extends HTMLElement {
       this.playHeroNarration(true).catch(() => {});
     };
     window.addEventListener('app:tab-user-click', this._tabUserClickHandler);
-    this._referenceTestsToggleHandler = () => {
-      if (!this.isConnected) return;
-      this.render();
-    };
-    window.addEventListener('app:reference-tests-enabled-change', this._referenceTestsToggleHandler);
     this.render();
   }
 
@@ -167,9 +162,6 @@ class PageReference extends HTMLElement {
     }
     if (this._tabUserClickHandler) {
       window.removeEventListener('app:tab-user-click', this._tabUserClickHandler);
-    }
-    if (this._referenceTestsToggleHandler) {
-      window.removeEventListener('app:reference-tests-enabled-change', this._referenceTestsToggleHandler);
     }
     this.stopHeroNarration();
   }
@@ -584,9 +576,8 @@ class PageReference extends HTMLElement {
 
   renderHeaderHtml() {
     const currentLocale = getAppLocale() || 'en';
-    const nextLocale = getNextLocaleCode(currentLocale);
     const tabTitle = getReferenceCopy(currentLocale).title;
-    return renderAppHeader({ title: tabTitle, rewardBadgesId: 'reference-reward-badges', nextLocale: nextLocale.toUpperCase() });
+    return renderAppHeader({ title: tabTitle, rewardBadgesId: 'reference-reward-badges', locale: currentLocale });
   }
 
   updateHeaderRewards() {
@@ -1352,23 +1343,6 @@ class PageReference extends HTMLElement {
         this.stopHeroMascotTalk({ settle: true });
       }
       restoreBubble();
-    }
-  }
-
-  isReferenceTestsEnabled() {
-    if (
-      window.r34lp0w3r &&
-      Object.prototype.hasOwnProperty.call(window.r34lp0w3r, 'referenceTestsEnabled')
-    ) {
-      return Boolean(window.r34lp0w3r.referenceTestsEnabled);
-    }
-    try {
-      const raw = String(localStorage.getItem(REFERENCE_TESTS_ENABLED_KEY) || '')
-        .trim()
-        .toLowerCase();
-      return ['1', 'true', 'on', 'yes'].includes(raw);
-    } catch (err) {
-      return false;
     }
   }
 
@@ -2459,10 +2433,9 @@ class PageReference extends HTMLElement {
     const tabsCopy = getTabsCopy(uiLocale);
     const copy = getReferenceCopy(uiLocale);
     const heroMascotSrc = this.getHeroMascotSrc();
-    const referenceTestsEnabled = this.isReferenceTestsEnabled();
     this.ensureReferenceTestsPersistenceLoaded();
 
-    if (referenceTestsEnabled && !this._loadingReferenceTests && !this._referenceTestsLoadAttempted) {
+    if (!this._loadingReferenceTests && !this._referenceTestsLoadAttempted) {
       this._loadingReferenceTests = true;
       this._referenceTestsLoadAttempted = true;
       ensureReferenceTestsData()
@@ -2577,22 +2550,15 @@ class PageReference extends HTMLElement {
 
     const openLesson = (lessonRef) => {
       if (!lessonRef || !lessonRef.courseCode || !lessonRef.unitCode || !lessonRef.lessonCode) return;
-      const contentCard = this.querySelector('.reference-content-card');
-      const previousCardTop =
-        contentCard && Number.isFinite(contentCard.getBoundingClientRect().top)
-          ? contentCard.getBoundingClientRect().top
-          : null;
       this.expandedCourseCode = String(lessonRef.courseCode);
       this.expandedUnitCode = String(lessonRef.unitCode);
+      this.lessonView = true;
       setReferenceSelection({
         courseCode: String(lessonRef.courseCode),
         unitCode: String(lessonRef.unitCode),
         lessonCode: String(lessonRef.lessonCode)
       });
       this.render();
-      requestAnimationFrame(() => {
-        this.scrollContentIntoView({ previousCardTop }).catch(() => {});
-      });
     };
 
     const accordionMarkup = courses
@@ -2701,45 +2667,73 @@ class PageReference extends HTMLElement {
       .map((part) => this.escapeHtml(part))
       .join(' · ');
 
-    this.innerHTML = `
-      ${this.renderHeaderHtml()}
-      <ion-content fullscreen class="home-journey secret-content">
-        <div class="journey-shell reference-shell">
-          <section class="journey-plan-card onboarding-intro-card reference-hero-card">
-            <span class="journey-plan-mascot-wrap" aria-hidden="true">
-              <img id="reference-hero-mascot" class="onboarding-intro-cat" src="${heroMascotSrc}" alt="">
-            </span>
-            <div class="journey-plan-body">
-              <p class="onboarding-intro-bubble journey-plan-bubble reference-hero-bubble">${this.escapeHtml(copy.subtitle)}</p>
+    if (this.lessonView) {
+      this.innerHTML = `
+        ${this.renderHeaderHtml()}
+        <ion-content fullscreen class="home-journey secret-content">
+          <div class="journey-shell reference-shell">
+            <div class="reference-lesson-topbar">
+              <button class="reference-back-btn" type="button" id="reference-back-btn">
+                <ion-icon name="chevron-back"></ion-icon>
+                <span>${this.escapeHtml(copy.backToList || 'Back')}</span>
+              </button>
+              <div class="reference-lesson-breadcrumb">${selectedPath}</div>
             </div>
-          </section>
 
-          <div class="journey-accordion reference-accordion">
-            ${accordionMarkup}
+            <section class="reference-content-card">
+              <h3 class="reference-content-title">${this.escapeHtml(
+                this.getText(selectedLesson, 'display', uiLocale) || `Lesson ${selectedLessonCode}`
+              )}</h3>
+              ${
+                lessonContent
+                  ? `<div class="reference-markdown" id="reference-markdown-content">${this.renderMarkdownFallbackHtml(
+                      lessonContent
+                    )}</div>`
+                  : `<div class="reference-empty">${this.escapeHtml(copy.noContent)}</div>`
+              }
+              <div id="reference-tests-section"></div>
+            </section>
+
+            <div class="reference-lesson-nav">
+              <button class="reference-nav-btn reference-nav-btn--prev ${prevLessonRef ? '' : 'is-hidden'}" type="button" id="reference-prev-btn">
+                <ion-icon name="chevron-back"></ion-icon>
+                <span>${prevLessonRef ? this.escapeHtml(this.getText(
+                  courses.flatMap(c => c.unidades || []).flatMap(u => u.lecciones || []).find(l => String(l.code) === prevLessonRef.lessonCode) || {},
+                  'display', uiLocale
+                ) || copy.prev || 'Previous') : ''}</span>
+              </button>
+              <button class="reference-nav-btn reference-nav-btn--next ${nextLessonRef ? '' : 'is-hidden'}" type="button" id="reference-next-btn">
+                <span>${nextLessonRef ? this.escapeHtml(this.getText(
+                  courses.flatMap(c => c.unidades || []).flatMap(u => u.lecciones || []).find(l => String(l.code) === nextLessonRef.lessonCode) || {},
+                  'display', uiLocale
+                ) || copy.next || 'Next') : ''}</span>
+                <ion-icon name="chevron-forward"></ion-icon>
+              </button>
+            </div>
           </div>
+        </ion-content>
+      `;
+    } else {
+      this.innerHTML = `
+        ${this.renderHeaderHtml()}
+        <ion-content fullscreen class="home-journey secret-content">
+          <div class="journey-shell reference-shell">
+            <section class="journey-plan-card onboarding-intro-card reference-hero-card">
+              <span class="journey-plan-mascot-wrap" aria-hidden="true">
+                <img id="reference-hero-mascot" class="onboarding-intro-cat" src="${heroMascotSrc}" alt="">
+              </span>
+              <div class="journey-plan-body">
+                <p class="onboarding-intro-bubble journey-plan-bubble reference-hero-bubble">${this.escapeHtml(copy.subtitle)}</p>
+              </div>
+            </section>
 
-          <section class="reference-content-card">
-            <div class="pill">${this.escapeHtml(copy.selectedLesson)}</div>
-            <div class="reference-selected-path">${selectedPath}</div>
-            <h3 class="reference-content-title">${this.escapeHtml(
-              this.getText(selectedLesson, 'display', uiLocale) || `Lesson ${selectedLessonCode}`
-            )}</h3>
-            ${
-              lessonContent
-                ? `<div class="reference-markdown" id="reference-markdown-content">${this.renderMarkdownFallbackHtml(
-                    lessonContent
-                  )}</div>`
-                : `<div class="reference-empty">${this.escapeHtml(copy.noContent)}</div>`
-            }
-            ${referenceTestsEnabled ? `<div id="reference-tests-section"></div>` : ''}
-            <div class="reference-page-hints" aria-hidden="true">
-              <span class="reference-page-hint reference-page-hint-prev ${prevLessonRef ? 'is-visible' : ''}"></span>
-              <span class="reference-page-hint reference-page-hint-next ${nextLessonRef ? 'is-visible' : ''}"></span>
+            <div class="journey-accordion reference-accordion">
+              ${accordionMarkup}
             </div>
-          </section>
-        </div>
-      </ion-content>
-    `;
+          </div>
+        </ion-content>
+      `;
+    }
 
     this.querySelector('.app-locale-btn')?.addEventListener('click', () => {
       const nextLocale = getNextLocaleCode(getAppLocale() || 'en');
@@ -2749,221 +2743,84 @@ class PageReference extends HTMLElement {
       }
       window.dispatchEvent(new CustomEvent('app:locale-change', { detail: { locale: nextLocale } }));
     });
-    this.querySelector('.reference-hero-card')?.addEventListener('click', (event) => {
-      if (this.isEventInHeaderZone(event)) return;
-      const target = event && event.target instanceof Element ? event.target : null;
-      if (!target) return;
-      const inNarrationZone = target.closest('.journey-plan-mascot-wrap, .onboarding-intro-bubble, .reference-hero-bubble, .journey-plan-bubble');
-      if (!inNarrationZone) return;
-      this.scheduleHeroNarration(0, true);
-    });
     this.updateHeaderRewards();
-    this.currentHeroMessage = copy.subtitle;
-    this.currentHeroLocale = uiLocale;
-    this.scheduleHeroNarration(narrationDelayMs, forceNarration);
-    if (lessonContent) {
-      this.enhanceMarkdownWithMarked(lessonContent, markdownRenderToken);
-    }
-    if (referenceTestsEnabled) {
+
+    if (this.lessonView) {
+      // ── Lesson view listeners ──
+      if (lessonContent) {
+        this.enhanceMarkdownWithMarked(lessonContent, markdownRenderToken);
+      }
       this.renderReferenceTestsSection(uiLocale);
-    }
-    const lessonCardEl = this.querySelector('.reference-content-card');
-    const floatingHintsEl = this.querySelector('.reference-page-hints');
-    const ionContentEl = this.querySelector('ion-content');
-    const hasDirectionalHints = Boolean(prevLessonRef || nextLessonRef);
-    const SWIPE_DRAG_THRESHOLD = 10;
-    const SWIPE_COMMIT_THRESHOLD = 56;
-    const SWIPE_VERTICAL_RATIO = 1.2;
-    const TAP_EDGE_ZONE_RATIO = 0.25;
-    let suppressTapUntil = 0;
-    let swipeTouchActive = false;
-    let swipeTouchHorizontal = false;
-    let swipeTouchBlocked = false;
-    let swipeTouchStartX = 0;
-    let swipeTouchStartY = 0;
-    let swipeTouchCurrentX = 0;
-    const isLessonCardVisible = () => {
-      if (!lessonCardEl) return false;
-      const rect = lessonCardEl.getBoundingClientRect();
-      const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
-      if (!viewportHeight) return false;
-      const visibleHeight = Math.min(rect.bottom, viewportHeight) - Math.max(rect.top, 0);
-      return visibleHeight / viewportHeight >= 0.5;
-    };
-    const isInteractiveTarget = (target) => {
-      if (!(target instanceof Element)) return false;
-      return Boolean(
-        target.closest(
-          'button, a, input, textarea, select, label, [role="button"], [contenteditable="true"], [data-action], #reference-tests-section, .reference-tests-shell, .reference-test-card'
-        )
-      );
-    };
-    const isOutsideLessonSurface = (target) => {
-      if (!(target instanceof Element)) return false;
-      return Boolean(target.closest('.journey-accordion, .journey-plan-card, .journey-title'));
-    };
-    if (floatingHintsEl && hasDirectionalHints && lessonCardEl) {
-      const applyVisibility = (visible) => {
-        floatingHintsEl.classList.toggle('is-card-visible', Boolean(visible));
-      };
-      const observer = new IntersectionObserver(
-        () => {
-          applyVisibility(isLessonCardVisible());
-        },
-        { threshold: Array.from({ length: 21 }, (_, i) => i / 20) }
-      );
-      observer.observe(lessonCardEl);
-      this._floatingHintsObserver = observer;
-      applyVisibility(isLessonCardVisible());
-    }
-    ionContentEl?.addEventListener(
-      'touchstart',
-      (event) => {
-        if (!event.touches || event.touches.length !== 1) return;
-        if (!isLessonCardVisible()) return;
-        const target = event.target instanceof Element ? event.target : null;
-        if (!target) return;
-        if (isInteractiveTarget(target) || isOutsideLessonSurface(target)) return;
-        const touch = event.touches[0];
-        swipeTouchActive = true;
-        swipeTouchHorizontal = false;
-        swipeTouchBlocked = false;
-        swipeTouchStartX = touch.clientX;
-        swipeTouchStartY = touch.clientY;
-        swipeTouchCurrentX = touch.clientX;
-      },
-      { passive: true }
-    );
-    ionContentEl?.addEventListener(
-      'touchmove',
-      (event) => {
-        if (!swipeTouchActive || !event.touches || event.touches.length !== 1) return;
-        const touch = event.touches[0];
-        const dx = touch.clientX - swipeTouchStartX;
-        const dy = touch.clientY - swipeTouchStartY;
 
-        if (!swipeTouchHorizontal && !swipeTouchBlocked) {
-          if (Math.abs(dx) < SWIPE_DRAG_THRESHOLD && Math.abs(dy) < SWIPE_DRAG_THRESHOLD) return;
-          if (Math.abs(dx) < Math.abs(dy) * SWIPE_VERTICAL_RATIO) {
-            swipeTouchBlocked = true;
-            return;
-          }
-          swipeTouchHorizontal = true;
-        }
+      this.querySelector('#reference-back-btn')?.addEventListener('click', () => {
+        this.lessonView = false;
+        this.render();
+      });
 
-        if (!swipeTouchHorizontal) return;
-        swipeTouchCurrentX = touch.clientX;
-        if (event.cancelable) {
-          event.preventDefault();
-        }
-      },
-      { passive: false }
-    );
-    ionContentEl?.addEventListener(
-      'touchend',
-      () => {
-        if (!swipeTouchActive) return;
-        swipeTouchActive = false;
-        if (!swipeTouchHorizontal) {
-          swipeTouchBlocked = false;
-          return;
-        }
-        const dx = swipeTouchCurrentX - swipeTouchStartX;
-        const absDx = Math.abs(dx);
-        swipeTouchHorizontal = false;
-        swipeTouchBlocked = false;
-        if (absDx < SWIPE_COMMIT_THRESHOLD) {
-          suppressTapUntil = Date.now() + 180;
-          return;
-        }
-        suppressTapUntil = Date.now() + 420;
-        if (dx > 0) {
-          if (prevLessonRef) openLesson(prevLessonRef);
-          return;
-        }
+      this.querySelector('#reference-prev-btn')?.addEventListener('click', () => {
+        if (prevLessonRef) openLesson(prevLessonRef);
+      });
+
+      this.querySelector('#reference-next-btn')?.addEventListener('click', () => {
         if (nextLessonRef) openLesson(nextLessonRef);
-      },
-      { passive: true }
-    );
-    ionContentEl?.addEventListener(
-      'touchcancel',
-      () => {
-        if (!swipeTouchActive) return;
-        swipeTouchActive = false;
-        swipeTouchHorizontal = false;
-        swipeTouchBlocked = false;
-        suppressTapUntil = Date.now() + 120;
-      },
-      { passive: true }
-    );
-    ionContentEl?.addEventListener('click', (event) => {
-      if (Date.now() < suppressTapUntil) return;
-      const target = event && event.target instanceof Element ? event.target : null;
-      if (!target) return;
-      if (isInteractiveTarget(target)) return;
-      if (isOutsideLessonSurface(target)) return;
-      if (!isLessonCardVisible()) return;
-      const selection = typeof window.getSelection === 'function' ? window.getSelection() : null;
-      if (selection && !selection.isCollapsed && String(selection).trim()) {
-        return;
-      }
-      const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 0;
-      if (!viewportWidth) return;
-      const clientX = Number.isFinite(event.clientX) ? event.clientX : viewportWidth / 2;
-      const leftEdgeLimit = viewportWidth * TAP_EDGE_ZONE_RATIO;
-      const rightEdgeLimit = viewportWidth * (1 - TAP_EDGE_ZONE_RATIO);
-      if (clientX <= leftEdgeLimit) {
-        if (!prevLessonRef) return;
-        openLesson(prevLessonRef);
-        return;
-      }
-      if (clientX < rightEdgeLimit) return;
-      if (!nextLessonRef) return;
-      openLesson(nextLessonRef);
-    });
-
-    this.querySelectorAll('[data-action="toggle-course"]').forEach((button) => {
-      button.addEventListener('click', (event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        const courseCode = String(button.getAttribute('data-course-code') || '');
-        if (!courseCode) return;
-        const isClosing = this.expandedCourseCode === courseCode;
-        this.expandedCourseCode = isClosing ? '' : courseCode;
-        if (!isClosing) {
-          const course = courses.find((item) => String(item.code) === courseCode);
-          const units = course && Array.isArray(course.unidades) ? course.unidades : [];
-          this.expandedUnitCode = units.length ? String(units[0].code) : '';
-        }
-        this.render();
       });
-    });
-
-    this.querySelectorAll('[data-action="toggle-unit"]').forEach((button) => {
-      button.addEventListener('click', (event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        const courseCode = String(button.getAttribute('data-course-code') || '');
-        const unitCode = String(button.getAttribute('data-unit-code') || '');
-        if (!courseCode || !unitCode) return;
-        this.expandedCourseCode = courseCode;
-        const isClosing = this.expandedUnitCode === unitCode;
-        this.expandedUnitCode = isClosing ? '' : unitCode;
-        this.render();
+    } else {
+      // ── List view listeners ──
+      this.currentHeroMessage = copy.subtitle;
+      this.currentHeroLocale = uiLocale;
+      this.querySelector('.reference-hero-card')?.addEventListener('click', (event) => {
+        if (this.isEventInHeaderZone(event)) return;
+        const target = event && event.target instanceof Element ? event.target : null;
+        if (!target) return;
+        const inNarrationZone = target.closest('.journey-plan-mascot-wrap, .onboarding-intro-bubble, .reference-hero-bubble, .journey-plan-bubble');
+        if (!inNarrationZone) return;
+        this.scheduleHeroNarration(0, true);
       });
-    });
+      this.scheduleHeroNarration(narrationDelayMs, forceNarration);
 
-    this.querySelectorAll('[data-action="select-lesson"]').forEach((row) => {
-      row.addEventListener('click', (event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        const courseCode = String(row.getAttribute('data-course-code') || '');
-        const unitCode = String(row.getAttribute('data-unit-code') || '');
-        const lessonCode = String(row.getAttribute('data-lesson-code') || '');
-        if (!courseCode || !unitCode || !lessonCode) return;
-        openLesson({ courseCode, unitCode, lessonCode });
+      this.querySelectorAll('[data-action="toggle-course"]').forEach((button) => {
+        button.addEventListener('click', (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          const courseCode = String(button.getAttribute('data-course-code') || '');
+          if (!courseCode) return;
+          const isClosing = this.expandedCourseCode === courseCode;
+          this.expandedCourseCode = isClosing ? '' : courseCode;
+          if (!isClosing) {
+            const course = courses.find((item) => String(item.code) === courseCode);
+            const units = course && Array.isArray(course.unidades) ? course.unidades : [];
+            this.expandedUnitCode = units.length ? String(units[0].code) : '';
+          }
+          this.render();
+        });
       });
-    });
+
+      this.querySelectorAll('[data-action="toggle-unit"]').forEach((button) => {
+        button.addEventListener('click', (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          const courseCode = String(button.getAttribute('data-course-code') || '');
+          const unitCode = String(button.getAttribute('data-unit-code') || '');
+          if (!courseCode || !unitCode) return;
+          this.expandedCourseCode = courseCode;
+          const isClosing = this.expandedUnitCode === unitCode;
+          this.expandedUnitCode = isClosing ? '' : unitCode;
+          this.render();
+        });
+      });
+
+      this.querySelectorAll('[data-action="select-lesson"]').forEach((row) => {
+        row.addEventListener('click', (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          const courseCode = String(row.getAttribute('data-course-code') || '');
+          const unitCode = String(row.getAttribute('data-unit-code') || '');
+          const lessonCode = String(row.getAttribute('data-lesson-code') || '');
+          if (!courseCode || !unitCode || !lessonCode) return;
+          openLesson({ courseCode, unitCode, lessonCode });
+        });
+      });
+    }
   }
 }
 

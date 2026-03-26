@@ -16,6 +16,66 @@ const UI_SFX_SOURCES = {
   notification: 'assets/sounds/notification.mp3'
 };
 
+const PLAN_TAB_VISIBILITY_KEYS = {
+  home: 'appv5:tab-training-enabled',
+  freeride: 'appv5:tab-lab-enabled',
+  reference: 'appv5:reference-tab-enabled',
+  chat: 'appv5:tab-chat-enabled',
+  tu: 'appv5:tab-you-enabled'
+};
+
+const PREMIUM_PLAN_TABS = {
+  home: true,
+  freeride: false,
+  reference: true,
+  chat: true,
+  tu: true
+};
+
+const STANDARD_PLAN_TABS = {
+  home: true,
+  freeride: false,
+  reference: false,
+  chat: false,
+  tu: true
+};
+
+const isPremiumPlanUser = (user) => {
+  if (!user || typeof user !== 'object') return false;
+  if (user.premium === true || user.premium === '1' || user.premium === 'true') return true;
+  const expiresRaw = user.expires_date || user.expiresDate || '';
+  if (!expiresRaw) return false;
+  const expires = new Date(expiresRaw);
+  if (Number.isNaN(expires.getTime())) return false;
+  return expires.getTime() > Date.now();
+};
+
+window.applyUserPlanTabVisibility = (user) => {
+  if (!user || typeof user !== 'object') return null;
+  const nextPlan = isPremiumPlanUser(user) ? PREMIUM_PLAN_TABS : STANDARD_PLAN_TABS;
+  window.r34lp0w3r = window.r34lp0w3r || {};
+  window.r34lp0w3r.tabVisibility = { ...nextPlan };
+  window.r34lp0w3r.referenceTabEnabled = nextPlan.reference === true;
+  try {
+    Object.entries(PLAN_TAB_VISIBILITY_KEYS).forEach(([tab, key]) => {
+      localStorage.setItem(key, nextPlan[tab] ? '1' : '0');
+    });
+  } catch (err) {
+    // no-op
+  }
+  window.dispatchEvent(
+    new CustomEvent('app:tab-visibility-change', {
+      detail: { source: 'plan-reset', visibility: { ...nextPlan } }
+    })
+  );
+  window.dispatchEvent(
+    new CustomEvent('app:reference-tab-enabled-change', {
+      detail: { enabled: nextPlan.reference === true, source: 'plan-reset' }
+    })
+  );
+  return { ...nextPlan };
+};
+
 const normalizeUiSfxKey = (value) => {
   const key = String(value || '')
     .trim()
@@ -1420,14 +1480,19 @@ window.addEventListener('online', () => {
 });
 
 window.addEventListener('app:user-change', (event) => {
+  const nextUser = event && event.detail && typeof event.detail === 'object' ? event.detail : null;
   const nextId = readUserIdFromDetail(event && event.detail ? event.detail : null);
   const prevId = speakLastUserId;
+  const isLogin = !isValidSpeakUserId(prevId) && isValidSpeakUserId(nextId);
+  const isUserSwitch = isValidSpeakUserId(prevId) && isValidSpeakUserId(nextId) && prevId !== nextId;
+  if (nextUser && (isLogin || isUserSwitch)) {
+    window.applyUserPlanTabVisibility(nextUser);
+  }
   speakLastUserId = nextId;
   if (isValidSpeakUserId(prevId) && !isValidSpeakUserId(nextId)) {
     window.resetSpeakProgress();
     return;
   }
-  const isLogin = !isValidSpeakUserId(prevId) && isValidSpeakUserId(nextId);
   if (isLogin) {
     (async () => {
       const localHasData = !isSpeakSnapshotEmpty();

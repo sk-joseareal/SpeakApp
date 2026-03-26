@@ -6636,7 +6636,6 @@ class PageFreeRide extends HTMLElement {
     this.currentUiLocale = uiLocale;
     const copy = getFreeRideCopy(uiLocale);
     this.currentCopy = copy;
-    const nextLocaleCode = getNextLocaleCode(uiLocale);
     const debugEnabled = this.isSpeakDebugEnabled();
     const heroMascotSrc = this.getHeroMascotFramePath(this.heroMascotFrameIndex);
     const bilingualPlaceholder = this.getFreeRideCopyBilingualPlainText('inputPlaceholder', {
@@ -6648,7 +6647,7 @@ class PageFreeRide extends HTMLElement {
     const savePhraseDisabled = !hasExpectedText || libraryActionsDisabled;
 
     this.innerHTML = `
-      ${renderAppHeader({ title: copy.title, rewardBadgesId: 'free-ride-reward-badges', nextLocale: nextLocaleCode.toUpperCase() })}
+      ${renderAppHeader({ title: copy.title, rewardBadgesId: 'free-ride-reward-badges', locale: uiLocale })}
       <ion-content fullscreen class="free-ride-content speak-content secret-content">
         <div class="speak-shell free-ride-shell">
           <section class="free-ride-hero-card onboarding-intro-card">

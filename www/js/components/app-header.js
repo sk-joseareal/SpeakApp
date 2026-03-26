@@ -5,9 +5,10 @@
  * @param {object} options
  * @param {string} options.title         - Tab title shown on the left
  * @param {string} options.rewardBadgesId - ID for the reward badges container
- * @param {string} options.nextLocale    - Locale code shown on the globe button (e.g. 'ES')
+ * @param {string} options.locale        - Active locale code shown on the globe button (e.g. 'ES')
  */
-export function renderAppHeader({ title, rewardBadgesId, nextLocale }) {
+export function renderAppHeader({ title, rewardBadgesId, locale }) {
+  const localeLabel = String(locale || '').trim().toUpperCase();
   return `
     <ion-header translucent="true">
       <ion-toolbar class="secret-title">
@@ -20,7 +21,7 @@ export function renderAppHeader({ title, rewardBadgesId, nextLocale }) {
           </ion-button>
           <button class="app-locale-btn">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
-            <span class="app-locale-label">${nextLocale}</span>
+            <span class="app-locale-label">${localeLabel}</span>
           </button>
         </div>
       </ion-toolbar>

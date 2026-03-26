@@ -103,6 +103,12 @@ const ttsAlignedTextMaxLen = Number(env('TTS_ALIGNED_TEXT_MAX_LEN', '320'));
 const ttsAlignedDefaultVoiceEnUS = env('TTS_ALIGNED_VOICE_EN_US', 'Danielle');
 const ttsAlignedDefaultVoiceEnGB = env('TTS_ALIGNED_VOICE_EN_GB', 'Amy');
 const ttsAlignedDefaultVoiceEsES = env('TTS_ALIGNED_VOICE_ES_ES', 'Lucia');
+const ttsAlignedChildProfileVoiceEnUS = env('TTS_ALIGNED_PROFILE_CHILD_VOICE_EN_US', 'Mia');
+const ttsAlignedChildProfileVoiceEnGB = env('TTS_ALIGNED_PROFILE_CHILD_VOICE_EN_GB', 'Mia');
+const ttsAlignedChildProfileVoiceEsES = env('TTS_ALIGNED_PROFILE_CHILD_VOICE_ES_ES', 'Lucia');
+const ttsAlignedChildProfileEngine = env('TTS_ALIGNED_PROFILE_CHILD_ENGINE', 'neural');
+const ttsAlignedChildProfileRate = env('TTS_ALIGNED_PROFILE_CHILD_RATE', '105%');
+const ttsAlignedChildProfilePitch = env('TTS_ALIGNED_PROFILE_CHILD_PITCH', '+3%');
 const ttsPollyCostPerMillionCharsStandard = Number(env('TTS_POLLY_STANDARD_COST_PER_MILLION_CHARS', '4'));
 const ttsPollyCostPerMillionCharsNeural = Number(env('TTS_POLLY_NEURAL_COST_PER_MILLION_CHARS', '16'));
 const ttsPollyCostPerMillionCharsGenerative = Number(env('TTS_POLLY_GENERATIVE_COST_PER_MILLION_CHARS', '30'));
@@ -404,6 +410,52 @@ const normalizeTtsLocale = (value) => {
 
 const normalizeTtsText = (value) => String(value || '').replace(/\s+/g, ' ').trim();
 
+const normalizeTtsVoiceProfile = (value) => {
+  const raw = pickFirstString(value).toLowerCase();
+  if (!raw) return 'default';
+  if (['child', 'kid', 'kids', 'young'].includes(raw)) return 'child';
+  return 'default';
+};
+
+const normalizeTtsProsodyRate = (value) => {
+  const raw = pickFirstString(value).replace(/\s+/g, '');
+  if (!raw) return '';
+  const lowered = raw.toLowerCase();
+  if (['x-slow', 'slow', 'medium', 'fast', 'x-fast'].includes(lowered)) {
+    return lowered;
+  }
+  const match = /^(\d{1,3})%$/.exec(raw);
+  if (!match) return '';
+  const numeric = Number(match[1]);
+  if (!Number.isFinite(numeric)) return '';
+  const clamped = Math.max(20, Math.min(200, Math.round(numeric)));
+  return `${clamped}%`;
+};
+
+const normalizeTtsProsodyPitch = (value) => {
+  const raw = pickFirstString(value).replace(/\s+/g, '');
+  if (!raw) return '';
+  const lowered = raw.toLowerCase();
+  if (['x-low', 'low', 'medium', 'high', 'x-high'].includes(lowered)) {
+    return lowered;
+  }
+  const match = /^([+-]?\d{1,2})%$/.exec(raw);
+  if (!match) return '';
+  const numeric = Number(match[1]);
+  if (!Number.isFinite(numeric)) return '';
+  const clamped = Math.max(-50, Math.min(50, Math.round(numeric)));
+  const sign = clamped > 0 ? '+' : '';
+  return `${sign}${clamped}%`;
+};
+
+const escapeSsmlText = (value) =>
+  String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+
 const normalizeTextForPollyRetry = (value) => {
   let text = String(value || '');
   if (typeof text.normalize === 'function') {
@@ -430,6 +482,75 @@ const selectDefaultTtsVoice = (locale) => {
   return ttsAlignedDefaultVoiceEnUS;
 };
 
+const resolveTtsProfileDefaults = (locale, voiceProfile = 'default') => {
+  const normalizedLocale = normalizeTtsLocale(locale);
+  if (normalizeTtsVoiceProfile(voiceProfile) !== 'child') {
+    return {
+      voice_profile: 'default',
+      voice: selectDefaultTtsVoice(normalizedLocale),
+      engine: String(ttsAlignedPollyEngine || 'neural').trim() || 'neural',
+      rate: '',
+      pitch: ''
+    };
+  }
+  const voice =
+    normalizedLocale === 'es-ES'
+      ? ttsAlignedChildProfileVoiceEsES
+      : normalizedLocale === 'en-GB'
+        ? ttsAlignedChildProfileVoiceEnGB
+        : ttsAlignedChildProfileVoiceEnUS;
+  return {
+    voice_profile: 'child',
+    voice: pickFirstString(voice, selectDefaultTtsVoice(normalizedLocale)),
+    engine: pickFirstString(ttsAlignedChildProfileEngine, ttsAlignedPollyEngine, 'neural'),
+    rate: normalizeTtsProsodyRate(ttsAlignedChildProfileRate),
+    pitch: normalizeTtsProsodyPitch(ttsAlignedChildProfilePitch)
+  };
+};
+
+const resolveAlignedTtsVoiceOptions = (source = {}, locale) => {
+  const voiceProfile = normalizeTtsVoiceProfile(
+    source.voice_profile || source.voiceProfile || source.profile || source.variant
+  );
+  const defaults = resolveTtsProfileDefaults(locale, voiceProfile);
+  return {
+    voice_profile: voiceProfile,
+    voice: pickFirstString(source.voice, defaults.voice),
+    engine: pickFirstString(source.engine, defaults.engine),
+    rate: pickFirstString(normalizeTtsProsodyRate(source.rate || source.prosody_rate || source.prosodyRate), defaults.rate),
+    pitch: pickFirstString(
+      normalizeTtsProsodyPitch(source.pitch || source.prosody_pitch || source.prosodyPitch),
+      defaults.pitch
+    )
+  };
+};
+
+const buildPollySynthesisInput = ({ text, rate, pitch }) => {
+  const normalizedText = normalizeTtsText(text);
+  const normalizedRate = normalizeTtsProsodyRate(rate);
+  const normalizedPitch = normalizeTtsProsodyPitch(pitch);
+  if (!normalizedRate && !normalizedPitch) {
+    return {
+      text: normalizedText,
+      textType: 'text',
+      rate: '',
+      pitch: ''
+    };
+  }
+  const prosodyAttrs = [
+    normalizedRate ? `rate="${normalizedRate}"` : '',
+    normalizedPitch ? `pitch="${normalizedPitch}"` : ''
+  ]
+    .filter(Boolean)
+    .join(' ');
+  return {
+    text: `<speak><prosody ${prosodyAttrs}>${escapeSsmlText(normalizedText)}</prosody></speak>`,
+    textType: 'ssml',
+    rate: normalizedRate,
+    pitch: normalizedPitch
+  };
+};
+
 const sanitizeS3PathPart = (value) =>
   String(value || '')
     .replace(/^\/*/, '')
@@ -441,10 +562,10 @@ const buildTtsS3Key = (...parts) =>
     .filter(Boolean)
     .join('/');
 
-const buildTtsCacheHash = ({ text, locale, voice, engine }) =>
+const buildTtsCacheHash = ({ text, locale, voice, engine, rate, pitch }) =>
   crypto
     .createHash('sha1')
-    .update([text, locale, voice, engine, 'v1'].join('|'))
+    .update([text, locale, voice, engine, rate || '', pitch || '', 'v2'].join('|'))
     .digest('hex');
 
 const getTtsPublicUrl = (key) => {
@@ -550,11 +671,11 @@ const parsePollyWordMarks = (rawMarks) => {
   return { words, duration_ms: durationMs };
 };
 
-const synthesizePollyBuffer = async ({ text, voice, engine, outputFormat, speechMarkTypes }) => {
+const synthesizePollyBuffer = async ({ text, textType = 'text', voice, engine, outputFormat, speechMarkTypes }) => {
   if (!pollyClient) throw new Error('polly_not_configured');
   const command = new SynthesizeSpeechCommand({
     Text: text,
-    TextType: 'text',
+    TextType: textType,
     VoiceId: voice,
     Engine: engine,
     OutputFormat: outputFormat,
@@ -567,17 +688,24 @@ const synthesizePollyBuffer = async ({ text, voice, engine, outputFormat, speech
   };
 };
 
-const synthesizeAlignedPollyAssets = async ({ text, voice, engine }) => {
+const synthesizeAlignedPollyAssets = async ({ text, voice, engine, rate, pitch }) => {
   const attemptSynthesis = async (inputText) => {
+    const synthesisInput = buildPollySynthesisInput({
+      text: inputText,
+      rate,
+      pitch
+    });
     const [audioSynth, marksSynth] = await Promise.all([
       synthesizePollyBuffer({
-        text: inputText,
+        text: synthesisInput.text,
+        textType: synthesisInput.textType,
         voice,
         engine,
         outputFormat: 'mp3'
       }),
       synthesizePollyBuffer({
-        text: inputText,
+        text: synthesisInput.text,
+        textType: synthesisInput.textType,
         voice,
         engine,
         outputFormat: 'json',
@@ -586,6 +714,8 @@ const synthesizeAlignedPollyAssets = async ({ text, voice, engine }) => {
     ]);
     return {
       inputText,
+      rate: synthesisInput.rate,
+      pitch: synthesisInput.pitch,
       audioSynth,
       marksSynth
     };
@@ -636,7 +766,8 @@ const buildAlignedTtsPayload = async (source = {}, options = {}) => {
   }
 
   const locale = normalizeTtsLocale(source.locale || source.lang || source.language);
-  const voice = pickFirstString(source.voice, selectDefaultTtsVoice(locale));
+  const resolvedVoiceOptions = resolveAlignedTtsVoiceOptions(source, locale);
+  const voice = resolvedVoiceOptions.voice;
   if (!voice) {
     return {
       ok: false,
@@ -645,8 +776,11 @@ const buildAlignedTtsPayload = async (source = {}, options = {}) => {
     };
   }
 
-  const engine = pickFirstString(source.engine, ttsAlignedPollyEngine);
-  const cacheHash = buildTtsCacheHash({ text, locale, voice, engine });
+  const engine = pickFirstString(resolvedVoiceOptions.engine, ttsAlignedPollyEngine);
+  const rate = normalizeTtsProsodyRate(resolvedVoiceOptions.rate);
+  const pitch = normalizeTtsProsodyPitch(resolvedVoiceOptions.pitch);
+  const voiceProfile = normalizeTtsVoiceProfile(resolvedVoiceOptions.voice_profile);
+  const cacheHash = buildTtsCacheHash({ text, locale, voice, engine, rate, pitch });
   const cachePrefix = sanitizeS3PathPart(ttsAlignedS3Prefix);
   const audioKey = buildTtsS3Key(cachePrefix, locale, `${cacheHash}.mp3`);
   const wordsKey = buildTtsS3Key(cachePrefix, locale, `${cacheHash}.words.json`);
@@ -696,7 +830,9 @@ const buildAlignedTtsPayload = async (source = {}, options = {}) => {
       const synthesizedAssets = await synthesizeAlignedPollyAssets({
         text,
         voice,
-        engine
+        engine,
+        rate,
+        pitch
       });
       const audioSynth = synthesizedAssets && synthesizedAssets.audioSynth ? synthesizedAssets.audioSynth : null;
       const marksSynth = synthesizedAssets && synthesizedAssets.marksSynth ? synthesizedAssets.marksSynth : null;
@@ -704,6 +840,12 @@ const buildAlignedTtsPayload = async (source = {}, options = {}) => {
         synthesizedAssets && typeof synthesizedAssets.inputText === 'string'
           ? synthesizedAssets.inputText
           : text;
+      const effectiveRate = normalizeTtsProsodyRate(
+        synthesizedAssets && synthesizedAssets.rate !== undefined ? synthesizedAssets.rate : rate
+      );
+      const effectivePitch = normalizeTtsProsodyPitch(
+        synthesizedAssets && synthesizedAssets.pitch !== undefined ? synthesizedAssets.pitch : pitch
+      );
       const audioBuffer = audioSynth && audioSynth.buffer ? audioSynth.buffer : Buffer.alloc(0);
       const marksBuffer = marksSynth && marksSynth.buffer ? marksSynth.buffer : Buffer.alloc(0);
       const audioRequestChars = Math.round(
@@ -723,6 +865,9 @@ const buildAlignedTtsPayload = async (source = {}, options = {}) => {
         locale,
         voice,
         engine,
+        rate: effectiveRate,
+        pitch: effectivePitch,
+        voice_profile: voiceProfile,
         duration_ms: parsedMarks.duration_ms,
         words: parsedMarks.words
       };
@@ -765,6 +910,8 @@ const buildAlignedTtsPayload = async (source = {}, options = {}) => {
         locale,
         voice,
         engine,
+        rate,
+        pitch,
         text_characters: text.length,
         billed_characters: cached ? 0 : billedCharacters,
         cached
@@ -781,6 +928,9 @@ const buildAlignedTtsPayload = async (source = {}, options = {}) => {
       locale,
       voice,
       engine,
+      rate,
+      pitch,
+      voice_profile: voiceProfile,
       audio_url: getTtsPublicUrl(audioKey),
       words_url: getTtsPublicUrl(wordsKey),
       duration_ms: toNonNegativeNumber(wordsPayload.duration_ms, 0),

@@ -39,8 +39,8 @@ class PageDiagnostics extends HTMLElement {
     const SPEAK_PRONUNCIATION_AVATAR_OLD = 'old';
     const SPEAK_PRONUNCIATION_AVATAR_NEW = 'new';
     const REFERENCE_TAB_ENABLED_KEY = 'appv5:reference-tab-enabled';
-    const REFERENCE_TESTS_ENABLED_KEY = 'appv5:reference-tests-enabled';
     const CHAT_CATBOT_ENABLED_KEY = 'appv5:chat-catbot-enabled';
+    const CHAT_CHATBOT_ENABLED_KEY = 'appv5:chat-chatbot-enabled';
     const TAB_VISIBILITY_ORDER = ['home', 'freeride', 'reference', 'chat', 'tu'];
     const TAB_VISIBILITY_KEYS = {
       home: 'appv5:tab-training-enabled',
@@ -51,9 +51,9 @@ class PageDiagnostics extends HTMLElement {
     };
     const TAB_VISIBILITY_DEFAULTS = {
       home: true,
-      freeride: true,
+      freeride: false,
       reference: false,
-      chat: true,
+      chat: false,
       tu: true
     };
     const TAB_VISIBILITY_META = {
@@ -229,26 +229,6 @@ class PageDiagnostics extends HTMLElement {
     const getStoredReferenceTabEnabled = () => {
       return getStoredTabVisibility('reference');
     };
-    const normalizeReferenceTestsEnabled = (value) => {
-      if (typeof value === 'boolean') return value;
-      const normalized = String(value || '')
-        .trim()
-        .toLowerCase();
-      if (!normalized) return false;
-      return ['1', 'true', 'on', 'yes'].includes(normalized);
-    };
-    const getStoredReferenceTestsEnabled = () => {
-      const globalValue =
-        window.r34lp0w3r && Object.prototype.hasOwnProperty.call(window.r34lp0w3r, 'referenceTestsEnabled')
-          ? window.r34lp0w3r.referenceTestsEnabled
-          : undefined;
-      if (globalValue !== undefined) return normalizeReferenceTestsEnabled(globalValue);
-      try {
-        return normalizeReferenceTestsEnabled(localStorage.getItem(REFERENCE_TESTS_ENABLED_KEY));
-      } catch (err) {
-        return false;
-      }
-    };
     const normalizeChatCatbotEnabled = (value) => {
       if (typeof value === 'boolean') return value;
       const normalized = String(value || '')
@@ -265,6 +245,26 @@ class PageDiagnostics extends HTMLElement {
       if (globalValue !== undefined) return normalizeChatCatbotEnabled(globalValue);
       try {
         return normalizeChatCatbotEnabled(localStorage.getItem(CHAT_CATBOT_ENABLED_KEY));
+      } catch (err) {
+        return false;
+      }
+    };
+    const normalizeChatChatbotEnabled = (value) => {
+      if (typeof value === 'boolean') return value;
+      const normalized = String(value || '')
+        .trim()
+        .toLowerCase();
+      if (!normalized) return false;
+      return ['1', 'true', 'on', 'yes'].includes(normalized);
+    };
+    const getStoredChatChatbotEnabled = () => {
+      const globalValue =
+        window.r34lp0w3r && Object.prototype.hasOwnProperty.call(window.r34lp0w3r, 'chatChatbotEnabled')
+          ? window.r34lp0w3r.chatChatbotEnabled
+          : undefined;
+      if (globalValue !== undefined) return normalizeChatChatbotEnabled(globalValue);
+      try {
+        return normalizeChatChatbotEnabled(localStorage.getItem(CHAT_CHATBOT_ENABLED_KEY));
       } catch (err) {
         return false;
       }
@@ -320,17 +320,17 @@ class PageDiagnostics extends HTMLElement {
             ${buildTabVisibilityToggleMarkup()}
             <div class="diag-debug-toggle" style="margin-top: 10px;">
               <div class="diag-debug-text">
-                <div class="diag-debug-title">Tests en Referencia</div>
-                <div class="diag-debug-sub" id="diag-reference-tests-sub"></div>
-              </div>
-              <ion-toggle id="diag-reference-tests-toggle" ${getStoredReferenceTestsEnabled() ? 'checked' : ''}></ion-toggle>
-            </div>
-            <div class="diag-debug-toggle" style="margin-top: 10px;">
-              <div class="diag-debug-text">
                 <div class="diag-debug-title">Catbot</div>
                 <div class="diag-debug-sub" id="diag-chat-community-sub"></div>
               </div>
               <ion-toggle id="diag-chat-community-toggle" ${getStoredChatCatbotEnabled() ? 'checked' : ''}></ion-toggle>
+            </div>
+            <div class="diag-debug-toggle" style="margin-top: 10px;">
+              <div class="diag-debug-text">
+                <div class="diag-debug-title">Chatbot</div>
+                <div class="diag-debug-sub" id="diag-chat-chatbot-sub"></div>
+              </div>
+              <ion-toggle id="diag-chat-chatbot-toggle" ${getStoredChatChatbotEnabled() ? 'checked' : ''}></ion-toggle>
             </div>
             
             <div id="diag-user" style="display:none; margin-bottom:12px;">
@@ -338,15 +338,7 @@ class PageDiagnostics extends HTMLElement {
               <p>ID: <strong id="diag-user-id"></strong></p>
               <p>Nombre: <strong id="diag-user-name"></strong></p>
               <p>Avatar: <strong id="diag-user-avatar"></strong></p>
-              <p>Chat hasta: <strong id="diag-user-chat-expiry"></strong></p>
-              <p>Chat real: <strong id="diag-user-chat-state"></strong></p>
-              <div class="diag-debug-toggle" style="margin-top: 10px;">
-                <div class="diag-debug-text">
-                  <div class="diag-debug-title">Chat (override)</div>
-                  <div class="diag-debug-sub">Fuerza acceso Chat para pruebas.</div>
-                </div>
-                <ion-toggle id="diag-chat-toggle"></ion-toggle>
-              </div>
+              <p>Premium hasta: <strong id="diag-user-chat-expiry"></strong></p>
               <div class="diag-avatar-wrap">
                 <img id="diag-user-avatar-img" src="" alt="Avatar" class="diag-avatar">
               </div>
@@ -654,9 +646,6 @@ class PageDiagnostics extends HTMLElement {
     */
 
     resolveVersionsAsync(plugins, this);
-
-    const CHAT_OVERRIDE_KEY = 'appv5:chat-override';
-
     const debugToggle = this.querySelector('#diag-debug-toggle');
     if (debugToggle) {
       const applyDebug = (enabled) => {
@@ -685,70 +674,12 @@ class PageDiagnostics extends HTMLElement {
       });
     }
 
-    const readChatOverride = () => {
-      if (window.r34lp0w3r && window.r34lp0w3r.chatOverride === true) {
-        return true;
-      }
-      try {
-        const raw = localStorage.getItem(CHAT_OVERRIDE_KEY);
-        if (raw === '1') {
-          window.r34lp0w3r = window.r34lp0w3r || {};
-          window.r34lp0w3r.chatOverride = true;
-          return true;
-        }
-        if (raw === '0') {
-          localStorage.removeItem(CHAT_OVERRIDE_KEY);
-        }
-      } catch (err) {
-        // no-op
-      }
-      return null;
-    };
-
-    const setChatOverride = (enabled) => {
-      window.r34lp0w3r = window.r34lp0w3r || {};
-      if (enabled) {
-        window.r34lp0w3r.chatOverride = true;
-      } else {
-        delete window.r34lp0w3r.chatOverride;
-      }
-      try {
-        if (enabled) {
-          localStorage.setItem(CHAT_OVERRIDE_KEY, '1');
-        } else {
-          localStorage.removeItem(CHAT_OVERRIDE_KEY);
-        }
-      } catch (err) {
-        // no-op
-      }
-      window.dispatchEvent(new CustomEvent('app:chat-override', { detail: !!enabled }));
-    };
-
     const formatExpiry = (value) => {
       if (!value) return 'n/a';
       const date = new Date(value);
       if (Number.isNaN(date.getTime())) return String(value);
       return date.toISOString();
     };
-
-    const isChatByExpiry = (user) => {
-      if (!user || !user.expires_date) return false;
-      const date = new Date(user.expires_date);
-      if (Number.isNaN(date.getTime())) return false;
-      return date.getTime() > Date.now();
-    };
-
-    const chatToggle = this.querySelector('#diag-chat-toggle');
-    if (chatToggle) {
-      const override = readChatOverride();
-      if (override !== null) {
-        chatToggle.checked = override;
-      }
-      chatToggle.addEventListener('ionChange', (event) => {
-        const checked = event && event.detail ? event.detail.checked : chatToggle.checked;
-        setChatOverride(checked);
-      });
-    }
 
     const resolveAvatarSrc = (user) => {
       if (!user) return '';
@@ -787,9 +718,6 @@ class PageDiagnostics extends HTMLElement {
         const avatarEl = this.querySelector('#diag-user-avatar');
         const avatarImgEl = this.querySelector('#diag-user-avatar-img');
         const chatExpiryEl = this.querySelector('#diag-user-chat-expiry');
-        const chatStateEl = this.querySelector('#diag-user-chat-state');
-        const override = readChatOverride();
-        const chatReal = isChatByExpiry(user);
         if (avatarEl) avatarEl.textContent = user.avatar || 'n/a';
         if (idEl) idEl.textContent = user.id || 'n/a';
         if (nameEl) nameEl.textContent = user.name || 'n/a';
@@ -799,19 +727,11 @@ class PageDiagnostics extends HTMLElement {
         if (chatExpiryEl) {
           chatExpiryEl.textContent = formatExpiry(user.expires_date);
         }
-        if (chatStateEl) {
-          chatStateEl.textContent = chatReal ? 'si' : 'no';
-        }
-        if (chatToggle) {
-          chatToggle.disabled = false;
-          chatToggle.checked = override === true;
-        }
         panel.style.display = 'block';
         if (loginBtn) loginBtn.disabled = true;
         if (logoutBtn) logoutBtn.style.display = '';
       } else {
         panel.style.display = 'none';
-        if (chatToggle) chatToggle.disabled = true;
         if (loginBtn) loginBtn.disabled = false;
         if (logoutBtn) logoutBtn.style.display = 'none';
       }
@@ -824,6 +744,9 @@ class PageDiagnostics extends HTMLElement {
       refreshUserUsage();
       refreshTtsUserUsage();
       refreshPronUserUsage();
+      TAB_VISIBILITY_ORDER.forEach((tab) => {
+        updateTabVisibilityUi(tab, getStoredTabVisibility(tab));
+      });
     };
     window.addEventListener('app:user-change', this._userHandler);
 
@@ -889,10 +812,10 @@ class PageDiagnostics extends HTMLElement {
     const tabVisibilitySubEls = Object.fromEntries(
       TAB_VISIBILITY_ORDER.map((tab) => [tab, this.querySelector(`#diag-tab-${tab}-sub`)])
     );
-    const referenceTestsToggleEl = this.querySelector('#diag-reference-tests-toggle');
-    const referenceTestsSubEl = this.querySelector('#diag-reference-tests-sub');
     const chatCommunityToggleEl = this.querySelector('#diag-chat-community-toggle');
     const chatCommunitySubEl = this.querySelector('#diag-chat-community-sub');
+    const chatChatbotToggleEl = this.querySelector('#diag-chat-chatbot-toggle');
+    const chatChatbotSubEl = this.querySelector('#diag-chat-chatbot-sub');
     const pronAdvancedUsageSectionEl = this.querySelector('#diag-pron-advanced-usage-section');
     const notifyListEl = this.querySelector('#diag-notify-list');
     const notifyEmptyEl = this.querySelector('#diag-notify-empty');
@@ -1115,36 +1038,6 @@ class PageDiagnostics extends HTMLElement {
       return normalized;
     };
 
-    const setReferenceTestsEnabled = (enabled) => {
-      const normalized = normalizeReferenceTestsEnabled(enabled);
-      window.r34lp0w3r = window.r34lp0w3r || {};
-      window.r34lp0w3r.referenceTestsEnabled = normalized;
-      try {
-        localStorage.setItem(REFERENCE_TESTS_ENABLED_KEY, normalized ? '1' : '0');
-      } catch (err) {
-        // no-op
-      }
-      window.dispatchEvent(
-        new CustomEvent('app:reference-tests-enabled-change', {
-          detail: { enabled: normalized }
-        })
-      );
-      return normalized;
-    };
-
-    const updateReferenceTestsUi = (enabled) => {
-      const normalized = normalizeReferenceTestsEnabled(enabled);
-      if (referenceTestsToggleEl) {
-        referenceTestsToggleEl.checked = normalized;
-      }
-      if (referenceTestsSubEl) {
-        referenceTestsSubEl.textContent = normalized
-          ? 'Activado: muestra tests de lección/unidad dentro del tab Referencia.'
-          : 'Desactivado: oculta los tests del tab Referencia.';
-      }
-      return normalized;
-    };
-
     const setChatCatbotEnabled = (enabled) => {
       const normalized = normalizeChatCatbotEnabled(enabled);
       window.r34lp0w3r = window.r34lp0w3r || {};
@@ -1170,7 +1063,37 @@ class PageDiagnostics extends HTMLElement {
       if (chatCommunitySubEl) {
         chatCommunitySubEl.textContent = normalized
           ? 'Activado: muestra Catbot en el selector superior del tab Chat.'
-          : 'Desactivado: oculta Catbot y deja Public / Private / Coach.';
+          : 'Desactivado: oculta Catbot del selector superior del tab Chat.';
+      }
+      return normalized;
+    };
+
+    const setChatChatbotEnabled = (enabled) => {
+      const normalized = normalizeChatChatbotEnabled(enabled);
+      window.r34lp0w3r = window.r34lp0w3r || {};
+      window.r34lp0w3r.chatChatbotEnabled = normalized;
+      try {
+        localStorage.setItem(CHAT_CHATBOT_ENABLED_KEY, normalized ? '1' : '0');
+      } catch (err) {
+        // no-op
+      }
+      window.dispatchEvent(
+        new CustomEvent('app:chat-chatbot-enabled-change', {
+          detail: { enabled: normalized }
+        })
+      );
+      return normalized;
+    };
+
+    const updateChatChatbotUi = (enabled) => {
+      const normalized = normalizeChatChatbotEnabled(enabled);
+      if (chatChatbotToggleEl) {
+        chatChatbotToggleEl.checked = normalized;
+      }
+      if (chatChatbotSubEl) {
+        chatChatbotSubEl.textContent = normalized
+          ? 'Activado: muestra Coach en el selector superior del tab Chat.'
+          : 'Desactivado: oculta Coach del selector superior del tab Chat.';
       }
       return normalized;
     };
@@ -2546,10 +2469,10 @@ class PageDiagnostics extends HTMLElement {
     TAB_VISIBILITY_ORDER.forEach((tab) => {
       updateTabVisibilityUi(tab, setTabVisibility(tab, getStoredTabVisibility(tab)));
     });
-    const initialReferenceTestsEnabled = getStoredReferenceTestsEnabled();
-    updateReferenceTestsUi(setReferenceTestsEnabled(initialReferenceTestsEnabled));
     const initialChatCommunityEnabled = getStoredChatCatbotEnabled();
     updateChatCommunityUi(setChatCatbotEnabled(initialChatCommunityEnabled));
+    const initialChatChatbotEnabled = getStoredChatChatbotEnabled();
+    updateChatChatbotUi(setChatChatbotEnabled(initialChatChatbotEnabled));
 
     this.querySelector('#diag-back')?.addEventListener('click', () => {
       ensureInitialHash();
@@ -2739,19 +2662,19 @@ class PageDiagnostics extends HTMLElement {
         updateTabVisibilityUi(tab, setTabVisibility(tab, nextEnabled));
       });
     });
-    referenceTestsToggleEl?.addEventListener('ionChange', (event) => {
-      const nextEnabled =
-        event && event.detail && event.detail.checked !== undefined
-          ? Boolean(event.detail.checked)
-          : Boolean(referenceTestsToggleEl.checked);
-      updateReferenceTestsUi(setReferenceTestsEnabled(nextEnabled));
-    });
     chatCommunityToggleEl?.addEventListener('ionChange', (event) => {
       const nextEnabled =
         event && event.detail && event.detail.checked !== undefined
           ? Boolean(event.detail.checked)
           : Boolean(chatCommunityToggleEl.checked);
       updateChatCommunityUi(setChatCatbotEnabled(nextEnabled));
+    });
+    chatChatbotToggleEl?.addEventListener('ionChange', (event) => {
+      const nextEnabled =
+        event && event.detail && event.detail.checked !== undefined
+          ? Boolean(event.detail.checked)
+          : Boolean(chatChatbotToggleEl.checked);
+      updateChatChatbotUi(setChatChatbotEnabled(nextEnabled));
     });
 
     // Login

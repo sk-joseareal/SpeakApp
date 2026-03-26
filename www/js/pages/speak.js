@@ -20,10 +20,9 @@ import { goToHome } from '../nav.js';
 class PageSpeak extends HTMLElement {
   connectedCallback() {
     this.classList.add('ion-page');
-    const appLocale = getAppLocale();
-    const initNextLocale = getNextLocaleCode(appLocale).toUpperCase();
+    const appLocale = resolveCopyLocale(getAppLocale() || 'en');
     this.innerHTML = `
-      ${renderAppHeader({ title: '', rewardBadgesId: 'speak-reward-badges', nextLocale: initNextLocale })}
+      ${renderAppHeader({ title: '', rewardBadgesId: 'speak-reward-badges', locale: appLocale })}
       <ion-content fullscreen class="speak-content secret-content">
         <div class="speak-shell">
           <h2 class="speak-session-title secret-title" id="speak-session-title" hidden></h2>
@@ -99,6 +98,7 @@ class PageSpeak extends HTMLElement {
     const DEBUG_PANEL_OPEN_KEY = 'appv5:speak-debug-panel-open';
     const SPEAK_SESSION_PERCENTAGES_VISIBLE_KEY = 'appv5:speak-session-percentages-visible';
     const SPEAK_PRONUNCIATION_AVATAR_MODE_KEY = 'appv5:speak-pronunciation-avatar-mode';
+    const HOME_RETURN_REVEAL_KEY = 'appv5:home-return-reveal-target';
     const SPEAK_PRONUNCIATION_AVATAR_OLD = 'old';
     const SPEAK_PRONUNCIATION_AVATAR_NEW = 'new';
     const MODULE_TROPHY_REWARD_QTY = 1;
@@ -1568,7 +1568,7 @@ class PageSpeak extends HTMLElement {
       const phraseList = phrases && phrases[tone] ? phrases[tone] : [];
       const phraseFallback = getScoreLabel(percent, locale, `summary:${currentSessionId}:${percent}`);
       const phrase = pickRandom(phraseList) || phraseFallback;
-      const canGrantReward = progressUpdatedThisRun === true;
+      const canGrantReward = progressUpdatedThisRun === true || isSpeakDebugEnabled();
       const reward =
         tone === 'good' && canGrantReward ? awardTrophyForCurrentModuleIfEligible(locale) : null;
       const awardedBadge =
@@ -1625,7 +1625,7 @@ class PageSpeak extends HTMLElement {
       }
     };
 
-    const shouldSimulateSpeakAwards = () => isSpeakDebugEnabled();
+    const shouldReplayOwnedSpeakAwardsInDebug = () => isSpeakDebugEnabled();
 
     const areSpeakSessionPercentagesVisible = () => {
       const globalValue =
@@ -1700,6 +1700,10 @@ class PageSpeak extends HTMLElement {
           localStorage.setItem(
             'appv5:speak-session-rewards',
             JSON.stringify(window.r34lp0w3r && window.r34lp0w3r.speakSessionRewards ? window.r34lp0w3r.speakSessionRewards : {})
+          );
+          localStorage.setItem(
+            'appv5:speak-badges',
+            JSON.stringify(window.r34lp0w3r && window.r34lp0w3r.speakBadges ? window.r34lp0w3r.speakBadges : {})
           );
         } catch (err) {
           console.error('[speak] error guardando stores', err);
@@ -1952,6 +1956,83 @@ class PageSpeak extends HTMLElement {
       return '';
     };
 
+    const clearPendingHomeReturnRevealTarget = () => {
+      try {
+        sessionStorage.removeItem(HOME_RETURN_REVEAL_KEY);
+      } catch (err) {
+        // no-op
+      }
+    };
+
+    const setPendingHomeReturnRevealTarget = (target) => {
+      if (!target || !target.routeId || !target.moduleId || !target.sessionId) {
+        clearPendingHomeReturnRevealTarget();
+        return;
+      }
+      try {
+        sessionStorage.setItem(
+          HOME_RETURN_REVEAL_KEY,
+          JSON.stringify({
+            routeId: String(target.routeId || ''),
+            moduleId: String(target.moduleId || ''),
+            sessionId: String(target.sessionId || '')
+          })
+        );
+      } catch (err) {
+        // no-op
+      }
+    };
+
+    const getNextSessionRevealTarget = () => {
+      const { route, module, session } = resolveSelection(getSelection());
+      if (!route || !module || !session) return null;
+      const routes = Array.isArray(getRoutes()) ? getRoutes() : [];
+      const routeIndex = routes.findIndex((item) => item && item.id === route.id);
+      if (routeIndex < 0) return null;
+      const modules = Array.isArray(route.modules) ? route.modules : [];
+      const moduleIndex = modules.findIndex((item) => item && item.id === module.id);
+      if (moduleIndex < 0) return null;
+      const sessions = Array.isArray(module.sessions) ? module.sessions : [];
+      const currentIndex = sessions.findIndex((item) => item && item.id === session.id);
+      if (currentIndex < 0) return null;
+      if (currentIndex < sessions.length - 1) {
+        const nextSession = sessions[currentIndex + 1];
+        if (!nextSession || !nextSession.id) return null;
+        return {
+          routeId: route.id,
+          moduleId: module.id,
+          sessionId: nextSession.id
+        };
+      }
+      if (moduleIndex < modules.length - 1) {
+        const nextModule = modules[moduleIndex + 1];
+        const nextModuleSessions = nextModule && Array.isArray(nextModule.sessions) ? nextModule.sessions : [];
+        const nextSession = nextModuleSessions[0];
+        if (!nextModule || !nextModule.id || !nextSession || !nextSession.id) return null;
+        return {
+          routeId: route.id,
+          moduleId: nextModule.id,
+          sessionId: nextSession.id
+        };
+      }
+      if (routeIndex < routes.length - 1) {
+        const nextRoute = routes[routeIndex + 1];
+        const nextRouteModules = nextRoute && Array.isArray(nextRoute.modules) ? nextRoute.modules : [];
+        const nextModule = nextRouteModules[0];
+        const nextModuleSessions = nextModule && Array.isArray(nextModule.sessions) ? nextModule.sessions : [];
+        const nextSession = nextModuleSessions[0];
+        if (!nextRoute || !nextRoute.id || !nextModule || !nextModule.id || !nextSession || !nextSession.id) {
+          return null;
+        }
+        return {
+          routeId: nextRoute.id,
+          moduleId: nextModule.id,
+          sessionId: nextSession.id
+        };
+      }
+      return null;
+    };
+
     const addBadgeNotification = (badgeEntry) => {
       if (!badgeEntry || !badgeEntry.id) return;
       try {
@@ -1993,17 +2074,18 @@ class PageSpeak extends HTMLElement {
       const moduleProgress = getModuleProgressForRewards(module);
       if (!moduleProgress.started || moduleProgress.tone !== 'good') return null;
       const rewardLabel = getModuleRewardLabel(locale);
-      if (shouldSimulateSpeakAwards()) {
+      const rewardId = `module:${module.id}`;
+      if (getStoredSessionReward(rewardId)) {
+        if (!shouldReplayOwnedSpeakAwardsInDebug()) return null;
         return {
           rewardQty: MODULE_TROPHY_REWARD_QTY,
           totalQty: MODULE_TROPHY_REWARD_QTY,
           rewardLabel,
           rewardIcon: MODULE_TROPHY_REWARD_ICON,
-          simulated: true
+          simulated: true,
+          alreadyOwned: true
         };
       }
-      const rewardId = `module:${module.id}`;
-      if (getStoredSessionReward(rewardId)) return null;
       setStoredSessionReward(rewardId, {
         rewardQty: MODULE_TROPHY_REWARD_QTY,
         rewardLabel,
@@ -2025,7 +2107,9 @@ class PageSpeak extends HTMLElement {
       if (!routeProgress.started || routeProgress.tone !== 'good') return null;
       const meta = resolveRouteBadgeMeta(route);
       if (!meta) return null;
-      if (shouldSimulateSpeakAwards()) {
+      const badgeStore = getBadgeStore();
+      if (badgeStore[meta.id]) {
+        if (!shouldReplayOwnedSpeakAwardsInDebug()) return null;
         return {
           id: meta.id,
           routeId: meta.routeId,
@@ -2034,11 +2118,10 @@ class PageSpeak extends HTMLElement {
           image: meta.image,
           title: meta.title,
           ts: Date.now(),
-          simulated: true
+          simulated: true,
+          alreadyOwned: true
         };
       }
-      const badgeStore = getBadgeStore();
-      if (badgeStore[meta.id]) return null;
       const now = Date.now();
       const entry = {
         routeId: meta.routeId,
@@ -2254,6 +2337,9 @@ class PageSpeak extends HTMLElement {
                 <path d="M13 2.16664C10.8573 2.16664 8.76282 2.802 6.98129 3.99238C5.19976 5.18276 3.81123 6.87469 2.99128 8.85422C2.17133 10.8337 1.9568 13.012 2.3748 15.1134C2.7928 17.2149 3.82458 19.1452 5.33965 20.6603C6.85471 22.1753 8.78502 23.2071 10.8865 23.6252C12.9879 24.0431 15.1662 23.8286 17.1456 23.0086C19.1252 22.1887 20.8172 20.8002 22.0075 19.0186C23.1979 17.2371 23.8333 15.1426 23.8333 13C23.8333 10.7014 22.9201 8.49702 21.2949 6.87171C19.6696 5.24639 17.4651 4.3333 15.1666 4.3333C12.8681 4.3333 10.6637 5.24639 9.03837 6.87171C7.41305 8.49702 6.49996 10.7014 6.49996 13V15.1666" stroke="currentColor" stroke-width="2.1658" stroke-linecap="round" stroke-linejoin="round"/>
                 <path d="M10.8333 13C10.8333 11.8507 11.2898 10.7485 12.1025 9.93587C12.9151 9.12321 14.0173 8.66667 15.1666 8.66667" stroke="currentColor" stroke-width="2.1658" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
+              <span class="speak-voice-icon-wave" aria-hidden="true">
+                <span></span><span></span><span></span><span></span><span></span>
+              </span>
               <span>Your voice</span>
             </button>
           </div>
@@ -2634,6 +2720,8 @@ class PageSpeak extends HTMLElement {
       if (!sourceUrl) return;
       activeAudio = new Audio(sourceUrl);
       const currentAudio = activeAudio;
+      const voiceBtn = document.querySelector('#speak-voice');
+      voiceBtn?.classList.add('is-playing');
       const release = () => {
         if (temporarySourceUrl) {
           try {
@@ -2644,6 +2732,7 @@ class PageSpeak extends HTMLElement {
           temporarySourceUrl = '';
         }
         if (activeAudio === currentAudio) activeAudio = null;
+        voiceBtn?.classList.remove('is-playing');
       };
       currentAudio.play().catch(() => {
         if (!temporarySourceUrl && state.recordingUrl) {
@@ -3547,6 +3636,7 @@ class PageSpeak extends HTMLElement {
       return `
         <div class="speak-step speak-step-summary">
           <div class="speak-route-banner speak-route-banner--result" aria-hidden="true">${resultBannerText}</div>
+          <div class="speak-step-summary-body">
           <div class="summary-stage ${showConfetti ? 'is-tone-good' : ''}">
             ${showConfetti ? `<div class="summary-confetti" aria-hidden="true">${confettiMarkup}</div>` : ''}
             <div class="summary-panel summary-panel-${tone}">
@@ -3571,6 +3661,7 @@ class PageSpeak extends HTMLElement {
             </div>
           </div>
           <button class="speak-next-btn speak-next-btn--summary" id="speak-next-step" type="button">${continueLabel}</button>
+          </div>
         </div>
       `;
     };
@@ -4092,6 +4183,7 @@ class PageSpeak extends HTMLElement {
             sessionId: session.id
           });
         }
+        clearPendingHomeReturnRevealTarget();
         showSummary = false;
         summaryState = null;
         lastSummaryAudioCue = '';
@@ -4122,6 +4214,7 @@ class PageSpeak extends HTMLElement {
       window.r34lp0w3r.speakReturnToReview = false;
       window.r34lp0w3r.speakReturnSessionId = null;
       if (!canReturn) return false;
+      clearPendingHomeReturnRevealTarget();
       window.r34lp0w3r.profileForceTab = 'review';
       try {
         localStorage.setItem('appv5:active-tab', 'tu');
@@ -4134,6 +4227,7 @@ class PageSpeak extends HTMLElement {
 
     const goBackToRoutes = () => {
       if (goBackToReviewIfNeeded()) return;
+      clearPendingHomeReturnRevealTarget();
       try {
         localStorage.setItem('appv5:active-tab', 'home');
       } catch (err) {
@@ -4311,7 +4405,7 @@ class PageSpeak extends HTMLElement {
       if (window.varGlobal && typeof window.varGlobal === 'object') window.varGlobal.locale = nextLocale;
       window.dispatchEvent(new CustomEvent('app:locale-change', { detail: { locale: nextLocale } }));
       const localeLabelEl = localeBtnEl?.querySelector('.app-locale-label');
-      if (localeLabelEl) localeLabelEl.textContent = getNextLocaleCode(nextLocale).toUpperCase();
+      if (localeLabelEl) localeLabelEl.textContent = nextLocale.toUpperCase();
     };
     localeBtnEl?.addEventListener('click', handleLocaleBtn);
 

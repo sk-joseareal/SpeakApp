@@ -4,7 +4,7 @@ import { getChatCopy, getNextLocaleCode, getTabsCopy, normalizeLocale as normali
 
 class PageChat extends HTMLElement {
   connectedCallback() {
-    const CHAT_ALWAYS_ON_FOR_TESTING = true;
+    const CHAT_ALWAYS_ON_FOR_TESTING = false;
     const CHAT_MODE_TOGGLE_ALWAYS_VISIBLE_FOR_TESTING = CHAT_ALWAYS_ON_FOR_TESTING;
     const getRuntimeLocale = () =>
       normalizeCopyLocale(getAppLocale() || (window.varGlobal && window.varGlobal.locale) || 'en') || 'en';
@@ -18,26 +18,20 @@ class PageChat extends HTMLElement {
       (_, idx) => `<span class="talk-wave-bar" style="--i:${idx}"></span>`
     ).join('');
     this.innerHTML = `
-      ${renderAppHeader({ title: getTabsCopy(uiLocale).chat, rewardBadgesId: 'chat-reward-badges', nextLocale: getNextLocaleCode(uiLocale).toUpperCase() })}
+      ${renderAppHeader({ title: getTabsCopy(uiLocale).chat, rewardBadgesId: 'chat-reward-badges', locale: uiLocale })}
       <ion-content fullscreen class="secret-content chat-content" scroll-y="false">
         <div class="page-shell">
-          <div class="card card--plain chat-chat-card">
-            <div class="chat-card-header">
-              <div>
-                <div class="chat-mode-toggle" id="chat-mode-toggle" hidden>
-                  <button type="button" class="chat-mode-btn is-active" data-mode="catbot">${uiCopy.modeCatbot}</button>
-                  <button type="button" class="chat-mode-btn" data-mode="public">${uiCopy.modePublic}</button>
-                  <button type="button" class="chat-mode-btn" data-mode="private">${uiCopy.modePrivate}</button>
-                  <button type="button" class="chat-mode-btn" data-mode="coach">${uiCopy.modeCoach}</button>
-                </div>
-                <div class="chat-title-row">
-                  <h3 id="chat-coach-title">${uiCopy.coachCatbotTitle}</h3>
-                  <div class="chat-community-presence" id="chat-community-presence" hidden></div>
-                </div>
-                <p class="muted" id="chat-coach-subtitle">
-                  ${uiCopy.coachCatbotSubtitle}
-                </p>
+          <div class="chat-card-header">
+            <div>
+              <div class="chat-mode-toggle" id="chat-mode-toggle" hidden>
+                <button type="button" class="chat-mode-btn is-active" data-mode="public">${uiCopy.modePublic}</button>
+                <button type="button" class="chat-mode-btn" data-mode="private">${uiCopy.modePrivate}</button>
+                <button type="button" class="chat-mode-btn" data-mode="coach">${uiCopy.modeCoach}</button>
+                <button type="button" class="chat-mode-btn" data-mode="catbot">${uiCopy.modeCatbot}</button>
               </div>
+              <p class="muted chat-coach-subtitle" id="chat-coach-subtitle">${uiCopy.coachCatbotSubtitle}</p>
+            </div>
+            <div class="chat-header-aside">
               <div class="coach-avatar coach-avatar-cat" id="chat-coach-avatar" aria-label="Coach">
                 <img
                   class="coach-avatar-mascot"
@@ -47,7 +41,47 @@ class PageChat extends HTMLElement {
                   aria-hidden="true"
                 >
               </div>
+              <div class="chat-community-presence" id="chat-community-presence" hidden></div>
             </div>
+          </div>
+          <div class="chat-panel" id="chat-chat-panel">
+            <div class="chat-community-lists" id="chat-community-lists" hidden>
+              <section class="chat-community-list-block" id="chat-community-requests-block" hidden>
+                <div class="chat-community-list-title" id="chat-community-requests-title">${uiCopy.communityRequestsTitle}</div>
+                <div class="chat-community-list" id="chat-community-request-list"></div>
+              </section>
+              <section class="chat-community-list-block">
+                <div class="chat-community-list-header">
+                  <div class="chat-community-list-title" id="chat-community-rooms-title">${uiCopy.communityChatsTitle}</div>
+                  <div class="chat-community-list-tools" id="chat-community-room-tools">
+                    <label class="chat-community-archived-toggle" id="chat-community-archived-toggle-wrap">
+                      <span class="chat-community-archived-toggle-label" id="chat-community-archived-label">${uiCopy.communityShowArchived}</span>
+                      <ion-toggle id="chat-community-archived-toggle"></ion-toggle>
+                    </label>
+                    <button type="button" class="chat-community-manage-btn" id="chat-community-manage-btn">${uiCopy.communityManage}</button>
+                  </div>
+                </div>
+                <div class="chat-community-list" id="chat-community-room-list"></div>
+              </section>
+              <section class="chat-community-list-block">
+                <div class="chat-community-list-title" id="chat-community-online-title">${uiCopy.communityOnlineUsersTitle}</div>
+                <div class="chat-community-list" id="chat-community-peer-list"></div>
+              </section>
+            </div>
+            <div class="chat-community-dm-header" id="chat-community-dm-header" hidden>
+              <button type="button" class="chat-community-dm-back" id="chat-community-dm-back" aria-label="${uiCopy.communityBackToChats}">
+                <ion-icon name="chevron-back"></ion-icon>
+              </button>
+              <div class="chat-community-dm-avatar" id="chat-community-dm-avatar" aria-hidden="true"></div>
+              <div class="chat-community-dm-main">
+                <div class="chat-community-dm-name" id="chat-community-dm-name">${uiCopy.communityNoPeerName}</div>
+                <div class="chat-community-dm-status" id="chat-community-dm-status"></div>
+              </div>
+            </div>
+            <div class="chat-thread" id="chat-chat-thread" role="log" aria-live="polite" aria-relevant="additions"></div>
+            <div class="chat-hint" id="chat-chat-hint"></div>
+          </div>
+          <div class="chat-chat-card">
             <div class="chat-access" id="chat-access">
               <div class="chat-access-panel chat-loading-panel" id="chat-loading-panel" hidden>
                 <ion-spinner name="dots"></ion-spinner>
@@ -65,42 +99,7 @@ class PageChat extends HTMLElement {
                 <p class="muted">${uiCopy.planUpgrade}</p>
               </div>
             </div>
-            <div class="chat-panel" id="chat-chat-panel">
-              <div class="chat-community-lists" id="chat-community-lists" hidden>
-                <section class="chat-community-list-block" id="chat-community-requests-block" hidden>
-                  <div class="chat-community-list-title" id="chat-community-requests-title">${uiCopy.communityRequestsTitle}</div>
-                  <div class="chat-community-list" id="chat-community-request-list"></div>
-                </section>
-                <section class="chat-community-list-block">
-                  <div class="chat-community-list-header">
-                    <div class="chat-community-list-title" id="chat-community-rooms-title">${uiCopy.communityChatsTitle}</div>
-                    <div class="chat-community-list-tools" id="chat-community-room-tools">
-                      <label class="chat-community-archived-toggle" id="chat-community-archived-toggle-wrap">
-                        <span class="chat-community-archived-toggle-label" id="chat-community-archived-label">${uiCopy.communityShowArchived}</span>
-                        <ion-toggle id="chat-community-archived-toggle"></ion-toggle>
-                      </label>
-                      <button type="button" class="chat-community-manage-btn" id="chat-community-manage-btn">${uiCopy.communityManage}</button>
-                    </div>
-                  </div>
-                  <div class="chat-community-list" id="chat-community-room-list"></div>
-                </section>
-                <section class="chat-community-list-block">
-                  <div class="chat-community-list-title" id="chat-community-online-title">${uiCopy.communityOnlineUsersTitle}</div>
-                  <div class="chat-community-list" id="chat-community-peer-list"></div>
-                </section>
-              </div>
-              <div class="chat-community-dm-header" id="chat-community-dm-header" hidden>
-                <button type="button" class="chat-community-dm-back" id="chat-community-dm-back" aria-label="${uiCopy.communityBackToChats}">
-                  <ion-icon name="chevron-back"></ion-icon>
-                </button>
-                <div class="chat-community-dm-avatar" id="chat-community-dm-avatar" aria-hidden="true"></div>
-                <div class="chat-community-dm-main">
-                  <div class="chat-community-dm-name" id="chat-community-dm-name">${uiCopy.communityNoPeerName}</div>
-                  <div class="chat-community-dm-status" id="chat-community-dm-status"></div>
-                </div>
-              </div>
-              <div class="chat-thread" id="chat-chat-thread" role="log" aria-live="polite" aria-relevant="additions"></div>
-              <div class="chat-composer-row" id="chat-composer-row">
+            <div class="chat-composer-row" id="chat-composer-row">
                 <div class="chat-text-row" id="chat-text-row" hidden>
                   <input
                     type="text"
@@ -144,7 +143,6 @@ class PageChat extends HTMLElement {
                   </div>
                 </div>
               </div>
-              <div class="chat-hint" id="chat-chat-hint"></div>
             </div>
           </div>
         </div>
@@ -262,7 +260,7 @@ class PageChat extends HTMLElement {
     let controlsBaseEnabled = false;
     let chatbotDailyLimitBlocked = false;
     let chatbotDailyLimitInfo = null;
-    let chatMode = 'catbot';
+    let chatMode = 'community';
     let communityPresenceCount = 0;
     let communityPresenceUsers = [];
     let communityView = 'public';
@@ -334,7 +332,9 @@ class PageChat extends HTMLElement {
 	    const TALK_STORAGE_PREFIX = 'appv5:talk-timelines:';
 	    const TALK_STORAGE_LEGACY = 'appv5:talk-timelines';
 	    const CHAT_MODE_DEBUG_KEY = 'appv5:chat-debug-chat-mode';
+	    const CHAT_TAB_VISIBILITY_KEY = 'appv5:tab-chat-enabled';
 	    const CHAT_CATBOT_ENABLED_KEY = 'appv5:chat-catbot-enabled';
+	    const CHAT_CHATBOT_ENABLED_KEY = 'appv5:chat-chatbot-enabled';
 	    const COMMUNITY_PRESENCE_SESSION_KEY = 'appv5:community-presence-session-id';
 	    const COMMUNITY_CHAT_UNREAD_STORAGE_PREFIX = 'appv5:chat-community-unread:';
       const COMMUNITY_DM_ROOM_PREFS_PREFIX = 'appv5:chat-community-dm-prefs:';
@@ -368,6 +368,7 @@ class PageChat extends HTMLElement {
     const chatbotAlignedTtsCache = new Map();
     let chatbotAlignedTtsLimitStatus = null;
     let catbotFeatureEnabled = false;
+    let chatbotFeatureEnabled = false;
     const coachMascotFramePaths = Array.from(
       new Set(
         Object.values(COACH_MASCOT_SEQUENCES).flatMap((sequence) =>
@@ -408,6 +409,48 @@ class PageChat extends HTMLElement {
       }
     };
     const isCatbotFeatureEnabled = () => catbotFeatureEnabled === true;
+    const normalizeChatbotFeatureEnabled = (value) => {
+      if (typeof value === 'boolean') return value;
+      const normalized = String(value || '')
+        .trim()
+        .toLowerCase();
+      if (!normalized) return false;
+      return ['1', 'true', 'on', 'yes'].includes(normalized);
+    };
+    const getStoredChatbotFeatureEnabled = () => {
+      const globalValue =
+        window.r34lp0w3r && Object.prototype.hasOwnProperty.call(window.r34lp0w3r, 'chatChatbotEnabled')
+          ? window.r34lp0w3r.chatChatbotEnabled
+          : undefined;
+      if (globalValue !== undefined) return normalizeChatbotFeatureEnabled(globalValue);
+      try {
+        return normalizeChatbotFeatureEnabled(localStorage.getItem(CHAT_CHATBOT_ENABLED_KEY));
+      } catch (err) {
+        return false;
+      }
+    };
+    const isChatbotFeatureEnabled = () => chatbotFeatureEnabled === true;
+    const normalizeTabVisibilityEnabled = (value) => {
+      if (typeof value === 'boolean') return value;
+      const normalized = String(value || '')
+        .trim()
+        .toLowerCase();
+      if (!normalized) return false;
+      return !['0', 'false', 'off', 'no'].includes(normalized);
+    };
+    const isStoredChatTabEnabled = () => {
+      const runtimeMap = window.r34lp0w3r && window.r34lp0w3r.tabVisibility;
+      if (runtimeMap && Object.prototype.hasOwnProperty.call(runtimeMap, 'chat')) {
+        return normalizeTabVisibilityEnabled(runtimeMap.chat);
+      }
+      try {
+        const raw = localStorage.getItem(CHAT_TAB_VISIBILITY_KEY);
+        if (raw === null || raw === undefined || raw === '') return false;
+        return normalizeTabVisibilityEnabled(raw);
+      } catch (err) {
+        return false;
+      }
+    };
     const isCommunityFeatureEnabled = () => true;
     const isNativeRuntime = () => {
       const cap = window.Capacitor;
@@ -1083,34 +1126,20 @@ class PageChat extends HTMLElement {
       return 'local';
     };
 
-    const getChatOverride = () => {
-      if (window.r34lp0w3r && window.r34lp0w3r.chatOverride === true) {
-        return true;
-      }
-      try {
-        const raw = localStorage.getItem('appv5:chat-override');
-        if (raw === '1') {
-          window.r34lp0w3r = window.r34lp0w3r || {};
-          window.r34lp0w3r.chatOverride = true;
-          return true;
-        }
-        if (raw === '0') {
-          localStorage.removeItem('appv5:chat-override');
-        }
-      } catch (err) {
-        // no-op
-      }
-      return null;
+    const isPremiumUser = (user) => {
+      if (!user || typeof user !== 'object') return false;
+      if (user.premium === true || user.premium === '1' || user.premium === 'true') return true;
+      const expiresRaw = user.expires_date || user.expiresDate || '';
+      if (!expiresRaw) return false;
+      const expires = new Date(expiresRaw);
+      if (Number.isNaN(expires.getTime())) return false;
+      return expires.getTime() > Date.now();
     };
 
     const isChatEnabledUser = (user) => {
       if (CHAT_ALWAYS_ON_FOR_TESTING) return true;
-      const override = getChatOverride();
-      if (override !== null) return override;
-      if (!user || !user.expires_date) return false;
-      const expires = new Date(user.expires_date);
-      if (Number.isNaN(expires.getTime())) return false;
-      return expires.getTime() > Date.now();
+      if (!user || user.id === undefined || user.id === null) return false;
+      return isStoredChatTabEnabled();
     };
 
     const getUserDisplayName = (user) => {
@@ -1193,9 +1222,9 @@ class PageChat extends HTMLElement {
 
     const getDefaultHintForMode = (mode = chatMode) =>
       mode === 'community'
-        ? communityView === 'dm'
-          ? uiCopy.communitySelectChat || uiCopy.introCommunityDm || uiCopy.introCommunity
-          : uiCopy.introCommunity
+        ? (communityView === 'dm' && !activeCommunityDmRoomId
+            ? uiCopy.communitySelectChat || uiCopy.introCommunityDm || ''
+            : '')
         : uiCopy.hintDefault;
 
     const updateCommunityPresenceUi = () => {
@@ -2305,7 +2334,7 @@ class PageChat extends HTMLElement {
             user_name: getUserDisplayName(currentUser),
             avatar: getUserPublicAvatar(currentUser),
             app: 'speakapp',
-            premium: isChatEnabledUser(currentUser),
+            premium: isPremiumUser(currentUser),
             peer_user_id: peerUserId,
             peer_name: pickFirstText(peer && peer.name),
             peer_avatar: pickFirstText(peer && peer.avatar),
@@ -2930,7 +2959,7 @@ class PageChat extends HTMLElement {
         email: user && user.email ? user.email : '',
         avatar: getUserPublicAvatar(user),
         app: 'speakapp',
-        premium: isChatEnabledUser(user)
+        premium: isPremiumUser(user)
       };
       Object.assign(
         payload,
@@ -3140,7 +3169,7 @@ class PageChat extends HTMLElement {
         email: user && user.email ? user.email : '',
         avatar: getUserPublicAvatar(user),
         app: 'speakapp',
-        premium: isChatEnabledUser(user)
+        premium: isPremiumUser(user)
       };
       try {
         const response = await fetch(endpoint, {
@@ -3982,7 +4011,7 @@ class PageChat extends HTMLElement {
             user_name: getUserDisplayName(currentUser),
             avatar: getUserPublicAvatar(currentUser),
             app: 'speakapp',
-            premium: isChatEnabledUser(currentUser),
+            premium: isPremiumUser(currentUser),
             peer_user_id: pickFirstText(activeRoom.peer && activeRoom.peer.id),
             peer_name: pickFirstText(activeRoom.peer && activeRoom.peer.name),
             peer_avatar: pickFirstText(activeRoom.peer && activeRoom.peer.avatar),
@@ -5462,19 +5491,34 @@ class PageChat extends HTMLElement {
 
     const readDebugChatMode = () => {
       try {
-        const raw = localStorage.getItem(CHAT_MODE_DEBUG_KEY);
-        if (raw === 'community') return 'community';
-        if (raw === 'chatbot') return 'chatbot';
-        if (raw === 'catbot') return isCatbotFeatureEnabled() ? 'catbot' : 'community';
+        const raw = String(localStorage.getItem(CHAT_MODE_DEBUG_KEY) || '')
+          .trim()
+          .toLowerCase();
+        if (raw === 'private' || raw === 'public') return raw;
+        if (raw === 'community') return 'public';
+        if (raw === 'chatbot' || raw === 'coach') return isChatbotFeatureEnabled() ? 'coach' : 'public';
+        if (raw === 'catbot') return isCatbotFeatureEnabled() ? 'catbot' : 'public';
       } catch (err) {
         // no-op
       }
-      return isCatbotFeatureEnabled() ? 'catbot' : 'community';
+      return 'public';
     };
 
     const writeDebugChatMode = (mode) => {
-      const normalizedMode = mode === 'catbot' && !isCatbotFeatureEnabled() ? 'community' : mode;
-      if (normalizedMode !== 'catbot' && normalizedMode !== 'chatbot' && normalizedMode !== 'community') return;
+      const raw = String(mode || '').trim().toLowerCase();
+      let normalizedMode = raw === 'chatbot' ? 'coach' : raw;
+      if (raw === 'community') normalizedMode = 'public';
+      if (raw === 'catbot' && !isCatbotFeatureEnabled()) normalizedMode = 'public';
+      if (normalizedMode === 'coach' && !isChatbotFeatureEnabled()) {
+        normalizedMode = 'public';
+      }
+      if (
+        normalizedMode !== 'catbot' &&
+        normalizedMode !== 'coach' &&
+        normalizedMode !== 'community' &&
+        normalizedMode !== 'public' &&
+        normalizedMode !== 'private'
+      ) return;
       try {
         localStorage.setItem(CHAT_MODE_DEBUG_KEY, normalizedMode);
       } catch (err) {
@@ -5497,6 +5541,10 @@ class PageChat extends HTMLElement {
       const catbotBtn = modeToggle.querySelector('[data-mode="catbot"]');
       if (catbotBtn) {
         catbotBtn.hidden = !isCatbotFeatureEnabled();
+      }
+      const coachBtn = modeToggle.querySelector('[data-mode="coach"]');
+      if (coachBtn) {
+        coachBtn.hidden = !isChatbotFeatureEnabled();
       }
     };
 
@@ -6596,25 +6644,29 @@ class PageChat extends HTMLElement {
       realtimeConnected = false;
     };
 
-    const connectRealtime = (user) => {
+    const connectRealtime = (user, { silent = false } = {}) => {
       const config = getRealtimeConfig();
       if (!config.key) {
         console.warn('[chat] realtime key missing');
         realtimeConnected = false;
-        if (chatMode === 'chatbot') {
-          handleChatbotRealtimeDisconnected();
-        } else if (chatMode === 'community') {
-          handleCommunityRealtimeDisconnected();
+        if (!silent) {
+          if (chatMode === 'chatbot') {
+            handleChatbotRealtimeDisconnected();
+          } else if (chatMode === 'community') {
+            handleCommunityRealtimeDisconnected();
+          }
         }
         return;
       }
       if (typeof window.Pusher !== 'function') {
         console.warn('[chat] Pusher no disponible');
         realtimeConnected = false;
-        if (chatMode === 'chatbot') {
-          handleChatbotRealtimeDisconnected();
-        } else if (chatMode === 'community') {
-          handleCommunityRealtimeDisconnected();
+        if (!silent) {
+          if (chatMode === 'chatbot') {
+            handleChatbotRealtimeDisconnected();
+          } else if (chatMode === 'community') {
+            handleCommunityRealtimeDisconnected();
+          }
         }
         return;
       }
@@ -6648,7 +6700,7 @@ class PageChat extends HTMLElement {
           email: user.email || '',
           avatar: getUserPublicAvatar(user),
           app: 'speakapp',
-          premium: isChatEnabledUser(user)
+          premium: isPremiumUser(user)
         };
         options.auth = {
           params: {
@@ -7102,7 +7154,7 @@ class PageChat extends HTMLElement {
           ensureIntroMessage(chatMode);
         }
         setControlsEnabled(true);
-        connectRealtime(user);
+        connectRealtime(user, { silent: isInitialLoad });
         if (chatMode === 'community') {
           loadCommunityHistory({ force: true });
           if (communityView === 'dm') {
@@ -7116,6 +7168,7 @@ class PageChat extends HTMLElement {
 
       lastUserId = userId;
       lastChatEnabled = chatEnabled;
+      applyDebugMode();
       syncCommunityUnreadIndicators(userId);
     };
 
@@ -7592,8 +7645,8 @@ class PageChat extends HTMLElement {
     }, 180);
     this._userHandler = (event) => updateAccessState(event.detail);
     window.addEventListener('app:user-change', this._userHandler);
-    this._chatOverrideHandler = () => updateAccessState(window.user);
-    window.addEventListener('app:chat-override', this._chatOverrideHandler);
+    this._tabVisibilityHandler = () => updateAccessState(window.user);
+    window.addEventListener('app:tab-visibility-change', this._tabVisibilityHandler);
     this._rewardsHandler = () => updateHeaderRewards();
     window.addEventListener('app:speak-stores-change', this._rewardsHandler);
 
@@ -7621,22 +7674,27 @@ class PageChat extends HTMLElement {
     };
 
     const updateCoachCopy = () => {
-      if (!coachTitleEl || !coachSubtitleEl) return;
+      if (!coachSubtitleEl) return;
+      const toolbarTitleEl = this.querySelector('.app-toolbar-title');
+      let title, subtitle;
       if (chatMode === 'chatbot') {
-        coachTitleEl.textContent = uiCopy.coachChatbotTitle;
-        coachSubtitleEl.textContent = uiCopy.coachChatbotSubtitle;
+        title = uiCopy.coachChatbotTitle;
+        subtitle = uiCopy.coachChatbotSubtitle;
       } else if (chatMode === 'community') {
         if (communityView === 'dm') {
-          coachTitleEl.textContent = uiCopy.coachPrivateTitle || uiCopy.communityChatsTitle;
-          coachSubtitleEl.textContent = uiCopy.coachPrivateSubtitle || uiCopy.communitySelectChat;
+          title = uiCopy.coachPrivateTitle || uiCopy.communityChatsTitle;
+          subtitle = uiCopy.coachPrivateSubtitle || uiCopy.communitySelectChat;
         } else {
-          coachTitleEl.textContent = uiCopy.coachCommunityTitle;
-          coachSubtitleEl.textContent = uiCopy.coachCommunitySubtitle;
+          title = uiCopy.coachCommunityTitle;
+          subtitle = uiCopy.coachCommunitySubtitle;
         }
       } else {
-        coachTitleEl.textContent = uiCopy.coachCatbotTitle;
-        coachSubtitleEl.textContent = uiCopy.coachCatbotSubtitle;
+        title = uiCopy.coachCatbotTitle;
+        subtitle = uiCopy.coachCatbotSubtitle;
       }
+      if (coachTitleEl) coachTitleEl.textContent = title;
+      if (toolbarTitleEl) toolbarTitleEl.textContent = title;
+      coachSubtitleEl.textContent = subtitle;
     };
 
     const applyLocaleCopy = (nextLocale, options = {}) => {
@@ -7650,7 +7708,7 @@ class PageChat extends HTMLElement {
       uiCopy = getChatCopy(uiLocale);
       tokenFmt = new Intl.NumberFormat(uiLocale === 'es' ? 'es-ES' : 'en-US');
       const localeLabelEl = this.querySelector('.app-locale-label');
-      if (localeLabelEl) localeLabelEl.textContent = getNextLocaleCode(normalized).toUpperCase();
+      if (localeLabelEl) localeLabelEl.textContent = normalized.toUpperCase();
       const toolbarTitleEl = this.querySelector('.app-toolbar-title');
       if (toolbarTitleEl) toolbarTitleEl.textContent = getTabsCopy(normalized).chat;
 
@@ -7904,8 +7962,13 @@ class PageChat extends HTMLElement {
     };
 
     const setSurfaceChatMode = (mode, options = {}) => {
-      const target = String(mode || '').trim().toLowerCase();
+      const targetRaw = String(mode || '').trim().toLowerCase();
+      const target = targetRaw === 'community' ? (communityView === 'dm' ? 'private' : 'public') : targetRaw;
       if (target === 'coach') {
+        if (!isChatbotFeatureEnabled()) {
+          setSurfaceChatMode('public', options);
+          return;
+        }
         setChatMode('chatbot', options);
         return;
       }
@@ -7916,11 +7979,12 @@ class PageChat extends HTMLElement {
           setCommunityView(targetView, { rerender: isAlreadyCommunity });
         }
         if (!isAlreadyCommunity) {
-          setChatMode('community', options);
-        } else if (options.persist !== false) {
-          writeDebugChatMode('community');
-          updateModeToggleUi();
+          setChatMode('community', { ...options, persist: false });
         }
+        if (options.persist !== false) {
+          writeDebugChatMode(target);
+        }
+        updateModeToggleUi();
         return;
       }
       if (target === 'catbot') {
@@ -7933,7 +7997,12 @@ class PageChat extends HTMLElement {
     };
 
     const setChatMode = (mode, { reconnect, persist } = {}) => {
-      const normalizedMode = mode === 'catbot' && !isCatbotFeatureEnabled() ? 'community' : mode;
+      const normalizedMode =
+        mode === 'catbot' && !isCatbotFeatureEnabled()
+          ? 'community'
+          : mode === 'chatbot' && !isChatbotFeatureEnabled()
+          ? 'community'
+          : mode;
       if (normalizedMode !== 'catbot' && normalizedMode !== 'chatbot' && normalizedMode !== 'community') return;
       if (chatMode === normalizedMode) return;
       const previousMode = chatMode;
@@ -7990,19 +8059,31 @@ class PageChat extends HTMLElement {
       updateTextRowVisibility();
     };
 
+    const applyChatbotFeatureState = (enabled) => {
+      chatbotFeatureEnabled = normalizeChatbotFeatureEnabled(enabled);
+      window.r34lp0w3r = window.r34lp0w3r || {};
+      window.r34lp0w3r.chatChatbotEnabled = chatbotFeatureEnabled;
+      updateModeToggleUi();
+      if (!chatbotFeatureEnabled && chatMode === 'chatbot') {
+        setSurfaceChatMode('public', { reconnect: true, persist: true });
+        return;
+      }
+      updateCommunityViewUi();
+      updateTextRowVisibility();
+    };
+
     const applyDebugMode = () => {
-      const debug = Boolean(window.r34lp0w3r && window.r34lp0w3r.speakDebug);
-      const showModeToggle = debug || CHAT_MODE_TOGGLE_ALWAYS_VISIBLE_FOR_TESTING;
+      const showModeToggle = lastChatEnabled || CHAT_MODE_TOGGLE_ALWAYS_VISIBLE_FOR_TESTING;
       if (modeToggle) modeToggle.hidden = !showModeToggle;
       if (!showModeToggle) {
         if (textInput) textInput.value = '';
         updateTextRowVisibility(false);
-        setSurfaceChatMode(isCatbotFeatureEnabled() ? 'catbot' : 'public', { reconnect: true, persist: false });
+        setSurfaceChatMode('public', { reconnect: true, persist: false });
         renderThread(chatMode);
       } else {
         const preferredMode = readDebugChatMode();
-        if (chatMode !== preferredMode) {
-          setChatMode(preferredMode, { reconnect: true, persist: false });
+        if (getVisibleChatMode() !== preferredMode) {
+          setSurfaceChatMode(preferredMode, { reconnect: true, persist: false });
         } else {
           updateTextRowVisibility(true);
           updateChatControlsVisibility();
@@ -8019,8 +8100,10 @@ class PageChat extends HTMLElement {
     });
 
     catbotFeatureEnabled = getStoredCatbotFeatureEnabled();
+    chatbotFeatureEnabled = getStoredChatbotFeatureEnabled();
     window.r34lp0w3r = window.r34lp0w3r || {};
     window.r34lp0w3r.chatCatbotEnabled = catbotFeatureEnabled;
+    window.r34lp0w3r.chatChatbotEnabled = chatbotFeatureEnabled;
     applyLocaleCopy(uiLocale, { force: true, rerenderThread: false });
     this.querySelector('.app-locale-btn')?.addEventListener('click', () => {
       const nextLocale = getNextLocaleCode(getAppLocale() || 'en');
@@ -8046,6 +8129,14 @@ class PageChat extends HTMLElement {
       applyCatbotFeatureState(nextEnabled);
     };
     window.addEventListener('app:chat-catbot-enabled-change', this._catbotToggleHandler);
+    this._chatbotToggleHandler = (event) => {
+      const nextEnabled =
+        event && event.detail && event.detail.enabled !== undefined
+          ? Boolean(event.detail.enabled)
+          : getStoredChatbotFeatureEnabled();
+      applyChatbotFeatureState(nextEnabled);
+    };
+    window.addEventListener('app:chat-chatbot-enabled-change', this._chatbotToggleHandler);
     applyDebugMode();
     updateCoachAvatar();
     updateCoachCopy();
@@ -8130,8 +8221,8 @@ class PageChat extends HTMLElement {
     if (this._userHandler) {
       window.removeEventListener('app:user-change', this._userHandler);
     }
-    if (this._chatOverrideHandler) {
-      window.removeEventListener('app:chat-override', this._chatOverrideHandler);
+    if (this._tabVisibilityHandler) {
+      window.removeEventListener('app:tab-visibility-change', this._tabVisibilityHandler);
     }
     if (this._rewardsHandler) {
       window.removeEventListener('app:speak-stores-change', this._rewardsHandler);
@@ -8141,6 +8232,9 @@ class PageChat extends HTMLElement {
     }
     if (this._catbotToggleHandler) {
       window.removeEventListener('app:chat-catbot-enabled-change', this._catbotToggleHandler);
+    }
+    if (this._chatbotToggleHandler) {
+      window.removeEventListener('app:chat-chatbot-enabled-change', this._chatbotToggleHandler);
     }
     if (this._localeHandler) {
       window.removeEventListener('app:locale-change', this._localeHandler);

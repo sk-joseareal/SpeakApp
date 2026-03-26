@@ -131,7 +131,6 @@ class PageProfile extends HTMLElement {
       'es'
     );
     const profileCopy = getProfileCopy(rawLocaleSetting);
-    const nextLocaleCode = getNextLocaleCode(rawLocaleSetting);
 
     const reviewTone = this.reviewTone === 'okay' ? 'okay' : 'bad';
     const reviewToneLabel =
@@ -468,17 +467,12 @@ class PageProfile extends HTMLElement {
         )}</div>`;
 
     this.innerHTML = `
-      ${renderAppHeader({ title: getTabsCopy(rawLocaleSetting).you, rewardBadgesId: 'profile-reward-badges', nextLocale: nextLocaleCode.toUpperCase() })}
+      ${renderAppHeader({ title: getTabsCopy(rawLocaleSetting).you, rewardBadgesId: 'profile-reward-badges', locale: rawLocaleSetting })}
       <ion-content fullscreen class="secret-content profile-content">
         <div class="page-shell profile-shell">
-          <div class="card placeholder-card" id="profile-login-panel" ${loggedIn ? 'hidden' : ''}>
-            <div class="pill">${escapeHtml(profileCopy.accessPill || 'Access')}</div>
-            <h3>${escapeHtml(profileCopy.loginTitle || 'Sign in')}</h3>
-            <p class="muted">${escapeHtml(profileCopy.loginSubtitle || 'You need to sign in to view your profile.')}</p>
-            <ion-button expand="block" shape="round" id="profile-login-btn">${escapeHtml(
-              profileCopy.loginCta || 'Sign in'
-            )}</ion-button>
-            <div class="profile-links" id="profile-links-login" ${loggedIn ? 'hidden' : ''}>
+          <div id="profile-login-panel" ${loggedIn ? 'hidden' : ''}>
+            <page-login embedded></page-login>
+            <div class="profile-links profile-links--centered" id="profile-links-login" ${loggedIn ? 'hidden' : ''}>
               <button class="profile-link-btn" type="button" data-action="contact">${escapeHtml(
                 profileCopy.contact || 'Contact'
               )}</button>
@@ -495,12 +489,12 @@ class PageProfile extends HTMLElement {
                     <div class="profile-progress-head">
                       <img class="profile-overview-avatar" src="${escapeHtml(getUserAvatar(user) || 'https://s3.amazonaws.com/sk.CursoIngles/no-avatar.gif')}" alt="">
                     </div>
-                    <div class="profile-progress-head">
+                    <div class="profile-progress-head profile-progress-head--circle">
                       <div class="profile-progress-circle ${globalTone}">${globalPercent}</div>
+                      <div class="profile-progress-label">${escapeHtml(profileCopy.progressLabel || 'Progress')}</div>
                     </div>
                     <div class="profile-progress-info">
                       <div class="profile-progress-name">${escapeHtml(getUserDisplayName(user) || profileCopy.progressLabel || 'Progress')}</div>
-                      <div class="profile-progress-label">${escapeHtml(profileCopy.progressLabel || 'Progress')}</div>
                     </div>
                   </div>
                 </div>
@@ -532,10 +526,10 @@ class PageProfile extends HTMLElement {
                     >
                   </div>
                   <div class="profile-avatar-actions">
-                    <ion-button size="small" shape="round" id="profile-avatar-upload">${escapeHtml(
+                    <ion-button size="small" shape="round" id="profile-avatar-upload" style="text-transform:none">${escapeHtml(
                       profileCopy.changePhoto || 'Change photo'
                     )}</ion-button>
-                    <ion-button size="small" shape="round" color="medium" id="profile-avatar-delete">${escapeHtml(
+                    <ion-button size="small" shape="round" color="danger" id="profile-avatar-delete" fill="solid" style="text-transform:none">${escapeHtml(
                       profileCopy.deletePhoto || 'Delete'
                     )}</ion-button>
                   </div>
@@ -664,7 +658,6 @@ class PageProfile extends HTMLElement {
       </ion-content>
     `;
 
-    const loginBtn = this.querySelector('#profile-login-btn');
     const rewardsEl = this.querySelector('#profile-reward-badges');
     const linksLogin = this.querySelector('#profile-links-login');
     const linksFooter = this.querySelector('#profile-links-footer');
@@ -751,11 +744,6 @@ class PageProfile extends HTMLElement {
       await modal.present();
     };
 
-    loginBtn?.addEventListener('click', () => {
-      openLoginModal().catch((err) => {
-        console.error('[profile] error abriendo login', err);
-      });
-    });
 
     this.querySelector('.app-locale-btn')?.addEventListener('click', () => {
       const nextLocale = getNextLocaleCode(getAppLocale() || 'en');

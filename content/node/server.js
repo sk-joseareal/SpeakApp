@@ -525,6 +525,9 @@ const normalizeTtsLineEntry = (value) => {
   const wordsUrl = String(value.words_url || value.wordsUrl || '').trim();
   const voice = String(value.voice || '').trim();
   const engine = String(value.engine || '').trim();
+  const rate = String(value.rate || '').trim();
+  const pitch = String(value.pitch || '').trim();
+  const voiceProfile = String(value.voice_profile || value.voiceProfile || '').trim();
   const provider = String(value.provider || '').trim();
   const generatedAt = String(value.generated_at || value.generatedAt || '').trim();
   const durationRaw = Number(value.duration_ms !== undefined ? value.duration_ms : value.durationMs);
@@ -537,6 +540,9 @@ const normalizeTtsLineEntry = (value) => {
     words_url: wordsUrl,
     voice,
     engine,
+    rate,
+    pitch,
+    voice_profile: voiceProfile,
     provider,
     duration_ms: durationMs,
     generated_at: generatedAt
@@ -1805,19 +1811,49 @@ const checkRemoteAudioUrl = async (url) => {
   }
 };
 
-const requestAlignedTts = async ({ text, locale, voice, engine, force = false }) => {
+const requestAlignedTts = async ({
+  text,
+  locale,
+  voice,
+  engine,
+  rate,
+  pitch,
+  voiceProfile,
+  force = false
+}) => {
   if (!ttsAlignedEndpoint) {
     throw new Error('tts_aligned_endpoint_not_configured');
   }
   if (typeof fetch !== 'function') {
     throw new Error('fetch_not_available');
   }
+  const normalizedLocale = normalizeAlignedLocale(locale);
+  const normalizedVoice = String(voice || '').trim();
+  const normalizedEngine = String(engine || '').trim();
+  const normalizedVoiceProfile = String(voiceProfile || '').trim();
   const body = {
     text: String(text || ''),
-    locale: normalizeAlignedLocale(locale),
-    voice: String(voice || '').trim() || selectDefaultTtsVoice(normalizeAlignedLocale(locale)),
-    engine: String(engine || ttsAlignedPollyEngine || 'neural').trim() || 'neural'
+    locale: normalizedLocale
   };
+  if (normalizedVoice) {
+    body.voice = normalizedVoice;
+  } else if (!normalizedVoiceProfile) {
+    body.voice = selectDefaultTtsVoice(normalizedLocale);
+  }
+  if (normalizedEngine) {
+    body.engine = normalizedEngine;
+  } else if (!normalizedVoiceProfile) {
+    body.engine = String(ttsAlignedPollyEngine || 'neural').trim() || 'neural';
+  }
+  if (String(rate || '').trim()) {
+    body.rate = String(rate || '').trim();
+  }
+  if (String(pitch || '').trim()) {
+    body.pitch = String(pitch || '').trim();
+  }
+  if (normalizedVoiceProfile) {
+    body.voice_profile = normalizedVoiceProfile;
+  }
   if (parseBoolean(force, false)) {
     body.force = true;
   }
@@ -2004,6 +2040,9 @@ const generateReleaseTtsAssets = async (releaseRow, options = {}) => {
         locale: target.aligned_locale,
         voice: target.voice,
         engine: target.engine,
+        rate: target.rate,
+        pitch: target.pitch,
+        voiceProfile: target.voice_profile || target.voiceProfile,
         force
       });
       const entry = normalizeTtsLineEntry({

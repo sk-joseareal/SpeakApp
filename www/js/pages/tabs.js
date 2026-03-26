@@ -16,9 +16,9 @@ class TabsPage extends HTMLElement {
     };
     const TAB_DEFAULT_VISIBILITY = {
       home: true,
-      freeride: true,
+      freeride: false,
       reference: false,
-      chat: true,
+      chat: false,
       tu: true
     };
     const TAB_ORDER = ['home', 'freeride', 'reference', 'chat', 'tu'];
@@ -33,7 +33,7 @@ class TabsPage extends HTMLElement {
       if (!normalized) return Boolean(TAB_DEFAULT_VISIBILITY[tab]);
       return !['0', 'false', 'off', 'no'].includes(normalized);
     };
-    const getStoredTabVisibility = (tab) => {
+    const getStoredTabVisibilityOverride = (tab) => {
       if (!TAB_VISIBILITY_KEYS[tab]) return false;
       const runtimeMap = window.r34lp0w3r && window.r34lp0w3r.tabVisibility;
       if (runtimeMap && Object.prototype.hasOwnProperty.call(runtimeMap, tab)) {
@@ -47,10 +47,17 @@ class TabsPage extends HTMLElement {
         return normalizeTabVisibilityEnabled(tab, window.r34lp0w3r.referenceTabEnabled);
       }
       try {
-        return normalizeTabVisibilityEnabled(tab, localStorage.getItem(TAB_VISIBILITY_KEYS[tab]));
+        const raw = localStorage.getItem(TAB_VISIBILITY_KEYS[tab]);
+        if (raw === null || raw === undefined || raw === '') return null;
+        return normalizeTabVisibilityEnabled(tab, raw);
       } catch (err) {
-        return Boolean(TAB_DEFAULT_VISIBILITY[tab]);
+        return null;
       }
+    };
+    const getStoredTabVisibility = (tab) => {
+      const override = getStoredTabVisibilityOverride(tab);
+      if (override === null) return Boolean(TAB_DEFAULT_VISIBILITY[tab]);
+      return override;
     };
     const getAllowedTabs = () => {
       const enabledTabs = TAB_ORDER.filter((tab) => getStoredTabVisibility(tab));
@@ -312,12 +319,6 @@ class TabsPage extends HTMLElement {
           console.error('[tabs] error abriendo login bloqueado', err);
         });
         return;
-      }
-
-      if (tab === loginTargetTab && !isLoggedIn()) {
-        openLoginModal(isTabsLocked()).catch((err) => {
-          console.error('[tabs] error abriendo login', err);
-        });
       }
 
       window.dispatchEvent(

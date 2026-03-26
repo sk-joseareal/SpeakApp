@@ -254,9 +254,9 @@ const APP_COPY = {
         bad: ['No pasa nada, practica {{session}}', 'Sigue intentandolo con {{session}}']
       },
       summaryPhrases: {
-        good: ['Suena como un nativo', 'Gran trabajo'],
-        okay: ['Bien. Sigue practicando', 'Casi correcto'],
-        bad: ['Sigue practicando', 'Intentalo de nuevo'],
+        good: ['Excelente. Suenas natural'],
+        okay: ['Buen progreso'],
+        bad: ['Necesita práctica'],
         neutral: ['Aún no iniciada']
       },
       summaryLabelPrefix: 'GANAS',
@@ -694,9 +694,9 @@ const APP_COPY = {
         bad: ['No worries, keep practicing {{session}}', 'Keep trying with {{session}}']
       },
       summaryPhrases: {
-        good: ['You sound like a native', 'Great job!'],
-        okay: ['Good! Continue practicing', 'Almost Correct!'],
-        bad: ['Keep practicing', 'Try again'],
+        good: ['Excellent. You sound natural'],
+        okay: ['Almost correct'],
+        bad: ['Needs practice'],
         neutral: ['Not started yet']
       },
       summaryLabelPrefix: 'YOU WIN',
@@ -934,6 +934,165 @@ export const getHomeCopy = (locale) => getCopyBundle(locale).home;
 export const getFreeRideCopy = (locale) => getCopyBundle(locale).freeRide;
 
 export const getSpeakCopy = (locale) => getCopyBundle(locale).speak;
+
+const normalizeCopyList = (value) =>
+  Array.isArray(value) ? value.map((item) => String(item || '').trim()).filter(Boolean) : [];
+
+const cloneToneMap = (source, tones = ['good', 'okay', 'bad', 'neutral']) => {
+  const safeSource = source && typeof source === 'object' ? source : {};
+  const output = {};
+  tones.forEach((tone) => {
+    output[tone] = normalizeCopyList(safeSource[tone]);
+  });
+  return output;
+};
+
+export const getSpeakFeedbackPhrases = (locale) => {
+  const resolved = resolveLocale(locale);
+  const speakCopy = getSpeakCopy(resolved);
+  const summaryPhrases =
+    speakCopy && speakCopy.summaryPhrases && typeof speakCopy.summaryPhrases === 'object'
+      ? speakCopy.summaryPhrases
+      : {};
+  const fallbackGood = [
+    speakCopy.feedbackNative || (resolved === 'es' ? 'Suena como un nativo' : 'You sound like a native'),
+    resolved === 'es' ? 'Gran trabajo' : 'Great job!'
+  ];
+  const fallbackOkay = [
+    speakCopy.feedbackGood || (resolved === 'es' ? 'Bien. Sigue practicando' : 'Good! Continue practicing'),
+    speakCopy.feedbackAlmost || (resolved === 'es' ? 'Casi correcto' : 'Almost Correct!')
+  ];
+  const fallbackBad = [
+    speakCopy.feedbackKeep || (resolved === 'es' ? 'Sigue practicando' : 'Keep practicing'),
+    resolved === 'es' ? 'Intentalo de nuevo' : 'Try again'
+  ];
+  const fallbackNeutral = [resolved === 'es' ? 'Aún no iniciada' : 'Not started yet'];
+  return {
+    good: normalizeCopyList(summaryPhrases.good).length ? normalizeCopyList(summaryPhrases.good) : fallbackGood,
+    okay: normalizeCopyList(summaryPhrases.okay).length ? normalizeCopyList(summaryPhrases.okay) : fallbackOkay,
+    bad: normalizeCopyList(summaryPhrases.bad).length ? normalizeCopyList(summaryPhrases.bad) : fallbackBad,
+    neutral: normalizeCopyList(summaryPhrases.neutral).length
+      ? normalizeCopyList(summaryPhrases.neutral)
+      : fallbackNeutral
+  };
+};
+
+export const getSpeakFeedbackLabelScale = (locale) => {
+  const resolved = resolveLocale(locale);
+  const speakCopy = getSpeakCopy(resolved);
+  return [
+    {
+      min: 85,
+      label:
+        speakCopy.feedbackNative || (resolved === 'es' ? 'Suena como un nativo' : 'You sound like a native')
+    },
+    {
+      min: 70,
+      label:
+        speakCopy.feedbackGood || (resolved === 'es' ? 'Bien. Sigue practicando' : 'Good! Continue practicing')
+    },
+    {
+      min: 60,
+      label: speakCopy.feedbackAlmost || (resolved === 'es' ? 'Casi correcto' : 'Almost Correct!')
+    },
+    {
+      min: 0,
+      label: speakCopy.feedbackKeep || (resolved === 'es' ? 'Sigue practicando' : 'Keep practicing')
+    }
+  ];
+};
+
+export const getSpeakSummaryTitleTemplates = (locale) => {
+  const resolved = resolveLocale(locale);
+  const speakCopy = getSpeakCopy(resolved);
+  const source =
+    speakCopy && speakCopy.summaryTitleTemplates && typeof speakCopy.summaryTitleTemplates === 'object'
+      ? speakCopy.summaryTitleTemplates
+      : {};
+  const defaults =
+    resolved === 'es'
+      ? {
+          good: ['Muy bien! aprendiste {{session}}', 'Excelente! completaste {{session}}'],
+          okay: ['Buen trabajo! sigue practicando {{session}}', 'Vas bien! repasa {{session}}'],
+          bad: ['No pasa nada, practica {{session}}', 'Sigue intentandolo con {{session}}']
+        }
+      : {
+          good: ['Great! You learned {{session}}', 'Excellent! You completed {{session}}'],
+          okay: ['Good work! Keep practicing {{session}}', 'You are doing well! Review {{session}}'],
+          bad: ['No worries, keep practicing {{session}}', 'Keep trying with {{session}}']
+        };
+  return {
+    good: normalizeCopyList(source.good).length ? normalizeCopyList(source.good) : defaults.good,
+    okay: normalizeCopyList(source.okay).length ? normalizeCopyList(source.okay) : defaults.okay,
+    bad: normalizeCopyList(source.bad).length ? normalizeCopyList(source.bad) : defaults.bad
+  };
+};
+
+export const getSpeakSummaryLabelPrefix = (locale) => {
+  const resolved = resolveLocale(locale);
+  const speakCopy = getSpeakCopy(resolved);
+  const value = String(speakCopy.summaryLabelPrefix || '').trim();
+  if (value) return value;
+  return resolved === 'es' ? 'GANAS' : 'YOU WIN';
+};
+
+export const ensureLegacySpeakCopyGlobals = () => {
+  if (typeof window === 'undefined') return null;
+
+  const tonePhrasesByLocale = {};
+  const labelScaleByLocale = {};
+  const summaryTitlesByLocale = {};
+  const labelPrefixByLocale = {};
+
+  Array.from(SUPPORTED_LOCALES).forEach((locale) => {
+    tonePhrasesByLocale[locale] = cloneToneMap(getSpeakFeedbackPhrases(locale));
+    labelScaleByLocale[locale] = getSpeakFeedbackLabelScale(locale).map((item) => ({ ...item }));
+    summaryTitlesByLocale[locale] = cloneToneMap(getSpeakSummaryTitleTemplates(locale), ['good', 'okay', 'bad']);
+    labelPrefixByLocale[locale] = getSpeakSummaryLabelPrefix(locale);
+  });
+
+  window.r34lp0w3r = window.r34lp0w3r || {};
+  window.r34lp0w3r.speakFeedback = window.r34lp0w3r.speakFeedback || {};
+  window.speakSummaryConfig = window.speakSummaryConfig || {};
+
+  if (
+    !window.r34lp0w3r.speakFeedback.tonePhrasesByLocale ||
+    typeof window.r34lp0w3r.speakFeedback.tonePhrasesByLocale !== 'object'
+  ) {
+    window.r34lp0w3r.speakFeedback.tonePhrasesByLocale = tonePhrasesByLocale;
+  }
+  if (
+    !window.r34lp0w3r.speakFeedback.labelScaleByLocale ||
+    typeof window.r34lp0w3r.speakFeedback.labelScaleByLocale !== 'object'
+  ) {
+    window.r34lp0w3r.speakFeedback.labelScaleByLocale = labelScaleByLocale;
+  }
+  if (!Array.isArray(window.r34lp0w3r.speakFeedback.labelScale)) {
+    window.r34lp0w3r.speakFeedback.labelScale = labelScaleByLocale.en.map((item) => ({ ...item }));
+  }
+  if (
+    !window.r34lp0w3r.speakSummaryTitles ||
+    typeof window.r34lp0w3r.speakSummaryTitles !== 'object'
+  ) {
+    window.r34lp0w3r.speakSummaryTitles = summaryTitlesByLocale;
+  }
+  if (!window.speakSummaryConfig.phrases || typeof window.speakSummaryConfig.phrases !== 'object') {
+    window.speakSummaryConfig.phrases = tonePhrasesByLocale;
+  }
+  if (
+    !window.speakSummaryConfig.labelPrefix ||
+    typeof window.speakSummaryConfig.labelPrefix !== 'object'
+  ) {
+    window.speakSummaryConfig.labelPrefix = { ...labelPrefixByLocale };
+  }
+
+  return {
+    tonePhrasesByLocale,
+    labelScaleByLocale,
+    summaryTitlesByLocale,
+    labelPrefixByLocale
+  };
+};
 
 const formatCopyTemplate = (template, params = {}) =>
   String(template || '').replace(/\{([a-zA-Z0-9_]+)\}/g, (_match, key) =>

@@ -234,31 +234,11 @@
   if (!window.speakSummaryConfig.range) {
     window.speakSummaryConfig.range = { min: 55, max: 98 };
   }
-  if (!window.speakSummaryConfig.phrases) {
-    window.speakSummaryConfig.phrases = {
-      en: {
-        good: ['You sound like a native', 'Great job!'],
-        okay: ['Good! Continue practicing', 'Almost Correct!'],
-        bad: ['Keep practicing', 'Try again']
-      },
-      es: {
-        good: ['Suena como un nativo', 'Gran trabajo'],
-        okay: ['Bien. Sigue practicando', 'Casi correcto'],
-        bad: ['Sigue practicando', 'Intentalo de nuevo']
-      }
-    };
-  }
   if (!window.speakSummaryConfig.rewards) {
     window.speakSummaryConfig.rewards = [
       { icon: 'diamond', label: 'diamonds', min: 1, max: 3 },
       { icon: 'trophy', label: 'trophies', min: 1, max: 1 },
       { icon: 'ribbon', label: 'ribbons', min: 1, max: 2 }
     ];
-  }
-  if (!window.speakSummaryConfig.labelPrefix) {
-    window.speakSummaryConfig.labelPrefix = {
-      en: 'YOU WIN',
-      es: 'GANAS'
-    };
   }
 })();

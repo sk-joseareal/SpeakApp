@@ -1,6 +1,7 @@
 import { ensureInitialHash, setRouter, goToHome } from './nav.js';
 import { clearLoginTabsLock, hasLoginTabsLock, onboardingDone, setOnboardingDone, setLoginTabsLock } from './state.js';
 import { generateDemoNotifications, getUnreadCount, markAllNotificationsRead } from './notifications-store.js';
+import { ensureLegacySpeakCopyGlobals } from './content/copy.js';
 import './pages/onboarding.js';
 import './pages/home.js';
 import './pages/reference.js';
@@ -12,6 +13,8 @@ import './pages/tabs.js';
 import './pages/diagnostics.js';
 import './pages/login.js';
 import './pages/notifications.js';
+
+ensureLegacySpeakCopyGlobals();
 
 const routerReady = customElements.whenDefined('ion-router').then(() => document.querySelector('ion-router'));
 

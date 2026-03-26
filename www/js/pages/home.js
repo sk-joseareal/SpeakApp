@@ -12,6 +12,7 @@ import {
   getHomeCopy,
   getNextLocaleCode,
   getSpeakCopy,
+  getSpeakFeedbackPhrases,
   normalizeLocale as normalizeCopyLocale
 } from '../content/copy.js';
 import { renderAppHeader } from '../components/app-header.js';
@@ -821,33 +822,7 @@ class PageHome extends HTMLElement {
     ];
 
     const getDefaultTonePhrases = () => {
-      const summaryPhrases =
-        speakCopy && speakCopy.summaryPhrases && typeof speakCopy.summaryPhrases === 'object'
-          ? speakCopy.summaryPhrases
-          : {};
-      const pickPhraseList = (tone, fallback) => {
-        const preferred = Array.isArray(summaryPhrases[tone])
-          ? summaryPhrases[tone].map((item) => String(item || '').trim()).filter(Boolean)
-          : [];
-        return preferred.length ? preferred : fallback;
-      };
-      return {
-        good: pickPhraseList('good', [
-          speakCopy.feedbackNative || 'You sound like a native',
-          uiLocale === 'es' ? 'Gran trabajo' : 'Great job!'
-        ]),
-        okay: pickPhraseList('okay', [
-          speakCopy.feedbackGood || 'Good! Continue practicing',
-          speakCopy.feedbackAlmost || 'Almost Correct!'
-        ]),
-        bad: pickPhraseList('bad', [
-          speakCopy.feedbackKeep || 'Keep practicing',
-          uiLocale === 'es' ? 'Intentalo de nuevo' : 'Try again'
-        ]),
-        neutral: pickPhraseList('neutral', [
-          uiLocale === 'es' ? 'Aún no iniciada' : 'Not started yet'
-        ])
-      };
+      return getSpeakFeedbackPhrases(uiLocale);
     };
 
     const resolveToneListMap = (source, fallback) => {
@@ -969,7 +944,7 @@ class PageHome extends HTMLElement {
       return pickStableListItem(
         tonePhrases && Array.isArray(tonePhrases[tone]) ? tonePhrases[tone] : [],
         `${seed}|${tone}|${value}`,
-        fallbackList[0] || speakCopy.feedbackKeep || 'Keep practicing'
+        fallbackList[0] || getDefaultTonePhrases().bad[0] || ''
       );
     };
 
@@ -1799,18 +1774,7 @@ class PageHome extends HTMLElement {
     };
   }
 
-  hasAlignedTtsRequestOverrides(options = {}) {
-    const normalized = this.normalizeAlignedTtsRequestOptions(options);
-    return Boolean(
-      normalized.voiceProfile ||
-      normalized.voice ||
-      normalized.engine ||
-      normalized.rate ||
-      normalized.pitch
-    );
-  }
-
-  getPlanNarrationTtsOptions() {
+  getPlanNarrationTtsOptions(locale = this.currentUiLocale) {
     return {
       voiceProfile: HOME_PLAN_TTS_VOICE_PROFILE
     };
@@ -1857,20 +1821,9 @@ class PageHome extends HTMLElement {
     const locale = String(lang || '').trim() || 'en-US';
     if (!expected) return null;
     const normalizedOptions = this.normalizeAlignedTtsRequestOptions(options);
-    const debugRequest = this.hasAlignedTtsRequestOverrides(normalizedOptions);
 
     const cached = this.getAlignedTtsFromCache(expected, locale, normalizedOptions);
-    if (cached) {
-      if (debugRequest) {
-        console.info('[home][tts] cache hit', {
-          locale,
-          text: expected,
-          options: normalizedOptions,
-          payload: cached
-        });
-      }
-      return cached;
-    }
+    if (cached) return cached;
 
     const endpoint = this.resolveAlignedTtsEndpoint();
     if (!endpoint) return null;
@@ -1902,34 +1855,14 @@ class PageHome extends HTMLElement {
       body.user_name = user.name.trim();
     }
 
-    if (debugRequest) {
-      console.info('[home][tts] request', {
-        endpoint,
-        body
-      });
-    }
-
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: this.buildAlignedTtsHeaders(),
       body: JSON.stringify(body)
     });
-    const raw = await response.text();
-    let data = null;
-    try {
-      data = raw ? JSON.parse(raw) : null;
-    } catch (err) {
-      data = null;
-    }
-    if (debugRequest) {
-      console.info('[home][tts] response', {
-        status: response.status,
-        ok: response.ok,
-        data,
-        raw
-      });
-    }
     if (!response.ok) return null;
+
+    const data = await response.json();
     if (!data || data.ok !== true) return null;
     if (typeof data.audio_url !== 'string' || !data.audio_url.trim()) return null;
     this.storeAlignedTtsInCache(expected, locale, data, normalizedOptions);
@@ -2083,7 +2016,7 @@ class PageHome extends HTMLElement {
       return Promise.resolve(false);
     }
     const locale = this.getUiLocale(this.currentUiLocale);
-    const alignedTtsOptions = this.getPlanNarrationTtsOptions();
+    const alignedTtsOptions = this.getPlanNarrationTtsOptions(locale);
     const runPromise = this.speakNarration(lines, locale, {
       bubbleEl: this.getPlanBubbleEl(),
       allowWebFallback: manual,
@@ -2182,12 +2115,7 @@ class PageHome extends HTMLElement {
     } catch (err) {
       payload = null;
     }
-    if (!payload && this.hasAlignedTtsRequestOverrides(ttsOptions)) {
-      console.warn('[home][tts] override request failed, retrying with default voice', {
-        locale: lang,
-        text: lineText,
-        options: this.normalizeAlignedTtsRequestOptions(ttsOptions)
-      });
+    if (!payload && ttsOptions && Object.keys(ttsOptions).length) {
       try {
         payload = await this.fetchAlignedTts(lineText, lang);
       } catch (err) {

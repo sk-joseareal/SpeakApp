@@ -4,6 +4,7 @@ import {
   getFreeRideCopy,
   getLocaleMeta,
   getNextLocaleCode,
+  getSpeakFeedbackPhrases,
   normalizeLocale as normalizeCopyLocale
 } from '../content/copy.js';
 
@@ -4039,20 +4040,11 @@ class PageFreeRide extends HTMLElement {
   }
 
   getDefaultFeedbackTonePhrases(copy = this.currentCopy, locale = this.getUiLocale(this.currentUiLocale)) {
-    const normalizedLocale = this.getUiLocale(locale);
+    const tonePhrases = getSpeakFeedbackPhrases(locale);
     return {
-      good: [
-        copy.feedbackNative || 'You sound like a native',
-        normalizedLocale === 'es' ? 'Gran trabajo' : 'Great job!'
-      ],
-      okay: [
-        copy.feedbackGood || 'Good! Continue practicing',
-        copy.feedbackAlmost || 'Almost Correct!'
-      ],
-      bad: [
-        copy.feedbackKeep || 'Keep practicing',
-        normalizedLocale === 'es' ? 'Intentalo de nuevo' : 'Try again'
-      ]
+      good: Array.isArray(tonePhrases.good) ? tonePhrases.good.slice() : [],
+      okay: Array.isArray(tonePhrases.okay) ? tonePhrases.okay.slice() : [],
+      bad: Array.isArray(tonePhrases.bad) ? tonePhrases.bad.slice() : []
     };
   }
 
@@ -4161,7 +4153,7 @@ class PageFreeRide extends HTMLElement {
     return this.pickStableListItem(
       tonePhrases && Array.isArray(tonePhrases[tone]) ? tonePhrases[tone] : [],
       seed,
-      fallbackList[0] || copy.feedbackKeep || 'Keep practicing'
+      fallbackList[0] || this.getDefaultFeedbackTonePhrases(copy).bad[0] || ''
     );
   }
 

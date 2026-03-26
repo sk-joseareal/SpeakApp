@@ -10,6 +10,10 @@ import {
   getLocaleMeta,
   getNextLocaleCode,
   getSpeakCopy as getSpeakCopyBundle,
+  getSpeakFeedbackLabelScale,
+  getSpeakFeedbackPhrases,
+  getSpeakSummaryLabelPrefix,
+  getSpeakSummaryTitleTemplates as getSpeakSummaryTitleTemplatesCopy,
   resolveLocale as resolveCopyLocale
 } from '../content/copy.js';
 import { renderAppHeader } from '../components/app-header.js';
@@ -189,6 +193,7 @@ class PageSpeak extends HTMLElement {
     let heroFirstRenderAt = 0;
     let hintLocaleOverride = '';
     let activeHintLocale = 'en';
+    let avatarResizeObserver = null;
 
     const stepState = {
       sound: { recordingUrl: '', recordingBlob: null, transcript: '', percent: null },
@@ -225,6 +230,7 @@ class PageSpeak extends HTMLElement {
       if (mode === SPEAK_PRONUNCIATION_AVATAR_NEW) {
         return {
           mode,
+          aspectRatio: 3 / 2,
           headSrc: `${AVATAR_CHICA_BASE}/chica-sin-boca.png`,
           wrapperClass: 'avatar-wrapper avatar-wrapper-wide',
           mouthBaseClass: 'speak-mouth speak-mouth-crop',
@@ -243,6 +249,7 @@ class PageSpeak extends HTMLElement {
       }
       return {
         mode,
+        aspectRatio: 1,
         headSrc: `${AVATAR_BASE}/avatar-head.png`,
         wrapperClass: 'avatar-wrapper',
         mouthBaseClass: 'speak-mouth',
@@ -1165,22 +1172,34 @@ class PageSpeak extends HTMLElement {
       { min: 0, tone: 'bad' }
     ];
 
-    const DEFAULT_FEEDBACK_PHRASES = {
-      good: ['You sound like a native', 'Great job!'],
-      okay: ['Good! Continue practicing', 'Almost Correct!'],
-      bad: ['Keep practicing', 'Try again']
+    const getDefaultTonePhrases = (locale = getHintUiLocale()) => {
+      const tonePhrases = getSpeakFeedbackPhrases(locale);
+      return {
+        good: Array.isArray(tonePhrases.good) ? tonePhrases.good.slice() : [],
+        okay: Array.isArray(tonePhrases.okay) ? tonePhrases.okay.slice() : [],
+        bad: Array.isArray(tonePhrases.bad) ? tonePhrases.bad.slice() : []
+      };
     };
 
-    const DEFAULT_SUMMARY_TITLE_TEMPLATES = {
-      good: ['Great! You learned {{session}}'],
-      okay: ['Good work! Keep practicing {{session}}'],
-      bad: ['Keep practicing {{session}}']
+    const getDefaultLabelScale = (locale = getHintUiLocale()) =>
+      getSpeakFeedbackLabelScale(locale).map((item) => ({ ...item }));
+
+    const getDefaultSummaryTitleTemplates = (locale = getHintUiLocale()) => {
+      const templates = getSpeakSummaryTitleTemplatesCopy(locale);
+      return {
+        good: Array.isArray(templates.good) ? templates.good.slice() : [],
+        okay: Array.isArray(templates.okay) ? templates.okay.slice() : [],
+        bad: Array.isArray(templates.bad) ? templates.bad.slice() : []
+      };
     };
 
-    const DEFAULT_SUMMARY_PHRASES = {
-      good: DEFAULT_FEEDBACK_PHRASES.good.slice(),
-      okay: DEFAULT_FEEDBACK_PHRASES.okay.slice(),
-      bad: DEFAULT_FEEDBACK_PHRASES.bad.slice()
+    const getDefaultSummaryPhrases = (locale = getHintUiLocale()) => {
+      const tonePhrases = getSpeakFeedbackPhrases(locale);
+      return {
+        good: Array.isArray(tonePhrases.good) ? tonePhrases.good.slice() : [],
+        okay: Array.isArray(tonePhrases.okay) ? tonePhrases.okay.slice() : [],
+        bad: Array.isArray(tonePhrases.bad) ? tonePhrases.bad.slice() : []
+      };
     };
 
     const blobToBase64 = (blob) =>
@@ -1369,38 +1388,6 @@ class PageSpeak extends HTMLElement {
       return fallback;
     };
 
-    const getDefaultTonePhrases = (locale = getHintUiLocale()) => {
-      const normalized = normalizeHintLocale(locale) || 'en';
-      if (normalized === 'es') {
-        return {
-          good: [getSpeakUiText('feedbackNative', locale, 'You sound like a native'), 'Gran trabajo'],
-          okay: [
-            getSpeakUiText('feedbackGood', locale, 'Good! Continue practicing'),
-            getSpeakUiText('feedbackAlmost', locale, 'Almost Correct!')
-          ],
-          bad: [getSpeakUiText('feedbackKeep', locale, 'Keep practicing'), 'Intentalo de nuevo']
-        };
-      }
-      return {
-        good: [
-          getSpeakUiText('feedbackNative', locale, 'You sound like a native'),
-          DEFAULT_FEEDBACK_PHRASES.good[1]
-        ],
-        okay: [
-          getSpeakUiText('feedbackGood', locale, 'Good! Continue practicing'),
-          getSpeakUiText('feedbackAlmost', locale, 'Almost Correct!')
-        ],
-        bad: [getSpeakUiText('feedbackKeep', locale, 'Keep practicing'), DEFAULT_FEEDBACK_PHRASES.bad[1]]
-      };
-    };
-
-    const getDefaultLabelScale = (locale = getHintUiLocale()) => [
-      { min: 85, label: getSpeakUiText('feedbackNative', locale, 'You sound like a native') },
-      { min: 70, label: getSpeakUiText('feedbackGood', locale, 'Good! Continue practicing') },
-      { min: 60, label: getSpeakUiText('feedbackAlmost', locale, 'Almost Correct!') },
-      { min: 0, label: getSpeakUiText('feedbackKeep', locale, 'Keep practicing') }
-    ];
-
     const resolveLocaleConfigBlock = (value, locale) => {
       if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
       const normalized = normalizeHintLocale(locale) || 'en';
@@ -1499,10 +1486,9 @@ class PageSpeak extends HTMLElement {
     };
 
     const getSummaryConfig = (locale = getHintUiLocale()) => {
-      const copy = getSpeakUiCopy(locale);
       const config = window.speakSummaryConfig || {};
       const { tonePhrases } = getFeedbackConfig(locale);
-      const fallbackPhrases = resolveToneListMap(tonePhrases, DEFAULT_SUMMARY_PHRASES);
+      const fallbackPhrases = resolveToneListMap(tonePhrases, getDefaultSummaryPhrases(locale));
       const configuredPhrases = resolveLocaleConfigBlock(config.phrases, locale);
       const phrases = resolveToneListMap(configuredPhrases, fallbackPhrases);
       let labelPrefix = '';
@@ -1516,7 +1502,7 @@ class PageSpeak extends HTMLElement {
         if (localized) labelPrefix = localized;
       }
       if (!labelPrefix) {
-        labelPrefix = getSpeakUiText('summaryLabelPrefix', locale, 'YOU WIN');
+        labelPrefix = getSpeakSummaryLabelPrefix(locale);
       }
       return {
         phrases,
@@ -1525,8 +1511,7 @@ class PageSpeak extends HTMLElement {
     };
 
     const getSummaryTitleTemplates = (locale = getHintUiLocale()) => {
-      const copy = getSpeakUiCopy(locale);
-      const fallback = resolveToneListMap(copy.summaryTitleTemplates, DEFAULT_SUMMARY_TITLE_TEMPLATES);
+      const fallback = getDefaultSummaryTitleTemplates(locale);
       const templates = window.r34lp0w3r && window.r34lp0w3r.speakSummaryTitles;
       const configured = resolveLocaleConfigBlock(templates, locale);
       return resolveToneListMap(configured, fallback);
@@ -1543,12 +1528,13 @@ class PageSpeak extends HTMLElement {
     const getSummaryTitle = (tone, sessionName, locale = getHintUiLocale()) => {
       const templates = getSummaryTitleTemplates(locale);
       const list = templates && Array.isArray(templates[tone]) ? templates[tone] : [];
+      const fallbackTemplates = getDefaultSummaryTitleTemplates(locale);
       const fallbackList =
         tone === 'good'
-          ? DEFAULT_SUMMARY_TITLE_TEMPLATES.good
+          ? fallbackTemplates.good
           : tone === 'okay'
-          ? DEFAULT_SUMMARY_TITLE_TEMPLATES.okay
-          : DEFAULT_SUMMARY_TITLE_TEMPLATES.bad;
+          ? fallbackTemplates.okay
+          : fallbackTemplates.bad;
       const template = pickRandom(list) || pickRandom(fallbackList) || '{{session}}';
       return formatSummaryTitle(template, sessionName);
     };
@@ -3452,22 +3438,24 @@ class PageSpeak extends HTMLElement {
           <p class="speak-step-heading">${stepTitle}</p>
           ${stepSubtitle ? `<p class="speak-step-subtitle">${stepSubtitle}</p>` : ''}
           <div class="speak-step-main">
-            <div class="speak-avatar">
-              <div class="${avatarConfig.wrapperClass}">
-                <img class="avatar-head" src="${avatarConfig.headSrc}" alt="Avatar">
-                <div class="avatar-mouth-container">
-                  <img
-                    id="speak-mouth-a"
-                    class="${avatarConfig.mouthBaseClass} mouth-layer mouth-layer-active viseme-neutral"
-                    src="${avatarConfig.mouthMap.NEUTRAL}"
-                    alt="Mouth"
-                  />
-                  <img
-                    id="speak-mouth-b"
-                    class="${avatarConfig.mouthBaseClass} mouth-layer viseme-neutral"
-                    src="${avatarConfig.mouthMap.NEUTRAL}"
-                    alt="Mouth"
-                  />
+            <div class="speak-avatar-stage">
+              <div class="speak-avatar">
+                <div class="${avatarConfig.wrapperClass}" data-avatar-ratio="${avatarConfig.aspectRatio}">
+                  <img class="avatar-head" src="${avatarConfig.headSrc}" alt="Avatar">
+                  <div class="avatar-mouth-container">
+                    <img
+                      id="speak-mouth-a"
+                      class="${avatarConfig.mouthBaseClass} mouth-layer mouth-layer-active viseme-neutral"
+                      src="${avatarConfig.mouthMap.NEUTRAL}"
+                      alt="Mouth"
+                    />
+                    <img
+                      id="speak-mouth-b"
+                      class="${avatarConfig.mouthBaseClass} mouth-layer viseme-neutral"
+                      src="${avatarConfig.mouthMap.NEUTRAL}"
+                      alt="Mouth"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
@@ -3759,8 +3747,77 @@ class PageSpeak extends HTMLElement {
       }
     };
 
+    const disconnectAvatarResizeObserver = () => {
+      if (!avatarResizeObserver) return;
+      avatarResizeObserver.disconnect();
+      avatarResizeObserver = null;
+    };
+
+    const AVATAR_TARGET_SIDE_MARGIN_PX = 28;
+    const AVATAR_EXTRA_HEIGHT_BUDGET_PX = 72;
+
+    const fitAvatarToStage = (root) => {
+      const stage = root?.querySelector('.speak-avatar-stage');
+      const wrapper = root?.querySelector('.avatar-wrapper, .avatar-wrapper-wide');
+      if (!stage || !wrapper) return;
+      const stageStyles = window.getComputedStyle(stage);
+      const paddingX =
+        (parseFloat(stageStyles.paddingLeft) || 0) + (parseFloat(stageStyles.paddingRight) || 0);
+      const paddingY =
+        (parseFloat(stageStyles.paddingTop) || 0) + (parseFloat(stageStyles.paddingBottom) || 0);
+      const availableWidth = Math.max(0, stage.clientWidth - paddingX);
+      const availableHeight = Math.max(0, stage.clientHeight - paddingY);
+      if (!availableWidth || !availableHeight) return;
+      const ratioRaw = Number(wrapper.dataset.avatarRatio || 1);
+      const ratio = Number.isFinite(ratioRaw) && ratioRaw > 0 ? ratioRaw : 1;
+      let targetWidth = availableWidth;
+      let targetHeight = targetWidth / ratio;
+      if (targetHeight > availableHeight) {
+        targetHeight = availableHeight;
+        targetWidth = targetHeight * ratio;
+      }
+      const widthByPreferredMargin = Math.max(0, availableWidth - AVATAR_TARGET_SIDE_MARGIN_PX * 2);
+      const heightByPreferredMargin = widthByPreferredMargin / ratio;
+      const relaxedMaxHeight = availableHeight + AVATAR_EXTRA_HEIGHT_BUDGET_PX;
+      if (widthByPreferredMargin > targetWidth && heightByPreferredMargin <= relaxedMaxHeight) {
+        targetWidth = widthByPreferredMargin;
+        targetHeight = heightByPreferredMargin;
+      } else if (widthByPreferredMargin > targetWidth && relaxedMaxHeight > targetHeight) {
+        targetHeight = relaxedMaxHeight;
+        targetWidth = targetHeight * ratio;
+      }
+      if (targetWidth > availableWidth) {
+        targetWidth = availableWidth;
+        targetHeight = targetWidth / ratio;
+      }
+      wrapper.style.width = `${Math.max(0, Math.floor(targetWidth))}px`;
+      wrapper.style.height = `${Math.max(0, Math.floor(targetHeight))}px`;
+    };
+
+    const scheduleAvatarFit = (root, afterFit = null) => {
+      requestAnimationFrame(() => {
+        fitAvatarToStage(root);
+        requestAnimationFrame(() => {
+          fitAvatarToStage(root);
+          if (typeof afterFit === 'function') afterFit();
+        });
+      });
+    };
+
+    const observeAvatarStage = (root) => {
+      disconnectAvatarResizeObserver();
+      if (typeof ResizeObserver !== 'function') return;
+      const stage = root?.querySelector('.speak-avatar-stage');
+      if (!stage) return;
+      avatarResizeObserver = new ResizeObserver(() => {
+        fitAvatarToStage(root);
+      });
+      avatarResizeObserver.observe(stage);
+    };
+
     const renderStep = () => {
       const key = getStepKey();
+      const shouldFitAvatar = !showSummary && key === 'sound';
       if (swipeStage) {
         swipeStage.classList.remove('is-swiping');
         swipeStage.style.minHeight = '';
@@ -3790,6 +3847,12 @@ class PageSpeak extends HTMLElement {
       stepRoot.style.transform = '';
 
       bindStepControls();
+      if (shouldFitAvatar) {
+        observeAvatarStage(stepRoot);
+        scheduleAvatarFit(stepRoot);
+      } else {
+        disconnectAvatarResizeObserver();
+      }
     };
 
     const bindStepControls = () => {
@@ -3995,7 +4058,7 @@ class PageSpeak extends HTMLElement {
       ghostRoot.innerHTML = sanitizeGhostMarkup(renderStepMarkup(key));
       ghostRoot.style.opacity = '1';
       updateSwipeStageHeight();
-      requestAnimationFrame(updateSwipeStageHeight);
+      scheduleAvatarFit(ghostRoot, updateSwipeStageHeight);
       return true;
     };
 
@@ -4363,6 +4426,9 @@ class PageSpeak extends HTMLElement {
     const handleViewportResize = () => {
       if (!this.isConnected) return;
       lockHeroCardHeight();
+      if (stepRoot?.querySelector('.speak-step-sound')) {
+        scheduleAvatarFit(stepRoot);
+      }
     };
     this._handleSpeakResize = handleViewportResize;
     window.addEventListener('resize', handleViewportResize);
@@ -4439,6 +4505,7 @@ class PageSpeak extends HTMLElement {
       if (this._handleSpeakResize) {
         window.removeEventListener('resize', this._handleSpeakResize);
       }
+      disconnectAvatarResizeObserver();
       if (debugToggleBtn) {
         debugToggleBtn.removeEventListener('click', toggleDebugPanel);
       }

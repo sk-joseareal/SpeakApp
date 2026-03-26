@@ -4283,6 +4283,20 @@ page-chat ion-content::part(scroll) {
   width: 100%;
   display: flex;
   justify-content: center;
+  align-items: center;
+}
+
+.speak-avatar-stage {
+  --speak-avatar-stage-pad-y: 20px;
+  --speak-avatar-stage-pad-x: 20px;
+  width: 100%;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--speak-avatar-stage-pad-y) var(--speak-avatar-stage-pad-x);
+  box-sizing: border-box;
 }
 
 .avatar-wrapper {
@@ -4324,7 +4338,7 @@ page-chat ion-content::part(scroll) {
 }
 
 .speak-mouth-crop {
-  width: 19.9%;
+  width: min(19.9%, 52px);
   left: 49.4%;
   top: 52.8%;
   transform: translate(-50%, -50%);
@@ -4910,16 +4924,25 @@ page-chat ion-content::part(scroll) {
   gap: 4px;
 }
 .speak-step-sound .speak-step-main {
-  gap: 6px;
-  justify-content: center;
+  gap: 10px;
+  justify-content: flex-start;
+  align-items: stretch;
+}
+.speak-step-sound .speak-avatar {
+  height: 100%;
+  min-height: 0;
 }
 .speak-step-sound .avatar-wrapper {
   width: 160px;
   height: 160px;
+  max-width: 100%;
+  max-height: 100%;
 }
 .speak-step-sound .avatar-wrapper-wide {
   width: 200px;
-  height: auto;
+  height: calc(200px / 1.5);
+  max-width: 100%;
+  max-height: 100%;
 }
 
 .speak-step-spelling {

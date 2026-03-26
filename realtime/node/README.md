@@ -73,7 +73,7 @@ Supported request overrides:
 - `engine`: `standard`, `neural`, `generative`
 - `rate`: Polly prosody rate, for example `105%`
 - `pitch`: Polly prosody pitch, for example `+3%`
-- `voice_profile`: preset bundle. `child` currently resolves to `Lucia` for `es-ES` and `Mia` for English, with `neural`, `rate=105%`, `pitch=+3%`
+- `voice_profile`: preset bundle. `child` currently resolves to `Lucia` for `es-ES`, `Ivy` for `en-US`, and `Amy` for `en-GB`, with `neural`, `rate=105%`, `pitch=+3%`
 
 Note:
 

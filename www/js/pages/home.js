@@ -1857,9 +1857,20 @@ class PageHome extends HTMLElement {
     const locale = String(lang || '').trim() || 'en-US';
     if (!expected) return null;
     const normalizedOptions = this.normalizeAlignedTtsRequestOptions(options);
+    const debugRequest = this.hasAlignedTtsRequestOverrides(normalizedOptions);
 
     const cached = this.getAlignedTtsFromCache(expected, locale, normalizedOptions);
-    if (cached) return cached;
+    if (cached) {
+      if (debugRequest) {
+        console.info('[home][tts] cache hit', {
+          locale,
+          text: expected,
+          options: normalizedOptions,
+          payload: cached
+        });
+      }
+      return cached;
+    }
 
     const endpoint = this.resolveAlignedTtsEndpoint();
     if (!endpoint) return null;
@@ -1891,14 +1902,34 @@ class PageHome extends HTMLElement {
       body.user_name = user.name.trim();
     }
 
+    if (debugRequest) {
+      console.info('[home][tts] request', {
+        endpoint,
+        body
+      });
+    }
+
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: this.buildAlignedTtsHeaders(),
       body: JSON.stringify(body)
     });
+    const raw = await response.text();
+    let data = null;
+    try {
+      data = raw ? JSON.parse(raw) : null;
+    } catch (err) {
+      data = null;
+    }
+    if (debugRequest) {
+      console.info('[home][tts] response', {
+        status: response.status,
+        ok: response.ok,
+        data,
+        raw
+      });
+    }
     if (!response.ok) return null;
-
-    const data = await response.json();
     if (!data || data.ok !== true) return null;
     if (typeof data.audio_url !== 'string' || !data.audio_url.trim()) return null;
     this.storeAlignedTtsInCache(expected, locale, data, normalizedOptions);
@@ -2152,6 +2183,11 @@ class PageHome extends HTMLElement {
       payload = null;
     }
     if (!payload && this.hasAlignedTtsRequestOverrides(ttsOptions)) {
+      console.warn('[home][tts] override request failed, retrying with default voice', {
+        locale: lang,
+        text: lineText,
+        options: this.normalizeAlignedTtsRequestOptions(ttsOptions)
+      });
       try {
         payload = await this.fetchAlignedTts(lineText, lang);
       } catch (err) {

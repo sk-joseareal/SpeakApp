@@ -2550,15 +2550,34 @@ class PageReference extends HTMLElement {
 
     const openLesson = (lessonRef) => {
       if (!lessonRef || !lessonRef.courseCode || !lessonRef.unitCode || !lessonRef.lessonCode) return;
-      this.expandedCourseCode = String(lessonRef.courseCode);
-      this.expandedUnitCode = String(lessonRef.unitCode);
-      this.lessonView = true;
-      setReferenceSelection({
-        courseCode: String(lessonRef.courseCode),
-        unitCode: String(lessonRef.unitCode),
-        lessonCode: String(lessonRef.lessonCode)
-      });
-      this.render();
+      const doOpen = () => {
+        this.expandedCourseCode = String(lessonRef.courseCode);
+        this.expandedUnitCode = String(lessonRef.unitCode);
+        this.lessonView = true;
+        setReferenceSelection({
+          courseCode: String(lessonRef.courseCode),
+          unitCode: String(lessonRef.unitCode),
+          lessonCode: String(lessonRef.lessonCode)
+        });
+        this.render();
+      };
+      if (!this.lessonView) {
+        const ionContent = this.querySelector('ion-content');
+        if (ionContent && typeof ionContent.getScrollElement === 'function') {
+          ionContent.getScrollElement().then((el) => {
+            this._savedScrollTop = el ? el.scrollTop : 0;
+            doOpen();
+          }).catch(() => {
+            this._savedScrollTop = 0;
+            doOpen();
+          });
+        } else {
+          this._savedScrollTop = 0;
+          doOpen();
+        }
+      } else {
+        doOpen();
+      }
     };
 
     const accordionMarkup = courses
@@ -2694,6 +2713,11 @@ class PageReference extends HTMLElement {
               <div id="reference-tests-section"></div>
             </section>
 
+            <div class="reference-page-hints" aria-hidden="true">
+              <span class="reference-page-hint reference-page-hint-prev ${prevLessonRef ? 'is-visible' : ''}"></span>
+              <span class="reference-page-hint reference-page-hint-next ${nextLessonRef ? 'is-visible' : ''}"></span>
+            </div>
+
             <div class="reference-lesson-nav">
               <button class="reference-nav-btn reference-nav-btn--prev ${prevLessonRef ? '' : 'is-hidden'}" type="button" id="reference-prev-btn">
                 <ion-icon name="chevron-back"></ion-icon>
@@ -2753,8 +2777,17 @@ class PageReference extends HTMLElement {
       this.renderReferenceTestsSection(uiLocale);
 
       this.querySelector('#reference-back-btn')?.addEventListener('click', () => {
+        const savedScroll = this._savedScrollTop || 0;
         this.lessonView = false;
         this.render();
+        if (savedScroll > 0) {
+          const ionContent = this.querySelector('ion-content');
+          if (ionContent && typeof ionContent.getScrollElement === 'function') {
+            ionContent.getScrollElement().then((el) => {
+              if (el) el.scrollTop = savedScroll;
+            }).catch(() => {});
+          }
+        }
       });
 
       this.querySelector('#reference-prev-btn')?.addEventListener('click', () => {
@@ -2762,6 +2795,114 @@ class PageReference extends HTMLElement {
       });
 
       this.querySelector('#reference-next-btn')?.addEventListener('click', () => {
+        if (nextLessonRef) openLesson(nextLessonRef);
+      });
+
+      // ── Floating hints + swipe + tap edge ──
+      const lessonCardEl = this.querySelector('.reference-content-card');
+      const floatingHintsEl = this.querySelector('.reference-page-hints');
+      const ionContentEl = this.querySelector('ion-content');
+      const hasDirectionalHints = Boolean(prevLessonRef || nextLessonRef);
+      const SWIPE_DRAG_THRESHOLD = 10;
+      const SWIPE_COMMIT_THRESHOLD = 56;
+      const SWIPE_VERTICAL_RATIO = 1.2;
+      const TAP_EDGE_ZONE_RATIO = 0.25;
+      let suppressTapUntil = 0;
+      let swipeTouchActive = false;
+      let swipeTouchHorizontal = false;
+      let swipeTouchBlocked = false;
+      let swipeTouchStartX = 0;
+      let swipeTouchStartY = 0;
+      let swipeTouchCurrentX = 0;
+      const isLessonCardVisible = () => {
+        if (!lessonCardEl) return false;
+        const rect = lessonCardEl.getBoundingClientRect();
+        const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+        if (!viewportHeight) return false;
+        const visibleHeight = Math.min(rect.bottom, viewportHeight) - Math.max(rect.top, 0);
+        return visibleHeight / viewportHeight >= 0.5;
+      };
+      const isInteractiveTarget = (target) => {
+        if (!(target instanceof Element)) return false;
+        return Boolean(
+          target.closest(
+            'button, a, input, textarea, select, label, [role="button"], [contenteditable="true"], [data-action], #reference-tests-section, .reference-tests-shell, .reference-test-card'
+          )
+        );
+      };
+      if (floatingHintsEl && hasDirectionalHints && lessonCardEl) {
+        const applyVisibility = (visible) => {
+          floatingHintsEl.classList.toggle('is-card-visible', Boolean(visible));
+        };
+        const observer = new IntersectionObserver(
+          () => { applyVisibility(isLessonCardVisible()); },
+          { threshold: Array.from({ length: 21 }, (_, i) => i / 20) }
+        );
+        observer.observe(lessonCardEl);
+        this._floatingHintsObserver = observer;
+        applyVisibility(isLessonCardVisible());
+      }
+      ionContentEl?.addEventListener('touchstart', (event) => {
+        if (!event.touches || event.touches.length !== 1) return;
+        const target = event.target instanceof Element ? event.target : null;
+        if (!target) return;
+        if (isInteractiveTarget(target)) return;
+        const touch = event.touches[0];
+        swipeTouchActive = true;
+        swipeTouchHorizontal = false;
+        swipeTouchBlocked = false;
+        swipeTouchStartX = touch.clientX;
+        swipeTouchStartY = touch.clientY;
+        swipeTouchCurrentX = touch.clientX;
+      }, { passive: true });
+      ionContentEl?.addEventListener('touchmove', (event) => {
+        if (!swipeTouchActive || !event.touches || event.touches.length !== 1) return;
+        const touch = event.touches[0];
+        const dx = touch.clientX - swipeTouchStartX;
+        const dy = touch.clientY - swipeTouchStartY;
+        if (!swipeTouchHorizontal && !swipeTouchBlocked) {
+          if (Math.abs(dx) < SWIPE_DRAG_THRESHOLD && Math.abs(dy) < SWIPE_DRAG_THRESHOLD) return;
+          if (Math.abs(dx) < Math.abs(dy) * SWIPE_VERTICAL_RATIO) { swipeTouchBlocked = true; return; }
+          swipeTouchHorizontal = true;
+        }
+        if (!swipeTouchHorizontal) return;
+        swipeTouchCurrentX = touch.clientX;
+        if (event.cancelable) event.preventDefault();
+      }, { passive: false });
+      ionContentEl?.addEventListener('touchend', () => {
+        if (!swipeTouchActive) return;
+        swipeTouchActive = false;
+        if (!swipeTouchHorizontal) { swipeTouchBlocked = false; return; }
+        const dx = swipeTouchCurrentX - swipeTouchStartX;
+        const absDx = Math.abs(dx);
+        swipeTouchHorizontal = false;
+        swipeTouchBlocked = false;
+        if (absDx < SWIPE_COMMIT_THRESHOLD) { suppressTapUntil = Date.now() + 180; return; }
+        suppressTapUntil = Date.now() + 420;
+        if (dx > 0) { if (prevLessonRef) openLesson(prevLessonRef); return; }
+        if (nextLessonRef) openLesson(nextLessonRef);
+      }, { passive: true });
+      ionContentEl?.addEventListener('touchcancel', () => {
+        if (!swipeTouchActive) return;
+        swipeTouchActive = false;
+        swipeTouchHorizontal = false;
+        swipeTouchBlocked = false;
+        suppressTapUntil = Date.now() + 120;
+      }, { passive: true });
+      ionContentEl?.addEventListener('click', (event) => {
+        if (Date.now() < suppressTapUntil) return;
+        const target = event && event.target instanceof Element ? event.target : null;
+        if (!target) return;
+        if (isInteractiveTarget(target)) return;
+        const selection = typeof window.getSelection === 'function' ? window.getSelection() : null;
+        if (selection && !selection.isCollapsed && String(selection).trim()) return;
+        const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 0;
+        if (!viewportWidth) return;
+        const clientX = Number.isFinite(event.clientX) ? event.clientX : viewportWidth / 2;
+        const leftEdgeLimit = viewportWidth * TAP_EDGE_ZONE_RATIO;
+        const rightEdgeLimit = viewportWidth * (1 - TAP_EDGE_ZONE_RATIO);
+        if (clientX <= leftEdgeLimit) { if (prevLessonRef) openLesson(prevLessonRef); return; }
+        if (clientX < rightEdgeLimit) return;
         if (nextLessonRef) openLesson(nextLessonRef);
       });
     } else {

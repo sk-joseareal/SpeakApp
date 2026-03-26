@@ -74,3 +74,7 @@ Supported request overrides:
 - `rate`: Polly prosody rate, for example `105%`
 - `pitch`: Polly prosody pitch, for example `+3%`
 - `voice_profile`: preset bundle. `child` currently resolves to `Lucia` for `es-ES` and `Mia` for English, with `neural`, `rate=105%`, `pitch=+3%`
+
+Note:
+
+- Polly `neural` does not accept every SSML feature. In this server, `pitch` is only applied when the engine is `standard`; for `neural`, `long-form`, and `generative` it is ignored automatically to avoid `Unsupported Neural feature`.

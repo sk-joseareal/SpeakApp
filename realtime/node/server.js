@@ -410,6 +410,12 @@ const normalizeTtsLocale = (value) => {
 
 const normalizeTtsText = (value) => String(value || '').replace(/\s+/g, ' ').trim();
 
+const normalizeTtsEngine = (value, fallback = 'neural') => {
+  const raw = pickFirstString(value).trim().toLowerCase();
+  if (['standard', 'neural', 'long-form', 'generative'].includes(raw)) return raw;
+  return String(fallback || 'neural').trim().toLowerCase() || 'neural';
+};
+
 const normalizeTtsVoiceProfile = (value) => {
   const raw = pickFirstString(value).toLowerCase();
   if (!raw) return 'default';
@@ -456,6 +462,17 @@ const escapeSsmlText = (value) =>
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&apos;');
 
+const resolvePollyProsodyOptions = ({ engine, rate, pitch }) => {
+  const normalizedEngine = normalizeTtsEngine(engine, ttsAlignedPollyEngine || 'neural');
+  const normalizedRate = normalizeTtsProsodyRate(rate);
+  const normalizedPitch = normalizeTtsProsodyPitch(pitch);
+  return {
+    engine: normalizedEngine,
+    rate: normalizedRate,
+    pitch: normalizedEngine === 'standard' ? normalizedPitch : ''
+  };
+};
+
 const normalizeTextForPollyRetry = (value) => {
   let text = String(value || '');
   if (typeof text.normalize === 'function') {
@@ -488,7 +505,7 @@ const resolveTtsProfileDefaults = (locale, voiceProfile = 'default') => {
     return {
       voice_profile: 'default',
       voice: selectDefaultTtsVoice(normalizedLocale),
-      engine: String(ttsAlignedPollyEngine || 'neural').trim() || 'neural',
+      engine: normalizeTtsEngine(ttsAlignedPollyEngine, 'neural'),
       rate: '',
       pitch: ''
     };
@@ -502,7 +519,7 @@ const resolveTtsProfileDefaults = (locale, voiceProfile = 'default') => {
   return {
     voice_profile: 'child',
     voice: pickFirstString(voice, selectDefaultTtsVoice(normalizedLocale)),
-    engine: pickFirstString(ttsAlignedChildProfileEngine, ttsAlignedPollyEngine, 'neural'),
+    engine: normalizeTtsEngine(pickFirstString(ttsAlignedChildProfileEngine, ttsAlignedPollyEngine, 'neural'), 'neural'),
     rate: normalizeTtsProsodyRate(ttsAlignedChildProfileRate),
     pitch: normalizeTtsProsodyPitch(ttsAlignedChildProfilePitch)
   };
@@ -525,14 +542,16 @@ const resolveAlignedTtsVoiceOptions = (source = {}, locale) => {
   };
 };
 
-const buildPollySynthesisInput = ({ text, rate, pitch }) => {
+const buildPollySynthesisInput = ({ text, engine, rate, pitch }) => {
   const normalizedText = normalizeTtsText(text);
-  const normalizedRate = normalizeTtsProsodyRate(rate);
-  const normalizedPitch = normalizeTtsProsodyPitch(pitch);
+  const prosody = resolvePollyProsodyOptions({ engine, rate, pitch });
+  const normalizedRate = prosody.rate;
+  const normalizedPitch = prosody.pitch;
   if (!normalizedRate && !normalizedPitch) {
     return {
       text: normalizedText,
       textType: 'text',
+      engine: prosody.engine,
       rate: '',
       pitch: ''
     };
@@ -546,6 +565,7 @@ const buildPollySynthesisInput = ({ text, rate, pitch }) => {
   return {
     text: `<speak><prosody ${prosodyAttrs}>${escapeSsmlText(normalizedText)}</prosody></speak>`,
     textType: 'ssml',
+    engine: prosody.engine,
     rate: normalizedRate,
     pitch: normalizedPitch
   };
@@ -565,7 +585,7 @@ const buildTtsS3Key = (...parts) =>
 const buildTtsCacheHash = ({ text, locale, voice, engine, rate, pitch }) =>
   crypto
     .createHash('sha1')
-    .update([text, locale, voice, engine, rate || '', pitch || '', 'v2'].join('|'))
+    .update([text, locale, voice, engine, rate || '', pitch || '', 'v3'].join('|'))
     .digest('hex');
 
 const getTtsPublicUrl = (key) => {
@@ -692,6 +712,7 @@ const synthesizeAlignedPollyAssets = async ({ text, voice, engine, rate, pitch }
   const attemptSynthesis = async (inputText) => {
     const synthesisInput = buildPollySynthesisInput({
       text: inputText,
+      engine,
       rate,
       pitch
     });
@@ -700,14 +721,14 @@ const synthesizeAlignedPollyAssets = async ({ text, voice, engine, rate, pitch }
         text: synthesisInput.text,
         textType: synthesisInput.textType,
         voice,
-        engine,
+        engine: synthesisInput.engine,
         outputFormat: 'mp3'
       }),
       synthesizePollyBuffer({
         text: synthesisInput.text,
         textType: synthesisInput.textType,
         voice,
-        engine,
+        engine: synthesisInput.engine,
         outputFormat: 'json',
         speechMarkTypes: ['word']
       })
@@ -776,9 +797,14 @@ const buildAlignedTtsPayload = async (source = {}, options = {}) => {
     };
   }
 
-  const engine = pickFirstString(resolvedVoiceOptions.engine, ttsAlignedPollyEngine);
-  const rate = normalizeTtsProsodyRate(resolvedVoiceOptions.rate);
-  const pitch = normalizeTtsProsodyPitch(resolvedVoiceOptions.pitch);
+  const resolvedProsody = resolvePollyProsodyOptions({
+    engine: pickFirstString(resolvedVoiceOptions.engine, ttsAlignedPollyEngine),
+    rate: resolvedVoiceOptions.rate,
+    pitch: resolvedVoiceOptions.pitch
+  });
+  const engine = resolvedProsody.engine;
+  const rate = resolvedProsody.rate;
+  const pitch = resolvedProsody.pitch;
   const voiceProfile = normalizeTtsVoiceProfile(resolvedVoiceOptions.voice_profile);
   const cacheHash = buildTtsCacheHash({ text, locale, voice, engine, rate, pitch });
   const cachePrefix = sanitizeS3PathPart(ttsAlignedS3Prefix);

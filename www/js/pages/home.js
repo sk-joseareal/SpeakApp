@@ -34,6 +34,7 @@ const BROWSER_AUTONARRATION_EXTRA_DELAY_MS = 120;
 const SPEAK_SESSION_PERCENTAGES_VISIBLE_KEY = 'appv5:speak-session-percentages-visible';
 const HOME_ALIGNED_CACHE_MAX_ITEMS = 24;
 const HOME_PLAN_AUTONARRATION_PLAYED_KEY = 'appv5:home-plan-auto-narration-played';
+const HOME_PLAN_TTS_VOICE_PROFILE = 'child';
 const HOME_EXPANDED_ROUTE_KEY = 'appv5:home-expanded-route-id';
 const HOME_RETURN_SCROLL_KEY = 'appv5:home-return-scroll-top';
 const HOME_RETURN_REVEAL_KEY = 'appv5:home-return-reveal-target';
@@ -1782,12 +1783,54 @@ class PageHome extends HTMLElement {
     return headers;
   }
 
-  getAlignedTtsCacheKey(text, lang) {
-    return `${String(lang || '').trim().toLowerCase()}::${String(text || '').trim()}`;
+  normalizeAlignedTtsRequestOptions(options = {}) {
+    const source = options && typeof options === 'object' ? options : {};
+    const voiceProfile = String(source.voiceProfile || source.voice_profile || '').trim().toLowerCase();
+    const voice = String(source.voice || '').trim();
+    const engine = String(source.engine || '').trim().toLowerCase();
+    const rate = String(source.rate || '').trim();
+    const pitch = String(source.pitch || '').trim();
+    return {
+      voiceProfile,
+      voice,
+      engine,
+      rate,
+      pitch
+    };
   }
 
-  getAlignedTtsFromCache(text, lang) {
-    const key = this.getAlignedTtsCacheKey(text, lang);
+  hasAlignedTtsRequestOverrides(options = {}) {
+    const normalized = this.normalizeAlignedTtsRequestOptions(options);
+    return Boolean(
+      normalized.voiceProfile ||
+      normalized.voice ||
+      normalized.engine ||
+      normalized.rate ||
+      normalized.pitch
+    );
+  }
+
+  getPlanNarrationTtsOptions() {
+    return {
+      voiceProfile: HOME_PLAN_TTS_VOICE_PROFILE
+    };
+  }
+
+  getAlignedTtsCacheKey(text, lang, options = {}) {
+    const normalized = this.normalizeAlignedTtsRequestOptions(options);
+    return [
+      String(lang || '').trim().toLowerCase(),
+      String(text || '').trim(),
+      normalized.voiceProfile,
+      normalized.voice,
+      normalized.engine,
+      normalized.rate,
+      normalized.pitch
+    ].join('::');
+  }
+
+  getAlignedTtsFromCache(text, lang, options = {}) {
+    const key = this.getAlignedTtsCacheKey(text, lang, options);
     if (!key || !this.alignedTtsCache.has(key)) return null;
     const cached = this.alignedTtsCache.get(key);
     this.alignedTtsCache.delete(key);
@@ -1795,8 +1838,8 @@ class PageHome extends HTMLElement {
     return cached;
   }
 
-  storeAlignedTtsInCache(text, lang, payload) {
-    const key = this.getAlignedTtsCacheKey(text, lang);
+  storeAlignedTtsInCache(text, lang, payload, options = {}) {
+    const key = this.getAlignedTtsCacheKey(text, lang, options);
     if (!key || !payload) return;
     this.alignedTtsCache.set(key, payload);
     while (this.alignedTtsCache.size > HOME_ALIGNED_CACHE_MAX_ITEMS) {
@@ -1809,12 +1852,13 @@ class PageHome extends HTMLElement {
     }
   }
 
-  async fetchAlignedTts(text, lang) {
+  async fetchAlignedTts(text, lang, options = {}) {
     const expected = String(text || '').trim();
     const locale = String(lang || '').trim() || 'en-US';
     if (!expected) return null;
+    const normalizedOptions = this.normalizeAlignedTtsRequestOptions(options);
 
-    const cached = this.getAlignedTtsFromCache(expected, locale);
+    const cached = this.getAlignedTtsFromCache(expected, locale, normalizedOptions);
     if (cached) return cached;
 
     const endpoint = this.resolveAlignedTtsEndpoint();
@@ -1824,6 +1868,21 @@ class PageHome extends HTMLElement {
       text: expected,
       locale
     };
+    if (normalizedOptions.voiceProfile) {
+      body.voice_profile = normalizedOptions.voiceProfile;
+    }
+    if (normalizedOptions.voice) {
+      body.voice = normalizedOptions.voice;
+    }
+    if (normalizedOptions.engine) {
+      body.engine = normalizedOptions.engine;
+    }
+    if (normalizedOptions.rate) {
+      body.rate = normalizedOptions.rate;
+    }
+    if (normalizedOptions.pitch) {
+      body.pitch = normalizedOptions.pitch;
+    }
     const user = window.user;
     if (user && user.id !== undefined && user.id !== null && String(user.id).trim()) {
       body.user_id = String(user.id).trim();
@@ -1842,7 +1901,7 @@ class PageHome extends HTMLElement {
     const data = await response.json();
     if (!data || data.ok !== true) return null;
     if (typeof data.audio_url !== 'string' || !data.audio_url.trim()) return null;
-    this.storeAlignedTtsInCache(expected, locale, data);
+    this.storeAlignedTtsInCache(expected, locale, data, normalizedOptions);
     return data;
   }
 
@@ -1993,9 +2052,11 @@ class PageHome extends HTMLElement {
       return Promise.resolve(false);
     }
     const locale = this.getUiLocale(this.currentUiLocale);
+    const alignedTtsOptions = this.getPlanNarrationTtsOptions();
     const runPromise = this.speakNarration(lines, locale, {
       bubbleEl: this.getPlanBubbleEl(),
-      allowWebFallback: manual
+      allowWebFallback: manual,
+      alignedTtsOptions
     })
       .then((started) => {
         if (started && !this.initialPlanNarrationStarted) {
@@ -2079,16 +2140,23 @@ class PageHome extends HTMLElement {
     });
   }
 
-  async playNarrationAligned(text, lang, token, hooks = {}) {
+  async playNarrationAligned(text, lang, token, hooks = {}, ttsOptions = {}) {
     const lineText = String(text || '').trim();
     if (!lineText) return false;
     if (token !== this.narrationToken) return false;
 
     let payload = null;
     try {
-      payload = await this.fetchAlignedTts(lineText, lang);
+      payload = await this.fetchAlignedTts(lineText, lang, ttsOptions);
     } catch (err) {
       payload = null;
+    }
+    if (!payload && this.hasAlignedTtsRequestOverrides(ttsOptions)) {
+      try {
+        payload = await this.fetchAlignedTts(lineText, lang);
+      } catch (err) {
+        payload = null;
+      }
     }
     if (!payload || token !== this.narrationToken) return false;
 
@@ -2208,6 +2276,8 @@ class PageHome extends HTMLElement {
     const token = ++this.narrationToken;
     const bubbleEl = options && options.bubbleEl ? options.bubbleEl : this.getPlanBubbleEl();
     const allowWebFallback = options && options.allowWebFallback !== false;
+    const alignedTtsOptions =
+      options && options.alignedTtsOptions ? options.alignedTtsOptions : {};
     const hasMultipleLines = lines.length > 1;
     const originalBubbleHtml = bubbleEl ? bubbleEl.innerHTML : '';
     const originalBubbleMinHeight = bubbleEl ? bubbleEl.style.minHeight : '';
@@ -2394,7 +2464,7 @@ class PageHome extends HTMLElement {
           }
         };
 
-        let started = await this.playNarrationAligned(lineText, lang, token, hooks);
+        let started = await this.playNarrationAligned(lineText, lang, token, hooks, alignedTtsOptions);
         if (!started && token === this.narrationToken) {
           started = await speakLineWithPlugin(lineText);
         }

@@ -109,6 +109,15 @@ const ttsAlignedChildProfileVoiceEsES = env('TTS_ALIGNED_PROFILE_CHILD_VOICE_ES_
 const ttsAlignedChildProfileEngine = env('TTS_ALIGNED_PROFILE_CHILD_ENGINE', 'neural');
 const ttsAlignedChildProfileRate = env('TTS_ALIGNED_PROFILE_CHILD_RATE', '105%');
 const ttsAlignedChildProfilePitch = env('TTS_ALIGNED_PROFILE_CHILD_PITCH', '+3%');
+const ttsAlignedChildProfileEngineEnUS = env('TTS_ALIGNED_PROFILE_CHILD_ENGINE_EN_US', '');
+const ttsAlignedChildProfileEngineEnGB = env('TTS_ALIGNED_PROFILE_CHILD_ENGINE_EN_GB', '');
+const ttsAlignedChildProfileEngineEsES = env('TTS_ALIGNED_PROFILE_CHILD_ENGINE_ES_ES', '');
+const ttsAlignedChildProfileRateEnUS = env('TTS_ALIGNED_PROFILE_CHILD_RATE_EN_US', '');
+const ttsAlignedChildProfileRateEnGB = env('TTS_ALIGNED_PROFILE_CHILD_RATE_EN_GB', '');
+const ttsAlignedChildProfileRateEsES = env('TTS_ALIGNED_PROFILE_CHILD_RATE_ES_ES', '');
+const ttsAlignedChildProfilePitchEnUS = env('TTS_ALIGNED_PROFILE_CHILD_PITCH_EN_US', '');
+const ttsAlignedChildProfilePitchEnGB = env('TTS_ALIGNED_PROFILE_CHILD_PITCH_EN_GB', '');
+const ttsAlignedChildProfilePitchEsES = env('TTS_ALIGNED_PROFILE_CHILD_PITCH_ES_ES', '');
 const ttsPollyCostPerMillionCharsStandard = Number(env('TTS_POLLY_STANDARD_COST_PER_MILLION_CHARS', '4'));
 const ttsPollyCostPerMillionCharsNeural = Number(env('TTS_POLLY_NEURAL_COST_PER_MILLION_CHARS', '16'));
 const ttsPollyCostPerMillionCharsGenerative = Number(env('TTS_POLLY_GENERATIVE_COST_PER_MILLION_CHARS', '30'));
@@ -499,6 +508,17 @@ const selectDefaultTtsVoice = (locale) => {
   return ttsAlignedDefaultVoiceEnUS;
 };
 
+const pickLocaleSpecificChildProfileSetting = (locale, values = {}) => {
+  const normalizedLocale = normalizeTtsLocale(locale);
+  if (normalizedLocale === 'es-ES') {
+    return pickFirstString(values.esES, values.defaultValue);
+  }
+  if (normalizedLocale === 'en-GB') {
+    return pickFirstString(values.enGB, values.defaultValue);
+  }
+  return pickFirstString(values.enUS, values.defaultValue);
+};
+
 const resolveTtsProfileDefaults = (locale, voiceProfile = 'default') => {
   const normalizedLocale = normalizeTtsLocale(locale);
   if (normalizeTtsVoiceProfile(voiceProfile) !== 'child') {
@@ -516,12 +536,33 @@ const resolveTtsProfileDefaults = (locale, voiceProfile = 'default') => {
       : normalizedLocale === 'en-GB'
         ? ttsAlignedChildProfileVoiceEnGB
         : ttsAlignedChildProfileVoiceEnUS;
+  const localeSpecificEngine = pickLocaleSpecificChildProfileSetting(normalizedLocale, {
+    enUS: ttsAlignedChildProfileEngineEnUS,
+    enGB: ttsAlignedChildProfileEngineEnGB,
+    esES: ttsAlignedChildProfileEngineEsES,
+    defaultValue: ttsAlignedChildProfileEngine
+  });
+  const localeSpecificRate = pickLocaleSpecificChildProfileSetting(normalizedLocale, {
+    enUS: ttsAlignedChildProfileRateEnUS,
+    enGB: ttsAlignedChildProfileRateEnGB,
+    esES: ttsAlignedChildProfileRateEsES,
+    defaultValue: ttsAlignedChildProfileRate
+  });
+  const localeSpecificPitch = pickLocaleSpecificChildProfileSetting(normalizedLocale, {
+    enUS: ttsAlignedChildProfilePitchEnUS,
+    enGB: ttsAlignedChildProfilePitchEnGB,
+    esES: ttsAlignedChildProfilePitchEsES,
+    defaultValue: ttsAlignedChildProfilePitch
+  });
   return {
     voice_profile: 'child',
     voice: pickFirstString(voice, selectDefaultTtsVoice(normalizedLocale)),
-    engine: normalizeTtsEngine(pickFirstString(ttsAlignedChildProfileEngine, ttsAlignedPollyEngine, 'neural'), 'neural'),
-    rate: normalizeTtsProsodyRate(ttsAlignedChildProfileRate),
-    pitch: normalizeTtsProsodyPitch(ttsAlignedChildProfilePitch)
+    engine: normalizeTtsEngine(
+      pickFirstString(localeSpecificEngine, ttsAlignedPollyEngine, 'neural'),
+      'neural'
+    ),
+    rate: normalizeTtsProsodyRate(localeSpecificRate),
+    pitch: normalizeTtsProsodyPitch(localeSpecificPitch)
   };
 };
 

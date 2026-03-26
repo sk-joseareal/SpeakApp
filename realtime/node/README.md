@@ -74,6 +74,7 @@ Supported request overrides:
 - `rate`: Polly prosody rate, for example `105%`
 - `pitch`: Polly prosody pitch, for example `+3%`
 - `voice_profile`: preset bundle. `child` currently resolves to `Lucia` for `es-ES`, `Ivy` for `en-US`, and `Amy` for `en-GB`, with `neural`, `rate=105%`, `pitch=+3%`
+- The `child` profile also supports locale-specific env overrides, so you can keep English on `neural` and move only `es-ES` to `standard` if you want audible pitch changes.
 
 Note:
 

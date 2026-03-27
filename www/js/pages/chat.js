@@ -81,7 +81,7 @@ class PageChat extends HTMLElement {
             <div class="chat-thread" id="chat-chat-thread" role="log" aria-live="polite" aria-relevant="additions"></div>
             <div class="chat-hint" id="chat-chat-hint"></div>
           </div>
-          <div class="chat-chat-card">
+          <div class="chat-chat-card" id="chat-chat-card" hidden>
             <div class="chat-access" id="chat-access">
               <div class="chat-access-panel chat-loading-panel" id="chat-loading-panel" hidden>
                 <ion-spinner name="dots"></ion-spinner>
@@ -152,6 +152,7 @@ class PageChat extends HTMLElement {
     const contentEl = this.querySelector('ion-content.secret-content');
     const threadEl = this.querySelector('#chat-chat-thread');
     const chatPanel = this.querySelector('#chat-chat-panel');
+    const chatCard = this.querySelector('#chat-chat-card');
     const accessPanel = this.querySelector('#chat-access');
     const loginPanel = this.querySelector('#chat-login-panel');
     const lockedPanel = this.querySelector('#chat-locked-panel');
@@ -198,6 +199,15 @@ class PageChat extends HTMLElement {
     const textRow = this.querySelector('#chat-text-row');
     const textInput = this.querySelector('#chat-text-input');
     let defaultHint = uiCopy.hintDefault;
+
+    const updateComposerCardVisibility = () => {
+      if (!chatCard) return;
+      const hasVisibleAccess =
+        Boolean(accessPanel && !accessPanel.hidden) &&
+        Array.from(accessPanel.children || []).some((panel) => panel && panel.hidden !== true);
+      const hasVisibleComposer = Boolean(composerRow && !composerRow.hidden);
+      chatCard.hidden = !hasVisibleAccess && !hasVisibleComposer;
+    };
 
     const DEFAULT_SAMPLE_TRANSCRIPTS = [
       'I would like to order a coffee, please.',
@@ -4679,6 +4689,7 @@ class PageChat extends HTMLElement {
       if (chatPanel) chatPanel.hidden = true;
       setControlsEnabled(false);
       setHint(uiCopy.loadingUser);
+      updateComposerCardVisibility();
     };
 
     const hideLoadingState = () => {
@@ -7086,10 +7097,10 @@ class PageChat extends HTMLElement {
       rewardsEl.hidden = false;
       rewardsEl.innerHTML = entries
         .sort(([a], [b]) => a.localeCompare(b))
-        .map(
-          ([icon, qty]) =>
-            `<div class="training-badge reward-badge"><ion-icon name="${icon}"></ion-icon><span>${qty}</span></div>`
-        )
+        .map(([icon, qty]) => {
+          const isInteractive = icon === 'trophy';
+          return `<div class="training-badge reward-badge${isInteractive ? ' is-interactive' : ''}" data-reward-icon="${icon}" data-reward-qty="${qty}"${isInteractive ? ' role="button" tabindex="0"' : ''}><ion-icon name="${icon}"></ion-icon><span>${qty}</span></div>`;
+        })
         .join('');
     };
 
@@ -7115,6 +7126,7 @@ class PageChat extends HTMLElement {
       if (lockedPanel) lockedPanel.hidden = !loggedIn || chatEnabled;
       if (accessPanel) accessPanel.hidden = chatEnabled;
       if (chatPanel) chatPanel.hidden = !chatEnabled;
+      updateComposerCardVisibility();
 
       if (userChanged) {
         setChatbotDailyLimitBlocked(false);
@@ -7852,6 +7864,7 @@ class PageChat extends HTMLElement {
       setTalkState(talkState);
       updateChatHintVisibility();
       updateChatbotOneLineLayout();
+      updateComposerCardVisibility();
       scheduleChatKeyboardSync();
     };
 
@@ -7859,6 +7872,7 @@ class PageChat extends HTMLElement {
       const isCommunity = chatMode === 'community';
       const isCommunityDm = isCommunity && communityView === 'dm';
       const hasActiveCommunityDm = isCommunityDm && Boolean(activeCommunityDmRoomId);
+      this.classList.toggle('chat-community-dm-empty', Boolean(isCommunityDm && !hasActiveCommunityDm));
       updateModeToggleUi();
       updateCommunityNavUnreadUi();
       updateCommunityDmBackUnreadUi();
@@ -7893,6 +7907,7 @@ class PageChat extends HTMLElement {
         }
       }
       updateChatHintVisibility();
+      updateComposerCardVisibility();
     };
 
     const setCommunityView = (view, options = {}) => {

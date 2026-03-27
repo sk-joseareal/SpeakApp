@@ -191,7 +191,7 @@ class PageLogin extends HTMLElement {
         modal.dismiss();
         return;
       }
-      window.location.hash = '#/diagnostics';
+      // embedded in profile — user-change event handles the UI update
     };
 
     const panels = {

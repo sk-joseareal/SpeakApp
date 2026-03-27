@@ -26,6 +26,10 @@ const APP_COPY = {
       you: 'Profile',
       chat: 'Chat'
     },
+    appHeader: {
+      completedModulesOne: 'Completaste {n} módulo!',
+      completedModulesOther: 'Completaste {n} módulos!'
+    },
     reference: {
       title: 'Referencia',
       subtitle: 'Explora cursos, unidades y lecciones para consultar contenido.',
@@ -465,6 +469,10 @@ const APP_COPY = {
       reference: 'Reference',
       you: 'Profile',
       chat: 'Chat'
+    },
+    appHeader: {
+      completedModulesOne: 'You completed {n} module!',
+      completedModulesOther: 'You completed {n} modules!'
     },
     reference: {
       title: 'Reference',
@@ -1135,6 +1143,8 @@ export const getChatCopy = (locale) => withComputedChatCopy(getCopyBundle(locale
 export const getProfileCopy = (locale) => getCopyBundle(locale).profile;
 
 export const getTabsCopy = (locale) => getCopyBundle(locale).tabs;
+
+export const getAppHeaderCopy = (locale) => getCopyBundle(locale).appHeader;
 
 export const getNotificationsCopy = (locale) => getCopyBundle(locale).notifications;
 

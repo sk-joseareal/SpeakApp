@@ -51,7 +51,7 @@ class PageSpeak extends HTMLElement {
               >
             </span>
             <div class="speak-hero-body">
-              <p class="onboarding-intro-bubble speak-hero-bubble" id="speak-hero-hint-display"></p>
+              <p class="onboarding-intro-bubble speak-hero-bubble hero-playable-bubble" id="speak-hero-hint-display"></p>
               <p class="speak-hero-step-title secret-title" id="speak-hero-step-title"></p>
             </div>
             <p class="secret-title" id="speak-hero-hint" aria-hidden="true"></p>
@@ -182,7 +182,6 @@ class PageSpeak extends HTMLElement {
     let swipeAnimating = false;
     let heroCardLockedHeight = 0;
     let lastHeroNarratedStepKey = '';
-    let heroNarrationPlayedOnce = false;
     let heroNarrationToken = 0;
     let heroNarrationTimer = null;
     let heroMascotFrameIndex = HERO_MASCOT_REST_FRAME;
@@ -3281,16 +3280,8 @@ class PageSpeak extends HTMLElement {
         summaryState = localizeExistingSummaryState(summaryState, uiLocale);
       }
       renderStep();
-      if (showSummary || !heroCardEl || heroCardEl.hidden) return;
-      const source = getHeroSourceByStepKey(getStepKey());
       clearHeroNarrationTimer();
-      stopHeroNarration()
-        .catch(() => {})
-        .finally(() => {
-          if (!this.isConnected || showSummary || !heroCardEl || heroCardEl.hidden) return;
-          applyHeroSource(source, { locale: uiLocale });
-          scheduleHeroNarration(source, 80, { locale: uiLocale });
-        });
+      stopHeroNarration().catch(() => {});
     };
 
     const applyHeroSource = (source, options = {}) => {
@@ -3394,7 +3385,6 @@ class PageSpeak extends HTMLElement {
       selectedWord = matchedWord || (spellingWords.length ? spellingWords[0] : '');
       stepIndex = startStep !== null ? resolveStartStepIndex(startStep) : 0;
       lastHeroNarratedStepKey = '';
-      heroNarrationPlayedOnce = false;
       showSummary = false;
       summaryState = null;
       lastSummaryAudioCue = '';
@@ -3704,16 +3694,7 @@ class PageSpeak extends HTMLElement {
         routeBannerEl.textContent = stepTitle ? `${bannerPrefix} – ${stepTitle}` : bannerPrefix;
       }
       if (stepKey !== lastHeroNarratedStepKey) {
-        const isInitialStepNarration = !lastHeroNarratedStepKey;
         lastHeroNarratedStepKey = stepKey;
-        const alreadyPlayedGlobally = localStorage.getItem('appv5:speak-hero-narration-played') === '1';
-        if (!heroNarrationPlayedOnce && !alreadyPlayedGlobally) {
-          heroNarrationPlayedOnce = true;
-          localStorage.setItem('appv5:speak-hero-narration-played', '1');
-          scheduleHeroNarration(source, isInitialStepNarration ? 1000 : 120, {
-            locale: uiLocale
-          });
-        }
       }
     };
 
@@ -4408,17 +4389,8 @@ class PageSpeak extends HTMLElement {
         summaryState = localizeExistingSummaryState(summaryState, nextLocale);
       }
       renderStep();
-      if (showSummary || !heroCardEl || heroCardEl.hidden) return;
-      const source = getHeroSourceByStepKey(getStepKey());
       clearHeroNarrationTimer();
-      stopHeroNarration()
-        .catch(() => {})
-        .finally(() => {
-          if (!this.isConnected || showSummary || !heroCardEl || heroCardEl.hidden) return;
-          renderHeroFlagButton(nextLocale);
-          applyHeroSource(source, { locale: nextLocale });
-          scheduleHeroNarration(source, 90, { locale: nextLocale });
-        });
+      stopHeroNarration().catch(() => {});
     };
     this._handleSpeakLocaleChange = handleAppLocaleChange;
     window.addEventListener('app:locale-change', handleAppLocaleChange);
@@ -4457,7 +4429,10 @@ class PageSpeak extends HTMLElement {
       if (!entries.length) { container.innerHTML = ''; container.hidden = true; return; }
       container.hidden = false;
       container.innerHTML = entries.sort(([a], [b]) => a.localeCompare(b))
-        .map(([icon, qty]) => `<div class="training-badge reward-badge"><ion-icon name="${icon}"></ion-icon><span>${qty}</span></div>`)
+        .map(([icon, qty]) => {
+          const isInteractive = icon === 'trophy';
+          return `<div class="training-badge reward-badge${isInteractive ? ' is-interactive' : ''}" data-reward-icon="${icon}" data-reward-qty="${qty}"${isInteractive ? ' role="button" tabindex="0"' : ''}><ion-icon name="${icon}"></ion-icon><span>${qty}</span></div>`;
+        })
         .join('');
     };
     updateHeaderRewards();

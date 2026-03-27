@@ -122,10 +122,10 @@ class PageHome extends HTMLElement {
       container.hidden = false;
       container.innerHTML = entries
         .sort(([a], [b]) => a.localeCompare(b))
-        .map(
-          ([icon, qty]) =>
-            `<div class="training-badge reward-badge"><ion-icon name="${icon}"></ion-icon><span>${qty}</span></div>`
-        )
+        .map(([icon, qty]) => {
+          const isInteractive = icon === 'trophy';
+          return `<div class="training-badge reward-badge${isInteractive ? ' is-interactive' : ''}" data-reward-icon="${icon}" data-reward-qty="${qty}"${isInteractive ? ' role="button" tabindex="0"' : ''}><ion-icon name="${icon}"></ion-icon><span>${qty}</span></div>`;
+        })
         .join('');
     };
     this._rewardsHandler = () => this.render();
@@ -172,11 +172,8 @@ class PageHome extends HTMLElement {
         }
         return;
       }
-      const firstAutoNarration = !this.initialPlanNarrationStarted;
-      const delayMs = firstAutoNarration ? 0 : this.getAutoNarrationDelay(90);
       this.schedulePendingHomeReturnScrollRestore();
       this.schedulePendingHomeReturnReveal();
-      this.schedulePlanNarration(delayMs, firstAutoNarration);
     };
     this._tabsEl = this.getTabsEl();
     this._tabsEl?.addEventListener('ionTabsDidChange', this._tabsDidChangeHandler);
@@ -192,13 +189,7 @@ class PageHome extends HTMLElement {
       this.schedulePendingHomeReturnReveal();
     };
     this._routerEl?.addEventListener('ionRouteDidChange', this._routeDidChangeHandler);
-    const firstAutoNarration = !this.initialPlanNarrationStarted;
-    const initialDelayMs = firstAutoNarration ? 0 : this.getAutoNarrationDelay(950);
-    this.render({
-      narrationDelayMs: initialDelayMs,
-      skipNarration: !this.isTabActive('home'),
-      forceNarration: firstAutoNarration
-    });
+    this.render();
   }
 
   disconnectedCallback() {
@@ -773,7 +764,7 @@ class PageHome extends HTMLElement {
                 >
               </span>
               <div class="journey-plan-body">
-                <p class="onboarding-intro-bubble journey-plan-bubble">
+                <p class="onboarding-intro-bubble journey-plan-bubble hero-playable-bubble">
                   ${planRestHtml}
                 </p>
                 <div class="journey-start-pill" style="visibility:hidden" aria-hidden="true">
@@ -1254,8 +1245,8 @@ class PageHome extends HTMLElement {
                     </div>
                     ${showChevron ? `<ion-icon name="${isModuleOpen ? 'chevron-up' : 'chevron-down'}" class="module-chevron"></ion-icon>` : ''}
                   </div>
-                  ${progress.started ? `<div class="module-progress-wrap"><div class="module-progress-fill module-progress-fill-${toneCls}" style="width:${Math.min(100, progress.percent)}%"></div></div>` : ''}
                 </button>
+                ${progress.started ? `<div class="module-progress-wrap" style="margin-bottom:16px"><div class="module-progress-fill module-progress-fill-${toneCls}" style="width:${Math.min(100, progress.percent)}%"></div></div>` : ''}
                 ${sessionsMarkup}
               </div>
             `;
@@ -1311,7 +1302,7 @@ class PageHome extends HTMLElement {
               >
             </span>
             <div class="journey-plan-body">
-              <p class="onboarding-intro-bubble journey-plan-bubble">
+              <p class="onboarding-intro-bubble journey-plan-bubble hero-playable-bubble">
                 ${planRestHtml}
               </p>
               <div class="journey-start-pill">
@@ -1512,18 +1503,6 @@ class PageHome extends HTMLElement {
       if (!inNarrationZone) return;
       this.playPlanNarration({ manual: true });
     });
-    if (options.skipNarration) {
-      this.clearNarrationTimer();
-      return;
-    }
-    const forceNarration = Boolean(options.forceNarration);
-    if (forceNarration) {
-      const narrationDelayMs =
-        typeof options.narrationDelayMs === 'number'
-          ? options.narrationDelayMs
-          : this.getAutoNarrationDelay(90);
-      this.schedulePlanNarration(narrationDelayMs, true);
-    }
   }
 
   normalizeLocale(locale) {

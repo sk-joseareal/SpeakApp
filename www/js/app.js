@@ -1,7 +1,7 @@
 import { ensureInitialHash, setRouter, goToHome } from './nav.js';
-import { clearLoginTabsLock, hasLoginTabsLock, onboardingDone, setOnboardingDone, setLoginTabsLock } from './state.js';
+import { clearLoginTabsLock, getAppLocale, hasLoginTabsLock, onboardingDone, setOnboardingDone, setLoginTabsLock } from './state.js';
 import { generateDemoNotifications, getUnreadCount, markAllNotificationsRead } from './notifications-store.js';
-import { ensureLegacySpeakCopyGlobals } from './content/copy.js';
+import { ensureLegacySpeakCopyGlobals, getAppHeaderCopy } from './content/copy.js';
 import './pages/onboarding.js';
 import './pages/home.js';
 import './pages/reference.js';
@@ -65,6 +65,7 @@ routerReady.then((router) => {
 
   setupSecretDiagnostics(router);
   setupNotificationsModal();
+  setupRewardBadgeInfoToasts();
   setupLoginModal();
   setupLoginNotificationsSeed();
   checkMagicToken();
@@ -188,6 +189,83 @@ function setupNotificationsModal() {
     openNotificationsModal().catch((err) => {
       console.error('[notifications] error abriendo modal', err);
     });
+  });
+}
+
+function setupRewardBadgeInfoToasts() {
+  const presentRewardToast = (message) => {
+    const text = String(message || '').trim();
+    if (!text) return;
+    try {
+      const toast = document.createElement('ion-toast');
+      toast.message = text;
+      toast.duration = 2200;
+      toast.position = 'top';
+      document.body.appendChild(toast);
+      toast.present().catch(() => {});
+      toast.addEventListener(
+        'didDismiss',
+        () => {
+          toast.remove();
+        },
+        { once: true }
+      );
+    } catch (_err) {
+      // no-op
+    }
+  };
+
+  const getTrophyCount = () => {
+    const rewards =
+      window.r34lp0w3r && window.r34lp0w3r.speakSessionRewards
+        ? window.r34lp0w3r.speakSessionRewards
+        : {};
+    return Object.values(rewards).reduce((sum, entry) => {
+      if (!entry || typeof entry.rewardQty !== 'number') return sum;
+      const icon = String(entry.rewardIcon || 'diamond').trim().toLowerCase();
+      if (icon !== 'trophy') return sum;
+      return sum + Math.max(0, Math.round(entry.rewardQty));
+    }, 0);
+  };
+
+  const buildRewardMessage = (count) => {
+    const locale = getAppLocale() || (window.varGlobal && window.varGlobal.locale) || 'en';
+    const copy = getAppHeaderCopy(locale);
+    const template =
+      count === 1 ? copy.completedModulesOne : copy.completedModulesOther;
+    return String(template || '').replace('{n}', String(count));
+  };
+
+  const handleRewardBadgeInfoRequest = (badgeEl) => {
+    if (!badgeEl) return;
+    const iconName =
+      String(badgeEl.dataset.rewardIcon || '')
+        .trim()
+        .toLowerCase() ||
+      String(badgeEl.querySelector('ion-icon')?.getAttribute('name') || '')
+        .trim()
+        .toLowerCase();
+    if (iconName !== 'trophy') return;
+    const trophyCount = Math.max(0, getTrophyCount());
+    if (!trophyCount) return;
+    presentRewardToast(buildRewardMessage(trophyCount));
+  };
+
+  document.addEventListener('click', (event) => {
+    const path = event.composedPath ? event.composedPath() : [event.target];
+    const rewardBadge = path.find(
+      (el) => el && el.classList && el.classList.contains('reward-badge')
+    );
+    if (!rewardBadge) return;
+    handleRewardBadgeInfoRequest(rewardBadge);
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (!event || (event.key !== 'Enter' && event.key !== ' ')) return;
+    const target = event.target;
+    if (!target || !target.classList || !target.classList.contains('reward-badge')) return;
+    event.preventDefault();
+    handleRewardBadgeInfoRequest(target);
   });
 }
 

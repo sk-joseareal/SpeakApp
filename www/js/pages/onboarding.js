@@ -80,11 +80,7 @@ class PageOnboarding extends HTMLElement {
     this.render();
     this.cacheElements();
     this.bindEvents();
-    if (!this.isNativeRuntime()) {
-      this.setupBrowserNarrationRetry();
-    }
-    const initialDelayMs = this.isNativeRuntime() ? 280 : 950;
-    this.updateSlide({ narrationDelayMs: initialDelayMs });
+    this.updateSlide();
   }
 
   disconnectedCallback() {
@@ -158,21 +154,7 @@ class PageOnboarding extends HTMLElement {
       this.nextBtn.textContent = copy.cta;
       this.updateNextButtonState(step);
     }
-    if (!this.isNativeRuntime()) {
-      if (this.currentStep === 0 && !this.firstSlideNarrationStarted) {
-        this.queueBrowserNarrationRetry(1200);
-      } else {
-        this.teardownBrowserNarrationRetry();
-      }
-    }
-    const skipNarration = Boolean(options && options.skipNarration);
-    if (skipNarration) {
-      this.stopNarration().catch(() => {});
-      return;
-    }
-    const delayMs =
-      options && typeof options.narrationDelayMs === 'number' ? options.narrationDelayMs : 90;
-    this.scheduleSlideNarration(step, copy, delayMs);
+    this.stopNarration().catch(() => {});
   }
 
   finish() {
@@ -190,17 +172,6 @@ class PageOnboarding extends HTMLElement {
     setLoginTabsLock();
     window.dispatchEvent(new CustomEvent('app:tabs-lock-change', { detail: { locked: true } }));
     goToHome('root');
-    const openLockedLogin = () => {
-      if (typeof window.openLoginModal !== 'function') return;
-      window.openLoginModal({ locked: true }).catch((err) => {
-        console.error('[onboarding] error abriendo login bloqueado', err);
-      });
-    };
-    if (typeof window.requestAnimationFrame === 'function') {
-      window.requestAnimationFrame(openLockedLogin);
-      return;
-    }
-    setTimeout(openLockedLogin, 0);
   }
 
   renderBody(step, copy) {
@@ -267,7 +238,7 @@ class PageOnboarding extends HTMLElement {
             <span class="onboarding-hero-mascot-wrap" aria-hidden="true">
               <img class="onboarding-intro-cat onboarding-hero-mascot" id="onboarding-hero-mascot" src="${heroMascotSrc}" alt="">
             </span>
-            <p class="onboarding-intro-bubble onboarding-hero-bubble">
+            <p class="onboarding-intro-bubble onboarding-hero-bubble hero-playable-bubble">
               ${bubbleRestHtml}
             </p>
           </section>

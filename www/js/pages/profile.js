@@ -709,10 +709,10 @@ class PageProfile extends HTMLElement {
       rewardsEl.hidden = false;
       rewardsEl.innerHTML = entries
         .sort(([a], [b]) => a.localeCompare(b))
-        .map(
-          ([icon, qty]) =>
-            `<div class="training-badge reward-badge"><ion-icon name="${icon}"></ion-icon><span>${qty}</span></div>`
-        )
+        .map(([icon, qty]) => {
+          const isInteractive = icon === 'trophy';
+          return `<div class="training-badge reward-badge${isInteractive ? ' is-interactive' : ''}" data-reward-icon="${icon}" data-reward-qty="${qty}"${isInteractive ? ' role="button" tabindex="0"' : ''}><ion-icon name="${icon}"></ion-icon><span>${qty}</span></div>`;
+        })
         .join('');
     };
 

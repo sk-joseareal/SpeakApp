@@ -257,11 +257,8 @@ class PageFreeRide extends HTMLElement {
         return;
       }
       this.applyIOSKeyboardOverlayMode();
-      const firstAutoNarration = !this.initialHeroNarrationStarted;
-      const delayMs = firstAutoNarration ? 0 : this.getAutoNarrationDelay(80);
       this.scheduleLayoutSync(0);
-      this.scheduleLayoutSync(delayMs + 140);
-      this.scheduleHeroNarration(delayMs, firstAutoNarration);
+      this.scheduleLayoutSync(140);
     };
     this._tabsEl = this.getTabsEl();
     this._tabsEl?.addEventListener('ionTabsDidChange', this._tabsDidChangeHandler);
@@ -269,16 +266,6 @@ class PageFreeRide extends HTMLElement {
       this._tabsDidChangeHandler(event);
     };
     window.addEventListener('app:tab-change', this._appTabChangeHandler);
-    this._tabUserClickHandler = (event) => {
-      const tab = String(event && event.detail ? event.detail.tab || '' : '')
-        .trim()
-        .toLowerCase();
-      if (tab !== 'freeride') return;
-      if (this.initialHeroNarrationStarted) return;
-      this.playHeroNarration(true);
-    };
-    window.addEventListener('app:tab-user-click', this._tabUserClickHandler);
-
     this._layoutViewportHandler = () => {
       if (!this.isConnected) return;
       this.scheduleLayoutSync(0);
@@ -291,11 +278,8 @@ class PageFreeRide extends HTMLElement {
 
     if (this.isTabActive('freeride')) {
       this.applyIOSKeyboardOverlayMode();
-      const firstAutoNarration = !this.initialHeroNarrationStarted;
-      const initialDelayMs = firstAutoNarration ? 0 : this.getAutoNarrationDelay(820);
       this.scheduleLayoutSync(0);
       this.scheduleLayoutSync(140);
-      this.scheduleHeroNarration(initialDelayMs, firstAutoNarration);
     }
 
     this.updateHeaderRewards();
@@ -6148,10 +6132,10 @@ class PageFreeRide extends HTMLElement {
     container.hidden = false;
     container.innerHTML = entries
       .sort(([a], [b]) => a.localeCompare(b))
-      .map(
-        ([icon, qty]) =>
-          `<div class="training-badge reward-badge"><ion-icon name="${icon}"></ion-icon><span>${qty}</span></div>`
-      )
+      .map(([icon, qty]) => {
+        const isInteractive = icon === 'trophy';
+        return `<div class="training-badge reward-badge${isInteractive ? ' is-interactive' : ''}" data-reward-icon="${icon}" data-reward-qty="${qty}"${isInteractive ? ' role="button" tabindex="0"' : ''}><ion-icon name="${icon}"></ion-icon><span>${qty}</span></div>`;
+      })
       .join('');
   }
 
@@ -6652,7 +6636,7 @@ class PageFreeRide extends HTMLElement {
               >
             </span>
             <div class="journey-plan-body">
-              <p class="onboarding-intro-bubble free-ride-hero-bubble journey-plan-bubble">${this.renderFreeRideCopyBilingualHtml('subtitle', {
+              <p class="onboarding-intro-bubble free-ride-hero-bubble journey-plan-bubble hero-playable-bubble">${this.renderFreeRideCopyBilingualHtml('subtitle', {
               fallbackEs: copy.subtitle || '',
               fallbackEn: copy.subtitle || ''
             })}</p>
@@ -6742,15 +6726,6 @@ class PageFreeRide extends HTMLElement {
     this.scheduleLayoutSync(0);
     this.scheduleLayoutSync(140);
 
-    const forceNarration = Boolean(options.forceNarration);
-    const narrationDelayMs =
-      typeof options.narrationDelayMs === 'number' ? options.narrationDelayMs : forceNarration ? 80 : null;
-    if (forceNarration || narrationDelayMs !== null) {
-      this.scheduleHeroNarration(
-        narrationDelayMs === null ? this.getAutoNarrationDelay(90) : narrationDelayMs,
-        forceNarration
-      );
-    }
   }
 }
 

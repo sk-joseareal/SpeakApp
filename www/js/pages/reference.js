@@ -115,25 +115,13 @@ class PageReference extends HTMLElement {
       if (!activeTab) return;
       if (activeTab !== 'reference') {
         this.stopHeroNarration();
-        return;
       }
-      if (this.initialHeroNarrationStarted) return;
-      this.scheduleHeroNarration(0, true);
     };
     document.addEventListener('ionTabsDidChange', this._tabChangeHandler);
     this._appTabChangeHandler = (event) => {
       this._tabChangeHandler(event);
     };
     window.addEventListener('app:tab-change', this._appTabChangeHandler);
-    this._tabUserClickHandler = (event) => {
-      const tab = String(event && event.detail ? event.detail.tab || '' : '')
-        .trim()
-        .toLowerCase();
-      if (tab !== 'reference') return;
-      if (this.initialHeroNarrationStarted) return;
-      this.playHeroNarration(true).catch(() => {});
-    };
-    window.addEventListener('app:tab-user-click', this._tabUserClickHandler);
     this.render();
   }
 
@@ -602,10 +590,10 @@ class PageReference extends HTMLElement {
     container.hidden = false;
     container.innerHTML = entries
       .sort(([a], [b]) => a.localeCompare(b))
-      .map(
-        ([icon, qty]) =>
-          `<div class="training-badge reward-badge"><ion-icon name="${icon}"></ion-icon><span>${qty}</span></div>`
-      )
+      .map(([icon, qty]) => {
+        const isInteractive = icon === 'trophy';
+        return `<div class="training-badge reward-badge${isInteractive ? ' is-interactive' : ''}" data-reward-icon="${icon}" data-reward-qty="${qty}"${isInteractive ? ' role="button" tabindex="0"' : ''}><ion-icon name="${icon}"></ion-icon><span>${qty}</span></div>`;
+      })
       .join('');
   }
 
@@ -2423,11 +2411,6 @@ class PageReference extends HTMLElement {
   render(options = {}) {
     this.stopHeroNarration();
     this.disconnectFloatingHintsObserver();
-    const forceNarration = Boolean(options && options.forceNarration);
-    const narrationDelayMs =
-      typeof options.narrationDelayMs === 'number'
-        ? options.narrationDelayMs
-        : this.getAutoNarrationDelay(95);
     const baseLocale = this.getBaseLocale();
     const uiLocale = this.getUiLocale(baseLocale);
     const tabsCopy = getTabsCopy(uiLocale);
@@ -2459,7 +2442,7 @@ class PageReference extends HTMLElement {
                 <img id="reference-hero-mascot" class="onboarding-intro-cat" src="${heroMascotSrc}" alt="">
               </span>
               <div class="journey-plan-body">
-                <p class="onboarding-intro-bubble journey-plan-bubble reference-hero-bubble">${this.escapeHtml(copy.subtitle)}</p>
+                <p class="onboarding-intro-bubble journey-plan-bubble reference-hero-bubble hero-playable-bubble">${this.escapeHtml(copy.subtitle)}</p>
               </div>
             </section>
             <section class="reference-content-card">
@@ -2483,12 +2466,11 @@ class PageReference extends HTMLElement {
         if (!target) return;
         const inNarrationZone = target.closest('.journey-plan-mascot-wrap, .onboarding-intro-bubble, .reference-hero-bubble, .journey-plan-bubble');
         if (!inNarrationZone) return;
-        this.scheduleHeroNarration(0, true);
+        this.playHeroNarration(true).catch(() => {});
       });
       this.updateHeaderRewards();
       this.currentHeroMessage = copy.subtitle;
       this.currentHeroLocale = uiLocale;
-      this.scheduleHeroNarration(narrationDelayMs, forceNarration);
 
       if (!this._loadingReferenceData && !this._referenceDataLoadAttempted) {
         this._loadingReferenceData = true;
@@ -2747,7 +2729,7 @@ class PageReference extends HTMLElement {
                 <img id="reference-hero-mascot" class="onboarding-intro-cat" src="${heroMascotSrc}" alt="">
               </span>
               <div class="journey-plan-body">
-                <p class="onboarding-intro-bubble journey-plan-bubble reference-hero-bubble">${this.escapeHtml(copy.subtitle)}</p>
+                <p class="onboarding-intro-bubble journey-plan-bubble reference-hero-bubble hero-playable-bubble">${this.escapeHtml(copy.subtitle)}</p>
               </div>
             </section>
 
@@ -2915,9 +2897,8 @@ class PageReference extends HTMLElement {
         if (!target) return;
         const inNarrationZone = target.closest('.journey-plan-mascot-wrap, .onboarding-intro-bubble, .reference-hero-bubble, .journey-plan-bubble');
         if (!inNarrationZone) return;
-        this.scheduleHeroNarration(0, true);
+        this.playHeroNarration(true).catch(() => {});
       });
-      this.scheduleHeroNarration(narrationDelayMs, forceNarration);
 
       this.querySelectorAll('[data-action="toggle-course"]').forEach((button) => {
         button.addEventListener('click', (event) => {

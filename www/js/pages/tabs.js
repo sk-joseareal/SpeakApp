@@ -296,11 +296,7 @@ class TabsPage extends HTMLElement {
       if (!locked) return;
       writeStoredTab(loginTargetTab);
       forceTab(loginTargetTab);
-      if (openLogin) {
-        openLoginModal(true).catch((err) => {
-          console.error('[tabs] error abriendo login bloqueado', err);
-        });
-      }
+      // login modal removed — user stays on Profile tab
     };
 
     this._tabBarClickHandler = (event) => {
@@ -315,9 +311,6 @@ class TabsPage extends HTMLElement {
         event.preventDefault();
         event.stopPropagation();
         forceTab(loginTargetTab);
-        openLoginModal(true).catch((err) => {
-          console.error('[tabs] error abriendo login bloqueado', err);
-        });
         return;
       }
 
@@ -336,9 +329,6 @@ class TabsPage extends HTMLElement {
       const loginTargetTab = getLoginTargetTab();
       if (isTabsLocked() && tab !== loginTargetTab) {
         forceTab(loginTargetTab);
-        openLoginModal(true).catch((err) => {
-          console.error('[tabs] error abriendo login bloqueado', err);
-        });
         return;
       }
 

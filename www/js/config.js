@@ -9,7 +9,7 @@
 
   window.appMeta = window.appMeta || {
     version: window.APP_VERSION || '1.0.1',
-    build: window.APP_BUILD || '30'
+    build: window.APP_BUILD || '31'
   };
 
   const emitAppMeta = () => {
@@ -236,9 +236,7 @@
   }
   if (!window.speakSummaryConfig.rewards) {
     window.speakSummaryConfig.rewards = [
-      { icon: 'diamond', label: 'diamonds', min: 1, max: 3 },
-      { icon: 'trophy', label: 'trophies', min: 1, max: 1 },
-      { icon: 'ribbon', label: 'ribbons', min: 1, max: 2 }
+      { icon: 'diamond', label: 'diamonds', min: 1, max: 3 }
     ];
   }
 })();

@@ -1,8 +1,16 @@
 import { getAppLocale, setAppLocale } from '../state.js';
 import { renderAppHeader } from '../components/app-header.js';
 import { ensureTrainingData, getRoutes, setSelection } from '../data/training-data.js';
+import { ensureReferenceData, getLocalizedMapField, getReferenceCourses } from '../data/reference-data.js';
+import {
+  ensureReferenceTestsData,
+  getLocalizedReferenceTestValue,
+  getReferenceTestCourses
+} from '../data/reference-tests.js';
 import { getNextLocaleCode, getProfileCopy, getTabsCopy, resolveLocale } from '../content/copy.js';
 import { goToSpeak } from '../nav.js';
+
+const REFERENCE_TESTS_PROGRESS_STORAGE_PREFIX = 'appv5:reference-tests-progress';
 
 class PageProfile extends HTMLElement {
   connectedCallback() {
@@ -76,6 +84,28 @@ class PageProfile extends HTMLElement {
         });
     }
 
+    const referenceCourses = getReferenceCourses();
+    const referenceTestCourses = getReferenceTestCourses();
+    if (
+      (!referenceCourses.length || !referenceTestCourses.length) &&
+      !this._loadingReferenceData &&
+      !this._referenceDataLoadAttempted
+    ) {
+      this._loadingReferenceData = true;
+      this._referenceDataLoadAttempted = true;
+      Promise.all([
+        ensureReferenceData().catch((err) => {
+          console.warn('[profile] reference data load failed', err);
+        }),
+        ensureReferenceTestsData().catch((err) => {
+          console.warn('[profile] reference tests load failed', err);
+        })
+      ]).finally(() => {
+        this._loadingReferenceData = false;
+        if (this.isConnected) this.render();
+      });
+    }
+
     const getUserDisplayName = (user) => {
       if (!user) return '';
       return user.name || user.first_name || user.email || user.social_id || '';
@@ -126,10 +156,12 @@ class PageProfile extends HTMLElement {
       window.r34lp0w3r && window.r34lp0w3r.speakWordScores ? window.r34lp0w3r.speakWordScores : {};
     const phraseScoresStore =
       window.r34lp0w3r && window.r34lp0w3r.speakPhraseScores ? window.r34lp0w3r.speakPhraseScores : {};
+    const user = window.user;
     const rawLocaleSetting = resolveLocale(
       getAppLocale() || (window.varGlobal && window.varGlobal.locale) || 'es',
       'es'
     );
+    const tabsCopy = getTabsCopy(rawLocaleSetting);
     const profileCopy = getProfileCopy(rawLocaleSetting);
 
     const reviewTone = this.reviewTone === 'okay' ? 'okay' : 'bad';
@@ -224,6 +256,432 @@ class PageProfile extends HTMLElement {
       : 0;
     const globalTone = hasAnyRoute ? getScoreTone(globalPercent) : 'neutral';
 
+    const getProgressMapValue = (progressMap, code) => {
+      const key = String(code === undefined || code === null ? '' : code).trim();
+      if (!key || !progressMap || typeof progressMap !== 'object') return null;
+      if (progressMap[key] !== undefined && progressMap[key] !== null) return progressMap[key];
+      const numericKey = Number(key);
+      if (
+        Number.isFinite(numericKey) &&
+        progressMap[numericKey] !== undefined &&
+        progressMap[numericKey] !== null
+      ) {
+        return progressMap[numericKey];
+      }
+      return null;
+    };
+
+    const referenceSectionProgress =
+      user && user.section_progress && typeof user.section_progress === 'object' ? user.section_progress : {};
+    const referenceTestProgress =
+      user && user.test_progress && typeof user.test_progress === 'object' ? user.test_progress : {};
+
+    const hasReferenceLessonCompletion = (lessonCode) => {
+      const value = getProgressMapValue(referenceSectionProgress, lessonCode);
+      if (value === true) return true;
+      const numericValue = Number(value);
+      return Number.isFinite(numericValue) && numericValue > 0;
+    };
+
+    const getImportedReferenceTestStatus = (testCode) => {
+      const numericValue = Number(getProgressMapValue(referenceTestProgress, testCode) || 0);
+      if (!Number.isFinite(numericValue)) return 0;
+      if (numericValue === 1) return 1;
+      if (numericValue === 2) return 2;
+      return 0;
+    };
+
+    const isReferenceTestPassingScore = (percent) => {
+      const value = Number(percent);
+      return Number.isFinite(value) && value > 80;
+    };
+
+    const getReferenceScoreTone = (percent) => {
+      const value = Number.isFinite(Number(percent)) ? Number(percent) : 0;
+      if (isReferenceTestPassingScore(value)) return 'good';
+      if (value >= 60) return 'okay';
+      return 'bad';
+    };
+
+    const getReferenceTestsStorageUserKey = (currentUser = user) => {
+      if (currentUser && currentUser.id !== undefined && currentUser.id !== null) {
+        const value = String(currentUser.id).trim();
+        if (value) return value;
+      }
+      return 'anon';
+    };
+
+    const getReferenceTestsStorageKey = (currentUser = user) =>
+      `${REFERENCE_TESTS_PROGRESS_STORAGE_PREFIX}:${getReferenceTestsStorageUserKey(currentUser)}`;
+
+    const sanitizeStoredReferenceTestResponses = (responses) => {
+      const source = responses && typeof responses === 'object' ? responses : {};
+      const output = {};
+      Object.entries(source).forEach(([questionCode, rawValue]) => {
+        const key = String(questionCode || '').trim();
+        if (!key) return;
+        if (Array.isArray(rawValue)) {
+          const values = rawValue.map((item) => String(item || ''));
+          while (values.length && !String(values[values.length - 1] || '').trim()) values.pop();
+          if (values.some((item) => String(item || '').trim())) {
+            output[key] = values;
+          }
+          return;
+        }
+        const value = String(rawValue || '');
+        if (value.trim()) {
+          output[key] = value;
+        }
+      });
+      return output;
+    };
+
+    const loadStoredReferenceTestStates = () => {
+      try {
+        const raw = localStorage.getItem(getReferenceTestsStorageKey(user));
+        if (!raw) return {};
+        const payload = JSON.parse(raw);
+        const statesSource = payload && payload.states && typeof payload.states === 'object' ? payload.states : {};
+        const states = {};
+        Object.entries(statesSource).forEach(([testKey, rawState]) => {
+          const key = String(testKey || '').trim();
+          if (!key || !rawState || typeof rawState !== 'object') return;
+          const responses = sanitizeStoredReferenceTestResponses(rawState.responses);
+          const checked = Boolean(rawState.checked);
+          const lastCheckedAt = Number.isFinite(Number(rawState.lastCheckedAt))
+            ? Number(rawState.lastCheckedAt)
+            : 0;
+          if (!Object.keys(responses).length && !checked && !lastCheckedAt) return;
+          states[key] = {
+            responses,
+            checked,
+            lastCheckedAt
+          };
+        });
+        return states;
+      } catch (_err) {
+        return {};
+      }
+    };
+
+    const referenceStoredTestStates = loadStoredReferenceTestStates();
+
+    const getReferenceTestKey = (scope, test) => {
+      const normalizedScope = scope === 'unit' ? 'unit' : 'lesson';
+      const code = test && test.code !== undefined && test.code !== null ? String(test.code).trim() : '';
+      return code ? `${normalizedScope}:${code}` : '';
+    };
+
+    const getStoredReferenceTestState = (testKey) => {
+      const key = String(testKey || '').trim();
+      if (!key || !referenceStoredTestStates[key]) {
+        return {
+          responses: {},
+          checked: false,
+          lastCheckedAt: 0
+        };
+      }
+      return referenceStoredTestStates[key];
+    };
+
+    const getReferenceQuestionSlotCount = (question) => {
+      const acceptedPlaceholders =
+        question &&
+        question.answer &&
+        Array.isArray(question.answer.accepted_placeholders)
+          ? question.answer.accepted_placeholders
+          : [];
+      const fromAccepted = acceptedPlaceholders.reduce(
+        (max, entry) => Math.max(max, Array.isArray(entry) ? entry.length : 0),
+        0
+      );
+      if (fromAccepted > 0) return fromAccepted;
+      const matches = String(question && question.text ? question.text : '').match(/_{3,}/g);
+      const fromText = Array.isArray(matches) ? matches.length : 0;
+      return Math.max(1, fromText);
+    };
+
+    const normalizeReferenceAnswerValue = (value) =>
+      String(value || '')
+        .normalize('NFKC')
+        .replace(/[\u2018\u2019\u0060\u00b4]/g, "'")
+        .replace(/[\u201c\u201d]/g, '"')
+        .replace(/[¿¡]/g, '')
+        .replace(/[.,!?;:()"[\]{}]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .toLowerCase();
+
+    const getReferenceQuestionAcceptedAnswers = (question) => {
+      const answer = question && question.answer ? question.answer : {};
+      const accepted = Array.isArray(answer.accepted) ? answer.accepted.filter(Boolean) : [];
+      if (accepted.length) return accepted;
+      const raw = String(answer.raw || '').trim();
+      return raw ? [raw] : [];
+    };
+
+    const evaluateReferenceQuestion = (question, response) => {
+      const interaction = String(question && question.interaction ? question.interaction : '')
+        .trim()
+        .toLowerCase();
+      const acceptedAnswers = getReferenceQuestionAcceptedAnswers(question);
+      const acceptedPlaceholders =
+        question &&
+        question.answer &&
+        Array.isArray(question.answer.accepted_placeholders)
+          ? question.answer.accepted_placeholders
+          : [];
+
+      if (interaction === 'multiple_choice') {
+        const selectedCode = String(response || '').trim();
+        const correctOption = Array.isArray(question.options)
+          ? question.options.find((option) => option.correct)
+          : null;
+        return Boolean(correctOption && selectedCode && String(correctOption.code) === selectedCode);
+      }
+
+      if (interaction === 'reorder_words') {
+        const answerTokens = Array.isArray(response) ? response : [];
+        const userNormalized = normalizeReferenceAnswerValue(answerTokens.join(' ').trim());
+        const acceptedNormalized = acceptedAnswers.map((item) => normalizeReferenceAnswerValue(item));
+        return Boolean(userNormalized) && acceptedNormalized.includes(userNormalized);
+      }
+
+      const slotCount = getReferenceQuestionSlotCount(question);
+      const rawParts = Array.isArray(response)
+        ? response.slice(0, slotCount).map((item) => String(item || ''))
+        : [String(response || '')];
+      const filledParts = Array.from({ length: slotCount }, (_unused, index) => rawParts[index] || '');
+      const userDisplay =
+        slotCount > 1
+          ? filledParts.map((part) => part.trim()).filter(Boolean).join(' · ')
+          : filledParts[0].trim();
+
+      if (acceptedPlaceholders.length) {
+        const normalizedParts = filledParts.map((part) => normalizeReferenceAnswerValue(part));
+        return acceptedPlaceholders.some((entry) => {
+          if (!Array.isArray(entry) || entry.length !== slotCount) return false;
+          return entry.every(
+            (part, index) => normalizeReferenceAnswerValue(part) === (normalizedParts[index] || '')
+          );
+        });
+      }
+
+      const userNormalized = normalizeReferenceAnswerValue(userDisplay);
+      const acceptedNormalized = acceptedAnswers.map((item) => normalizeReferenceAnswerValue(item));
+      return Boolean(userNormalized) && acceptedNormalized.includes(userNormalized);
+    };
+
+    const hasReferenceQuestionResponse = (question, response) => {
+      const interaction = String(question && question.interaction ? question.interaction : '')
+        .trim()
+        .toLowerCase();
+      if (interaction === 'multiple_choice') {
+        return Boolean(String(response || '').trim());
+      }
+      if (interaction === 'reorder_words') {
+        return Array.isArray(response) && response.some((item) => String(item || '').trim());
+      }
+      const slotCount = getReferenceQuestionSlotCount(question);
+      const values = Array.isArray(response)
+        ? response.slice(0, slotCount).map((item) => String(item || ''))
+        : [String(response || '')];
+      while (values.length < slotCount) values.push('');
+      return values.every((item) => String(item || '').trim());
+    };
+
+    const getLocalizedReferenceTitle = (entry, field, fallback) =>
+      getLocalizedMapField(entry, field, rawLocaleSetting) || fallback || '';
+
+    const getReferenceTestReviewState = (test, testKey) => {
+      const importedStatus = getImportedReferenceTestStatus(test && test.code);
+      if (importedStatus === 1) return null;
+
+      const state = getStoredReferenceTestState(testKey);
+      const questions = Array.isArray(test && test.questions) ? test.questions : [];
+      const total = questions.length;
+      const answeredCount = questions.reduce((count, question) => {
+        const questionCode = String(question && question.code ? question.code : '');
+        return count + (hasReferenceQuestionResponse(question, state.responses[questionCode]) ? 1 : 0);
+      }, 0);
+
+      if (state.checked && total > 0) {
+        const correctCount = questions.reduce((count, question) => {
+          const questionCode = String(question && question.code ? question.code : '');
+          return count + (evaluateReferenceQuestion(question, state.responses[questionCode]) ? 1 : 0);
+        }, 0);
+        const scorePercent = Math.max(0, Math.min(100, Math.round((correctCount / total) * 100)));
+        if (isReferenceTestPassingScore(scorePercent)) return null;
+        return {
+          tone: getReferenceScoreTone(scorePercent),
+          percent: scorePercent,
+          source: 'local-checked'
+        };
+      }
+
+      if (answeredCount > 0) {
+        const progressPercent = total > 0 ? Math.round((answeredCount / total) * 100) : 0;
+        return {
+          tone: 'okay',
+          percent: progressPercent,
+          source: 'local-progress'
+        };
+      }
+
+      if (importedStatus === 2) {
+        return {
+          tone: 'bad',
+          percent: 50,
+          source: 'remote-failed'
+        };
+      }
+
+      return null;
+    };
+
+    const testCourseMap = new Map(
+      (Array.isArray(referenceTestCourses) ? referenceTestCourses : []).map((course) => [String(course.code), course])
+    );
+
+    const getReferenceCoursePercent = (course) => {
+      const courseCode = String(course && course.code ? course.code : '').trim();
+      if (!courseCode) return { started: false, percent: 0, tone: 'neutral' };
+      const testCourse = testCourseMap.get(courseCode) || null;
+      const testUnitMap = new Map(
+        (testCourse && Array.isArray(testCourse.unidades) ? testCourse.unidades : []).map((unit) => [
+          String(unit.code),
+          unit
+        ])
+      );
+
+      let completedCount = 0;
+      let totalCount = 0;
+      let started = false;
+
+      (Array.isArray(course && course.unidades) ? course.unidades : []).forEach((unit) => {
+        const unitCode = String(unit && unit.code ? unit.code : '').trim();
+        const testUnit = testUnitMap.get(unitCode) || null;
+        const testLessonMap = new Map(
+          (testUnit && Array.isArray(testUnit.lecciones) ? testUnit.lecciones : []).map((lesson) => [
+            String(lesson.code),
+            lesson
+          ])
+        );
+
+        (Array.isArray(unit && unit.lecciones) ? unit.lecciones : []).forEach((lesson) => {
+          const lessonCode = String(lesson && lesson.code ? lesson.code : '').trim();
+          const lessonCompleted = hasReferenceLessonCompletion(lessonCode);
+          const testLesson = testLessonMap.get(lessonCode) || null;
+          const lessonTests =
+            testLesson && Array.isArray(testLesson.tests) ? testLesson.tests : [];
+
+          totalCount += 1 + lessonTests.length;
+          if (lessonCompleted) {
+            completedCount += 1;
+            started = true;
+          }
+
+          lessonTests.forEach((test) => {
+            const importedStatus = getImportedReferenceTestStatus(test && test.code);
+            if (importedStatus > 0) started = true;
+            if (importedStatus === 1) completedCount += 1;
+          });
+        });
+
+        const unitTests = testUnit && Array.isArray(testUnit.tests_unidad) ? testUnit.tests_unidad : [];
+        totalCount += unitTests.length;
+        unitTests.forEach((test) => {
+          const importedStatus = getImportedReferenceTestStatus(test && test.code);
+          if (importedStatus > 0) started = true;
+          if (importedStatus === 1) completedCount += 1;
+        });
+      });
+
+      const percent = totalCount > 0 ? Math.round((completedCount * 100) / totalCount) : 0;
+      return {
+        started,
+        percent,
+        tone: started ? getScoreTone(percent) : 'neutral'
+      };
+    };
+
+    const referenceCourseProgressList = referenceCourses.map((course) => getReferenceCoursePercent(course));
+    const hasAnyReferenceProgress = referenceCourseProgressList.some((entry) => entry.started);
+    const referenceGlobalPercent =
+      hasAnyReferenceProgress && referenceCourses.length
+        ? Math.round(
+            referenceCourseProgressList.reduce(
+              (sum, entry) => sum + (entry.started ? entry.percent : 0),
+              0
+            ) / referenceCourses.length
+          )
+        : 0;
+    const referenceGlobalTone = hasAnyReferenceProgress ? getScoreTone(referenceGlobalPercent) : 'neutral';
+
+    const reviewTestEntries = [];
+    (Array.isArray(referenceTestCourses) ? referenceTestCourses : []).forEach((course) => {
+      const courseCode = String(course && course.code ? course.code : '').trim();
+      const courseTitle =
+        getLocalizedReferenceTitle(course, 'display', course && course.title ? String(course.title) : '') ||
+        `Course ${courseCode}`;
+      (Array.isArray(course && course.unidades) ? course.unidades : []).forEach((unit) => {
+        const unitCode = String(unit && unit.code ? unit.code : '').trim();
+        const unitTitle =
+          getLocalizedReferenceTitle(unit, 'display', unit && unit.title ? String(unit.title) : '') ||
+          `Unit ${unitCode}`;
+        const lessons = Array.isArray(unit && unit.lecciones) ? unit.lecciones : [];
+        const firstLessonCode =
+          lessons[0] && lessons[0].code !== undefined && lessons[0].code !== null
+            ? String(lessons[0].code).trim()
+            : '';
+
+        lessons.forEach((lesson) => {
+          const lessonCode = String(lesson && lesson.code ? lesson.code : '').trim();
+          const lessonTitle =
+            getLocalizedReferenceTitle(lesson, 'display', lesson && lesson.title ? String(lesson.title) : '') ||
+            `Lesson ${lessonCode}`;
+          (Array.isArray(lesson && lesson.tests) ? lesson.tests : []).forEach((test) => {
+            const testKey = getReferenceTestKey('lesson', test);
+            const reviewState = getReferenceTestReviewState(test, testKey);
+            if (!reviewState || reviewState.tone !== reviewTone) return;
+            reviewTestEntries.push({
+              type: 'reference-test',
+              tone: reviewState.tone,
+              courseCode,
+              unitCode,
+              lessonCode,
+              testKey,
+              title:
+                getLocalizedReferenceTestValue(test && test.display ? test.display : '', rawLocaleSetting) ||
+                `Test ${String(test && test.code ? test.code : '').trim()}`,
+              eyebrow: profileCopy.reviewLessonTestLabel || 'Lesson test',
+              meta: `${courseTitle} · ${unitTitle} · ${lessonTitle}`
+            });
+          });
+        });
+
+        (Array.isArray(unit && unit.tests_unidad) ? unit.tests_unidad : []).forEach((test) => {
+          if (!firstLessonCode) return;
+          const testKey = getReferenceTestKey('unit', test);
+          const reviewState = getReferenceTestReviewState(test, testKey);
+          if (!reviewState || reviewState.tone !== reviewTone) return;
+          reviewTestEntries.push({
+            type: 'reference-test',
+            tone: reviewState.tone,
+            courseCode,
+            unitCode,
+            lessonCode: firstLessonCode,
+            testKey,
+            title:
+              getLocalizedReferenceTestValue(test && test.display ? test.display : '', rawLocaleSetting) ||
+              `Test ${String(test && test.code ? test.code : '').trim()}`,
+            eyebrow: profileCopy.reviewUnitTestLabel || 'Unit test',
+            meta: `${courseTitle} · ${unitTitle}`
+          });
+        });
+      });
+    });
+
     const reviewWordsMap = new Map();
     Object.entries(wordScoresStore).forEach(([sessionId, sessionScores]) => {
       if (!sessionScores || typeof sessionScores !== 'object') return;
@@ -262,7 +720,6 @@ class PageProfile extends HTMLElement {
     });
     reviewPhraseEntries.sort((a, b) => a.phrase.localeCompare(b.phrase));
 
-    const user = window.user;
     const userId = user && user.id !== undefined && user.id !== null ? String(user.id) : '';
     const loggedIn = Boolean(userId);
     const prefsActive = this.activeTab === 'prefs';
@@ -418,6 +875,32 @@ class PageProfile extends HTMLElement {
           )
         )}</div>`;
 
+    const reviewTestsMarkup = reviewTestEntries.length
+      ? `<div class="review-tests">${reviewTestEntries
+          .map(
+            (entry) => `
+              <button
+                class="review-word review-test review-entry ${escapeHtml(entry.tone)}"
+                type="button"
+                data-type="reference-test"
+                data-course-code="${escapeHtml(entry.courseCode)}"
+                data-unit-code="${escapeHtml(entry.unitCode)}"
+                data-lesson-code="${escapeHtml(entry.lessonCode)}"
+                data-test-key="${escapeHtml(entry.testKey)}"
+              >
+                <span class="review-test-eyebrow">${escapeHtml(entry.eyebrow)}</span>
+                <span class="review-test-meta">${escapeHtml(entry.meta)}</span>
+              </button>
+            `
+          )
+          .join('')}</div>`
+      : `<div class="review-empty">${escapeHtml(
+          String(profileCopy.reviewTestsEmpty || 'There are no tests in {tone}.').replace(
+            '{tone}',
+            reviewToneLabel
+          )
+        )}</div>`;
+
     const badgeStore =
       window.r34lp0w3r && window.r34lp0w3r.speakBadges && typeof window.r34lp0w3r.speakBadges === 'object'
         ? window.r34lp0w3r.speakBadges
@@ -433,11 +916,11 @@ class PageProfile extends HTMLElement {
       if (!Number.isFinite(badgeIndex) || badgeIndex <= 0) {
         badgeIndex = routeId && routeBadgeOrder.has(routeId) ? routeBadgeOrder.get(routeId) : NaN;
       }
-      if (!Number.isFinite(badgeIndex) || badgeIndex <= 0 || badgeIndex > 5) {
+      if (!Number.isFinite(badgeIndex) || badgeIndex <= 0) {
         return null;
       }
       const image = String(entry.image || '').trim() || `assets/badges/badge${badgeIndex}.png`;
-      const title = String(entry.title || '').trim() || `Badge ${badgeIndex}`;
+      const title = String(entry.title || '').trim() || routeTitle || `Badge ${badgeIndex}`;
       return {
         id: badgeId,
         badgeIndex,
@@ -467,7 +950,7 @@ class PageProfile extends HTMLElement {
         )}</div>`;
 
     this.innerHTML = `
-      ${renderAppHeader({ title: getTabsCopy(rawLocaleSetting).you, rewardBadgesId: 'profile-reward-badges', locale: rawLocaleSetting })}
+      ${renderAppHeader({ title: tabsCopy.you, rewardBadgesId: 'profile-reward-badges', locale: rawLocaleSetting })}
       <ion-content fullscreen class="secret-content profile-content">
         <div class="page-shell profile-shell">
           <div id="profile-login-panel" ${loggedIn ? 'hidden' : ''}>
@@ -489,9 +972,15 @@ class PageProfile extends HTMLElement {
                     <div class="profile-progress-head">
                       <img class="profile-overview-avatar" src="${escapeHtml(getUserAvatar(user) || 'https://s3.amazonaws.com/sk.CursoIngles/no-avatar.gif')}" alt="">
                     </div>
-                    <div class="profile-progress-head profile-progress-head--circle">
-                      <div class="profile-progress-circle ${globalTone}">${globalPercent}</div>
-                      <div class="profile-progress-label">${escapeHtml(profileCopy.progressLabel || 'Progress')}</div>
+                    <div class="profile-progress-circles">
+                      <div class="profile-progress-head profile-progress-head--circle">
+                        <div class="profile-progress-circle ${globalTone}">${globalPercent}</div>
+                        <div class="profile-progress-label">${escapeHtml(tabsCopy.training || 'Training')}</div>
+                      </div>
+                      <div class="profile-progress-head profile-progress-head--circle">
+                        <div class="profile-progress-circle ${referenceGlobalTone}">${referenceGlobalPercent}</div>
+                        <div class="profile-progress-label">${escapeHtml(tabsCopy.reference || 'Reference')}</div>
+                      </div>
                     </div>
                     <div class="profile-progress-info">
                       <div class="profile-progress-name">${escapeHtml(getUserDisplayName(user) || profileCopy.progressLabel || 'Progress')}</div>
@@ -641,6 +1130,12 @@ class PageProfile extends HTMLElement {
                 )}</h3>
                 ${reviewPhrasesMarkup}
               </div>
+              <div class="card card--plain profile-review-block">
+                <h3 class="profile-section-title">${escapeHtml(
+                  profileCopy.reviewTestsTitle || 'Tests to review'
+                )}</h3>
+                ${reviewTestsMarkup}
+              </div>
             </div>
           </div>
           <div class="profile-links profile-links--footer" id="profile-links-footer" ${showFooterLinks ? '' : 'hidden'}>
@@ -698,9 +1193,11 @@ class PageProfile extends HTMLElement {
       Object.values(rewards).forEach((entry) => {
         if (!entry || typeof entry.rewardQty !== 'number') return;
         const icon = entry.rewardIcon || 'diamond';
-        totals[icon] = (totals[icon] || 0) + entry.rewardQty;
+        const rewardKind = String(entry.rewardGroup || icon).trim() || String(icon).trim() || 'diamond';
+        if (!totals[rewardKind]) totals[rewardKind] = { icon, qty: 0 };
+        totals[rewardKind].qty += entry.rewardQty;
       });
-      const entries = Object.entries(totals).filter(([, qty]) => qty > 0);
+      const entries = Object.entries(totals).filter(([, meta]) => meta && meta.qty > 0);
       if (!entries.length) {
         rewardsEl.innerHTML = '';
         rewardsEl.hidden = true;
@@ -708,10 +1205,20 @@ class PageProfile extends HTMLElement {
       }
       rewardsEl.hidden = false;
       rewardsEl.innerHTML = entries
-        .sort(([a], [b]) => a.localeCompare(b))
-        .map(([icon, qty]) => {
-          const isInteractive = icon === 'trophy';
-          return `<div class="training-badge reward-badge${isInteractive ? ' is-interactive' : ''}" data-reward-icon="${icon}" data-reward-qty="${qty}"${isInteractive ? ' role="button" tabindex="0"' : ''}><ion-icon name="${icon}"></ion-icon><span>${qty}</span></div>`;
+        .sort((left, right) => {
+          const leftIcon = String(left[1] && left[1].icon ? left[1].icon : 'diamond').trim().toLowerCase();
+          const rightIcon = String(right[1] && right[1].icon ? right[1].icon : 'diamond').trim().toLowerCase();
+          const getOrder = (icon) =>
+            icon === 'trophy' ? 0 : icon === 'ribbon' ? 1 : icon === 'diamond' ? 2 : 9;
+          const byOrder = getOrder(leftIcon) - getOrder(rightIcon);
+          if (byOrder !== 0) return byOrder;
+          return String(left[0] || '').localeCompare(String(right[0] || ''));
+        })
+        .map(([rewardKind, meta]) => {
+          const icon = meta.icon || 'diamond';
+          const qty = meta.qty || 0;
+          const isInteractive = icon === 'trophy' || rewardKind === 'reference-unit-ribbon';
+          return `<div class="training-badge reward-badge${isInteractive ? ' is-interactive' : ''}" data-reward-kind="${rewardKind}" data-reward-icon="${icon}" data-reward-qty="${qty}"${isInteractive ? ' role="button" tabindex="0"' : ''}><ion-icon name="${icon}"></ion-icon><span>${qty}</span></div>`;
         })
         .join('');
     };
@@ -1179,6 +1686,36 @@ class PageProfile extends HTMLElement {
     reviewButtons.forEach((button) => {
       button.addEventListener('click', () => {
         const type = button.dataset.type;
+        if (type === 'reference-test') {
+          const courseCode = String(button.dataset.courseCode || '').trim();
+          const unitCode = String(button.dataset.unitCode || '').trim();
+          const lessonCode = String(button.dataset.lessonCode || '').trim();
+          const testKey = String(button.dataset.testKey || '').trim();
+          if (!courseCode || !unitCode || !lessonCode || !testKey) return;
+          if (!window.r34lp0w3r) window.r34lp0w3r = {};
+          window.r34lp0w3r.profileForceTab = 'review';
+          window.r34lp0w3r.profileReviewTone = this.reviewTone;
+          window.r34lp0w3r.referenceDeepLink = {
+            courseCode,
+            unitCode,
+            lessonCode,
+            testKey,
+            tab: 'tests'
+          };
+          const referencePage = document.querySelector('page-reference');
+          if (referencePage && typeof referencePage.render === 'function') {
+            try {
+              referencePage.render();
+            } catch (err) {
+              console.error('[profile] error abriendo test de reference', err);
+            }
+          }
+          const tabs = document.querySelector('ion-tabs');
+          if (tabs && typeof tabs.select === 'function') {
+            tabs.select('reference').catch(() => {});
+          }
+          return;
+        }
         const sessionId = button.dataset.sessionId;
         const location = findSessionLocation(sessionId);
         if (!location) return;

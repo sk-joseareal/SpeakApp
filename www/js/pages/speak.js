@@ -4423,15 +4423,27 @@ class PageSpeak extends HTMLElement {
       Object.values(rewards).forEach((entry) => {
         if (!entry || typeof entry.rewardQty !== 'number') return;
         const icon = entry.rewardIcon || 'diamond';
-        totals[icon] = (totals[icon] || 0) + entry.rewardQty;
+        const rewardKind = String(entry.rewardGroup || icon).trim() || String(icon).trim() || 'diamond';
+        if (!totals[rewardKind]) totals[rewardKind] = { icon, qty: 0 };
+        totals[rewardKind].qty += entry.rewardQty;
       });
-      const entries = Object.entries(totals).filter(([, qty]) => qty > 0);
+      const entries = Object.entries(totals).filter(([, meta]) => meta && meta.qty > 0);
       if (!entries.length) { container.innerHTML = ''; container.hidden = true; return; }
       container.hidden = false;
-      container.innerHTML = entries.sort(([a], [b]) => a.localeCompare(b))
-        .map(([icon, qty]) => {
-          const isInteractive = icon === 'trophy';
-          return `<div class="training-badge reward-badge${isInteractive ? ' is-interactive' : ''}" data-reward-icon="${icon}" data-reward-qty="${qty}"${isInteractive ? ' role="button" tabindex="0"' : ''}><ion-icon name="${icon}"></ion-icon><span>${qty}</span></div>`;
+      container.innerHTML = entries.sort((left, right) => {
+        const leftIcon = String(left[1] && left[1].icon ? left[1].icon : 'diamond').trim().toLowerCase();
+        const rightIcon = String(right[1] && right[1].icon ? right[1].icon : 'diamond').trim().toLowerCase();
+        const getOrder = (icon) =>
+          icon === 'trophy' ? 0 : icon === 'ribbon' ? 1 : icon === 'diamond' ? 2 : 9;
+        const byOrder = getOrder(leftIcon) - getOrder(rightIcon);
+        if (byOrder !== 0) return byOrder;
+        return String(left[0] || '').localeCompare(String(right[0] || ''));
+      })
+        .map(([rewardKind, meta]) => {
+          const icon = meta.icon || 'diamond';
+          const qty = meta.qty || 0;
+          const isInteractive = icon === 'trophy' || rewardKind === 'reference-unit-ribbon';
+          return `<div class="training-badge reward-badge${isInteractive ? ' is-interactive' : ''}" data-reward-kind="${rewardKind}" data-reward-icon="${icon}" data-reward-qty="${qty}"${isInteractive ? ' role="button" tabindex="0"' : ''}><ion-icon name="${icon}"></ion-icon><span>${qty}</span></div>`;
         })
         .join('');
     };

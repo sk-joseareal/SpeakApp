@@ -1015,6 +1015,13 @@ ion-modal.login-modal page-login .page-shell {
   min-width: 0;
 }
 
+.profile-progress-circles {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  flex: 0 0 auto;
+}
+
 .profile-progress-head {
   width: 70px;
   height: 70px;
@@ -1207,6 +1214,12 @@ ion-modal.login-modal page-login .page-shell {
   gap: 10px;
 }
 
+.review-tests {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
 .review-word {
   background: #fee2e2;
   color: #b91c1c;
@@ -1232,6 +1245,32 @@ ion-modal.login-modal page-login .page-shell {
   line-height: 1.2;
   padding: 10px 12px;
   border-radius: 14px;
+}
+
+.review-test {
+  width: 100%;
+  text-align: left;
+  line-height: 1.2;
+  padding: 12px 14px;
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+}
+
+.review-test-eyebrow {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.72;
+}
+
+.review-test-meta {
+  font-size: 0.78rem;
+  line-height: 1.25;
+  opacity: 0.8;
 }
 
 .review-filters {
@@ -7227,6 +7266,11 @@ ion-select.training-pill.active::part(icon) {
   margin: 0 auto;
 }
 
+.reference-shell--lesson {
+  padding-top: 0;
+  gap: 6px;
+}
+
 .reference-hero-card {
   min-height: 0;
 }
@@ -7447,7 +7491,7 @@ ion-select.training-pill.active::part(icon) {
 }
 
 .reference-accordion .training-row {
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto 1fr auto auto;
 }
 
 .reference-accordion .module-header {
@@ -7458,6 +7502,85 @@ ion-select.training-pill.active::part(icon) {
 
 .reference-accordion .module-meta {
   flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.reference-progress-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 52px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-size: 0.74rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+
+.reference-progress-pill.is-compact {
+  min-width: 48px;
+  padding: 3px 9px;
+  font-size: 0.71rem;
+}
+
+.reference-progress-pill.is-course {
+  min-width: 58px;
+  font-weight: 900;
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.14);
+}
+
+.reference-progress-pill.tone-neutral {
+  background: #e5e7eb;
+  border-color: rgba(148, 163, 184, 0.32);
+  color: #6b7280;
+}
+
+.reference-progress-pill.is-course.tone-neutral {
+  background: #cbd5e1;
+  border-color: rgba(100, 116, 139, 0.28);
+  color: #1f2937;
+}
+
+.reference-progress-pill.tone-bad {
+  background: rgba(248, 113, 113, 0.16);
+  border-color: rgba(239, 68, 68, 0.22);
+  color: #b91c1c;
+}
+
+.reference-progress-pill.is-course.tone-bad {
+  background: linear-gradient(135deg, #fca5a5 0%, #f87171 100%);
+  border-color: rgba(220, 38, 38, 0.28);
+  color: #7f1d1d;
+}
+
+.reference-progress-pill.tone-okay {
+  background: rgba(251, 191, 36, 0.2);
+  border-color: rgba(245, 158, 11, 0.24);
+  color: #92400e;
+}
+
+.reference-progress-pill.is-course.tone-okay {
+  background: linear-gradient(135deg, #fde68a 0%, #fbbf24 100%);
+  border-color: rgba(217, 119, 6, 0.26);
+  color: #78350f;
+}
+
+.reference-progress-pill.tone-good {
+  background: rgba(52, 211, 153, 0.18);
+  border-color: rgba(16, 185, 129, 0.24);
+  color: #047857;
+}
+
+.reference-progress-pill.is-course.tone-good {
+  background: linear-gradient(135deg, #86efac 0%, #34d399 100%);
+  border-color: rgba(5, 150, 105, 0.26);
+  color: #065f46;
 }
 
 .training-row-icon {
@@ -7481,22 +7604,55 @@ ion-select.training-pill.active::part(icon) {
   box-shadow: 0 12px 26px rgba(59, 130, 246, 0.25);
 }
 
+.reference-lesson-sub {
+  margin-top: 2px;
+}
+
 .reference-lesson-topbar {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.reference-lesson-sticky {
+  --reference-lesson-sticky-cover: 14px;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
   gap: 10px;
-  margin-bottom: -4px;
+  margin-top: calc(-1 * var(--reference-lesson-sticky-cover));
+  margin-bottom: 0;
+  padding: var(--reference-lesson-sticky-cover) 0 10px;
+  background: var(--app-tab-bg-warm);
+  backdrop-filter: none;
+}
+
+.reference-lesson-topbar-main {
+  min-width: 0;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.reference-lesson-title {
+  font-size: 1.08rem;
+  font-weight: 800;
+  line-height: 1.15;
+  color: #172b52;
 }
 
 .reference-back-btn {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   background: none;
   border: none;
   font-family: inherit;
-  font-size: 0.9rem;
-  font-weight: 600;
+  font-size: 1rem;
+  font-weight: 700;
   color: #4A7DFF;
   cursor: pointer;
   padding: 4px 0;
@@ -7504,22 +7660,68 @@ ion-select.training-pill.active::part(icon) {
 }
 
 .reference-back-btn ion-icon {
-  font-size: 1.1rem;
+  font-size: 1.26rem;
 }
 
 .reference-lesson-breadcrumb {
   font-size: 0.75rem;
   color: var(--app-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.reference-lesson-tabs {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  width: 100%;
+  border-bottom: 2px solid var(--app-border);
+}
+
+.reference-lesson-tab {
+  flex: 0 0 auto;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  background: transparent;
+  padding: 10px 14px;
+  font-family: inherit;
+  font-size: 0.98rem;
+  font-weight: 700;
+  color: var(--app-muted);
+  cursor: pointer;
+  transition: color 120ms ease, border-color 120ms ease;
+}
+
+.reference-lesson-tab.is-active {
+  color: var(--ion-color-primary, #4b5dff);
+  border-bottom-color: var(--ion-color-primary, #4b5dff);
+}
+
+.reference-lesson-stage {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-bottom: 64px;
+}
+
+.reference-lesson-panel {
+  min-width: 0;
+  padding-top: 20px;
 }
 
 .reference-lesson-nav {
+  --reference-lesson-nav-cover: 16px;
+  position: sticky;
+  bottom: 0;
+  z-index: 19;
   display: flex;
   align-items: stretch;
   gap: 10px;
-  margin-top: 4px;
+  margin-top: 2px;
+  margin-bottom: calc(-1 * var(--reference-lesson-nav-cover));
+  padding: 6px 0 calc(var(--reference-lesson-nav-cover) + 2px);
+  background: var(--app-tab-bg-warm);
 }
 
 .reference-nav-btn {
@@ -7565,28 +7767,9 @@ ion-select.training-pill.active::part(icon) {
   pointer-events: none;
 }
 
-.reference-content-card {
-  background: var(--app-card-warm-alt);
-  border-radius: 18px;
-  border: 1px solid var(--app-card-warm-border);
-  box-shadow: var(--app-card-warm-shadow);
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  position: relative;
-  overflow: hidden;
-}
-
 .reference-selected-path {
   font-size: 0.82rem;
   color: var(--app-muted);
-}
-
-.reference-content-title {
-  margin: 0;
-  font-size: 1.06rem;
-  line-height: 1.2;
 }
 
 .reference-markdown {
@@ -7752,7 +7935,7 @@ ion-select.training-pill.active::part(icon) {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  margin-top: 4px;
+  margin-top: 0;
 }
 
 .reference-tests-head {
@@ -7831,8 +8014,12 @@ ion-select.training-pill.active::part(icon) {
   width: 100%;
   display: flex;
   align-items: flex-start;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 8px;
+}
+
+.reference-test-chip-title-row .reference-progress-pill {
+  margin-left: auto;
 }
 
 .reference-test-chip-title {

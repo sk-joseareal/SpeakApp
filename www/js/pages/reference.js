@@ -1,5 +1,6 @@
 import { getAppLocale, setAppLocale } from '../state.js';
 import { renderAppHeader } from '../components/app-header.js';
+import { addNotification } from '../notifications-store.js';
 import {
   ensureReferenceData,
   getLocalizedMapField,
@@ -11,6 +12,7 @@ import {
 import {
   ensureReferenceTestsData,
   getLocalizedReferenceTestValue,
+  getReferenceTestCourses,
   getReferenceTestsForSelection,
   getReferenceTestsLoadInfo
 } from '../data/reference-tests.js';
@@ -36,10 +38,46 @@ const BROWSER_AUTONARRATION_EXTRA_DELAY_MS = 120;
 const REFERENCE_ALIGNED_CACHE_MAX_ITEMS = 80;
 const REFERENCE_HERO_AUTONARRATION_PLAYED_KEY = 'appv5:reference-hero-auto-narration-played';
 const REFERENCE_TESTS_PROGRESS_STORAGE_PREFIX = 'appv5:reference-tests-progress';
+const REFERENCE_PROGRESS_QUEUE_STORAGE_PREFIX = 'appv5:reference-progress-queue';
 const REFERENCE_TEST_REWARD_ENTRY_PREFIX = 'reference-test';
 const REFERENCE_TEST_DIAMOND_REWARD_QTY = 1;
 const REFERENCE_TEST_DIAMOND_REWARD_LABEL = 'diamonds';
 const REFERENCE_TEST_DIAMOND_REWARD_ICON = 'diamond';
+const REFERENCE_UNIT_REWARD_ENTRY_PREFIX = 'reference-unit';
+const REFERENCE_UNIT_REWARD_GROUP = 'reference-unit-ribbon';
+const REFERENCE_UNIT_RIBBON_REWARD_QTY = 1;
+const REFERENCE_UNIT_RIBBON_REWARD_ICON = 'ribbon';
+const REFERENCE_COURSE_BADGE_META_BY_CODE = {
+  '4': { badgeIndex: 6, image: 'assets/badges/badge-basic.png', routeId: 'reference-course-basic' },
+  '5': {
+    badgeIndex: 7,
+    image: 'assets/badges/badge-intermediate.png',
+    routeId: 'reference-course-intermediate'
+  },
+  '6': { badgeIndex: 8, image: 'assets/badges/badge-advanced.png', routeId: 'reference-course-advanced' },
+  '10': { badgeIndex: 9, image: 'assets/badges/badge-business.png', routeId: 'reference-course-business' },
+  '10000': {
+    badgeIndex: 10,
+    image: 'assets/badges/badge-travel.png',
+    routeId: 'reference-course-travel'
+  }
+};
+const REFERENCE_LESSON_COMPLETE_DELAY_MS = 30000;
+const REFERENCE_TEST_PASS_PERCENT = 80;
+const REFERENCE_RIBBON_POPUP_IMAGE = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" fill="none">
+  <defs>
+    <linearGradient id="rg" x1="52" y1="44" x2="204" y2="212" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#38bdf8"/>
+      <stop offset="1" stop-color="#0f766e"/>
+    </linearGradient>
+  </defs>
+  <circle cx="128" cy="108" r="70" fill="url(#rg)"/>
+  <path d="M92 150 74 220l54-28 54 28-18-70" fill="#115e59"/>
+  <circle cx="128" cy="108" r="46" fill="#f8fafc" fill-opacity=".95"/>
+  <path d="m128 76 10 21 23 3-17 16 4 23-20-11-20 11 4-23-17-16 23-3 10-21Z" fill="#f59e0b"/>
+</svg>
+`)}`;
 
 let markedParseFnPromise = null;
 
@@ -74,6 +112,16 @@ class PageReference extends HTMLElement {
     this.referenceTestsStorageUserKey = '';
     this._loadingReferenceTests = false;
     this._referenceTestsLoadAttempted = false;
+    this.referenceLessonCompletionTimer = null;
+    this.referenceLessonCompletionKey = '';
+    this.referenceProgressSyncInFlight = false;
+    this.pendingReferenceUnitRewardPopup = null;
+    this.pendingReferenceCourseBadgePopup = null;
+    this.referenceLessonTab = 'content';
+    this.referenceLessonTabScrollTop = {
+      content: 0,
+      tests: 0
+    };
   }
 
   connectedCallback() {
@@ -99,11 +147,14 @@ class PageReference extends HTMLElement {
     window.addEventListener('app:profile-locale-toggle', this._profileLocaleToggleHandler);
     this._userHandler = (event) => {
       this.ensureReferenceTestsPersistenceLoaded(true);
-      if (this.querySelector('#reference-tests-section')) {
-        this.renderReferenceTestsSection(this.getUiLocale());
-      }
+      this.flushReferenceProgressQueue({ reason: 'user-change' }).catch(() => {});
+      if (this.isConnected) this.render();
     };
     window.addEventListener('app:user-change', this._userHandler);
+    this._onlineHandler = () => {
+      this.flushReferenceProgressQueue({ reason: 'online' }).catch(() => {});
+    };
+    window.addEventListener('online', this._onlineHandler);
     this._rewardsHandler = () => {
       this.updateHeaderRewards();
     };
@@ -122,6 +173,7 @@ class PageReference extends HTMLElement {
       this._tabChangeHandler(event);
     };
     window.addEventListener('app:tab-change', this._appTabChangeHandler);
+    this.flushReferenceProgressQueue({ reason: 'connect' }).catch(() => {});
     this.render();
   }
 
@@ -142,6 +194,9 @@ class PageReference extends HTMLElement {
     if (this._rewardsHandler) {
       window.removeEventListener('app:speak-stores-change', this._rewardsHandler);
     }
+    if (this._onlineHandler) {
+      window.removeEventListener('online', this._onlineHandler);
+    }
     if (this._tabChangeHandler) {
       document.removeEventListener('ionTabsDidChange', this._tabChangeHandler);
     }
@@ -151,6 +206,7 @@ class PageReference extends HTMLElement {
     if (this._tabUserClickHandler) {
       window.removeEventListener('app:tab-user-click', this._tabUserClickHandler);
     }
+    this.clearReferenceLessonCompletionTimer();
     this.stopHeroNarration();
   }
 
@@ -579,9 +635,11 @@ class PageReference extends HTMLElement {
     Object.values(rewards).forEach((entry) => {
       if (!entry || typeof entry.rewardQty !== 'number') return;
       const icon = entry.rewardIcon || 'diamond';
-      totals[icon] = (totals[icon] || 0) + entry.rewardQty;
+      const rewardKind = String(entry.rewardGroup || icon).trim() || String(icon).trim() || 'diamond';
+      if (!totals[rewardKind]) totals[rewardKind] = { icon, qty: 0 };
+      totals[rewardKind].qty += entry.rewardQty;
     });
-    const entries = Object.entries(totals).filter(([, qty]) => qty > 0);
+    const entries = Object.entries(totals).filter(([, meta]) => meta && meta.qty > 0);
     if (!entries.length) {
       container.innerHTML = '';
       container.hidden = true;
@@ -589,12 +647,357 @@ class PageReference extends HTMLElement {
     }
     container.hidden = false;
     container.innerHTML = entries
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([icon, qty]) => {
-        const isInteractive = icon === 'trophy';
-        return `<div class="training-badge reward-badge${isInteractive ? ' is-interactive' : ''}" data-reward-icon="${icon}" data-reward-qty="${qty}"${isInteractive ? ' role="button" tabindex="0"' : ''}><ion-icon name="${icon}"></ion-icon><span>${qty}</span></div>`;
+      .sort((left, right) => {
+        const leftIcon = String(left[1] && left[1].icon ? left[1].icon : 'diamond').trim().toLowerCase();
+        const rightIcon = String(right[1] && right[1].icon ? right[1].icon : 'diamond').trim().toLowerCase();
+        const getOrder = (icon) =>
+          icon === 'trophy' ? 0 : icon === 'ribbon' ? 1 : icon === 'diamond' ? 2 : 9;
+        const byOrder = getOrder(leftIcon) - getOrder(rightIcon);
+        if (byOrder !== 0) return byOrder;
+        return String(left[0] || '').localeCompare(String(right[0] || ''));
+      })
+      .map(([rewardKind, meta]) => {
+        const icon = meta.icon || 'diamond';
+        const qty = meta.qty || 0;
+        const isInteractive = icon === 'trophy' || rewardKind === REFERENCE_UNIT_REWARD_GROUP;
+        return `<div class="training-badge reward-badge${isInteractive ? ' is-interactive' : ''}" data-reward-kind="${rewardKind}" data-reward-icon="${icon}" data-reward-qty="${qty}"${isInteractive ? ' role="button" tabindex="0"' : ''}><ion-icon name="${icon}"></ion-icon><span>${qty}</span></div>`;
       })
       .join('');
+  }
+
+  getReferenceRewardStore() {
+    if (!window.r34lp0w3r || typeof window.r34lp0w3r !== 'object') {
+      window.r34lp0w3r = {};
+    }
+    if (
+      !window.r34lp0w3r.speakSessionRewards ||
+      typeof window.r34lp0w3r.speakSessionRewards !== 'object'
+    ) {
+      window.r34lp0w3r.speakSessionRewards = {};
+    }
+    return window.r34lp0w3r.speakSessionRewards;
+  }
+
+  persistReferenceRewardStore() {
+    if (typeof window.persistSpeakStores === 'function') {
+      window.persistSpeakStores();
+      return;
+    }
+    try {
+      localStorage.setItem(
+        'appv5:speak-session-rewards',
+        JSON.stringify(this.getReferenceRewardStore())
+      );
+    } catch (err) {
+      // no-op
+    }
+  }
+
+  notifyReferenceRewardStoreChange() {
+    if (typeof window.notifySpeakStoresChange === 'function') {
+      window.notifySpeakStoresChange();
+    } else {
+      window.dispatchEvent(new CustomEvent('app:speak-stores-change'));
+    }
+  }
+
+  queueReferenceRewardEvent(entryId, entry, reason = '') {
+    if (!entryId || !entry || typeof window.queueSpeakEvent !== 'function') return;
+    window.queueSpeakEvent({
+      type: 'session_reward',
+      session_id: entryId,
+      rewardQty: entry.rewardQty,
+      rewardLabel: entry.rewardLabel,
+      rewardIcon: entry.rewardIcon,
+      ts: entry.ts || Date.now(),
+      reason: reason || 'reference-reward'
+    });
+  }
+
+  getReferenceBadgeStore() {
+    if (!window.r34lp0w3r || typeof window.r34lp0w3r !== 'object') {
+      window.r34lp0w3r = {};
+    }
+    if (!window.r34lp0w3r.speakBadges || typeof window.r34lp0w3r.speakBadges !== 'object') {
+      window.r34lp0w3r.speakBadges = {};
+    }
+    return window.r34lp0w3r.speakBadges;
+  }
+
+  queueReferenceBadgeEvent(entryId, entry) {
+    if (!entryId || !entry || typeof window.queueSpeakEvent !== 'function') return;
+    window.queueSpeakEvent({
+      type: 'badge_awarded',
+      badge_id: entryId,
+      route_id: entry.routeId || '',
+      route_title: entry.routeTitle || '',
+      badgeIndex: entry.badgeIndex,
+      badge_image: entry.image || '',
+      badge_title: entry.title || '',
+      ts: entry.ts || Date.now()
+    });
+  }
+
+  notifyReferenceBadgeUnlocked(entryId, entry) {
+    if (!entryId || !entry) return;
+    try {
+      addNotification({
+        type: 'reward',
+        tone: 'good',
+        icon: 'ribbon-outline',
+        image: entry.image || '',
+        title: 'Nuevo badge desbloqueado',
+        text: entry.routeTitle || 'Curso completado',
+        action: {
+          label: 'Ver badge',
+          tab: 'tu',
+          profileTab: 'prefs',
+          callback: 'openSpeakBadgeFromNotification',
+          badgeId: entryId,
+          complete: true
+        }
+      });
+    } catch (_err) {
+      // no-op
+    }
+  }
+
+  syncReferenceRewardsNow(reason = '') {
+    if (typeof window.syncSpeakProgress !== 'function') return;
+    window
+      .syncSpeakProgress({
+        reason: reason || 'reference-reward',
+        force: true,
+        includeSnapshot: true
+      })
+      .catch(() => {});
+  }
+
+  getReferenceRibbonRewardLabel(uiLocale, qty = REFERENCE_UNIT_RIBBON_REWARD_QTY) {
+    const copy = getReferenceCopy(uiLocale || this.getUiLocale(this.getBaseLocale()));
+    return qty === 1 ? copy.ribbonLabelOne || 'ribbon' : copy.ribbonLabelOther || 'ribbons';
+  }
+
+  presentReferenceUnitRewardPopup(entry, uiLocale) {
+    if (!entry) return;
+    const copy = getReferenceCopy(uiLocale || this.getUiLocale(this.getBaseLocale()));
+    const unitTitle = String(entry.unitTitle || '').trim();
+    const title = unitTitle || copy.unitRewardPopupTitle || 'Unit completed';
+    const subtitleParts = [];
+    if (unitTitle && copy.unitRewardPopupStatus) {
+      subtitleParts.push(copy.unitRewardPopupStatus);
+    }
+    if (copy.unitRewardPopupReward) {
+      subtitleParts.push(copy.unitRewardPopupReward);
+    }
+    const subtitle = subtitleParts.join(' ');
+
+    if (typeof window.openSpeakBadgePopup === 'function') {
+      window
+        .openSpeakBadgePopup({
+          id: `${entry.entryId || REFERENCE_UNIT_REWARD_ENTRY_PREFIX}:${Date.now()}`,
+          title,
+          subtitle,
+          image: REFERENCE_RIBBON_POPUP_IMAGE
+        })
+        .catch(() => {});
+      return;
+    }
+
+    const message = subtitle || copy.unitRewardPopupReward || '';
+    if (!window.customElements || typeof window.customElements.get !== 'function') {
+      window.alert(message ? `${title}\n\n${message}` : title);
+      return;
+    }
+    const hasIonAlert = window.customElements.get('ion-alert');
+    if (!hasIonAlert) {
+      window.alert(message ? `${title}\n\n${message}` : title);
+      return;
+    }
+    const alert = document.createElement('ion-alert');
+    alert.header = title;
+    alert.message = message;
+    alert.buttons = ['OK'];
+    document.body.appendChild(alert);
+    alert.present().catch(() => {
+      if (alert.isConnected) alert.remove();
+    });
+    alert.onDidDismiss().then(() => {
+      alert.remove();
+    });
+  }
+
+  getReferenceCourseBadgeMeta(course, uiLocale) {
+    const courseCode = String(course && course.code ? course.code : '').trim();
+    const meta = REFERENCE_COURSE_BADGE_META_BY_CODE[courseCode];
+    if (!meta) return null;
+    const courseTitle = this.getText(course, 'display', uiLocale) || `Course ${courseCode}`;
+    return {
+      id: `reference-course:${courseCode}`,
+      routeId: meta.routeId,
+      routeTitle: courseTitle,
+      badgeIndex: meta.badgeIndex,
+      image: meta.image,
+      title: courseTitle
+    };
+  }
+
+  consumePendingReferenceDeepLink(courses = getReferenceCourses()) {
+    const runtime = window.r34lp0w3r && typeof window.r34lp0w3r === 'object' ? window.r34lp0w3r : null;
+    const pending = runtime && runtime.referenceDeepLink && typeof runtime.referenceDeepLink === 'object'
+      ? runtime.referenceDeepLink
+      : null;
+    if (!pending) return false;
+
+    const courseCode = String(pending.courseCode || '').trim();
+    const unitCode = String(pending.unitCode || '').trim();
+    const lessonCode = String(pending.lessonCode || '').trim();
+    const testKey = String(pending.testKey || '').trim();
+    const targetTab = String(pending.tab || '').trim() === 'content' ? 'content' : 'tests';
+
+    const course = (Array.isArray(courses) ? courses : []).find((item) => String(item.code) === courseCode) || null;
+    const units = course && Array.isArray(course.unidades) ? course.unidades : [];
+    const unit = units.find((item) => String(item.code) === unitCode) || null;
+    const lessons = unit && Array.isArray(unit.lecciones) ? unit.lecciones : [];
+    const lesson = lessons.find((item) => String(item.code) === lessonCode) || lessons[0] || null;
+
+    runtime.referenceDeepLink = null;
+    if (!course || !unit || !lesson) return false;
+
+    const resolvedSelection = {
+      courseCode: String(course.code),
+      unitCode: String(unit.code),
+      lessonCode: String(lesson.code)
+    };
+
+    this.expandedCourseCode = resolvedSelection.courseCode;
+    this.expandedUnitCode = resolvedSelection.unitCode;
+    this.lessonView = true;
+    this.referenceLessonTab = targetTab;
+    if (testKey) {
+      this.referenceTestSelectionKey = testKey;
+      this.persistReferenceTestsState();
+    }
+
+    const currentSelection = getReferenceSelection();
+    if (
+      String(currentSelection.courseCode || '') !== resolvedSelection.courseCode ||
+      String(currentSelection.unitCode || '') !== resolvedSelection.unitCode ||
+      String(currentSelection.lessonCode || '') !== resolvedSelection.lessonCode
+    ) {
+      setReferenceSelection(resolvedSelection);
+      return true;
+    }
+
+    return false;
+  }
+
+  syncReferenceUnitRewardsFromSnapshot(progressSnapshot, courses = getReferenceCourses(), options = {}) {
+    if (!progressSnapshot || typeof progressSnapshot !== 'object') return [];
+    const uiLocale = options.uiLocale || this.getUiLocale(this.getBaseLocale());
+    const rewardStore = this.getReferenceRewardStore();
+    const awardedEntries = [];
+
+    (Array.isArray(courses) ? courses : []).forEach((course) => {
+      const courseCode = String(course && course.code ? course.code : '').trim();
+      const units = course && Array.isArray(course.unidades) ? course.unidades : [];
+      units.forEach((unit) => {
+        const unitCode = String(unit && unit.code ? unit.code : '').trim();
+        if (!courseCode || !unitCode) return;
+        const unitKey = this.getReferenceUnitProgressKey(courseCode, unitCode);
+        const unitProgress =
+          progressSnapshot.units && typeof progressSnapshot.units === 'object'
+            ? progressSnapshot.units[unitKey]
+            : null;
+        if (!unitProgress || unitProgress.completed !== true) return;
+        const entryId = `${REFERENCE_UNIT_REWARD_ENTRY_PREFIX}:${courseCode}:${unitCode}`;
+        if (rewardStore[entryId]) return;
+
+        const entry = {
+          rewardQty: REFERENCE_UNIT_RIBBON_REWARD_QTY,
+          rewardLabel: this.getReferenceRibbonRewardLabel(uiLocale, REFERENCE_UNIT_RIBBON_REWARD_QTY),
+          rewardIcon: REFERENCE_UNIT_RIBBON_REWARD_ICON,
+          rewardGroup: REFERENCE_UNIT_REWARD_GROUP,
+          ts: Date.now(),
+          source: 'reference-unit',
+          courseCode,
+          unitCode,
+          unitTitle: this.getText(unit, 'display', uiLocale) || `Unit ${unitCode}`
+        };
+        rewardStore[entryId] = entry;
+        awardedEntries.push({ entryId, ...entry });
+      });
+    });
+
+    if (!awardedEntries.length) return [];
+
+    this.persistReferenceRewardStore();
+    awardedEntries.forEach((entry) => {
+      this.queueReferenceRewardEvent(entry.entryId, entry, options.reason || 'reference-unit-complete');
+    });
+    this.notifyReferenceRewardStoreChange();
+    if (options.showPopup) {
+      this.presentReferenceUnitRewardPopup(awardedEntries[0], uiLocale);
+    }
+    if (options.syncRemote) {
+      this.syncReferenceRewardsNow(options.reason || 'reference-unit-complete');
+    }
+    return awardedEntries;
+  }
+
+  syncReferenceCourseBadgesFromSnapshot(progressSnapshot, courses = getReferenceCourses(), options = {}) {
+    if (!progressSnapshot || typeof progressSnapshot !== 'object') return [];
+    const uiLocale = options.uiLocale || this.getUiLocale(this.getBaseLocale());
+    const badgeStore = this.getReferenceBadgeStore();
+    const awardedBadges = [];
+
+    (Array.isArray(courses) ? courses : []).forEach((course) => {
+      const courseCode = String(course && course.code ? course.code : '').trim();
+      const courseProgress =
+        progressSnapshot.courses && typeof progressSnapshot.courses === 'object'
+          ? progressSnapshot.courses[courseCode]
+          : null;
+      if (!courseProgress || courseProgress.completed !== true) return;
+      const meta = this.getReferenceCourseBadgeMeta(course, uiLocale);
+      if (!meta || badgeStore[meta.id]) return;
+
+      const entry = {
+        routeId: meta.routeId,
+        routeTitle: meta.routeTitle,
+        badgeIndex: meta.badgeIndex,
+        image: meta.image,
+        title: meta.title,
+        ts: Date.now()
+      };
+      badgeStore[meta.id] = entry;
+      awardedBadges.push({ id: meta.id, ...entry });
+    });
+
+    if (!awardedBadges.length) return [];
+
+    if (typeof window.persistSpeakStores === 'function') {
+      window.persistSpeakStores();
+    } else {
+      try {
+        localStorage.setItem('appv5:speak-badges', JSON.stringify(badgeStore));
+      } catch (_err) {
+        // no-op
+      }
+    }
+
+    awardedBadges.forEach((badge) => {
+      this.queueReferenceBadgeEvent(badge.id, badge);
+      this.notifyReferenceBadgeUnlocked(badge.id, badge);
+    });
+
+    this.notifyReferenceRewardStoreChange();
+    if (options.showPopup && awardedBadges[0] && typeof window.openSpeakBadgePopup === 'function') {
+      window.openSpeakBadgePopup(awardedBadges[0].id).catch(() => {});
+    }
+    if (options.syncRemote) {
+      this.syncReferenceRewardsNow(options.reason || 'reference-course-badge');
+    }
+    return awardedBadges;
   }
 
   isReferenceTabActive() {
@@ -1344,6 +1747,433 @@ class PageReference extends HTMLElement {
     return getLocalizedReferenceTestValue(source, locale) || '';
   }
 
+  getReferenceUnitProgressKey(courseCode, unitCode) {
+    return `${String(courseCode || '').trim()}::${String(unitCode || '').trim()}`;
+  }
+
+  getReferenceLessonProgressKey(courseCode, unitCode, lessonCode) {
+    return `${this.getReferenceUnitProgressKey(courseCode, unitCode)}::${String(
+      lessonCode || ''
+    ).trim()}`;
+  }
+
+  getProgressMapValue(progressMap, code) {
+    const key = String(code === undefined || code === null ? '' : code).trim();
+    if (!key || !progressMap || typeof progressMap !== 'object') return null;
+    if (progressMap[key] !== undefined && progressMap[key] !== null) return progressMap[key];
+    const numericKey = Number(key);
+    if (
+      Number.isFinite(numericKey) &&
+      progressMap[numericKey] !== undefined &&
+      progressMap[numericKey] !== null
+    ) {
+      return progressMap[numericKey];
+    }
+    return null;
+  }
+
+  hasImportedSectionCompletion(sectionCode, user = window.user || null) {
+    const progressMap =
+      user && user.section_progress && typeof user.section_progress === 'object'
+        ? user.section_progress
+        : null;
+    const value = this.getProgressMapValue(progressMap, sectionCode);
+    if (value === true) return true;
+    const numericValue = Number(value);
+    return Number.isFinite(numericValue) && numericValue > 0;
+  }
+
+  getImportedReferenceTestStatus(testCode, user = window.user || null) {
+    const progressMap =
+      user && user.test_progress && typeof user.test_progress === 'object'
+        ? user.test_progress
+        : null;
+    const value = this.getProgressMapValue(progressMap, testCode);
+    const numericValue = Number(value);
+    if (!Number.isFinite(numericValue)) return 0;
+    if (numericValue === 1) return 1;
+    if (numericValue === 2) return 2;
+    return 0;
+  }
+
+  getReferenceAggregateTone(percent) {
+    const value = Number.isFinite(Number(percent)) ? Number(percent) : 0;
+    if (value >= 100) return 'good';
+    if (value <= 0) return 'neutral';
+    return 'okay';
+  }
+
+  getReferenceLessonTone(isCompleted) {
+    return isCompleted ? 'good' : 'neutral';
+  }
+
+  getActiveReferenceLessonTab() {
+    return this.referenceLessonTab === 'tests' ? 'tests' : 'content';
+  }
+
+  getReferenceLessonTabScrollState() {
+    if (!this.referenceLessonTabScrollTop || typeof this.referenceLessonTabScrollTop !== 'object') {
+      this.referenceLessonTabScrollTop = { content: 0, tests: 0 };
+    }
+    return this.referenceLessonTabScrollTop;
+  }
+
+  async getReferenceLessonScrollTop() {
+    const contentEl =
+      this.querySelector('ion-content.home-journey') || this.querySelector('ion-content');
+    if (!contentEl) return 0;
+    if (typeof contentEl.getScrollElement === 'function') {
+      try {
+        const scrollEl = await contentEl.getScrollElement();
+        return scrollEl ? Math.max(0, Number(scrollEl.scrollTop) || 0) : 0;
+      } catch (err) {
+        return 0;
+      }
+    }
+    return Math.max(0, Number(contentEl.scrollTop) || 0);
+  }
+
+  async setReferenceLessonScrollTop(nextTop = 0) {
+    const targetTop = Math.max(0, Number(nextTop) || 0);
+    const contentEl =
+      this.querySelector('ion-content.home-journey') || this.querySelector('ion-content');
+    if (!contentEl) return;
+    if (typeof contentEl.scrollToPoint === 'function') {
+      try {
+        await contentEl.scrollToPoint(0, targetTop, 0);
+        return;
+      } catch (err) {
+        // fallback below
+      }
+    }
+    if (typeof contentEl.getScrollElement === 'function') {
+      try {
+        const scrollEl = await contentEl.getScrollElement();
+        if (scrollEl) {
+          scrollEl.scrollTop = targetTop;
+          return;
+        }
+      } catch (err) {
+        // fallback below
+      }
+    }
+    contentEl.scrollTop = targetTop;
+  }
+
+  async switchReferenceLessonTab(nextTab) {
+    const normalizedTab = nextTab === 'tests' ? 'tests' : 'content';
+    const currentTab = this.getActiveReferenceLessonTab();
+    if (normalizedTab === currentTab) return;
+    const scrollState = this.getReferenceLessonTabScrollState();
+    scrollState[currentTab] = await this.getReferenceLessonScrollTop();
+    this.referenceLessonTab = normalizedTab;
+    this.applyReferenceLessonTabUi(normalizedTab);
+    await new Promise((resolve) => requestAnimationFrame(() => resolve()));
+    await this.setReferenceLessonScrollTop(scrollState[normalizedTab] || 0);
+  }
+
+  applyReferenceLessonTabUi(tab = this.getActiveReferenceLessonTab()) {
+    const normalizedTab = tab === 'tests' ? 'tests' : 'content';
+    const buttons = Array.from(this.querySelectorAll('[data-reference-lesson-tab]'));
+    buttons.forEach((button) => {
+      const isActive = String(button.dataset.referenceLessonTab || '').trim() === normalizedTab;
+      button.classList.toggle('is-active', isActive);
+      button.setAttribute('aria-selected', isActive ? 'true' : 'false');
+      button.setAttribute('tabindex', isActive ? '0' : '-1');
+    });
+    const contentPanel = this.querySelector('#reference-content-panel');
+    const testsPanel = this.querySelector('#reference-tests-panel');
+    if (contentPanel) contentPanel.hidden = normalizedTab !== 'content';
+    if (testsPanel) testsPanel.hidden = normalizedTab !== 'tests';
+  }
+
+  renderReferenceProgressPill(percent, tone, options = {}) {
+    const value = Math.max(0, Math.min(100, Math.round(Number(percent) || 0)));
+    const normalizedTone = ['good', 'okay', 'bad', 'neutral'].includes(String(tone || '').trim())
+      ? String(tone || '').trim()
+      : 'neutral';
+    const compactClass = options.compact ? ' is-compact' : '';
+    const extraClass = String(options.extraClass || '')
+      .trim()
+      .replace(/\s+/g, ' ');
+    const label =
+      options.label !== undefined && options.label !== null
+        ? String(options.label)
+        : `${value}%`;
+    const ariaLabel =
+      options.ariaLabel !== undefined && options.ariaLabel !== null
+        ? String(options.ariaLabel)
+        : `${value}%`;
+    return `<span class="reference-progress-pill tone-${normalizedTone}${compactClass}${
+      extraClass ? ` ${extraClass}` : ''
+    }" aria-label="${this.escapeHtml(
+      ariaLabel
+    )}">${this.escapeHtml(label)}</span>`;
+  }
+
+  getReferenceProgressQueueStorageKey(user = window.user || null) {
+    return `${REFERENCE_PROGRESS_QUEUE_STORAGE_PREFIX}:${this.getReferenceTestsStorageUserKey(user)}`;
+  }
+
+  readReferenceProgressQueue(user = window.user || null) {
+    try {
+      const raw = localStorage.getItem(this.getReferenceProgressQueueStorageKey(user));
+      if (!raw) {
+        return { lessons: [], tests: {} };
+      }
+      const parsed = JSON.parse(raw);
+      const lessons = Array.isArray(parsed && parsed.lessons)
+        ? parsed.lessons.map((value) => String(value || '').trim()).filter(Boolean)
+        : [];
+      const tests = {};
+      Object.entries(parsed && parsed.tests && typeof parsed.tests === 'object' ? parsed.tests : {}).forEach(
+        ([testCode, rawScore]) => {
+          const normalizedCode = String(testCode || '').trim();
+          const normalizedScore = Math.max(0, Math.min(100, Math.round(Number(rawScore) || 0)));
+          if (!normalizedCode) return;
+          tests[normalizedCode] = normalizedScore;
+        }
+      );
+      return { lessons, tests };
+    } catch (err) {
+      return { lessons: [], tests: {} };
+    }
+  }
+
+  writeReferenceProgressQueue(queue, user = window.user || null) {
+    const safeQueue = queue && typeof queue === 'object' ? queue : {};
+    const lessons = Array.isArray(safeQueue.lessons)
+      ? safeQueue.lessons.map((value) => String(value || '').trim()).filter(Boolean)
+      : [];
+    const tests = {};
+    Object.entries(safeQueue.tests && typeof safeQueue.tests === 'object' ? safeQueue.tests : {}).forEach(
+      ([testCode, rawScore]) => {
+        const normalizedCode = String(testCode || '').trim();
+        if (!normalizedCode) return;
+        tests[normalizedCode] = Math.max(0, Math.min(100, Math.round(Number(rawScore) || 0)));
+      }
+    );
+    try {
+      if (!lessons.length && !Object.keys(tests).length) {
+        localStorage.removeItem(this.getReferenceProgressQueueStorageKey(user));
+        return;
+      }
+      localStorage.setItem(
+        this.getReferenceProgressQueueStorageKey(user),
+        JSON.stringify({ lessons, tests })
+      );
+    } catch (err) {
+      // no-op
+    }
+  }
+
+  hasAuthenticatedReferenceUser(user = window.user || null) {
+    return Boolean(
+      user &&
+        user.id !== undefined &&
+        user.id !== null &&
+        String(user.id).trim() &&
+        user.token !== undefined &&
+        user.token !== null &&
+        String(user.token).trim()
+    );
+  }
+
+  applyReferenceUserProgressPatch(mutator) {
+    if (typeof mutator !== 'function') return false;
+    const currentUser = window.user || null;
+    if (!currentUser || currentUser.id === undefined || currentUser.id === null) return false;
+    const nextUser = {
+      ...currentUser,
+      section_progress:
+        currentUser.section_progress && typeof currentUser.section_progress === 'object'
+          ? { ...currentUser.section_progress }
+          : {},
+      test_progress:
+        currentUser.test_progress && typeof currentUser.test_progress === 'object'
+          ? { ...currentUser.test_progress }
+          : {}
+    };
+    const changed = mutator(nextUser);
+    if (!changed) return false;
+    if (typeof window.setUser === 'function') {
+      window.setUser(nextUser);
+      return true;
+    }
+    window.user = nextUser;
+    try {
+      localStorage.setItem('appv5:user', JSON.stringify(nextUser));
+    } catch (err) {
+      // no-op
+    }
+    window.dispatchEvent(new CustomEvent('app:user-change', { detail: nextUser }));
+    return true;
+  }
+
+  enqueueReferenceLessonSync(lessonCode, user = window.user || null) {
+    const normalizedCode = String(lessonCode || '').trim();
+    if (!normalizedCode || !this.hasAuthenticatedReferenceUser(user)) return false;
+    const queue = this.readReferenceProgressQueue(user);
+    if (!queue.lessons.includes(normalizedCode)) {
+      queue.lessons.push(normalizedCode);
+      this.writeReferenceProgressQueue(queue, user);
+    }
+    return true;
+  }
+
+  enqueueReferenceTestSync(testCode, scorePercent, user = window.user || null) {
+    const normalizedCode = String(testCode || '').trim();
+    if (!normalizedCode || !this.hasAuthenticatedReferenceUser(user)) return false;
+    const normalizedScore = Math.max(0, Math.min(100, Math.round(Number(scorePercent) || 0)));
+    const queue = this.readReferenceProgressQueue(user);
+    const previousScore = Math.max(0, Math.min(100, Math.round(Number(queue.tests[normalizedCode]) || 0)));
+    if (normalizedScore > previousScore) {
+      queue.tests[normalizedCode] = normalizedScore;
+      this.writeReferenceProgressQueue(queue, user);
+    }
+    return true;
+  }
+
+  buildReferenceProgressPayload(queue) {
+    const lessons = Array.isArray(queue && queue.lessons)
+      ? queue.lessons.map((value) => String(value || '').trim()).filter(Boolean)
+      : [];
+    const testEntries = Object.entries(queue && queue.tests && typeof queue.tests === 'object' ? queue.tests : {})
+      .map(([testCode, rawScore]) => [
+        String(testCode || '').trim(),
+        Math.max(0, Math.min(100, Math.round(Number(rawScore) || 0)))
+      ])
+      .filter(([testCode]) => Boolean(testCode));
+    const payload = {};
+    if (lessons.length) payload.lessons = lessons;
+    if (testEntries.length) {
+      payload.tests = testEntries.map(([testCode]) => testCode);
+      payload.results = testEntries.map(([_testCode, score]) => score);
+    }
+    return payload;
+  }
+
+  async flushReferenceProgressQueue(options = {}) {
+    if (this.referenceProgressSyncInFlight) {
+      return { ok: false, skipped: 'in-flight' };
+    }
+    const user = window.user || null;
+    if (!this.hasAuthenticatedReferenceUser(user)) {
+      return { ok: false, skipped: 'no-user' };
+    }
+    if (typeof window.doPost !== 'function') {
+      return { ok: false, skipped: 'no-client' };
+    }
+    if (window.navigator && window.navigator.onLine === false) {
+      return { ok: false, skipped: 'offline' };
+    }
+    const queue = this.readReferenceProgressQueue(user);
+    const payload = this.buildReferenceProgressPayload(queue);
+    if (!payload.lessons && !payload.tests) {
+      return { ok: false, skipped: 'empty' };
+    }
+
+    this.referenceProgressSyncInFlight = true;
+    try {
+      const result = await window.doPost('/v4/recordProgress', user, payload);
+      if (result && result.ok && !(result.data && result.data.error)) {
+        this.writeReferenceProgressQueue({ lessons: [], tests: {} }, user);
+        return { ok: true, result, reason: options.reason || '' };
+      }
+      return {
+        ok: false,
+        status: result && result.status ? result.status : 0,
+        error: result && result.data && result.data.error ? result.data.error : ''
+      };
+    } catch (err) {
+      return { ok: false, error: err && err.message ? err.message : String(err || '') };
+    } finally {
+      this.referenceProgressSyncInFlight = false;
+    }
+  }
+
+  clearReferenceLessonCompletionTimer() {
+    if (this.referenceLessonCompletionTimer) {
+      clearTimeout(this.referenceLessonCompletionTimer);
+      this.referenceLessonCompletionTimer = null;
+    }
+    this.referenceLessonCompletionKey = '';
+  }
+
+  startReferenceLessonCompletionTimer(lessonRef) {
+    this.clearReferenceLessonCompletionTimer();
+    if (!this.lessonView || !this.hasAuthenticatedReferenceUser(window.user || null)) return;
+    const courseCode = String(lessonRef && lessonRef.courseCode ? lessonRef.courseCode : '').trim();
+    const unitCode = String(lessonRef && lessonRef.unitCode ? lessonRef.unitCode : '').trim();
+    const lessonCode = String(lessonRef && lessonRef.lessonCode ? lessonRef.lessonCode : '').trim();
+    if (!courseCode || !unitCode || !lessonCode) return;
+    if (this.hasImportedSectionCompletion(lessonCode)) return;
+    const lessonKey = `${courseCode}:${unitCode}:${lessonCode}`;
+    this.referenceLessonCompletionKey = lessonKey;
+    this.referenceLessonCompletionTimer = setTimeout(() => {
+      if (!this.isConnected || !this.lessonView) return;
+      const selection = getReferenceSelection();
+      if (
+        String(selection && selection.courseCode ? selection.courseCode : '').trim() !== courseCode ||
+        String(selection && selection.unitCode ? selection.unitCode : '').trim() !== unitCode ||
+        String(selection && selection.lessonCode ? selection.lessonCode : '').trim() !== lessonCode
+      ) {
+        return;
+      }
+      this.markReferenceLessonCompleted({ courseCode, unitCode, lessonCode }).catch(() => {});
+    }, REFERENCE_LESSON_COMPLETE_DELAY_MS);
+  }
+
+  async markReferenceLessonCompleted(lessonRef) {
+    const lessonCode = String(lessonRef && lessonRef.lessonCode ? lessonRef.lessonCode : '').trim();
+    if (!lessonCode) return false;
+    if (!this.hasAuthenticatedReferenceUser(window.user || null)) return false;
+    if (this.hasImportedSectionCompletion(lessonCode)) return false;
+
+    this.clearReferenceLessonCompletionTimer();
+    this.enqueueReferenceLessonSync(lessonCode);
+    this.pendingReferenceUnitRewardPopup = { reason: 'reference-lesson-complete' };
+    this.pendingReferenceCourseBadgePopup = { reason: 'reference-lesson-complete' };
+    this.applyReferenceUserProgressPatch((nextUser) => {
+      const currentValue = this.getProgressMapValue(nextUser.section_progress, lessonCode);
+      if (currentValue !== null && Number(currentValue) > 0) return false;
+      nextUser.section_progress[lessonCode] = 1;
+      return true;
+    });
+    this.flushReferenceProgressQueue({ reason: 'lesson-complete' }).catch(() => {});
+    return true;
+  }
+
+  isReferenceTestPassingScore(percent) {
+    const value = Number(percent);
+    return Number.isFinite(value) && value > REFERENCE_TEST_PASS_PERCENT;
+  }
+
+  getReferenceTestScorePercent(progress) {
+    const total = Number(progress && progress.total) || 0;
+    const correctCount = Number(progress && progress.correctCount) || 0;
+    if (total <= 0) return 0;
+    return Math.max(0, Math.min(100, Math.round((correctCount / total) * 100)));
+  }
+
+  async syncReferenceTestResult(test, progress) {
+    const testCode = String(test && test.code !== undefined && test.code !== null ? test.code : '').trim();
+    if (!testCode) return { ok: false, skipped: 'no-test' };
+    if (!this.hasAuthenticatedReferenceUser(window.user || null)) {
+      return { ok: false, skipped: 'no-user' };
+    }
+    const percent = this.getReferenceTestScorePercent(progress);
+    this.enqueueReferenceTestSync(testCode, percent);
+    this.applyReferenceUserProgressPatch((nextUser) => {
+      const currentValue = Number(this.getProgressMapValue(nextUser.test_progress, testCode) || 0);
+      const nextValue = this.isReferenceTestPassingScore(percent) ? 1 : 2;
+      if (nextValue <= currentValue) return false;
+      nextUser.test_progress[testCode] = nextValue;
+      return true;
+    });
+    return this.flushReferenceProgressQueue({ reason: 'test-check' });
+  }
+
   getReferenceTestKey(scope, test) {
     const normalizedScope = scope === 'unit' ? 'unit' : 'lesson';
     const code = test && test.code !== undefined && test.code !== null ? String(test.code).trim() : '';
@@ -1475,6 +2305,25 @@ class PageReference extends HTMLElement {
       };
     }
     return this.referenceTestStates[key];
+  }
+
+  peekReferenceTestState(testKey) {
+    this.ensureReferenceTestsPersistenceLoaded();
+    const key = String(testKey || '').trim();
+    if (!key) {
+      return {
+        responses: {},
+        checked: false,
+        lastCheckedAt: 0
+      };
+    }
+    const stored = this.referenceTestStates[key];
+    if (stored && typeof stored === 'object') return stored;
+    return {
+      responses: {},
+      checked: false,
+      lastCheckedAt: 0
+    };
   }
 
   clearReferenceTestState(testKey) {
@@ -1689,7 +2538,7 @@ class PageReference extends HTMLElement {
   }
 
   evaluateReferenceTest(test, testKey) {
-    const state = this.getReferenceTestState(testKey);
+    const state = this.peekReferenceTestState(testKey);
     const questions = Array.isArray(test && test.questions) ? test.questions : [];
     const results = questions.map((question) => {
       const response = state.responses[String(question.code || '')];
@@ -1726,7 +2575,7 @@ class PageReference extends HTMLElement {
 
   getReferenceTestProgress(test, testKey) {
     const questions = Array.isArray(test && test.questions) ? test.questions : [];
-    const state = this.getReferenceTestState(testKey);
+    const state = this.peekReferenceTestState(testKey);
     const evaluation = this.evaluateReferenceTest(test, testKey);
     const answeredCount = questions.reduce((count, question) => {
       const questionCode = String(question && question.code ? question.code : '');
@@ -1735,7 +2584,8 @@ class PageReference extends HTMLElement {
     const total = evaluation.total;
     const checked = Boolean(state.checked);
     const correctCount = checked ? evaluation.correctCount : 0;
-    const completed = Boolean(checked && total > 0 && correctCount === total);
+    const scorePercent = total > 0 ? (correctCount / total) * 100 : 0;
+    const completed = Boolean(checked && total > 0 && this.isReferenceTestPassingScore(scorePercent));
     const progressCount = checked ? correctCount : answeredCount;
     return {
       checked,
@@ -1743,9 +2593,168 @@ class PageReference extends HTMLElement {
       answeredCount,
       correctCount,
       total,
+      scorePercent,
       progressCount,
       progressRatio: total > 0 ? Math.max(0, Math.min(1, progressCount / total)) : 0
     };
+  }
+
+  getReferenceTestDisplayProgress(test, testKey) {
+    const localProgress = this.getReferenceTestProgress(test, testKey);
+    const importedStatus = this.getImportedReferenceTestStatus(test && test.code);
+    const localPercent = Math.max(
+      0,
+      Math.min(100, Math.round(Number(localProgress.progressRatio || 0) * 100))
+    );
+
+    if (localProgress.checked) {
+      const resolved = localProgress.completed || importedStatus === 1;
+      return {
+        ...localProgress,
+        completed: resolved,
+        percent: localPercent,
+        tone: resolved ? 'good' : localPercent > 0 ? this.getReferenceScoreTone(localPercent) : 'neutral',
+        importedStatus
+      };
+    }
+
+    if (importedStatus === 1) {
+      return {
+        ...localProgress,
+        checked: true,
+        completed: true,
+        correctCount: localProgress.total,
+        progressCount: localProgress.total,
+        progressRatio: localProgress.total > 0 ? 1 : 0,
+        percent: localProgress.total > 0 ? 100 : 0,
+        tone: 'good',
+        importedStatus
+      };
+    }
+
+    if (localProgress.answeredCount > 0) {
+      return {
+        ...localProgress,
+        percent: localPercent,
+        tone: localPercent > 0 ? 'okay' : 'neutral',
+        importedStatus
+      };
+    }
+
+    if (importedStatus === 2) {
+      return {
+        ...localProgress,
+        percent: 50,
+        progressRatio: localProgress.total > 0 ? 0.5 : 0,
+        tone: 'bad',
+        importedStatus
+      };
+    }
+
+    return {
+      ...localProgress,
+      percent: 0,
+      tone: 'neutral',
+      importedStatus
+    };
+  }
+
+  buildReferenceProgressSnapshot(courses = getReferenceCourses()) {
+    const snapshot = {
+      courses: {},
+      units: {},
+      lessons: {},
+      tests: {}
+    };
+
+    const testCourses = getReferenceTestCourses();
+    const testCourseMap = new Map(
+      (Array.isArray(testCourses) ? testCourses : []).map((course) => [String(course.code), course])
+    );
+
+    (Array.isArray(courses) ? courses : []).forEach((course) => {
+      const courseCode = String(course.code);
+      const testCourse = testCourseMap.get(courseCode) || null;
+      const testUnitMap = new Map(
+        (testCourse && Array.isArray(testCourse.unidades) ? testCourse.unidades : []).map((unit) => [
+          String(unit.code),
+          unit
+        ])
+      );
+
+      let courseCompletedCount = 0;
+      let courseTotalCount = 0;
+
+      (Array.isArray(course.unidades) ? course.unidades : []).forEach((unit) => {
+        const unitCode = String(unit.code);
+        const testUnit = testUnitMap.get(unitCode) || null;
+        const testLessonMap = new Map(
+          (testUnit && Array.isArray(testUnit.lecciones) ? testUnit.lecciones : []).map((lesson) => [
+            String(lesson.code),
+            lesson
+          ])
+        );
+
+        let unitCompletedCount = 0;
+        let unitTotalCount = 0;
+
+        (Array.isArray(unit.lecciones) ? unit.lecciones : []).forEach((lesson) => {
+          const lessonCode = String(lesson.code);
+          const lessonTestsEntry = testLessonMap.get(lessonCode) || null;
+          const lessonTests =
+            lessonTestsEntry && Array.isArray(lessonTestsEntry.tests) ? lessonTestsEntry.tests : [];
+          const lessonCompleted = this.hasImportedSectionCompletion(lessonCode);
+
+          snapshot.lessons[this.getReferenceLessonProgressKey(courseCode, unitCode, lessonCode)] = {
+            percent: lessonCompleted ? 100 : 0,
+            completed: lessonCompleted,
+            tone: this.getReferenceLessonTone(lessonCompleted)
+          };
+
+          unitTotalCount += 1 + lessonTests.length;
+          if (lessonCompleted) unitCompletedCount += 1;
+
+          lessonTests.forEach((test) => {
+            const testKey = this.getReferenceTestKey('lesson', test);
+            const testProgress = this.getReferenceTestDisplayProgress(test, testKey);
+            snapshot.tests[testKey] = testProgress;
+            if (testProgress.completed) unitCompletedCount += 1;
+          });
+        });
+
+        const unitTests = testUnit && Array.isArray(testUnit.tests_unidad) ? testUnit.tests_unidad : [];
+        unitTotalCount += unitTests.length;
+        unitTests.forEach((test) => {
+          const testKey = this.getReferenceTestKey('unit', test);
+          const testProgress = this.getReferenceTestDisplayProgress(test, testKey);
+          snapshot.tests[testKey] = testProgress;
+          if (testProgress.completed) unitCompletedCount += 1;
+        });
+
+        const unitPercent =
+          unitTotalCount > 0 ? Math.round((unitCompletedCount * 100) / unitTotalCount) : 0;
+
+        snapshot.units[this.getReferenceUnitProgressKey(courseCode, unitCode)] = {
+          percent: unitPercent,
+          completed: unitPercent >= 100 && unitTotalCount > 0,
+          tone: this.getReferenceAggregateTone(unitPercent)
+        };
+
+        courseCompletedCount += unitCompletedCount;
+        courseTotalCount += unitTotalCount;
+      });
+
+      const coursePercent =
+        courseTotalCount > 0 ? Math.round((courseCompletedCount * 100) / courseTotalCount) : 0;
+
+      snapshot.courses[courseCode] = {
+        percent: coursePercent,
+        completed: coursePercent >= 100 && courseTotalCount > 0,
+        tone: this.getReferenceAggregateTone(coursePercent)
+      };
+    });
+
+    return snapshot;
   }
 
   getReferenceTestsContext(uiLocale) {
@@ -1782,7 +2791,7 @@ class PageReference extends HTMLElement {
 
   getReferenceScoreTone(percent) {
     const value = Number.isFinite(Number(percent)) ? Number(percent) : 0;
-    if (value >= 80) return 'good';
+    if (this.isReferenceTestPassingScore(value)) return 'good';
     if (value >= 60) return 'okay';
     return 'bad';
   }
@@ -1806,10 +2815,7 @@ class PageReference extends HTMLElement {
   awardDiamondForReferenceTest(testKey, options = {}) {
     const normalizedKey = String(testKey || '').trim();
     if (!normalizedKey) return null;
-    const rewardStore =
-      window.r34lp0w3r && window.r34lp0w3r.speakSessionRewards
-        ? window.r34lp0w3r.speakSessionRewards
-        : (window.r34lp0w3r.speakSessionRewards = {});
+    const rewardStore = this.getReferenceRewardStore();
     const entryId = `${REFERENCE_TEST_REWARD_ENTRY_PREFIX}:${normalizedKey}`;
     if (rewardStore[entryId]) return null;
     const now = Date.now();
@@ -1820,25 +2826,9 @@ class PageReference extends HTMLElement {
       ts: now,
       source: 'reference-test'
     };
-    if (typeof window.persistSpeakStores === 'function') {
-      window.persistSpeakStores();
-    }
-    if (typeof window.queueSpeakEvent === 'function') {
-      window.queueSpeakEvent({
-        type: 'session_reward',
-        session_id: entryId,
-        rewardQty: REFERENCE_TEST_DIAMOND_REWARD_QTY,
-        rewardLabel: REFERENCE_TEST_DIAMOND_REWARD_LABEL,
-        rewardIcon: REFERENCE_TEST_DIAMOND_REWARD_ICON,
-        ts: now,
-        reason: options.reason || 'reference-test-complete'
-      });
-    }
-    if (typeof window.notifySpeakStoresChange === 'function') {
-      window.notifySpeakStoresChange();
-    } else {
-      window.dispatchEvent(new CustomEvent('app:speak-stores-change'));
-    }
+    this.persistReferenceRewardStore();
+    this.queueReferenceRewardEvent(entryId, rewardStore[entryId], options.reason || 'reference-test-complete');
+    this.notifyReferenceRewardStoreChange();
     return {
       entryId,
       rewardQty: REFERENCE_TEST_DIAMOND_REWARD_QTY,
@@ -2006,12 +2996,13 @@ class PageReference extends HTMLElement {
     const sectionEl = this.querySelector('#reference-tests-section');
     if (!sectionEl) return;
     const context = this.getReferenceTestsContext(uiLocale);
+    const progressSnapshot = this.buildReferenceProgressSnapshot(getReferenceCourses());
     const { copy, loadInfo, lessonItems, unitItems, allItems, activeItem } = context;
 
     if (loadInfo.status === 'loading' && !allItems.length) {
       sectionEl.innerHTML = `
         <div class="reference-tests-shell">
-          <div class="pill">${this.escapeHtml(copy.testsTitle || 'Tests')}</div>
+          <div class="pill">${this.escapeHtml(copy.lessonTabTests || 'Tests')}</div>
           <div class="reference-empty">${this.escapeHtml(copy.testsLoading || 'Loading tests...')}</div>
         </div>
       `;
@@ -2021,7 +3012,7 @@ class PageReference extends HTMLElement {
     if (loadInfo.status === 'error' && !allItems.length) {
       sectionEl.innerHTML = `
         <div class="reference-tests-shell">
-          <div class="pill">${this.escapeHtml(copy.testsTitle || 'Tests')}</div>
+          <div class="pill">${this.escapeHtml(copy.lessonTabTests || 'Tests')}</div>
           <div class="reference-empty">${this.escapeHtml(copy.testsLoadError || 'Reference tests could not be loaded.')}</div>
         </div>
       `;
@@ -2031,7 +3022,7 @@ class PageReference extends HTMLElement {
     if (!allItems.length) {
       sectionEl.innerHTML = `
         <div class="reference-tests-shell">
-          <div class="pill">${this.escapeHtml(copy.testsTitle || 'Tests')}</div>
+          <div class="pill">${this.escapeHtml(copy.lessonTabTests || 'Tests')}</div>
           <div class="reference-empty">${this.escapeHtml(copy.testsEmpty || 'No tests are available for this lesson or unit.')}</div>
         </div>
       `;
@@ -2047,7 +3038,9 @@ class PageReference extends HTMLElement {
       activeTest && activeTest.header
         ? this.getLocalizedTestText(activeTest.header.instruction, uiLocale)
         : '';
-    const activeProgress = activeTest ? this.getReferenceTestProgress(activeTest, activeTestKey) : null;
+    const activeProgress = activeTest
+      ? progressSnapshot.tests[activeTestKey] || this.getReferenceTestDisplayProgress(activeTest, activeTestKey)
+      : null;
     const wordBank =
       activeTest && activeTest.header && activeTest.header.word_bank
         ? activeTest.header.word_bank[uiLocale] || activeTest.header.word_bank.en || activeTest.header.word_bank.es || []
@@ -2062,11 +3055,11 @@ class PageReference extends HTMLElement {
               .map((item) => {
                 const itemKey = this.getReferenceTestKey(item.scope, item.test);
                 const itemTitle = this.getLocalizedTestText(item.test.display, uiLocale) || `Test ${item.test.code}`;
-                const itemProgress = this.getReferenceTestProgress(item.test, itemKey);
+                const itemProgress =
+                  progressSnapshot.tests[itemKey] || this.getReferenceTestDisplayProgress(item.test, itemKey);
                 const questionsLabel = this.formatReferenceCopy(copy.testsQuestions || '{n} questions', {
                   n: Array.isArray(item.test.questions) ? item.test.questions.length : 0
                 });
-                const progressLabel = `${itemProgress.checked ? itemProgress.correctCount : itemProgress.answeredCount}/${itemProgress.total}`;
                 return `
                   <button
                     type="button"
@@ -2078,6 +3071,10 @@ class PageReference extends HTMLElement {
                   >
                     <span class="reference-test-chip-title-row">
                       <span class="reference-test-chip-title">${this.escapeHtml(itemTitle)}</span>
+                      ${this.renderReferenceProgressPill(itemProgress.percent, itemProgress.tone, {
+                        compact: true,
+                        ariaLabel: `${itemTitle}: ${itemProgress.percent}%`
+                      })}
                       ${
                         itemProgress.completed
                           ? `<span class="reference-test-chip-complete" aria-hidden="true"><ion-icon name="checkmark-circle"></ion-icon></span>`
@@ -2090,7 +3087,6 @@ class PageReference extends HTMLElement {
                         itemProgress.progressRatio * 100
                       )}%"></span>
                     </span>
-                    <span class="reference-test-chip-score">${this.escapeHtml(progressLabel)}</span>
                   </button>
                 `;
               })
@@ -2102,15 +3098,6 @@ class PageReference extends HTMLElement {
 
     sectionEl.innerHTML = `
       <div class="reference-tests-shell">
-        <div class="pill">${this.escapeHtml(copy.testsTitle || 'Tests')}</div>
-        <div class="reference-tests-head">
-          <div>
-            <h4 class="reference-tests-title">${this.escapeHtml(copy.testsTitle || 'Tests')}</h4>
-            <p class="reference-tests-subtitle">${this.escapeHtml(
-              copy.testsSubtitle || 'Answer the tests linked to this lesson and unit.'
-            )}</p>
-          </div>
-        </div>
         ${renderItemGroup(copy.lessonTests || 'Lesson tests', lessonItems)}
         ${renderItemGroup(copy.unitTests || 'Unit tests', unitItems)}
         ${
@@ -2237,18 +3224,21 @@ class PageReference extends HTMLElement {
         const { activeItem } = getActiveTestContext();
         if (!activeItem || this.getReferenceTestKey(activeItem.scope, activeItem.test) !== testKey) return;
         const state = this.getReferenceTestState(testKey);
-        const previousProgress = this.getReferenceTestProgress(activeItem.test, testKey);
+        const previousProgress = this.getReferenceTestDisplayProgress(activeItem.test, testKey);
         state.checked = true;
         state.lastCheckedAt = Date.now();
-        const nextProgress = this.getReferenceTestProgress(activeItem.test, testKey);
-        const percent = nextProgress.total > 0 ? (nextProgress.correctCount / nextProgress.total) * 100 : 0;
-        const tone = this.getReferenceScoreTone(percent);
+        const nextProgress = this.getReferenceTestDisplayProgress(activeItem.test, testKey);
+        const percent = Number(nextProgress.percent) || 0;
+        const tone = nextProgress.tone || this.getReferenceScoreTone(percent);
         if (!previousProgress.completed && nextProgress.completed) {
           this.awardDiamondForReferenceTest(testKey, { reason: 'reference-test-complete' });
         }
         this.playReferenceResultSound(tone);
         this.persistReferenceTestsState();
         this.renderReferenceTestsSection(uiLocale);
+        this.pendingReferenceUnitRewardPopup = { reason: 'reference-test-check' };
+        this.pendingReferenceCourseBadgePopup = { reason: 'reference-test-check' };
+        this.syncReferenceTestResult(activeItem.test, nextProgress).catch(() => {});
         return;
       }
 
@@ -2411,6 +3401,7 @@ class PageReference extends HTMLElement {
   render(options = {}) {
     this.stopHeroNarration();
     this.disconnectFloatingHintsObserver();
+    this.clearReferenceLessonCompletionTimer();
     const baseLocale = this.getBaseLocale();
     const uiLocale = this.getUiLocale(baseLocale);
     const tabsCopy = getTabsCopy(uiLocale);
@@ -2487,6 +3478,36 @@ class PageReference extends HTMLElement {
       return;
     }
 
+    if (this.consumePendingReferenceDeepLink(courses)) {
+      return;
+    }
+
+    const progressSnapshot = this.buildReferenceProgressSnapshot(courses);
+    const referenceTestsLoadInfo = getReferenceTestsLoadInfo();
+    const canSyncReferenceAwards = referenceTestsLoadInfo.status === 'ok';
+    if (canSyncReferenceAwards) {
+      this.syncReferenceUnitRewardsFromSnapshot(progressSnapshot, courses, {
+        uiLocale,
+        showPopup: Boolean(this.pendingReferenceUnitRewardPopup) && !this.pendingReferenceCourseBadgePopup,
+        syncRemote: true,
+        reason:
+          this.pendingReferenceUnitRewardPopup && this.pendingReferenceUnitRewardPopup.reason
+            ? this.pendingReferenceUnitRewardPopup.reason
+            : 'reference-progress-refresh'
+      });
+      this.pendingReferenceUnitRewardPopup = null;
+      this.syncReferenceCourseBadgesFromSnapshot(progressSnapshot, courses, {
+        uiLocale,
+        showPopup: Boolean(this.pendingReferenceCourseBadgePopup),
+        syncRemote: true,
+        reason:
+          this.pendingReferenceCourseBadgePopup && this.pendingReferenceCourseBadgePopup.reason
+            ? this.pendingReferenceCourseBadgePopup.reason
+            : 'reference-progress-refresh'
+      });
+      this.pendingReferenceCourseBadgePopup = null;
+    }
+
     const { course: selectedCourse, unit: selectedUnit, lesson: selectedLesson } = resolveReferenceSelection(
       getReferenceSelection()
     );
@@ -2535,6 +3556,8 @@ class PageReference extends HTMLElement {
       const doOpen = () => {
         this.expandedCourseCode = String(lessonRef.courseCode);
         this.expandedUnitCode = String(lessonRef.unitCode);
+        this.referenceLessonTab = this.lessonView ? this.getActiveReferenceLessonTab() : 'content';
+        this.referenceLessonTabScrollTop = { content: 0, tests: 0 };
         this.lessonView = true;
         setReferenceSelection({
           courseCode: String(lessonRef.courseCode),
@@ -2568,6 +3591,10 @@ class PageReference extends HTMLElement {
         const isCourseOpen = courseCode === this.expandedCourseCode;
         const courseTitle = this.getText(course, 'display', uiLocale) || `Course ${courseCode}`;
         const courseSubtitle = this.getSecondaryDisplay(course, uiLocale);
+        const courseProgress = progressSnapshot.courses[courseCode] || {
+          percent: 0,
+          tone: 'neutral'
+        };
         const units = Array.isArray(course.unidades) ? course.unidades : [];
         const unitsMarkup = units
           .map((unit) => {
@@ -2575,6 +3602,11 @@ class PageReference extends HTMLElement {
             const isUnitOpen = isCourseOpen && unitCode === this.expandedUnitCode;
             const unitTitle = this.getText(unit, 'display', uiLocale) || `Unit ${unitCode}`;
             const unitSubtitle = this.getSecondaryDisplay(unit, uiLocale);
+            const unitProgress =
+              progressSnapshot.units[this.getReferenceUnitProgressKey(courseCode, unitCode)] || {
+                percent: 0,
+                tone: 'neutral'
+              };
             const lessons = Array.isArray(unit.lecciones) ? unit.lecciones : [];
             const lessonsMarkup = isUnitOpen
               ? lessons.length
@@ -2587,6 +3619,10 @@ class PageReference extends HTMLElement {
                         lessonCode === selectedLessonCode;
                       const lessonTitle = this.getText(lesson, 'display', uiLocale) || `Lesson ${lessonCode}`;
                       const lessonSubtitle = this.getSecondaryDisplay(lesson, uiLocale);
+                      const lessonProgress =
+                        progressSnapshot.lessons[
+                          this.getReferenceLessonProgressKey(courseCode, unitCode, lessonCode)
+                        ] || { percent: 0, tone: 'neutral' };
                       return `
                         <div
                           class="training-row reference-lesson-row ${isSelected ? 'is-selected' : ''}"
@@ -2600,8 +3636,16 @@ class PageReference extends HTMLElement {
                           </div>
                           <div class="training-row-body">
                             <div class="training-row-title">${this.escapeHtml(lessonTitle)}</div>
-                            ${lessonSubtitle ? `<div class="training-row-sub">${this.escapeHtml(lessonSubtitle)}</div>` : ''}
+                            ${
+                              lessonSubtitle
+                                ? `<div class="module-sub reference-lesson-sub">${this.escapeHtml(lessonSubtitle)}</div>`
+                                : ''
+                            }
                           </div>
+                          ${this.renderReferenceProgressPill(lessonProgress.percent, lessonProgress.tone, {
+                            compact: true,
+                            ariaLabel: `${lessonTitle}: ${lessonProgress.percent}%`
+                          })}
                           <ion-icon name="chevron-forward" class="training-row-arrow"></ion-icon>
                         </div>
                       `;
@@ -2624,6 +3668,10 @@ class PageReference extends HTMLElement {
                     ${unitSubtitle ? `<div class="module-sub">${this.escapeHtml(unitSubtitle)}</div>` : ''}
                   </div>
                   <div class="module-meta">
+                    ${this.renderReferenceProgressPill(unitProgress.percent, unitProgress.tone, {
+                      compact: true,
+                      ariaLabel: `${unitTitle}: ${unitProgress.percent}%`
+                    })}
                     <ion-icon name="${isUnitOpen ? 'chevron-down' : 'chevron-forward'}"></ion-icon>
                   </div>
                 </button>
@@ -2643,6 +3691,11 @@ class PageReference extends HTMLElement {
             >
               <span>${this.escapeHtml(courseTitle)}</span>
               <div class="route-header-meta">
+                ${this.renderReferenceProgressPill(courseProgress.percent, courseProgress.tone, {
+                  compact: true,
+                  extraClass: 'is-course',
+                  ariaLabel: `${courseTitle}: ${courseProgress.percent}%`
+                })}
                 <ion-icon name="chevron-down"></ion-icon>
               </div>
             </button>
@@ -2662,38 +3715,84 @@ class PageReference extends HTMLElement {
     this._markdownRenderToken = markdownRenderToken;
     const selectedPath = [
       this.getText(selectedCourse, 'display', uiLocale),
-      this.getText(selectedUnit, 'display', uiLocale),
-      this.getText(selectedLesson, 'display', uiLocale)
+      this.getText(selectedUnit, 'display', uiLocale)
     ]
       .map((part) => this.escapeHtml(part))
       .join(' · ');
+    const activeLessonTab = this.getActiveReferenceLessonTab();
 
     if (this.lessonView) {
       this.innerHTML = `
         ${this.renderHeaderHtml()}
         <ion-content fullscreen class="home-journey secret-content">
-          <div class="journey-shell reference-shell">
-            <div class="reference-lesson-topbar">
-              <button class="reference-back-btn" type="button" id="reference-back-btn">
-                <ion-icon name="chevron-back"></ion-icon>
-                <span>${this.escapeHtml(copy.backToList || 'Back')}</span>
-              </button>
-              <div class="reference-lesson-breadcrumb">${selectedPath}</div>
+          <div class="journey-shell reference-shell reference-shell--lesson">
+            <div class="reference-lesson-sticky">
+              <div class="reference-lesson-topbar">
+                <button class="reference-back-btn" type="button" id="reference-back-btn">
+                  <ion-icon name="chevron-back"></ion-icon>
+                  <span>${this.escapeHtml(copy.backToList || 'Back')}</span>
+                </button>
+                <div class="reference-lesson-topbar-main">
+                  <div class="reference-lesson-title">${this.escapeHtml(
+                    this.getText(selectedLesson, 'display', uiLocale) || `Lesson ${selectedLessonCode}`
+                  )}</div>
+                  <div class="reference-lesson-breadcrumb">${selectedPath}</div>
+                </div>
+              </div>
+              <div class="reference-lesson-tabs" role="tablist" aria-label="${this.escapeHtml(
+                copy.selectedLesson || 'Selected lesson'
+              )}">
+                <button
+                  type="button"
+                  class="reference-lesson-tab ${activeLessonTab === 'content' ? 'is-active' : ''}"
+                  id="reference-tab-content"
+                  data-reference-lesson-tab="content"
+                  role="tab"
+                  aria-selected="${activeLessonTab === 'content' ? 'true' : 'false'}"
+                  aria-controls="reference-content-panel"
+                >
+                  ${this.escapeHtml(copy.lessonTabContent || 'Content')}
+                </button>
+                <button
+                  type="button"
+                  class="reference-lesson-tab ${activeLessonTab === 'tests' ? 'is-active' : ''}"
+                  id="reference-tab-tests"
+                  data-reference-lesson-tab="tests"
+                  role="tab"
+                  aria-selected="${activeLessonTab === 'tests' ? 'true' : 'false'}"
+                  aria-controls="reference-tests-panel"
+                >
+                  ${this.escapeHtml(copy.lessonTabTests || 'Tests')}
+                </button>
+              </div>
             </div>
 
-            <section class="reference-content-card">
-              <h3 class="reference-content-title">${this.escapeHtml(
-                this.getText(selectedLesson, 'display', uiLocale) || `Lesson ${selectedLessonCode}`
-              )}</h3>
-              ${
-                lessonContent
-                  ? `<div class="reference-markdown" id="reference-markdown-content">${this.renderMarkdownFallbackHtml(
-                      lessonContent
-                    )}</div>`
-                  : `<div class="reference-empty">${this.escapeHtml(copy.noContent)}</div>`
-              }
-              <div id="reference-tests-section"></div>
-            </section>
+            <div class="reference-lesson-stage" id="reference-lesson-stage">
+              <section
+                class="reference-lesson-panel reference-lesson-panel--content"
+                id="reference-content-panel"
+                role="tabpanel"
+                aria-labelledby="reference-tab-content"
+                ${activeLessonTab === 'content' ? '' : 'hidden'}
+              >
+                ${
+                  lessonContent
+                    ? `<div class="reference-markdown" id="reference-markdown-content">${this.renderMarkdownFallbackHtml(
+                        lessonContent
+                      )}</div>`
+                    : `<div class="reference-empty">${this.escapeHtml(copy.noContent)}</div>`
+                }
+              </section>
+              <section
+                class="reference-lesson-panel reference-lesson-panel--tests"
+                id="reference-tests-panel"
+                role="tabpanel"
+                aria-labelledby="reference-tab-tests"
+                ${activeLessonTab === 'tests' ? '' : 'hidden'}
+              >
+                <div id="reference-tests-section"></div>
+              </section>
+            </div>
 
             <div class="reference-page-hints" aria-hidden="true">
               <span class="reference-page-hint reference-page-hint-prev ${prevLessonRef ? 'is-visible' : ''}"></span>
@@ -2757,6 +3856,12 @@ class PageReference extends HTMLElement {
         this.enhanceMarkdownWithMarked(lessonContent, markdownRenderToken);
       }
       this.renderReferenceTestsSection(uiLocale);
+      this.applyReferenceLessonTabUi(activeLessonTab);
+      this.startReferenceLessonCompletionTimer({
+        courseCode: selectedCourseCode,
+        unitCode: selectedUnitCode,
+        lessonCode: selectedLessonCode
+      });
 
       this.querySelector('#reference-back-btn')?.addEventListener('click', () => {
         const savedScroll = this._savedScrollTop || 0;
@@ -2772,16 +3877,31 @@ class PageReference extends HTMLElement {
         }
       });
 
-      this.querySelector('#reference-prev-btn')?.addEventListener('click', () => {
+      this.querySelector('#reference-prev-btn')?.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
         if (prevLessonRef) openLesson(prevLessonRef);
       });
 
-      this.querySelector('#reference-next-btn')?.addEventListener('click', () => {
+      this.querySelector('#reference-next-btn')?.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
         if (nextLessonRef) openLesson(nextLessonRef);
       });
 
+      this.querySelectorAll('[data-reference-lesson-tab]').forEach((button) => {
+        button.addEventListener('click', () => {
+          const nextTab =
+            String(button.getAttribute('data-reference-lesson-tab') || '').trim() === 'tests'
+              ? 'tests'
+              : 'content';
+          if (this.referenceLessonTab === nextTab) return;
+          this.switchReferenceLessonTab(nextTab);
+        });
+      });
+
       // ── Floating hints + swipe + tap edge ──
-      const lessonCardEl = this.querySelector('.reference-content-card');
+      const lessonCardEl = this.querySelector('#reference-lesson-stage');
       const floatingHintsEl = this.querySelector('.reference-page-hints');
       const ionContentEl = this.querySelector('ion-content');
       const hasDirectionalHints = Boolean(prevLessonRef || nextLessonRef);
@@ -2808,7 +3928,7 @@ class PageReference extends HTMLElement {
         if (!(target instanceof Element)) return false;
         return Boolean(
           target.closest(
-            'button, a, input, textarea, select, label, [role="button"], [contenteditable="true"], [data-action], #reference-tests-section, .reference-tests-shell, .reference-test-card'
+            'button, a, input, textarea, select, label, [role="button"], [contenteditable="true"], [data-action]'
           )
         );
       };

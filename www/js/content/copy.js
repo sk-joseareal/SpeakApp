@@ -28,7 +28,9 @@ const APP_COPY = {
     },
     appHeader: {
       completedModulesOne: 'Completaste {n} módulo!',
-      completedModulesOther: 'Completaste {n} módulos!'
+      completedModulesOther: 'Completaste {n} módulos!',
+      completedUnitsOne: 'Completaste {n} unidad!',
+      completedUnitsOther: 'Completaste {n} unidades!'
     },
     reference: {
       title: 'Referencia',
@@ -41,10 +43,10 @@ const APP_COPY = {
       lessonListEmpty: 'Esta unidad no tiene lecciones.',
       chooseLesson: 'Selecciona una lección para ver su contenido.',
       backToList: 'Volver',
+      lessonTabContent: 'Contenido',
+      lessonTabTests: 'Tests',
       prev: 'Anterior',
       next: 'Siguiente',
-      testsTitle: 'Comprueba lo que recuerdas',
-      testsSubtitle: 'Responde a los tests relacionados con esta lección y su unidad.',
       lessonTests: 'Tests de la lección',
       unitTests: 'Tests de la unidad',
       testsLoading: 'Cargando tests...',
@@ -66,7 +68,12 @@ const APP_COPY = {
       testsExplanation: 'Explicación',
       testsNoAnswer: 'Sin respuesta',
       testsSelectedTest: 'Test seleccionado',
-      testsPickOne: 'Selecciona un test para empezar.'
+      testsPickOne: 'Selecciona un test para empezar.',
+      ribbonLabelOne: 'ribbon',
+      ribbonLabelOther: 'ribbons',
+      unitRewardPopupTitle: 'Unidad completada',
+      unitRewardPopupStatus: 'Has completado esta unidad.',
+      unitRewardPopupReward: 'Has ganado 1 ribbon.'
     },
     notifications: {
       title: 'Notificaciones',
@@ -436,12 +443,16 @@ const APP_COPY = {
       logout: 'Cerrar sesión',
       reviewWordsTitle: 'Palabras a revisar',
       reviewPhrasesTitle: 'Frases a revisar',
+      reviewTestsTitle: 'Tests a revisar',
       reviewRed: 'Rojo',
       reviewYellow: 'Amarillo',
       reviewToneRedLabel: 'rojo',
       reviewToneYellowLabel: 'amarillo',
       reviewWordsEmpty: 'Aún no hay palabras en {tone}.',
       reviewPhrasesEmpty: 'No hay frases en {tone}.',
+      reviewTestsEmpty: 'No hay tests en {tone}.',
+      reviewLessonTestLabel: 'Test de lección',
+      reviewUnitTestLabel: 'Test de unidad',
       userFallbackName: 'Usuario',
       avatarAltDefault: 'Avatar',
       avatarAltWithName: 'Avatar {name}',
@@ -472,7 +483,9 @@ const APP_COPY = {
     },
     appHeader: {
       completedModulesOne: 'You completed {n} module!',
-      completedModulesOther: 'You completed {n} modules!'
+      completedModulesOther: 'You completed {n} modules!',
+      completedUnitsOne: 'You completed {n} unit!',
+      completedUnitsOther: 'You completed {n} units!'
     },
     reference: {
       title: 'Reference',
@@ -485,10 +498,10 @@ const APP_COPY = {
       lessonListEmpty: 'This unit has no lessons.',
       chooseLesson: 'Select a lesson to view its content.',
       backToList: 'Back',
+      lessonTabContent: 'Content',
+      lessonTabTests: 'Tests',
       prev: 'Previous',
       next: 'Next',
-      testsTitle: 'Check what you remember',
-      testsSubtitle: 'Answer the tests linked to this lesson and unit.',
       lessonTests: 'Lesson tests',
       unitTests: 'Unit tests',
       testsLoading: 'Loading tests...',
@@ -510,7 +523,12 @@ const APP_COPY = {
       testsExplanation: 'Explanation',
       testsNoAnswer: 'No answer',
       testsSelectedTest: 'Selected test',
-      testsPickOne: 'Select a test to get started.'
+      testsPickOne: 'Select a test to get started.',
+      ribbonLabelOne: 'ribbon',
+      ribbonLabelOther: 'ribbons',
+      unitRewardPopupTitle: 'Unit completed',
+      unitRewardPopupStatus: 'You completed this unit.',
+      unitRewardPopupReward: 'You earned 1 ribbon.'
     },
     notifications: {
       title: 'Notifications',
@@ -880,12 +898,16 @@ const APP_COPY = {
       logout: 'Log out',
       reviewWordsTitle: 'Words to review',
       reviewPhrasesTitle: 'Phrases to review',
+      reviewTestsTitle: 'Tests to review',
       reviewRed: 'Red',
       reviewYellow: 'Yellow',
       reviewToneRedLabel: 'red',
       reviewToneYellowLabel: 'yellow',
       reviewWordsEmpty: 'There are no words in {tone} yet.',
       reviewPhrasesEmpty: 'There are no phrases in {tone}.',
+      reviewTestsEmpty: 'There are no tests in {tone}.',
+      reviewLessonTestLabel: 'Lesson test',
+      reviewUnitTestLabel: 'Unit test',
       userFallbackName: 'User',
       avatarAltDefault: 'Avatar',
       avatarAltWithName: 'Avatar {name}',

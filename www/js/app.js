@@ -215,7 +215,9 @@ function setupRewardBadgeInfoToasts() {
     }
   };
 
-  const getTrophyCount = () => {
+  const getRewardCount = (targetKind) => {
+    const normalizedTarget = String(targetKind || '').trim().toLowerCase();
+    if (!normalizedTarget) return 0;
     const rewards =
       window.r34lp0w3r && window.r34lp0w3r.speakSessionRewards
         ? window.r34lp0w3r.speakSessionRewards
@@ -223,21 +225,31 @@ function setupRewardBadgeInfoToasts() {
     return Object.values(rewards).reduce((sum, entry) => {
       if (!entry || typeof entry.rewardQty !== 'number') return sum;
       const icon = String(entry.rewardIcon || 'diamond').trim().toLowerCase();
-      if (icon !== 'trophy') return sum;
+      const group = String(entry.rewardGroup || icon).trim().toLowerCase();
+      if (group !== normalizedTarget) return sum;
       return sum + Math.max(0, Math.round(entry.rewardQty));
     }, 0);
   };
 
-  const buildRewardMessage = (count) => {
+  const buildRewardMessage = (rewardKind, count) => {
     const locale = getAppLocale() || (window.varGlobal && window.varGlobal.locale) || 'en';
     const copy = getAppHeaderCopy(locale);
     const template =
-      count === 1 ? copy.completedModulesOne : copy.completedModulesOther;
+      rewardKind === 'reference-unit-ribbon'
+        ? count === 1
+          ? copy.completedUnitsOne
+          : copy.completedUnitsOther
+        : count === 1
+        ? copy.completedModulesOne
+        : copy.completedModulesOther;
     return String(template || '').replace('{n}', String(count));
   };
 
   const handleRewardBadgeInfoRequest = (badgeEl) => {
     if (!badgeEl) return;
+    const rewardKind = String(badgeEl.dataset.rewardKind || '')
+      .trim()
+      .toLowerCase();
     const iconName =
       String(badgeEl.dataset.rewardIcon || '')
         .trim()
@@ -245,10 +257,11 @@ function setupRewardBadgeInfoToasts() {
       String(badgeEl.querySelector('ion-icon')?.getAttribute('name') || '')
         .trim()
         .toLowerCase();
-    if (iconName !== 'trophy') return;
-    const trophyCount = Math.max(0, getTrophyCount());
-    if (!trophyCount) return;
-    presentRewardToast(buildRewardMessage(trophyCount));
+    const targetKind = rewardKind || iconName;
+    if (targetKind !== 'trophy' && targetKind !== 'reference-unit-ribbon') return;
+    const rewardCount = Math.max(0, getRewardCount(targetKind));
+    if (!rewardCount) return;
+    presentRewardToast(buildRewardMessage(targetKind, rewardCount));
   };
 
   document.addEventListener('click', (event) => {

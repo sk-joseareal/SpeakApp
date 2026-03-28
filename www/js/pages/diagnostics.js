@@ -12,6 +12,7 @@ import {
   getRoutes,
   getTrainingDataLoadInfo
 } from '../data/training-data.js';
+import { ensureReferenceData, getLocalizedMapField, getReferenceCourses } from '../data/reference-data.js';
 
 class PageDiagnostics extends HTMLElement {
   connectedCallback() {
@@ -1358,24 +1359,71 @@ class PageDiagnostics extends HTMLElement {
       const routes = Array.isArray(getRoutes()) ? getRoutes() : [];
       const localeRaw = String(getAppLocale() || '').trim().toLowerCase();
       const locale = localeRaw.startsWith('es') ? 'es' : 'en';
-      if (!routes.length) {
-        return Array.from({ length: 5 }, (_, idx) => ({
+      const trainingBadges = !routes.length
+        ? Array.from({ length: 5 }, (_, idx) => ({
           id: `route:badge-${idx + 1}`,
           routeId: `badge-${idx + 1}`,
           routeTitle: `Ruta ${idx + 1}`,
           badgeIndex: idx + 1,
           image: `assets/badges/badge${idx + 1}.png`,
           title: `Badge ${idx + 1}`
-        }));
-      }
-      return routes.slice(0, 5).map((route, idx) => ({
+        }))
+        : routes.slice(0, 5).map((route, idx) => ({
         id: `route:${route.id}`,
         routeId: route.id,
         routeTitle: getLocalizedContentField(route, 'title', locale) || '',
         badgeIndex: idx + 1,
         image: `assets/badges/badge${idx + 1}.png`,
         title: `Badge ${idx + 1}`
-      }));
+        }));
+
+      const referenceTitles =
+        locale === 'es'
+          ? {
+              '4': 'Nivel básico',
+              '5': 'Nivel intermedio',
+              '6': 'Nivel avanzado',
+              '10': 'Inglés de negocios',
+              '10000': 'Vocabulario para viajar'
+            }
+          : {
+              '4': 'Basic level',
+              '5': 'Intermediate level',
+              '6': 'Advanced level',
+              '10': 'Business English',
+              '10000': 'Travel Vocabulary'
+            };
+      const referenceBadgeMeta = {
+        '4': { badgeIndex: 6, image: 'assets/badges/badge-basic.png', routeId: 'reference-course-basic' },
+        '5': {
+          badgeIndex: 7,
+          image: 'assets/badges/badge-intermediate.png',
+          routeId: 'reference-course-intermediate'
+        },
+        '6': { badgeIndex: 8, image: 'assets/badges/badge-advanced.png', routeId: 'reference-course-advanced' },
+        '10': { badgeIndex: 9, image: 'assets/badges/badge-business.png', routeId: 'reference-course-business' },
+        '10000': {
+          badgeIndex: 10,
+          image: 'assets/badges/badge-travel.png',
+          routeId: 'reference-course-travel'
+        }
+      };
+      const referenceCourses = Array.isArray(getReferenceCourses()) ? getReferenceCourses() : [];
+      const referenceBadges = Object.entries(referenceBadgeMeta).map(([courseCode, meta]) => {
+        const course = referenceCourses.find((item) => String(item && item.code ? item.code : '') === courseCode);
+        const routeTitle =
+          (course && getLocalizedMapField(course, 'display', locale)) || referenceTitles[courseCode] || '';
+        return {
+          id: `reference-course:${courseCode}`,
+          routeId: meta.routeId,
+          routeTitle,
+          badgeIndex: meta.badgeIndex,
+          image: meta.image,
+          title: routeTitle || `Badge ${meta.badgeIndex}`
+        };
+      });
+
+      return [...trainingBadges, ...referenceBadges];
     };
 
     let badgeCatalog = buildBadgeCatalog();
@@ -2445,7 +2493,7 @@ class PageDiagnostics extends HTMLElement {
     refreshPronUserUsage();
     renderNotifyList();
     renderBadgePicker();
-    ensureTrainingData()
+    Promise.all([ensureTrainingData(), ensureReferenceData().catch(() => null)])
       .then(() => {
         badgeCatalog = buildBadgeCatalog();
         renderBadgePicker();

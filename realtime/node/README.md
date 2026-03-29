@@ -27,20 +27,11 @@ npm start
 - `POST /realtime/emit` (trigger events)
 - `POST /realtime/tts/aligned` (AWS Polly audio + word timings)
 - `GET /realtime/health`
-- `GET /realtime/state/summary` (snapshot metadata)
-- `GET /realtime/state` (full snapshot)
-- `POST /realtime/state/sync` (append events + merge snapshot)
 
 ## Community push
 
 DM push delivery can run locally from `realtime/node/push/` without depending on
 `backendV4`. Configure the APNs / FCM credential paths in `../.env`.
-
-## State sync notes
-
-- Storage is file-based for MVP: `realtime/node/data/rt/`.
-- Use `owner`, `user_id`, or `device_id` to scope data (owner wins).
-- Optional guard: set `REALTIME_STATE_TOKEN` and send it as `x-rt-token` or `token`.
 
 ## Switching to Pusher
 

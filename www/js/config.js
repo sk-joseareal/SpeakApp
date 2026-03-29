@@ -3,13 +3,14 @@
   window.env = window.env || 'PRO'; // 'PRO' o 'DEV'
   window.apiPRO = window.apiPRO || 'https://api.curso-ingles.com';
   window.apiDEV = window.apiDEV || 'https://apidev.curso-ingles.com';
+  const apiBase = window.env === 'PRO' ? window.apiPRO : window.apiDEV;
 
   // Identificador de usuario si la app lo establece en runtime
   window.user_id = window.user_id || null;
 
   window.appMeta = window.appMeta || {
     version: window.APP_VERSION || '1.0.1',
-    build: window.APP_BUILD || '31'
+    build: window.APP_BUILD || '32'
   };
 
   const emitAppMeta = () => {
@@ -173,15 +174,15 @@
   }
   if (window.realtimeConfig.stateEndpoint === undefined) {
     window.realtimeConfig.stateEndpoint =
-      window.REALTIME_STATE_ENDPOINT || 'https://realtime.curso-ingles.com/realtime/state/sync';
+      window.REALTIME_STATE_ENDPOINT || `${apiBase}/v5/training/state/sync`;
   }
   if (window.realtimeConfig.stateSummaryEndpoint === undefined) {
     window.realtimeConfig.stateSummaryEndpoint =
-      window.REALTIME_STATE_SUMMARY_ENDPOINT || 'https://realtime.curso-ingles.com/realtime/state/summary';
+      window.REALTIME_STATE_SUMMARY_ENDPOINT || `${apiBase}/v5/training/state/summary`;
   }
   if (window.realtimeConfig.stateSnapshotEndpoint === undefined) {
     window.realtimeConfig.stateSnapshotEndpoint =
-      window.REALTIME_STATE_SNAPSHOT_ENDPOINT || 'https://realtime.curso-ingles.com/realtime/state';
+      window.REALTIME_STATE_SNAPSHOT_ENDPOINT || `${apiBase}/v5/training/state`;
   }
   if (window.realtimeConfig.stateToken === undefined) {
     window.realtimeConfig.stateToken =

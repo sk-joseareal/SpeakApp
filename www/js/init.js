@@ -1002,6 +1002,8 @@ const readUserIdFromDetail = (detail) => {
 const isValidSpeakUserId = (value) => value !== null && value !== undefined && String(value) !== '';
 
 let speakLastUserId = resolveSpeakUserId();
+const SPEAK_STATE_AUTH_SIGNATURE =
+  'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx';
 
 const getSpeakDeviceOwner = () => {
   const uuid = window.uuid || localStorage.getItem('uuid') || '';
@@ -1010,26 +1012,76 @@ const getSpeakDeviceOwner = () => {
 };
 
 const resolveSpeakStateEndpoints = () => {
-  const endpoint = window.realtimeConfig && window.realtimeConfig.stateEndpoint;
-  if (!endpoint || typeof endpoint !== 'string') return null;
-  const trimmed = endpoint.replace(/\/+$/, '');
-  if (trimmed.endsWith('/sync')) {
-    return {
-      syncEndpoint: endpoint,
-      stateEndpoint: trimmed.slice(0, -5)
-    };
-  }
+  const syncEndpoint = window.realtimeConfig && window.realtimeConfig.stateEndpoint;
+  const snapshotEndpoint =
+    window.realtimeConfig && window.realtimeConfig.stateSnapshotEndpoint;
+  const summaryEndpoint = window.realtimeConfig && window.realtimeConfig.stateSummaryEndpoint;
+  if (!syncEndpoint || typeof syncEndpoint !== 'string') return null;
+  const trimmedSync = syncEndpoint.replace(/\/+$/, '');
+  const derivedStateEndpoint = trimmedSync.endsWith('/sync')
+    ? trimmedSync.slice(0, -5)
+    : trimmedSync;
   return {
-    syncEndpoint: `${trimmed}/sync`,
-    stateEndpoint: trimmed
+    syncEndpoint,
+    stateEndpoint:
+      snapshotEndpoint && typeof snapshotEndpoint === 'string'
+        ? snapshotEndpoint
+        : derivedStateEndpoint,
+    summaryEndpoint:
+      summaryEndpoint && typeof summaryEndpoint === 'string'
+        ? summaryEndpoint
+        : `${derivedStateEndpoint}/summary`
   };
 };
 
-const buildSpeakStateHeaders = () => {
-  const headers = {};
+const resolveSpeakRemoteAuth = () => {
+  const user = window.user || null;
+  if (user && user.id !== undefined && user.id !== null && user.token) {
+    return { userId: user.id, token: user.token };
+  }
+  const stored = readStoredUserForSync();
+  if (stored && stored.id !== undefined && stored.id !== null && stored.token) {
+    return { userId: stored.id, token: stored.token };
+  }
+  return null;
+};
+
+const buildSpeakStateHeaders = (opts = {}) => {
+  const headers = {
+    Authorization: SPEAK_STATE_AUTH_SIGNATURE
+  };
+  if (typeof deviceId === 'function') {
+    headers['X-Platform'] = deviceId();
+  }
+  if (opts.json === true) {
+    headers['Content-Type'] = 'application/json';
+  }
   const token = window.realtimeConfig && window.realtimeConfig.stateToken;
   if (token) headers['x-rt-token'] = token;
   return headers;
+};
+
+const buildSpeakStateUrl = (endpoint, userId, token, extraParams = {}) => {
+  if (!endpoint || !isValidSpeakUserId(userId) || !token) return '';
+  const url = new URL(endpoint, window.location.origin);
+  url.searchParams.set('user_id', String(userId));
+  url.searchParams.set('token', String(token));
+  url.searchParams.set('timestamp', String(Math.round(Date.now() / 1000)));
+  Object.entries(extraParams || {}).forEach(([key, value]) => {
+    if (value === undefined || value === null || value === '') return;
+    url.searchParams.set(key, String(value));
+  });
+  return url.toString();
+};
+
+const resolveSpeakRemoteUserIdFromOwner = (owner) => {
+  const raw = String(owner || '').trim();
+  if (!raw) return null;
+  if (raw.startsWith('user:')) {
+    const value = raw.slice(5);
+    return isValidSpeakUserId(value) ? value : null;
+  }
+  return null;
 };
 
 function hasMeaningfulWordScores(words) {
@@ -1075,7 +1127,11 @@ const fetchSpeakSnapshotForOwner = async (owner) => {
   const endpoints = resolveSpeakStateEndpoints();
   if (!endpoints || !owner) return null;
   if (window.navigator && window.navigator.onLine === false) return null;
-  const url = `${endpoints.stateEndpoint}?owner=${encodeURIComponent(owner)}`;
+  const auth = resolveSpeakRemoteAuth();
+  const remoteUserId = resolveSpeakRemoteUserIdFromOwner(owner);
+  if (!auth || !remoteUserId || String(auth.userId) !== String(remoteUserId)) return null;
+  const url = buildSpeakStateUrl(endpoints.stateEndpoint, auth.userId, auth.token);
+  if (!url) return null;
   const headers = buildSpeakStateHeaders();
   try {
     const res = await fetch(url, { headers });
@@ -1217,8 +1273,6 @@ const getSpeakSyncOwner = () => {
   if (userId !== undefined && userId !== null && String(userId) !== '') {
     return `user:${userId}`;
   }
-  const uuid = window.uuid || localStorage.getItem('uuid') || '';
-  if (uuid) return `device:${uuid}`;
   return '';
 };
 
@@ -1324,8 +1378,11 @@ window.syncSpeakProgress = async (opts = {}) => {
   if (speakSyncInFlight && !opts.force) return { ok: false, skipped: 'in-flight' };
   const owner = getSpeakSyncOwner();
   if (!owner) return { ok: false, skipped: 'no-owner' };
+  const remoteAuth = resolveSpeakRemoteAuth();
+  if (!remoteAuth) return { ok: false, skipped: 'no-user' };
 
-  const endpoint = window.realtimeConfig && window.realtimeConfig.stateEndpoint;
+  const endpoints = resolveSpeakStateEndpoints();
+  const endpoint = endpoints && endpoints.syncEndpoint ? endpoints.syncEndpoint : '';
   if (!endpoint) return { ok: false, skipped: 'no-endpoint' };
   if (window.navigator && window.navigator.onLine === false) {
     return { ok: false, skipped: 'offline' };
@@ -1361,22 +1418,14 @@ window.syncSpeakProgress = async (opts = {}) => {
   const payload = {
     owner,
     events: batch,
-    strategy
+    strategy,
+    user_id: remoteAuth.userId,
+    token: remoteAuth.token,
+    timestamp: Math.round(Date.now() / 1000)
   };
-  const uuid = window.uuid || localStorage.getItem('uuid') || '';
-  if (uuid) payload.device_id = uuid;
-  const userId = resolveSpeakUserId();
-  if (userId !== undefined && userId !== null && String(userId) !== '') {
-    payload.user_id = userId;
-  }
   if (includeSnapshot) payload.snapshot = buildSpeakSnapshot();
 
-  const headers = { 'Content-Type': 'application/json' };
-  const token = window.realtimeConfig && window.realtimeConfig.stateToken;
-  if (token) {
-    headers['x-rt-token'] = token;
-    payload.token = token;
-  }
+  const headers = buildSpeakStateHeaders({ json: true });
 
   speakSyncInFlight = true;
   try {

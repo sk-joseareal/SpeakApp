@@ -1567,7 +1567,7 @@ class PageDiagnostics extends HTMLElement {
       const headers = {};
       const cfg = window.realtimeConfig || {};
       const monitor = cfg.monitorToken || '';
-      const state = cfg.stateToken || '';
+      const state = cfg.authToken || '';
       if (monitor) headers['x-monitor-token'] = monitor;
       if (state) headers['x-rt-token'] = state;
       return headers;

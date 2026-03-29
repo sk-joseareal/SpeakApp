@@ -2532,7 +2532,7 @@ const registerPushTokenRemote = async (record) => {
     (window.realtimeConfig && window.realtimeConfig.pushRegisterEndpoint) ||
     'https://realtime.curso-ingles.com/realtime/push/register';
   const headers = { 'Content-Type': 'application/json' };
-  const rtToken = window.realtimeConfig && window.realtimeConfig.stateToken;
+  const rtToken = (window.realtimeConfig && window.realtimeConfig.authToken) || '';
   if (rtToken) headers['x-rt-token'] = rtToken;
   const payload = {
     token: record.token,

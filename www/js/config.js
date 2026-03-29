@@ -172,21 +172,9 @@
       window.REALTIME_PRONUNCIATION_USAGE_LIMIT_ENDPOINT ||
       'https://realtime.curso-ingles.com/realtime/pronunciation/usage/limit';
   }
-  if (window.realtimeConfig.stateEndpoint === undefined) {
-    window.realtimeConfig.stateEndpoint =
-      window.REALTIME_STATE_ENDPOINT || `${apiBase}/v5/training/state/sync`;
-  }
-  if (window.realtimeConfig.stateSummaryEndpoint === undefined) {
-    window.realtimeConfig.stateSummaryEndpoint =
-      window.REALTIME_STATE_SUMMARY_ENDPOINT || `${apiBase}/v5/training/state/summary`;
-  }
-  if (window.realtimeConfig.stateSnapshotEndpoint === undefined) {
-    window.realtimeConfig.stateSnapshotEndpoint =
-      window.REALTIME_STATE_SNAPSHOT_ENDPOINT || `${apiBase}/v5/training/state`;
-  }
-  if (window.realtimeConfig.stateToken === undefined) {
-    window.realtimeConfig.stateToken =
-      window.REALTIME_STATE_TOKEN ||
+  if (window.realtimeConfig.authToken === undefined) {
+    window.realtimeConfig.authToken =
+      window.REALTIME_AUTH_TOKEN ||
       'ca6c8ad7c431233c1d891f2bd9eebc1dbb0de269c690de994e2313b8c7e7a50';
   }
   if (window.realtimeConfig.monitorToken === undefined) {
@@ -200,6 +188,23 @@
   }
   if (window.realtimeConfig.channelPrefix === undefined) {
     window.realtimeConfig.channelPrefix = 'coach';
+  }
+
+  window.trainingStateConfig = window.trainingStateConfig || {};
+  if (window.trainingStateConfig.syncEndpoint === undefined) {
+    window.trainingStateConfig.syncEndpoint =
+      window.TRAINING_STATE_SYNC_ENDPOINT ||
+      `${apiBase}/v5/training/state/sync`;
+  }
+  if (window.trainingStateConfig.summaryEndpoint === undefined) {
+    window.trainingStateConfig.summaryEndpoint =
+      window.TRAINING_STATE_SUMMARY_ENDPOINT ||
+      `${apiBase}/v5/training/state/summary`;
+  }
+  if (window.trainingStateConfig.snapshotEndpoint === undefined) {
+    window.trainingStateConfig.snapshotEndpoint =
+      window.TRAINING_STATE_SNAPSHOT_ENDPOINT ||
+      `${apiBase}/v5/training/state`;
   }
 
   window.contentConfig = window.contentConfig || {};

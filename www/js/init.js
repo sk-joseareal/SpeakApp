@@ -1012,10 +1012,10 @@ const getSpeakDeviceOwner = () => {
 };
 
 const resolveSpeakStateEndpoints = () => {
-  const syncEndpoint = window.realtimeConfig && window.realtimeConfig.stateEndpoint;
-  const snapshotEndpoint =
-    window.realtimeConfig && window.realtimeConfig.stateSnapshotEndpoint;
-  const summaryEndpoint = window.realtimeConfig && window.realtimeConfig.stateSummaryEndpoint;
+  const cfg = window.trainingStateConfig || {};
+  const syncEndpoint = cfg.syncEndpoint;
+  const snapshotEndpoint = cfg.snapshotEndpoint;
+  const summaryEndpoint = cfg.summaryEndpoint;
   if (!syncEndpoint || typeof syncEndpoint !== 'string') return null;
   const trimmedSync = syncEndpoint.replace(/\/+$/, '');
   const derivedStateEndpoint = trimmedSync.endsWith('/sync')
@@ -1056,8 +1056,6 @@ const buildSpeakStateHeaders = (opts = {}) => {
   if (opts.json === true) {
     headers['Content-Type'] = 'application/json';
   }
-  const token = window.realtimeConfig && window.realtimeConfig.stateToken;
-  if (token) headers['x-rt-token'] = token;
   return headers;
 };
 

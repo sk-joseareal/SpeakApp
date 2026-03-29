@@ -1185,10 +1185,8 @@ class PageReference extends HTMLElement {
     const headers = { 'Content-Type': 'application/json' };
     const cfg = window.realtimeConfig || {};
     const token =
-      typeof cfg.stateToken === 'string'
-        ? cfg.stateToken.trim()
-        : typeof window.REALTIME_STATE_TOKEN === 'string'
-          ? window.REALTIME_STATE_TOKEN.trim()
+      typeof cfg.authToken === 'string'
+        ? cfg.authToken.trim()
           : '';
     if (token) {
       headers['x-rt-token'] = token;

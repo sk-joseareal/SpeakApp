@@ -279,6 +279,7 @@ class AppUsersRepository {
   async listUsers({ query = '', limit = 20 } = {}) {
     const queryText = asText(query);
     const rowLimit = Math.min(Math.max(Number(limit) || 20, 1), 100);
+    const sqlLimit = Math.round(rowLimit);
     const clauses = [];
     const values = [];
     if (queryText) {
@@ -317,9 +318,9 @@ class AppUsersRepository {
           CASE WHEN u.updated_at IS NULL THEN 1 ELSE 0 END,
           u.updated_at DESC,
           u.id DESC
-        LIMIT ?
+        LIMIT ${sqlLimit}
       `,
-      [...values, rowLimit]
+      values
     );
     const [countRows] = await this.execute(
       `

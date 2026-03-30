@@ -95,7 +95,10 @@ html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); f
 .center { align-items: center; }
 .gap-sm { gap: 8px; }
 .top-md { margin-top: 10px; }
-.grow { flex: 1 1 260px; }
+.row > .grow {
+  flex: 1 1 260px;
+  min-width: 0;
+}
 
 .field {
   display: flex;

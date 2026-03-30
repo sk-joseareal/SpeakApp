@@ -1846,7 +1846,8 @@
   const renderAppUsersMeta = () => {
     if (el.appUsersMeta) {
       if (!canManageAppUsers()) {
-        el.appUsersMeta.textContent = 'Inicia sesión como admin para gestionar usuarios app.';
+        el.appUsersMeta.textContent =
+          'Solo los miembros del staff con rol admin pueden acceder al panel de usuarios app.';
       } else if (!appUsersStatus) {
         el.appUsersMeta.textContent = 'Sincronizando estado del panel de usuarios app...';
       } else if (!appUsersStatus.configured) {
@@ -1881,7 +1882,7 @@
       const empty = document.createElement('div');
       empty.className = 'app-users-empty';
       empty.textContent = !canManageAppUsers()
-        ? 'Inicia sesión como admin para gestionar usuarios app.'
+        ? 'Solo los miembros del staff con rol admin pueden acceder al panel de usuarios app.'
         : !appUsersStatus
         ? 'Cargando estado del panel de usuarios app...'
         : appUsersStatus.configured

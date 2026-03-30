@@ -1114,6 +1114,16 @@ class PageProfile extends HTMLElement {
                     ${escapeHtml(profileCopy.logout || 'Log out')}
                   </ion-button>
                 </div>
+                <div class="profile-delete-account-row">
+                  <ion-button expand="block" shape="round" color="danger" class="profile-delete-account-btn" id="profile-delete-account-btn">
+                    <ion-icon slot="start" name="trash-outline"></ion-icon>
+                    ${escapeHtml(profileCopy.deleteAccount || 'Delete account')}
+                  </ion-button>
+                  <p class="profile-delete-account-note">${escapeHtml(
+                    profileCopy.deleteAccountHint ||
+                      'Your account will be removed and you will be signed out.'
+                  )}</p>
+                </div>
               </div>
             </div>
             <div class="profile-tab-panel" ${reviewActive ? '' : 'hidden'}>
@@ -1165,6 +1175,8 @@ class PageProfile extends HTMLElement {
     const profilePassword = this.querySelector('#profile-password');
     const profilePasswordConfirm = this.querySelector('#profile-password-confirm');
     const profileSaveBtn = this.querySelector('#profile-save-btn');
+    const profileLogoutBtn = this.querySelector('#profile-logout-btn');
+    const profileDeleteAccountBtn = this.querySelector('#profile-delete-account-btn');
     const profileSaveNote = this.querySelector('#profile-save-note');
     const profileEarnedBadgesEl = this.querySelector('#profile-earned-badges');
 
@@ -1251,6 +1263,109 @@ class PageProfile extends HTMLElement {
       await modal.present();
     };
 
+    const hasIonAlert = () =>
+      Boolean(
+        window.customElements &&
+          typeof window.customElements.get === 'function' &&
+          window.customElements.get('ion-alert')
+      );
+
+    const replaceCopyToken = (template, token, value) =>
+      String(template || '').split(token).join(value);
+
+    const presentProfileAlert = async (header, message) => {
+      const title = String(header || '').trim();
+      const body = String(message || '').trim();
+      if (!hasIonAlert()) {
+        window.alert(body ? `${title}\n\n${body}` : title);
+        return;
+      }
+      const alert = document.createElement('ion-alert');
+      alert.header = title;
+      alert.message = body;
+      alert.buttons = ['OK'];
+      document.body.appendChild(alert);
+      await alert.present();
+      await alert.onDidDismiss();
+      alert.remove();
+    };
+
+    const getDeleteAccountConfirmationConfig = (accountUser) => {
+      const email =
+        accountUser && typeof accountUser.email === 'string' ? String(accountUser.email).trim() : '';
+      if (email) {
+        return {
+          kind: 'email',
+          value: email,
+          label: replaceCopyToken(
+            profileCopy.deleteAccountConfirmEmailLabel || 'Type this email to confirm: {value}',
+            '{value}',
+            email
+          ),
+          placeholder:
+            profileCopy.deleteAccountConfirmPlaceholderEmail || 'you@email.com',
+          inputType: 'email'
+        };
+      }
+      return {
+        kind: 'keyword',
+        value: 'DELETE',
+        label:
+          profileCopy.deleteAccountConfirmKeywordLabel || 'Type DELETE to confirm.',
+        placeholder:
+          profileCopy.deleteAccountConfirmPlaceholderKeyword || 'DELETE',
+        inputType: 'text'
+      };
+    };
+
+    const normalizeDeleteConfirmationValue = (value) =>
+      String(value || '').trim().toLowerCase();
+
+    const promptDeleteAccountConfirmation = async (accountUser) => {
+      const confirmation = getDeleteAccountConfirmationConfig(accountUser);
+      const title = profileCopy.deleteAccountConfirmTitle || 'Delete account';
+      const messageText = profileCopy.deleteAccountConfirmMessage || 'This action is permanent.';
+      if (!hasIonAlert()) {
+        const promptMessage = `${title}\n\n${messageText}\n\n${confirmation.label}`;
+        return window.prompt(promptMessage, '');
+      }
+      const alert = document.createElement('ion-alert');
+      alert.header = title;
+      alert.subHeader = confirmation.label;
+      alert.message = messageText;
+      alert.inputs = [
+        {
+          name: 'confirmationValue',
+          type: confirmation.inputType,
+          placeholder: confirmation.placeholder,
+          attributes: {
+            autocapitalize: 'off',
+            autocorrect: 'off',
+            spellcheck: 'false'
+          }
+        }
+      ];
+      alert.buttons = [
+        {
+          text: profileCopy.deleteAccountConfirmCancel || 'Cancel',
+          role: 'cancel'
+        },
+        {
+          text: profileCopy.deleteAccountConfirmAccept || 'Delete',
+          role: 'confirm'
+        }
+      ];
+      document.body.appendChild(alert);
+      await alert.present();
+      const result = await alert.onDidDismiss();
+      alert.remove();
+      if (!result || result.role !== 'confirm') return null;
+      const values = result.data && result.data.values ? result.data.values : {};
+      return values && typeof values.confirmationValue === 'string'
+        ? values.confirmationValue
+        : '';
+    };
+
 
     this.querySelector('.app-locale-btn')?.addEventListener('click', () => {
       const nextLocale = getNextLocaleCode(getAppLocale() || 'en');
@@ -1290,10 +1405,17 @@ class PageProfile extends HTMLElement {
     };
 
     const updateSaveState = () => {
-      if (!profileSaveBtn) return;
       const passwordError = getPasswordError();
       const dirty = hasProfileChanges();
-      profileSaveBtn.disabled = !dirty || !!passwordError || this.profileSavePending === true;
+      const pending = this.profileSavePending === true;
+      if (profileSaveBtn) {
+        profileSaveBtn.disabled = !dirty || !!passwordError || pending;
+      }
+      if (profileLogoutBtn) profileLogoutBtn.disabled = pending;
+      if (profileDeleteAccountBtn) profileDeleteAccountBtn.disabled = pending;
+      if (avatarUploadBtn) avatarUploadBtn.disabled = pending;
+      if (avatarDeleteBtn) avatarDeleteBtn.disabled = pending;
+      if (avatarInput) avatarInput.disabled = pending;
       updateProfileNote();
     };
 
@@ -1456,6 +1578,67 @@ class PageProfile extends HTMLElement {
       if (typeof window.setUser === 'function') {
         window.setUser(null);
       }
+    });
+
+    const deleteAccount = async () => {
+      if (!user) return;
+      const confirmation = getDeleteAccountConfirmationConfig(user);
+      const typedValue = await promptDeleteAccountConfirmation(user);
+      if (typedValue === null) return;
+      if (
+        normalizeDeleteConfirmationValue(typedValue) !==
+        normalizeDeleteConfirmationValue(confirmation.value)
+      ) {
+        setProfileMessage(
+          profileCopy.deleteAccountConfirmMismatch || 'The confirmation does not match.',
+          true
+        );
+        return;
+      }
+      this.profileSavePending = true;
+      updateSaveState();
+      try {
+        const result = await doPost('/v3/usr/deleteaccount', user, {
+          confirmation_type: confirmation.kind,
+          confirmation_value: String(typedValue || '').trim(),
+          locale: rawLocaleSetting || 'es',
+          source: 'profile'
+        });
+        if (!result.ok) {
+          const message =
+            (result &&
+              result.data &&
+              typeof result.data === 'object' &&
+              result.data.error) ||
+            (result && result.error) ||
+            profileCopy.deleteAccountFailed ||
+            'Could not delete the account.';
+          setProfileMessage(message, true);
+          return;
+        }
+        await clearLocalAvatar(user);
+        if (typeof window.setUser === 'function') {
+          window.setUser(null);
+        }
+        await presentProfileAlert(
+          profileCopy.deleteAccountDeletedTitle || 'Account deleted',
+          profileCopy.deleteAccountDeletedMessage ||
+            'Your account has been deleted and you have been signed out.'
+        );
+      } catch (err) {
+        console.error('[profile] error eliminando cuenta', err);
+        setProfileMessage(
+          profileCopy.deleteAccountFailed || 'Could not delete the account.',
+          true
+        );
+      } finally {
+        this.profileSavePending = false;
+        updateSaveState();
+      }
+    };
+
+    profileDeleteAccountBtn?.addEventListener('click', () => {
+      deleteAccount();
     });
 
     const uploadAvatar = async (file) => {

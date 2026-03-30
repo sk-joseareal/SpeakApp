@@ -926,6 +926,16 @@ ion-modal.login-modal page-login .page-shell {
   --border-color-hover: #b91c1c;
 }
 
+.profile-delete-account-row {
+  margin-top: 8px;
+}
+
+.profile-delete-account-note {
+  margin: 8px 0 0;
+  font-size: 0.8rem;
+  color: var(--app-muted);
+}
+
 @media (min-width: 640px) {
   .profile-form-row {
     grid-template-columns: repeat(2, minmax(0, 1fr));

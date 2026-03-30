@@ -59,7 +59,48 @@ const ttsVerifyHeadTimeoutMs = Math.max(
   1000,
   Number(env('CONTENT_TTS_VERIFY_HEAD_TIMEOUT_MS', '4000')) || 4000
 );
+const appUsersUpstreamBaseUrl = String(env('CONTENT_APP_USERS_UPSTREAM_URL', '') || '')
+  .trim()
+  .replace(/\/+$/, '');
+const appUsersUpstreamToken = String(env('CONTENT_APP_USERS_UPSTREAM_TOKEN', '') || '').trim();
+const appUsersUpstreamTimeoutMs = Math.max(
+  1500,
+  Number(env('CONTENT_APP_USERS_UPSTREAM_TIMEOUT_MS', '10000')) || 10000
+);
+const appUsersUpstreamListPath =
+  String(env('CONTENT_APP_USERS_UPSTREAM_LIST_PATH', '/app-users') || '').trim() ||
+  '/app-users';
+const appUsersUpstreamItemPath =
+  String(env('CONTENT_APP_USERS_UPSTREAM_ITEM_PATH', '/app-users/:id') || '').trim() ||
+  '/app-users/:id';
+const appUsersUpstreamDeletePath =
+  String(env('CONTENT_APP_USERS_UPSTREAM_DELETE_PATH', '/app-users/:id') || '').trim() ||
+  '/app-users/:id';
+const appUsersFetchImpl =
+  typeof globalThis.fetch === 'function' ? globalThis.fetch.bind(globalThis) : null;
 const APP_COPY_SETTING_KEY = 'app_copy_json';
+const APP_USERS_EDITABLE_FIELDS = [
+  'email',
+  'first_name',
+  'last_name',
+  'name',
+  'is_active',
+  'premium',
+  'expires_date',
+  'locale',
+  'lc',
+  'birthdate',
+  'sex'
+];
+const APP_USERS_READONLY_FIELDS = [
+  'id',
+  'image',
+  'avatar_file_name',
+  'section_progress_count',
+  'test_progress_count',
+  'created_at',
+  'updated_at'
+];
 
 const ensureDir = (filepath) => {
   const dir = path.dirname(filepath);
@@ -821,6 +862,245 @@ const writeAuditLog = (req, action, target = '', details = {}) => {
   } catch (err) {
     console.warn('[content] audit log failed:', err.message);
   }
+};
+
+const buildHttpError = (statusCode, message, extra = {}) => {
+  const err = new Error(String(message || 'internal_error'));
+  err.statusCode = Number(statusCode) || 500;
+  err.payload = {
+    ok: false,
+    error: String(message || 'internal_error'),
+    ...(extra && typeof extra === 'object' ? extra : {})
+  };
+  return err;
+};
+
+const pickFirstNonEmptyText = (...values) => {
+  for (const value of values) {
+    if (value === undefined || value === null) continue;
+    const text = String(value).trim();
+    if (text) return text;
+  }
+  return '';
+};
+
+const normalizeAppUsersUpstreamBaseUrl = () => {
+  if (!appUsersUpstreamBaseUrl) return '';
+  return appUsersUpstreamBaseUrl.replace(/\/+$/, '');
+};
+
+const isAppUsersUpstreamConfigured = () => Boolean(normalizeAppUsersUpstreamBaseUrl());
+
+const getAppUsersAdminStatus = () => ({
+  configured: isAppUsersUpstreamConfigured(),
+  upstream_base_url: normalizeAppUsersUpstreamBaseUrl(),
+  has_upstream_token: Boolean(appUsersUpstreamToken),
+  timeout_ms: appUsersUpstreamTimeoutMs,
+  editable_fields: APP_USERS_EDITABLE_FIELDS.slice(),
+  readonly_fields: APP_USERS_READONLY_FIELDS.slice(),
+  contract_version: 'app-users-mvp-2026-03-30'
+});
+
+const encodePathSegment = (value) => encodeURIComponent(String(value === undefined || value === null ? '' : value));
+
+const fillPathTemplate = (template, params = {}) =>
+  String(template || '').replace(/:([A-Za-z0-9_]+)/g, (_match, key) =>
+    encodePathSegment(params[key])
+  );
+
+const buildAppUsersUpstreamUrl = (pathTemplate, params = {}, query = {}) => {
+  const baseUrl = normalizeAppUsersUpstreamBaseUrl();
+  if (!baseUrl) {
+    throw buildHttpError(503, 'app_users_upstream_not_configured', {
+      status: getAppUsersAdminStatus()
+    });
+  }
+  const pathValue = fillPathTemplate(pathTemplate, params);
+  const pathNormalized = pathValue.startsWith('/') ? pathValue : `/${pathValue}`;
+  const url = new URL(pathNormalized, `${baseUrl}/`);
+  Object.entries(query || {}).forEach(([key, value]) => {
+    if (value === undefined || value === null || value === '') return;
+    url.searchParams.set(String(key), String(value));
+  });
+  return url.toString();
+};
+
+const parseJsonResponseSafe = async (response) => {
+  const text = await response.text();
+  if (!text) return null;
+  try {
+    return JSON.parse(text);
+  } catch (_err) {
+    return {
+      ok: false,
+      error: 'invalid_json_response',
+      raw: text
+    };
+  }
+};
+
+const requestAppUsersUpstream = async ({ method = 'GET', pathTemplate, params = {}, query = {}, body }) => {
+  if (!appUsersFetchImpl) {
+    throw buildHttpError(500, 'app_users_fetch_unavailable');
+  }
+  const url = buildAppUsersUpstreamUrl(pathTemplate, params, query);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), appUsersUpstreamTimeoutMs);
+  try {
+    const headers = {
+      Accept: 'application/json'
+    };
+    if (appUsersUpstreamToken) {
+      headers.Authorization = `Bearer ${appUsersUpstreamToken}`;
+    }
+    if (body !== undefined) {
+      headers['Content-Type'] = 'application/json';
+    }
+    const response = await appUsersFetchImpl(url, {
+      method,
+      headers,
+      body: body === undefined ? undefined : JSON.stringify(body),
+      signal: controller.signal
+    });
+    const payload = await parseJsonResponseSafe(response);
+    if (!response.ok) {
+      const upstreamError =
+        payload && payload.error ? String(payload.error) : `upstream_http_${response.status}`;
+      throw buildHttpError(response.status, upstreamError, {
+        upstream_status: response.status,
+        upstream_response: payload
+      });
+    }
+    return payload;
+  } catch (err) {
+    if (err && err.name === 'AbortError') {
+      throw buildHttpError(504, 'app_users_upstream_timeout', {
+        timeout_ms: appUsersUpstreamTimeoutMs
+      });
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeout);
+  }
+};
+
+const countProgressEntries = (value) => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return 0;
+  return Object.keys(value).length;
+};
+
+const normalizeAppUserRecord = (row) => {
+  if (!row || typeof row !== 'object' || Array.isArray(row)) return null;
+  const id = pickFirstNonEmptyText(row.id, row.user_id, row.uid);
+  if (!id) return null;
+  const firstName = pickFirstNonEmptyText(row.first_name, row.firstName);
+  const lastName = pickFirstNonEmptyText(row.last_name, row.lastName);
+  const fullName =
+    pickFirstNonEmptyText(row.name, [firstName, lastName].filter(Boolean).join(' ')) || '';
+  const expiresDate = pickFirstNonEmptyText(row.expires_date, row.expiresDate);
+  const image = pickFirstNonEmptyText(row.image, row.avatar_url, row.avatarUrl);
+  const avatarFileName = pickFirstNonEmptyText(row.avatar_file_name, row.avatarFileName);
+  const locale = pickFirstNonEmptyText(row.locale);
+  const lc = pickFirstNonEmptyText(row.lc, locale);
+  const birthdate = pickFirstNonEmptyText(row.birthdate);
+  const sexRaw = row.sex;
+  const sex =
+    sexRaw === undefined || sexRaw === null || sexRaw === ''
+      ? null
+      : Number.isFinite(Number(sexRaw))
+      ? Number(sexRaw)
+      : String(sexRaw).trim();
+  const premium = parseBoolean(row.premium, false);
+  const isActive = parseBoolean(
+    row.is_active !== undefined ? row.is_active : row.active !== undefined ? row.active : row.enabled,
+    true
+  );
+  return {
+    id,
+    email: pickFirstNonEmptyText(row.email),
+    first_name: firstName,
+    last_name: lastName,
+    name: fullName,
+    is_active: isActive,
+    premium,
+    expires_date: expiresDate,
+    locale,
+    lc,
+    birthdate,
+    sex,
+    image,
+    avatar_file_name: avatarFileName,
+    section_progress_count: countProgressEntries(row.section_progress),
+    test_progress_count: countProgressEntries(row.test_progress),
+    created_at: pickFirstNonEmptyText(row.created_at, row.createdAt),
+    updated_at: pickFirstNonEmptyText(row.updated_at, row.updatedAt)
+  };
+};
+
+const extractAppUsersListFromPayload = (payload) => {
+  if (Array.isArray(payload)) return payload;
+  if (!payload || typeof payload !== 'object') return [];
+  if (Array.isArray(payload.users)) return payload.users;
+  if (Array.isArray(payload.items)) return payload.items;
+  if (payload.data && typeof payload.data === 'object') {
+    if (Array.isArray(payload.data.users)) return payload.data.users;
+    if (Array.isArray(payload.data.items)) return payload.data.items;
+  }
+  return [];
+};
+
+const extractAppUserFromPayload = (payload) => {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return null;
+  if (payload.user && typeof payload.user === 'object' && !Array.isArray(payload.user)) return payload.user;
+  if (payload.item && typeof payload.item === 'object' && !Array.isArray(payload.item)) return payload.item;
+  if (payload.data && typeof payload.data === 'object' && !Array.isArray(payload.data)) {
+    if (payload.data.user && typeof payload.data.user === 'object' && !Array.isArray(payload.data.user)) {
+      return payload.data.user;
+    }
+    if (payload.data.item && typeof payload.data.item === 'object' && !Array.isArray(payload.data.item)) {
+      return payload.data.item;
+    }
+  }
+  return payload;
+};
+
+const extractAppUsersTotalFromPayload = (payload, fallback = 0) => {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return fallback;
+  const candidates = [
+    payload.total,
+    payload.count,
+    payload.meta && payload.meta.total,
+    payload.pagination && payload.pagination.total,
+    payload.data && payload.data.total
+  ];
+  for (const candidate of candidates) {
+    const value = Number(candidate);
+    if (Number.isFinite(value) && value >= 0) return Math.round(value);
+  }
+  return fallback;
+};
+
+const sanitizeAppUserUpdateBody = (body = {}) => {
+  const source = body && typeof body === 'object' ? body : {};
+  const out = {};
+  APP_USERS_EDITABLE_FIELDS.forEach((field) => {
+    if (!(field in source)) return;
+    const value = source[field];
+    if (field === 'is_active' || field === 'premium') {
+      out[field] = parseBoolean(value, false);
+      return;
+    }
+    if (field === 'sex') {
+      if (value === undefined || value === null || value === '') {
+        out[field] = '';
+        return;
+      }
+      out[field] = Number.isFinite(Number(value)) ? Number(value) : String(value).trim();
+      return;
+    }
+    out[field] = String(value === undefined || value === null ? '' : value).trim();
+  });
+  return out;
 };
 
 const getLockState = (lockKey = 'draft') => {
@@ -2361,6 +2641,123 @@ app.delete('/content/admin/editors/:id', requireAdmin, (req, res, next) => {
   }
 });
 
+app.get('/content/admin/app-users/status', requireAdmin, (req, res) => {
+  res.json({
+    ok: true,
+    status: getAppUsersAdminStatus()
+  });
+});
+
+app.get('/content/admin/app-users', requireAdmin, async (req, res, next) => {
+  try {
+    const query = String(req.query.query || req.query.q || '').trim();
+    const limit = Math.min(Math.max(Number(req.query.limit) || 20, 1), 100);
+    const payload = await requestAppUsersUpstream({
+      method: 'GET',
+      pathTemplate: appUsersUpstreamListPath,
+      query: { query, limit }
+    });
+    const rawUsers = extractAppUsersListFromPayload(payload);
+    const users = rawUsers.map((item) => normalizeAppUserRecord(item)).filter(Boolean);
+    res.json({
+      ok: true,
+      query,
+      limit,
+      total: extractAppUsersTotalFromPayload(payload, users.length),
+      users,
+      status: getAppUsersAdminStatus()
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+app.get('/content/admin/app-users/:id', requireAdmin, async (req, res, next) => {
+  try {
+    const userId = String(req.params.id || '').trim();
+    if (!userId) {
+      res.status(400).json({ ok: false, error: 'invalid_app_user_id' });
+      return;
+    }
+    const payload = await requestAppUsersUpstream({
+      method: 'GET',
+      pathTemplate: appUsersUpstreamItemPath,
+      params: { id: userId }
+    });
+    const user = normalizeAppUserRecord(extractAppUserFromPayload(payload));
+    if (!user) {
+      throw buildHttpError(502, 'app_user_invalid_upstream_payload');
+    }
+    res.json({
+      ok: true,
+      user,
+      status: getAppUsersAdminStatus()
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+app.put('/content/admin/app-users/:id', requireAdmin, async (req, res, next) => {
+  try {
+    const userId = String(req.params.id || '').trim();
+    if (!userId) {
+      res.status(400).json({ ok: false, error: 'invalid_app_user_id' });
+      return;
+    }
+    const updateBody = sanitizeAppUserUpdateBody(req.body);
+    if (!Object.keys(updateBody).length) {
+      res.status(400).json({ ok: false, error: 'app_user_empty_update' });
+      return;
+    }
+    const payload = await requestAppUsersUpstream({
+      method: 'PUT',
+      pathTemplate: appUsersUpstreamItemPath,
+      params: { id: userId },
+      body: updateBody
+    });
+    const user = normalizeAppUserRecord(extractAppUserFromPayload(payload));
+    if (!user) {
+      throw buildHttpError(502, 'app_user_invalid_upstream_payload');
+    }
+    writeAuditLog(req, 'app_user.update', `app_user:${userId}`, {
+      fields: Object.keys(updateBody)
+    });
+    res.json({
+      ok: true,
+      user,
+      updated_fields: Object.keys(updateBody),
+      status: getAppUsersAdminStatus()
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+app.delete('/content/admin/app-users/:id', requireAdmin, async (req, res, next) => {
+  try {
+    const userId = String(req.params.id || '').trim();
+    if (!userId) {
+      res.status(400).json({ ok: false, error: 'invalid_app_user_id' });
+      return;
+    }
+    await requestAppUsersUpstream({
+      method: 'DELETE',
+      pathTemplate: appUsersUpstreamDeletePath,
+      params: { id: userId }
+    });
+    writeAuditLog(req, 'app_user.delete', `app_user:${userId}`, {});
+    res.json({
+      ok: true,
+      deleted: true,
+      app_user_id: userId,
+      status: getAppUsersAdminStatus()
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 app.get('/content/admin/audit', requireAdmin, (req, res) => {
   const limit = Math.min(Math.max(Number(req.query.limit) || 100, 1), 500);
   const items = listAuditLogStmt.all(limit).map((row) => ({
@@ -2826,8 +3223,14 @@ app.delete('/content/admin/releases/:id', requirePublisher, (req, res, next) => 
 
 app.use((err, req, res, _next) => {
   const message = err && err.message ? String(err.message) : 'internal_error';
+  const explicitStatus =
+    err && Number.isFinite(Number(err.statusCode || err.status))
+      ? Number(err.statusCode || err.status)
+      : 0;
   const status =
-    message === 'release_not_found'
+    explicitStatus > 0
+      ? explicitStatus
+      : message === 'release_not_found'
       ? 404
       : message === 'release_snapshot_invalid'
       ? 500
@@ -2835,7 +3238,11 @@ app.use((err, req, res, _next) => {
   if (status >= 500) {
     console.error('[content] error:', err);
   }
-  res.status(status).json({ ok: false, error: message });
+  const payload =
+    err && err.payload && typeof err.payload === 'object' && !Array.isArray(err.payload)
+      ? { ok: false, ...err.payload, error: message }
+      : { ok: false, error: message };
+  res.status(status).json(payload);
 });
 
 app.listen(port, () => {
@@ -2855,5 +3262,12 @@ app.listen(port, () => {
     console.log(`[content] tts aligned endpoint: ${ttsAlignedEndpoint}`);
   } else {
     console.log('[content] tts aligned endpoint: disabled');
+  }
+  if (isAppUsersUpstreamConfigured()) {
+    console.log(
+      `[content] app users upstream: ${normalizeAppUsersUpstreamBaseUrl()} (timeout ${appUsersUpstreamTimeoutMs} ms)`
+    );
+  } else {
+    console.log('[content] app users upstream: disabled (set CONTENT_APP_USERS_UPSTREAM_URL)');
   }
 });

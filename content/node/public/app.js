@@ -8,10 +8,11 @@
   const APP_COPY_MODE_JSON = 'json';
   const TAB_LOGIN = 'login';
   const TAB_USERS = 'users';
+  const TAB_APP_USERS = 'app-users';
   const TAB_CONTENT = 'content';
   const TAB_APPCOPY = 'appcopy';
   const TAB_RELEASES = 'releases';
-  const TAB_ORDER = [TAB_LOGIN, TAB_USERS, TAB_CONTENT, TAB_RELEASES, TAB_APPCOPY];
+  const TAB_ORDER = [TAB_LOGIN, TAB_USERS, TAB_APP_USERS, TAB_CONTENT, TAB_RELEASES, TAB_APPCOPY];
 
   const el = {
     dashboardTabs: document.getElementById('dashboardTabs'),
@@ -43,6 +44,37 @@
     newEditorActiveInput: document.getElementById('newEditorActiveInput'),
     createEditorBtn: document.getElementById('createEditorBtn'),
     editorsList: document.getElementById('editorsList'),
+    appUsersSection: document.getElementById('appUsersSection'),
+    refreshAppUsersBtn: document.getElementById('refreshAppUsersBtn'),
+    appUsersSearchInput: document.getElementById('appUsersSearchInput'),
+    appUsersLimitInput: document.getElementById('appUsersLimitInput'),
+    searchAppUsersBtn: document.getElementById('searchAppUsersBtn'),
+    appUsersMeta: document.getElementById('appUsersMeta'),
+    appUsersResultsMeta: document.getElementById('appUsersResultsMeta'),
+    appUsersList: document.getElementById('appUsersList'),
+    reloadAppUserBtn: document.getElementById('reloadAppUserBtn'),
+    saveAppUserBtn: document.getElementById('saveAppUserBtn'),
+    deleteAppUserBtn: document.getElementById('deleteAppUserBtn'),
+    appUserSelectionMeta: document.getElementById('appUserSelectionMeta'),
+    appUserAvatarPreview: document.getElementById('appUserAvatarPreview'),
+    appUserIdentity: document.getElementById('appUserIdentity'),
+    appUserReadonlyMeta: document.getElementById('appUserReadonlyMeta'),
+    appUserIdInput: document.getElementById('appUserIdInput'),
+    appUserEmailInput: document.getElementById('appUserEmailInput'),
+    appUserFirstNameInput: document.getElementById('appUserFirstNameInput'),
+    appUserLastNameInput: document.getElementById('appUserLastNameInput'),
+    appUserNameInput: document.getElementById('appUserNameInput'),
+    appUserLocaleInput: document.getElementById('appUserLocaleInput'),
+    appUserLcInput: document.getElementById('appUserLcInput'),
+    appUserBirthdateInput: document.getElementById('appUserBirthdateInput'),
+    appUserSexInput: document.getElementById('appUserSexInput'),
+    appUserExpiresDateInput: document.getElementById('appUserExpiresDateInput'),
+    appUserActiveInput: document.getElementById('appUserActiveInput'),
+    appUserPremiumInput: document.getElementById('appUserPremiumInput'),
+    appUserImageInput: document.getElementById('appUserImageInput'),
+    appUserAvatarFileNameInput: document.getElementById('appUserAvatarFileNameInput'),
+    appUserProgressInput: document.getElementById('appUserProgressInput'),
+    appUserUpdatedAtInput: document.getElementById('appUserUpdatedAtInput'),
     statusBox: document.getElementById('statusBox'),
     countsBox: document.getElementById('countsBox'),
     guidedCountsBox: document.getElementById('guidedCountsBox'),
@@ -147,6 +179,11 @@
   let currentEditor = null;
   let currentLock = null;
   let activeDashboardTab = TAB_LOGIN;
+  let appUsersStatus = null;
+  let appUsersListState = [];
+  let appUsersTotal = 0;
+  let selectedAppUserId = '';
+  let selectedAppUser = null;
 
   const asText = (value) => String(value === undefined || value === null ? '' : value).trim();
   const roleRank = { editor: 1, publisher: 2, admin: 3 };
@@ -158,6 +195,7 @@
   const isAuthenticated = () => Boolean(currentAuth && currentAuth.authorized);
   const currentRole = () => normalizeRole(currentAuth && currentAuth.role ? currentAuth.role : '');
   const canManageEditors = () => isAuthenticated() && hasRoleAtLeast(currentRole(), 'admin');
+  const canManageAppUsers = () => isAuthenticated() && hasRoleAtLeast(currentRole(), 'admin');
 
   const uniqStrings = (items) => {
     const seen = new Set();
@@ -647,6 +685,20 @@
     return json;
   };
 
+  const encodeQueryValue = (value) => encodeURIComponent(String(value === undefined || value === null ? '' : value));
+
+  const formatDateFieldValue = (value) => {
+    const text = asText(value);
+    if (!text) return '';
+    const match = text.match(/^(\d{4}-\d{2}-\d{2})/);
+    return match ? match[1] : text;
+  };
+
+  const clearInputValue = (input, fallback = '') => {
+    if (!input) return;
+    input.value = fallback;
+  };
+
   const setEditorMode = (mode) => {
     editorMode = mode === MODE_JSON ? MODE_JSON : MODE_GUIDED;
     const guided = editorMode === MODE_GUIDED;
@@ -785,6 +837,8 @@
         return true;
       case TAB_USERS:
         return canManageEditors();
+      case TAB_APP_USERS:
+        return canManageAppUsers();
       case TAB_CONTENT:
       case TAB_APPCOPY:
       case TAB_RELEASES:
@@ -1561,6 +1615,9 @@
     if (el.editorsSection) {
       el.editorsSection.classList.toggle('hidden', !canManageEditors());
     }
+    if (el.appUsersSection) {
+      el.appUsersSection.classList.toggle('hidden', !canManageAppUsers());
+    }
     renderEditorVisibility();
     renderDashboardTabs();
   };
@@ -1728,6 +1785,389 @@
       card.appendChild(row);
       el.editorsList.appendChild(card);
     });
+  };
+
+  const clearSelectedAppUser = () => {
+    selectedAppUserId = '';
+    selectedAppUser = null;
+  };
+
+  const clearAppUsersState = () => {
+    appUsersStatus = null;
+    appUsersListState = [];
+    appUsersTotal = 0;
+    clearSelectedAppUser();
+  };
+
+  const getAppUsersQuery = () => asText(el.appUsersSearchInput && el.appUsersSearchInput.value);
+  const getAppUsersLimit = () => {
+    const value = Number(el.appUsersLimitInput && el.appUsersLimitInput.value);
+    if (!Number.isFinite(value)) return 20;
+    return Math.min(Math.max(Math.round(value), 1), 100);
+  };
+
+  const setAppUserFormDisabled = (disabled) => {
+    const targetState = Boolean(disabled);
+    [
+      el.reloadAppUserBtn,
+      el.saveAppUserBtn,
+      el.deleteAppUserBtn,
+      el.appUserEmailInput,
+      el.appUserFirstNameInput,
+      el.appUserLastNameInput,
+      el.appUserNameInput,
+      el.appUserLocaleInput,
+      el.appUserLcInput,
+      el.appUserBirthdateInput,
+      el.appUserSexInput,
+      el.appUserExpiresDateInput,
+      el.appUserActiveInput,
+      el.appUserPremiumInput
+    ].forEach((node) => {
+      if (!node) return;
+      node.disabled = targetState;
+    });
+  };
+
+  const renderAppUsersMeta = () => {
+    if (el.appUsersMeta) {
+      if (!canManageAppUsers()) {
+        el.appUsersMeta.textContent = 'Inicia sesión como admin para gestionar usuarios app.';
+      } else if (!appUsersStatus) {
+        el.appUsersMeta.textContent = 'Sincronizando estado del panel de usuarios app...';
+      } else if (!appUsersStatus.configured) {
+        el.appUsersMeta.textContent =
+          'Upstream no configurado. Define CONTENT_APP_USERS_UPSTREAM_URL en el servidor de contenido.';
+      } else {
+        const source = asText(appUsersStatus.upstream_base_url) || 'n/d';
+        el.appUsersMeta.textContent = `Upstream: ${source} · timeout ${appUsersStatus.timeout_ms || 'n/d'} ms.`;
+      }
+    }
+    if (el.appUsersResultsMeta) {
+      if (!canManageAppUsers()) {
+        el.appUsersResultsMeta.textContent = '';
+      } else if (!appUsersStatus || !appUsersStatus.configured) {
+        el.appUsersResultsMeta.textContent = '';
+      } else {
+        const query = getAppUsersQuery();
+        el.appUsersResultsMeta.textContent = query
+          ? `${appUsersTotal} resultados · filtro: ${query}`
+          : `${appUsersTotal} resultados`;
+      }
+    }
+  };
+
+  const renderAppUsersList = () => {
+    if (!el.appUsersList) return;
+    el.appUsersList.innerHTML = '';
+    const list = Array.isArray(appUsersListState) ? appUsersListState : [];
+    if (!list.length) {
+      const empty = document.createElement('div');
+      empty.className = 'app-users-empty';
+      empty.textContent = !canManageAppUsers()
+        ? 'Inicia sesión como admin para gestionar usuarios app.'
+        : !appUsersStatus
+        ? 'Cargando estado del panel de usuarios app...'
+        : appUsersStatus.configured
+        ? 'Sin resultados para la búsqueda actual.'
+        : 'Configura el upstream para cargar usuarios app.';
+      el.appUsersList.appendChild(empty);
+      return;
+    }
+
+    list.forEach((item) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'entity-item';
+      if (String(item.id) === String(selectedAppUserId)) {
+        button.classList.add('is-selected');
+      }
+      button.dataset.appUserId = String(item.id || '');
+
+      const title = document.createElement('span');
+      title.className = 'entity-item-title';
+      title.textContent = item.name || item.email || `user:${item.id}`;
+
+      const meta = document.createElement('span');
+      meta.className = 'entity-item-meta';
+      const planLabel = item.premium ? 'premium' : item.expires_date ? `expira ${item.expires_date}` : 'standard';
+      const statusLabel = item.is_active ? 'activo' : 'inactivo';
+      meta.textContent = `${item.email || `id ${item.id}`} · ${planLabel} · ${statusLabel}`;
+
+      button.appendChild(title);
+      button.appendChild(meta);
+      el.appUsersList.appendChild(button);
+    });
+  };
+
+  const renderSelectedAppUser = () => {
+    const user = selectedAppUser;
+    const hasUser = Boolean(user && user.id);
+    clearInputValue(el.appUserIdInput);
+    clearInputValue(el.appUserEmailInput);
+    clearInputValue(el.appUserFirstNameInput);
+    clearInputValue(el.appUserLastNameInput);
+    clearInputValue(el.appUserNameInput);
+    clearInputValue(el.appUserLocaleInput);
+    clearInputValue(el.appUserLcInput);
+    clearInputValue(el.appUserBirthdateInput);
+    clearInputValue(el.appUserSexInput);
+    clearInputValue(el.appUserExpiresDateInput);
+    clearInputValue(el.appUserImageInput);
+    clearInputValue(el.appUserAvatarFileNameInput);
+    clearInputValue(el.appUserProgressInput);
+    clearInputValue(el.appUserUpdatedAtInput);
+    if (el.appUserActiveInput) el.appUserActiveInput.checked = false;
+    if (el.appUserPremiumInput) el.appUserPremiumInput.checked = false;
+    if (el.appUserAvatarPreview) {
+      el.appUserAvatarPreview.removeAttribute('src');
+      el.appUserAvatarPreview.alt = '';
+      el.appUserAvatarPreview.classList.toggle('is-empty', true);
+    }
+    if (el.appUserIdentity) {
+      el.appUserIdentity.textContent = 'Sin usuario seleccionado.';
+    }
+    if (el.appUserReadonlyMeta) {
+      el.appUserReadonlyMeta.textContent = '';
+    }
+    if (el.appUserSelectionMeta) {
+      el.appUserSelectionMeta.textContent = hasUser
+        ? 'Edita solo los campos que usa la app actual.'
+        : 'Busca y selecciona un usuario.';
+    }
+    setAppUserFormDisabled(!hasUser);
+    if (!hasUser) return;
+
+    clearInputValue(el.appUserIdInput, asText(user.id));
+    clearInputValue(el.appUserEmailInput, asText(user.email));
+    clearInputValue(el.appUserFirstNameInput, asText(user.first_name));
+    clearInputValue(el.appUserLastNameInput, asText(user.last_name));
+    clearInputValue(el.appUserNameInput, asText(user.name));
+    clearInputValue(el.appUserLocaleInput, asText(user.locale));
+    clearInputValue(el.appUserLcInput, asText(user.lc));
+    clearInputValue(el.appUserBirthdateInput, formatDateFieldValue(user.birthdate));
+    clearInputValue(el.appUserSexInput, asText(user.sex));
+    clearInputValue(el.appUserExpiresDateInput, formatDateFieldValue(user.expires_date));
+    clearInputValue(el.appUserImageInput, asText(user.image));
+    clearInputValue(el.appUserAvatarFileNameInput, asText(user.avatar_file_name));
+    clearInputValue(
+      el.appUserProgressInput,
+      `sections ${Number(user.section_progress_count) || 0} · tests ${Number(user.test_progress_count) || 0}`
+    );
+    clearInputValue(el.appUserUpdatedAtInput, asText(user.updated_at || user.created_at));
+    if (el.appUserActiveInput) el.appUserActiveInput.checked = Boolean(user.is_active);
+    if (el.appUserPremiumInput) el.appUserPremiumInput.checked = Boolean(user.premium);
+    if (el.appUserIdentity) {
+      el.appUserIdentity.textContent = user.name || user.email || `user:${user.id}`;
+    }
+    if (el.appUserReadonlyMeta) {
+      const segments = [
+        user.email ? user.email : `id ${user.id}`,
+        user.created_at ? `created ${user.created_at}` : '',
+        user.updated_at ? `updated ${user.updated_at}` : ''
+      ].filter(Boolean);
+      el.appUserReadonlyMeta.textContent = segments.join(' · ');
+    }
+    if (el.appUserAvatarPreview) {
+      const image = asText(user.image);
+      if (image) {
+        el.appUserAvatarPreview.src = image;
+      } else {
+        el.appUserAvatarPreview.removeAttribute('src');
+      }
+      el.appUserAvatarPreview.alt = image ? `Avatar ${user.name || user.email || user.id}` : '';
+      el.appUserAvatarPreview.classList.toggle('is-empty', !image);
+    }
+  };
+
+  const refreshAppUsersStatus = async ({ silent = false } = {}) => {
+    if (!canManageAppUsers()) {
+      clearAppUsersState();
+      renderAppUsersMeta();
+      renderAppUsersList();
+      renderSelectedAppUser();
+      return null;
+    }
+    try {
+      const out = await api('/content/admin/app-users/status', { headers: headers(false) });
+      appUsersStatus = out && out.status ? out.status : null;
+      renderAppUsersMeta();
+      renderAppUsersList();
+      renderSelectedAppUser();
+      return appUsersStatus;
+    } catch (err) {
+      appUsersStatus = null;
+      renderAppUsersMeta();
+      if (!silent) {
+        setStatus('Error cargando estado de usuarios app.', err.response || { error: err.message });
+      }
+      return null;
+    }
+  };
+
+  const loadSelectedAppUser = async (userId, { silent = false } = {}) => {
+    const targetId = asText(userId);
+    if (!targetId || !canManageAppUsers()) {
+      clearSelectedAppUser();
+      renderSelectedAppUser();
+      renderAppUsersList();
+      return null;
+    }
+    try {
+      const out = await api(`/content/admin/app-users/${encodeQueryValue(targetId)}`, {
+        headers: headers(false)
+      });
+      selectedAppUser = out && out.user ? out.user : null;
+      selectedAppUserId = selectedAppUser && selectedAppUser.id ? String(selectedAppUser.id) : targetId;
+      if (out && out.status) appUsersStatus = out.status;
+      renderAppUsersMeta();
+      renderAppUsersList();
+      renderSelectedAppUser();
+      return selectedAppUser;
+    } catch (err) {
+      if (!silent) {
+        setStatus('Error cargando detalle de usuario app.', err.response || { error: err.message });
+      }
+      return null;
+    }
+  };
+
+  const loadAppUsers = async ({ silent = false, preserveSelection = true } = {}) => {
+    if (!canManageAppUsers()) {
+      clearAppUsersState();
+      renderAppUsersMeta();
+      renderAppUsersList();
+      renderSelectedAppUser();
+      return;
+    }
+    const status = appUsersStatus || (await refreshAppUsersStatus({ silent: true }));
+    if (!status || !status.configured) {
+      appUsersListState = [];
+      appUsersTotal = 0;
+      clearSelectedAppUser();
+      renderAppUsersMeta();
+      renderAppUsersList();
+      renderSelectedAppUser();
+      if (!silent && status && status.configured === false) {
+        setStatus('Usuarios app no configurados en content.', { status });
+      }
+      return;
+    }
+    try {
+      const query = getAppUsersQuery();
+      const limit = getAppUsersLimit();
+      const out = await api(
+        `/content/admin/app-users?query=${encodeQueryValue(query)}&limit=${encodeQueryValue(limit)}`,
+        { headers: headers(false) }
+      );
+      appUsersStatus = out && out.status ? out.status : appUsersStatus;
+      appUsersListState = Array.isArray(out && out.users) ? out.users : [];
+      appUsersTotal = Number(out && out.total) || appUsersListState.length;
+      const nextSelectedId =
+        preserveSelection &&
+        selectedAppUserId &&
+        appUsersListState.some((item) => String(item.id) === String(selectedAppUserId))
+          ? String(selectedAppUserId)
+          : appUsersListState[0] && appUsersListState[0].id
+          ? String(appUsersListState[0].id)
+          : '';
+      selectedAppUserId = nextSelectedId;
+      selectedAppUser = null;
+      renderAppUsersMeta();
+      renderAppUsersList();
+      renderSelectedAppUser();
+      if (nextSelectedId) {
+        await loadSelectedAppUser(nextSelectedId, { silent: true });
+      }
+      if (!silent) {
+        setStatus('Usuarios app cargados.', {
+          query,
+          total: appUsersTotal
+        });
+      }
+    } catch (err) {
+      appUsersListState = [];
+      appUsersTotal = 0;
+      clearSelectedAppUser();
+      renderAppUsersMeta();
+      renderAppUsersList();
+      renderSelectedAppUser();
+      if (!silent) {
+        setStatus('Error cargando usuarios app.', err.response || { error: err.message });
+      }
+    }
+  };
+
+  const buildSelectedAppUserPayload = () => {
+    const firstName = asText(el.appUserFirstNameInput && el.appUserFirstNameInput.value);
+    const lastName = asText(el.appUserLastNameInput && el.appUserLastNameInput.value);
+    const name =
+      asText(el.appUserNameInput && el.appUserNameInput.value) ||
+      [firstName, lastName].filter(Boolean).join(' ');
+    return {
+      email: asText(el.appUserEmailInput && el.appUserEmailInput.value).toLowerCase(),
+      first_name: firstName,
+      last_name: lastName,
+      name,
+      locale: asText(el.appUserLocaleInput && el.appUserLocaleInput.value),
+      lc: asText(el.appUserLcInput && el.appUserLcInput.value),
+      birthdate: formatDateFieldValue(el.appUserBirthdateInput && el.appUserBirthdateInput.value),
+      sex: asText(el.appUserSexInput && el.appUserSexInput.value),
+      expires_date: formatDateFieldValue(
+        el.appUserExpiresDateInput && el.appUserExpiresDateInput.value
+      ),
+      is_active: Boolean(el.appUserActiveInput && el.appUserActiveInput.checked),
+      premium: Boolean(el.appUserPremiumInput && el.appUserPremiumInput.checked)
+    };
+  };
+
+  const saveSelectedAppUser = async () => {
+    const userId = asText(selectedAppUserId);
+    if (!userId) {
+      setStatus('Selecciona primero un usuario app.');
+      return;
+    }
+    try {
+      const payload = buildSelectedAppUserPayload();
+      const out = await api(`/content/admin/app-users/${encodeQueryValue(userId)}`, {
+        method: 'PUT',
+        headers: headers(true),
+        body: JSON.stringify(payload)
+      });
+      selectedAppUser = out && out.user ? out.user : selectedAppUser;
+      renderSelectedAppUser();
+      renderAppUsersList();
+      setStatus('Usuario app actualizado.', out);
+      await loadAppUsers({ silent: true, preserveSelection: true });
+    } catch (err) {
+      setStatus('Error actualizando usuario app.', err.response || { error: err.message });
+    }
+  };
+
+  const deleteSelectedAppUser = async () => {
+    const userId = asText(selectedAppUserId);
+    if (!userId) {
+      setStatus('Selecciona primero un usuario app.');
+      return;
+    }
+    const label =
+      (selectedAppUser && (selectedAppUser.email || selectedAppUser.name)) || `#${userId}`;
+    const ok = window.confirm(
+      `¿Eliminar la cuenta ${label}? Esta acción no se puede deshacer.`
+    );
+    if (!ok) return;
+    try {
+      const out = await api(`/content/admin/app-users/${encodeQueryValue(userId)}`, {
+        method: 'DELETE',
+        headers: headers(false)
+      });
+      clearSelectedAppUser();
+      selectedAppUser = null;
+      setStatus('Cuenta app eliminada.', out);
+      await loadAppUsers({ silent: true, preserveSelection: false });
+    } catch (err) {
+      setStatus('Error eliminando usuario app.', err.response || { error: err.message });
+    }
   };
 
   const renderReleases = (items) => {
@@ -2043,6 +2483,8 @@
       await loadReleases();
       await loadEditors({ silent: true });
       await loadAppCopy({ silent: true });
+      await refreshAppUsersStatus({ silent: true });
+      await loadAppUsers({ silent: true, preserveSelection: false });
       setDashboardTab(getPreferredDashboardTab());
       setStatus('Login OK.', {
         editor: out.editor || null,
@@ -2062,6 +2504,10 @@
     renderAuthSummary();
     renderLockInfo();
     renderEditors([]);
+    clearAppUsersState();
+    renderAppUsersMeta();
+    renderAppUsersList();
+    renderSelectedAppUser();
     if (el.appCopyEditor) {
       syncAppCopyEditorFromPayload({ es: {}, en: {} });
     }
@@ -2432,6 +2878,43 @@
     el.refreshLockBtn.addEventListener('click', () => refreshLock({ silent: false }));
     el.refreshEditorsBtn.addEventListener('click', () => loadEditors({ silent: false }));
     el.createEditorBtn.addEventListener('click', createEditor);
+    if (el.refreshAppUsersBtn) {
+      el.refreshAppUsersBtn.addEventListener('click', () =>
+        loadAppUsers({ silent: false, preserveSelection: true })
+      );
+    }
+    if (el.searchAppUsersBtn) {
+      el.searchAppUsersBtn.addEventListener('click', () =>
+        loadAppUsers({ silent: false, preserveSelection: false })
+      );
+    }
+    if (el.appUsersSearchInput) {
+      el.appUsersSearchInput.addEventListener('keydown', (event) => {
+        if (event.key !== 'Enter') return;
+        loadAppUsers({ silent: false, preserveSelection: false });
+      });
+    }
+    if (el.appUsersList) {
+      el.appUsersList.addEventListener('click', (event) => {
+        const button = event.target.closest('[data-app-user-id]');
+        if (!button) return;
+        const userId = asText(button.dataset.appUserId);
+        if (!userId) return;
+        selectedAppUserId = userId;
+        loadSelectedAppUser(userId, { silent: false });
+      });
+    }
+    if (el.reloadAppUserBtn) {
+      el.reloadAppUserBtn.addEventListener('click', () =>
+        loadSelectedAppUser(selectedAppUserId, { silent: false })
+      );
+    }
+    if (el.saveAppUserBtn) {
+      el.saveAppUserBtn.addEventListener('click', saveSelectedAppUser);
+    }
+    if (el.deleteAppUserBtn) {
+      el.deleteAppUserBtn.addEventListener('click', deleteSelectedAppUser);
+    }
     el.healthBtn.addEventListener('click', loadHealth);
     el.loadDraftBtn.addEventListener('click', loadDraft);
     el.loadPublicBtn.addEventListener('click', loadPublic);
@@ -2468,6 +2951,9 @@
     updateSyncFromJsonButtonState();
     syncAppCopyGuidedFromPayload({ es: {}, en: {} });
     setAppCopyMode(APP_COPY_MODE_GUIDED);
+    renderAppUsersMeta();
+    renderAppUsersList();
+    renderSelectedAppUser();
     renderDashboardTabs();
 
     await loadHealth();
@@ -2477,6 +2963,8 @@
     await refreshLock({ silent: true });
     await loadEditors({ silent: true });
     await loadAppCopy({ silent: true });
+    await refreshAppUsersStatus({ silent: true });
+    await loadAppUsers({ silent: true, preserveSelection: false });
     renderDashboardTabs();
   };
 

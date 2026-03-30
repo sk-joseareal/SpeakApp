@@ -21,6 +21,7 @@
     <nav id="dashboardTabs" class="dashboard-tabs" aria-label="Secciones dashboard">
       <button class="btn dashboard-tab-btn is-active" data-dashboard-tab="login" type="button">Login</button>
       <button class="btn dashboard-tab-btn" data-dashboard-tab="users" type="button">Staff</button>
+      <button class="btn dashboard-tab-btn" data-dashboard-tab="app-users" type="button">App Users</button>
       <button class="btn dashboard-tab-btn" data-dashboard-tab="content" type="button">Contenido</button>
       <button class="btn dashboard-tab-btn" data-dashboard-tab="releases" type="button">Releases</button>
       <button class="btn dashboard-tab-btn" data-dashboard-tab="appcopy" type="button">Copys app</button>
@@ -78,6 +79,141 @@
         <button id="createEditorBtn" class="btn btn-primary">Crear editor</button>
       </div>
       <div id="editorsList" class="releases top-md"></div>
+    </section>
+
+    <section id="appUsersSection" class="card hidden" data-dashboard-panel="app-users">
+      <div class="row between center">
+        <div>
+          <h2>App Users</h2>
+          <p class="hint">MVP: solo campos usados por la app/web actual.</p>
+        </div>
+        <button id="refreshAppUsersBtn" class="btn">Refrescar</button>
+      </div>
+      <div class="row row-wrap gap-sm top-md">
+        <label class="field grow">
+          <span>Buscar por email o ID</span>
+          <input id="appUsersSearchInput" type="text" autocomplete="off" placeholder="john@doe.com o 12345" />
+        </label>
+        <label class="field">
+          <span>Límite</span>
+          <select id="appUsersLimitInput">
+            <option value="20" selected>20</option>
+            <option value="50">50</option>
+            <option value="100">100</option>
+          </select>
+        </label>
+        <button id="searchAppUsersBtn" class="btn btn-primary">Buscar</button>
+      </div>
+      <p id="appUsersMeta" class="hint">Inicia sesión como admin para gestionar usuarios app.</p>
+
+      <div class="app-users-grid top-md">
+        <article class="guided-col">
+          <div class="row between center">
+            <h3>Resultados</h3>
+            <small id="appUsersResultsMeta" class="muted"></small>
+          </div>
+          <div id="appUsersList" class="entity-list top-md"></div>
+        </article>
+
+        <article class="guided-col">
+          <div class="row between center row-wrap gap-sm">
+            <h3>Ficha usuario</h3>
+            <div class="row row-wrap gap-sm">
+              <button id="reloadAppUserBtn" class="btn">Recargar</button>
+              <button id="saveAppUserBtn" class="btn btn-primary">Guardar</button>
+              <button id="deleteAppUserBtn" class="btn btn-danger">Eliminar cuenta</button>
+            </div>
+          </div>
+          <p id="appUserSelectionMeta" class="hint">Busca y selecciona un usuario.</p>
+
+          <div class="app-user-summary-card top-md">
+            <img id="appUserAvatarPreview" class="app-user-avatar is-empty" alt="" />
+            <div class="app-user-summary-copy">
+              <p id="appUserIdentity" class="app-user-identity">Sin usuario seleccionado.</p>
+              <p id="appUserReadonlyMeta" class="app-user-readonly-meta"></p>
+            </div>
+          </div>
+
+          <div class="entity-form top-md">
+            <div class="row row-wrap gap-sm">
+              <label class="field">
+                <span>ID</span>
+                <input id="appUserIdInput" type="text" readonly />
+              </label>
+              <label class="field grow">
+                <span>Email</span>
+                <input id="appUserEmailInput" type="email" autocomplete="off" />
+              </label>
+            </div>
+            <div class="row row-wrap gap-sm">
+              <label class="field grow">
+                <span>First name</span>
+                <input id="appUserFirstNameInput" type="text" autocomplete="off" />
+              </label>
+              <label class="field grow">
+                <span>Last name</span>
+                <input id="appUserLastNameInput" type="text" autocomplete="off" />
+              </label>
+            </div>
+            <label class="field grow">
+              <span>Name</span>
+              <input id="appUserNameInput" type="text" autocomplete="off" />
+            </label>
+            <div class="row row-wrap gap-sm">
+              <label class="field">
+                <span>Locale</span>
+                <input id="appUserLocaleInput" type="text" autocomplete="off" placeholder="es / en" />
+              </label>
+              <label class="field">
+                <span>LC</span>
+                <input id="appUserLcInput" type="text" autocomplete="off" placeholder="en-gb" />
+              </label>
+              <label class="field">
+                <span>Birthdate</span>
+                <input id="appUserBirthdateInput" type="date" autocomplete="off" />
+              </label>
+              <label class="field">
+                <span>Sex</span>
+                <input id="appUserSexInput" type="text" autocomplete="off" placeholder="1 / 2" />
+              </label>
+            </div>
+            <div class="row row-wrap gap-sm">
+              <label class="field">
+                <span>Expires date</span>
+                <input id="appUserExpiresDateInput" type="date" autocomplete="off" />
+              </label>
+              <label class="checkbox">
+                <input id="appUserActiveInput" type="checkbox" />
+                Activo
+              </label>
+              <label class="checkbox">
+                <input id="appUserPremiumInput" type="checkbox" />
+                Premium
+              </label>
+            </div>
+            <div class="row row-wrap gap-sm">
+              <label class="field grow">
+                <span>Avatar URL</span>
+                <input id="appUserImageInput" type="text" readonly />
+              </label>
+              <label class="field">
+                <span>Avatar file</span>
+                <input id="appUserAvatarFileNameInput" type="text" readonly />
+              </label>
+            </div>
+            <div class="row row-wrap gap-sm">
+              <label class="field grow">
+                <span>Progress</span>
+                <input id="appUserProgressInput" type="text" readonly />
+              </label>
+              <label class="field grow">
+                <span>Updated at</span>
+                <input id="appUserUpdatedAtInput" type="text" readonly />
+              </label>
+            </div>
+          </div>
+        </article>
+      </div>
     </section>
 
     <section id="guidedSection" class="card" data-dashboard-panel="content">

@@ -28,6 +28,9 @@ Configuración recomendada para edición multiusuario:
 
 - `CONTENT_JWT_SECRET` (obligatorio para login de editores por email/password)
 - `CONTENT_EDITOR_SEED_EMAIL` + `CONTENT_EDITOR_SEED_PASSWORD` (crea primer admin automáticamente si no hay usuarios)
+- `CONTENT_APP_USERS_UPSTREAM_URL` para habilitar el panel `App Users` como fachada del backend legacy de usuarios app/web
+- `CONTENT_APP_USERS_UPSTREAM_TOKEN` si el upstream exige autenticación Bearer
+- `CONTENT_APP_USERS_UPSTREAM_TIMEOUT_MS` y paths `*_LIST_PATH` / `*_ITEM_PATH` / `*_DELETE_PATH` para adaptar el contrato del upstream
 - `CONTENT_READ_TOKEN` para proteger lectura pública de contenido
 - `CONTENT_TTS_ALIGNED_ENDPOINT` + `CONTENT_TTS_ALIGNED_TOKEN` para generar/verificar audios Polly por release
 - Ajuste de ráfaga/reintentos en generación: `CONTENT_TTS_ALIGNED_CONCURRENCY`, `CONTENT_TTS_ALIGNED_RETRY_MAX_ATTEMPTS`, `CONTENT_TTS_ALIGNED_RETRY_BASE_DELAY_MS`, `CONTENT_TTS_ALIGNED_RETRY_MAX_DELAY_MS`
@@ -60,6 +63,7 @@ Funciones incluidas:
 - Login JWT para editores (`POST /content/admin/login`)
 - Gestión de lock de draft (claim/release) para evitar pisados entre editores
 - Gestión de editores (solo rol `admin`)
+- Gestión MVP de `App Users` (solo rol `admin`) contra upstream legacy configurable
 - Ver releases y ejecutar:
   - publicar release existente
   - restaurar draft desde release
@@ -88,6 +92,12 @@ Auth/usuarios:
 - `GET /content/admin/editors` (admin)
 - `POST /content/admin/editors` (admin)
 - `PUT /content/admin/editors/:id` (admin)
+- `DELETE /content/admin/editors/:id` (admin)
+- `GET /content/admin/app-users/status` (admin)
+- `GET /content/admin/app-users?query=&limit=20` (admin)
+- `GET /content/admin/app-users/:id` (admin)
+- `PUT /content/admin/app-users/:id` (admin)
+- `DELETE /content/admin/app-users/:id` (admin)
 - `GET /content/admin/audit?limit=100` (admin)
 
 Lock de draft:
@@ -125,6 +135,36 @@ Lock de draft:
 - `POST /content/admin/releases/:id/tts/generate`
   - Genera audios TTS faltantes/desactualizados para una release publicada.
   - Body opcional: `locales`, `engine`, `force`, `checkRemote`, `maxItems`.
+
+### Panel `App Users`
+
+El dashboard incluye un panel `App Users` orientado a sustituir la antigua interfaz de administración de usuarios app/web, pero sin mover todavía la fuente de verdad: `content/node` actúa como proxy/admin surface hacia el backend legacy.
+
+Se habilita solo si `CONTENT_APP_USERS_UPSTREAM_URL` está definido. El panel habla con tres rutas configurables del upstream:
+
+- `CONTENT_APP_USERS_UPSTREAM_LIST_PATH`
+- `CONTENT_APP_USERS_UPSTREAM_ITEM_PATH`
+- `CONTENT_APP_USERS_UPSTREAM_DELETE_PATH`
+
+Por defecto se asume este contrato:
+
+- `GET /app-users?query=&limit=20`
+- `GET /app-users/:id`
+- `PUT /app-users/:id`
+- `DELETE /app-users/:id`
+
+Respuestas admitidas del upstream:
+
+- Listado: array directo o raíz `{ users }` / `{ items }` / `{ data: { users|items } }`
+- Detalle/update: raíz `{ user }` / `{ item }` / `{ data: { user|item } }`
+- `total` opcional en `total`, `count`, `meta.total`, `pagination.total` o `data.total`
+
+Campos MVP gestionados en el panel:
+
+- Editables: `email`, `first_name`, `last_name`, `name`, `is_active`, `premium`, `expires_date`, `locale`, `lc`, `birthdate`, `sex`
+- Solo lectura: `id`, `image`, `avatar_file_name`, `section_progress_count`, `test_progress_count`, `created_at`, `updated_at`
+
+La normalización está pensada para los campos realmente usados por la app actual. Si el backend legacy expone otro shape, basta adaptar la ruta upstream o sus nombres de campo sin tocar la UI del dashboard.
 
 ## Auth editores (JWT)
 
@@ -198,6 +238,7 @@ curl -X POST 'http://localhost:8791/content/admin/releases/3/tts/generate' \
 - Usa `WAL` para mejorar concurrencia de lectura.
 - Para producción: backup periódico del `.db` (por ejemplo a S3).
 - El contenido de sesión ya no usa `progress/status`; al arrancar, el servidor migra automáticamente columnas legacy si existen.
+- El panel `App Users` no sustituye todavía auth/login/perfil de la app: actúa como fachada administrativa sobre el backend legacy configurado.
 - Recomendado para 2-3 editores:
   1. cada editor hace login con su usuario,
   2. toma lock antes de editar (`Tomar lock`),

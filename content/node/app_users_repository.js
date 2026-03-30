@@ -108,10 +108,19 @@ const isFutureDate = (value) => {
   return parsed.getTime() > Date.now();
 };
 
+const isAbsoluteHttpUrl = (value) => /^https?:\/\//i.test(asText(value));
+
+const isStoredAvatarFileName = (value) => {
+  const file = asText(value);
+  if (!file) return false;
+  return /^[^/?#]+\.[a-z0-9]+$/i.test(file);
+};
+
 const getAvatarUrl = (userId, avatarFileName) => {
   const file = asText(avatarFileName);
-  if (!file || file === 'no-avatar.gif' || file.split('.').length !== 2) return '';
-  if (/^https?:\/\//i.test(file)) return file;
+  if (!file || file === 'no-avatar.gif') return '';
+  if (isAbsoluteHttpUrl(file)) return file;
+  if (!isStoredAvatarFileName(file)) return '';
   if (file.startsWith('image.')) {
     return `https://s3.amazonaws.com/sk.audios.dev/avatars/${userId}/original/${file}`;
   }

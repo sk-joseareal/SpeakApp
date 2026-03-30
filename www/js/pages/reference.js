@@ -651,7 +651,13 @@ class PageReference extends HTMLElement {
         const leftIcon = String(left[1] && left[1].icon ? left[1].icon : 'diamond').trim().toLowerCase();
         const rightIcon = String(right[1] && right[1].icon ? right[1].icon : 'diamond').trim().toLowerCase();
         const getOrder = (icon) =>
-          icon === 'trophy' ? 0 : icon === 'ribbon' ? 1 : icon === 'diamond' ? 2 : 9;
+          icon === 'trophy'
+            ? 0
+            : icon === 'ribbon' || icon === 'medal'
+            ? 1
+            : icon === 'diamond'
+            ? 2
+            : 9;
         const byOrder = getOrder(leftIcon) - getOrder(rightIcon);
         if (byOrder !== 0) return byOrder;
         return String(left[0] || '').localeCompare(String(right[0] || ''));
@@ -659,7 +665,12 @@ class PageReference extends HTMLElement {
       .map(([rewardKind, meta]) => {
         const icon = meta.icon || 'diamond';
         const qty = meta.qty || 0;
-        const isInteractive = icon === 'trophy' || rewardKind === REFERENCE_UNIT_REWARD_GROUP;
+        const normalizedIcon = String(icon || '').trim().toLowerCase();
+        const isInteractive =
+          normalizedIcon === 'trophy' ||
+          normalizedIcon === 'ribbon' ||
+          normalizedIcon === 'medal' ||
+          rewardKind === REFERENCE_UNIT_REWARD_GROUP;
         return `<div class="training-badge reward-badge${isInteractive ? ' is-interactive' : ''}" data-reward-kind="${rewardKind}" data-reward-icon="${icon}" data-reward-qty="${qty}"${isInteractive ? ' role="button" tabindex="0"' : ''}><ion-icon name="${icon}"></ion-icon><span>${qty}</span></div>`;
       })
       .join('');

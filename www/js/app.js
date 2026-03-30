@@ -193,6 +193,20 @@ function setupNotificationsModal() {
 }
 
 function setupRewardBadgeInfoToasts() {
+  const isUnitRewardKind = (rewardKind) => {
+    const normalized = String(rewardKind || '').trim().toLowerCase();
+    return (
+      normalized === 'reference-unit-ribbon' ||
+      normalized === 'ribbon' ||
+      normalized === 'medal'
+    );
+  };
+
+  const isInteractiveRewardKind = (rewardKind) => {
+    const normalized = String(rewardKind || '').trim().toLowerCase();
+    return normalized === 'trophy' || isUnitRewardKind(normalized);
+  };
+
   const presentRewardToast = (message) => {
     const text = String(message || '').trim();
     if (!text) return;
@@ -235,7 +249,7 @@ function setupRewardBadgeInfoToasts() {
     const locale = getAppLocale() || (window.varGlobal && window.varGlobal.locale) || 'en';
     const copy = getAppHeaderCopy(locale);
     const template =
-      rewardKind === 'reference-unit-ribbon'
+      isUnitRewardKind(rewardKind)
         ? count === 1
           ? copy.completedUnitsOne
           : copy.completedUnitsOther
@@ -258,7 +272,7 @@ function setupRewardBadgeInfoToasts() {
         .trim()
         .toLowerCase();
     const targetKind = rewardKind || iconName;
-    if (targetKind !== 'trophy' && targetKind !== 'reference-unit-ribbon') return;
+    if (!isInteractiveRewardKind(targetKind)) return;
     const rewardCount = Math.max(0, getRewardCount(targetKind));
     if (!rewardCount) return;
     presentRewardToast(buildRewardMessage(targetKind, rewardCount));

@@ -2674,7 +2674,11 @@ const getCanonicalAvatarUrlFromFile = (userId, avatarFileName) => {
   const safeUserId = userId !== undefined && userId !== null ? String(userId).trim() : '';
   const safeAvatarFileName =
     typeof avatarFileName === 'string' ? avatarFileName.trim() : '';
-  if (!safeUserId || !safeAvatarFileName) return '';
+  if (!safeAvatarFileName) return '';
+  if (/^https?:\/\//i.test(safeAvatarFileName)) {
+    return safeAvatarFileName;
+  }
+  if (!safeUserId) return '';
   if (/^avatarv4\./i.test(safeAvatarFileName)) {
     return `https://s3.amazonaws.com/sk.assets/avatars/${safeUserId}/${safeAvatarFileName}`;
   }

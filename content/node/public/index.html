@@ -85,7 +85,7 @@
       <div class="row between center">
         <div>
           <h2>App Users</h2>
-          <p class="hint">MVP: solo campos usados por la app/web actual.</p>
+          <p class="hint">MVP MySQL directo: solo campos usados por la app/web actual.</p>
         </div>
         <button id="refreshAppUsersBtn" class="btn">Refrescar</button>
       </div>
@@ -142,7 +142,7 @@
               </label>
               <label class="field grow">
                 <span>Email</span>
-                <input id="appUserEmailInput" type="email" autocomplete="off" />
+                <input id="appUserEmailInput" type="email" autocomplete="off" readonly />
               </label>
             </div>
             <div class="row row-wrap gap-sm">
@@ -187,7 +187,7 @@
                 Activo
               </label>
               <label class="checkbox">
-                <input id="appUserPremiumInput" type="checkbox" />
+                <input id="appUserPremiumInput" type="checkbox" disabled />
                 Premium
               </label>
             </div>

@@ -196,6 +196,10 @@
   const currentRole = () => normalizeRole(currentAuth && currentAuth.role ? currentAuth.role : '');
   const canManageEditors = () => isAuthenticated() && hasRoleAtLeast(currentRole(), 'admin');
   const canManageAppUsers = () => isAuthenticated() && hasRoleAtLeast(currentRole(), 'admin');
+  const getAppUsersCapabilities = () =>
+    appUsersStatus && appUsersStatus.capabilities && typeof appUsersStatus.capabilities === 'object'
+      ? appUsersStatus.capabilities
+      : {};
 
   const uniqStrings = (items) => {
     const seen = new Set();
@@ -1808,11 +1812,13 @@
 
   const setAppUserFormDisabled = (disabled) => {
     const targetState = Boolean(disabled);
+    const capabilities = getAppUsersCapabilities();
+    const emailEditable = Boolean(capabilities.email_editable);
+    const premiumEditable = Boolean(capabilities.premium_editable);
+    const deleteEnabled = Boolean(capabilities.delete);
     [
       el.reloadAppUserBtn,
       el.saveAppUserBtn,
-      el.deleteAppUserBtn,
-      el.appUserEmailInput,
       el.appUserFirstNameInput,
       el.appUserLastNameInput,
       el.appUserNameInput,
@@ -1821,12 +1827,20 @@
       el.appUserBirthdateInput,
       el.appUserSexInput,
       el.appUserExpiresDateInput,
-      el.appUserActiveInput,
-      el.appUserPremiumInput
+      el.appUserActiveInput
     ].forEach((node) => {
       if (!node) return;
       node.disabled = targetState;
     });
+    if (el.deleteAppUserBtn) {
+      el.deleteAppUserBtn.disabled = targetState || !deleteEnabled;
+    }
+    if (el.appUserEmailInput) {
+      el.appUserEmailInput.disabled = targetState || !emailEditable;
+    }
+    if (el.appUserPremiumInput) {
+      el.appUserPremiumInput.disabled = targetState || !premiumEditable;
+    }
   };
 
   const renderAppUsersMeta = () => {
@@ -1837,10 +1851,12 @@
         el.appUsersMeta.textContent = 'Sincronizando estado del panel de usuarios app...';
       } else if (!appUsersStatus.configured) {
         el.appUsersMeta.textContent =
-          'Upstream no configurado. Define CONTENT_APP_USERS_UPSTREAM_URL en el servidor de contenido.';
+          'MySQL no configurado. Define CONTENT_APP_USERS_MYSQL_* en el servidor de contenido.';
       } else {
-        const source = asText(appUsersStatus.upstream_base_url) || 'n/d';
-        el.appUsersMeta.textContent = `Upstream: ${source} · timeout ${appUsersStatus.timeout_ms || 'n/d'} ms.`;
+        const host = asText(appUsersStatus.mysql_host) || 'n/d';
+        const port = asText(appUsersStatus.mysql_port) || '3306';
+        const database = asText(appUsersStatus.mysql_database) || 'n/d';
+        el.appUsersMeta.textContent = `MySQL directo: ${host}:${port}/${database}.`;
       }
     }
     if (el.appUsersResultsMeta) {
@@ -1870,7 +1886,7 @@
         ? 'Cargando estado del panel de usuarios app...'
         : appUsersStatus.configured
         ? 'Sin resultados para la búsqueda actual.'
-        : 'Configura el upstream para cargar usuarios app.';
+        : 'Configura CONTENT_APP_USERS_MYSQL_* para cargar usuarios app.';
       el.appUsersList.appendChild(empty);
       return;
     }
@@ -1932,7 +1948,7 @@
     }
     if (el.appUserSelectionMeta) {
       el.appUserSelectionMeta.textContent = hasUser
-        ? 'Edita solo los campos que usa la app actual.'
+        ? 'Edita solo los campos soportados por la RDS. Email y Premium son de solo lectura por ahora.'
         : 'Busca y selecciona un usuario.';
     }
     setAppUserFormDisabled(!hasUser);
@@ -2049,7 +2065,7 @@
       renderAppUsersList();
       renderSelectedAppUser();
       if (!silent && status && status.configured === false) {
-        setStatus('Usuarios app no configurados en content.', { status });
+        setStatus('Usuarios app no configurados: falta conexión MySQL en content.', { status });
       }
       return;
     }
@@ -2105,7 +2121,6 @@
       asText(el.appUserNameInput && el.appUserNameInput.value) ||
       [firstName, lastName].filter(Boolean).join(' ');
     return {
-      email: asText(el.appUserEmailInput && el.appUserEmailInput.value).toLowerCase(),
       first_name: firstName,
       last_name: lastName,
       name,
@@ -2116,8 +2131,7 @@
       expires_date: formatDateFieldValue(
         el.appUserExpiresDateInput && el.appUserExpiresDateInput.value
       ),
-      is_active: Boolean(el.appUserActiveInput && el.appUserActiveInput.checked),
-      premium: Boolean(el.appUserPremiumInput && el.appUserPremiumInput.checked)
+      is_active: Boolean(el.appUserActiveInput && el.appUserActiveInput.checked)
     };
   };
 
@@ -2145,6 +2159,11 @@
   };
 
   const deleteSelectedAppUser = async () => {
+    const capabilities = getAppUsersCapabilities();
+    if (!capabilities.delete) {
+      setStatus('El borrado directo de cuentas aún no está disponible en este panel.');
+      return;
+    }
     const userId = asText(selectedAppUserId);
     if (!userId) {
       setStatus('Selecciona primero un usuario app.');

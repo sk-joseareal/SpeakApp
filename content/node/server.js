@@ -9,6 +9,13 @@ const cors = require('cors');
 const Database = require('better-sqlite3');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
+const {
+  APP_USERS_CONTRACT_VERSION,
+  APP_USERS_EDITABLE_FIELDS,
+  APP_USERS_READONLY_FIELDS,
+  APP_USERS_STATUS_CAPABILITIES,
+  createAppUsersRepository
+} = require('./app_users_repository');
 
 const env = (key, fallback) => (process.env[key] ? process.env[key] : fallback);
 const port = Number(env('CONTENT_PORT', '8791'));
@@ -78,29 +85,23 @@ const appUsersUpstreamDeletePath =
   '/app-users/:id';
 const appUsersFetchImpl =
   typeof globalThis.fetch === 'function' ? globalThis.fetch.bind(globalThis) : null;
+const appUsersMysqlHost = String(env('CONTENT_APP_USERS_MYSQL_HOST', env('MYSQL_HOST', '')) || '').trim();
+const appUsersMysqlPort = Math.max(
+  1,
+  Number(env('CONTENT_APP_USERS_MYSQL_PORT', env('MYSQL_PORT', '3306'))) || 3306
+);
+const appUsersMysqlUser = String(env('CONTENT_APP_USERS_MYSQL_USER', env('MYSQL_USER', '')) || '').trim();
+const appUsersMysqlPassword = String(
+  env('CONTENT_APP_USERS_MYSQL_PASSWORD', env('MYSQL_PASS', '')) || ''
+).trim();
+const appUsersMysqlDatabase = String(
+  env('CONTENT_APP_USERS_MYSQL_DATABASE', env('MYSQL_DB', '')) || ''
+).trim();
+const appUsersMysqlConnectionLimit = Math.min(
+  10,
+  Math.max(1, Number(env('CONTENT_APP_USERS_MYSQL_CONNECTION_LIMIT', '4')) || 4)
+);
 const APP_COPY_SETTING_KEY = 'app_copy_json';
-const APP_USERS_EDITABLE_FIELDS = [
-  'email',
-  'first_name',
-  'last_name',
-  'name',
-  'is_active',
-  'premium',
-  'expires_date',
-  'locale',
-  'lc',
-  'birthdate',
-  'sex'
-];
-const APP_USERS_READONLY_FIELDS = [
-  'id',
-  'image',
-  'avatar_file_name',
-  'section_progress_count',
-  'test_progress_count',
-  'created_at',
-  'updated_at'
-];
 
 const ensureDir = (filepath) => {
   const dir = path.dirname(filepath);
@@ -117,6 +118,15 @@ db.pragma('busy_timeout = 5000');
 
 const schemaSql = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8');
 db.exec(schemaSql);
+
+const appUsersRepository = createAppUsersRepository({
+  host: appUsersMysqlHost,
+  port: appUsersMysqlPort,
+  user: appUsersMysqlUser,
+  password: appUsersMysqlPassword,
+  database: appUsersMysqlDatabase,
+  connectionLimit: appUsersMysqlConnectionLimit
+});
 
 const getTableColumns = (tableName) => {
   const rows = db.prepare(`PRAGMA table_info('${String(tableName)}')`).all();
@@ -892,13 +902,13 @@ const normalizeAppUsersUpstreamBaseUrl = () => {
 const isAppUsersUpstreamConfigured = () => Boolean(normalizeAppUsersUpstreamBaseUrl());
 
 const getAppUsersAdminStatus = () => ({
-  configured: isAppUsersUpstreamConfigured(),
-  upstream_base_url: normalizeAppUsersUpstreamBaseUrl(),
-  has_upstream_token: Boolean(appUsersUpstreamToken),
-  timeout_ms: appUsersUpstreamTimeoutMs,
+  ...appUsersRepository.getStatus(),
+  legacy_upstream_configured: isAppUsersUpstreamConfigured(),
+  legacy_upstream_base_url: normalizeAppUsersUpstreamBaseUrl(),
   editable_fields: APP_USERS_EDITABLE_FIELDS.slice(),
   readonly_fields: APP_USERS_READONLY_FIELDS.slice(),
-  contract_version: 'app-users-mvp-2026-03-30'
+  capabilities: { ...APP_USERS_STATUS_CAPABILITIES },
+  contract_version: APP_USERS_CONTRACT_VERSION
 });
 
 const encodePathSegment = (value) => encodeURIComponent(String(value === undefined || value === null ? '' : value));
@@ -1086,7 +1096,7 @@ const sanitizeAppUserUpdateBody = (body = {}) => {
   APP_USERS_EDITABLE_FIELDS.forEach((field) => {
     if (!(field in source)) return;
     const value = source[field];
-    if (field === 'is_active' || field === 'premium') {
+    if (field === 'is_active') {
       out[field] = parseBoolean(value, false);
       return;
     }
@@ -2652,19 +2662,13 @@ app.get('/content/admin/app-users', requireAdmin, async (req, res, next) => {
   try {
     const query = String(req.query.query || req.query.q || '').trim();
     const limit = Math.min(Math.max(Number(req.query.limit) || 20, 1), 100);
-    const payload = await requestAppUsersUpstream({
-      method: 'GET',
-      pathTemplate: appUsersUpstreamListPath,
-      query: { query, limit }
-    });
-    const rawUsers = extractAppUsersListFromPayload(payload);
-    const users = rawUsers.map((item) => normalizeAppUserRecord(item)).filter(Boolean);
+    const result = await appUsersRepository.listUsers({ query, limit });
     res.json({
       ok: true,
       query,
       limit,
-      total: extractAppUsersTotalFromPayload(payload, users.length),
-      users,
+      total: Number(result && result.total) || 0,
+      users: Array.isArray(result && result.users) ? result.users : [],
       status: getAppUsersAdminStatus()
     });
   } catch (err) {
@@ -2679,14 +2683,9 @@ app.get('/content/admin/app-users/:id', requireAdmin, async (req, res, next) => 
       res.status(400).json({ ok: false, error: 'invalid_app_user_id' });
       return;
     }
-    const payload = await requestAppUsersUpstream({
-      method: 'GET',
-      pathTemplate: appUsersUpstreamItemPath,
-      params: { id: userId }
-    });
-    const user = normalizeAppUserRecord(extractAppUserFromPayload(payload));
+    const user = await appUsersRepository.getUserById(userId);
     if (!user) {
-      throw buildHttpError(502, 'app_user_invalid_upstream_payload');
+      throw buildHttpError(404, 'app_user_not_found');
     }
     res.json({
       ok: true,
@@ -2710,15 +2709,9 @@ app.put('/content/admin/app-users/:id', requireAdmin, async (req, res, next) => 
       res.status(400).json({ ok: false, error: 'app_user_empty_update' });
       return;
     }
-    const payload = await requestAppUsersUpstream({
-      method: 'PUT',
-      pathTemplate: appUsersUpstreamItemPath,
-      params: { id: userId },
-      body: updateBody
-    });
-    const user = normalizeAppUserRecord(extractAppUserFromPayload(payload));
+    const user = await appUsersRepository.updateUserById(userId, updateBody);
     if (!user) {
-      throw buildHttpError(502, 'app_user_invalid_upstream_payload');
+      throw buildHttpError(404, 'app_user_not_found');
     }
     writeAuditLog(req, 'app_user.update', `app_user:${userId}`, {
       fields: Object.keys(updateBody)
@@ -2741,16 +2734,7 @@ app.delete('/content/admin/app-users/:id', requireAdmin, async (req, res, next) 
       res.status(400).json({ ok: false, error: 'invalid_app_user_id' });
       return;
     }
-    await requestAppUsersUpstream({
-      method: 'DELETE',
-      pathTemplate: appUsersUpstreamDeletePath,
-      params: { id: userId }
-    });
-    writeAuditLog(req, 'app_user.delete', `app_user:${userId}`, {});
-    res.json({
-      ok: true,
-      deleted: true,
-      app_user_id: userId,
+    throw buildHttpError(501, 'app_user_delete_not_supported_yet', {
       status: getAppUsersAdminStatus()
     });
   } catch (err) {
@@ -3263,11 +3247,18 @@ app.listen(port, () => {
   } else {
     console.log('[content] tts aligned endpoint: disabled');
   }
-  if (isAppUsersUpstreamConfigured()) {
+  if (appUsersRepository.isConfigured()) {
     console.log(
-      `[content] app users upstream: ${normalizeAppUsersUpstreamBaseUrl()} (timeout ${appUsersUpstreamTimeoutMs} ms)`
+      `[content] app users mysql: ${appUsersMysqlHost}:${appUsersMysqlPort}/${appUsersMysqlDatabase}`
     );
   } else {
-    console.log('[content] app users upstream: disabled (set CONTENT_APP_USERS_UPSTREAM_URL)');
+    console.log(
+      '[content] app users mysql: disabled (set CONTENT_APP_USERS_MYSQL_* or MYSQL_*)'
+    );
+  }
+  if (isAppUsersUpstreamConfigured()) {
+    console.log(
+      `[content] app users legacy upstream: configured but unused (${normalizeAppUsersUpstreamBaseUrl()})`
+    );
   }
 });

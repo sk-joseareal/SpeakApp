@@ -28,9 +28,9 @@ Configuración recomendada para edición multiusuario:
 
 - `CONTENT_JWT_SECRET` (obligatorio para login de editores por email/password)
 - `CONTENT_EDITOR_SEED_EMAIL` + `CONTENT_EDITOR_SEED_PASSWORD` (crea primer admin automáticamente si no hay usuarios)
-- `CONTENT_APP_USERS_UPSTREAM_URL` para habilitar el panel `App Users` como fachada del backend legacy de usuarios app/web
-- `CONTENT_APP_USERS_UPSTREAM_TOKEN` si el upstream exige autenticación Bearer
-- `CONTENT_APP_USERS_UPSTREAM_TIMEOUT_MS` y paths `*_LIST_PATH` / `*_ITEM_PATH` / `*_DELETE_PATH` para adaptar el contrato del upstream
+- `CONTENT_APP_USERS_MYSQL_HOST`, `CONTENT_APP_USERS_MYSQL_PORT`, `CONTENT_APP_USERS_MYSQL_USER`, `CONTENT_APP_USERS_MYSQL_PASSWORD`, `CONTENT_APP_USERS_MYSQL_DATABASE` para habilitar el panel `App Users` directamente contra la RDS legacy
+- `CONTENT_APP_USERS_MYSQL_CONNECTION_LIMIT` para ajustar el pool de conexiones
+- Alternativamente, el servicio acepta `MYSQL_HOST`, `MYSQL_PORT`, `MYSQL_USER`, `MYSQL_PASS`, `MYSQL_DB`
 - `CONTENT_READ_TOKEN` para proteger lectura pública de contenido
 - `CONTENT_TTS_ALIGNED_ENDPOINT` + `CONTENT_TTS_ALIGNED_TOKEN` para generar/verificar audios Polly por release
 - Ajuste de ráfaga/reintentos en generación: `CONTENT_TTS_ALIGNED_CONCURRENCY`, `CONTENT_TTS_ALIGNED_RETRY_MAX_ATTEMPTS`, `CONTENT_TTS_ALIGNED_RETRY_BASE_DELAY_MS`, `CONTENT_TTS_ALIGNED_RETRY_MAX_DELAY_MS`
@@ -63,7 +63,7 @@ Funciones incluidas:
 - Login JWT para editores (`POST /content/admin/login`)
 - Gestión de lock de draft (claim/release) para evitar pisados entre editores
 - Gestión de editores (solo rol `admin`)
-- Gestión MVP de `App Users` (solo rol `admin`) contra upstream legacy configurable
+- Gestión MVP de `App Users` (solo rol `admin`) contra MySQL legacy/RDS
 - Ver releases y ejecutar:
   - publicar release existente
   - restaurar draft desde release
@@ -138,33 +138,27 @@ Lock de draft:
 
 ### Panel `App Users`
 
-El dashboard incluye un panel `App Users` orientado a sustituir la antigua interfaz de administración de usuarios app/web, pero sin mover todavía la fuente de verdad: `content/node` actúa como proxy/admin surface hacia el backend legacy.
+El dashboard incluye un panel `App Users` orientado a sustituir la antigua interfaz de administración de usuarios app/web accediendo directamente a la RDS legacy desde `content/node`.
 
-Se habilita solo si `CONTENT_APP_USERS_UPSTREAM_URL` está definido. El panel habla con tres rutas configurables del upstream:
+Se habilita solo si existe configuración MySQL (`CONTENT_APP_USERS_MYSQL_*` o `MYSQL_*`). El panel expone estas rutas admin:
 
-- `CONTENT_APP_USERS_UPSTREAM_LIST_PATH`
-- `CONTENT_APP_USERS_UPSTREAM_ITEM_PATH`
-- `CONTENT_APP_USERS_UPSTREAM_DELETE_PATH`
-
-Por defecto se asume este contrato:
-
-- `GET /app-users?query=&limit=20`
-- `GET /app-users/:id`
-- `PUT /app-users/:id`
-- `DELETE /app-users/:id`
-
-Respuestas admitidas del upstream:
-
-- Listado: array directo o raíz `{ users }` / `{ items }` / `{ data: { users|items } }`
-- Detalle/update: raíz `{ user }` / `{ item }` / `{ data: { user|item } }`
-- `total` opcional en `total`, `count`, `meta.total`, `pagination.total` o `data.total`
+- `GET /content/admin/app-users?query=&limit=20`
+- `GET /content/admin/app-users/:id`
+- `PUT /content/admin/app-users/:id`
+- `DELETE /content/admin/app-users/:id`
+  - Hoy responde `501`: el borrado real sigue pendiente porque requiere archivado consistente en `deleted_users` y tablas espejo de progreso.
 
 Campos MVP gestionados en el panel:
 
-- Editables: `email`, `first_name`, `last_name`, `name`, `is_active`, `premium`, `expires_date`, `locale`, `lc`, `birthdate`, `sex`
-- Solo lectura: `id`, `image`, `avatar_file_name`, `section_progress_count`, `test_progress_count`, `created_at`, `updated_at`
+- Editables: `first_name`, `last_name`, `name`, `is_active`, `expires_date`, `locale`, `lc`, `birthdate`, `sex`
+- Solo lectura: `id`, `email`, `premium`, `image`, `avatar_file_name`, `section_progress_count`, `test_progress_count`, `created_at`, `updated_at`
 
-La normalización está pensada para los campos realmente usados por la app actual. Si el backend legacy expone otro shape, basta adaptar la ruta upstream o sus nombres de campo sin tocar la UI del dashboard.
+Notas operativas:
+
+- `premium` se deriva de `expires_date`; no hay columna `premium` en la tabla `users`.
+- `email` queda en solo lectura porque la base legacy no garantiza unicidad.
+- `is_active` se mapea a `banneduntil`; al desactivar además se invalida `token`.
+- El progreso sigue siendo solo lectura y se resume desde `user_actions`.
 
 ## Auth editores (JWT)
 
@@ -238,7 +232,7 @@ curl -X POST 'http://localhost:8791/content/admin/releases/3/tts/generate' \
 - Usa `WAL` para mejorar concurrencia de lectura.
 - Para producción: backup periódico del `.db` (por ejemplo a S3).
 - El contenido de sesión ya no usa `progress/status`; al arrancar, el servidor migra automáticamente columnas legacy si existen.
-- El panel `App Users` no sustituye todavía auth/login/perfil de la app: actúa como fachada administrativa sobre el backend legacy configurado.
+- El panel `App Users` no sustituye todavía auth/login/perfil de la app: administra una parte segura del modelo directamente sobre la RDS legacy.
 - Recomendado para 2-3 editores:
   1. cada editor hace login con su usuario,
   2. toma lock antes de editar (`Tomar lock`),

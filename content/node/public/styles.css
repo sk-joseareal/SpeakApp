@@ -440,8 +440,15 @@ h2 {
   align-items: stretch;
 }
 
-.app-users-grid > * {
-  min-height: 0;
+.app-users-grid > article {
+  display: flex;
+  flex-direction: column;
+}
+
+.app-users-grid > article .entity-list {
+  flex: 1;
+  max-height: none;
+  overflow-y: auto;
 }
 
 .guided-col {
@@ -591,6 +598,13 @@ h2 {
   .app-users-grid {
     grid-template-columns: 1fr;
     align-items: start;
+  }
+  .app-users-grid > article {
+    display: block;
+  }
+  .app-users-grid > article .entity-list {
+    max-height: 180px;
+    flex: none;
   }
   .entity-list {
     max-height: 180px;

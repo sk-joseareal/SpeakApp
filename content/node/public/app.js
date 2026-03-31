@@ -892,6 +892,7 @@
   const canAccessDashboardTab = (tab) => {
     switch (tab) {
       case TAB_LOGIN:
+      case TAB_LINKS:
         return true;
       case TAB_USERS:
         return canManageEditors();

@@ -63,7 +63,7 @@
     appUserEmailInput: document.getElementById('appUserEmailInput'),
     appUserFirstNameInput: document.getElementById('appUserFirstNameInput'),
     appUserLastNameInput: document.getElementById('appUserLastNameInput'),
-    appUserNameInput: document.getElementById('appUserNameInput'),
+
     appUserLocaleInput: document.getElementById('appUserLocaleInput'),
     appUserLcInput: document.getElementById('appUserLcInput'),
     appUserBirthdateInput: document.getElementById('appUserBirthdateInput'),
@@ -1876,7 +1876,6 @@
       el.saveAppUserBtn,
       el.appUserFirstNameInput,
       el.appUserLastNameInput,
-      el.appUserNameInput,
       el.appUserLocaleInput,
       el.appUserLcInput,
       el.appUserBirthdateInput,
@@ -1963,7 +1962,8 @@
 
       const title = document.createElement('span');
       title.className = 'entity-item-title';
-      title.textContent = item.name || item.email || `user:${item.id}`;
+      const itemName = [item.first_name, item.last_name].filter(Boolean).join(' ') || item.name;
+      title.textContent = itemName || item.email || `user:${item.id}`;
 
       const meta = document.createElement('span');
       meta.className = 'entity-item-meta';
@@ -2010,7 +2010,6 @@
     clearInputValue(el.appUserEmailInput);
     clearInputValue(el.appUserFirstNameInput);
     clearInputValue(el.appUserLastNameInput);
-    clearInputValue(el.appUserNameInput);
     clearInputValue(el.appUserLocaleInput);
     clearInputValue(el.appUserLcInput);
     clearInputValue(el.appUserBirthdateInput);
@@ -2048,7 +2047,6 @@
     clearInputValue(el.appUserEmailInput, asText(user.email));
     clearInputValue(el.appUserFirstNameInput, asText(user.first_name));
     clearInputValue(el.appUserLastNameInput, asText(user.last_name));
-    clearInputValue(el.appUserNameInput, asText(user.name));
     clearInputValue(el.appUserLocaleInput, asText(user.locale));
     clearInputValue(el.appUserLcInput, asText(user.lc));
     clearInputValue(el.appUserBirthdateInput, formatDateFieldValue(user.birthdate));
@@ -2062,7 +2060,8 @@
     if (el.appUserActiveInput) el.appUserActiveInput.checked = Boolean(user.is_active);
     if (el.appUserPremiumInput) el.appUserPremiumInput.checked = Boolean(user.premium);
     if (el.appUserIdentity) {
-      el.appUserIdentity.textContent = user.name || user.email || `user:${user.id}`;
+      const derivedName = [user.first_name, user.last_name].filter(Boolean).join(' ') || user.name;
+      el.appUserIdentity.textContent = derivedName || user.email || `user:${user.id}`;
     }
     if (el.appUserReadonlyMeta) {
       const segments = [
@@ -2196,9 +2195,7 @@
   const buildSelectedAppUserPayload = () => {
     const firstName = asText(el.appUserFirstNameInput && el.appUserFirstNameInput.value);
     const lastName = asText(el.appUserLastNameInput && el.appUserLastNameInput.value);
-    const name =
-      asText(el.appUserNameInput && el.appUserNameInput.value) ||
-      [firstName, lastName].filter(Boolean).join(' ');
+    const name = [firstName, lastName].filter(Boolean).join(' ');
     return {
       first_name: firstName,
       last_name: lastName,

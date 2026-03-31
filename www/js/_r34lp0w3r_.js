@@ -2641,9 +2641,9 @@ const isAvatarS3Url = (url) =>
 
 const addAvatarCacheBust = (url) => {
   if (!isAvatarS3Url(url)) return url;
-  if (/[?&]ts=/.test(url)) return url;
-  const sep = url.includes('?') ? '&' : '?';
-  return `${url}${sep}ts=${Date.now()}`;
+  const base = url.replace(/([?&])ts=\d+(&|$)/, (_, pre, post) => post ? pre : '').replace(/[?&]$/, '');
+  const sep = base.includes('?') ? '&' : '?';
+  return `${base}${sep}ts=${Date.now()}`;
 };
 
 const addLocalCacheBust = (url) => {

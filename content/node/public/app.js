@@ -1977,7 +1977,7 @@
     });
   };
 
-  const updateAppUserAvatarFields = (user, { keepSourceInput = false } = {}) => {
+  const updateAppUserAvatarFields = (user, { keepSourceInput = false, bustCache = false } = {}) => {
     const sourceUser = user && typeof user === 'object' ? user : {};
     const source = keepSourceInput
       ? asText(el.appUserAvatarFileNameInput && el.appUserAvatarFileNameInput.value)
@@ -1993,14 +1993,17 @@
       el.appUserResolvedAvatarField.hidden = !showResolved;
     }
     if (el.appUserAvatarPreview) {
-      const previewUrl = resolved || APP_USER_AVATAR_PLACEHOLDER;
+      let previewUrl = resolved || APP_USER_AVATAR_PLACEHOLDER;
+      if (bustCache && previewUrl && !/^data:image\//i.test(previewUrl)) {
+        previewUrl += (previewUrl.includes('?') ? '&' : '?') + 'ts=' + Date.now();
+      }
       el.appUserAvatarPreview.src = previewUrl;
       el.appUserAvatarPreview.alt = sourceUser.name || sourceUser.email || 'Avatar';
       el.appUserAvatarPreview.classList.toggle('is-empty', !resolved);
     }
   };
 
-  const renderSelectedAppUser = () => {
+  const renderSelectedAppUser = ({ bustCache = false } = {}) => {
     const user = selectedAppUser;
     const hasUser = Boolean(user && user.id);
     clearInputValue(el.appUserIdInput);
@@ -2069,7 +2072,7 @@
       ].filter(Boolean);
       el.appUserReadonlyMeta.textContent = segments.join(' · ');
     }
-    updateAppUserAvatarFields(user);
+    updateAppUserAvatarFields(user, { bustCache });
   };
 
   const refreshAppUsersStatus = async ({ silent = false } = {}) => {
@@ -3037,7 +3040,7 @@
             })
           });
           selectedAppUser = out && out.user ? out.user : selectedAppUser;
-          renderSelectedAppUser();
+          renderSelectedAppUser({ bustCache: true });
           renderAppUsersList();
           setStatus('Avatar regenerado.', out);
           await loadAppUsers({ silent: true, preserveSelection: true });

@@ -2714,7 +2714,12 @@ const ensureUserRemoteAvatar = (user) => {
     user.id !== undefined && user.id !== null ? String(user.id).trim() : '';
   const resolved = getCanonicalAvatarUrlFromFile(userId, avatarFileName);
   if (!resolved) return user;
-  user.image = resolved;
+  // Preserve existing ?ts= cache-bust if present on the current image
+  const existingTs = typeof user.image === 'string'
+    ? (user.image.match(/[?&]ts=(\d+)/) || [])[1] : null;
+  user.image = existingTs
+    ? resolved + (resolved.includes('?') ? '&' : '?') + 'ts=' + existingTs
+    : resolved;
   return user;
 };
 

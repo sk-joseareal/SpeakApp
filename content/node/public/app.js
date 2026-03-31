@@ -12,7 +12,8 @@
   const TAB_CONTENT = 'content';
   const TAB_APPCOPY = 'appcopy';
   const TAB_RELEASES = 'releases';
-  const TAB_ORDER = [TAB_LOGIN, TAB_USERS, TAB_APP_USERS, TAB_CONTENT, TAB_RELEASES, TAB_APPCOPY];
+  const TAB_LINKS = 'links';
+  const TAB_ORDER = [TAB_LOGIN, TAB_USERS, TAB_APP_USERS, TAB_CONTENT, TAB_RELEASES, TAB_APPCOPY, TAB_LINKS];
 
   const el = {
     dashboardTabs: document.getElementById('dashboardTabs'),

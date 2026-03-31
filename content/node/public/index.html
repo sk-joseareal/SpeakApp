@@ -3,19 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SpeakApp Content Dashboard</title>
+  <title>Admin Dashboard</title>
   <link rel="stylesheet" href="/dashboard/styles.css" />
 </head>
 <body>
   <main class="container">
     <header class="header">
-      <h1>SpeakApp Content Dashboard</h1>
-      <p class="muted">Gestiona draft/publicación de training content.</p>
-      <p class="quick-links">
-        <a href="https://speakapp.curso-ingles.com" target="_blank" rel="noopener noreferrer">Abrir web app</a>
-        <span aria-hidden="true">·</span>
-        <a href="https://play.google.com/apps/internaltest/4701008495852892616" target="_blank" rel="noopener noreferrer">App Android</a>
-      </p>
+      <h1>Admin Dashboard</h1>
     </header>
 
     <nav id="dashboardTabs" class="dashboard-tabs" aria-label="Secciones dashboard">
@@ -25,6 +19,7 @@
       <button class="btn dashboard-tab-btn" data-dashboard-tab="content" type="button">Contenido</button>
       <button class="btn dashboard-tab-btn" data-dashboard-tab="releases" type="button">Releases</button>
       <button class="btn dashboard-tab-btn" data-dashboard-tab="appcopy" type="button">Copys app</button>
+      <button class="btn dashboard-tab-btn" data-dashboard-tab="links" type="button">Links</button>
     </nav>
 
     <section id="loginSection" class="card" data-dashboard-panel="login">
@@ -544,6 +539,16 @@
       <pre id="statusBox" class="status">Listo.</pre>
     </section>
   </main>
+
+    <section id="linksSection" class="card hidden" data-dashboard-panel="links">
+      <div class="row between center">
+        <h2>Links</h2>
+      </div>
+      <ul class="links-list">
+        <li><a href="https://speakapp.curso-ingles.com" target="_blank" rel="noopener noreferrer">Abrir web app</a></li>
+        <li><a href="https://play.google.com/apps/internaltest/4701008495852892616" target="_blank" rel="noopener noreferrer">App Android</a></li>
+      </ul>
+    </section>
 
   <script src="/dashboard/app.js"></script>
 </body>

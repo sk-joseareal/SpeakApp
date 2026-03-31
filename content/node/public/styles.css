@@ -42,6 +42,26 @@ html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); f
   text-decoration: underline;
 }
 
+.links-list {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.links-list a {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.links-list a:hover {
+  text-decoration: underline;
+}
+
 .dashboard-tabs {
   display: flex;
   flex-wrap: wrap;
@@ -417,7 +437,11 @@ h2 {
   display: grid;
   grid-template-columns: minmax(280px, 0.95fr) minmax(380px, 1.35fr);
   gap: 10px;
-  align-items: start;
+  align-items: stretch;
+}
+
+.app-users-grid > * {
+  min-height: 0;
 }
 
 .guided-col {
@@ -566,6 +590,7 @@ h2 {
   }
   .app-users-grid {
     grid-template-columns: 1fr;
+    align-items: start;
   }
   .entity-list {
     max-height: 180px;

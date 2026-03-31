@@ -30,6 +30,7 @@ Configuración recomendada para edición multiusuario:
 - `CONTENT_EDITOR_SEED_EMAIL` + `CONTENT_EDITOR_SEED_PASSWORD` (crea primer admin automáticamente si no hay usuarios)
 - `CONTENT_APP_USERS_MYSQL_HOST`, `CONTENT_APP_USERS_MYSQL_PORT`, `CONTENT_APP_USERS_MYSQL_USER`, `CONTENT_APP_USERS_MYSQL_PASSWORD`, `CONTENT_APP_USERS_MYSQL_DATABASE` para habilitar el panel `App Users` directamente contra la RDS legacy
 - `CONTENT_APP_USERS_MYSQL_CONNECTION_LIMIT` para ajustar el pool de conexiones
+- `CONTENT_APP_USERS_UPSTREAM_URL` + `CONTENT_APP_USERS_UPSTREAM_TOKEN` + `CONTENT_APP_USERS_UPSTREAM_AVATAR_RESET_PATH` si quieres que el botón `Reset` del avatar delegue la regeneración compatible al `backendV4`
 - Alternativamente, el servicio acepta `MYSQL_HOST`, `MYSQL_PORT`, `MYSQL_USER`, `MYSQL_PASS`, `MYSQL_DB`
 - `CONTENT_READ_TOKEN` para proteger lectura pública de contenido
 - `CONTENT_TTS_ALIGNED_ENDPOINT` + `CONTENT_TTS_ALIGNED_TOKEN` para generar/verificar audios Polly por release
@@ -145,19 +146,22 @@ Se habilita solo si existe configuración MySQL (`CONTENT_APP_USERS_MYSQL_*` o `
 - `GET /content/admin/app-users?query=&limit=20`
 - `GET /content/admin/app-users/:id`
 - `PUT /content/admin/app-users/:id`
+- `POST /content/admin/app-users/:id/avatar/reset`
+  - Requiere `CONTENT_APP_USERS_UPSTREAM_URL` apuntando al `backendV4` para regenerar un avatar PNG de iniciales compatible con app/web legacy.
 - `DELETE /content/admin/app-users/:id`
   - Hoy responde `501`: el borrado real sigue pendiente porque requiere archivado consistente en `deleted_users` y tablas espejo de progreso.
 
 Campos MVP gestionados en el panel:
 
-- Editables: `first_name`, `last_name`, `name`, `is_active`, `expires_date`, `locale`, `lc`, `birthdate`, `sex`
-- Solo lectura: `id`, `email`, `premium`, `image`, `avatar_file_name`, `section_progress_count`, `test_progress_count`, `created_at`, `updated_at`
+- Editables: `first_name`, `last_name`, `name`, `is_active`, `expires_date`, `locale`, `lc`, `birthdate`, `sex`, `avatar_file_name`
+- Solo lectura: `id`, `email`, `premium`, `image`, `section_progress_count`, `test_progress_count`, `created_at`, `updated_at`
 
 Notas operativas:
 
 - `premium` se deriva de `expires_date`; no hay columna `premium` en la tabla `users`.
 - `email` queda en solo lectura porque la base legacy no garantiza unicidad.
 - `is_active` se mapea a `banneduntil`; al desactivar además se invalida `token`.
+- `avatar_file_name` es editable como source manual; el botón `Reset` genera un PNG de iniciales en S3 vía `backendV4`.
 - El progreso sigue siendo solo lectura y se resume desde `user_actions`.
 
 ## Auth editores (JWT)

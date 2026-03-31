@@ -1787,11 +1787,16 @@ class PageProfile extends HTMLElement {
           updateSaveState();
           return;
         }
-        const placeholder = 'https://s3.amazonaws.com/sk.CursoIngles/no-avatar.gif';
+        const baseAvatar =
+          (resPayload && resPayload.image_url ? String(resPayload.image_url) : '') ||
+          'https://s3.amazonaws.com/sk.CursoIngles/no-avatar.gif';
+        const nextAvatar = `${baseAvatar}${baseAvatar.includes('?') ? '&ts=' : '?ts='}${Date.now()}`;
+        const nextAvatarFileName =
+          resPayload && resPayload.avatar_file_name ? String(resPayload.avatar_file_name) : '';
         const nextUser = {
           ...user,
-          avatar_file_name: '',
-          image: placeholder,
+          avatar_file_name: nextAvatarFileName,
+          image: nextAvatar,
           image_local: '',
           image_path: ''
         };

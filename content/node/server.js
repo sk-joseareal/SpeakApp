@@ -83,6 +83,9 @@ const appUsersUpstreamItemPath =
 const appUsersUpstreamDeletePath =
   String(env('CONTENT_APP_USERS_UPSTREAM_DELETE_PATH', '/app-users/:id') || '').trim() ||
   '/app-users/:id';
+const appUsersUpstreamAvatarResetPath =
+  String(env('CONTENT_APP_USERS_UPSTREAM_AVATAR_RESET_PATH', '/v3/deleteUserImage') || '').trim() ||
+  '/v3/deleteUserImage';
 const appUsersFetchImpl =
   typeof globalThis.fetch === 'function' ? globalThis.fetch.bind(globalThis) : null;
 const appUsersMysqlHost = String(env('CONTENT_APP_USERS_MYSQL_HOST', env('MYSQL_HOST', '')) || '').trim();
@@ -900,6 +903,11 @@ const normalizeAppUsersUpstreamBaseUrl = () => {
 };
 
 const isAppUsersUpstreamConfigured = () => Boolean(normalizeAppUsersUpstreamBaseUrl());
+const isAppUsersAvatarResetConfigured = () =>
+  Boolean(normalizeAppUsersUpstreamBaseUrl()) &&
+  Boolean(asText(appUsersUpstreamAvatarResetPath)) &&
+  Boolean(appUsersUpstreamToken) &&
+  Boolean(appUsersFetchImpl);
 
 const getAppUsersAdminStatus = () => ({
   ...appUsersRepository.getStatus(),
@@ -907,7 +915,10 @@ const getAppUsersAdminStatus = () => ({
   legacy_upstream_base_url: normalizeAppUsersUpstreamBaseUrl(),
   editable_fields: APP_USERS_EDITABLE_FIELDS.slice(),
   readonly_fields: APP_USERS_READONLY_FIELDS.slice(),
-  capabilities: { ...APP_USERS_STATUS_CAPABILITIES },
+  capabilities: {
+    ...APP_USERS_STATUS_CAPABILITIES,
+    avatar_reset: isAppUsersAvatarResetConfigured()
+  },
   contract_version: APP_USERS_CONTRACT_VERSION
 });
 
@@ -2720,6 +2731,45 @@ app.put('/content/admin/app-users/:id', requireAdmin, async (req, res, next) => 
       ok: true,
       user,
       updated_fields: Object.keys(updateBody),
+      status: getAppUsersAdminStatus()
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+app.post('/content/admin/app-users/:id/avatar/reset', requireAdmin, async (req, res, next) => {
+  try {
+    const userId = String(req.params.id || '').trim();
+    if (!userId) {
+      res.status(400).json({ ok: false, error: 'invalid_app_user_id' });
+      return;
+    }
+    if (!isAppUsersAvatarResetConfigured()) {
+      throw buildHttpError(503, 'app_user_avatar_reset_not_configured', {
+        status: getAppUsersAdminStatus()
+      });
+    }
+    const avatarColor = String((req.body && req.body.avatar_color) || '').trim();
+    const upstream = await requestAppUsersUpstream({
+      method: 'POST',
+      pathTemplate: appUsersUpstreamAvatarResetPath,
+      body: {
+        user_id: userId,
+        avatar_color: avatarColor
+      }
+    });
+    const user = await appUsersRepository.getUserById(userId);
+    if (!user) {
+      throw buildHttpError(404, 'app_user_not_found');
+    }
+    writeAuditLog(req, 'app_user.avatar_reset', `app_user:${userId}`, {
+      avatar_color: avatarColor || null
+    });
+    res.json({
+      ok: true,
+      user,
+      upstream,
       status: getAppUsersAdminStatus()
     });
   } catch (err) {

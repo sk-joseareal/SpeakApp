@@ -29,7 +29,8 @@ const APP_USERS_STATUS_CAPABILITIES = {
   delete: false,
   email_editable: false,
   premium_editable: false,
-  force_logout: true
+  force_logout: true,
+  avatar_reset: false
 };
 
 const APP_USERS_CONTRACT_VERSION = 'app-users-rds-2026-03-30';

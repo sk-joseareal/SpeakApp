@@ -237,32 +237,9 @@
     }
     return `https://s3.amazonaws.com/sk.audios.dev/avatars/${safeUserId}/original/${source}`;
   };
-  const pickAvatarInitials = (user) => {
-    const sourceUser = user && typeof user === 'object' ? user : {};
-    const rawName =
-      [asText(sourceUser.first_name), asText(sourceUser.last_name)].filter(Boolean).join(' ') ||
-      asText(sourceUser.name) ||
-      asText(sourceUser.email).split('@')[0];
-    const tokens = rawName
-      .replace(/[_\-.]+/g, ' ')
-      .split(/\s+/)
-      .map((item) => asText(item))
-      .filter(Boolean);
-    if (tokens.length >= 2) {
-      return `${tokens[0][0] || ''}${tokens[1][0] || ''}`.toUpperCase();
-    }
-    if (tokens.length === 1) {
-      return tokens[0].slice(0, 2).toUpperCase();
-    }
-    return 'U';
-  };
-  const buildRandomInitialsAvatarSource = (user) => {
-    const initials = pickAvatarInitials(user);
-    const color =
-      APP_USER_AVATAR_COLORS[Math.floor(Math.random() * APP_USER_AVATAR_COLORS.length)] ||
-      APP_USER_AVATAR_COLORS[0];
-    return `initials:${initials}:${color}`;
-  };
+  const pickRandomAppUserAvatarColor = () =>
+    APP_USER_AVATAR_COLORS[Math.floor(Math.random() * APP_USER_AVATAR_COLORS.length)] ||
+    APP_USER_AVATAR_COLORS[0];
   const roleRank = { editor: 1, publisher: 2, admin: 3 };
   const normalizeRole = (value) => {
     const role = asText(value).toLowerCase();
@@ -1893,6 +1870,7 @@
     const emailEditable = Boolean(capabilities.email_editable);
     const premiumEditable = Boolean(capabilities.premium_editable);
     const deleteEnabled = Boolean(capabilities.delete);
+    const avatarResetEnabled = Boolean(capabilities.avatar_reset);
     [
       el.reloadAppUserBtn,
       el.saveAppUserBtn,
@@ -1913,6 +1891,9 @@
     });
     if (el.deleteAppUserBtn) {
       el.deleteAppUserBtn.disabled = targetState || !deleteEnabled;
+    }
+    if (el.appUserAvatarResetBtn) {
+      el.appUserAvatarResetBtn.disabled = targetState || !avatarResetEnabled;
     }
     if (el.appUserEmailInput) {
       el.appUserEmailInput.disabled = targetState || !emailEditable;
@@ -3036,17 +3017,33 @@
       });
     }
     if (el.appUserAvatarResetBtn) {
-      el.appUserAvatarResetBtn.addEventListener('click', () => {
-        if (!selectedAppUser || !selectedAppUser.id || !el.appUserAvatarFileNameInput) return;
-        const draftUser = {
-          ...selectedAppUser,
-          first_name: asText(el.appUserFirstNameInput && el.appUserFirstNameInput.value) || selectedAppUser.first_name,
-          last_name: asText(el.appUserLastNameInput && el.appUserLastNameInput.value) || selectedAppUser.last_name,
-          name: asText(el.appUserNameInput && el.appUserNameInput.value) || selectedAppUser.name,
-          email: asText(el.appUserEmailInput && el.appUserEmailInput.value) || selectedAppUser.email
-        };
-        el.appUserAvatarFileNameInput.value = buildRandomInitialsAvatarSource(draftUser);
-        updateAppUserAvatarFields(selectedAppUser, { keepSourceInput: true });
+      el.appUserAvatarResetBtn.addEventListener('click', async () => {
+        const userId = asText(selectedAppUserId);
+        const capabilities = getAppUsersCapabilities();
+        if (!userId) {
+          setStatus('Selecciona primero un usuario app.');
+          return;
+        }
+        if (!capabilities.avatar_reset) {
+          setStatus('El reset de avatar no está configurado en este panel.');
+          return;
+        }
+        try {
+          const out = await api(`/content/admin/app-users/${encodeQueryValue(userId)}/avatar/reset`, {
+            method: 'POST',
+            headers: headers(true),
+            body: JSON.stringify({
+              avatar_color: pickRandomAppUserAvatarColor()
+            })
+          });
+          selectedAppUser = out && out.user ? out.user : selectedAppUser;
+          renderSelectedAppUser();
+          renderAppUsersList();
+          setStatus('Avatar regenerado.', out);
+          await loadAppUsers({ silent: true, preserveSelection: true });
+        } catch (err) {
+          setStatus('Error regenerando avatar.', err.response || { error: err.message });
+        }
       });
     }
     el.healthBtn.addEventListener('click', loadHealth);

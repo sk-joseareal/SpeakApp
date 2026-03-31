@@ -9,7 +9,8 @@ const APP_USERS_EDITABLE_FIELDS = [
   'locale',
   'lc',
   'birthdate',
-  'sex'
+  'sex',
+  'avatar_file_name'
 ];
 
 const APP_USERS_READONLY_FIELDS = [
@@ -17,7 +18,6 @@ const APP_USERS_READONLY_FIELDS = [
   'email',
   'premium',
   'image',
-  'avatar_file_name',
   'section_progress_count',
   'test_progress_count',
   'created_at',
@@ -109,6 +109,30 @@ const isFutureDate = (value) => {
 };
 
 const isAbsoluteHttpUrl = (value) => /^https?:\/\//i.test(asText(value));
+const isInlineDataImage = (value) => /^data:image\//i.test(asText(value));
+
+const parseInitialsAvatarSource = (value) => {
+  const source = asText(value);
+  const match = source.match(/^initials:([a-z0-9]{1,3}):([a-f0-9]{6})$/i);
+  if (!match) return null;
+  return {
+    initials: match[1].toUpperCase(),
+    color: match[2].toLowerCase()
+  };
+};
+
+const buildInitialsAvatarUrl = (initials, color) => {
+  const safeInitials = asText(initials).replace(/[^A-Z0-9]/gi, '').toUpperCase().slice(0, 3) || '?';
+  const safeColor = asText(color).replace(/[^a-f0-9]/gi, '').toLowerCase().slice(0, 6).padEnd(6, '7');
+  const fontSize = safeInitials.length >= 3 ? 42 : 54;
+  const svg = [
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">',
+    `<rect width="128" height="128" rx="64" fill="#${safeColor}"/>`,
+    `<text x="50%" y="50%" dominant-baseline="central" text-anchor="middle" fill="#ffffff" font-family="Arial, sans-serif" font-size="${fontSize}" font-weight="700">${safeInitials}</text>`,
+    '</svg>'
+  ].join('');
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+};
 
 const isStoredAvatarFileName = (value) => {
   const file = asText(value);
@@ -119,7 +143,11 @@ const isStoredAvatarFileName = (value) => {
 const getAvatarUrl = (userId, avatarFileName) => {
   const file = asText(avatarFileName);
   if (!file || file === 'no-avatar.gif') return '';
-  if (isAbsoluteHttpUrl(file)) return file;
+  if (isAbsoluteHttpUrl(file) || isInlineDataImage(file)) return file;
+  const initialsAvatar = parseInitialsAvatarSource(file);
+  if (initialsAvatar) {
+    return buildInitialsAvatarUrl(initialsAvatar.initials, initialsAvatar.color);
+  }
   if (!isStoredAvatarFileName(file)) return '';
   if (file.startsWith('image.')) {
     return `https://s3.amazonaws.com/sk.audios.dev/avatars/${userId}/original/${file}`;
@@ -427,6 +455,9 @@ class AppUsersRepository {
         patch.token = '';
         patch.token_expiration = null;
       }
+    }
+    if (Object.prototype.hasOwnProperty.call(input, 'avatar_file_name')) {
+      patch.avatar_file_name = asText(input.avatar_file_name);
     }
 
     const nextFirstName =

@@ -1570,7 +1570,9 @@ class PageProfile extends HTMLElement {
         ...user,
         first_name: firstName,
         last_name: lastName,
-        name: `${firstName} ${lastName}`.trim()
+        name: `${firstName} ${lastName}`.trim(),
+        lc: profileSeed.lc,
+        locale: rawLocaleSetting || user.locale || 'es'
       };
       resetProfileState(nextUser);
       setProfileMessage(profileCopy.profileUpdated || 'Profile updated.', false);

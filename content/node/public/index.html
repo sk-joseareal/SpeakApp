@@ -193,12 +193,15 @@
             </div>
             <div class="row row-wrap gap-sm">
               <label class="field grow">
-                <span>Avatar URL</span>
-                <input id="appUserImageInput" type="text" readonly />
-              </label>
-              <label class="field">
                 <span>Avatar source</span>
-                <input id="appUserAvatarFileNameInput" type="text" readonly />
+                <div class="field-inline">
+                  <input id="appUserAvatarFileNameInput" type="text" autocomplete="off" />
+                  <button id="appUserAvatarResetBtn" type="button" class="btn">Reset</button>
+                </div>
+              </label>
+              <label id="appUserResolvedAvatarField" class="field grow">
+                <span>Resolved avatar</span>
+                <input id="appUserImageInput" type="text" readonly />
               </label>
             </div>
             <div class="row row-wrap gap-sm">

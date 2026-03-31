@@ -2675,8 +2675,29 @@ const getCanonicalAvatarUrlFromFile = (userId, avatarFileName) => {
   const safeAvatarFileName =
     typeof avatarFileName === 'string' ? avatarFileName.trim() : '';
   if (!safeAvatarFileName) return '';
-  if (/^https?:\/\//i.test(safeAvatarFileName)) {
+  if (/^(https?:\/\/|data:image\/)/i.test(safeAvatarFileName)) {
     return safeAvatarFileName;
+  }
+  const initialsMatch = safeAvatarFileName.match(/^initials:([a-z0-9]{1,3}):([a-f0-9]{6})$/i);
+  if (initialsMatch) {
+    let initials = String(initialsMatch[1] || '')
+      .replace(/[^a-z0-9]/gi, '')
+      .toUpperCase()
+      .slice(0, 3);
+    let color = String(initialsMatch[2] || '')
+      .replace(/[^a-f0-9]/gi, '')
+      .toLowerCase()
+      .slice(0, 6);
+    if (!initials) initials = '?';
+    color = color.padEnd(6, '7');
+    const fontSize = initials.length >= 3 ? 42 : 54;
+    const svg = [
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">',
+      `<rect width="128" height="128" rx="64" fill="#${color}"/>`,
+      `<text x="50%" y="50%" dominant-baseline="central" text-anchor="middle" fill="#ffffff" font-family="Arial, sans-serif" font-size="${fontSize}" font-weight="700">${initials}</text>`,
+      '</svg>'
+    ].join('');
+    return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
   }
   if (!safeUserId) return '';
   if (/^avatarv4\./i.test(safeAvatarFileName)) {

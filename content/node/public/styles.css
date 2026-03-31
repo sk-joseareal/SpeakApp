@@ -107,6 +107,22 @@ html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); f
   min-width: 220px;
 }
 
+.field-inline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.field-inline > input {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.field-inline > .btn {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
 .field span { font-size: 12px; color: var(--muted); }
 
 input, textarea {

@@ -72,7 +72,9 @@
     appUserActiveInput: document.getElementById('appUserActiveInput'),
     appUserPremiumInput: document.getElementById('appUserPremiumInput'),
     appUserImageInput: document.getElementById('appUserImageInput'),
+    appUserResolvedAvatarField: document.getElementById('appUserResolvedAvatarField'),
     appUserAvatarFileNameInput: document.getElementById('appUserAvatarFileNameInput'),
+    appUserAvatarResetBtn: document.getElementById('appUserAvatarResetBtn'),
     appUserProgressInput: document.getElementById('appUserProgressInput'),
     appUserUpdatedAtInput: document.getElementById('appUserUpdatedAtInput'),
     statusBox: document.getElementById('statusBox'),
@@ -186,6 +188,81 @@
   let selectedAppUser = null;
 
   const asText = (value) => String(value === undefined || value === null ? '' : value).trim();
+  const APP_USER_AVATAR_PLACEHOLDER = 'https://s3.amazonaws.com/sk.CursoIngles/no-avatar.gif';
+  const APP_USER_AVATAR_COLORS = [
+    '0f766e',
+    '1d4ed8',
+    '7c3aed',
+    'be185d',
+    'c2410c',
+    '15803d',
+    'b45309',
+    '334155'
+  ];
+  const isAvatarDirectUrl = (value) => /^(https?:\/\/|data:image\/)/i.test(asText(value));
+  const isStoredAvatarFileName = (value) => /^[^/?#]+\.[a-z0-9]+$/i.test(asText(value));
+  const parseInitialsAvatarSource = (value) => {
+    const match = asText(value).match(/^initials:([a-z0-9]{1,3}):([a-f0-9]{6})$/i);
+    if (!match) return null;
+    return {
+      initials: match[1].toUpperCase(),
+      color: match[2].toLowerCase()
+    };
+  };
+  const buildInitialsAvatarUrl = (initials, color) => {
+    const safeInitials = asText(initials).replace(/[^a-z0-9]/gi, '').toUpperCase().slice(0, 3) || '?';
+    const safeColor = asText(color).replace(/[^a-f0-9]/gi, '').toLowerCase().slice(0, 6).padEnd(6, '7');
+    const fontSize = safeInitials.length >= 3 ? 42 : 54;
+    const svg = [
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">',
+      `<rect width="128" height="128" rx="64" fill="#${safeColor}"/>`,
+      `<text x="50%" y="50%" dominant-baseline="central" text-anchor="middle" fill="#ffffff" font-family="Arial, sans-serif" font-size="${fontSize}" font-weight="700">${safeInitials}</text>`,
+      '</svg>'
+    ].join('');
+    return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+  };
+  const resolveAvatarSource = (userId, avatarSource) => {
+    const source = asText(avatarSource);
+    if (!source || source === 'no-avatar.gif') return '';
+    if (isAvatarDirectUrl(source)) return source;
+    const generatedAvatar = parseInitialsAvatarSource(source);
+    if (generatedAvatar) {
+      return buildInitialsAvatarUrl(generatedAvatar.initials, generatedAvatar.color);
+    }
+    if (!isStoredAvatarFileName(source)) return '';
+    const safeUserId = asText(userId);
+    if (!safeUserId) return '';
+    if (/^avatarv4\./i.test(source)) {
+      return `https://s3.amazonaws.com/sk.assets/avatars/${safeUserId}/${source}`;
+    }
+    return `https://s3.amazonaws.com/sk.audios.dev/avatars/${safeUserId}/original/${source}`;
+  };
+  const pickAvatarInitials = (user) => {
+    const sourceUser = user && typeof user === 'object' ? user : {};
+    const rawName =
+      [asText(sourceUser.first_name), asText(sourceUser.last_name)].filter(Boolean).join(' ') ||
+      asText(sourceUser.name) ||
+      asText(sourceUser.email).split('@')[0];
+    const tokens = rawName
+      .replace(/[_\-.]+/g, ' ')
+      .split(/\s+/)
+      .map((item) => asText(item))
+      .filter(Boolean);
+    if (tokens.length >= 2) {
+      return `${tokens[0][0] || ''}${tokens[1][0] || ''}`.toUpperCase();
+    }
+    if (tokens.length === 1) {
+      return tokens[0].slice(0, 2).toUpperCase();
+    }
+    return 'U';
+  };
+  const buildRandomInitialsAvatarSource = (user) => {
+    const initials = pickAvatarInitials(user);
+    const color =
+      APP_USER_AVATAR_COLORS[Math.floor(Math.random() * APP_USER_AVATAR_COLORS.length)] ||
+      APP_USER_AVATAR_COLORS[0];
+    return `initials:${initials}:${color}`;
+  };
   const roleRank = { editor: 1, publisher: 2, admin: 3 };
   const normalizeRole = (value) => {
     const role = asText(value).toLowerCase();
@@ -1827,7 +1904,9 @@
       el.appUserBirthdateInput,
       el.appUserSexInput,
       el.appUserExpiresDateInput,
-      el.appUserActiveInput
+      el.appUserActiveInput,
+      el.appUserAvatarFileNameInput,
+      el.appUserAvatarResetBtn
     ].forEach((node) => {
       if (!node) return;
       node.disabled = targetState;
@@ -1917,6 +1996,29 @@
     });
   };
 
+  const updateAppUserAvatarFields = (user, { keepSourceInput = false } = {}) => {
+    const sourceUser = user && typeof user === 'object' ? user : {};
+    const source = keepSourceInput
+      ? asText(el.appUserAvatarFileNameInput && el.appUserAvatarFileNameInput.value)
+      : asText(sourceUser.avatar_file_name);
+    const resolved = resolveAvatarSource(sourceUser.id, source);
+    const showResolved = Boolean(resolved && resolved !== source && !/^data:image\//i.test(resolved));
+
+    if (!keepSourceInput) {
+      clearInputValue(el.appUserAvatarFileNameInput, source);
+    }
+    clearInputValue(el.appUserImageInput, showResolved ? resolved : '');
+    if (el.appUserResolvedAvatarField) {
+      el.appUserResolvedAvatarField.hidden = !showResolved;
+    }
+    if (el.appUserAvatarPreview) {
+      const previewUrl = resolved || APP_USER_AVATAR_PLACEHOLDER;
+      el.appUserAvatarPreview.src = previewUrl;
+      el.appUserAvatarPreview.alt = sourceUser.name || sourceUser.email || 'Avatar';
+      el.appUserAvatarPreview.classList.toggle('is-empty', !resolved);
+    }
+  };
+
   const renderSelectedAppUser = () => {
     const user = selectedAppUser;
     const hasUser = Boolean(user && user.id);
@@ -1940,6 +2042,9 @@
       el.appUserAvatarPreview.removeAttribute('src');
       el.appUserAvatarPreview.alt = '';
       el.appUserAvatarPreview.classList.toggle('is-empty', true);
+    }
+    if (el.appUserResolvedAvatarField) {
+      el.appUserResolvedAvatarField.hidden = true;
     }
     if (el.appUserIdentity) {
       el.appUserIdentity.textContent = 'Sin usuario seleccionado.';
@@ -1965,8 +2070,6 @@
     clearInputValue(el.appUserBirthdateInput, formatDateFieldValue(user.birthdate));
     clearInputValue(el.appUserSexInput, asText(user.sex));
     clearInputValue(el.appUserExpiresDateInput, formatDateFieldValue(user.expires_date));
-    clearInputValue(el.appUserImageInput, asText(user.image));
-    clearInputValue(el.appUserAvatarFileNameInput, asText(user.avatar_file_name));
     clearInputValue(
       el.appUserProgressInput,
       `sections ${Number(user.section_progress_count) || 0} · tests ${Number(user.test_progress_count) || 0}`
@@ -1985,16 +2088,7 @@
       ].filter(Boolean);
       el.appUserReadonlyMeta.textContent = segments.join(' · ');
     }
-    if (el.appUserAvatarPreview) {
-      const image = asText(user.image);
-      if (image) {
-        el.appUserAvatarPreview.src = image;
-      } else {
-        el.appUserAvatarPreview.removeAttribute('src');
-      }
-      el.appUserAvatarPreview.alt = image ? `Avatar ${user.name || user.email || user.id}` : '';
-      el.appUserAvatarPreview.classList.toggle('is-empty', !image);
-    }
+    updateAppUserAvatarFields(user);
   };
 
   const refreshAppUsersStatus = async ({ silent = false } = {}) => {
@@ -2132,7 +2226,8 @@
       expires_date: formatDateFieldValue(
         el.appUserExpiresDateInput && el.appUserExpiresDateInput.value
       ),
-      is_active: Boolean(el.appUserActiveInput && el.appUserActiveInput.checked)
+      is_active: Boolean(el.appUserActiveInput && el.appUserActiveInput.checked),
+      avatar_file_name: asText(el.appUserAvatarFileNameInput && el.appUserAvatarFileNameInput.value)
     };
   };
 
@@ -2934,6 +3029,25 @@
     }
     if (el.deleteAppUserBtn) {
       el.deleteAppUserBtn.addEventListener('click', deleteSelectedAppUser);
+    }
+    if (el.appUserAvatarFileNameInput) {
+      el.appUserAvatarFileNameInput.addEventListener('input', () => {
+        updateAppUserAvatarFields(selectedAppUser, { keepSourceInput: true });
+      });
+    }
+    if (el.appUserAvatarResetBtn) {
+      el.appUserAvatarResetBtn.addEventListener('click', () => {
+        if (!selectedAppUser || !selectedAppUser.id || !el.appUserAvatarFileNameInput) return;
+        const draftUser = {
+          ...selectedAppUser,
+          first_name: asText(el.appUserFirstNameInput && el.appUserFirstNameInput.value) || selectedAppUser.first_name,
+          last_name: asText(el.appUserLastNameInput && el.appUserLastNameInput.value) || selectedAppUser.last_name,
+          name: asText(el.appUserNameInput && el.appUserNameInput.value) || selectedAppUser.name,
+          email: asText(el.appUserEmailInput && el.appUserEmailInput.value) || selectedAppUser.email
+        };
+        el.appUserAvatarFileNameInput.value = buildRandomInitialsAvatarSource(draftUser);
+        updateAppUserAvatarFields(selectedAppUser, { keepSourceInput: true });
+      });
     }
     el.healthBtn.addEventListener('click', loadHealth);
     el.loadDraftBtn.addEventListener('click', loadDraft);

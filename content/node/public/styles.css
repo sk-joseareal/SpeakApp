@@ -440,14 +440,7 @@ h2 {
   align-items: stretch;
 }
 
-.app-users-grid {
-  align-items: start;
-}
-
-.app-users-grid > article:first-child {
-  position: sticky;
-  top: 10px;
-  max-height: 80vh;
+.app-users-grid > article {
   display: flex;
   flex-direction: column;
 }

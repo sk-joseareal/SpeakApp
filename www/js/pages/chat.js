@@ -1,4 +1,4 @@
-import { getAppLocale, setAppLocale } from '../state.js';
+import { getAppLocale, setAppLocale, getActiveLocale, setLocaleOverride } from '../state.js';
 import { renderAppHeader } from '../components/app-header.js';
 import { getChatCopy, getNextLocaleCode, getTabsCopy, normalizeLocale as normalizeCopyLocale } from '../content/copy.js';
 
@@ -8142,8 +8142,8 @@ class PageChat extends HTMLElement {
     window.r34lp0w3r.chatChatbotEnabled = chatbotFeatureEnabled;
     applyLocaleCopy(uiLocale, { force: true, rerenderThread: false });
     this.querySelector('.app-locale-btn')?.addEventListener('click', () => {
-      const nextLocale = getNextLocaleCode(getAppLocale() || 'en');
-      setAppLocale(nextLocale);
+      const nextLocale = getNextLocaleCode(getActiveLocale() || 'en');
+      setLocaleOverride(nextLocale);
       if (window.varGlobal && typeof window.varGlobal === 'object') {
         window.varGlobal.locale = nextLocale;
       }

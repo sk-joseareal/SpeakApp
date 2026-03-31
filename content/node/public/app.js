@@ -69,8 +69,7 @@
     appUserBirthdateInput: document.getElementById('appUserBirthdateInput'),
     appUserSexInput: document.getElementById('appUserSexInput'),
     appUserExpiresDateInput: document.getElementById('appUserExpiresDateInput'),
-    appUserActiveInput: document.getElementById('appUserActiveInput'),
-    appUserPremiumInput: document.getElementById('appUserPremiumInput'),
+    appUserExpiresDateLabel: document.getElementById('appUserExpiresDateLabel'),
     appUserImageInput: document.getElementById('appUserImageInput'),
     appUserResolvedAvatarField: document.getElementById('appUserResolvedAvatarField'),
     appUserAvatarFileNameInput: document.getElementById('appUserAvatarFileNameInput'),
@@ -1881,7 +1880,6 @@
       el.appUserBirthdateInput,
       el.appUserSexInput,
       el.appUserExpiresDateInput,
-      el.appUserActiveInput,
       el.appUserAvatarFileNameInput,
       el.appUserAvatarResetBtn
     ].forEach((node) => {
@@ -1896,9 +1894,6 @@
     }
     if (el.appUserEmailInput) {
       el.appUserEmailInput.disabled = targetState || !emailEditable;
-    }
-    if (el.appUserPremiumInput) {
-      el.appUserPremiumInput.disabled = targetState || !premiumEditable;
     }
   };
 
@@ -2010,8 +2005,9 @@
     clearInputValue(el.appUserEmailInput);
     clearInputValue(el.appUserFirstNameInput);
     clearInputValue(el.appUserLastNameInput);
-    clearInputValue(el.appUserLocaleInput);
-    clearInputValue(el.appUserLcInput);
+    if (el.appUserLocaleInput) el.appUserLocaleInput.value = '';
+    if (el.appUserLcInput) el.appUserLcInput.value = '';
+    if (el.appUserExpiresDateLabel) el.appUserExpiresDateLabel.textContent = 'Expires date';
     clearInputValue(el.appUserBirthdateInput);
     clearInputValue(el.appUserSexInput);
     clearInputValue(el.appUserExpiresDateInput);
@@ -2019,8 +2015,6 @@
     clearInputValue(el.appUserAvatarFileNameInput);
     clearInputValue(el.appUserProgressInput);
     clearInputValue(el.appUserUpdatedAtInput);
-    if (el.appUserActiveInput) el.appUserActiveInput.checked = false;
-    if (el.appUserPremiumInput) el.appUserPremiumInput.checked = false;
     if (el.appUserAvatarPreview) {
       el.appUserAvatarPreview.removeAttribute('src');
       el.appUserAvatarPreview.alt = '';
@@ -2047,18 +2041,36 @@
     clearInputValue(el.appUserEmailInput, asText(user.email));
     clearInputValue(el.appUserFirstNameInput, asText(user.first_name));
     clearInputValue(el.appUserLastNameInput, asText(user.last_name));
-    clearInputValue(el.appUserLocaleInput, asText(user.locale));
-    clearInputValue(el.appUserLcInput, asText(user.lc));
+    if (el.appUserLocaleInput) el.appUserLocaleInput.value = asText(user.locale) || '';
+    if (el.appUserLcInput) el.appUserLcInput.value = asText(user.lc) || '';
     clearInputValue(el.appUserBirthdateInput, formatDateFieldValue(user.birthdate));
     clearInputValue(el.appUserSexInput, asText(user.sex));
     clearInputValue(el.appUserExpiresDateInput, formatDateFieldValue(user.expires_date));
+    if (el.appUserExpiresDateLabel) {
+      const expiresRaw = asText(user.expires_date);
+      const isPremium = Boolean(user.premium);
+      let labelText = 'Expires date';
+      let labelSuffix = '';
+      let suffixColor = '';
+      if (isPremium && expiresRaw) {
+        const isExpired = new Date(expiresRaw) < new Date();
+        if (isExpired) {
+          labelSuffix = '(expired)';
+          suffixColor = '#c0392b';
+        } else {
+          labelSuffix = '(premium)';
+          suffixColor = '#27ae60';
+        }
+      }
+      el.appUserExpiresDateLabel.innerHTML = suffixColor
+        ? `${labelText} <span style="color:${suffixColor};font-weight:600">${labelSuffix}</span>`
+        : labelText;
+    }
     clearInputValue(
       el.appUserProgressInput,
       `sections ${Number(user.section_progress_count) || 0} · tests ${Number(user.test_progress_count) || 0}`
     );
     clearInputValue(el.appUserUpdatedAtInput, asText(user.updated_at || user.created_at));
-    if (el.appUserActiveInput) el.appUserActiveInput.checked = Boolean(user.is_active);
-    if (el.appUserPremiumInput) el.appUserPremiumInput.checked = Boolean(user.premium);
     if (el.appUserIdentity) {
       const derivedName = [user.first_name, user.last_name].filter(Boolean).join(' ') || user.name;
       el.appUserIdentity.textContent = derivedName || user.email || `user:${user.id}`;
@@ -2207,7 +2219,6 @@
       expires_date: formatDateFieldValue(
         el.appUserExpiresDateInput && el.appUserExpiresDateInput.value
       ),
-      is_active: Boolean(el.appUserActiveInput && el.appUserActiveInput.checked),
       avatar_file_name: asText(el.appUserAvatarFileNameInput && el.appUserAvatarFileNameInput.value)
     };
   };

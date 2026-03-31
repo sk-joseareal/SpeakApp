@@ -1,4 +1,4 @@
-import { getAppLocale, setAppLocale } from '../state.js';
+import { getAppLocale, setAppLocale, getActiveLocale, getLocaleOverride, setLocaleOverride, clearLocaleOverride } from '../state.js';
 import { renderAppHeader } from '../components/app-header.js';
 import { ensureTrainingData, getRoutes, setSelection } from '../data/training-data.js';
 import { ensureReferenceData, getLocalizedMapField, getReferenceCourses } from '../data/reference-data.js';
@@ -23,7 +23,16 @@ class PageProfile extends HTMLElement {
       this.reviewTone = storedTone === 'okay' ? 'okay' : 'bad';
     }
     this.render();
-    this._userHandler = () => this.render();
+    this._userHandler = (e) => {
+      const u = e && e.detail && typeof e.detail === 'object' ? e.detail : null;
+      if (u && u.locale && !getLocaleOverride()) {
+        setAppLocale(u.locale);
+        if (window.varGlobal && typeof window.varGlobal === 'object') {
+          window.varGlobal.locale = u.locale;
+        }
+      }
+      this.render();
+    };
     this._storesHandler = () => this.render();
     this._localeHandler = () => this.render();
     window.addEventListener('app:user-change', this._userHandler);
@@ -158,7 +167,7 @@ class PageProfile extends HTMLElement {
       window.r34lp0w3r && window.r34lp0w3r.speakPhraseScores ? window.r34lp0w3r.speakPhraseScores : {};
     const user = window.user;
     const rawLocaleSetting = resolveLocale(
-      getAppLocale() || (window.varGlobal && window.varGlobal.locale) || 'es',
+      getActiveLocale() || (window.varGlobal && window.varGlobal.locale) || 'es',
       'es'
     );
     const tabsCopy = getTabsCopy(rawLocaleSetting);
@@ -1077,6 +1086,15 @@ class PageProfile extends HTMLElement {
                   </div>
                   <div class="profile-form-row">
                     <label class="profile-field">
+                      <span class="profile-label">${escapeHtml(profileCopy.interfaceLanguage || 'Interface language')}</span>
+                      <select class="profile-input" id="profile-locale">
+                        <option value="es"${(user && user.locale || rawLocaleSetting) === 'es' ? ' selected' : ''}>ES</option>
+                        <option value="en"${(user && user.locale || rawLocaleSetting) === 'en' ? ' selected' : ''}>EN</option>
+                      </select>
+                    </label>
+                  </div>
+                  <div class="profile-form-row">
+                    <label class="profile-field">
                       <span class="profile-label">${escapeHtml(profileCopy.email || 'Email')}</span>
                       <input
                         class="profile-input"
@@ -1379,8 +1397,8 @@ class PageProfile extends HTMLElement {
 
 
     this.querySelector('.app-locale-btn')?.addEventListener('click', () => {
-      const nextLocale = getNextLocaleCode(getAppLocale() || 'en');
-      setAppLocale(nextLocale);
+      const nextLocale = getNextLocaleCode(getActiveLocale() || 'en');
+      setLocaleOverride(nextLocale);
       if (window.varGlobal && typeof window.varGlobal === 'object') {
         window.varGlobal.locale = nextLocale;
       }
@@ -1542,6 +1560,8 @@ class PageProfile extends HTMLElement {
       updateSaveState();
       const firstName = String(profileState.first_name || '').trim();
       const lastName = String(profileState.last_name || '').trim();
+      const profileLocaleEl = this.querySelector('#profile-locale');
+      const chosenLocale = profileLocaleEl ? profileLocaleEl.value : (rawLocaleSetting || 'es');
       const payload = {
         first_name: firstName,
         last_name: lastName,
@@ -1549,7 +1569,7 @@ class PageProfile extends HTMLElement {
         birthdate: profileSeed.birthdate || '1901-01-01',
         sex: profileSeed.sex,
         lc: profileSeed.lc,
-        locale: rawLocaleSetting || 'es'
+        locale: chosenLocale
       };
       if (profileState.password) {
         payload.password = String(profileState.password);
@@ -1566,13 +1586,18 @@ class PageProfile extends HTMLElement {
         updateSaveState();
         return;
       }
+      setAppLocale(chosenLocale);
+      clearLocaleOverride();
+      if (window.varGlobal && typeof window.varGlobal === 'object') {
+        window.varGlobal.locale = chosenLocale;
+      }
       const nextUser = {
         ...user,
         first_name: firstName,
         last_name: lastName,
         name: `${firstName} ${lastName}`.trim(),
         lc: profileSeed.lc,
-        locale: rawLocaleSetting || user.locale || 'es'
+        locale: chosenLocale
       };
       resetProfileState(nextUser);
       setProfileMessage(profileCopy.profileUpdated || 'Profile updated.', false);

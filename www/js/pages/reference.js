@@ -1,4 +1,4 @@
-import { getAppLocale, setAppLocale } from '../state.js';
+import { getAppLocale, setAppLocale, getActiveLocale, setLocaleOverride } from '../state.js';
 import { renderAppHeader } from '../components/app-header.js';
 import { addNotification } from '../notifications-store.js';
 import {
@@ -3453,8 +3453,8 @@ class PageReference extends HTMLElement {
       `;
 
       this.querySelector('.app-locale-btn')?.addEventListener('click', () => {
-        const nextLocale = getNextLocaleCode(getAppLocale() || 'en');
-        setAppLocale(nextLocale);
+        const nextLocale = getNextLocaleCode(getActiveLocale() || 'en');
+        setLocaleOverride(nextLocale);
         if (window.varGlobal && typeof window.varGlobal === 'object') {
           window.varGlobal.locale = nextLocale;
         }

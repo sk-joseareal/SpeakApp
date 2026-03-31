@@ -18,6 +18,18 @@ export const setAppLocale = (locale) => {
   localStorage.setItem(APP_LOCALE_KEY, normalized);
 };
 
+// Session-only locale override — does not persist across reloads.
+let _localeOverride = '';
+export const getLocaleOverride = () => _localeOverride;
+export const setLocaleOverride = (locale) => {
+  const normalized = String(locale || '').trim().toLowerCase();
+  _localeOverride = ALLOWED_LOCALES.has(normalized) ? normalized : '';
+};
+export const clearLocaleOverride = () => { _localeOverride = ''; };
+
+// Returns override if set, otherwise the persisted locale.
+export const getActiveLocale = () => _localeOverride || getAppLocale();
+
 export const hasLoginTabsLock = () => localStorage.getItem(LOGIN_TABS_LOCK_KEY) === 'yes';
 export const setLoginTabsLock = () => localStorage.setItem(LOGIN_TABS_LOCK_KEY, 'yes');
 export const clearLoginTabsLock = () => localStorage.removeItem(LOGIN_TABS_LOCK_KEY);

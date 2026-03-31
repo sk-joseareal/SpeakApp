@@ -17,7 +17,7 @@ import {
   resolveLocale as resolveCopyLocale
 } from '../content/copy.js';
 import { renderAppHeader } from '../components/app-header.js';
-import { getAppLocale, setAppLocale } from '../state.js';
+import { getAppLocale, setAppLocale, getActiveLocale, setLocaleOverride } from '../state.js';
 import { addNotification } from '../notifications-store.js';
 import { goToHome } from '../nav.js';
 
@@ -4464,8 +4464,8 @@ class PageSpeak extends HTMLElement {
 
     const localeBtnEl = this.querySelector('.app-locale-btn');
     const handleLocaleBtn = () => {
-      const nextLocale = getNextLocaleCode(getAppLocale() || 'en');
-      setAppLocale(nextLocale);
+      const nextLocale = getNextLocaleCode(getActiveLocale() || 'en');
+      setLocaleOverride(nextLocale);
       if (window.varGlobal && typeof window.varGlobal === 'object') window.varGlobal.locale = nextLocale;
       window.dispatchEvent(new CustomEvent('app:locale-change', { detail: { locale: nextLocale } }));
       const localeLabelEl = localeBtnEl?.querySelector('.app-locale-label');

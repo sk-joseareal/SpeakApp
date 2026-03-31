@@ -905,7 +905,7 @@ const normalizeAppUsersUpstreamBaseUrl = () => {
 const isAppUsersUpstreamConfigured = () => Boolean(normalizeAppUsersUpstreamBaseUrl());
 const isAppUsersAvatarResetConfigured = () =>
   Boolean(normalizeAppUsersUpstreamBaseUrl()) &&
-  Boolean(asText(appUsersUpstreamAvatarResetPath)) &&
+  Boolean(String(appUsersUpstreamAvatarResetPath || '').trim()) &&
   Boolean(appUsersUpstreamToken) &&
   Boolean(appUsersFetchImpl);
 

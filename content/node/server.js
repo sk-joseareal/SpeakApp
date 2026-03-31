@@ -908,6 +908,11 @@ const isAppUsersAvatarResetConfigured = () =>
   Boolean(String(appUsersUpstreamAvatarResetPath || '').trim()) &&
   Boolean(appUsersUpstreamToken) &&
   Boolean(appUsersFetchImpl);
+const isAppUsersDeleteConfigured = () =>
+  Boolean(normalizeAppUsersUpstreamBaseUrl()) &&
+  Boolean(String(appUsersUpstreamDeletePath || '').trim()) &&
+  Boolean(appUsersUpstreamToken) &&
+  Boolean(appUsersFetchImpl);
 
 const getAppUsersAdminStatus = () => ({
   ...appUsersRepository.getStatus(),
@@ -917,6 +922,7 @@ const getAppUsersAdminStatus = () => ({
   readonly_fields: APP_USERS_READONLY_FIELDS.slice(),
   capabilities: {
     ...APP_USERS_STATUS_CAPABILITIES,
+    delete: isAppUsersDeleteConfigured(),
     avatar_reset: isAppUsersAvatarResetConfigured()
   },
   contract_version: APP_USERS_CONTRACT_VERSION
@@ -2784,9 +2790,23 @@ app.delete('/content/admin/app-users/:id', requireAdmin, async (req, res, next) 
       res.status(400).json({ ok: false, error: 'invalid_app_user_id' });
       return;
     }
-    throw buildHttpError(501, 'app_user_delete_not_supported_yet', {
-      status: getAppUsersAdminStatus()
+    if (!isAppUsersDeleteConfigured()) {
+      throw buildHttpError(503, 'app_user_delete_not_configured', {
+        status: getAppUsersAdminStatus()
+      });
+    }
+    const upstream = await requestAppUsersUpstream({
+      method: 'POST',
+      pathTemplate: appUsersUpstreamDeletePath,
+      body: { user_id: userId }
     });
+    if (!upstream || !upstream.deleted) {
+      throw buildHttpError(502, upstream && upstream.error ? upstream.error : 'app_user_delete_upstream_failed', {
+        upstream
+      });
+    }
+    writeAuditLog(req, 'app_user.delete', `app_user:${userId}`, { user_id: userId });
+    res.json({ ok: true, deleted: true, user_id: userId, upstream, status: getAppUsersAdminStatus() });
   } catch (err) {
     next(err);
   }

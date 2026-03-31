@@ -440,16 +440,20 @@ h2 {
   align-items: stretch;
 }
 
-.app-users-grid > article {
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
+.app-users-grid {
+  align-items: start;
 }
 
-.app-users-grid > article .entity-list {
+.app-users-grid > article:first-child {
+  position: sticky;
+  top: 10px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-users-grid > article:first-child .entity-list {
   flex: 1;
-  min-height: 0;
-  height: 0;
   max-height: none;
   overflow-y: auto;
 }

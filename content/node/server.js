@@ -2798,6 +2798,7 @@ app.delete('/content/admin/app-users/:id', requireAdmin, async (req, res, next) 
     const upstream = await requestAppUsersUpstream({
       method: 'POST',
       pathTemplate: appUsersUpstreamDeletePath,
+      params: { id: userId },
       body: { user_id: userId }
     });
     if (!upstream || !upstream.deleted) {

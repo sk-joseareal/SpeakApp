@@ -1727,15 +1727,14 @@ class PageProfile extends HTMLElement {
         if (typeof refreshUserAvatarLocal === 'function') {
           refreshUserAvatarLocal(nextUser, { force: true });
         }
+        this.profileSavePending = false;
         resetProfileState(nextUser);
         setProfileMessage(profileCopy.avatarUpdated || 'Avatar updated.', false);
         updateLocalUser(nextUser);
       } catch (err) {
         console.error('[profile] error subiendo avatar', err);
-        setProfileMessage(profileCopy.avatarUploadFailed || 'Could not upload avatar.', true);
-      } finally {
         this.profileSavePending = false;
-        updateSaveState();
+        setProfileMessage(profileCopy.avatarUploadFailed || 'Could not upload avatar.', true);
       }
     };
 
@@ -1801,15 +1800,14 @@ class PageProfile extends HTMLElement {
           image_path: ''
         };
         await clearLocalAvatar(nextUser);
+        this.profileSavePending = false;
         resetProfileState(nextUser);
         setProfileMessage(profileCopy.avatarDeleted || 'Avatar deleted.', false);
         updateLocalUser(nextUser);
       } catch (err) {
         console.error('[profile] error eliminando avatar', err);
-        setProfileMessage(profileCopy.avatarDeleteFailed || 'Could not delete avatar.', true);
-      } finally {
         this.profileSavePending = false;
-        updateSaveState();
+        setProfileMessage(profileCopy.avatarDeleteFailed || 'Could not delete avatar.', true);
       }
     };
 

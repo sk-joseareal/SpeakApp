@@ -95,6 +95,18 @@ const appUsersUpstreamProgressPath =
 const appUsersUpstreamTrainingResetPath =
   String(env('CONTENT_APP_USERS_UPSTREAM_TRAINING_RESET_PATH', '/v3/admin/userProgress/:id/training') || '').trim() ||
   '/v3/admin/userProgress/:id/training';
+const appUsersUpstreamTrainingStatePath =
+  String(env('CONTENT_APP_USERS_UPSTREAM_TRAINING_STATE_PATH', '/v3/admin/userProgress/:id/training/state') || '').trim() ||
+  '/v3/admin/userProgress/:id/training/state';
+const appUsersUpstreamReferenceStructurePath =
+  String(env('CONTENT_APP_USERS_UPSTREAM_REFERENCE_STRUCTURE_PATH', '/v3/admin/referenceStructure') || '').trim() ||
+  '/v3/admin/referenceStructure';
+const appUsersUpstreamReferenceSectionPath =
+  String(env('CONTENT_APP_USERS_UPSTREAM_REFERENCE_SECTION_PATH', '/v3/admin/userProgress/:id/reference/section') || '').trim() ||
+  '/v3/admin/userProgress/:id/reference/section';
+const appUsersUpstreamReferenceTestPath =
+  String(env('CONTENT_APP_USERS_UPSTREAM_REFERENCE_TEST_PATH', '/v3/admin/userProgress/:id/reference/test') || '').trim() ||
+  '/v3/admin/userProgress/:id/reference/test';
 const appUsersFetchImpl =
   typeof globalThis.fetch === 'function' ? globalThis.fetch.bind(globalThis) : null;
 const appUsersMysqlHost = String(env('CONTENT_APP_USERS_MYSQL_HOST', env('MYSQL_HOST', '')) || '').trim();
@@ -371,6 +383,7 @@ app.use(
 app.use(express.json({ limit: '25mb' }));
 app.use(express.urlencoded({ extended: true, limit: '5mb' }));
 const dashboardDir = path.join(__dirname, 'public');
+const wwwDataDir = path.join(__dirname, '..', '..', 'www', 'js', 'data');
 if (fs.existsSync(dashboardDir)) {
   app.use('/dashboard', express.static(dashboardDir, { redirect: false }));
   app.get('/favicon.ico', (req, res) => {
@@ -391,6 +404,14 @@ if (fs.existsSync(dashboardDir)) {
   app.get('/', (req, res) => {
     res.sendFile(path.join(dashboardDir, 'index.html'));
   });
+  if (fs.existsSync(wwwDataDir)) {
+    app.get('/content/data/reference-data.json', (req, res) => {
+      res.sendFile(path.join(wwwDataDir, 'reference-data.json'));
+    });
+    app.get('/content/data/training-data.json', (req, res) => {
+      res.sendFile(path.join(wwwDataDir, 'training-data.json'));
+    });
+  }
 }
 
 const nowIso = () => new Date().toISOString();
@@ -2863,6 +2884,99 @@ app.delete('/content/admin/app-users/:id/progress/training', requireAdmin, async
       params: { id: userId }
     });
     writeAuditLog(req, 'app_user.training_reset', `app_user:${userId}`, {});
+    res.json({ ok: true, upstream });
+  } catch (err) {
+    next(err);
+  }
+});
+
+app.get('/content/admin/app-users/:id/progress/training/state', requireAdmin, async (req, res, next) => {
+  try {
+    const userId = String(req.params.id || '').trim();
+    if (!userId) { res.status(400).json({ ok: false, error: 'invalid_app_user_id' }); return; }
+    if (!isAppUsersProgressConfigured()) {
+      throw buildHttpError(503, 'app_user_progress_not_configured', { status: getAppUsersAdminStatus() });
+    }
+    const upstream = await requestAppUsersUpstream({
+      method: 'GET',
+      pathTemplate: appUsersUpstreamTrainingStatePath,
+      params: { id: userId }
+    });
+    res.json({ ok: true, ...upstream });
+  } catch (err) {
+    next(err);
+  }
+});
+
+app.post('/content/admin/app-users/:id/progress/training/state', requireAdmin, async (req, res, next) => {
+  try {
+    const userId = String(req.params.id || '').trim();
+    if (!userId) { res.status(400).json({ ok: false, error: 'invalid_app_user_id' }); return; }
+    if (!isAppUsersProgressConfigured()) {
+      throw buildHttpError(503, 'app_user_progress_not_configured', { status: getAppUsersAdminStatus() });
+    }
+    const upstream = await requestAppUsersUpstream({
+      method: 'POST',
+      pathTemplate: appUsersUpstreamTrainingStatePath,
+      params: { id: userId },
+      body: req.body
+    });
+    writeAuditLog(req, 'app_user.training_state_update', `app_user:${userId}`, req.body);
+    res.json({ ok: true, upstream });
+  } catch (err) {
+    next(err);
+  }
+});
+
+app.get('/content/admin/reference-structure', requireAdmin, async (req, res, next) => {
+  try {
+    if (!isAppUsersProgressConfigured()) {
+      throw buildHttpError(503, 'app_user_progress_not_configured', { status: getAppUsersAdminStatus() });
+    }
+    const upstream = await requestAppUsersUpstream({
+      method: 'GET',
+      pathTemplate: appUsersUpstreamReferenceStructurePath
+    });
+    res.json({ ok: true, ...upstream });
+  } catch (err) {
+    next(err);
+  }
+});
+
+app.post('/content/admin/app-users/:id/progress/reference/section', requireAdmin, async (req, res, next) => {
+  try {
+    const userId = String(req.params.id || '').trim();
+    if (!userId) { res.status(400).json({ ok: false, error: 'invalid_app_user_id' }); return; }
+    if (!isAppUsersProgressConfigured()) {
+      throw buildHttpError(503, 'app_user_progress_not_configured', { status: getAppUsersAdminStatus() });
+    }
+    const upstream = await requestAppUsersUpstream({
+      method: 'POST',
+      pathTemplate: appUsersUpstreamReferenceSectionPath,
+      params: { id: userId },
+      body: req.body
+    });
+    writeAuditLog(req, 'app_user.reference_section_update', `app_user:${userId}`, req.body);
+    res.json({ ok: true, upstream });
+  } catch (err) {
+    next(err);
+  }
+});
+
+app.post('/content/admin/app-users/:id/progress/reference/test', requireAdmin, async (req, res, next) => {
+  try {
+    const userId = String(req.params.id || '').trim();
+    if (!userId) { res.status(400).json({ ok: false, error: 'invalid_app_user_id' }); return; }
+    if (!isAppUsersProgressConfigured()) {
+      throw buildHttpError(503, 'app_user_progress_not_configured', { status: getAppUsersAdminStatus() });
+    }
+    const upstream = await requestAppUsersUpstream({
+      method: 'POST',
+      pathTemplate: appUsersUpstreamReferenceTestPath,
+      params: { id: userId },
+      body: req.body
+    });
+    writeAuditLog(req, 'app_user.reference_test_update', `app_user:${userId}`, req.body);
     res.json({ ok: true, upstream });
   } catch (err) {
     next(err);

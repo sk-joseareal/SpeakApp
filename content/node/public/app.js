@@ -2037,87 +2037,256 @@
   // Progress panels state
   let progressPanelOpen = { reference: false, training: false };
   let progressData = null;
+  let trainingState = null;
+  let referenceStructure = null;
+  let trainingStructure = null;
 
   const renderReferenceProgress = (data) => {
     if (!el.referenceProgressContent) return;
-    if (!data) {
+    if (!data || !referenceStructure) {
       el.referenceProgressContent.innerHTML = '<span class="hint">No hay datos de progreso.</span>';
       return;
     }
     const sectionProgress = data.section_progress || {};
     const testProgress = data.test_progress || {};
-    const lessonProgress = data.lesson_progress || {};
-    const sectionCount = Object.keys(sectionProgress).length;
-    const testCount = Object.keys(testProgress).length;
-    const testPassed = Object.values(testProgress).filter(v => v === 1).length;
-    const testFailed = Object.values(testProgress).filter(v => v === 2).length;
+    const userId = asText(selectedAppUserId);
 
-    el.referenceProgressContent.innerHTML = `
-      <table class="progress-table">
-        <tbody>
-          <tr><td class="progress-label">Secciones vistas</td><td class="progress-value">${sectionCount}</td></tr>
-          <tr><td class="progress-label">Tests realizados</td><td class="progress-value">${testCount}</td></tr>
-          <tr><td class="progress-label">Tests superados</td><td class="progress-value progress-good">${testPassed}</td></tr>
-          <tr><td class="progress-label">Tests fallados</td><td class="progress-value progress-bad">${testFailed}</td></tr>
-        </tbody>
-      </table>
-      <details class="progress-details top-sm">
-        <summary>Ver detalle por lección</summary>
-        <table class="progress-table top-sm">
-          <thead><tr><th>Lección ID</th><th>Secciones</th><th>Tests OK</th></tr></thead>
-          <tbody>
-            ${Object.entries(lessonProgress).map(([lessonId, [learn, practice]]) =>
-              `<tr>
-                <td>${lessonId}</td>
-                <td>${learn || 0}</td>
-                <td class="${practice > 0 ? 'progress-good' : ''}">${practice || 0}</td>
-              </tr>`
-            ).join('') || '<tr><td colspan="3" class="hint">Sin datos.</td></tr>'}
-          </tbody>
-        </table>
-      </details>
-    `;
+    const html = referenceStructure.map(course => {
+      const unidadesHtml = (course.unidades || []).map(unit => {
+        const seccionesHtml = (unit.secciones || []).map(section => {
+          const done = Boolean(sectionProgress[section.id]);
+          return `<div class="ref-section-row">
+            <button class="ref-dot ${done ? 'is-done' : ''}" type="button"
+              data-action="toggle-ref-section"
+              data-user-id="${userId}"
+              data-section-id="${section.id}"
+              data-done="${done ? '1' : '0'}"
+              title="${done ? 'Marcar como no vista' : 'Marcar como vista'}"
+            ></button>
+            <span class="ref-row-name">${section.name || `Sección ${section.id}`}</span>
+          </div>`;
+        }).join('');
+
+        const testsHtml = (unit.tests || []).map(test => {
+          const status = testProgress[test.id];
+          const tone = status === 1 ? 'good' : status === 2 ? 'bad' : 'neutral';
+          return `<div class="ref-test-row">
+            <span class="ref-row-name">${test.name || `Test ${test.id}`}</span>
+            <div class="ref-test-actions">
+              <button class="ref-test-btn ${tone === 'good' ? 'is-active' : ''}" type="button"
+                data-action="set-ref-test" data-user-id="${userId}" data-test-id="${test.id}" data-result="pass"
+                title="Superado">✓</button>
+              <button class="ref-test-btn is-fail ${tone === 'bad' ? 'is-active' : ''}" type="button"
+                data-action="set-ref-test" data-user-id="${userId}" data-test-id="${test.id}" data-result="fail"
+                title="Fallado">✗</button>
+              <button class="ref-test-btn is-none ${tone === 'neutral' ? 'is-active' : ''}" type="button"
+                data-action="set-ref-test" data-user-id="${userId}" data-test-id="${test.id}" data-result="none"
+                title="Sin resultado">—</button>
+            </div>
+          </div>`;
+        }).join('');
+
+        const hasSections = unit.secciones && unit.secciones.length > 0;
+        const hasTests = unit.tests && unit.tests.length > 0;
+        return `<details class="ref-unit">
+          <summary class="ref-unit-header">${unit.name || `Unidad ${unit.id}`}</summary>
+          <div class="ref-unit-body">
+            ${hasSections ? `<div class="ref-group-label">Lecciones</div>${seccionesHtml}` : ''}
+            ${hasTests ? `<div class="ref-group-label top-xs">Tests</div>${testsHtml}` : ''}
+            ${!hasSections && !hasTests ? '<span class="hint">Sin contenido.</span>' : ''}
+          </div>
+        </details>`;
+      }).join('');
+
+      return `<details class="ref-course">
+        <summary class="ref-course-header">${course.name || `Curso ${course.id}`}</summary>
+        <div class="ref-course-body">${unidadesHtml}</div>
+      </details>`;
+    }).join('');
+
+    el.referenceProgressContent.innerHTML = html || '<span class="hint">Sin estructura disponible.</span>';
   };
 
-  const renderTrainingProgress = (data) => {
+  const trainingPercentToTone = (percent) => {
+    if (percent == null) return 'neutral';
+    if (percent >= 80) return 'good';
+    if (percent >= 60) return 'okay';
+    return 'bad';
+  };
+
+  const renderTrainingProgress = () => {
     if (!el.trainingProgressContent) return;
-    if (!data || !data.training) {
+    if (!trainingStructure) {
       el.trainingProgressContent.innerHTML = '<span class="hint">No hay datos de training.</span>';
       return;
     }
-    const t = data.training;
-    const entries = t.entries_count != null ? t.entries_count : '—';
-    const version = t.version != null ? t.version : '—';
-    const eventsCount = t.events_count != null ? t.events_count : '—';
-    const updatedAt = t.updated_at || '—';
-    el.trainingProgressContent.innerHTML = `
-      <table class="progress-table">
-        <tbody>
-          <tr><td class="progress-label">Versión</td><td class="progress-value">${version}</td></tr>
-          <tr><td class="progress-label">Eventos procesados</td><td class="progress-value">${eventsCount}</td></tr>
-          <tr><td class="progress-label">Entradas de estado</td><td class="progress-value">${entries}</td></tr>
-          <tr><td class="progress-label">Última actualización</td><td class="progress-value">${updatedAt}</td></tr>
-        </tbody>
-      </table>
-    `;
+    const state = trainingState || {};
+    const userId = asText(selectedAppUserId);
+
+    const html = trainingStructure.map(route => {
+      const modulesHtml = (route.modules || []).map(mod => {
+        const sessionsHtml = (mod.sessions || []).map(sess => {
+          const sessState = state[sess.id] || {};
+          const itemsHtml = (sess.items || []).map(item => {
+            const entry = sessState[item.key];
+            const percent = entry ? entry.percent : null;
+            const tone = trainingPercentToTone(percent);
+            const percentLabel = percent != null ? `${percent}%` : '—';
+            return `<div class="ref-test-row">
+              <span class="ref-row-name">${item.label}</span>
+              <span class="training-score tone-${tone}">${percentLabel}</span>
+              <div class="ref-test-actions">
+                <button class="ref-test-btn ${tone === 'good' ? 'is-active' : ''}" type="button"
+                  data-action="set-training-score" data-user-id="${userId}"
+                  data-session-id="${sess.id}" data-entry-key="${item.key}"
+                  data-entry-type="${item.entry_type}" data-percent="100"
+                  title="Verde (100%)">●</button>
+                <button class="ref-test-btn is-okay ${tone === 'okay' ? 'is-active' : ''}" type="button"
+                  data-action="set-training-score" data-user-id="${userId}"
+                  data-session-id="${sess.id}" data-entry-key="${item.key}"
+                  data-entry-type="${item.entry_type}" data-percent="60"
+                  title="Amarillo (60%)">●</button>
+                <button class="ref-test-btn is-fail ${tone === 'bad' ? 'is-active' : ''}" type="button"
+                  data-action="set-training-score" data-user-id="${userId}"
+                  data-session-id="${sess.id}" data-entry-key="${item.key}"
+                  data-entry-type="${item.entry_type}" data-percent="0"
+                  title="Rojo (0%)">●</button>
+                <button class="ref-test-btn is-none ${tone === 'neutral' ? 'is-active' : ''}" type="button"
+                  data-action="set-training-score" data-user-id="${userId}"
+                  data-session-id="${sess.id}" data-entry-key="${item.key}"
+                  data-entry-type="${item.entry_type}" data-percent="null"
+                  title="Sin resultado">—</button>
+              </div>
+            </div>`;
+          }).join('');
+
+          return `<details class="ref-lesson">
+            <summary class="ref-lesson-header">${sess.name}</summary>
+            <div class="ref-lesson-body">
+              ${itemsHtml || '<span class="hint">Sin palabras.</span>'}
+            </div>
+          </details>`;
+        }).join('');
+
+        return `<details class="ref-unit">
+          <summary class="ref-unit-header">${mod.name}</summary>
+          <div class="ref-unit-body">${sessionsHtml}</div>
+        </details>`;
+      }).join('');
+
+      return `<details class="ref-course">
+        <summary class="ref-course-header">${route.name}</summary>
+        <div class="ref-course-body">${modulesHtml}</div>
+      </details>`;
+    }).join('');
+
+    el.trainingProgressContent.innerHTML = html || '<span class="hint">Sin estructura disponible.</span>';
   };
 
   const loadUserProgress = async (userId) => {
     if (!userId) return;
     try {
-      progressData = await api(`/content/admin/app-users/${encodeQueryValue(userId)}/progress`, {
-        headers: headers(false)
-      });
+      const fetches = [
+        api(`/content/admin/app-users/${encodeQueryValue(userId)}/progress`, { headers: headers(false) }),
+        api(`/content/admin/app-users/${encodeQueryValue(userId)}/progress/training/state`, { headers: headers(false) })
+      ];
+      if (!referenceStructure) {
+        fetches.push(
+          Promise.all([
+            fetch('/content/data/reference-data.json').then(r => r.json()),
+            api('/content/admin/reference-structure', { headers: headers(false) })
+          ])
+        );
+      }
+      if (!trainingStructure) {
+        fetches.push(fetch('/content/data/training-data.json').then(r => r.json()));
+      }
+      const results = await Promise.all(fetches);
+      progressData = results[0];
+      trainingState = results[1] && results[1].state ? results[1].state : {};
+      // results[2] may be refStructure or trainingJson depending on what was needed
+      let refResult = null, trainingJson = null;
+      for (let i = 2; i < results.length; i++) {
+        const r = results[i];
+        if (Array.isArray(r)) { refResult = r; }
+        else if (r && r.routes) { trainingJson = r; }
+        else if (r && r.cursos) { refResult = [r, null]; }
+      }
+      if (refResult) {
+        const [refJson, dbStructure] = Array.isArray(refResult) ? refResult : [refResult, null];
+        // Build a map of unit_id (lessons.id) -> tests from DB structure
+        const dbTestsByUnit = {};
+        if (dbStructure && dbStructure.structure) {
+          dbStructure.structure.forEach(course => {
+            (course.lessons || []).forEach(lesson => {
+              dbTestsByUnit[lesson.id] = lesson.tests || [];
+            });
+          });
+        }
+        // In the JSON: cursos -> unidades (=lessons) -> lecciones (=lesson_sections)
+        // Tests belong to the unidad level
+        referenceStructure = (refJson.cursos || []).map(course => ({
+          id: course.code,
+          name: (course.display && course.display.es) || `Curso ${course.code}`,
+          unidades: (course.unidades || []).map(unit => ({
+            id: unit.code,
+            name: (unit.display && unit.display.es) || `Unidad ${unit.code}`,
+            secciones: (unit.lecciones || []).map(s => ({
+              id: s.code,
+              name: (s.display && s.display.es) || `Sección ${s.code}`
+            })),
+            tests: dbTestsByUnit[unit.code] || []
+          }))
+        }));
+      }
+      if (trainingJson && !trainingStructure) {
+        // Build route -> module -> session structure with word/phrase items
+        const sessionMap = {};
+        (trainingJson.sessions || []).forEach(s => { sessionMap[s.id] = s; });
+        const moduleMap = {};
+        (trainingJson.modules || []).forEach(m => { moduleMap[m.id] = m; });
+        trainingStructure = (trainingJson.routes || []).map(route => ({
+          id: route.id,
+          name: route.title_es || route.title_en || route.id,
+          modules: (route.moduleIds || []).map(mid => {
+            const mod = moduleMap[mid] || { id: mid };
+            return {
+              id: mod.id,
+              name: mod.title_es || mod.title_en || mod.id,
+              sessions: (mod.sessionIds || []).map(sid => {
+                const sess = sessionMap[sid] || { id: sid };
+                const speak = sess.speak || {};
+                // Collect items: focus word + sound/spelling/sentence expected values
+                const items = [];
+                if (speak.focus) items.push({ key: speak.focus.toUpperCase(), label: speak.focus, entry_type: 'word_score' });
+                if (speak.sound && speak.sound.expected) items.push({ key: speak.sound.expected.toUpperCase(), label: speak.sound.title_es || speak.sound.expected, entry_type: 'word_score' });
+                if (speak.spelling && speak.spelling.words) {
+                  const words = Array.isArray(speak.spelling.words) ? speak.spelling.words : [speak.spelling.words];
+                  words.forEach(w => items.push({ key: String(w).toUpperCase(), label: w, entry_type: 'word_score' }));
+                }
+                if (speak.sentence && speak.sentence.expected) items.push({ key: speak.sentence.expected.toUpperCase(), label: speak.sentence.expected, entry_type: 'phrase_score' });
+                // Deduplicate by key
+                const seen = new Set();
+                const uniqueItems = items.filter(item => { if (seen.has(item.key)) return false; seen.add(item.key); return true; });
+                return { id: sess.id, name: sess.title_es || sess.title_en || sess.id, items: uniqueItems };
+              })
+            };
+          })
+        }));
+      }
       if (progressPanelOpen.reference) renderReferenceProgress(progressData);
-      if (progressPanelOpen.training) renderTrainingProgress(progressData);
+      if (progressPanelOpen.training) renderTrainingProgress();
     } catch (err) {
-      if (el.referenceProgressContent) el.referenceProgressContent.innerHTML = '<span class="hint error">Error cargando progreso.</span>';
-      if (el.trainingProgressContent) el.trainingProgressContent.innerHTML = '<span class="hint error">Error cargando progreso.</span>';
+      const msg = '<span class="hint error">Error cargando progreso.</span>';
+      if (el.referenceProgressContent) el.referenceProgressContent.innerHTML = msg;
+      if (el.trainingProgressContent) el.trainingProgressContent.innerHTML = msg;
+      setStatus('Error cargando progreso del usuario.', err.response || { error: err.message });
     }
   };
 
   const resetProgressPanels = () => {
     progressData = null;
+    trainingState = null;
     progressPanelOpen = { reference: false, training: false };
     if (el.appUserProgressPanels) el.appUserProgressPanels.classList.add('hidden');
     if (el.referenceProgressPanel) el.referenceProgressPanel.classList.add('hidden');
@@ -2171,6 +2340,10 @@
       return;
     }
     if (el.appUserProgressPanels) el.appUserProgressPanels.classList.remove('hidden');
+    // Si algún panel estaba abierto, recargar datos del nuevo usuario
+    if (progressPanelOpen.reference || progressPanelOpen.training) {
+      loadUserProgress(asText(user.id));
+    }
 
     clearInputValue(el.appUserIdInput, asText(user.id));
     clearInputValue(el.appUserEmailInput, asText(user.email));
@@ -3186,11 +3359,115 @@
       const panelEl = panel === 'reference' ? el.referenceProgressPanel : el.trainingProgressPanel;
       if (panelEl) panelEl.classList.toggle('hidden', isOpen);
       btn.querySelector('ion-icon') && btn.querySelector('ion-icon').setAttribute('name', isOpen ? 'chevron-down' : 'chevron-up');
-      if (!isOpen && !progressData) {
-        loadUserProgress(asText(selectedAppUserId));
-      } else if (!isOpen) {
-        if (panel === 'reference') renderReferenceProgress(progressData);
-        if (panel === 'training') renderTrainingProgress(progressData);
+      if (!isOpen) {
+        if (!progressData) {
+          loadUserProgress(asText(selectedAppUserId));
+        } else {
+          if (panel === 'reference') renderReferenceProgress(progressData);
+          if (panel === 'training') renderTrainingProgress();
+        }
+      }
+    });
+
+    document.addEventListener('click', async (e) => {
+      const btn = e.target.closest('[data-action="toggle-ref-section"]');
+      if (!btn) return;
+      const userId = btn.getAttribute('data-user-id');
+      const sectionId = btn.getAttribute('data-section-id');
+      const currentDone = btn.getAttribute('data-done') === '1';
+      const newDone = !currentDone;
+      btn.disabled = true;
+      try {
+        await api(`/content/admin/app-users/${encodeQueryValue(userId)}/progress/reference/section`, {
+          method: 'POST',
+          headers: headers(true),
+          body: JSON.stringify({ section_id: Number(sectionId), done: newDone })
+        });
+        if (progressData) {
+          if (newDone) progressData.section_progress[sectionId] = 1;
+          else delete progressData.section_progress[sectionId];
+        }
+        btn.setAttribute('data-done', newDone ? '1' : '0');
+        btn.classList.toggle('is-done', newDone);
+        btn.title = newDone ? 'Marcar como no vista' : 'Marcar como vista';
+      } catch (err) {
+        setStatus('Error actualizando sección.', err.response || { error: err.message });
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    document.addEventListener('click', async (e) => {
+      const btn = e.target.closest('[data-action="set-ref-test"]');
+      if (!btn) return;
+      const userId = btn.getAttribute('data-user-id');
+      const testId = btn.getAttribute('data-test-id');
+      const result = btn.getAttribute('data-result');
+      const row = btn.closest('.ref-test-row');
+      if (!row) return;
+      row.querySelectorAll('[data-action="set-ref-test"]').forEach(b => b.disabled = true);
+      try {
+        await api(`/content/admin/app-users/${encodeQueryValue(userId)}/progress/reference/test`, {
+          method: 'POST',
+          headers: headers(true),
+          body: JSON.stringify({ test_id: Number(testId), result })
+        });
+        if (progressData) {
+          if (result === 'pass') progressData.test_progress[testId] = 1;
+          else if (result === 'fail') progressData.test_progress[testId] = 2;
+          else delete progressData.test_progress[testId];
+        }
+        row.querySelectorAll('[data-action="set-ref-test"]').forEach(b => {
+          b.classList.toggle('is-active', b.getAttribute('data-result') === result);
+        });
+      } catch (err) {
+        setStatus('Error actualizando test.', err.response || { error: err.message });
+      } finally {
+        row.querySelectorAll('[data-action="set-ref-test"]').forEach(b => b.disabled = false);
+      }
+    });
+
+    document.addEventListener('click', async (e) => {
+      const btn = e.target.closest('[data-action="set-training-score"]');
+      if (!btn) return;
+      const userId = btn.getAttribute('data-user-id');
+      const sessionId = btn.getAttribute('data-session-id');
+      const entryKey = btn.getAttribute('data-entry-key');
+      const entryType = btn.getAttribute('data-entry-type');
+      const percentRaw = btn.getAttribute('data-percent');
+      const percent = percentRaw === 'null' ? null : Number(percentRaw);
+      const row = btn.closest('.ref-test-row');
+      if (!row) return;
+      row.querySelectorAll('[data-action="set-training-score"]').forEach(b => b.disabled = true);
+      try {
+        await api(`/content/admin/app-users/${encodeQueryValue(userId)}/progress/training/state`, {
+          method: 'POST',
+          headers: headers(true),
+          body: JSON.stringify({ session_id: sessionId, entry_key: entryKey, entry_type: entryType, percent })
+        });
+        // Update local state
+        if (!trainingState[sessionId]) trainingState[sessionId] = {};
+        if (percent === null) {
+          delete trainingState[sessionId][entryKey];
+        } else {
+          trainingState[sessionId][entryKey] = { percent, entry_type: entryType };
+        }
+        // Update UI
+        const tone = trainingPercentToTone(percent);
+        row.querySelectorAll('[data-action="set-training-score"]').forEach(b => {
+          const bp = b.getAttribute('data-percent');
+          const bTone = bp === 'null' ? 'neutral' : trainingPercentToTone(Number(bp));
+          b.classList.toggle('is-active', bTone === tone);
+        });
+        const scoreEl = row.querySelector('.training-score');
+        if (scoreEl) {
+          scoreEl.className = `training-score tone-${tone}`;
+          scoreEl.textContent = percent != null ? `${percent}%` : '—';
+        }
+      } catch (err) {
+        setStatus('Error actualizando training.', err.response || { error: err.message });
+      } finally {
+        row.querySelectorAll('[data-action="set-training-score"]').forEach(b => b.disabled = false);
       }
     });
 
@@ -3206,7 +3483,8 @@
             headers: headers(true)
           });
           progressData = null;
-          renderTrainingProgress(null);
+          trainingState = {};
+          renderTrainingProgress();
           setStatus('Training reseteado correctamente.', out);
         } catch (err) {
           setStatus('Error reseteando training.', err.response || { error: err.message });

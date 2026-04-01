@@ -86,6 +86,9 @@ const appUsersUpstreamDeletePath =
 const appUsersUpstreamAvatarResetPath =
   String(env('CONTENT_APP_USERS_UPSTREAM_AVATAR_RESET_PATH', '/v3/deleteUserImage') || '').trim() ||
   '/v3/deleteUserImage';
+const appUsersUpstreamForceLogoutPath =
+  String(env('CONTENT_APP_USERS_UPSTREAM_FORCE_LOGOUT_PATH', '/v3/admin/forceLogout') || '').trim() ||
+  '/v3/admin/forceLogout';
 const appUsersFetchImpl =
   typeof globalThis.fetch === 'function' ? globalThis.fetch.bind(globalThis) : null;
 const appUsersMysqlHost = String(env('CONTENT_APP_USERS_MYSQL_HOST', env('MYSQL_HOST', '')) || '').trim();
@@ -913,6 +916,11 @@ const isAppUsersDeleteConfigured = () =>
   Boolean(String(appUsersUpstreamDeletePath || '').trim()) &&
   Boolean(appUsersUpstreamToken) &&
   Boolean(appUsersFetchImpl);
+const isAppUsersForceLogoutConfigured = () =>
+  Boolean(normalizeAppUsersUpstreamBaseUrl()) &&
+  Boolean(String(appUsersUpstreamForceLogoutPath || '').trim()) &&
+  Boolean(appUsersUpstreamToken) &&
+  Boolean(appUsersFetchImpl);
 
 const getAppUsersAdminStatus = () => ({
   ...appUsersRepository.getStatus(),
@@ -923,7 +931,8 @@ const getAppUsersAdminStatus = () => ({
   capabilities: {
     ...APP_USERS_STATUS_CAPABILITIES,
     delete: isAppUsersDeleteConfigured(),
-    avatar_reset: isAppUsersAvatarResetConfigured()
+    avatar_reset: isAppUsersAvatarResetConfigured(),
+    force_logout: isAppUsersForceLogoutConfigured()
   },
   contract_version: APP_USERS_CONTRACT_VERSION
 });
@@ -2778,6 +2787,30 @@ app.post('/content/admin/app-users/:id/avatar/reset', requireAdmin, async (req, 
       upstream,
       status: getAppUsersAdminStatus()
     });
+  } catch (err) {
+    next(err);
+  }
+});
+
+app.post('/content/admin/app-users/:id/force-logout', requireAdmin, async (req, res, next) => {
+  try {
+    const userId = String(req.params.id || '').trim();
+    if (!userId) {
+      res.status(400).json({ ok: false, error: 'invalid_app_user_id' });
+      return;
+    }
+    if (!isAppUsersForceLogoutConfigured()) {
+      throw buildHttpError(503, 'app_user_force_logout_not_configured', {
+        status: getAppUsersAdminStatus()
+      });
+    }
+    const upstream = await requestAppUsersUpstream({
+      method: 'POST',
+      pathTemplate: appUsersUpstreamForceLogoutPath,
+      body: { user_id: userId }
+    });
+    writeAuditLog(req, 'app_user.force_logout', `app_user:${userId}`, {});
+    res.json({ ok: true, upstream, status: getAppUsersAdminStatus() });
   } catch (err) {
     next(err);
   }

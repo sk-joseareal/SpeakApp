@@ -1437,6 +1437,11 @@ window.syncSpeakProgress = async (opts = {}) => {
       return { ok: false, status: res.status };
     }
     const data = await res.json();
+    if (data && data.error && /\(002\)/.test(data.error)) {
+      speakSyncInFlight = false;
+      if (typeof window.setUser === 'function') window.setUser(null);
+      return { ok: false, forced_logout: true };
+    }
     const acked = Array.isArray(data.acked_ids) ? new Set(data.acked_ids) : null;
     if (acked && acked.size) {
       const remaining = events.filter((evt) => !acked.has(evt.id));

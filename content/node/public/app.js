@@ -55,6 +55,7 @@
     appUsersList: document.getElementById('appUsersList'),
     reloadAppUserBtn: document.getElementById('reloadAppUserBtn'),
     saveAppUserBtn: document.getElementById('saveAppUserBtn'),
+    forceLogoutAppUserBtn: document.getElementById('forceLogoutAppUserBtn'),
     deleteAppUserBtn: document.getElementById('deleteAppUserBtn'),
     appUserSelectionMeta: document.getElementById('appUserSelectionMeta'),
     appUserAvatarPreview: document.getElementById('appUserAvatarPreview'),
@@ -1894,6 +1895,7 @@
     const capabilities = getAppUsersCapabilities();
     const emailEditable = Boolean(capabilities.email_editable);
     const deleteEnabled = Boolean(capabilities.delete);
+    const forceLogoutEnabled = Boolean(capabilities.force_logout);
     const avatarResetEnabled = Boolean(capabilities.avatar_reset);
     [
       el.reloadAppUserBtn,
@@ -1911,6 +1913,9 @@
       if (!node) return;
       node.disabled = targetState;
     });
+    if (el.forceLogoutAppUserBtn) {
+      el.forceLogoutAppUserBtn.disabled = targetState || !forceLogoutEnabled;
+    }
     if (el.deleteAppUserBtn) {
       el.deleteAppUserBtn.disabled = targetState || !deleteEnabled;
     }
@@ -3052,6 +3057,22 @@
     }
     if (el.saveAppUserBtn) {
       el.saveAppUserBtn.addEventListener('click', saveSelectedAppUser);
+    }
+    if (el.forceLogoutAppUserBtn) {
+      el.forceLogoutAppUserBtn.addEventListener('click', async () => {
+        const userId = asText(selectedAppUserId);
+        if (!userId) { setStatus('Selecciona primero un usuario app.'); return; }
+        if (!confirm(`¿Forzar logout de ${selectedAppUser && selectedAppUser.email || userId}?`)) return;
+        try {
+          const out = await api(`/content/admin/app-users/${encodeQueryValue(userId)}/force-logout`, {
+            method: 'POST',
+            headers: headers(true)
+          });
+          setStatus('Logout forzado. El usuario deberá volver a iniciar sesión.', out);
+        } catch (err) {
+          setStatus('Error forzando logout.', err.response || { error: err.message });
+        }
+      });
     }
     if (el.deleteAppUserBtn) {
       el.deleteAppUserBtn.addEventListener('click', deleteSelectedAppUser);

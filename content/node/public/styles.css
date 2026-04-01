@@ -445,8 +445,21 @@ h2 {
   flex-direction: column;
 }
 
-.app-users-grid > article:first-child .entity-list {
+
+
+.app-users-list-wrapper {
   flex: 1;
+  position: relative;
+  margin-top: 10px;
+}
+
+.app-users-list-wrapper .entity-list {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  margin-top: 0;
   max-height: none;
   overflow-y: auto;
 }
@@ -602,9 +615,13 @@ h2 {
   .app-users-grid > article {
     display: block;
   }
+  .app-users-grid > article .app-users-list-wrapper {
+    display: block;
+    position: static;
+  }
   .app-users-grid > article .entity-list {
+    position: static;
     max-height: 180px;
-    flex: none;
   }
   .entity-list {
     max-height: 180px;

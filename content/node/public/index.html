@@ -107,7 +107,9 @@
             <h3>Resultados</h3>
             <small id="appUsersResultsMeta" class="muted"></small>
           </div>
-          <div id="appUsersList" class="entity-list top-md"></div>
+          <div class="app-users-list-wrapper">
+            <div id="appUsersList" class="entity-list"></div>
+          </div>
         </article>
 
         <article class="guided-col">
@@ -116,6 +118,7 @@
             <div class="row row-wrap gap-sm">
               <button id="reloadAppUserBtn" class="btn">Recargar</button>
               <button id="saveAppUserBtn" class="btn btn-primary">Guardar</button>
+              <button id="forceLogoutAppUserBtn" class="btn btn-danger">Forzar logout</button>
               <button id="deleteAppUserBtn" class="btn btn-danger">Eliminar cuenta</button>
             </div>
           </div>

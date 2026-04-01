@@ -321,16 +321,22 @@ class AppUsersRepository {
     const clauses = [];
     const values = [];
     if (queryText) {
-      const likeValue = `%${escapeLike(queryText)}%`;
-      clauses.push(
-        `(u.email LIKE ? ESCAPE '\\\\' OR u.name LIKE ? ESCAPE '\\\\' OR u.first_name LIKE ? ESCAPE '\\\\' OR u.last_name LIKE ? ESCAPE '\\\\'`
-      );
-      values.push(likeValue, likeValue, likeValue, likeValue);
-      if (/^\d+$/.test(queryText)) {
-        clauses[0] += ' OR CAST(u.id AS CHAR) = ?';
-        values.push(queryText);
+      const tokens = queryText.split(/\s+/).filter(Boolean);
+      if (tokens.length === 1 && /^\d+$/.test(tokens[0])) {
+        clauses.push(
+          `(u.email LIKE ? ESCAPE '\\\\' OR u.name LIKE ? ESCAPE '\\\\' OR u.first_name LIKE ? ESCAPE '\\\\' OR u.last_name LIKE ? ESCAPE '\\\\' OR CAST(u.id AS CHAR) = ?)`
+        );
+        const likeValue = `%${escapeLike(tokens[0])}%`;
+        values.push(likeValue, likeValue, likeValue, likeValue, tokens[0]);
+      } else {
+        for (const token of tokens) {
+          const likeValue = `%${escapeLike(token)}%`;
+          clauses.push(
+            `(u.email LIKE ? ESCAPE '\\\\' OR u.name LIKE ? ESCAPE '\\\\' OR u.first_name LIKE ? ESCAPE '\\\\' OR u.last_name LIKE ? ESCAPE '\\\\')`
+          );
+          values.push(likeValue, likeValue, likeValue, likeValue);
+        }
       }
-      clauses[0] += ')';
     }
     const whereSql = clauses.length ? `WHERE ${clauses.join(' AND ')}` : '';
     const [rows] = await this.execute(

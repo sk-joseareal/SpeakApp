@@ -494,9 +494,6 @@ function procesarLoginDesdeCallback(url) {
     }
 
     ensureUserRemoteAvatar(user);
-    if (!user.image) {
-      user.image = 'https://s3.amazonaws.com/sk.CursoIngles/no-avatar.gif';
-    }
 
     applyAvatarCacheBust(user);
 
@@ -2706,18 +2703,53 @@ const getCanonicalAvatarUrlFromFile = (userId, avatarFileName) => {
   return `https://s3.amazonaws.com/sk.audios.dev/avatars/${safeUserId}/original/${safeAvatarFileName}`;
 };
 
+const AVATAR_COLORS = [
+  '0f766e', '1d4ed8', '7c3aed', 'be185d', 'c2410c', '15803d', 'b45309', '334155'
+];
+const deriveUserInitials = (user) => {
+  const first = String(user && user.first_name || '').trim();
+  const last = String(user && user.last_name || '').trim();
+  if (first && last) return (first[0] + last[0]).toUpperCase();
+  const full = String(user && (user.name || first || last) || '').trim();
+  if (full) {
+    const parts = full.split(/[\s._-]+/).filter(Boolean);
+    if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+    if (parts[0].length >= 2) return (parts[0][0] + parts[0][parts[0].length - 1]).toUpperCase();
+    return parts[0][0].toUpperCase();
+  }
+  const emailLocal = String(user && user.email || '').split('@')[0];
+  if (emailLocal) {
+    const parts = emailLocal.split(/[._-]+/).filter(Boolean);
+    if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+    if (parts[0].length >= 2) return (parts[0][0] + parts[0][parts[0].length - 1]).toUpperCase();
+    if (parts[0]) return parts[0][0].toUpperCase();
+  }
+  return '?';
+};
+const buildFallbackAvatarSvg = (user) => {
+  const initials = deriveUserInitials(user);
+  const id = Math.abs(Number(user && user.id) || 0);
+  const color = AVATAR_COLORS[id % AVATAR_COLORS.length] || AVATAR_COLORS[0];
+  const fontSize = initials.length >= 3 ? 42 : 54;
+  const svg = [
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">',
+    `<rect width="128" height="128" rx="64" fill="#${color}"/>`,
+    `<text x="50%" y="50%" dominant-baseline="central" text-anchor="middle" fill="#ffffff" font-family="Arial, sans-serif" font-size="${fontSize}" font-weight="700">${initials}</text>`,
+    '</svg>'
+  ].join('');
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+};
 const ensureUserRemoteAvatar = (user) => {
   if (!user || typeof user !== 'object') return user;
   const avatarFileName =
     typeof user.avatar_file_name === 'string' ? user.avatar_file_name.trim() : '';
   const userId =
     user.id !== undefined && user.id !== null ? String(user.id).trim() : '';
-  const resolved = getCanonicalAvatarUrlFromFile(userId, avatarFileName);
-  if (!resolved) return user;
-  // Preserve existing ?ts= cache-bust if present on the current image
+  const resolved = getCanonicalAvatarUrlFromFile(userId, avatarFileName) || buildFallbackAvatarSvg(user);
+  // Preserve existing ?ts= cache-bust if present on the current image (only for remote URLs)
   const existingTs = typeof user.image === 'string'
     ? (user.image.match(/[?&]ts=(\d+)/) || [])[1] : null;
-  user.image = existingTs
+  user.image = (existingTs && !/^data:image\//i.test(resolved))
     ? resolved + (resolved.includes('?') ? '&' : '?') + 'ts=' + existingTs
     : resolved;
   return user;

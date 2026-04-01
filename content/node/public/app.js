@@ -60,6 +60,7 @@
     appUserAvatarPreview: document.getElementById('appUserAvatarPreview'),
     appUserIdentity: document.getElementById('appUserIdentity'),
     appUserReadonlyMeta: document.getElementById('appUserReadonlyMeta'),
+    appUserAuthMeta: document.getElementById('appUserAuthMeta'),
     appUserIdInput: document.getElementById('appUserIdInput'),
     appUserEmailInput: document.getElementById('appUserEmailInput'),
     appUserFirstNameInput: document.getElementById('appUserFirstNameInput'),
@@ -221,25 +222,48 @@
     ].join('');
     return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
   };
-  const resolveAvatarSource = (userId, avatarSource) => {
+  const deriveUserInitials = (user) => {
+    const first = asText(user && user.first_name);
+    const last = asText(user && user.last_name);
+    if (first && last) return (first[0] + last[0]).toUpperCase();
+    const fullName = asText(user && (user.name || (first || last)));
+    if (fullName) {
+      const parts = fullName.split(/[\s._-]+/).filter(Boolean);
+      if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+      if (parts[0].length >= 2) return (parts[0][0] + parts[0][parts[0].length - 1]).toUpperCase();
+      return parts[0][0].toUpperCase();
+    }
+    const emailLocal = asText(user && user.email).split('@')[0];
+    if (emailLocal) {
+      const parts = emailLocal.split(/[._-]+/).filter(Boolean);
+      if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+      if (parts[0].length >= 2) return (parts[0][0] + parts[0][parts[0].length - 1]).toUpperCase();
+      return parts[0][0].toUpperCase();
+    }
+    return '?';
+  };
+  const deriveUserAvatarColor = (user) => {
+    const id = Number(user && user.id) || 0;
+    return APP_USER_AVATAR_COLORS[id % APP_USER_AVATAR_COLORS.length] || APP_USER_AVATAR_COLORS[0];
+  };
+  const buildFallbackAvatarUrl = (user) =>
+    buildInitialsAvatarUrl(deriveUserInitials(user), deriveUserAvatarColor(user));
+  const resolveAvatarSource = (userId, avatarSource, user) => {
     const source = asText(avatarSource);
-    if (!source || source === 'no-avatar.gif') return '';
+    if (!source || source === 'no-avatar.gif') return user ? buildFallbackAvatarUrl(user) : '';
     if (isAvatarDirectUrl(source)) return source;
     const generatedAvatar = parseInitialsAvatarSource(source);
     if (generatedAvatar) {
       return buildInitialsAvatarUrl(generatedAvatar.initials, generatedAvatar.color);
     }
-    if (!isStoredAvatarFileName(source)) return '';
+    if (!isStoredAvatarFileName(source)) return user ? buildFallbackAvatarUrl(user) : '';
     const safeUserId = asText(userId);
-    if (!safeUserId) return '';
+    if (!safeUserId) return user ? buildFallbackAvatarUrl(user) : '';
     if (/^avatarv4\./i.test(source)) {
       return `https://s3.amazonaws.com/sk.assets/avatars/${safeUserId}/${source}`;
     }
     return `https://s3.amazonaws.com/sk.audios.dev/avatars/${safeUserId}/original/${source}`;
   };
-  const pickRandomAppUserAvatarColor = () =>
-    APP_USER_AVATAR_COLORS[Math.floor(Math.random() * APP_USER_AVATAR_COLORS.length)] ||
-    APP_USER_AVATAR_COLORS[0];
   const roleRank = { editor: 1, publisher: 2, admin: 3 };
   const normalizeRole = (value) => {
     const role = asText(value).toLowerCase();
@@ -1869,7 +1893,6 @@
     const targetState = Boolean(disabled);
     const capabilities = getAppUsersCapabilities();
     const emailEditable = Boolean(capabilities.email_editable);
-    const premiumEditable = Boolean(capabilities.premium_editable);
     const deleteEnabled = Boolean(capabilities.delete);
     const avatarResetEnabled = Boolean(capabilities.avatar_reset);
     [
@@ -1964,9 +1987,9 @@
 
       const meta = document.createElement('span');
       meta.className = 'entity-item-meta';
-      const planLabel = item.premium ? 'premium' : item.expires_date ? `expira ${item.expires_date}` : 'standard';
-      const statusLabel = item.is_active ? 'activo' : 'inactivo';
-      meta.textContent = `${item.email || `id ${item.id}`} · ${planLabel} · ${statusLabel}`;
+      const isPremium = item.expires_date ? new Date(item.expires_date) > new Date() : false;
+      const planLabel = isPremium ? 'premium' : item.expires_date ? `expiró ${item.expires_date}` : 'standard';
+      meta.textContent = `${item.email || `id ${item.id}`} · ${planLabel}`;
 
       button.appendChild(title);
       button.appendChild(meta);
@@ -1979,7 +2002,7 @@
     const source = keepSourceInput
       ? asText(el.appUserAvatarFileNameInput && el.appUserAvatarFileNameInput.value)
       : asText(sourceUser.avatar_file_name);
-    const resolved = resolveAvatarSource(sourceUser.id, source);
+    const resolved = resolveAvatarSource(sourceUser.id, source, sourceUser);
     const showResolved = Boolean(resolved && resolved !== source && !/^data:image\//i.test(resolved));
 
     if (!keepSourceInput) {
@@ -2031,9 +2054,12 @@
     if (el.appUserReadonlyMeta) {
       el.appUserReadonlyMeta.textContent = '';
     }
+    if (el.appUserAuthMeta) {
+      el.appUserAuthMeta.textContent = '';
+    }
     if (el.appUserSelectionMeta) {
       el.appUserSelectionMeta.textContent = hasUser
-        ? 'Edita solo los campos soportados por la RDS. Email y Premium son de solo lectura por ahora.'
+        ? 'Edita los campos.'
         : 'Busca y selecciona un usuario.';
     }
     setAppUserFormDisabled(!hasUser);
@@ -2050,11 +2076,10 @@
     clearInputValue(el.appUserExpiresDateInput, formatDateFieldValue(user.expires_date));
     if (el.appUserExpiresDateLabel) {
       const expiresRaw = asText(user.expires_date);
-      const isPremium = Boolean(user.premium);
       let labelText = 'Expires date';
       let labelSuffix = '';
       let suffixColor = '';
-      if (isPremium && expiresRaw) {
+      if (expiresRaw) {
         const isExpired = new Date(expiresRaw) < new Date();
         if (isExpired) {
           labelSuffix = '(expired)';
@@ -2084,6 +2109,13 @@
         user.updated_at ? `updated ${user.updated_at}` : ''
       ].filter(Boolean);
       el.appUserReadonlyMeta.textContent = segments.join(' · ');
+    }
+    if (el.appUserAuthMeta) {
+      const typeLabels = { 1: 'Facebook', 3: 'Google', 4: 'Apple', 6: 'Email' };
+      const typeLabel = user.type_user != null ? (typeLabels[user.type_user] || `type ${user.type_user}`) : '';
+      const socialId = user.social_id || '';
+      const authSegments = [typeLabel, socialId].filter(Boolean);
+      el.appUserAuthMeta.textContent = authSegments.join(' · ');
     }
     updateAppUserAvatarFields(user, { bustCache });
   };
@@ -3044,18 +3076,15 @@
         try {
           const out = await api(`/content/admin/app-users/${encodeQueryValue(userId)}/avatar/reset`, {
             method: 'POST',
-            headers: headers(true),
-            body: JSON.stringify({
-              avatar_color: pickRandomAppUserAvatarColor()
-            })
+            headers: headers(true)
           });
           selectedAppUser = out && out.user ? out.user : selectedAppUser;
           renderSelectedAppUser({ bustCache: true });
           renderAppUsersList();
-          setStatus('Avatar regenerado.', out);
+          setStatus('Avatar eliminado.', out);
           await loadAppUsers({ silent: true, preserveSelection: true });
         } catch (err) {
-          setStatus('Error regenerando avatar.', err.response || { error: err.message });
+          setStatus('Error eliminando avatar.', err.response || { error: err.message });
         }
       });
     }

@@ -4,7 +4,6 @@ const APP_USERS_EDITABLE_FIELDS = [
   'first_name',
   'last_name',
   'name',
-  'is_active',
   'expires_date',
   'locale',
   'lc',
@@ -16,7 +15,8 @@ const APP_USERS_EDITABLE_FIELDS = [
 const APP_USERS_READONLY_FIELDS = [
   'id',
   'email',
-  'premium',
+  'type_user',
+  'social_id',
   'image',
   'section_progress_count',
   'test_progress_count',
@@ -164,15 +164,15 @@ const normalizeAppUserRow = (row) => {
   const lastName = pickFirstNonEmptyText(row.last_name);
   const name = pickFirstNonEmptyText(row.name, [firstName, lastName].filter(Boolean).join(' '));
   const expiresDate = normalizeMysqlDateString(row.expires_date);
-  const bannedUntil = normalizeMysqlDateString(row.banneduntil);
+  const typeUser = row.typeUser !== undefined && row.typeUser !== null ? Number(row.typeUser) : null;
   return {
     id,
     email: pickFirstNonEmptyText(row.email),
+    type_user: typeUser,
+    social_id: pickFirstNonEmptyText(row.social_id),
     first_name: firstName,
     last_name: lastName,
     name,
-    is_active: !isFutureDate(bannedUntil),
-    premium: isFutureDate(expiresDate),
     expires_date: expiresDate,
     locale: normalizeLocaleValue(row.locale),
     lc: normalizeLcValue(row.lc || row.locale),
@@ -184,7 +184,6 @@ const normalizeAppUserRow = (row) => {
     test_progress_count: Number(row.test_progress_count) || 0,
     created_at: normalizeMysqlDateString(row.created_at),
     updated_at: normalizeMysqlDateString(row.updated_at),
-    banneduntil: bannedUntil,
     current_course: row.current_course === undefined || row.current_course === null ? null : Number(row.current_course),
     last_sign_in_at: normalizeMysqlDateString(row.last_sign_in_at),
     sign_in_count: Number(row.sign_in_count) || 0
@@ -355,7 +354,9 @@ class AppUsersRepository {
           u.avatar_file_name,
           u.created_at,
           u.updated_at,
-          u.banneduntil
+          u.banneduntil,
+          u.typeUser,
+          u.social_id
         FROM users u
         ${whereSql}
         ORDER BY
@@ -400,6 +401,8 @@ class AppUsersRepository {
           u.created_at,
           u.updated_at,
           u.banneduntil,
+          u.typeUser,
+          u.social_id,
           u.current_course,
           u.last_sign_in_at,
           u.sign_in_count,
@@ -454,14 +457,6 @@ class AppUsersRepository {
     }
     if (Object.prototype.hasOwnProperty.call(input, 'expires_date')) {
       patch.expires_date = normalizeExpiresDateValue(input.expires_date);
-    }
-    if (Object.prototype.hasOwnProperty.call(input, 'is_active')) {
-      const isActive = Boolean(input.is_active);
-      patch.banneduntil = isActive ? null : '2099-12-31 23:59:59';
-      if (!isActive) {
-        patch.token = '';
-        patch.token_expiration = null;
-      }
     }
     if (Object.prototype.hasOwnProperty.call(input, 'avatar_file_name')) {
       patch.avatar_file_name = asText(input.avatar_file_name);

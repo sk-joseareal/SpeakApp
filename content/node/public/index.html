@@ -211,6 +211,34 @@
               </label>
             </div>
           </div>
+
+          <div id="appUserProgressPanels" class="hidden top-md">
+
+            <div class="progress-panel">
+              <button class="progress-panel-header" type="button" data-action="toggle-progress-panel" data-panel="reference">
+                <span>Progreso Reference</span>
+                <ion-icon name="chevron-down"></ion-icon>
+              </button>
+              <div id="referenceProgressPanel" class="progress-panel-body hidden">
+                <div id="referenceProgressContent" class="progress-panel-loading">Cargando...</div>
+              </div>
+            </div>
+
+            <div class="progress-panel top-sm">
+              <button class="progress-panel-header" type="button" data-action="toggle-progress-panel" data-panel="training">
+                <span>Progreso Training</span>
+                <ion-icon name="chevron-down"></ion-icon>
+              </button>
+              <div id="trainingProgressPanel" class="progress-panel-body hidden">
+                <div id="trainingProgressContent" class="progress-panel-loading">Cargando...</div>
+                <div class="progress-panel-actions top-sm">
+                  <button id="resetTrainingBtn" class="btn btn-danger btn-sm">Resetear training</button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
         </article>
       </div>
     </section>

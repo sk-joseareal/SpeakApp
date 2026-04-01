@@ -7593,6 +7593,44 @@ ion-select.training-pill.active::part(icon) {
   color: #065f46;
 }
 
+.lesson-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  margin-left: auto;
+  padding: 0 4px;
+}
+
+.lesson-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.lesson-dot.tone-neutral {
+  background: #d1d5db;
+}
+
+.lesson-dot.tone-neutral.is-empty {
+  background: transparent;
+  border: 1.5px dashed #d1d5db;
+}
+
+.lesson-dot.tone-good {
+  background: #34d399;
+}
+
+.lesson-dot.tone-okay {
+  background: #fbbf24;
+}
+
+.lesson-dot.tone-bad {
+  background: #f87171;
+}
+
 .training-row-icon {
   display: flex;
   align-items: center;

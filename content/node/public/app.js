@@ -57,6 +57,12 @@
     saveAppUserBtn: document.getElementById('saveAppUserBtn'),
     forceLogoutAppUserBtn: document.getElementById('forceLogoutAppUserBtn'),
     deleteAppUserBtn: document.getElementById('deleteAppUserBtn'),
+    appUserProgressPanels: document.getElementById('appUserProgressPanels'),
+    referenceProgressPanel: document.getElementById('referenceProgressPanel'),
+    referenceProgressContent: document.getElementById('referenceProgressContent'),
+    trainingProgressPanel: document.getElementById('trainingProgressPanel'),
+    trainingProgressContent: document.getElementById('trainingProgressContent'),
+    resetTrainingBtn: document.getElementById('resetTrainingBtn'),
     appUserSelectionMeta: document.getElementById('appUserSelectionMeta'),
     appUserAvatarPreview: document.getElementById('appUserAvatarPreview'),
     appUserIdentity: document.getElementById('appUserIdentity'),
@@ -2028,6 +2034,98 @@
     }
   };
 
+  // Progress panels state
+  let progressPanelOpen = { reference: false, training: false };
+  let progressData = null;
+
+  const renderReferenceProgress = (data) => {
+    if (!el.referenceProgressContent) return;
+    if (!data) {
+      el.referenceProgressContent.innerHTML = '<span class="hint">No hay datos de progreso.</span>';
+      return;
+    }
+    const sectionProgress = data.section_progress || {};
+    const testProgress = data.test_progress || {};
+    const lessonProgress = data.lesson_progress || {};
+    const sectionCount = Object.keys(sectionProgress).length;
+    const testCount = Object.keys(testProgress).length;
+    const testPassed = Object.values(testProgress).filter(v => v === 1).length;
+    const testFailed = Object.values(testProgress).filter(v => v === 2).length;
+
+    el.referenceProgressContent.innerHTML = `
+      <table class="progress-table">
+        <tbody>
+          <tr><td class="progress-label">Secciones vistas</td><td class="progress-value">${sectionCount}</td></tr>
+          <tr><td class="progress-label">Tests realizados</td><td class="progress-value">${testCount}</td></tr>
+          <tr><td class="progress-label">Tests superados</td><td class="progress-value progress-good">${testPassed}</td></tr>
+          <tr><td class="progress-label">Tests fallados</td><td class="progress-value progress-bad">${testFailed}</td></tr>
+        </tbody>
+      </table>
+      <details class="progress-details top-sm">
+        <summary>Ver detalle por lección</summary>
+        <table class="progress-table top-sm">
+          <thead><tr><th>Lección ID</th><th>Secciones</th><th>Tests OK</th></tr></thead>
+          <tbody>
+            ${Object.entries(lessonProgress).map(([lessonId, [learn, practice]]) =>
+              `<tr>
+                <td>${lessonId}</td>
+                <td>${learn || 0}</td>
+                <td class="${practice > 0 ? 'progress-good' : ''}">${practice || 0}</td>
+              </tr>`
+            ).join('') || '<tr><td colspan="3" class="hint">Sin datos.</td></tr>'}
+          </tbody>
+        </table>
+      </details>
+    `;
+  };
+
+  const renderTrainingProgress = (data) => {
+    if (!el.trainingProgressContent) return;
+    if (!data || !data.training) {
+      el.trainingProgressContent.innerHTML = '<span class="hint">No hay datos de training.</span>';
+      return;
+    }
+    const t = data.training;
+    const entries = t.entries_count != null ? t.entries_count : '—';
+    const version = t.version != null ? t.version : '—';
+    const eventsCount = t.events_count != null ? t.events_count : '—';
+    const updatedAt = t.updated_at || '—';
+    el.trainingProgressContent.innerHTML = `
+      <table class="progress-table">
+        <tbody>
+          <tr><td class="progress-label">Versión</td><td class="progress-value">${version}</td></tr>
+          <tr><td class="progress-label">Eventos procesados</td><td class="progress-value">${eventsCount}</td></tr>
+          <tr><td class="progress-label">Entradas de estado</td><td class="progress-value">${entries}</td></tr>
+          <tr><td class="progress-label">Última actualización</td><td class="progress-value">${updatedAt}</td></tr>
+        </tbody>
+      </table>
+    `;
+  };
+
+  const loadUserProgress = async (userId) => {
+    if (!userId) return;
+    try {
+      progressData = await api(`/content/admin/app-users/${encodeQueryValue(userId)}/progress`, {
+        headers: headers(false)
+      });
+      if (progressPanelOpen.reference) renderReferenceProgress(progressData);
+      if (progressPanelOpen.training) renderTrainingProgress(progressData);
+    } catch (err) {
+      if (el.referenceProgressContent) el.referenceProgressContent.innerHTML = '<span class="hint error">Error cargando progreso.</span>';
+      if (el.trainingProgressContent) el.trainingProgressContent.innerHTML = '<span class="hint error">Error cargando progreso.</span>';
+    }
+  };
+
+  const resetProgressPanels = () => {
+    progressData = null;
+    progressPanelOpen = { reference: false, training: false };
+    if (el.appUserProgressPanels) el.appUserProgressPanels.classList.add('hidden');
+    if (el.referenceProgressPanel) el.referenceProgressPanel.classList.add('hidden');
+    if (el.trainingProgressPanel) el.trainingProgressPanel.classList.add('hidden');
+    if (el.referenceProgressContent) el.referenceProgressContent.innerHTML = '<span class="progress-panel-loading">Cargando...</span>';
+    if (el.trainingProgressContent) el.trainingProgressContent.innerHTML = '<span class="progress-panel-loading">Cargando...</span>';
+  };
+
   const renderSelectedAppUser = ({ bustCache = false } = {}) => {
     const user = selectedAppUser;
     const hasUser = Boolean(user && user.id);
@@ -2068,7 +2166,11 @@
         : 'Busca y selecciona un usuario.';
     }
     setAppUserFormDisabled(!hasUser);
-    if (!hasUser) return;
+    if (!hasUser) {
+      resetProgressPanels();
+      return;
+    }
+    if (el.appUserProgressPanels) el.appUserProgressPanels.classList.remove('hidden');
 
     clearInputValue(el.appUserIdInput, asText(user.id));
     clearInputValue(el.appUserEmailInput, asText(user.email));
@@ -3073,6 +3175,46 @@
           setStatus('Error forzando logout.', err.response || { error: err.message });
         }
       });
+
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-action="toggle-progress-panel"]');
+      if (!btn) return;
+      const panel = btn.getAttribute('data-panel');
+      if (!panel) return;
+      const isOpen = progressPanelOpen[panel];
+      progressPanelOpen[panel] = !isOpen;
+      const panelEl = panel === 'reference' ? el.referenceProgressPanel : el.trainingProgressPanel;
+      if (panelEl) panelEl.classList.toggle('hidden', isOpen);
+      btn.querySelector('ion-icon') && btn.querySelector('ion-icon').setAttribute('name', isOpen ? 'chevron-down' : 'chevron-up');
+      if (!isOpen && !progressData) {
+        loadUserProgress(asText(selectedAppUserId));
+      } else if (!isOpen) {
+        if (panel === 'reference') renderReferenceProgress(progressData);
+        if (panel === 'training') renderTrainingProgress(progressData);
+      }
+    });
+
+    if (el.resetTrainingBtn) {
+      el.resetTrainingBtn.addEventListener('click', async () => {
+        const userId = asText(selectedAppUserId);
+        if (!userId) { setStatus('Selecciona primero un usuario app.'); return; }
+        if (!confirm(`¿Resetear el training de ${selectedAppUser && selectedAppUser.email || userId}? Esta acción no se puede deshacer.`)) return;
+        try {
+          el.resetTrainingBtn.disabled = true;
+          const out = await api(`/content/admin/app-users/${encodeQueryValue(userId)}/progress/training`, {
+            method: 'DELETE',
+            headers: headers(true)
+          });
+          progressData = null;
+          renderTrainingProgress(null);
+          setStatus('Training reseteado correctamente.', out);
+        } catch (err) {
+          setStatus('Error reseteando training.', err.response || { error: err.message });
+        } finally {
+          el.resetTrainingBtn.disabled = false;
+        }
+      });
+    }
     }
     if (el.deleteAppUserBtn) {
       el.deleteAppUserBtn.addEventListener('click', deleteSelectedAppUser);

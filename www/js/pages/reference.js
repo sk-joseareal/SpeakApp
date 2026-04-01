@@ -1896,6 +1896,17 @@ class PageReference extends HTMLElement {
     if (testsPanel) testsPanel.hidden = normalizedTab !== 'tests';
   }
 
+  renderReferenceLessonDots(lessonProgress) {
+    const learnDone = lessonProgress && lessonProgress.learnDone;
+    const testsTone = lessonProgress && lessonProgress.testsTone ? lessonProgress.testsTone : 'neutral';
+    const hasTests = lessonProgress && lessonProgress.hasTests;
+    const learnDot = `<span class="lesson-dot tone-${learnDone ? 'good' : 'neutral'}"></span>`;
+    const testsDot = hasTests
+      ? `<span class="lesson-dot tone-${testsTone}"></span>`
+      : `<span class="lesson-dot tone-neutral is-empty"></span>`;
+    return `<span class="lesson-dots">${learnDot}${testsDot}</span>`;
+  }
+
   renderReferenceProgressPill(percent, tone, options = {}) {
     const value = Math.max(0, Math.min(100, Math.round(Number(percent) || 0)));
     const normalizedTone = ['good', 'okay', 'bad', 'neutral'].includes(String(tone || '').trim())
@@ -2712,23 +2723,33 @@ class PageReference extends HTMLElement {
           const lessonTestsEntry = testLessonMap.get(lessonCode) || null;
           const lessonTests =
             lessonTestsEntry && Array.isArray(lessonTestsEntry.tests) ? lessonTestsEntry.tests : [];
-          const lessonCompleted = this.hasImportedSectionCompletion(lessonCode);
+          const learnDone = this.hasImportedSectionCompletion(lessonCode);
+
+          // Compute tests tone for this lesson
+          let lessonTestsTone = 'neutral';
+          if (lessonTests.length > 0) {
+            let lessonTestsCompleted = 0;
+            let lessonTestsFailed = 0;
+            lessonTests.forEach((test) => {
+              const testKey = this.getReferenceTestKey('lesson', test);
+              const testProgress = this.getReferenceTestDisplayProgress(test, testKey);
+              snapshot.tests[testKey] = testProgress;
+              if (testProgress.completed) lessonTestsCompleted += 1;
+              else if (testProgress.tone === 'bad') lessonTestsFailed += 1;
+              if (testProgress.completed) unitCompletedCount += 1;
+            });
+            if (lessonTestsCompleted === lessonTests.length) lessonTestsTone = 'good';
+            else if (lessonTestsFailed > 0) lessonTestsTone = 'bad';
+            else if (lessonTestsCompleted > 0) lessonTestsTone = 'okay';
+          }
 
           snapshot.lessons[this.getReferenceLessonProgressKey(courseCode, unitCode, lessonCode)] = {
-            percent: lessonCompleted ? 100 : 0,
-            completed: lessonCompleted,
-            tone: this.getReferenceLessonTone(lessonCompleted)
+            learnDone,
+            testsTone: lessonTestsTone,
+            hasTests: lessonTests.length > 0
           };
 
-          unitTotalCount += 1 + lessonTests.length;
-          if (lessonCompleted) unitCompletedCount += 1;
-
-          lessonTests.forEach((test) => {
-            const testKey = this.getReferenceTestKey('lesson', test);
-            const testProgress = this.getReferenceTestDisplayProgress(test, testKey);
-            snapshot.tests[testKey] = testProgress;
-            if (testProgress.completed) unitCompletedCount += 1;
-          });
+          unitTotalCount += lessonTests.length;
         });
 
         const unitTests = testUnit && Array.isArray(testUnit.tests_unidad) ? testUnit.tests_unidad : [];
@@ -3651,10 +3672,7 @@ class PageReference extends HTMLElement {
                                 : ''
                             }
                           </div>
-                          ${this.renderReferenceProgressPill(lessonProgress.percent, lessonProgress.tone, {
-                            compact: true,
-                            ariaLabel: `${lessonTitle}: ${lessonProgress.percent}%`
-                          })}
+                          ${this.renderReferenceLessonDots(lessonProgress)}
                           <ion-icon name="chevron-forward" class="training-row-arrow"></ion-icon>
                         </div>
                       `;

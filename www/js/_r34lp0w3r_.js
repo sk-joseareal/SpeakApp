@@ -3092,9 +3092,13 @@ async function doPost( endpoint, userInfo, data ) {
     };
 
     if (result.ok) {
-      if (result.data.error) {
+      if (result.data && result.data.error) {
         console.log(">#C02#> doPost. error in data:", JSON.stringify(result.data.error));
         result.ok = false;
+        if (typeof result.data.error === 'string' && result.data.error.includes('(002)')) {
+          console.warn('[session] token invalidado en doPost, forzando logout');
+          if (typeof window.setUser === 'function') window.setUser(null);
+        }
       } else {
         console.log(">#C02#> doPost. success:", JSON.stringify(result));
       }

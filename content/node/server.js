@@ -89,6 +89,12 @@ const appUsersUpstreamAvatarResetPath =
 const appUsersUpstreamForceLogoutPath =
   String(env('CONTENT_APP_USERS_UPSTREAM_FORCE_LOGOUT_PATH', '/v3/admin/forceLogout') || '').trim() ||
   '/v3/admin/forceLogout';
+const appUsersUpstreamProgressPath =
+  String(env('CONTENT_APP_USERS_UPSTREAM_PROGRESS_PATH', '/v3/admin/userProgress/:id') || '').trim() ||
+  '/v3/admin/userProgress/:id';
+const appUsersUpstreamTrainingResetPath =
+  String(env('CONTENT_APP_USERS_UPSTREAM_TRAINING_RESET_PATH', '/v3/admin/userProgress/:id/training') || '').trim() ||
+  '/v3/admin/userProgress/:id/training';
 const appUsersFetchImpl =
   typeof globalThis.fetch === 'function' ? globalThis.fetch.bind(globalThis) : null;
 const appUsersMysqlHost = String(env('CONTENT_APP_USERS_MYSQL_HOST', env('MYSQL_HOST', '')) || '').trim();
@@ -919,6 +925,10 @@ const isAppUsersDeleteConfigured = () =>
 const isAppUsersForceLogoutConfigured = () =>
   Boolean(normalizeAppUsersUpstreamBaseUrl()) &&
   Boolean(String(appUsersUpstreamForceLogoutPath || '').trim()) &&
+  Boolean(appUsersUpstreamToken) &&
+  Boolean(appUsersFetchImpl);
+const isAppUsersProgressConfigured = () =>
+  Boolean(normalizeAppUsersUpstreamBaseUrl()) &&
   Boolean(appUsersUpstreamToken) &&
   Boolean(appUsersFetchImpl);
 
@@ -2811,6 +2821,49 @@ app.post('/content/admin/app-users/:id/force-logout', requireAdmin, async (req, 
     });
     writeAuditLog(req, 'app_user.force_logout', `app_user:${userId}`, {});
     res.json({ ok: true, upstream, status: getAppUsersAdminStatus() });
+  } catch (err) {
+    next(err);
+  }
+});
+
+app.get('/content/admin/app-users/:id/progress', requireAdmin, async (req, res, next) => {
+  try {
+    const userId = String(req.params.id || '').trim();
+    if (!userId) {
+      res.status(400).json({ ok: false, error: 'invalid_app_user_id' });
+      return;
+    }
+    if (!isAppUsersProgressConfigured()) {
+      throw buildHttpError(503, 'app_user_progress_not_configured', { status: getAppUsersAdminStatus() });
+    }
+    const upstream = await requestAppUsersUpstream({
+      method: 'GET',
+      pathTemplate: appUsersUpstreamProgressPath,
+      params: { id: userId }
+    });
+    res.json({ ok: true, ...upstream });
+  } catch (err) {
+    next(err);
+  }
+});
+
+app.delete('/content/admin/app-users/:id/progress/training', requireAdmin, async (req, res, next) => {
+  try {
+    const userId = String(req.params.id || '').trim();
+    if (!userId) {
+      res.status(400).json({ ok: false, error: 'invalid_app_user_id' });
+      return;
+    }
+    if (!isAppUsersProgressConfigured()) {
+      throw buildHttpError(503, 'app_user_progress_not_configured', { status: getAppUsersAdminStatus() });
+    }
+    const upstream = await requestAppUsersUpstream({
+      method: 'DELETE',
+      pathTemplate: appUsersUpstreamTrainingResetPath,
+      params: { id: userId }
+    });
+    writeAuditLog(req, 'app_user.training_reset', `app_user:${userId}`, {});
+    res.json({ ok: true, upstream });
   } catch (err) {
     next(err);
   }

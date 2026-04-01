@@ -1611,6 +1611,30 @@ const initVoicesIfBrowser = () => {
   window.speechSynthesis.onvoiceschanged = loadVoices;
 };
 
+const pingSessionValidity = async () => {
+  const auth = resolveSpeakRemoteAuth();
+  if (!auth) return;
+  const endpoints = resolveSpeakStateEndpoints();
+  const summaryEndpoint = endpoints && endpoints.summaryEndpoint;
+  if (!summaryEndpoint) return;
+  try {
+    const url = `${summaryEndpoint}?user_id=${encodeURIComponent(auth.userId)}&token=${encodeURIComponent(auth.token)}`;
+    const res = await fetch(url);
+    if (!res.ok) return; // error de servidor o red — no tocar sesión
+    const data = await res.json();
+    if (data && typeof data.error === 'string' && data.error.includes('(002)')) {
+      console.warn('[session] token invalidado, forzando logout');
+      if (typeof window.setUser === 'function') window.setUser(null);
+    }
+  } catch (err) {
+    // error de red — no hacer nada
+  }
+};
+
+// Verificar sesión al volver al primer plano
+document.addEventListener('resume', pingSessionValidity, false);
+window.addEventListener('online', pingSessionValidity);
+
 const onReady = () => {
   console.log("# 002 # js/init.js: onReady() #");
   ensurePlatform();

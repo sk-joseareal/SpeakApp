@@ -83,8 +83,6 @@
     appUserResolvedAvatarField: document.getElementById('appUserResolvedAvatarField'),
     appUserAvatarFileNameInput: document.getElementById('appUserAvatarFileNameInput'),
     appUserAvatarResetBtn: document.getElementById('appUserAvatarResetBtn'),
-    appUserProgressInput: document.getElementById('appUserProgressInput'),
-    appUserUpdatedAtInput: document.getElementById('appUserUpdatedAtInput'),
     statusBox: document.getElementById('statusBox'),
     countsBox: document.getElementById('countsBox'),
     guidedCountsBox: document.getElementById('guidedCountsBox'),
@@ -2264,7 +2262,7 @@
                   const words = Array.isArray(speak.spelling.words) ? speak.spelling.words : [speak.spelling.words];
                   words.forEach(w => items.push({ key: String(w).toUpperCase(), label: w, entry_type: 'word_score' }));
                 }
-                if (speak.sentence && speak.sentence.expected) items.push({ key: speak.sentence.expected.toUpperCase(), label: speak.sentence.expected, entry_type: 'phrase_score' });
+                if (speak.sentence && speak.sentence.expected) items.push({ key: '', label: speak.sentence.expected, entry_type: 'phrase_score' });
                 // Deduplicate by key
                 const seen = new Set();
                 const uniqueItems = items.filter(item => { if (seen.has(item.key)) return false; seen.add(item.key); return true; });
@@ -2310,8 +2308,6 @@
     clearInputValue(el.appUserExpiresDateInput);
     clearInputValue(el.appUserImageInput);
     clearInputValue(el.appUserAvatarFileNameInput);
-    clearInputValue(el.appUserProgressInput);
-    clearInputValue(el.appUserUpdatedAtInput);
     if (el.appUserAvatarPreview) {
       el.appUserAvatarPreview.removeAttribute('src');
       el.appUserAvatarPreview.alt = '';
@@ -2373,11 +2369,6 @@
         ? `${labelText} <span style="color:${suffixColor};font-weight:600">${labelSuffix}</span>`
         : labelText;
     }
-    clearInputValue(
-      el.appUserProgressInput,
-      `sections ${Number(user.section_progress_count) || 0} · tests ${Number(user.test_progress_count) || 0}`
-    );
-    clearInputValue(el.appUserUpdatedAtInput, asText(user.updated_at || user.created_at));
     if (el.appUserIdentity) {
       const derivedName = [user.first_name, user.last_name].filter(Boolean).join(' ') || user.name;
       el.appUserIdentity.textContent = derivedName || user.email || `user:${user.id}`;
@@ -2386,7 +2377,9 @@
       const segments = [
         user.email ? user.email : `id ${user.id}`,
         user.created_at ? `created ${user.created_at}` : '',
-        user.updated_at ? `updated ${user.updated_at}` : ''
+        user.updated_at ? `updated ${user.updated_at}` : '',
+        user.last_sign_in_at ? `last login ${user.last_sign_in_at}` : '',
+        user.sign_in_count != null ? `logins ${user.sign_in_count}` : ''
       ].filter(Boolean);
       el.appUserReadonlyMeta.textContent = segments.join(' · ');
     }

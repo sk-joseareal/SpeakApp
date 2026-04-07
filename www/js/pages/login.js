@@ -81,8 +81,7 @@ class PageLogin extends HTMLElement {
                 </label>
               </div>
               <ion-item lines="none" class="login-terms-item">
-                <ion-checkbox slot="start" id="register-terms"></ion-checkbox>
-                <ion-label>${copy.registerTerms}</ion-label>
+                <ion-checkbox id="register-terms" label-placement="end">${copy.registerTerms}</ion-checkbox>
               </ion-item>
               <p id="register-error" style="display:none; margin:4px 0 0; color: var(--ion-color-danger, #eb445a); font-size:0.9rem;"></p>
               <ion-button expand="block" shape="round" id="register-submit">${copy.registerSubmit}</ion-button>

@@ -82,6 +82,8 @@ class PageHome extends HTMLElement {
     this._pendingHomeReturnRestoreTimers = [];
     this._pendingHomeReturnRevealTimers = [];
     this._pendingHomeReturnRevealScheduleToken = 0;
+    this._renderRAFId = null;
+    this._pendingRenderOptions = {};
   }
 
   connectedCallback() {
@@ -253,6 +255,10 @@ class PageHome extends HTMLElement {
       this._routeDidChangeHandler = null;
       this._routerEl = null;
     }
+    if (this._renderRAFId) {
+      cancelAnimationFrame(this._renderRAFId);
+      this._renderRAFId = null;
+    }
     this.clearRoutesCenterScrollTimers();
     this.detachHomeScrollTracking();
     this.clearPendingHomeReturnScrollRestoreTimers();
@@ -340,32 +346,10 @@ class PageHome extends HTMLElement {
     this.routesCenterScrollTimers = [];
   }
 
-  async cancelRoutesCentering() {
+  cancelRoutesCentering() {
     this.pendingRoutesCenterScroll = null;
     this.clearRoutesCenterScrollTimers();
-    const contentEl = this.getHomeContentEl();
-    if (!contentEl || typeof contentEl.getScrollElement !== 'function') return;
-    let scrollEl = null;
-    try {
-      scrollEl = await contentEl.getScrollElement();
-    } catch (err) {
-      scrollEl = null;
-    }
-    if (!scrollEl) return;
-    const currentTop = Math.max(0, Number(scrollEl.scrollTop) || 0);
-    if (typeof contentEl.scrollToPoint === 'function') {
-      try {
-        await contentEl.scrollToPoint(0, currentTop, 0);
-      } catch (err) {
-        scrollEl.scrollTop = currentTop;
-      }
-    } else {
-      scrollEl.scrollTo({
-        top: currentTop,
-        behavior: 'auto'
-      });
-    }
-    this.homeScrollTop = currentTop;
+    return Promise.resolve();
   }
 
   queueRoutesCenterScroll(request = {}) {
@@ -571,13 +555,12 @@ class PageHome extends HTMLElement {
     const pendingTop = this.getPendingHomeReturnScroll();
     if (!Number.isFinite(pendingTop) || pendingTop <= 0) return;
     this.clearPendingHomeReturnScrollRestoreTimers();
-    [0, 90, 240, 520].forEach((delayMs, idx, list) => {
+    [0, 120].forEach((delayMs) => {
       const timerId = setTimeout(() => {
         if (!this.isConnected || !this.isTabActive('home')) return;
         this.restoreHomeScrollPosition(pendingTop).catch(() => {});
-        if (idx === list.length - 1) {
-          this.clearPendingHomeReturnScroll();
-        }
+        this.clearPendingHomeReturnScrollRestoreTimers();
+        this.clearPendingHomeReturnScroll();
       }, delayMs);
       this._pendingHomeReturnRestoreTimers.push(timerId);
     });
@@ -650,9 +633,6 @@ class PageHome extends HTMLElement {
       Math.min(44, Math.max(30, Math.round(targetHeight * 0.45)))
     );
     const didScroll = await this.ensureRoutesTargetVisible(targetEl, effectivePadding, durationMs);
-    await this.waitForNextFrame();
-    await this.waitForNextFrame();
-    await this.ensureRoutesTargetVisible(targetEl, effectivePadding, 0);
     return didScroll;
   }
 
@@ -731,21 +711,36 @@ class PageHome extends HTMLElement {
     if (!request) return;
 
     this.clearRoutesCenterScrollTimers();
-    const delays = request.fallback === 'module' ? [80, 560] : [90, 620, 1240];
+    const delays = request.fallback === 'module' ? [80] : [90, 420];
 
-    delays.forEach((delayMs, idx) => {
+    delays.forEach((delayMs) => {
       const timerId = setTimeout(() => {
         if (!this.isConnected) return;
         const target = this.resolveRoutesCenterTarget(request);
         if (!target) return;
-        const duration = idx === 0 ? 760 : 980;
-        this.scrollRoutesTargetToCenter(target, duration).catch(() => {});
+        this.scrollRoutesTargetToCenter(target, 300).catch(() => {});
       }, delayMs);
       this.routesCenterScrollTimers.push(timerId);
     });
   }
 
   render(options = {}) {
+    if (this._renderRAFId) {
+      if (options.restoreScrollTop !== undefined && options.restoreScrollTop !== null) {
+        this._pendingRenderOptions.restoreScrollTop = options.restoreScrollTop;
+      }
+      return;
+    }
+    this._pendingRenderOptions = { ...options };
+    this._renderRAFId = requestAnimationFrame(() => {
+      this._renderRAFId = null;
+      const pendingOptions = this._pendingRenderOptions;
+      this._pendingRenderOptions = {};
+      this._renderSync(pendingOptions);
+    });
+  }
+
+  _renderSync(options = {}) {
     this.clearRoutesCenterScrollTimers();
     const baseLocale = this.getBaseLocale();
     const uiLocale = this.getUiLocale(baseLocale);

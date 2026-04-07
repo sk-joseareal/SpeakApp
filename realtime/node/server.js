@@ -2416,8 +2416,8 @@ const authorizeState = (req, res) => {
   if (!stateToken) return true;
   const token =
     req.get('x-rt-token') ||
-    (req.query ? req.query.token : '') ||
-    (req.body ? req.body.token : '');
+    (req.query ? req.query.rt_token || req.query.state_token || req.query.token : '') ||
+    (req.body ? req.body.rt_token || req.body.state_token || req.body.token : '');
   if (!token || token !== stateToken) {
     res.status(401).json({ error: 'unauthorized' });
     return false;

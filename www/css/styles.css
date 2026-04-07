@@ -338,7 +338,7 @@ page-login .login-terms-item {
   --min-height: auto;
 }
 
-page-login .login-terms-item ion-label {
+page-login .login-terms-item ion-checkbox {
   margin: 0;
   font-size: 0.85rem;
   color: var(--app-muted);

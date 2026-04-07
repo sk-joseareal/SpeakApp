@@ -14,6 +14,38 @@ import './pages/diagnostics.js';
 import './pages/login.js';
 import './pages/notifications.js';
 
+function installIonContentDimensionGuard() {
+  customElements.whenDefined('ion-content').then(() => {
+    const IonContent = customElements.get('ion-content');
+    const proto = IonContent && IonContent.prototype;
+    if (!proto || typeof proto.readDimensions !== 'function' || proto.__speakDimensionGuard) return;
+    const readDimensions = proto.readDimensions;
+    proto.readDimensions = function guardedReadDimensions(...args) {
+      const el = this && this.el;
+      const fallbackParent =
+        el && el.parentElement
+          ? el.parentElement
+          : el && el.parentNode && el.parentNode.host
+          ? el.parentNode.host
+          : null;
+      const container =
+        el &&
+        (el.closest('ion-tabs') ||
+          el.closest('ion-app, ion-page, .ion-page, page-inner, .popover-content') ||
+          fallbackParent);
+      if (!container) return;
+      try {
+        return readDimensions.apply(this, args);
+      } catch (err) {
+        if (err instanceof TypeError && String(err.message || '').includes('offsetHeight')) return;
+        throw err;
+      }
+    };
+    proto.__speakDimensionGuard = true;
+  });
+}
+
+installIonContentDimensionGuard();
 ensureLegacySpeakCopyGlobals();
 
 const routerReady = customElements.whenDefined('ion-router').then(() => document.querySelector('ion-router'));

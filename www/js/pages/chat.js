@@ -56,7 +56,7 @@ class PageChat extends HTMLElement {
                   <div class="chat-community-list-tools" id="chat-community-room-tools">
                     <label class="chat-community-archived-toggle" id="chat-community-archived-toggle-wrap">
                       <span class="chat-community-archived-toggle-label" id="chat-community-archived-label">${uiCopy.communityShowArchived}</span>
-                      <ion-toggle id="chat-community-archived-toggle"></ion-toggle>
+                      <ion-toggle id="chat-community-archived-toggle" aria-label="${uiCopy.communityShowArchived}"></ion-toggle>
                     </label>
                     <button type="button" class="chat-community-manage-btn" id="chat-community-manage-btn">${uiCopy.communityManage}</button>
                   </div>

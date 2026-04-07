@@ -2717,7 +2717,7 @@ class PageFreeRide extends HTMLElement {
       modal.presentingElement = presentingEl;
     }
     modal.innerHTML = `
-      <ion-content class="free-ride-library-modal-content" fullscreen="true">
+      <ion-content class="free-ride-library-modal-content">
         ${this.buildSavedPhrasesModalHtml()}
       </ion-content>
     `;
@@ -2794,7 +2794,7 @@ class PageFreeRide extends HTMLElement {
       modal.presentingElement = presentingEl;
     }
     modal.innerHTML = `
-      <ion-content class="free-ride-detail-modal-content" fullscreen="true">
+      <ion-content class="free-ride-detail-modal-content">
         ${this.buildPhraseDetailsModalHtml()}
       </ion-content>
     `;

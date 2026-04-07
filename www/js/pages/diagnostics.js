@@ -221,7 +221,7 @@ class PageDiagnostics extends HTMLElement {
                 <div class="diag-debug-title">${TAB_VISIBILITY_META[tab].title}</div>
                 <div class="diag-debug-sub" id="diag-tab-${tab}-sub"></div>
               </div>
-              <ion-toggle id="diag-tab-${tab}-toggle" ${getStoredTabVisibility(tab) ? 'checked' : ''}></ion-toggle>
+              <ion-toggle id="diag-tab-${tab}-toggle" aria-label="${TAB_VISIBILITY_META[tab].title}" ${getStoredTabVisibility(tab) ? 'checked' : ''}></ion-toggle>
             </div>`
       ).join('');
     const normalizeReferenceTabEnabled = (value) => {
@@ -291,14 +291,14 @@ class PageDiagnostics extends HTMLElement {
                 <div class="diag-debug-sub">Muestra caja con esperado / transcrito / porcentaje y overrrides en Speak.</div>
                 <div class="diag-debug-sub">Permite acceder a cualquier ruta.</div>
               </div>
-              <ion-toggle id="diag-debug-toggle"></ion-toggle>
+              <ion-toggle id="diag-debug-toggle" aria-label="Modo debug"></ion-toggle>
             </div>
             <div class="diag-debug-toggle" style="margin-top: 10px;">
               <div class="diag-debug-text">
                 <div class="diag-debug-title">Porcentajes en sesión (Training)</div>
                 <div class="diag-debug-sub" id="diag-speak-session-percentages-sub"></div>
               </div>
-              <ion-toggle id="diag-speak-session-percentages-toggle" ${getStoredSpeakSessionPercentagesVisible() ? 'checked' : ''}></ion-toggle>
+              <ion-toggle id="diag-speak-session-percentages-toggle" aria-label="Porcentajes en sesión (Training)" ${getStoredSpeakSessionPercentagesVisible() ? 'checked' : ''}></ion-toggle>
             </div>
             <div class="diag-speak-block">
               <div class="diag-debug-title">Avatar pronunciación</div>
@@ -324,14 +324,14 @@ class PageDiagnostics extends HTMLElement {
                 <div class="diag-debug-title">Catbot</div>
                 <div class="diag-debug-sub" id="diag-chat-community-sub"></div>
               </div>
-              <ion-toggle id="diag-chat-community-toggle" ${getStoredChatCatbotEnabled() ? 'checked' : ''}></ion-toggle>
+              <ion-toggle id="diag-chat-community-toggle" aria-label="Catbot" ${getStoredChatCatbotEnabled() ? 'checked' : ''}></ion-toggle>
             </div>
             <div class="diag-debug-toggle" style="margin-top: 10px;">
               <div class="diag-debug-text">
                 <div class="diag-debug-title">Chatbot</div>
                 <div class="diag-debug-sub" id="diag-chat-chatbot-sub"></div>
               </div>
-              <ion-toggle id="diag-chat-chatbot-toggle" ${getStoredChatChatbotEnabled() ? 'checked' : ''}></ion-toggle>
+              <ion-toggle id="diag-chat-chatbot-toggle" aria-label="Chatbot" ${getStoredChatChatbotEnabled() ? 'checked' : ''}></ion-toggle>
             </div>
             
             <div id="diag-user" style="display:none; margin-bottom:12px;">
@@ -430,14 +430,14 @@ class PageDiagnostics extends HTMLElement {
                   <div class="diag-debug-title">Pronunciación avanzada (Free ride)</div>
                   <div class="diag-debug-sub" id="diag-free-ride-advanced-sub"></div>
                 </div>
-                <ion-toggle id="diag-free-ride-advanced-toggle" ${getStoredFreeRideAdvancedEnabled() ? 'checked' : ''}></ion-toggle>
+                <ion-toggle id="diag-free-ride-advanced-toggle" aria-label="Pronunciación avanzada (Free ride)" ${getStoredFreeRideAdvancedEnabled() ? 'checked' : ''}></ion-toggle>
               </div>
               <div class="diag-debug-toggle" style="margin-top: 10px;">
                 <div class="diag-debug-text">
                   <div class="diag-debug-title">Audio por palabra (Free ride)</div>
                   <div class="diag-debug-sub" id="diag-free-ride-word-tap-audio-sub"></div>
                 </div>
-                <ion-toggle id="diag-free-ride-word-tap-audio-toggle" ${getStoredFreeRideWordTapAudioEnabled() ? 'checked' : ''}></ion-toggle>
+                <ion-toggle id="diag-free-ride-word-tap-audio-toggle" aria-label="Audio por palabra (Free ride)" ${getStoredFreeRideWordTapAudioEnabled() ? 'checked' : ''}></ion-toggle>
               </div>
             </div>
 

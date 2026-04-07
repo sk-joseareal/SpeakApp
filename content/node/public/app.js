@@ -3579,18 +3579,32 @@
     const fitGraficasIframe = () => {
       const iframe = el.graficasIframe;
       if (!iframe) return;
-      try {
-        const doc = iframe.contentDocument || iframe.contentWindow.document;
-        const h = Math.max(
-          doc.body.scrollHeight,
-          doc.body.offsetHeight,
-          doc.documentElement.scrollHeight,
-          doc.documentElement.offsetHeight
-        );
-        if (h > 0) iframe.style.height = h + 'px';
-      } catch (e) {
-        // cross-origin: mantener altura mínima
-      }
+      let lastH = 0;
+      let stable = 0;
+      let attempts = 0;
+      const poll = () => {
+        try {
+          const doc = iframe.contentDocument || iframe.contentWindow.document;
+          const h = Math.max(
+            doc.body.scrollHeight,
+            doc.body.offsetHeight,
+            doc.documentElement.scrollHeight,
+            doc.documentElement.offsetHeight
+          );
+          if (h > 0) iframe.style.height = h + 'px';
+          if (h === lastH) {
+            stable++;
+          } else {
+            stable = 0;
+            lastH = h;
+          }
+          attempts++;
+          if (stable < 3 && attempts < 40) setTimeout(poll, 100);
+        } catch (e) {
+          // cross-origin
+        }
+      };
+      poll();
     };
 
     const showGrafica = (file) => {

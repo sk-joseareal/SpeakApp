@@ -3579,27 +3579,18 @@
     const fitGraficasIframe = () => {
       const iframe = el.graficasIframe;
       if (!iframe) return;
-      let lastH = 0;
-      let stable = 0;
-      let attempts = 0;
+      let lastH = 0, stable = 0, attempts = 0;
       const poll = () => {
         try {
           const doc = iframe.contentDocument || iframe.contentWindow.document;
-          const h = Math.max(
-            doc.body.scrollHeight,
-            doc.body.offsetHeight,
-            doc.documentElement.scrollHeight,
-            doc.documentElement.offsetHeight
-          );
-          if (h > 0) iframe.style.height = h + 'px';
-          if (h === lastH) {
-            stable++;
-          } else {
-            stable = 0;
-            lastH = h;
-          }
+          const h = Math.max(doc.body.scrollHeight, doc.documentElement.scrollHeight);
+          // Solo crecer, nunca encoger (Plotly rellena la altura disponible)
+          const current = iframe.offsetHeight;
+          if (h > current) iframe.style.height = h + 'px';
+          stable = (h === lastH) ? stable + 1 : 0;
+          lastH = h;
           attempts++;
-          if (stable < 3 && attempts < 40) setTimeout(poll, 100);
+          if (stable < 4 && attempts < 50) setTimeout(poll, 120);
         } catch (e) {
           // cross-origin
         }

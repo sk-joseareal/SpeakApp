@@ -20,6 +20,7 @@
       <button class="btn dashboard-tab-btn" data-dashboard-tab="releases" type="button">Releases</button>
       <button class="btn dashboard-tab-btn" data-dashboard-tab="appcopy" type="button">Copys app</button>
       <button class="btn dashboard-tab-btn" data-dashboard-tab="links" type="button">Links</button>
+      <button class="btn dashboard-tab-btn" data-dashboard-tab="graficas" type="button">Gráficas</button>
     </nav>
 
     <section id="loginSection" class="card" data-dashboard-panel="login">
@@ -559,6 +560,25 @@
         <li><a href="https://speakapp.curso-ingles.com" target="_blank" rel="noopener noreferrer">Abrir web app</a></li>
         <li><a href="https://play.google.com/apps/internaltest/4701008495852892616" target="_blank" rel="noopener noreferrer">App Android</a></li>
       </ul>
+    </section>
+
+    <section id="graficasSection" class="card" data-dashboard-panel="graficas">
+      <div class="row between center">
+        <h2>Gráficas</h2>
+        <button id="graficasRefreshBtn" class="btn" type="button">Recargar</button>
+      </div>
+      <div class="row row-wrap gap-sm top-md">
+        <label class="field grow">
+          <span>Seleccionar gráfica</span>
+          <select id="graficasSelect">
+            <option value="">— elige una gráfica —</option>
+          </select>
+        </label>
+      </div>
+      <div class="top-md graficas-iframe-wrap hidden" id="graficasIframeWrap">
+        <iframe id="graficasIframe" src="" class="graficas-iframe" title="Gráfica"></iframe>
+      </div>
+      <p id="graficasMeta" class="hint top-md">Cargando lista de gráficas...</p>
     </section>
 
     <section id="statusSection" class="card">

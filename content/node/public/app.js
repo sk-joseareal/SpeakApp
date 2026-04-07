@@ -13,7 +13,8 @@
   const TAB_APPCOPY = 'appcopy';
   const TAB_RELEASES = 'releases';
   const TAB_LINKS = 'links';
-  const TAB_ORDER = [TAB_LOGIN, TAB_USERS, TAB_APP_USERS, TAB_CONTENT, TAB_RELEASES, TAB_APPCOPY, TAB_LINKS];
+  const TAB_GRAFICAS = 'graficas';
+  const TAB_ORDER = [TAB_LOGIN, TAB_USERS, TAB_APP_USERS, TAB_CONTENT, TAB_RELEASES, TAB_APPCOPY, TAB_LINKS, TAB_GRAFICAS];
 
   const el = {
     dashboardTabs: document.getElementById('dashboardTabs'),
@@ -83,6 +84,12 @@
     appUserResolvedAvatarField: document.getElementById('appUserResolvedAvatarField'),
     appUserAvatarFileNameInput: document.getElementById('appUserAvatarFileNameInput'),
     appUserAvatarResetBtn: document.getElementById('appUserAvatarResetBtn'),
+    graficasSection: document.getElementById('graficasSection'),
+    graficasSelect: document.getElementById('graficasSelect'),
+    graficasIframeWrap: document.getElementById('graficasIframeWrap'),
+    graficasIframe: document.getElementById('graficasIframe'),
+    graficasMeta: document.getElementById('graficasMeta'),
+    graficasRefreshBtn: document.getElementById('graficasRefreshBtn'),
     statusBox: document.getElementById('statusBox'),
     countsBox: document.getElementById('countsBox'),
     guidedCountsBox: document.getElementById('guidedCountsBox'),
@@ -922,6 +929,7 @@
     switch (tab) {
       case TAB_LOGIN:
       case TAB_LINKS:
+      case TAB_GRAFICAS:
         return true;
       case TAB_USERS:
         return canManageEditors();
@@ -3552,6 +3560,45 @@
       });
     }
 
+    // --- Gráficas ---
+    const loadGraficasList = async () => {
+      if (!el.graficasSelect || !el.graficasMeta) return;
+      try {
+        const res = await fetch('/dashboard/graficas');
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        const files = Array.isArray(data.files) ? data.files : [];
+        el.graficasSelect.innerHTML = '<option value="">— elige una gráfica —</option>' +
+          files.map(f => `<option value="${f}">${f.replace('.html', '')}</option>`).join('');
+        el.graficasMeta.textContent = files.length ? '' : 'No hay gráficas disponibles.';
+      } catch (err) {
+        el.graficasMeta.textContent = `Error cargando lista: ${err.message}`;
+      }
+    };
+
+    const showGrafica = (file) => {
+      if (!el.graficasIframe || !el.graficasIframeWrap) return;
+      if (!file) {
+        el.graficasIframeWrap.classList.add('hidden');
+        el.graficasIframe.src = '';
+        return;
+      }
+      el.graficasIframe.src = `/dashboard/graficas/${encodeURIComponent(file)}`;
+      el.graficasIframeWrap.classList.remove('hidden');
+    };
+
+    if (el.graficasSelect) {
+      el.graficasSelect.addEventListener('change', () => {
+        showGrafica(el.graficasSelect.value);
+      });
+    }
+    if (el.graficasRefreshBtn) {
+      el.graficasRefreshBtn.addEventListener('click', () => {
+        loadGraficasList();
+        if (el.graficasSelect) showGrafica(el.graficasSelect.value);
+      });
+    }
+
     bindGuidedEditorEvents();
     setEditorMode(MODE_GUIDED);
     setContentState({ routes: [], modules: [], sessions: [] }, { syncJson: true, preserveSelection: false });
@@ -3563,6 +3610,7 @@
     renderSelectedAppUser();
     renderDashboardTabs();
 
+    await loadGraficasList();
     await loadHealth();
     await loadMe({ silent: true });
     await loadDraft();

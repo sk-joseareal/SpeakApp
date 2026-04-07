@@ -3001,22 +3001,6 @@ class PageChat extends HTMLElement {
         payload.rt_token = realtimeStateToken;
       }
       try {
-        if (
-          keepalive &&
-          typeof navigator !== 'undefined' &&
-          typeof navigator.sendBeacon === 'function'
-        ) {
-          const body = new Blob([JSON.stringify(payload)], { type: 'application/json' });
-          const queued = navigator.sendBeacon(endpoint, body);
-          if (!queued) {
-            throw new Error(`community_presence_${action}_beacon_failed`);
-          }
-          if (action === 'heartbeat') {
-            communityPresenceLastHeartbeatAt = Date.now();
-            communityPresenceLastHeartbeatSignature = getCommunityPresenceThrottleSignature(payload);
-          }
-          return { ok: true, sent: true, throttled: false };
-        }
         const response = await fetch(endpoint, {
           method: 'POST',
           headers: buildRealtimeStateHeaders({ 'Content-Type': 'application/json', Accept: 'application/json' }),
@@ -3090,15 +3074,6 @@ class PageChat extends HTMLElement {
       const realtimeStateToken = getRealtimeStateToken();
       if (realtimeStateToken) {
         payload.rt_token = realtimeStateToken;
-      }
-      if (keepalive && typeof navigator !== 'undefined' && typeof navigator.sendBeacon === 'function') {
-        try {
-          const body = new Blob([JSON.stringify(payload)], { type: 'application/json' });
-          navigator.sendBeacon(endpoint, body);
-          return;
-        } catch (err) {
-          // no-op
-        }
       }
       sendCommunityPresence({ action: 'leave', keepalive, silent }).catch(() => {});
     };

@@ -401,6 +401,24 @@ if (fs.existsSync(dashboardDir)) {
   app.get('/dashboard', (req, res) => {
     res.sendFile(path.join(dashboardDir, 'index.html'));
   });
+
+  const graficasDir = '/opt/scripts/output';
+  app.get('/dashboard/graficas', (req, res) => {
+    fs.readdir(graficasDir, (err, entries) => {
+      if (err) return res.json({ files: [] });
+      const files = entries
+        .filter(f => f.endsWith('.html'))
+        .sort((a, b) => b.localeCompare(a));
+      res.json({ files });
+    });
+  });
+  app.get('/dashboard/graficas/:file', (req, res) => {
+    const file = path.basename(req.params.file);
+    if (!file.endsWith('.html')) return res.status(400).send('Not found');
+    res.sendFile(path.join(graficasDir, file), err => {
+      if (err) res.status(404).send('Not found');
+    });
+  });
   app.get('/', (req, res) => {
     res.sendFile(path.join(dashboardDir, 'index.html'));
   });

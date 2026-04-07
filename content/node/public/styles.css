@@ -880,3 +880,17 @@ h2 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+.graficas-iframe-wrap {
+  display: block;
+}
+.graficas-iframe-wrap.hidden {
+  display: none !important;
+}
+.graficas-iframe {
+  width: 100%;
+  border: none;
+  border-radius: 6px;
+  min-height: 600px;
+  background: #fff;
+}

@@ -891,6 +891,7 @@ h2 {
   width: 100%;
   border: none;
   border-radius: 6px;
-  min-height: 600px;
+  min-height: 200px;
   background: #fff;
+  display: block;
 }

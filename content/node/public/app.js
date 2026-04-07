@@ -3576,13 +3576,33 @@
       }
     };
 
+    const fitGraficasIframe = () => {
+      const iframe = el.graficasIframe;
+      if (!iframe) return;
+      try {
+        const doc = iframe.contentDocument || iframe.contentWindow.document;
+        const h = Math.max(
+          doc.body.scrollHeight,
+          doc.body.offsetHeight,
+          doc.documentElement.scrollHeight,
+          doc.documentElement.offsetHeight
+        );
+        if (h > 0) iframe.style.height = h + 'px';
+      } catch (e) {
+        // cross-origin: mantener altura mínima
+      }
+    };
+
     const showGrafica = (file) => {
       if (!el.graficasIframe || !el.graficasIframeWrap) return;
       if (!file) {
         el.graficasIframeWrap.classList.add('hidden');
         el.graficasIframe.src = '';
+        el.graficasIframe.style.height = '';
         return;
       }
+      el.graficasIframe.style.height = '';
+      el.graficasIframe.onload = fitGraficasIframe;
       el.graficasIframe.src = `/dashboard/graficas/${encodeURIComponent(file)}`;
       el.graficasIframeWrap.classList.remove('hidden');
     };

@@ -929,8 +929,9 @@
     switch (tab) {
       case TAB_LOGIN:
       case TAB_LINKS:
-      case TAB_GRAFICAS:
         return true;
+      case TAB_GRAFICAS:
+        return isAuthenticated();
       case TAB_USERS:
         return canManageEditors();
       case TAB_APP_USERS:

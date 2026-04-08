@@ -4,7 +4,7 @@
 node --input-type=module -e "import('file://' + process.cwd() + '/www/js/content/copy.js').then(({getCopyBundle})=>{process.stdout.write(JSON.stringify({es:getCopyBundle('es'),en:getCopyBundle('en')},null,2));})" > /tmp/app-copy.current.json
 
 # 2. Login y guardar JWT
-JWT=$(curl -s 'https://content.speakapp.curso-ingles.com/content/admin/login' \
+JWT=$(curl -s 'https://content.curso-ingles.com/content/admin/login' \
   -H 'Content-Type: application/json' \
   --data '{"email":"joseareal@sokinternet.com","password":""}' \
   | jq -r '.token')
@@ -12,7 +12,7 @@ JWT=$(curl -s 'https://content.speakapp.curso-ingles.com/content/admin/login' \
 echo "$JWT" | head -c 20; echo "..."
 
 # 3. Subir el JSON de copys actuales
-curl -s -X PUT 'https://content.speakapp.curso-ingles.com/content/admin/app-copy' \
+curl -s -X PUT 'https://content.curso-ingles.com/content/admin/app-copy' \
   -H "Authorization: Bearer $JWT" \
   -H 'Content-Type: application/json' \
   --data-binary @/tmp/app-copy.current.json \

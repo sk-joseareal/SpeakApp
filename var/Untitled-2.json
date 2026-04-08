@@ -21,7 +21,7 @@ curl http://localhost:8791/content/health
   "published_release_id": null,
   "published_updated_at": null
 }
-curl https://content.speakapp.curso-ingles.com/content/health
+curl https://content.curso-ingles.com/content/health
 
 Importar el JSON actual de la app:
 curl -X POST http://localhost:8791/content/admin/import/training-json \
@@ -52,15 +52,15 @@ curl https://speakapp.curso-ingles.com/content/training-data
 
 
 # público (lo que consumirá la app)
-curl https://content.speakapp.curso-ingles.com/content/training-data | jq '.source, (.data.routes|length), (.data.modules|length), (.data.sessions|length)'
+curl https://content.curso-ingles.com/content/training-data | jq '.source, (.data.routes|length), (.data.modules|length), (.data.sessions|length)'
 
 # admin sin token -> 401
-curl https://content.speakapp.curso-ingles.com/content/admin/releases
+curl https://content.curso-ingles.com/content/admin/releases
 
 # admin con token -> OK
-curl https://content.speakapp.curso-ingles.com/content/admin/releases \
+curl https://content.curso-ingles.com/content/admin/releases \
   -H 'x-content-token: raZR3RYjTguqIDMs0eGz053ycjt7Ilxu7XwJkvmFdACeHFeJWVfQzGPCKoxEGe0Z'
 
 # Obtener contenido para la app:
-curl https://content.speakapp.curso-ingles.com/content/training-data
+curl https://content.curso-ingles.com/content/training-data
 

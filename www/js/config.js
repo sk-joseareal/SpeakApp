@@ -212,7 +212,7 @@
     window.contentConfig.trainingDataEndpoint =
       window.CONTENT_TRAINING_DATA_ENDPOINT ||
       window.SPEAK_CONTENT_URL ||
-      'https://content.speakapp.curso-ingles.com/content/training-data';
+      'https://content.curso-ingles.com/content/training-data';
   }
   if (window.contentConfig.trainingDataToken === undefined) {
     window.contentConfig.trainingDataToken = window.CONTENT_TRAINING_DATA_TOKEN || '';

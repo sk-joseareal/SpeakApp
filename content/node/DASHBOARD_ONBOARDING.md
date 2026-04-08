@@ -30,7 +30,7 @@ Regla simple:
 
 ## 3) Requisitos antes de entrar
 
-- URL dashboard: `https://content.speakapp.curso-ingles.com`
+- URL dashboard: `https://content.curso-ingles.com`
 - Usuario editor activo (email + password)
 - El servicio debe tener `CONTENT_JWT_SECRET` configurado en backend.
 

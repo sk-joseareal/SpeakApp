@@ -48,7 +48,7 @@ Por defecto escucha en `:8791`.
 
 - URL local: `http://localhost:8791/`
 - URL alternativa: `http://localhost:8791/dashboard`
-- En producción: `https://content.speakapp.curso-ingles.com/`
+- En producción: `https://content.curso-ingles.com/`
 - Guía de onboarding de uso: `content/node/DASHBOARD_ONBOARDING.md`
 
 Funciones incluidas:

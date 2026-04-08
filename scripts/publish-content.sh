@@ -8,7 +8,7 @@ Usage:
 
 Options:
   --base-url URL         Content service base URL.
-                         Default: https://content.speakapp.curso-ingles.com
+                         Default: https://content.curso-ingles.com
   --email EMAIL          Editor email (or env CONTENT_EDITOR_EMAIL)
   --password PASS        Editor password (or env CONTENT_EDITOR_PASSWORD)
   --json PATH            training-data.json path
@@ -101,7 +101,7 @@ http_status() {
   "${cmd[@]}"
 }
 
-BASE_URL="${CONTENT_BASE_URL:-https://content.speakapp.curso-ingles.com}"
+BASE_URL="${CONTENT_BASE_URL:-https://content.curso-ingles.com}"
 EMAIL="${CONTENT_EDITOR_EMAIL:-}"
 PASSWORD="${CONTENT_EDITOR_PASSWORD:-}"
 JSON_PATH="${CONTENT_JSON_PATH:-www/js/data/training-data.json}"

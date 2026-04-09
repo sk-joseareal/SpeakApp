@@ -9,7 +9,7 @@ curl http://localhost:8791/content/health
 {
   "ok": true,
   "service": "speakapp-content-service",
-  "db_path": "/opt/SpeakApp/content/node/data/content.db",
+  "db_path": "/opt/content/node/data/content.db",
   "admin_auth_enabled": true,
   "counts": {
     "routes": 0,

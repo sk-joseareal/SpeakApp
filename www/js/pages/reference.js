@@ -31,8 +31,8 @@ const TTS_LANG_BY_LOCALE = {
   es: 'es-ES',
   en: 'en-US'
 };
-const HERO_MASCOT_FRAME_COUNT = 9;
-const HERO_MASCOT_REST_FRAME = HERO_MASCOT_FRAME_COUNT - 1;
+const HERO_MASCOT_FRAME_COUNT = 8;
+const HERO_MASCOT_REST_FRAME = 0;
 const HERO_MASCOT_FRAME_INTERVAL_MS = 150;
 const BROWSER_AUTONARRATION_EXTRA_DELAY_MS = 120;
 const REFERENCE_ALIGNED_CACHE_MAX_ITEMS = 80;
@@ -126,6 +126,7 @@ class PageReference extends HTMLElement {
 
   connectedCallback() {
     this.classList.add('ion-page');
+    for (let i = 0; i < HERO_MASCOT_FRAME_COUNT; i++) { new Image().src = `assets/mascot/nena/nena-v5-${String(i).padStart(2, '0')}.png`; }
     this._selectionHandler = () => this.render();
     window.addEventListener('reference:selection-change', this._selectionHandler);
     this._localeHandler = () => {
@@ -1274,9 +1275,9 @@ class PageReference extends HTMLElement {
 
   getHeroMascotFrameSrc(index) {
     const safeIndex = Number.isFinite(index) ? Math.trunc(index) : HERO_MASCOT_REST_FRAME;
-    const normalized = Math.max(0, Math.min(HERO_MASCOT_REST_FRAME, safeIndex));
+    const normalized = Math.max(0, Math.min(HERO_MASCOT_FRAME_COUNT - 1, safeIndex));
     const padded = String(normalized).padStart(2, '0');
-    return `assets/mascot/mascota-boca-${padded}.png`;
+    return `assets/mascot/nena/nena-v5-${padded}.png`;
   }
 
   setHeroBubbleSpeaking(isSpeaking) {
@@ -1288,7 +1289,7 @@ class PageReference extends HTMLElement {
   setHeroMascotFrame(index) {
     const imageEl = this.getHeroMascotImageEl();
     if (!imageEl) return;
-    this.heroMascotFrameIndex = Math.max(0, Math.min(HERO_MASCOT_REST_FRAME, Number(index) || 0));
+    this.heroMascotFrameIndex = Math.max(0, Math.min(HERO_MASCOT_FRAME_COUNT - 1, Number(index) || 0));
     imageEl.src = this.getHeroMascotFrameSrc(this.heroMascotFrameIndex);
   }
 
@@ -1300,10 +1301,10 @@ class PageReference extends HTMLElement {
       this.heroMascotFrameTimer = null;
     }
     this.setHeroBubbleSpeaking(true);
-    this.setHeroMascotFrame(0);
+    this.setHeroMascotFrame(1);
     this.heroMascotFrameTimer = setInterval(() => {
       if (!this.heroMascotIsTalking) return;
-      const nextIndex = Math.floor(Math.random() * HERO_MASCOT_REST_FRAME);
+      const nextIndex = Math.floor(Math.random() * (HERO_MASCOT_FRAME_COUNT - 1)) + 1;
       this.setHeroMascotFrame(nextIndex);
     }, HERO_MASCOT_FRAME_INTERVAL_MS);
   }
@@ -3463,7 +3464,7 @@ class PageReference extends HTMLElement {
                 <img id="reference-hero-mascot" class="onboarding-intro-cat" src="${heroMascotSrc}" alt="">
               </span>
               <div class="journey-plan-body">
-                <p class="onboarding-intro-bubble journey-plan-bubble reference-hero-bubble hero-playable-bubble">${this.escapeHtml(copy.subtitle)}</p>
+                <p class="onboarding-intro-bubble journey-plan-bubble reference-hero-bubble hero-playable-bubble"><span class="journey-plan-bubble-text">${this.escapeHtml(copy.subtitle)}</span></p>
               </div>
             </section>
             <section class="reference-content-card">
@@ -3855,7 +3856,7 @@ class PageReference extends HTMLElement {
                 <img id="reference-hero-mascot" class="onboarding-intro-cat" src="${heroMascotSrc}" alt="">
               </span>
               <div class="journey-plan-body">
-                <p class="onboarding-intro-bubble journey-plan-bubble reference-hero-bubble hero-playable-bubble">${this.escapeHtml(copy.subtitle)}</p>
+                <p class="onboarding-intro-bubble journey-plan-bubble reference-hero-bubble hero-playable-bubble"><span class="journey-plan-bubble-text">${this.escapeHtml(copy.subtitle)}</span></p>
               </div>
             </section>
 

@@ -13,16 +13,31 @@ import { goToSpeak } from '../nav.js';
 const REFERENCE_TESTS_PROGRESS_STORAGE_PREFIX = 'appv5:reference-tests-progress';
 
 class PageProfile extends HTMLElement {
+  notifyChromeState() {
+    const user = window.user;
+    const loggedIn = Boolean(user && user.id !== undefined && user.id !== null);
+    const tabsPage = document.querySelector('tabs-page');
+    if (tabsPage && tabsPage.classList) {
+      tabsPage.classList.toggle('profile-auth-tabs-hidden', !loggedIn);
+    }
+    window.dispatchEvent(
+      new CustomEvent('app:profile-auth-view-change', {
+        detail: { hideTabBar: !loggedIn }
+      })
+    );
+  }
+
   connectedCallback() {
     this.classList.add('ion-page');
     if (!this.activeTab) {
-      this.activeTab = 'review';
+      this.activeTab = 'progress';
     }
     if (!this.reviewTone) {
       const storedTone = window.r34lp0w3r && window.r34lp0w3r.profileReviewTone;
       this.reviewTone = storedTone === 'okay' ? 'okay' : 'bad';
     }
     this.render();
+    this.notifyChromeState();
     this._userHandler = (e) => {
       const u = e && e.detail && typeof e.detail === 'object' ? e.detail : null;
       if (u && u.locale && !getLocaleOverride()) {
@@ -32,6 +47,7 @@ class PageProfile extends HTMLElement {
         }
       }
       this.render();
+      this.notifyChromeState();
     };
     this._storesHandler = () => this.render();
     this._localeHandler = () => this.render();
@@ -41,6 +57,15 @@ class PageProfile extends HTMLElement {
   }
 
   disconnectedCallback() {
+    const tabsPage = document.querySelector('tabs-page');
+    if (tabsPage && tabsPage.classList) {
+      tabsPage.classList.remove('profile-auth-tabs-hidden');
+    }
+    window.dispatchEvent(
+      new CustomEvent('app:profile-auth-view-change', {
+        detail: { hideTabBar: false }
+      })
+    );
     if (this._userHandler) {
       window.removeEventListener('app:user-change', this._userHandler);
     }
@@ -71,8 +96,11 @@ class PageProfile extends HTMLElement {
       persistProfileTab(this.activeTab);
       window.r34lp0w3r.profileForceTab = null;
     }
-    if (this.activeTab !== 'review' && this.activeTab !== 'prefs') {
-      this.activeTab = 'review';
+    if (this.activeTab === 'prefs') {
+      this.activeTab = 'progress';
+    }
+    if (this.activeTab !== 'review' && this.activeTab !== 'progress') {
+      this.activeTab = 'progress';
     }
     const storedReviewTone = window.r34lp0w3r && window.r34lp0w3r.profileReviewTone;
     if (storedReviewTone === 'okay' || storedReviewTone === 'bad') {
@@ -731,10 +759,11 @@ class PageProfile extends HTMLElement {
 
     const userId = user && user.id !== undefined && user.id !== null ? String(user.id) : '';
     const loggedIn = Boolean(userId);
-    const prefsActive = this.activeTab === 'prefs';
+    const progressActive = this.activeTab === 'progress';
     const reviewActive = this.activeTab === 'review';
-    const showFooterLinks = loggedIn && prefsActive;
-    const showAppMeta = !loggedIn || prefsActive;
+    const settingsOpen = loggedIn && this.settingsOpen === true;
+    const showFooterLinks = loggedIn && settingsOpen;
+    const showAppMeta = loggedIn && settingsOpen;
     const formatExpiry = (value) => {
       if (!value) return profileCopy.expiryNA || 'n/a';
       const date = new Date(value);
@@ -914,13 +943,30 @@ class PageProfile extends HTMLElement {
       window.r34lp0w3r && window.r34lp0w3r.speakBadges && typeof window.r34lp0w3r.speakBadges === 'object'
         ? window.r34lp0w3r.speakBadges
         : {};
+    const routeTitleById = new Map(
+      routes.map((route) => {
+        const routeId = route && route.id ? String(route.id).trim() : '';
+        const routeTitle =
+          String(
+            (route &&
+              (route.display && typeof route.display === 'object'
+                ? route.display[rawLocaleSetting] || route.display.es || route.display.en
+                : route.display)) ||
+              route?.title ||
+              route?.name ||
+              ''
+          ).trim();
+        return [routeId, routeTitle];
+      })
+    );
     const routeBadgeOrder = new Map(
       routes.map((route, idx) => [route && route.id ? route.id : '', idx + 1])
     );
     const resolveBadgeView = (badgeId, entry) => {
       if (!badgeId || !entry || typeof entry !== 'object') return null;
       const routeId = String(entry.routeId || '').trim();
-      const routeTitle = String(entry.routeTitle || '').trim();
+      const routeTitle =
+        String(entry.routeTitle || '').trim() || (routeId ? String(routeTitleById.get(routeId) || '').trim() : '');
       let badgeIndex = Number(entry.badgeIndex);
       if (!Number.isFinite(badgeIndex) || badgeIndex <= 0) {
         badgeIndex = routeId && routeBadgeOrder.has(routeId) ? routeBadgeOrder.get(routeId) : NaN;
@@ -929,7 +975,7 @@ class PageProfile extends HTMLElement {
         return null;
       }
       const image = String(entry.image || '').trim() || `assets/badges/badge${badgeIndex}.png`;
-      const title = String(entry.title || '').trim() || routeTitle || `Badge ${badgeIndex}`;
+      const title = routeTitle || String(entry.title || entry.label || '').trim() || `Badge ${badgeIndex}`;
       return {
         id: badgeId,
         badgeIndex,
@@ -946,10 +992,11 @@ class PageProfile extends HTMLElement {
       ? earnedBadges
           .map(
             (badge) => `
-              <button class="profile-earned-badge-btn" type="button" data-badge-id="${escapeHtml(badge.id)}">
+              <button class="profile-earned-badge-card" type="button" data-badge-id="${escapeHtml(badge.id)}">
                 <img class="profile-earned-badge-img" src="${escapeHtml(badge.image)}" alt="${escapeHtml(
               badge.title
             )}">
+                <span class="profile-earned-badge-title">${escapeHtml(badge.title)}</span>
               </button>
             `
           )
@@ -957,69 +1004,177 @@ class PageProfile extends HTMLElement {
       : `<div class="profile-earned-badges-empty">${escapeHtml(
           profileCopy.badgesEmpty || 'You have not unlocked badges yet.'
         )}</div>`;
+    const sessionRewardsStore =
+      window.r34lp0w3r && window.r34lp0w3r.speakSessionRewards
+        ? window.r34lp0w3r.speakSessionRewards
+        : {};
+    const sessionRewardEntries = Object.values(sessionRewardsStore).filter(
+      (entry) => entry && typeof entry.rewardQty === 'number' && entry.rewardQty > 0
+    );
+    const trainingTrophyQty = sessionRewardEntries.reduce((sum, entry) => {
+      const icon = String(entry.rewardIcon || '').trim().toLowerCase();
+      return icon === 'trophy' ? sum + Number(entry.rewardQty || 0) : sum;
+    }, 0);
+    const referenceMedalQty = sessionRewardEntries.reduce((sum, entry) => {
+      const icon = String(entry.rewardIcon || '').trim().toLowerCase();
+      const kind = String(entry.rewardGroup || '').trim().toLowerCase();
+      return icon === 'ribbon' || icon === 'medal' || kind === 'reference-unit-ribbon'
+        ? sum + Number(entry.rewardQty || 0)
+        : sum;
+    }, 0);
+    const reviewItemsCount =
+      reviewWordEntries.length + reviewPhraseEntries.length + reviewTestEntries.length;
+    const avatarSrc = escapeHtml(
+      getUserAvatar(user) || 'https://s3.amazonaws.com/sk.CursoIngles/no-avatar.gif'
+    );
+    const userDisplayName = escapeHtml(
+      getUserDisplayName(user) || profileCopy.userFallbackName || 'Usuario'
+    );
+    const progressCardsMarkup = [
+      {
+        label: tabsCopy.training || 'Training',
+        value: `${globalPercent}%`,
+        tone: globalTone,
+        iconSrc: 'assets/profile/training.png',
+        iconAlt: tabsCopy.training || 'Training'
+      },
+      {
+        label: tabsCopy.reference || 'Reference',
+        value: `${referenceGlobalPercent}%`,
+        tone: referenceGlobalTone,
+        iconSrc: 'assets/profile/reference.png',
+        iconAlt: tabsCopy.reference || 'Reference'
+      }
+    ]
+      .map(
+        (item) => `
+          <div class="profile-stat-card profile-stat-card--reward">
+            <div class="profile-stat-copy">
+              <div class="profile-stat-value profile-stat-value--${escapeHtml(item.tone)}">${escapeHtml(
+                item.value
+              )}</div>
+              <div class="profile-stat-label">${escapeHtml(item.label)}</div>
+            </div>
+            <div class="profile-stat-media">
+              <img class="profile-stat-icon" src="${escapeHtml(item.iconSrc)}" alt="${escapeHtml(
+                item.iconAlt
+              )}">
+            </div>
+          </div>
+        `
+      )
+      .join('');
+    const rewardCardsMarkup = [
+      {
+        label: profileCopy.trainingTrophies || 'Copas training',
+        value: String(trainingTrophyQty),
+        tone: 'neutral',
+        iconSrc: 'assets/profile/copa.png',
+        iconAlt: profileCopy.trainingTrophies || 'Copas training'
+      },
+      {
+        label: profileCopy.referenceMedals || 'Medallas reference',
+        value: String(referenceMedalQty),
+        tone: 'neutral',
+        iconSrc: 'assets/profile/medalla.png',
+        iconAlt: profileCopy.referenceMedals || 'Medallas reference'
+      }
+    ]
+      .map(
+        (item) => `
+          <div class="profile-stat-card profile-stat-card--reward">
+            <div class="profile-stat-copy">
+              <div class="profile-stat-value profile-stat-value--${escapeHtml(item.tone)}">${escapeHtml(
+                item.value
+              )}</div>
+              <div class="profile-stat-label">${escapeHtml(item.label)}</div>
+            </div>
+            <div class="profile-stat-media">
+              <img class="profile-stat-icon" src="${escapeHtml(item.iconSrc)}" alt="${escapeHtml(
+                item.iconAlt
+              )}">
+            </div>
+          </div>
+        `
+      )
+      .join('');
 
     this.innerHTML = `
-      ${renderAppHeader({ title: tabsCopy.you, rewardBadgesId: 'profile-reward-badges', locale: rawLocaleSetting })}
-      <ion-content fullscreen class="secret-content profile-content">
-        <div class="page-shell profile-shell">
+      ${loggedIn ? renderAppHeader({ title: tabsCopy.you, rewardBadgesId: 'profile-reward-badges', locale: rawLocaleSetting }) : ''}
+      <ion-content fullscreen class="secret-content profile-content ${loggedIn ? '' : 'profile-content--logged-out'}">
+        <div class="page-shell profile-shell ${loggedIn ? '' : 'profile-shell--logged-out'}">
           <div id="profile-login-panel" ${loggedIn ? 'hidden' : ''}>
-            <page-login embedded></page-login>
-            <div class="profile-links profile-links--centered" id="profile-links-login" ${loggedIn ? 'hidden' : ''}>
-              <button class="profile-link-btn" type="button" data-action="contact">${escapeHtml(
-                profileCopy.contact || 'Contact'
-              )}</button>
-              <button class="profile-link-btn" type="button" data-action="legal">${escapeHtml(
-                profileCopy.legal || 'Legal'
-              )}</button>
+            <div class="profile-login-hero">
+              <h1 class="profile-login-title">${escapeHtml(profileCopy.loginTitle || 'Inicia sesión')}</h1>
+            </div>
+            <page-login embedded flat></page-login>
+            <div class="profile-auth-footer" ${loggedIn ? 'hidden' : ''}>
+              <div class="profile-links profile-links--centered" id="profile-links-login" ${loggedIn ? 'hidden' : ''}>
+                <button class="profile-link-btn" type="button" data-action="contact">${escapeHtml(
+                  profileCopy.contact || 'Contact'
+                )}</button>
+                <button class="profile-link-btn" type="button" data-action="legal">${escapeHtml(
+                  profileCopy.legal || 'Legal'
+                )}</button>
+              </div>
+              <div class="profile-app-meta profile-app-meta--auth">${escapeHtml(appMetaLabel)}</div>
             </div>
           </div>
           <div class="profile-panel" id="profile-content-panel" ${loggedIn ? '' : 'hidden'}>
-            <div class="card card--plain profile-overview">
-              <div class="profile-progress">
-                <div class="profile-progress-top">
-                  <div class="profile-progress-main">
-                    <div class="profile-progress-head">
-                      <img class="profile-overview-avatar" src="${escapeHtml(getUserAvatar(user) || 'https://s3.amazonaws.com/sk.CursoIngles/no-avatar.gif')}" alt="">
-                    </div>
-                    <div class="profile-progress-circles">
-                      <div class="profile-progress-head profile-progress-head--circle">
-                        <div class="profile-progress-circle ${globalTone}">${globalPercent}</div>
-                        <div class="profile-progress-label">${escapeHtml(tabsCopy.training || 'Training')}</div>
-                      </div>
-                      <div class="profile-progress-head profile-progress-head--circle">
-                        <div class="profile-progress-circle ${referenceGlobalTone}">${referenceGlobalPercent}</div>
-                        <div class="profile-progress-label">${escapeHtml(tabsCopy.reference || 'Reference')}</div>
-                      </div>
-                    </div>
-                    <div class="profile-progress-info">
-                      <div class="profile-progress-name">${escapeHtml(getUserDisplayName(user) || profileCopy.progressLabel || 'Progress')}</div>
-                    </div>
-                  </div>
+            ${settingsOpen ? '' : `
+            <div class="profile-hero-wrap">
+              <button class="profile-settings-toggle" type="button" id="profile-settings-toggle" aria-label="${escapeHtml(
+                profileCopy.tabPrefs || 'Profile'
+              )}">
+                <ion-icon name="settings-outline"></ion-icon>
+              </button>
+              <div class="card card--plain profile-hero-card">
+                <div class="profile-hero-avatar-wrap">
+                  <img class="profile-hero-avatar" src="${avatarSrc}" alt="">
+                </div>
+                <div class="profile-hero-name">${userDisplayName}</div>
+                <div class="profile-segmented-tabs" role="tablist">
+                  <button class="profile-segmented-btn ${progressActive ? 'active' : ''}" type="button" data-tab="progress" role="tab">
+                    <span>${escapeHtml(profileCopy.progressLabel || 'Progreso')}</span>
+                  </button>
+                  <button class="profile-segmented-btn ${reviewActive ? 'active' : ''}" type="button" data-tab="review" role="tab">
+                    <span>${escapeHtml(profileCopy.tabReview || 'Review')}</span>
+                    ${reviewItemsCount > 0 ? `<span class="profile-segmented-count">${reviewItemsCount}</span>` : ''}
+                  </button>
                 </div>
               </div>
             </div>
-            <div class="card card--plain profile-earned-badges-card">
-              <h3 class="profile-section-title">${escapeHtml(profileCopy.badgesTitle || 'Badges')}</h3>
-              <div class="profile-earned-badges" id="profile-earned-badges">
-                ${earnedBadgesMarkup}
+            `}
+            <div class="profile-tab-panel" ${progressActive && !settingsOpen ? '' : 'hidden'}>
+              <div class="profile-stats-grid">
+                ${progressCardsMarkup}
+              </div>
+              <div class="profile-progress-section">
+                <h3 class="profile-section-title">${escapeHtml(profileCopy.awardsTitle || 'Premios')}</h3>
+                <div class="profile-stats-grid">
+                  ${rewardCardsMarkup}
+                </div>
+              </div>
+              <div class="profile-earned-badges-section">
+                <h3 class="profile-section-title">${escapeHtml(profileCopy.badgesTitle || 'Badges')}</h3>
+                <div class="profile-earned-badges" id="profile-earned-badges">
+                  ${earnedBadgesMarkup}
+                </div>
               </div>
             </div>
-            <div class="profile-tabs" role="tablist">
-              <button class="profile-tab-btn ${prefsActive ? 'active' : ''}" type="button" data-tab="prefs" role="tab">
-                ${escapeHtml(profileCopy.tabPrefs || 'Profile')}
-              </button>
-              <button class="profile-tab-btn ${reviewActive ? 'active' : ''}" type="button" data-tab="review" role="tab">
-                ${escapeHtml(profileCopy.tabReview || 'Review')}
-              </button>
-            </div>
-            <div class="profile-tab-panel" ${prefsActive ? '' : 'hidden'}>
+            <div class="profile-tab-panel" ${settingsOpen ? '' : 'hidden'}>
               <div class="card card--plain profile-settings">
+                <div class="profile-settings-header">
+                  <button class="profile-settings-back" type="button" id="profile-settings-back">${escapeHtml(
+                    profileCopy.recoverBack || 'Volver'
+                  )}</button>
+                </div>
                 <div class="profile-avatar-block">
                   <div class="profile-avatar-wrap">
                     <img
                       class="profile-avatar-large"
                       id="profile-avatar-img"
-                      src="${escapeHtml(getUserAvatar(user) || 'https://s3.amazonaws.com/sk.CursoIngles/no-avatar.gif')}"
+                      src="${avatarSrc}"
                       alt="${escapeHtml(profileCopy.profileAvatarAlt || 'Profile avatar')}"
                     >
                   </div>
@@ -1035,85 +1190,109 @@ class PageProfile extends HTMLElement {
                 </div>
                 <div class="profile-form">
                   <div class="profile-form-row">
-                    <label class="profile-field">
-                      <span class="profile-label">${escapeHtml(
-                        profileCopy.firstName || 'First name'
-                      )}</span>
+                    <label class="profile-input-shell" for="profile-first-name">
+                      <span class="profile-input-icon" aria-hidden="true">
+                        <ion-icon name="person-outline"></ion-icon>
+                      </span>
                       <input
-                        class="profile-input"
+                        class="profile-input profile-input--shell"
                         type="text"
                         id="profile-first-name"
                         value="${escapeHtml(profileState.first_name || '')}"
+                        placeholder="${escapeHtml(profileCopy.firstName || 'First name')}"
+                        aria-label="${escapeHtml(profileCopy.firstName || 'First name')}"
                       >
                     </label>
-                    <label class="profile-field">
-                      <span class="profile-label">${escapeHtml(
-                        profileCopy.lastName || 'Last name'
-                      )}</span>
+                    <label class="profile-input-shell" for="profile-last-name">
+                      <span class="profile-input-icon" aria-hidden="true">
+                        <ion-icon name="people-outline"></ion-icon>
+                      </span>
                       <input
-                        class="profile-input"
+                        class="profile-input profile-input--shell"
                         type="text"
                         id="profile-last-name"
                         value="${escapeHtml(profileState.last_name || '')}"
+                        placeholder="${escapeHtml(profileCopy.lastName || 'Last name')}"
+                        aria-label="${escapeHtml(profileCopy.lastName || 'Last name')}"
                       >
                     </label>
                   </div>
                   <div class="profile-form-row">
-                    <label class="profile-field">
-                      <span class="profile-label">${escapeHtml(
-                        profileCopy.password || 'Password'
-                      )}</span>
+                    <label class="profile-input-shell" for="profile-password">
+                      <span class="profile-input-icon" aria-hidden="true">
+                        <ion-icon name="lock-closed-outline"></ion-icon>
+                      </span>
                       <input
-                        class="profile-input"
+                        class="profile-input profile-input--shell"
                         type="password"
                         id="profile-password"
                         autocomplete="new-password"
                         placeholder="${escapeHtml(profileCopy.passwordNewPlaceholder || 'New password')}"
+                        aria-label="${escapeHtml(profileCopy.password || 'Password')}"
                       >
+                      <button class="profile-input-toggle" type="button" id="profile-password-toggle" aria-label="${escapeHtml(
+                        profileCopy.password || 'Password'
+                      )}">
+                        <ion-icon name="eye-outline"></ion-icon>
+                      </button>
                     </label>
-                    <label class="profile-field">
-                      <span class="profile-label">${escapeHtml(
-                        profileCopy.passwordRepeat || 'Repeat password'
-                      )}</span>
+                    <label class="profile-input-shell" for="profile-password-confirm">
+                      <span class="profile-input-icon" aria-hidden="true">
+                        <ion-icon name="lock-closed-outline"></ion-icon>
+                      </span>
                       <input
-                        class="profile-input"
+                        class="profile-input profile-input--shell"
                         type="password"
                         id="profile-password-confirm"
                         autocomplete="new-password"
                         placeholder="${escapeHtml(profileCopy.passwordRepeatPlaceholder || 'Repeat password')}"
+                        aria-label="${escapeHtml(profileCopy.passwordRepeat || 'Repeat password')}"
                       >
+                      <button class="profile-input-toggle" type="button" id="profile-password-confirm-toggle" aria-label="${escapeHtml(
+                        profileCopy.passwordRepeat || 'Repeat password'
+                      )}">
+                        <ion-icon name="eye-outline"></ion-icon>
+                      </button>
                     </label>
                   </div>
                   <div class="profile-form-row">
-                    <label class="profile-field">
-                      <span class="profile-label">${escapeHtml(profileCopy.interfaceLanguage || 'Interface language')}</span>
-                      <select class="profile-input" id="profile-locale">
+                    <label class="profile-input-shell profile-input-shell--select" for="profile-locale">
+                      <span class="profile-input-icon" aria-hidden="true">
+                        <ion-icon name="globe-outline"></ion-icon>
+                      </span>
+                      <select class="profile-input profile-input--shell" id="profile-locale" aria-label="${escapeHtml(
+                        profileCopy.interfaceLanguage || 'Interface language'
+                      )}">
                         <option value="es"${(user && user.locale || rawLocaleSetting) === 'es' ? ' selected' : ''}>ES</option>
                         <option value="en"${(user && user.locale || rawLocaleSetting) === 'en' ? ' selected' : ''}>EN</option>
                       </select>
                     </label>
                   </div>
                   <div class="profile-form-row">
-                    <label class="profile-field">
-                      <span class="profile-label">${escapeHtml(profileCopy.email || 'Email')}</span>
+                    <label class="profile-input-shell" for="profile-email">
+                      <span class="profile-input-icon" aria-hidden="true">
+                        <ion-icon name="mail-outline"></ion-icon>
+                      </span>
                       <input
-                        class="profile-input"
+                        class="profile-input profile-input--shell"
                         type="email"
                         id="profile-email"
                         value="${escapeHtml(profileState.email || '')}"
                         readonly
+                        aria-label="${escapeHtml(profileCopy.email || 'Email')}"
                       >
                     </label>
-                    <label class="profile-field">
-                      <span class="profile-label">${escapeHtml(
-                        profileCopy.subscriptionUntil || 'Subscription until'
-                      )}</span>
+                    <label class="profile-input-shell" for="profile-expiry">
+                      <span class="profile-input-icon" aria-hidden="true">
+                        <ion-icon name="calendar-outline"></ion-icon>
+                      </span>
                       <input
-                        class="profile-input"
+                        class="profile-input profile-input--shell"
                         type="text"
                         id="profile-expiry"
                         value="${escapeHtml(formatExpiry(profileState.expires_date))}"
                         readonly
+                        aria-label="${escapeHtml(profileCopy.subscriptionUntil || 'Subscription until')}"
                       >
                     </label>
                   </div>
@@ -1144,25 +1323,46 @@ class PageProfile extends HTMLElement {
                 </div>
               </div>
             </div>
-            <div class="profile-tab-panel" ${reviewActive ? '' : 'hidden'}>
+            <div class="profile-tab-panel" ${reviewActive && !settingsOpen ? '' : 'hidden'}>
               ${reviewFiltersMarkup}
-              <div class="card card--plain profile-review-block">
+              <div class="profile-review-section">
                 <h3 class="profile-section-title">${escapeHtml(
                   profileCopy.reviewWordsTitle || 'Words to review'
                 )}</h3>
-                ${reviewWordsMarkup}
+                <div class="card card--plain profile-review-block">
+                  <div class="profile-review-content" data-review-collapse data-collapsed-height="82">
+                    ${reviewWordsMarkup}
+                  </div>
+                  <button class="profile-review-more" type="button" hidden>${escapeHtml(
+                    profileCopy.reviewMore || 'More'
+                  )}</button>
+                </div>
               </div>
-              <div class="card card--plain profile-review-block">
+              <div class="profile-review-section">
                 <h3 class="profile-section-title">${escapeHtml(
                   profileCopy.reviewPhrasesTitle || 'Phrases to review'
                 )}</h3>
-                ${reviewPhrasesMarkup}
+                <div class="card card--plain profile-review-block">
+                  <div class="profile-review-content" data-review-collapse data-collapsed-height="82">
+                    ${reviewPhrasesMarkup}
+                  </div>
+                  <button class="profile-review-more" type="button" hidden>${escapeHtml(
+                    profileCopy.reviewMore || 'More'
+                  )}</button>
+                </div>
               </div>
-              <div class="card card--plain profile-review-block">
+              <div class="profile-review-section">
                 <h3 class="profile-section-title">${escapeHtml(
                   profileCopy.reviewTestsTitle || 'Tests to review'
                 )}</h3>
-                ${reviewTestsMarkup}
+                <div class="card card--plain profile-review-block">
+                  <div class="profile-review-content" data-review-collapse data-collapsed-height="150">
+                    ${reviewTestsMarkup}
+                  </div>
+                  <button class="profile-review-more" type="button" hidden>${escapeHtml(
+                    profileCopy.reviewMore || 'More'
+                  )}</button>
+                </div>
               </div>
             </div>
           </div>
@@ -1197,6 +1397,7 @@ class PageProfile extends HTMLElement {
     const profileDeleteAccountBtn = this.querySelector('#profile-delete-account-btn');
     const profileSaveNote = this.querySelector('#profile-save-note');
     const profileEarnedBadgesEl = this.querySelector('#profile-earned-badges');
+    const profileSettingsBackBtn = this.querySelector('#profile-settings-back');
 
     const updateProfileState = (nextUser) => {
       const nextUserId =
@@ -1207,8 +1408,8 @@ class PageProfile extends HTMLElement {
       if (loginPanel) loginPanel.hidden = isLoggedIn;
       if (contentPanel) contentPanel.hidden = !isLoggedIn;
       if (linksLogin) linksLogin.hidden = isLoggedIn;
-      const shouldShowFooterLinks = isLoggedIn && this.activeTab === 'prefs';
-      const shouldShowAppMeta = !isLoggedIn || this.activeTab === 'prefs';
+      const shouldShowFooterLinks = isLoggedIn && this.settingsOpen === true;
+      const shouldShowAppMeta = isLoggedIn && this.settingsOpen === true;
       if (linksFooter) linksFooter.hidden = !shouldShowFooterLinks;
       if (appMetaEl) appMetaEl.hidden = !shouldShowAppMeta;
     };
@@ -1517,6 +1718,26 @@ class PageProfile extends HTMLElement {
     });
     profilePasswordConfirm?.addEventListener('input', (event) => {
       applyProfileField('passwordConfirm', event.target.value);
+    });
+    this.querySelector('#profile-password-toggle')?.addEventListener('click', () => {
+      const passEl = this.querySelector('#profile-password');
+      const iconEl = this.querySelector('#profile-password-toggle ion-icon');
+      if (!passEl) return;
+      const showing = passEl.getAttribute('type') === 'text';
+      passEl.setAttribute('type', showing ? 'password' : 'text');
+      if (iconEl) {
+        iconEl.setAttribute('name', showing ? 'eye-outline' : 'eye-off-outline');
+      }
+    });
+    this.querySelector('#profile-password-confirm-toggle')?.addEventListener('click', () => {
+      const passEl = this.querySelector('#profile-password-confirm');
+      const iconEl = this.querySelector('#profile-password-confirm-toggle ion-icon');
+      if (!passEl) return;
+      const showing = passEl.getAttribute('type') === 'text';
+      passEl.setAttribute('type', showing ? 'password' : 'text');
+      if (iconEl) {
+        iconEl.setAttribute('name', showing ? 'eye-outline' : 'eye-off-outline');
+      }
     });
 
     const clearLocalAvatar = async (targetUser) => {
@@ -1875,15 +2096,24 @@ class PageProfile extends HTMLElement {
       });
     });
 
-    const tabButtons = Array.from(this.querySelectorAll('.profile-tab-btn'));
+    const tabButtons = Array.from(this.querySelectorAll('.profile-segmented-btn'));
     tabButtons.forEach((button) => {
       button.addEventListener('click', () => {
         const tab = button.dataset.tab;
         if (!tab || tab === this.activeTab) return;
         this.activeTab = tab;
+        this.settingsOpen = false;
         persistProfileTab(tab);
         this.render();
       });
+    });
+    this.querySelector('#profile-settings-toggle')?.addEventListener('click', () => {
+      this.settingsOpen = !(this.settingsOpen === true);
+      this.render();
+    });
+    profileSettingsBackBtn?.addEventListener('click', () => {
+      this.settingsOpen = false;
+      this.render();
     });
 
     updateSaveState();
@@ -1897,6 +2127,34 @@ class PageProfile extends HTMLElement {
         if (!window.r34lp0w3r) window.r34lp0w3r = {};
         window.r34lp0w3r.profileReviewTone = this.reviewTone;
         this.render();
+      });
+    });
+
+    const reviewCollapseBlocks = Array.from(this.querySelectorAll('[data-review-collapse]'));
+    reviewCollapseBlocks.forEach((contentEl) => {
+      const container = contentEl.closest('.profile-review-block');
+      const toggleBtn = container ? container.querySelector('.profile-review-more') : null;
+      if (!container || !toggleBtn) return;
+      const collapsedHeight = Math.max(0, Number(contentEl.dataset.collapsedHeight) || 0);
+      const applyCollapseState = () => {
+        const shouldCollapse = collapsedHeight > 0 && contentEl.scrollHeight > collapsedHeight + 4;
+        container.classList.toggle('is-collapsible', shouldCollapse);
+        if (!shouldCollapse) {
+          container.classList.remove('is-expanded');
+          toggleBtn.hidden = true;
+          return;
+        }
+        toggleBtn.hidden = false;
+        toggleBtn.textContent = container.classList.contains('is-expanded')
+          ? profileCopy.reviewLess || 'Less'
+          : profileCopy.reviewMore || 'More';
+      };
+      requestAnimationFrame(applyCollapseState);
+      toggleBtn.addEventListener('click', () => {
+        container.classList.toggle('is-expanded');
+        toggleBtn.textContent = container.classList.contains('is-expanded')
+          ? profileCopy.reviewLess || 'Less'
+          : profileCopy.reviewMore || 'More';
       });
     });
 

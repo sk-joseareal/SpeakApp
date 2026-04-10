@@ -24,6 +24,7 @@ import { goToHome } from '../nav.js';
 class PageSpeak extends HTMLElement {
   connectedCallback() {
     this.classList.add('ion-page');
+    for (let i = 0; i < 8; i++) { new Image().src = `assets/mascot/nena/nena-v5-${String(i).padStart(2, '0')}.png`; }
     const appLocale = resolveCopyLocale(getAppLocale() || 'en');
     this.innerHTML = `
       ${renderAppHeader({ title: '', rewardBadgesId: 'speak-reward-badges', locale: appLocale })}
@@ -45,7 +46,7 @@ class PageSpeak extends HTMLElement {
               <img
                 class="onboarding-intro-cat speak-hero-cat"
                 id="speak-hero-mascot"
-                src="assets/mascot/mascota-boca-08.png"
+                src="assets/mascot/nena/nena-v5-00.png"
                 alt=""
                 aria-hidden="true"
               >
@@ -108,8 +109,8 @@ class PageSpeak extends HTMLElement {
     const MODULE_TROPHY_REWARD_QTY = 1;
     const MODULE_TROPHY_REWARD_ICON = 'trophy';
     const MAX_ROUTE_BADGE_COUNT = 5;
-    const HERO_MASCOT_FRAME_COUNT = 9;
-    const HERO_MASCOT_REST_FRAME = HERO_MASCOT_FRAME_COUNT - 1;
+    const HERO_MASCOT_FRAME_COUNT = 8;
+    const HERO_MASCOT_REST_FRAME = 0;
     const HERO_MASCOT_FRAME_INTERVAL_MS = 150;
     const MIN_RECORDING_BLOB_BYTES = 128;
     const swipeSurface = this.querySelector('.speak-sheet');
@@ -579,7 +580,7 @@ class PageSpeak extends HTMLElement {
     const getHeroMascotFramePath = (frameIndex = HERO_MASCOT_REST_FRAME) => {
       const normalized = normalizeHeroMascotFrameIndex(frameIndex);
       const padded = String(normalized).padStart(2, '0');
-      return `assets/mascot/mascota-boca-${padded}.png`;
+      return `assets/mascot/nena/nena-v5-${padded}.png`;
     };
 
     const getHeroMascotImageEl = () => this.querySelector('#speak-hero-mascot');
@@ -608,11 +609,11 @@ class PageSpeak extends HTMLElement {
         clearInterval(heroMascotFrameTimer);
         heroMascotFrameTimer = null;
       }
-      let frame = 0;
+      let frame = 1;
       renderHeroMascotFrame(frame);
       heroMascotFrameTimer = setInterval(() => {
         if (!heroMascotIsTalking) return;
-        frame = (frame + 1) % (HERO_MASCOT_FRAME_COUNT - 1);
+        frame = (frame % (HERO_MASCOT_FRAME_COUNT - 1)) + 1;
         renderHeroMascotFrame(frame);
       }, HERO_MASCOT_FRAME_INTERVAL_MS);
     };
@@ -3311,7 +3312,7 @@ class PageSpeak extends HTMLElement {
     };
 
     const lockHeroCardHeight = () => {
-      if (!heroCardEl || !heroStepTitleEl || !heroHintEl) return;
+      if (!heroCardEl || !heroStepTitleEl || !heroHintEl || !heroHintDisplayEl) return;
       const sources = [soundStep, spellingStep, sentenceStep].filter(Boolean);
       if (!sources.length) return;
 
@@ -3322,21 +3323,21 @@ class PageSpeak extends HTMLElement {
       const prevHint = heroHintEl.textContent;
       const prevHintHidden = heroHintEl.hidden;
       const prevHintMinHeight = heroHintEl.style.minHeight;
-      const prevMinHeight = heroCardEl.style.minHeight;
+      const prevBubbleMinHeight = heroHintDisplayEl.style.minHeight;
 
       heroCardEl.hidden = false;
       heroCardEl.style.visibility = 'hidden';
       heroCardEl.style.pointerEvents = 'none';
-      heroCardEl.style.minHeight = '';
+      heroHintDisplayEl.style.minHeight = '';
 
-      let maxHeight = 0;
+      let maxBubbleHeight = 0;
       sources.forEach((source) => {
         applyHeroSource(source);
         const nextHeight = Math.ceil(
-          Math.max(heroCardEl.scrollHeight || 0, heroCardEl.getBoundingClientRect().height || 0)
+          Math.max(heroHintDisplayEl.scrollHeight || 0, heroHintDisplayEl.getBoundingClientRect().height || 0)
         );
-        if (nextHeight > maxHeight) {
-          maxHeight = nextHeight;
+        if (nextHeight > maxBubbleHeight) {
+          maxBubbleHeight = nextHeight;
         }
       });
 
@@ -3348,11 +3349,11 @@ class PageSpeak extends HTMLElement {
       heroCardEl.style.visibility = prevVisibility;
       heroCardEl.style.pointerEvents = prevPointerEvents;
 
-      if (maxHeight > 0) {
-        heroCardLockedHeight = maxHeight;
-        heroCardEl.style.minHeight = `${heroCardLockedHeight}px`;
+      if (maxBubbleHeight > 0) {
+        heroCardLockedHeight = maxBubbleHeight;
+        heroHintDisplayEl.style.minHeight = `${heroCardLockedHeight}px`;
       } else {
-        heroCardEl.style.minHeight = prevMinHeight;
+        heroHintDisplayEl.style.minHeight = prevBubbleMinHeight;
       }
     };
 

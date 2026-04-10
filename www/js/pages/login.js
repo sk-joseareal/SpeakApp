@@ -12,6 +12,25 @@ class PageLogin extends HTMLElement {
     const uiLocale = resolveUiLocale();
     const copy = getLoginCopy(uiLocale);
     const embedded = this.hasAttribute('embedded');
+    const flat = embedded && this.hasAttribute('flat');
+    const renderActionButton = (id, label, tone = 'secondary') =>
+      flat
+        ? `<button class="login-${tone}-btn" type="button" id="${id}">${label}</button>`
+        : `<ion-button expand="block" shape="round" id="${id}">${label}</ion-button>`;
+    const renderSocialButton = (id, iconClass, iconSrc, label) =>
+      flat
+        ? `
+            <button class="login-social-btn login-social-btn--flat" type="button" id="${id}">
+              <img class="login-social-icon ${iconClass}" src="${iconSrc}" alt="" aria-hidden="true">
+              <span>${label}</span>
+            </button>
+          `
+        : `
+            <ion-button expand="block" shape="round" id="${id}" class="login-social-btn">
+              <img class="login-social-icon ${iconClass}" src="${iconSrc}" alt="" slot="start" aria-hidden="true">
+              <span>${label}</span>
+            </ion-button>
+          `;
     this.innerHTML = `
       ${embedded ? '' : `
       <ion-header translucent="true">
@@ -25,69 +44,186 @@ class PageLogin extends HTMLElement {
       <ion-content>
         <div class="page-shell">
       `}
-          <div class="card card--plain ${embedded ? 'login-embedded-card' : ''}">
+          <div class="${flat ? 'login-embedded-flat' : `card card--plain ${embedded ? 'login-embedded-card' : ''}`}">
             <div class="login-panel" data-panel="login">
               <button class="login-link-btn login-create-email-btn login-magic-cta" type="button" id="login-magic-link">${copy.magicLoginLink}</button>
               <div class="login-social-stack">
-                <ion-button expand="block" shape="round" id="login-google" class="login-social-btn">
-                  <img class="login-social-icon" src="assets/social/google.png" alt="" slot="start" aria-hidden="true">
-                  <span>${copy.socialGoogle}</span>
-                </ion-button>
-                <ion-button expand="block" shape="round" id="login-fb" class="login-social-btn">
-                  <img class="login-social-icon" src="assets/social/facebook.png" alt="" slot="start" aria-hidden="true">
-                  <span>${copy.socialFacebook}</span>
-                </ion-button>
-                <ion-button expand="block" shape="round" id="login-apple" class="login-social-btn">
-                  <img class="login-social-icon login-social-icon-apple" src="assets/social/apple.png" alt="" slot="start" aria-hidden="true">
-                  <span>${copy.socialApple}</span>
-                </ion-button>
+                ${renderSocialButton('login-google', '', 'assets/social/google.png', copy.socialGoogle)}
+                ${renderSocialButton('login-fb', '', 'assets/social/facebook.png', copy.socialFacebook)}
+                ${renderSocialButton('login-apple', 'login-social-icon-apple', 'assets/social/apple.png', copy.socialApple)}
               </div>
               <button class="login-link-btn login-create-email-btn" type="button" id="login-register-link">${copy.createWithEmail}</button>
               <div class="login-email-block">
-                <div class="login-inputs">
-                  <label class="login-field" for="login-user">
-                    <span class="login-label">${copy.userLabel}</span>
-                    <input class="chat-text-input login-text-input" autocomplete="username" name="username" id="login-user" type="email" inputmode="email" placeholder="${copy.userPlaceholder}">
-                  </label>
-                  <label class="login-field" for="login-pass">
-                    <span class="login-label">${copy.passLabel}</span>
-                    <input class="chat-text-input login-text-input" autocomplete="current-password" name="password" id="login-pass" type="password" placeholder="${copy.passPlaceholder}">
-                  </label>
-                </div>
+                ${
+                  flat
+                    ? `
+                      <div class="login-inputs login-inputs--flat">
+                        <label class="login-input-shell" for="login-user">
+                          <span class="login-input-icon" aria-hidden="true">
+                            <ion-icon name="person-outline"></ion-icon>
+                          </span>
+                          <input
+                            class="chat-text-input login-text-input login-text-input--shell"
+                            autocomplete="username"
+                            name="username"
+                            id="login-user"
+                            type="email"
+                            inputmode="email"
+                            placeholder="${copy.userLabel}"
+                            aria-label="${copy.userLabel}"
+                          >
+                        </label>
+                        <label class="login-input-shell" for="login-pass">
+                          <span class="login-input-icon" aria-hidden="true">
+                            <ion-icon name="lock-closed-outline"></ion-icon>
+                          </span>
+                          <input
+                            class="chat-text-input login-text-input login-text-input--shell"
+                            autocomplete="current-password"
+                            name="password"
+                            id="login-pass"
+                            type="password"
+                            placeholder="${copy.passLabel}"
+                            aria-label="${copy.passLabel}"
+                          >
+                          <button class="login-input-toggle" type="button" id="login-pass-toggle" aria-label="${copy.passLabel}">
+                            <ion-icon name="eye-outline"></ion-icon>
+                          </button>
+                        </label>
+                      </div>
+                    `
+                    : `
+                      <div class="login-inputs">
+                        <label class="login-field" for="login-user">
+                          <span class="login-label">${copy.userLabel}</span>
+                          <input class="chat-text-input login-text-input" autocomplete="username" name="username" id="login-user" type="email" inputmode="email" placeholder="${copy.userPlaceholder}">
+                        </label>
+                        <label class="login-field" for="login-pass">
+                          <span class="login-label">${copy.passLabel}</span>
+                          <input class="chat-text-input login-text-input" autocomplete="current-password" name="password" id="login-pass" type="password" placeholder="${copy.passPlaceholder}">
+                        </label>
+                      </div>
+                    `
+                }
                 <p id="login-error" style="display:none; margin:4px 0 0; color: var(--ion-color-danger, #eb445a); font-size:0.9rem;"></p>
-                <ion-button expand="block" shape="round" id="login-enter">${copy.enter}</ion-button>
+                ${renderActionButton('login-enter', copy.enter)}
                 <button class="login-link-btn login-create-email-btn" type="button" id="login-forgot-secondary">${copy.forgotPassword}</button>
               </div>
             </div>
             <div class="login-panel" data-panel="register" hidden>
-              <h3>${copy.registerTitle}</h3>
-              <p class="muted">${copy.registerSubtitle}</p>
-              <div class="login-inputs">
-                <label class="login-field" for="register-username">
-                  <span class="login-label">${copy.registerUserLabel}</span>
-                  <input class="chat-text-input login-text-input" autocomplete="username" name="register-username" id="register-username" type="text" placeholder="${copy.registerUserPlaceholder}">
-                </label>
-                <label class="login-field" for="register-email">
-                  <span class="login-label">${copy.registerEmailLabel}</span>
-                  <input class="chat-text-input login-text-input" autocomplete="email" name="register-email" id="register-email" type="email" inputmode="email" placeholder="${copy.registerEmailPlaceholder}">
-                </label>
-                <label class="login-field" for="register-pass">
-                  <span class="login-label">${copy.registerPassLabel}</span>
-                  <input class="chat-text-input login-text-input" autocomplete="new-password" name="register-pass" id="register-pass" type="password" placeholder="${copy.registerPassPlaceholder}">
-                </label>
-                <label class="login-field" for="register-pass-confirm">
-                  <span class="login-label">${copy.registerPassConfirmLabel}</span>
-                  <input class="chat-text-input login-text-input" autocomplete="new-password" name="register-pass-confirm" id="register-pass-confirm" type="password" placeholder="${copy.registerPassConfirmPlaceholder}">
-                </label>
-              </div>
-              <ion-item lines="none" class="login-terms-item">
-                <ion-checkbox id="register-terms" label-placement="end">${copy.registerTerms}</ion-checkbox>
-              </ion-item>
+              ${
+                flat
+                  ? `
+                    <div class="login-panel-header">
+                      <h3>${copy.registerTitle}</h3>
+                      <button class="login-back-top" type="button" id="register-back">${copy.recoverBack}</button>
+                    </div>
+                    <div class="login-inputs login-inputs--flat">
+                      <label class="login-input-shell" for="register-username">
+                        <span class="login-input-icon" aria-hidden="true">
+                          <ion-icon name="person-outline"></ion-icon>
+                        </span>
+                        <input
+                          class="chat-text-input login-text-input login-text-input--shell"
+                          autocomplete="username"
+                          name="register-username"
+                          id="register-username"
+                          type="text"
+                          placeholder="${copy.registerUserLabel}"
+                          aria-label="${copy.registerUserLabel}"
+                        >
+                      </label>
+                      <label class="login-input-shell" for="register-email">
+                        <span class="login-input-icon" aria-hidden="true">
+                          <ion-icon name="mail-outline"></ion-icon>
+                        </span>
+                        <input
+                          class="chat-text-input login-text-input login-text-input--shell"
+                          autocomplete="email"
+                          name="register-email"
+                          id="register-email"
+                          type="email"
+                          inputmode="email"
+                          placeholder="${copy.registerEmailLabel}"
+                          aria-label="${copy.registerEmailLabel}"
+                        >
+                      </label>
+                      <label class="login-input-shell" for="register-pass">
+                        <span class="login-input-icon" aria-hidden="true">
+                          <ion-icon name="lock-closed-outline"></ion-icon>
+                        </span>
+                        <input
+                          class="chat-text-input login-text-input login-text-input--shell"
+                          autocomplete="new-password"
+                          name="register-pass"
+                          id="register-pass"
+                          type="password"
+                          placeholder="${copy.registerPassLabel}"
+                          aria-label="${copy.registerPassLabel}"
+                        >
+                        <button class="login-input-toggle" type="button" id="register-pass-toggle" aria-label="${copy.registerPassLabel}">
+                          <ion-icon name="eye-outline"></ion-icon>
+                        </button>
+                      </label>
+                      <label class="login-input-shell" for="register-pass-confirm">
+                        <span class="login-input-icon" aria-hidden="true">
+                          <ion-icon name="lock-closed-outline"></ion-icon>
+                        </span>
+                        <input
+                          class="chat-text-input login-text-input login-text-input--shell"
+                          autocomplete="new-password"
+                          name="register-pass-confirm"
+                          id="register-pass-confirm"
+                          type="password"
+                          placeholder="${copy.registerPassConfirmLabel}"
+                          aria-label="${copy.registerPassConfirmLabel}"
+                        >
+                        <button class="login-input-toggle" type="button" id="register-pass-confirm-toggle" aria-label="${copy.registerPassConfirmLabel}">
+                          <ion-icon name="eye-outline"></ion-icon>
+                        </button>
+                      </label>
+                    </div>
+                  `
+                  : `
+                    <h3>${copy.registerTitle}</h3>
+                    <p class="muted">${copy.registerSubtitle}</p>
+                    <div class="login-inputs">
+                      <label class="login-field" for="register-username">
+                        <span class="login-label">${copy.registerUserLabel}</span>
+                        <input class="chat-text-input login-text-input" autocomplete="username" name="register-username" id="register-username" type="text" placeholder="${copy.registerUserPlaceholder}">
+                      </label>
+                      <label class="login-field" for="register-email">
+                        <span class="login-label">${copy.registerEmailLabel}</span>
+                        <input class="chat-text-input login-text-input" autocomplete="email" name="register-email" id="register-email" type="email" inputmode="email" placeholder="${copy.registerEmailPlaceholder}">
+                      </label>
+                      <label class="login-field" for="register-pass">
+                        <span class="login-label">${copy.registerPassLabel}</span>
+                        <input class="chat-text-input login-text-input" autocomplete="new-password" name="register-pass" id="register-pass" type="password" placeholder="${copy.registerPassPlaceholder}">
+                      </label>
+                      <label class="login-field" for="register-pass-confirm">
+                        <span class="login-label">${copy.registerPassConfirmLabel}</span>
+                        <input class="chat-text-input login-text-input" autocomplete="new-password" name="register-pass-confirm" id="register-pass-confirm" type="password" placeholder="${copy.registerPassConfirmPlaceholder}">
+                      </label>
+                    </div>
+                  `
+              }
+              ${
+                flat
+                  ? `
+                    <label class="login-terms-inline" for="register-terms">
+                      <ion-checkbox id="register-terms"></ion-checkbox>
+                      <span>${copy.registerTerms}</span>
+                    </label>
+                  `
+                  : `
+                    <ion-item lines="none" class="login-terms-item">
+                      <ion-checkbox id="register-terms" label-placement="end">${copy.registerTerms}</ion-checkbox>
+                    </ion-item>
+                  `
+              }
               <p id="register-error" style="display:none; margin:4px 0 0; color: var(--ion-color-danger, #eb445a); font-size:0.9rem;"></p>
-              <ion-button expand="block" shape="round" id="register-submit">${copy.registerSubmit}</ion-button>
-              <div class="login-links">
-                <button class="login-link-btn" type="button" id="register-back">${copy.registerBack}</button>
-              </div>
+              ${renderActionButton('register-submit', copy.registerSubmit, 'primary')}
+              ${flat ? '' : `<div class="login-links"><button class="login-link-btn" type="button" id="register-back">${copy.registerBack}</button></div>`}
             </div>
             <div class="login-panel" data-panel="magic" hidden>
               <div id="magic-form">
@@ -96,14 +232,38 @@ class PageLogin extends HTMLElement {
                   <button class="login-back-top" type="button" id="magic-back">${copy.magicBack}</button>
                 </div>
                 <p class="muted">${copy.magicSubtitle}</p>
-                <div class="login-inputs">
-                  <label class="login-field" for="magic-email">
-                    <span class="login-label">${copy.magicEmailLabel}</span>
-                    <input class="chat-text-input login-text-input" autocomplete="email" name="magic-email" id="magic-email" type="email" inputmode="email" placeholder="${copy.magicEmailPlaceholder}">
-                  </label>
-                </div>
+                ${
+                  flat
+                    ? `
+                      <div class="login-inputs login-inputs--flat">
+                        <label class="login-input-shell" for="magic-email">
+                          <span class="login-input-icon" aria-hidden="true">
+                            <ion-icon name="mail-outline"></ion-icon>
+                          </span>
+                          <input
+                            class="chat-text-input login-text-input login-text-input--shell"
+                            autocomplete="email"
+                            name="magic-email"
+                            id="magic-email"
+                            type="email"
+                            inputmode="email"
+                            placeholder="${copy.magicEmailLabel}"
+                            aria-label="${copy.magicEmailLabel}"
+                          >
+                        </label>
+                      </div>
+                    `
+                    : `
+                      <div class="login-inputs">
+                        <label class="login-field" for="magic-email">
+                          <span class="login-label">${copy.magicEmailLabel}</span>
+                          <input class="chat-text-input login-text-input" autocomplete="email" name="magic-email" id="magic-email" type="email" inputmode="email" placeholder="${copy.magicEmailPlaceholder}">
+                        </label>
+                      </div>
+                    `
+                }
                 <p id="magic-error" style="display:none; margin:4px 0 0; color: var(--ion-color-danger, #eb445a); font-size:0.9rem;"></p>
-                <ion-button expand="block" shape="round" id="magic-submit">${copy.magicSubmit}</ion-button>
+                ${renderActionButton('magic-submit', copy.magicSubmit, flat ? 'primary' : 'secondary')}
               </div>
               <div id="magic-sent" hidden>
                 <h3>${copy.magicSentTitle}</h3>
@@ -132,14 +292,38 @@ class PageLogin extends HTMLElement {
                 <button class="login-back-top" type="button" id="recover-back">${copy.recoverBack}</button>
               </div>
               <p class="muted">${copy.recoverSubtitle}</p>
-              <div class="login-inputs">
-                <label class="login-field" for="recover-email">
-                  <span class="login-label">${copy.recoverEmailLabel}</span>
-                  <input class="chat-text-input login-text-input" autocomplete="email" name="recover-email" id="recover-email" type="email" inputmode="email" placeholder="${copy.recoverEmailPlaceholder}">
-                </label>
-              </div>
+              ${
+                flat
+                  ? `
+                    <div class="login-inputs login-inputs--flat">
+                      <label class="login-input-shell" for="recover-email">
+                        <span class="login-input-icon" aria-hidden="true">
+                          <ion-icon name="mail-outline"></ion-icon>
+                        </span>
+                        <input
+                          class="chat-text-input login-text-input login-text-input--shell"
+                          autocomplete="email"
+                          name="recover-email"
+                          id="recover-email"
+                          type="email"
+                          inputmode="email"
+                          placeholder="${copy.recoverEmailLabel}"
+                          aria-label="${copy.recoverEmailLabel}"
+                        >
+                      </label>
+                    </div>
+                  `
+                  : `
+                    <div class="login-inputs">
+                      <label class="login-field" for="recover-email">
+                        <span class="login-label">${copy.recoverEmailLabel}</span>
+                        <input class="chat-text-input login-text-input" autocomplete="email" name="recover-email" id="recover-email" type="email" inputmode="email" placeholder="${copy.recoverEmailPlaceholder}">
+                      </label>
+                    </div>
+                  `
+              }
               <p id="recover-error" style="display:none; margin:4px 0 0; color: var(--ion-color-danger, #eb445a); font-size:0.9rem;"></p>
-              <ion-button expand="block" shape="round" id="recover-submit">${copy.recoverSubmit}</ion-button>
+              ${renderActionButton('recover-submit', copy.recoverSubmit, flat ? 'primary' : 'secondary')}
             </div>
           </div>
         ${embedded ? '' : '</div></ion-content>'}
@@ -660,6 +844,36 @@ class PageLogin extends HTMLElement {
     this.querySelector('#magic-submit')?.addEventListener('click', requestMagicLink);
     this.querySelector('#magic-email')?.addEventListener('blur', (e) => {
       e.target.value = e.target.value.trim().toLowerCase();
+    });
+    this.querySelector('#login-pass-toggle')?.addEventListener('click', () => {
+      const passEl = this.querySelector('#login-pass');
+      const iconEl = this.querySelector('#login-pass-toggle ion-icon');
+      if (!passEl) return;
+      const showing = passEl.getAttribute('type') === 'text';
+      passEl.setAttribute('type', showing ? 'password' : 'text');
+      if (iconEl) {
+        iconEl.setAttribute('name', showing ? 'eye-outline' : 'eye-off-outline');
+      }
+    });
+    this.querySelector('#register-pass-toggle')?.addEventListener('click', () => {
+      const passEl = this.querySelector('#register-pass');
+      const iconEl = this.querySelector('#register-pass-toggle ion-icon');
+      if (!passEl) return;
+      const showing = passEl.getAttribute('type') === 'text';
+      passEl.setAttribute('type', showing ? 'password' : 'text');
+      if (iconEl) {
+        iconEl.setAttribute('name', showing ? 'eye-outline' : 'eye-off-outline');
+      }
+    });
+    this.querySelector('#register-pass-confirm-toggle')?.addEventListener('click', () => {
+      const passEl = this.querySelector('#register-pass-confirm');
+      const iconEl = this.querySelector('#register-pass-confirm-toggle ion-icon');
+      if (!passEl) return;
+      const showing = passEl.getAttribute('type') === 'text';
+      passEl.setAttribute('type', showing ? 'password' : 'text');
+      if (iconEl) {
+        iconEl.setAttribute('name', showing ? 'eye-outline' : 'eye-off-outline');
+      }
     });
 
     // OTP: 6-digit box navigation

@@ -141,7 +141,7 @@ const APP_COPY = {
       recoverEmailPlaceholder: 'tu email',
       recoverSubmit: 'Enviar instrucciones',
       recoverBack: 'Volver',
-      magicLoginLink: 'Entrar sin contraseña',
+      magicLoginLink: 'Probar gratis sin registro',
       magicTitle: 'Acceso rápido',
       magicSubtitle: 'Te enviamos un enlace a tu correo. Un clic y ya estás dentro.',
       magicEmailLabel: 'Tu email',
@@ -190,27 +190,32 @@ const APP_COPY = {
     onboarding: {
       brand: 'SPEAK English',
       skip: 'Saltar',
-      cta: "Let's go!",
-      toggleLanguage: 'Cambiar idioma a {lang}',
+      cta: 'Continuar',
       slides: {
-        intro: {
-          title: 'SAY like a Native',
-          messageHtml:
-            'Hola, vamos a enseñarte a <strong>entrenar tu pronunciación</strong> y a hablar inglés con naturalidad.',
-          points: ['Y tu inglés sonará mejor', 'Tu confianza aumentará']
+        confidence: {
+          title: 'Habla inglés con confianza',
+          subtitle: 'Mejora tu pronunciación en minutos al día',
+          cta: 'Empezar'
         },
-        level: {
-          title: 'SAY like a Native',
-          messageHtml: 'Este es tu plan para mejorar pronunciación paso a paso en 48 días.',
+        feedback: {
+          title: 'Feedback en tiempo real',
+          subtitle: 'Corrige tu pronunciación al instante y mejora cada intento',
           points: [
-            'Sesiones cortas cada día',
-            'Escucha, repite y grábate',
-            'Mejora con feedback inmediato'
-          ]
+            'Escucha',
+            'Repite',
+            'Mejora'
+          ],
+          cta: 'Continuar'
         },
-        topics: {
-          title: 'SAY like a Native',
-          messageHtml: '¿Cuál es tu lengua materna?'
+        natural: {
+          title: 'Suena más natural',
+          subtitle: 'Entrena con sesiones cortas y efectivas',
+          points: [
+            'Solo 5-10 min al día',
+            'Resultados progresivos',
+            'Sin presión'
+          ],
+          cta: 'Empezar gratis'
         }
       }
     },
@@ -418,12 +423,13 @@ const APP_COPY = {
     },
     profile: {
       accessPill: 'Acceso',
-      loginTitle: 'Inicia sesion',
+      loginTitle: 'Inicia sesión',
       loginSubtitle: 'Debes iniciar sesión para ver tu perfil.',
       loginCta: 'Iniciar sesion',
       contact: 'Contacto',
       legal: 'Avisos legales',
       progressLabel: 'Progreso',
+      awardsTitle: 'Premios',
       toggleLanguageAria: 'Cambiar idioma a {lang}',
       badgesTitle: 'Badges',
       badgesEmpty: 'Aún no has desbloqueado badges.',
@@ -468,6 +474,8 @@ const APP_COPY = {
       reviewWordsEmpty: 'Aún no hay palabras en {tone}.',
       reviewPhrasesEmpty: 'No hay frases en {tone}.',
       reviewTestsEmpty: 'No hay tests en {tone}.',
+      reviewMore: 'Más',
+      reviewLess: 'Menos',
       reviewLessonTestLabel: 'Test de lección',
       reviewUnitTestLabel: 'Test de unidad',
       userFallbackName: 'Usuario',
@@ -613,7 +621,7 @@ const APP_COPY = {
       recoverEmailPlaceholder: 'your email',
       recoverSubmit: 'Send instructions',
       recoverBack: 'Back to login',
-      magicLoginLink: 'Sign in without password',
+      magicLoginLink: 'Continue without signing up',
       magicTitle: 'Quick access',
       magicSubtitle: 'We send a link to your email. One click and you are in.',
       magicEmailLabel: 'Your email',
@@ -662,27 +670,32 @@ const APP_COPY = {
     onboarding: {
       brand: 'SPEAK English',
       skip: 'Skip',
-      cta: "Let's go!",
-      toggleLanguage: 'Switch language to {lang}',
+      cta: 'Continue',
       slides: {
-        intro: {
-          title: 'SAY like a Native',
-          messageHtml:
-            'Hi, we are going to teach you to <strong>train your pronunciation</strong> and speak English naturally.',
-          points: ['Your English will sound better', 'Your confidence will grow']
+        confidence: {
+          title: 'Speak English with confidence',
+          subtitle: 'Improve your pronunciation in minutes a day',
+          cta: 'Start'
         },
-        level: {
-          title: 'SAY like a Native',
-          messageHtml: 'This is your step-by-step plan to improve pronunciation in 48 days.',
+        feedback: {
+          title: 'Real-time feedback',
+          subtitle: 'Correct your pronunciation instantly and improve every attempt',
           points: [
-            'Short daily sessions',
-            'Listen, repeat, and record yourself',
-            'Improve with instant feedback'
-          ]
+            'Listen',
+            'Repeat',
+            'Improve'
+          ],
+          cta: 'Continue'
         },
-        topics: {
-          title: 'SAY like a Native',
-          messageHtml: 'What is your native language?'
+        natural: {
+          title: 'Sound more natural',
+          subtitle: 'Train with short and effective sessions',
+          points: [
+            'Only 5-10 min a day',
+            'Progressive results',
+            'No pressure'
+          ],
+          cta: 'Start free'
         }
       }
     },
@@ -896,6 +909,7 @@ const APP_COPY = {
       contact: 'Contact',
       legal: 'Legal',
       progressLabel: 'Progress',
+      awardsTitle: 'Awards',
       toggleLanguageAria: 'Switch language to {lang}',
       badgesTitle: 'Badges',
       badgesEmpty: 'You have not unlocked badges yet.',
@@ -940,6 +954,8 @@ const APP_COPY = {
       reviewWordsEmpty: 'There are no words in {tone} yet.',
       reviewPhrasesEmpty: 'There are no phrases in {tone}.',
       reviewTestsEmpty: 'There are no tests in {tone}.',
+      reviewMore: 'More',
+      reviewLess: 'Less',
       reviewLessonTestLabel: 'Lesson test',
       reviewUnitTestLabel: 'Unit test',
       userFallbackName: 'User',

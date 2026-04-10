@@ -121,6 +121,13 @@ class TabsPage extends HTMLElement {
 
     const tabsEl = this.querySelector('ion-tabs');
     const tabBarEl = this.querySelector('ion-tab-bar');
+    let hideProfileAuthTabBar = false;
+    const getCurrentSelectedTab = () => {
+      const selectedFromProp =
+        tabsEl && typeof tabsEl.selectedTab === 'string' ? normalizeTab(tabsEl.selectedTab) : '';
+      const selectedFromAttr = normalizeTab(tabsEl?.getAttribute('selected-tab') || '');
+      return selectedFromProp || selectedFromAttr || '';
+    };
     const applyTabLabels = () => {
       const copy = readTabsCopy();
       const homeLabel = this.querySelector('[data-tab-label="home"]');
@@ -204,6 +211,7 @@ class TabsPage extends HTMLElement {
       tabsEl
         .select(normalizedTab)
         .then(() => {
+          applyTabBarVisibility();
           if (!normalizedTab || !isAllowedTab(normalizedTab)) return;
           window.dispatchEvent(
             new CustomEvent('app:tab-change', {
@@ -251,9 +259,7 @@ class TabsPage extends HTMLElement {
           tabPane.hidden = !allowedTabs.includes(tab);
         }
       });
-      if (tabBarEl) {
-        tabBarEl.hidden = allowedTabs.length < 2;
-      }
+      applyTabBarVisibility();
       const selectedFromAttr = normalizeTab(tabsEl?.getAttribute('selected-tab') || '');
       const selectedFromProp =
         tabsEl && typeof tabsEl.selectedTab === 'string' ? normalizeTab(tabsEl.selectedTab) : '';
@@ -268,6 +274,14 @@ class TabsPage extends HTMLElement {
     const isLoggedIn = () => {
       const user = window.user;
       return Boolean(user && user.id !== undefined && user.id !== null);
+    };
+    const applyTabBarVisibility = () => {
+      if (!tabBarEl) return;
+      const allowedTabs = getAllowedTabs();
+      const currentTab = getCurrentSelectedTab();
+      const hideForProfileLogin =
+        hideProfileAuthTabBar || (currentTab === 'tu' && !isLoggedIn());
+      tabBarEl.hidden = allowedTabs.length < 2 || hideForProfileLogin;
     };
     wasLoggedIn = isLoggedIn();
 
@@ -333,6 +347,7 @@ class TabsPage extends HTMLElement {
       }
 
       writeStoredTab(tab);
+      applyTabBarVisibility();
       window.dispatchEvent(
         new CustomEvent('app:tab-change', {
           detail: { tab }
@@ -353,6 +368,7 @@ class TabsPage extends HTMLElement {
       applyTabVisibility();
       applyChatUnreadBadge();
       enforceLoginTabsLock(false);
+      applyTabBarVisibility();
       if (justLoggedIn) {
         const nextTab = resolvePreferredTab({ preferred: 'home' });
         writeStoredTab(nextTab);
@@ -384,8 +400,16 @@ class TabsPage extends HTMLElement {
     };
     window.addEventListener('app:chat-unread-change', this._chatUnreadChangeHandler);
 
+    this._profileAuthViewChangeHandler = (event) => {
+      const detail = event && event.detail ? event.detail : {};
+      hideProfileAuthTabBar = detail.hideTabBar === true;
+      applyTabBarVisibility();
+    };
+    window.addEventListener('app:profile-auth-view-change', this._profileAuthViewChangeHandler);
+
     applyTabVisibility();
     applyChatUnreadBadge();
+    applyTabBarVisibility();
 
     if (isTabsLocked()) {
       setTimeout(() => enforceLoginTabsLock(false), 0);
@@ -432,6 +456,10 @@ class TabsPage extends HTMLElement {
 
     if (this._chatUnreadChangeHandler) {
       window.removeEventListener('app:chat-unread-change', this._chatUnreadChangeHandler);
+    }
+
+    if (this._profileAuthViewChangeHandler) {
+      window.removeEventListener('app:profile-auth-view-change', this._profileAuthViewChangeHandler);
     }
   }
 }

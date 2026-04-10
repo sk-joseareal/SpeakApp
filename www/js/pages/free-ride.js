@@ -16,8 +16,8 @@ const TTS_LANG_BY_LOCALE = {
   es: 'es-ES',
   en: 'en-US'
 };
-const HERO_MASCOT_FRAME_COUNT = 9;
-const HERO_MASCOT_REST_FRAME = HERO_MASCOT_FRAME_COUNT - 1;
+const HERO_MASCOT_FRAME_COUNT = 8;
+const HERO_MASCOT_REST_FRAME = 0;
 const HERO_MASCOT_FRAME_INTERVAL_MS = 150;
 const BROWSER_AUTONARRATION_EXTRA_DELAY_MS = 120;
 const FREE_RIDE_DEBUG_PANEL_OPEN_KEY = 'appv5:free-ride-debug-panel-open';
@@ -168,6 +168,7 @@ class PageFreeRide extends HTMLElement {
 
   connectedCallback() {
     this.classList.add('ion-page');
+    for (let i = 0; i < HERO_MASCOT_FRAME_COUNT; i++) { new Image().src = `assets/mascot/nena/nena-v5-${String(i).padStart(2, '0')}.png`; }
     this.refreshPhraseForCurrentLocale();
     this.render();
 
@@ -1582,7 +1583,7 @@ class PageFreeRide extends HTMLElement {
   getHeroMascotFramePath(frameIndex = HERO_MASCOT_REST_FRAME) {
     const normalized = this.normalizeHeroMascotFrameIndex(frameIndex);
     const padded = String(normalized).padStart(2, '0');
-    return `assets/mascot/mascota-boca-${padded}.png`;
+    return `assets/mascot/nena/nena-v5-${padded}.png`;
   }
 
   getHeroMascotImageEl() {
@@ -1618,11 +1619,11 @@ class PageFreeRide extends HTMLElement {
       clearInterval(this.heroMascotFrameTimer);
       this.heroMascotFrameTimer = null;
     }
-    let frame = 0;
+    let frame = 1;
     this.renderHeroMascotFrame(frame);
     this.heroMascotFrameTimer = setInterval(() => {
       if (!this.heroMascotIsTalking) return;
-      frame = (frame + 1) % (HERO_MASCOT_FRAME_COUNT - 1);
+      frame = (frame % (HERO_MASCOT_FRAME_COUNT - 1)) + 1;
       this.renderHeroMascotFrame(frame);
     }, HERO_MASCOT_FRAME_INTERVAL_MS);
   }
@@ -6660,10 +6661,10 @@ class PageFreeRide extends HTMLElement {
               >
             </span>
             <div class="journey-plan-body">
-              <p class="onboarding-intro-bubble free-ride-hero-bubble journey-plan-bubble hero-playable-bubble">${this.renderFreeRideCopyBilingualHtml('subtitle', {
+              <p class="onboarding-intro-bubble free-ride-hero-bubble journey-plan-bubble hero-playable-bubble"><span class="journey-plan-bubble-text">${this.renderFreeRideCopyBilingualHtml('subtitle', {
               fallbackEs: copy.subtitle || '',
               fallbackEn: copy.subtitle || ''
-            })}</p>
+            })}</span></p>
             </div>
             <div class="free-ride-hero-flag-wrap">
               ${

@@ -23,13 +23,17 @@ const TTS_LANG_BY_LOCALE = {
 };
 
 const PLAN_MASCOT_FRAMES = [
-  'assets/mascot/nena/frame_0.png',
-  'assets/mascot/nena/frame_1.png',
-  'assets/mascot/nena/frame_2.png',
-  'assets/mascot/nena/frame_3.png'
+  'assets/mascot/nena/nena-v5-00.png',
+  'assets/mascot/nena/nena-v5-01.png',
+  'assets/mascot/nena/nena-v5-02.png',
+  'assets/mascot/nena/nena-v5-03.png',
+  'assets/mascot/nena/nena-v5-04.png',
+  'assets/mascot/nena/nena-v5-05.png',
+  'assets/mascot/nena/nena-v5-06.png',
+  'assets/mascot/nena/nena-v5-07.png'
 ];
 const PLAN_MASCOT_REST_FRAME = 0;
-const PLAN_MASCOT_TALK_FRAME_SEQUENCE = [1, 2, 3];
+const PLAN_MASCOT_TALK_FRAME_SEQUENCE = [1, 2, 3, 4, 5, 6, 7];
 const PLAN_MASCOT_FRAME_INTERVAL_MS = 150;
 const BROWSER_AUTONARRATION_EXTRA_DELAY_MS = 120;
 const SPEAK_SESSION_PERCENTAGES_VISIBLE_KEY = 'appv5:speak-session-percentages-visible';
@@ -88,6 +92,7 @@ class PageHome extends HTMLElement {
 
   connectedCallback() {
     this.classList.add('ion-page');
+    PLAN_MASCOT_FRAMES.forEach(src => { new Image().src = src; });
     this.handleSelectionChange = () => {
       const restoreScrollTop = this.homeScrollTop;
       const { route, module } = resolveSelection(getSelection());
@@ -783,7 +788,7 @@ class PageHome extends HTMLElement {
               </span>
               <div class="journey-plan-body">
                 <p class="onboarding-intro-bubble journey-plan-bubble hero-playable-bubble">
-                  ${planRestHtml}
+                  <span class="journey-plan-bubble-text">${planRestHtml}</span>
                 </p>
                 <div class="journey-start-pill" style="visibility:hidden" aria-hidden="true">
                   <ion-icon name="headset-outline"></ion-icon>
@@ -1321,7 +1326,7 @@ class PageHome extends HTMLElement {
             </span>
             <div class="journey-plan-body">
               <p class="onboarding-intro-bubble journey-plan-bubble hero-playable-bubble">
-                ${planRestHtml}
+                <span class="journey-plan-bubble-text">${planRestHtml}</span>
               </p>
               <div class="journey-start-pill">
                 <ion-icon name="headset-outline"></ion-icon>

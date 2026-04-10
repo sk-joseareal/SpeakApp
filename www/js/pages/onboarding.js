@@ -1,72 +1,26 @@
 import {
   clearLoginTabsLock,
   getAppLocale,
-  setAppLocale,
   setLoginTabsLock,
   setOnboardingDone
 } from '../state.js';
 import { goToHome } from '../nav.js';
-import {
-  getLocaleMeta,
-  getOnboardingCopy,
-  normalizeLocale as normalizeCopyLocale
-} from '../content/copy.js';
+import { getOnboardingCopy, normalizeLocale as normalizeCopyLocale } from '../content/copy.js';
 
 const SWIPE_MIN_DISTANCE = 52;
 const SWIPE_MAX_OFF_AXIS = 44;
-const TTS_LANG_BY_LOCALE = {
-  es: 'es-ES',
-  en: 'en-US'
-};
-const HERO_MASCOT_FRAME_COUNT = 9;
-const HERO_MASCOT_REST_FRAME = HERO_MASCOT_FRAME_COUNT - 1;
-const HERO_MASCOT_FRAME_INTERVAL_MS = 150;
+const ONBOARDING_MASCOT_SRC = 'assets/onboarding/nena-v5.png';
 
 const onboardingSlides = [
-  {
-    id: 'intro',
-    hero: {
-      copyKey: 'intro',
-      tone: 'default'
-    }
-  },
-  {
-    id: 'level',
-    hero: {
-      copyKey: 'level',
-      tone: 'accent'
-    }
-  },
-  {
-    id: 'topics',
-    hero: {
-      copyKey: 'topics',
-      selector: {
-        type: 'locale',
-        options: ['es', 'en']
-      },
-      tone: 'locale'
-    }
-  }
+  { id: 'confidence', copyKey: 'confidence' },
+  { id: 'feedback', copyKey: 'feedback' },
+  { id: 'natural', copyKey: 'natural' }
 ];
 
 class PageOnboarding extends HTMLElement {
   constructor() {
     super();
     this.currentStep = 0;
-    const savedLocale = this.normalizeLocale(getAppLocale());
-    this.state = {
-      locale: savedLocale || '',
-      localeOverride: ''
-    };
-    this.narrationToken = 0;
-    this.firstSlideNarrationStarted = false;
-    this.browserNarrationRetryAttempts = 0;
-    this.browserNarrationRetryHandler = null;
-    this.browserNarrationRetryTimer = null;
-    this.heroMascotFrameIndex = HERO_MASCOT_REST_FRAME;
-    this.heroMascotFrameTimer = null;
-    this.heroMascotIsTalking = false;
     this.touchGesture = {
       active: false,
       startX: 0,
@@ -83,82 +37,159 @@ class PageOnboarding extends HTMLElement {
     this.updateSlide();
   }
 
-  disconnectedCallback() {
-    this.teardownBrowserNarrationRetry();
-    this.clearNarrationTimer();
-    this.stopHeroMascotTalk({ settle: true });
-    this.stopNarration().catch(() => {});
+  normalizeLocale(locale) {
+    return normalizeCopyLocale(locale);
+  }
+
+  getDeviceLocale() {
+    const browserLocale =
+      typeof navigator !== 'undefined'
+        ? navigator.language || (Array.isArray(navigator.languages) ? navigator.languages[0] : '')
+        : '';
+    return (
+      this.normalizeLocale(window.varGlobal?.locale) ||
+      this.normalizeLocale(browserLocale) ||
+      this.normalizeLocale(getAppLocale())
+    );
+  }
+
+  getUiLocale() {
+    return this.getDeviceLocale() || 'en';
+  }
+
+  getCopy() {
+    return getOnboardingCopy(this.getUiLocale());
+  }
+
+  getSlideCopy(step, copy) {
+    const key = step && step.copyKey ? step.copyKey : '';
+    if (!key) return {};
+    const slides = copy && copy.slides ? copy.slides : {};
+    return slides[key] || {};
   }
 
   render() {
-    const copy = this.getCopy();
-    const dotsMarkup = onboardingSlides
-      .map((_, idx) => `<span class="dot" data-step-dot="${idx}"></span>`)
-      .join('');
     this.innerHTML = `
       <ion-content fullscreen>
-        <div class="onboarding-shell">
-          <div class="onboarding-top">
-            <div class="pill brand-pill" data-field="brand">${copy.brand}</div>
-            <button class="ghost-btn" data-action="skip">${copy.skip}</button>
-          </div>
-          <div class="onboarding-body" data-field="body"></div>
-          <div class="onboarding-progress">
-            ${dotsMarkup}
-          </div>
-          <div class="onboarding-actions">
-            <ion-button expand="block" shape="round" size="large" data-action="next">
-              ${copy.cta}
-            </ion-button>
-          </div>
+        <div class="onboarding-v5-shell">
+          <div class="onboarding-v5-stage" data-field="stage"></div>
         </div>
       </ion-content>
     `;
   }
 
   cacheElements() {
-    this.shellEl = this.querySelector('.onboarding-shell');
-    this.bodyEl = this.querySelector('[data-field="body"]');
-    this.brandEl = this.querySelector('[data-field="brand"]');
-    this.dots = Array.from(this.querySelectorAll('[data-step-dot]'));
-    this.nextBtn = this.querySelector('[data-action="next"]');
-    this.skipBtn = this.querySelector('[data-action="skip"]');
+    this.stageEl = this.querySelector('[data-field="stage"]');
   }
 
   bindEvents() {
-    this.nextBtn.addEventListener('click', () => this.goNextStep());
-    this.skipBtn.addEventListener('click', () => this.finish());
-    this.shellEl.addEventListener('touchstart', (event) => this.handleTouchStart(event), { passive: true });
-    this.shellEl.addEventListener('touchend', (event) => this.handleTouchEnd(event), { passive: true });
-    this.shellEl.addEventListener('touchcancel', () => this.resetSwipeGesture(), { passive: true });
+    this.stageEl?.addEventListener('click', (event) => {
+      const button = event.target.closest('[data-action]');
+      if (!button) return;
+      const action = String(button.dataset.action || '').trim();
+      if (action === 'next') {
+        this.goNextStep();
+        return;
+      }
+      if (action === 'prev') {
+        this.goPrevStep();
+      }
+    });
+    this.addEventListener('touchstart', (event) => this.handleTouchStart(event), { passive: true });
+    this.addEventListener('touchend', (event) => this.handleTouchEnd(event), { passive: true });
+    this.addEventListener('touchcancel', () => this.resetSwipeGesture(), { passive: true });
   }
 
-  updateSlide(options = {}) {
+  updateSlide() {
     const copy = this.getCopy();
     const step = onboardingSlides[this.currentStep];
-    const isHeroStep = Boolean(step.hero);
-    this.shellEl?.setAttribute('data-step', step.id);
-    this.shellEl?.setAttribute('data-hero-step', isHeroStep ? 'true' : 'false');
-    this.classList.toggle('is-hero-step', isHeroStep);
-    this.brandEl.textContent = copy.brand;
-    this.skipBtn.textContent = copy.skip;
-    this.bodyEl.innerHTML = this.renderBody(step, copy);
-    this.bindDynamicEvents(step);
-    this.renderHeroMascotFrame(this.heroMascotFrameIndex);
-    this.setHeroBubbleSpeaking(this.heroMascotIsTalking);
-    this.dots.forEach((dot, index) => dot.classList.toggle('active', index === this.currentStep));
-    if (isHeroStep) {
-      this.nextBtn.textContent = copy.cta;
-      this.updateNextButtonState(step);
-    } else {
-      this.nextBtn.textContent = copy.cta;
-      this.updateNextButtonState(step);
+    const slideCopy = this.getSlideCopy(step, copy);
+    const points = Array.isArray(slideCopy.points) ? slideCopy.points : [];
+    const title = String(slideCopy.title || '').trim();
+    const subtitle = String(slideCopy.subtitle || '').trim();
+    const cta = String(slideCopy.cta || copy.cta || '').trim();
+    const dotsMarkup = onboardingSlides
+      .map(
+        (_item, index) =>
+          `<span class="speak-step-dot${index === this.currentStep ? ' is-active' : ''}"></span>`
+      )
+      .join('');
+
+    this.stageEl.innerHTML = `
+      <article class="onboarding-v5-card" data-step="${step.id}">
+        <div class="onboarding-v5-hero">
+          <div class="onboarding-v5-mascot-wrap" aria-hidden="true">
+            <img class="onboarding-v5-mascot" src="${ONBOARDING_MASCOT_SRC}" alt="">
+          </div>
+          <div class="onboarding-v5-wave"></div>
+        </div>
+        <div class="onboarding-v5-body">
+          <h1 class="onboarding-v5-title">${this.escapeHtml(title)}</h1>
+          ${subtitle ? `<p class="onboarding-v5-subtitle">${this.escapeHtml(subtitle)}</p>` : ''}
+          ${
+            points.length
+              ? `<ul class="onboarding-v5-points">
+                  ${points
+                    .map(
+                      (point) => `
+                        <li class="onboarding-v5-point">
+                          <span class="onboarding-v5-point-icon" aria-hidden="true">
+                            <ion-icon name="checkmark"></ion-icon>
+                          </span>
+                          <span>${this.escapeHtml(point)}</span>
+                        </li>
+                      `
+                    )
+                    .join('')}
+                </ul>`
+              : '<div class="onboarding-v5-body-spacer"></div>'
+          }
+          <button class="onboarding-v5-cta" data-action="next" type="button">${this.escapeHtml(cta)}</button>
+        </div>
+        <div class="onboarding-v5-footer">
+          <div class="speak-voice-nav onboarding-v5-nav">
+            <button
+              class="speak-step-arrow-btn"
+              data-action="prev"
+              type="button"
+              aria-label="Previous step"
+              ${this.currentStep === 0 ? 'disabled' : ''}
+            >
+              <ion-icon name="chevron-back"></ion-icon>
+            </button>
+            <div class="speak-step-dots onboarding-v5-dots" data-field="dots"></div>
+            <button
+              class="speak-step-arrow-btn"
+              data-action="next"
+              type="button"
+              aria-label="Next step"
+            >
+              <ion-icon name="chevron-forward"></ion-icon>
+            </button>
+          </div>
+        </div>
+      </article>
+    `;
+    this.dotsEl = this.stageEl.querySelector('[data-field="dots"]');
+    this.dotsEl.innerHTML = dotsMarkup;
+  }
+
+  goNextStep() {
+    if (this.currentStep < onboardingSlides.length - 1) {
+      this.currentStep += 1;
+      this.updateSlide();
+      return;
     }
-    this.stopNarration().catch(() => {});
+    this.finish();
+  }
+
+  goPrevStep() {
+    if (this.currentStep <= 0) return;
+    this.currentStep -= 1;
+    this.updateSlide();
   }
 
   finish() {
-    this.stopNarration().catch(() => {});
     setOnboardingDone();
     const user = window.user;
     const loggedIn = Boolean(user && user.id !== undefined && user.id !== null);
@@ -174,797 +205,37 @@ class PageOnboarding extends HTMLElement {
     goToHome('root');
   }
 
-  renderBody(step, copy) {
-    if (step.hero) {
-      const slideCopy = this.getSlideCopy(step, copy);
-      const bubbleLines = this.extractNarrationLines(slideCopy.messageHtml || '');
-      const bubbleRest = bubbleLines[0] || null;
-      const bubbleRestHtml = bubbleRest
-        ? bubbleRest.html && bubbleRest.html.trim()
-          ? bubbleRest.html
-          : bubbleRest.text
-        : slideCopy.messageHtml || '';
-      const uiLocale = this.getUiLocale();
-      const currentLocaleMeta = getLocaleMeta(uiLocale);
-      const nextLocaleCode = uiLocale === 'en' ? 'es' : 'en';
-      const nextLocaleMeta = getLocaleMeta(nextLocaleCode);
-      const heroMascotSrc = this.getHeroMascotFramePath(this.heroMascotFrameIndex);
-      const toggleLanguageLabel = String(copy.toggleLanguage || '').replace(
-        '{lang}',
-        nextLocaleMeta.label
-      );
-      const layoutClasses = ['onboarding-intro-layout'];
-      if (step.hero.tone === 'accent') layoutClasses.push('is-accent');
-      if (step.hero.tone === 'locale') layoutClasses.push('is-locale');
-
-      const isLocaleSelection = this.isLocaleSelectionStep(step);
-      let extraMarkup = '';
-      if (isLocaleSelection) {
-        const optionsMarkup = (step.hero.selector.options || [])
-          .map((localeCode) => {
-            const option = getLocaleMeta(localeCode);
-            if (!option) return '';
-            const selected = this.state.locale === option.code;
-            return `
-              <button class="onboarding-locale-option" data-locale="${option.code}" data-selected="${selected ? 'true' : 'false'}" type="button">
-                <img src="${option.flag}" alt="${option.alt || option.label}">
-                <span>${option.label}</span>
-              </button>
-            `;
-          })
-          .join('');
-        extraMarkup = `
-          <div class="onboarding-locale-list" data-list="locales">
-            ${optionsMarkup}
-          </div>
-        `;
-      } else {
-        const pointsMarkup = ((slideCopy && slideCopy.points) || [])
-          .map((point) => `<li>${point}</li>`)
-          .join('');
-        extraMarkup = `
-          <ul class="onboarding-intro-points">
-            ${pointsMarkup}
-          </ul>
-        `;
-      }
-      return `
-        <div class="${layoutClasses.join(' ')}">
-          <h1 class="onboarding-intro-title">${slideCopy.title || ''}</h1>
-          <section class="onboarding-intro-card">
-            <button class="onboarding-intro-flag-btn" type="button" data-action="toggle-language" aria-label="${toggleLanguageLabel}" title="${toggleLanguageLabel}">
-              <img class="onboarding-intro-flag" src="${currentLocaleMeta.flag}" alt="${currentLocaleMeta.alt}">
-            </button>
-            <span class="onboarding-hero-mascot-wrap" aria-hidden="true">
-              <img class="onboarding-intro-cat onboarding-hero-mascot" id="onboarding-hero-mascot" src="${heroMascotSrc}" alt="">
-            </span>
-            <p class="onboarding-intro-bubble onboarding-hero-bubble hero-playable-bubble">
-              ${bubbleRestHtml}
-            </p>
-          </section>
-          ${extraMarkup}
-        </div>
-      `;
-    }
-
-    return '<div></div>';
-  }
-
-  bindDynamicEvents(step) {
-    const toggleLanguageBtn = this.querySelector('[data-action="toggle-language"]');
-    toggleLanguageBtn?.addEventListener('click', () => {
-      this.toggleLocaleFromFlag();
-    });
-
-    const heroCardEl = this.querySelector('.onboarding-intro-card');
-    heroCardEl?.addEventListener('click', (event) => {
-      const target = event && event.target && typeof event.target.closest === 'function'
-        ? event.target.closest('button, [data-action], a, input, textarea, select')
-        : null;
-      if (target) return;
-      const copy = this.getCopy();
-      this.playSlideNarration(step, copy);
-    });
-
-    if (this.isLocaleSelectionStep(step)) {
-      const localeEls = Array.from(this.querySelectorAll('.onboarding-locale-option'));
-      localeEls.forEach((el) => {
-        el.addEventListener('click', () => {
-          const locale = String(el.dataset.locale || '').toLowerCase();
-          this.applyLocaleSetting(locale, { rerender: true, skipNarration: true });
-        });
-      });
-    }
-  }
-
-  normalizeLocale(locale) {
-    return normalizeCopyLocale(locale);
-  }
-
-  getUiLocale() {
-    const overrideLocale = this.normalizeLocale(this.state.localeOverride);
-    if (overrideLocale) return overrideLocale;
-    return this.normalizeLocale(this.state.locale) || 'en';
-  }
-
-  getCopy() {
-    const locale = this.getUiLocale();
-    return getOnboardingCopy(locale);
-  }
-
-  getSlideCopy(step, copy) {
-    const key = step && step.hero ? step.hero.copyKey : '';
-    if (!key) return {};
-    const slides = copy && copy.slides ? copy.slides : {};
-    return slides[key] || {};
-  }
-
-  normalizeHeroMascotFrameIndex(frameIndex) {
-    const value = Number(frameIndex);
-    if (!Number.isFinite(value)) return HERO_MASCOT_REST_FRAME;
-    const rounded = Math.round(value);
-    return Math.min(Math.max(rounded, 0), HERO_MASCOT_FRAME_COUNT - 1);
-  }
-
-  getHeroMascotFramePath(frameIndex = HERO_MASCOT_REST_FRAME) {
-    const normalized = this.normalizeHeroMascotFrameIndex(frameIndex);
-    const padded = String(normalized).padStart(2, '0');
-    return `assets/mascot/mascota-boca-${padded}.png`;
-  }
-
-  getHeroMascotImageEl() {
-    return this.querySelector('#onboarding-hero-mascot');
-  }
-
-  getHeroBubbleEl() {
-    return this.querySelector('.onboarding-hero-bubble');
-  }
-
-  setHeroBubbleSpeaking(isSpeaking) {
-    const bubbleEl = this.getHeroBubbleEl();
-    if (!bubbleEl) return;
-    bubbleEl.classList.toggle('is-speaking', Boolean(isSpeaking));
-  }
-
-  renderHeroMascotFrame(frameIndex) {
-    const normalized = this.normalizeHeroMascotFrameIndex(frameIndex);
-    this.heroMascotFrameIndex = normalized;
-    const imgEl = this.getHeroMascotImageEl();
-    if (!imgEl) return;
-    const nextSrc = this.getHeroMascotFramePath(normalized);
-    if (imgEl.getAttribute('src') !== nextSrc) {
-      imgEl.setAttribute('src', nextSrc);
-    }
-  }
-
-  startHeroMascotTalk() {
-    if (this.heroMascotIsTalking) return;
-    this.heroMascotIsTalking = true;
-    this.setHeroBubbleSpeaking(true);
-    if (this.heroMascotFrameTimer) {
-      clearInterval(this.heroMascotFrameTimer);
-      this.heroMascotFrameTimer = null;
-    }
-    let frame = 0;
-    this.renderHeroMascotFrame(frame);
-    this.heroMascotFrameTimer = setInterval(() => {
-      if (!this.heroMascotIsTalking) return;
-      frame = (frame + 1) % (HERO_MASCOT_FRAME_COUNT - 1);
-      this.renderHeroMascotFrame(frame);
-    }, HERO_MASCOT_FRAME_INTERVAL_MS);
-  }
-
-  stopHeroMascotTalk(options = {}) {
-    const settle = options.settle !== false;
-    this.heroMascotIsTalking = false;
-    this.setHeroBubbleSpeaking(false);
-    if (this.heroMascotFrameTimer) {
-      clearInterval(this.heroMascotFrameTimer);
-      this.heroMascotFrameTimer = null;
-    }
-    if (settle) {
-      this.renderHeroMascotFrame(HERO_MASCOT_REST_FRAME);
-    }
-  }
-
-  getNativeTtsPlugin() {
-    if (!this.isNativeRuntime()) return null;
-    if (typeof window === 'undefined') return null;
-    const plugins =
-      window && window.Capacitor && window.Capacitor.Plugins ? window.Capacitor.Plugins : null;
-    if (!plugins) return null;
-    return plugins.TextToSpeech || null;
-  }
-
-  isNativeRuntime() {
-    if (typeof window === 'undefined') return false;
-    const capacitor = window.Capacitor;
-    if (!capacitor) return false;
-    if (typeof capacitor.isNativePlatform === 'function') {
-      return Boolean(capacitor.isNativePlatform());
-    }
-    return capacitor.platform === 'ios' || capacitor.platform === 'android';
-  }
-
-  canWebSpeak() {
-    return (
-      typeof window !== 'undefined' &&
-      typeof window.speechSynthesis !== 'undefined' &&
-      typeof window.SpeechSynthesisUtterance !== 'undefined'
-    );
-  }
-
-  waitForWebVoices(timeoutMs = 1200) {
-    if (!this.canWebSpeak()) return Promise.resolve([]);
-    const synth = window.speechSynthesis;
-    const voicesNow = typeof synth.getVoices === 'function' ? synth.getVoices() : [];
-    if (voicesNow.length) return Promise.resolve(voicesNow);
-    return new Promise((resolve) => {
-      let done = false;
-      const finish = () => {
-        if (done) return;
-        done = true;
-        if (typeof synth.removeEventListener === 'function') {
-          synth.removeEventListener('voiceschanged', onVoicesChanged);
-        } else {
-          synth.onvoiceschanged = null;
-        }
-        const voices = typeof synth.getVoices === 'function' ? synth.getVoices() : [];
-        resolve(voices);
-      };
-      const onVoicesChanged = () => {
-        finish();
-      };
-      if (typeof synth.addEventListener === 'function') {
-        synth.addEventListener('voiceschanged', onVoicesChanged, { once: true });
-      } else {
-        synth.onvoiceschanged = onVoicesChanged;
-      }
-      setTimeout(finish, Math.max(0, timeoutMs));
-    });
-  }
-
-  waitForDocumentVisible(timeoutMs = 1600) {
-    if (typeof document === 'undefined') return Promise.resolve();
-    if (document.visibilityState === 'visible') return Promise.resolve();
-    return new Promise((resolve) => {
-      let done = false;
-      const finish = () => {
-        if (done) return;
-        done = true;
-        document.removeEventListener('visibilitychange', onChange);
-        resolve();
-      };
-      const onChange = () => {
-        if (document.visibilityState === 'visible') {
-          finish();
-        }
-      };
-      document.addEventListener('visibilitychange', onChange);
-      setTimeout(finish, Math.max(0, timeoutMs));
-    });
-  }
-
-  extractSpeechText(value) {
-    const container = document.createElement('div');
-    container.innerHTML = String(value || '');
-    return String(container.textContent || '')
-      .replace(/\s+/g, ' ')
-      .trim();
-  }
-
-  extractNarrationLines(value) {
-    const raw = String(value || '');
-    if (!raw.trim()) return [];
-    const normalized = raw
-      .replace(/<\s*br\s*\/?>/gi, '\n')
-      .replace(/<\/p>\s*<p>/gi, '\n')
-      .replace(/<\/li>\s*<li>/gi, '\n');
-    const lines = normalized
-      .split(/\r?\n+/)
-      .map((part) => {
-        const html = String(part || '').trim();
-        const text = this.extractSpeechText(html);
-        if (!text) return null;
-        return { text, html };
-      })
-      .filter(Boolean);
-    if (lines.length) return lines;
-    const fallback = this.extractSpeechText(raw);
-    return fallback ? [{ text: fallback, html: '' }] : [];
-  }
-
-  async stopNarrationPlayback() {
-    const plugin = this.getNativeTtsPlugin();
-    if (plugin && typeof plugin.stop === 'function') {
-      try {
-        await plugin.stop();
-      } catch (err) {
-        // no-op
-      }
-    }
-    if (this.canWebSpeak() && typeof window.speechSynthesis.cancel === 'function') {
-      if (typeof window.cancelWebSpeech === 'function') {
-        window.cancelWebSpeech();
-      } else {
-        window.speechSynthesis.cancel();
-      }
-    }
-    this.stopHeroMascotTalk({ settle: true });
-  }
-
-  async stopNarration() {
-    this.clearNarrationTimer();
-    this.narrationToken += 1;
-    await this.stopNarrationPlayback();
-  }
-
-  clearNarrationTimer() {
-    if (!this.narrationTimer) return;
-    clearTimeout(this.narrationTimer);
-    this.narrationTimer = null;
-  }
-
-  clearBrowserNarrationRetryTimer() {
-    if (!this.browserNarrationRetryTimer) return;
-    clearTimeout(this.browserNarrationRetryTimer);
-    this.browserNarrationRetryTimer = null;
-  }
-
-  setupBrowserNarrationRetry() {
-    if (this.browserNarrationRetryHandler || this.isNativeRuntime()) return;
-    this.browserNarrationRetryHandler = () => {
-      if (!this.isConnected) return;
-      if (this.currentStep !== 0 || this.firstSlideNarrationStarted) return;
-      this.queueBrowserNarrationRetry(0, true);
-    };
-    window.addEventListener('load', this.browserNarrationRetryHandler);
-    window.addEventListener('pageshow', this.browserNarrationRetryHandler);
-    window.addEventListener('focus', this.browserNarrationRetryHandler);
-    document.addEventListener('visibilitychange', this.browserNarrationRetryHandler);
-    document.addEventListener('pointerdown', this.browserNarrationRetryHandler, { passive: true });
-    document.addEventListener('keydown', this.browserNarrationRetryHandler, { passive: true });
-    document.addEventListener('touchstart', this.browserNarrationRetryHandler, { passive: true });
-  }
-
-  teardownBrowserNarrationRetry() {
-    this.clearBrowserNarrationRetryTimer();
-    if (!this.browserNarrationRetryHandler) return;
-    window.removeEventListener('load', this.browserNarrationRetryHandler);
-    window.removeEventListener('pageshow', this.browserNarrationRetryHandler);
-    window.removeEventListener('focus', this.browserNarrationRetryHandler);
-    document.removeEventListener('visibilitychange', this.browserNarrationRetryHandler);
-    document.removeEventListener('pointerdown', this.browserNarrationRetryHandler);
-    document.removeEventListener('keydown', this.browserNarrationRetryHandler);
-    document.removeEventListener('touchstart', this.browserNarrationRetryHandler);
-    this.browserNarrationRetryHandler = null;
-  }
-
-  queueBrowserNarrationRetry(delayMs = 0, force = false) {
-    if (this.isNativeRuntime()) return;
-    if (this.currentStep !== 0 || this.firstSlideNarrationStarted) return;
-    if (!force && this.browserNarrationRetryAttempts >= 7) return;
-    if (this.browserNarrationRetryTimer) return;
-    const waitMs = Math.max(0, Number(delayMs) || 0);
-    this.browserNarrationRetryTimer = setTimeout(() => {
-      this.browserNarrationRetryTimer = null;
-      if (!this.isConnected) return;
-      if (this.currentStep !== 0 || this.firstSlideNarrationStarted) return;
-      this.browserNarrationRetryAttempts += 1;
-      const step = onboardingSlides[this.currentStep];
-      const copy = this.getCopy();
-      this.playSlideNarration(step, copy).then((started) => {
-        if (started || this.firstSlideNarrationStarted) return;
-        this.queueBrowserNarrationRetry(1400);
-      });
-    }, waitMs);
-  }
-
-  scheduleSlideNarration(step, copy, delayMs) {
-    this.clearNarrationTimer();
-    const waitMs = Number.isFinite(delayMs) ? Math.max(0, delayMs) : 90;
-    this.narrationTimer = setTimeout(() => {
-      this.narrationTimer = null;
-      if (!this.isConnected) return;
-      this.playSlideNarration(step, copy);
-    }, waitMs);
-  }
-
-  playSlideNarration(step, copy) {
-    if (!step || !step.hero) {
-      this.stopNarration().catch(() => {});
-      return Promise.resolve(false);
-    }
-    const slideCopy = this.getSlideCopy(step, copy);
-    const lines = this.extractNarrationLines(slideCopy.messageHtml);
-    if (!lines.length) {
-      this.stopNarration().catch(() => {});
-      return Promise.resolve(false);
-    }
-    const locale = this.getUiLocale();
-    return this.speakNarration(lines, locale, { bubbleEl: this.getHeroBubbleEl() })
-      .then((started) => {
-        if (started && this.currentStep === 0) {
-          this.firstSlideNarrationStarted = true;
-          this.teardownBrowserNarrationRetry();
-        }
-        return started;
-      })
-      .catch((err) => {
-        console.warn('[onboarding] narration error', err);
-        return false;
-      });
-  }
-
-  async speakNarrationWeb(text, lang, token, voiceWaitMs = 1200, hooks = {}) {
-    if (!this.canWebSpeak()) return false;
-    await this.waitForDocumentVisible(1800);
-    if (token !== this.narrationToken) return true;
-    await this.waitForWebVoices(voiceWaitMs);
-    if (token !== this.narrationToken) return true;
-
-    const utter = new SpeechSynthesisUtterance(text);
-    utter.lang = lang;
-
-    return new Promise((resolve) => {
-      let settled = false;
-      let playbackEnded = false;
-      const notifyPlaybackStart = () => {
-        if (typeof hooks.onPlaybackStart === 'function') {
-          hooks.onPlaybackStart();
-        }
-      };
-      const notifyPlaybackEnd = () => {
-        if (playbackEnded) return;
-        playbackEnded = true;
-        if (typeof hooks.onPlaybackEnd === 'function') {
-          hooks.onPlaybackEnd();
-        }
-      };
-      const settle = (started) => {
-        if (settled) return;
-        settled = true;
-        clearTimeout(startTimeout);
-        resolve(started);
-      };
-      const startTimeout = setTimeout(() => settle(false), 1800);
-      utter.onstart = () => {
-        notifyPlaybackStart();
-        settle(true);
-      };
-      utter.onend = () => {
-        notifyPlaybackEnd();
-      };
-      utter.onerror = () => {
-        notifyPlaybackEnd();
-        settle(false);
-      };
-      try {
-        const started =
-          typeof window.speakWebUtterance === 'function'
-            ? window.speakWebUtterance(utter)
-            : (() => {
-                window.speechSynthesis.speak(utter);
-                return true;
-              })();
-        if (!started) {
-          notifyPlaybackEnd();
-          settle(false);
-        }
-      } catch (err) {
-        notifyPlaybackEnd();
-        settle(false);
-      }
-    });
-  }
-
-  async speakNarration(linesOrText, locale, options = {}) {
-    const lines = Array.isArray(linesOrText)
-      ? linesOrText.filter((line) => line && typeof line.text === 'string' && line.text.trim())
-      : this.extractNarrationLines(linesOrText);
-    if (!lines.length) return false;
-    const normalizedLocale = this.normalizeLocale(locale) || 'en';
-    const lang = TTS_LANG_BY_LOCALE[normalizedLocale] || 'en-US';
-    const token = ++this.narrationToken;
-    const bubbleEl = options && options.bubbleEl ? options.bubbleEl : this.getHeroBubbleEl();
-    const hasMultipleLines = lines.length > 1;
-    const originalBubbleHtml = bubbleEl ? bubbleEl.innerHTML : '';
-    const originalBubbleMinHeight = bubbleEl ? bubbleEl.style.minHeight : '';
-    const restLine = lines[0] || null;
-
-    await this.stopNarrationPlayback();
-    if (token !== this.narrationToken) return false;
-
-    const plugin = this.getNativeTtsPlugin();
-    if (bubbleEl) {
-      bubbleEl.dataset.narrationToken = String(token);
-    }
-
-    const applyLine = (line) => {
-      if (!bubbleEl) return;
-      if (bubbleEl.dataset.narrationToken !== String(token)) return;
-      const lineHtml = line && typeof line.html === 'string' ? line.html.trim() : '';
-      if (lineHtml) {
-        bubbleEl.innerHTML = lineHtml;
-      } else {
-        bubbleEl.textContent = line && line.text ? line.text : '';
-      }
-    };
-
-    const measureMaxLineHeight = () => {
-      if (!bubbleEl || !hasMultipleLines) return 0;
-      const width =
-        Math.ceil(
-          bubbleEl.getBoundingClientRect().width || bubbleEl.clientWidth || bubbleEl.offsetWidth || 0
-        ) || 0;
-      if (!width) return 0;
-      const probe = document.createElement('div');
-      probe.className = bubbleEl.className;
-      probe.setAttribute('aria-hidden', 'true');
-      probe.style.position = 'absolute';
-      probe.style.visibility = 'hidden';
-      probe.style.pointerEvents = 'none';
-      probe.style.left = '-99999px';
-      probe.style.top = '0';
-      probe.style.width = `${width}px`;
-      probe.style.minHeight = '0';
-      probe.style.height = 'auto';
-      const parent = bubbleEl.parentElement || this.bodyEl || this;
-      parent.appendChild(probe);
-      let maxHeight = 0;
-      lines.forEach((line) => {
-        const html = line && typeof line.html === 'string' ? line.html.trim() : '';
-        if (html) probe.innerHTML = html;
-        else probe.textContent = line && line.text ? line.text : '';
-        const nextHeight = Math.ceil(
-          Math.max(probe.scrollHeight || 0, probe.getBoundingClientRect().height || 0)
-        );
-        if (nextHeight > maxHeight) maxHeight = nextHeight;
-      });
-      probe.remove();
-      return maxHeight;
-    };
-
-    if (bubbleEl) {
-      if (restLine) applyLine(restLine);
-      if (hasMultipleLines) {
-        const maxHeight = measureMaxLineHeight();
-        if (maxHeight > 0) {
-          bubbleEl.style.minHeight = `${maxHeight}px`;
-        }
-      } else {
-        bubbleEl.style.minHeight = originalBubbleMinHeight;
-      }
-    }
-
-    const restoreBubble = () => {
-      if (!bubbleEl) return;
-      if (bubbleEl.dataset.narrationToken !== String(token)) return;
-      if (restLine) {
-        applyLine(restLine);
-      } else {
-        bubbleEl.innerHTML = originalBubbleHtml;
-      }
-      if (!hasMultipleLines) {
-        bubbleEl.style.minHeight = originalBubbleMinHeight;
-      }
-      delete bubbleEl.dataset.narrationToken;
-    };
-
-    const waitMs = (ms) =>
-      new Promise((resolve) => {
-        setTimeout(resolve, Math.max(0, Number(ms) || 0));
-      });
-
-    const estimateLinePlaybackMs = (lineText) => {
-      const chars = String(lineText || '').trim().length;
-      return Math.min(9500, Math.max(900, Math.round(chars * 72)));
-    };
-
-    const waitWebSpeechIdle = async (maxMs = 7000) => {
-      if (!this.canWebSpeak() || typeof window === 'undefined' || !window.speechSynthesis) return;
-      const synth = window.speechSynthesis;
-      const startedAt = Date.now();
-      while (token === this.narrationToken && Date.now() - startedAt < maxMs) {
-        if (!synth.speaking && !synth.pending && !synth.paused) return;
-        await waitMs(60);
-      }
-    };
-
-    const speakLineWithPlugin = async (lineText) => {
-      if (!plugin || typeof plugin.speak !== 'function') return false;
-      this.startHeroMascotTalk();
-      const startedAt = Date.now();
-      try {
-        await plugin.speak({
-          text: lineText,
-          lang,
-          rate: 1.0,
-          pitch: 1.0,
-          volume: 1.0,
-          category: 'ambient',
-          queueStrategy: 1
-        });
-        const minMs = estimateLinePlaybackMs(lineText);
-        const elapsed = Date.now() - startedAt;
-        if (elapsed < minMs && token === this.narrationToken) {
-          await waitMs(minMs - elapsed);
-        }
-        return true;
-      } catch (err) {
-        return false;
-      } finally {
-        if (token === this.narrationToken) {
-          this.stopHeroMascotTalk({ settle: true });
-        }
-      }
-    };
-
-    const speakLineWebWithRetry = async (lineText) => {
-      const hooks = {
-        onPlaybackStart: () => {
-          if (token !== this.narrationToken) return;
-          this.startHeroMascotTalk();
-        },
-        onPlaybackEnd: () => {
-          if (token !== this.narrationToken) return;
-          this.stopHeroMascotTalk({ settle: true });
-        }
-      };
-
-      let started = await this.speakNarrationWeb(lineText, lang, token, 1500, hooks);
-      if (started && token === this.narrationToken) {
-        const maxWait = Math.min(11000, estimateLinePlaybackMs(lineText) + 2400);
-        await waitWebSpeechIdle(maxWait);
-      }
-      if (started || token !== this.narrationToken) return started;
-
-      await waitMs(450);
-      if (token !== this.narrationToken) return false;
-      await this.stopNarrationPlayback();
-      if (token !== this.narrationToken) return false;
-      started = await this.speakNarrationWeb(lineText, lang, token, 3200, hooks);
-      if (started && token === this.narrationToken) {
-        const maxWait = Math.min(12000, estimateLinePlaybackMs(lineText) + 3000);
-        await waitWebSpeechIdle(maxWait);
-      }
-      return started;
-    };
-
-    let startedAny = false;
-    try {
-      for (let index = 0; index < lines.length; index += 1) {
-        if (token !== this.narrationToken) return startedAny;
-        const line = lines[index];
-        const lineText = String(line.text || '').trim();
-        if (!lineText) continue;
-        if (hasMultipleLines) {
-          applyLine(line);
-        }
-
-        let started = await speakLineWithPlugin(lineText);
-        if (!started && token === this.narrationToken) {
-          started = await speakLineWebWithRetry(lineText);
-        }
-        startedAny = startedAny || started;
-
-        if (index < lines.length - 1 && token === this.narrationToken) {
-          await waitMs(130);
-        }
-      }
-      return startedAny;
-    } finally {
-      if (token === this.narrationToken) {
-        this.stopHeroMascotTalk({ settle: true });
-      }
-      restoreBubble();
-    }
-  }
-
-  applyLocaleSetting(locale, options = {}) {
-    const normalized = this.normalizeLocale(locale);
-    if (!normalized) return;
-
-    this.state.locale = normalized;
-    if (this.normalizeLocale(this.state.localeOverride) === normalized) {
-      this.state.localeOverride = '';
-    }
-    setAppLocale(normalized);
-    if (window.varGlobal && typeof window.varGlobal === 'object') {
-      window.varGlobal.locale = normalized;
-    }
-    window.dispatchEvent(new CustomEvent('app:locale-change', { detail: { locale: normalized } }));
-
-    if (options.rerender) {
-      this.updateSlide({ skipNarration: Boolean(options.skipNarration) });
-      return;
-    }
-
-    const step = onboardingSlides[this.currentStep];
-    this.updateNextButtonState(step);
-  }
-
-  toggleLocaleFromFlag() {
-    const currentUiLocale = this.getUiLocale();
-    const baseLocale = this.normalizeLocale(this.state.locale) || 'en';
-    const nextLocale = currentUiLocale === 'en' ? 'es' : 'en';
-    this.state.localeOverride = nextLocale === baseLocale ? '' : nextLocale;
-    this.updateSlide();
-  }
-
-  isLocaleSelectionStep(step) {
-    return Boolean(step && step.hero && step.hero.selector && step.hero.selector.type === 'locale');
-  }
-
-  hasSelectedLocale() {
-    return this.state.locale === 'es' || this.state.locale === 'en';
-  }
-
-  updateNextButtonState(step) {
-    const requiresLocaleSelection = this.isLocaleSelectionStep(step);
-    this.nextBtn.disabled = requiresLocaleSelection && !this.hasSelectedLocale();
-  }
-
-  isCurrentStepBlocked() {
-    const step = onboardingSlides[this.currentStep];
-    return this.isLocaleSelectionStep(step) && !this.hasSelectedLocale();
-  }
-
-  goNextStep() {
-    if (this.nextBtn.disabled || this.isCurrentStepBlocked()) return;
-    if (this.currentStep < onboardingSlides.length - 1) {
-      this.currentStep += 1;
-      this.updateSlide();
-      return;
-    }
-    this.finish();
-  }
-
-  goPrevStep() {
-    if (this.currentStep <= 0) return;
-    this.currentStep -= 1;
-    this.updateSlide();
-  }
-
   handleTouchStart(event) {
-    const touch = event.changedTouches && event.changedTouches[0];
+    const touch = event.touches && event.touches[0];
     if (!touch) return;
-    const target = event.target instanceof Element ? event.target : null;
-    const ignore = Boolean(
-      target &&
-        target.closest('button, ion-button, a, input, textarea, select, label, [data-no-swipe]')
-    );
-    this.touchGesture = {
-      active: true,
-      startX: touch.clientX,
-      startY: touch.clientY,
-      ignore
-    };
+    this.touchGesture.active = true;
+    this.touchGesture.startX = touch.clientX;
+    this.touchGesture.startY = touch.clientY;
+    this.touchGesture.ignore = false;
   }
 
   handleTouchEnd(event) {
-    if (!this.touchGesture.active) return;
-    const gesture = { ...this.touchGesture };
-    this.resetSwipeGesture();
-    if (gesture.ignore) return;
-
+    if (!this.touchGesture.active || this.touchGesture.ignore) {
+      this.resetSwipeGesture();
+      return;
+    }
     const touch = event.changedTouches && event.changedTouches[0];
-    if (!touch) return;
-
-    const deltaX = touch.clientX - gesture.startX;
-    const deltaY = touch.clientY - gesture.startY;
-    const absX = Math.abs(deltaX);
-    const absY = Math.abs(deltaY);
-
-    if (absX < SWIPE_MIN_DISTANCE) return;
-    if (absY > SWIPE_MAX_OFF_AXIS) return;
-    if (absX <= absY) return;
-
-    if (deltaX < 0) {
+    if (!touch) {
+      this.resetSwipeGesture();
+      return;
+    }
+    const dx = touch.clientX - this.touchGesture.startX;
+    const dy = touch.clientY - this.touchGesture.startY;
+    this.resetSwipeGesture();
+    if (Math.abs(dy) > SWIPE_MAX_OFF_AXIS) return;
+    if (dx <= -SWIPE_MIN_DISTANCE) {
       this.goNextStep();
       return;
     }
-    this.goPrevStep();
+    if (dx >= SWIPE_MIN_DISTANCE && this.currentStep > 0) {
+      this.currentStep -= 1;
+      this.updateSlide();
+    }
   }
 
   resetSwipeGesture() {
@@ -972,6 +243,15 @@ class PageOnboarding extends HTMLElement {
     this.touchGesture.startX = 0;
     this.touchGesture.startY = 0;
     this.touchGesture.ignore = false;
+  }
+
+  escapeHtml(value) {
+    return String(value === undefined || value === null ? '' : value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
   }
 }
 

@@ -13,6 +13,11 @@ class PageLogin extends HTMLElement {
     const copy = getLoginCopy(uiLocale);
     const embedded = this.hasAttribute('embedded');
     const flat = embedded && this.hasAttribute('flat');
+    const platform =
+      window.r34lp0w3r && typeof window.r34lp0w3r.platform === 'string'
+        ? String(window.r34lp0w3r.platform).trim().toLowerCase()
+        : '';
+    const showAppleLogin = platform !== 'android';
     const renderActionButton = (id, label, tone = 'secondary') =>
       flat
         ? `<button class="login-${tone}-btn" type="button" id="${id}">${label}</button>`
@@ -50,7 +55,7 @@ class PageLogin extends HTMLElement {
               <div class="login-social-stack">
                 ${renderSocialButton('login-google', '', 'assets/social/google.png', copy.socialGoogle)}
                 ${renderSocialButton('login-fb', '', 'assets/social/facebook.png', copy.socialFacebook)}
-                ${renderSocialButton('login-apple', 'login-social-icon-apple', 'assets/social/apple.png', copy.socialApple)}
+                ${showAppleLogin ? renderSocialButton('login-apple', 'login-social-icon-apple', 'assets/social/apple.png', copy.socialApple) : ''}
               </div>
               <button class="login-link-btn login-create-email-btn" type="button" id="login-register-link">${copy.createWithEmail}</button>
               <div class="login-email-block">

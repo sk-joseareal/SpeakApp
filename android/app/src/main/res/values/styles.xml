@@ -20,7 +20,7 @@
         
         <!-- <item name="android:background">@drawable/splash</item> -->
 	<!-- Evitar fondo blanco en Clear y gris oscuro en Dark en Splash Screen -->
-    	<item name="windowSplashScreenBackground">#f4f6fb</item>
+    	<item name="windowSplashScreenBackground">#2d6df0</item>
 	<item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
     	<item name="postSplashScreenTheme">@style/AppTheme.NoActionBar</item>        
         

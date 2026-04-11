@@ -812,6 +812,10 @@ ion-content.profile-content.profile-content--logged-out {
   min-height: 100vh;
 }
 
+.profile-shell--logged-out-android {
+  padding-top: 18px;
+}
+
 .profile-login-hero {
   padding-top: 18px;
   padding-bottom: 42px;

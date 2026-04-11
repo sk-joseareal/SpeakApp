@@ -12,6 +12,8 @@ import Capacitor
 class AppDelegate: UIResponder, UIApplicationDelegate {
 
     var window: UIWindow?
+    private let launchBlue = UIColor(red: 0.1764705882, green: 0.4274509804, blue: 0.9411764706, alpha: 1.0)
+    private let appLightBackground = UIColor(red: 0.96, green: 0.97, blue: 0.98, alpha: 1.0)
 
     private func currentApnsEnvironment() -> String {
         let value = Bundle.main.object(forInfoDictionaryKey: "SpeakAPNSEnvironment") as? String
@@ -21,8 +23,11 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch.
         
-        // Color de fondo del 'window', que es lo que está detrás del webView
-        self.window?.backgroundColor = UIColor(red: 0.96, green: 0.97, blue: 0.98, alpha: 1.0) // UIColor(red: 0.02, green: 0.24, blue: 0.36, alpha: 1.0)
+        // Mantiene el azul del splash también en la ventana nativa hasta poco después de ocultarlo.
+        self.window?.backgroundColor = launchBlue
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+            self.window?.backgroundColor = self.appLightBackground
+        }
 
         print(">#N00#> AppDelegate: Adaptando el webView a la Status Bar.")
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.01) {

@@ -6618,7 +6618,13 @@ class PageChat extends HTMLElement {
       updateCommunityPresenceUi();
       if (pusherClient) {
         try {
-          pusherClient.disconnect();
+          const connectionState =
+            pusherClient.connection && typeof pusherClient.connection.state === 'string'
+              ? pusherClient.connection.state
+              : '';
+          if (connectionState && connectionState !== 'disconnected') {
+            pusherClient.disconnect();
+          }
         } catch (err) {
           // no-op
         }
@@ -6626,6 +6632,20 @@ class PageChat extends HTMLElement {
       }
       pusherChannelName = '';
       realtimeConnected = false;
+    };
+
+    const getRealtimeConnectionState = () =>
+      pusherClient && pusherClient.connection && typeof pusherClient.connection.state === 'string'
+        ? pusherClient.connection.state
+        : '';
+
+    const hasReusableRealtimeConnection = (expectedChannelName = '') => {
+      const existingConnectionState = getRealtimeConnectionState();
+      const hasReusableConnection =
+        existingConnectionState === 'connecting' || existingConnectionState === 'connected';
+      if (!hasReusableConnection || !pusherClient) return false;
+      if (!expectedChannelName) return true;
+      return pusherChannelName === expectedChannelName;
     };
 
     const connectRealtime = (user, { silent = false } = {}) => {
@@ -6660,7 +6680,7 @@ class PageChat extends HTMLElement {
 
       const connectedMode = chatMode;
       const channelName = buildChannelName(userId, config);
-      if (pusherClient && pusherChannelName === channelName) {
+      if (hasReusableRealtimeConnection(channelName)) {
         return;
       }
 
@@ -7162,7 +7182,14 @@ class PageChat extends HTMLElement {
           ensureIntroMessage(chatMode);
         }
         setControlsEnabled(true);
-        connectRealtime(user, { silent: isInitialLoad });
+        const expectedChannelName = buildChannelName(userId, getRealtimeConfig());
+        if (
+          userChanged ||
+          chatEnabledChanged ||
+          !hasReusableRealtimeConnection(expectedChannelName)
+        ) {
+          connectRealtime(user, { silent: isInitialLoad });
+        }
         if (chatMode === 'community') {
           loadCommunityHistory({ force: true });
           if (communityView === 'dm') {

@@ -81,6 +81,10 @@ class PageProfile extends HTMLElement {
   }
 
   render() {
+    const platform =
+      window.r34lp0w3r && typeof window.r34lp0w3r.platform === 'string'
+        ? String(window.r34lp0w3r.platform).trim().toLowerCase()
+        : '';
     const persistProfileTab = (tab) => {
       if (!tab) return;
       if (!window.r34lp0w3r) window.r34lp0w3r = {};
@@ -1102,7 +1106,7 @@ class PageProfile extends HTMLElement {
     this.innerHTML = `
       ${loggedIn ? renderAppHeader({ title: tabsCopy.you, rewardBadgesId: 'profile-reward-badges', locale: rawLocaleSetting }) : ''}
       <ion-content fullscreen class="secret-content profile-content ${loggedIn ? '' : 'profile-content--logged-out'}">
-        <div class="page-shell profile-shell ${loggedIn ? '' : 'profile-shell--logged-out'}">
+        <div class="page-shell profile-shell ${loggedIn ? '' : `profile-shell--logged-out ${platform === 'android' ? 'profile-shell--logged-out-android' : ''}`}">
           <div id="profile-login-panel" ${loggedIn ? 'hidden' : ''}>
             <div class="profile-login-hero">
               <h1 class="profile-login-title">${escapeHtml(profileCopy.loginTitle || 'Inicia sesión')}</h1>

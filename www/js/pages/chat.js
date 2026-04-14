@@ -723,6 +723,7 @@ class PageChat extends HTMLElement {
         key: config.key || '',
         cluster: config.cluster || '',
         wsHost: config.wsHost || '',
+        wsPort: config.wsPort || 80,
         wssPort: config.wssPort || 443,
         forceTLS: config.forceTLS !== undefined ? config.forceTLS : true,
         authEndpoint: config.authEndpoint || '',
@@ -6689,7 +6690,11 @@ class PageChat extends HTMLElement {
 
       const wsOptions = config.cluster
         ? { cluster: config.cluster }
-        : { wsHost: config.wsHost };
+        : {
+            wsHost: config.wsHost,
+            wsPort: config.wsPort,
+            wssPort: config.wssPort
+          };
       const options = {
         ...wsOptions,
         forceTLS: config.forceTLS,
@@ -7678,13 +7683,26 @@ class PageChat extends HTMLElement {
     }
     updateHeaderRewards();
     showLoadingState();
-    accessLoadingTimer = setTimeout(() => {
+    accessLoadingTimer = setTimeout(async () => {
+      try {
+        if (window.realtimeConfigReady && typeof window.realtimeConfigReady.then === 'function') {
+          await window.realtimeConfigReady;
+        }
+      } catch (_err) {
+        // keep defaults if remote config bootstrap fails
+      }
       updateAccessState(window.user);
     }, 180);
     this._userHandler = (event) => updateAccessState(event.detail);
     window.addEventListener('app:user-change', this._userHandler);
     this._tabVisibilityHandler = () => updateAccessState(window.user);
     window.addEventListener('app:tab-visibility-change', this._tabVisibilityHandler);
+    this._realtimeConfigHandler = () => {
+      if (!lastChatEnabled || !window.user) return;
+      disconnectRealtime();
+      connectRealtime(window.user, { silent: true });
+    };
+    window.addEventListener('app:realtime-config-change', this._realtimeConfigHandler);
     this._rewardsHandler = () => updateHeaderRewards();
     window.addEventListener('app:speak-stores-change', this._rewardsHandler);
 
@@ -8267,6 +8285,9 @@ class PageChat extends HTMLElement {
     }
     if (this._rewardsHandler) {
       window.removeEventListener('app:speak-stores-change', this._rewardsHandler);
+    }
+    if (this._realtimeConfigHandler) {
+      window.removeEventListener('app:realtime-config-change', this._realtimeConfigHandler);
     }
     if (this._debugHandler) {
       window.removeEventListener('app:speak-debug', this._debugHandler);

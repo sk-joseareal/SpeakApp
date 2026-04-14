@@ -39,6 +39,9 @@
   if (window.realtimeConfig.wssPort === undefined) {
     window.realtimeConfig.wssPort = window.REALTIME_WSS_PORT || 443;
   }
+  if (window.realtimeConfig.wsPort === undefined) {
+    window.realtimeConfig.wsPort = window.REALTIME_WS_PORT || 80;
+  }
   if (window.realtimeConfig.forceTLS === undefined) {
     const forceTLS = window.REALTIME_FORCE_TLS;
     if (forceTLS === undefined || forceTLS === null || forceTLS === '') {
@@ -266,8 +269,26 @@
         window.realtimeConfig.wsHost = data.wsHost;
         window.realtimeConfig.cluster = undefined;
       }
+      if (data.wsPort !== undefined && data.wsPort !== null && data.wsPort !== '') {
+        window.realtimeConfig.wsPort = Number(data.wsPort) || window.realtimeConfig.wsPort;
+      }
+      if (data.wssPort !== undefined && data.wssPort !== null && data.wssPort !== '') {
+        window.realtimeConfig.wssPort = Number(data.wssPort) || window.realtimeConfig.wssPort;
+      }
       if (data.forceTLS !== undefined) {
         window.realtimeConfig.forceTLS = Boolean(data.forceTLS);
+      }
+      if (Array.isArray(data.enabledTransports) && data.enabledTransports.length) {
+        window.realtimeConfig.enabledTransports = data.enabledTransports.slice();
+      }
+      try {
+        window.dispatchEvent(
+          new CustomEvent('app:realtime-config-change', {
+            detail: { ...(window.realtimeConfig || {}) }
+          })
+        );
+      } catch (_) {
+        // no-op
       }
     } catch (_) { /* silently keep defaults */ }
   })();

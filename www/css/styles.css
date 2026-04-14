@@ -8538,6 +8538,86 @@ ion-select.training-pill.active::part(icon) {
   background: rgba(232, 241, 255, 0.45);
 }
 
+/* Designer overrides for reference lesson markdown content. */
+.reference-markdown {
+  background: #faf9fe;
+}
+
+.reference-markdown h2,
+.reference-markdown h3 {
+  margin-top: 50px;
+  font-weight: 700;
+  color: #245ad4;
+}
+
+.reference-markdown h2 {
+  font-size: 1.5rem;
+}
+
+.reference-markdown h3 {
+  font-size: 1.3rem;
+}
+
+.reference-markdown strong {
+  color: #245ad4;
+}
+
+.reference-markdown table {
+  width: 100%;
+  overflow: hidden;
+  border-collapse: separate;
+  border-spacing: 0;
+  border-radius: 16px;
+  border: 1px solid #dfe7fc;
+  box-shadow: 0 3px 5px 0 rgba(0, 0, 0, 0.1);
+  background: #faf9fe;
+}
+
+.reference-markdown table thead tr th {
+  font-size: 14px;
+  font-weight: 700;
+  border: 0;
+  color: #245ad4;
+  background: #dfe7fc;
+}
+
+.reference-markdown table thead tr th:first-child {
+  border-top-left-radius: 16px;
+}
+
+.reference-markdown table thead tr th:last-child {
+  border-top-right-radius: 16px;
+}
+
+.reference-markdown table tbody tr {
+  background: #faf9fe !important;
+}
+
+.reference-markdown table tbody td {
+  border: 0;
+  border-top: 1px solid #dfe7fc;
+}
+
+.reference-markdown table th,
+.reference-markdown table td {
+  padding: 8px 12px;
+}
+
+.reference-markdown blockquote {
+  border: 0;
+  background: #dfe7fc !important;
+}
+
+.reference-markdown blockquote strong {
+  color: #245ad4;
+}
+
+.reference-markdown blockquote blockquote {
+  background: #faf9fe !important;
+}
+
+/* End of markdown overrides */
+
 .reference-empty {
   color: var(--app-muted);
   font-size: 0.9rem;

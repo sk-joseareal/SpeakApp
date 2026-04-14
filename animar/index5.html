@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Avatar animado estable</title>
+  <style>
+    canvas {
+      display: block;
+      width: 220px;
+      height: 220px;
+      background: transparent;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="avatar" width="220" height="220"></canvas>
+
+  <script>
+    const canvas = document.getElementById("avatar");
+    const ctx = canvas.getContext("2d");
+
+    const img = new Image();
+    img.src = "nena-v5-emociones.png";
+
+    const cols = 4;
+    const rows = 4;
+
+    img.onload = () => {
+      const frameW = img.naturalWidth / cols;
+      const frameH = img.naturalHeight / rows;
+
+      const tempCanvas = document.createElement("canvas");
+      tempCanvas.width = frameW;
+      tempCanvas.height = frameH;
+      const tctx = tempCanvas.getContext("2d", { willReadFrequently: true });
+
+      const frames = [];
+
+      function analyzeFrame(frameIndex) {
+        const col = frameIndex % cols;
+        const row = Math.floor(frameIndex / cols);
+
+        tctx.clearRect(0, 0, frameW, frameH);
+        tctx.drawImage(
+          img,
+          col * frameW, row * frameH, frameW, frameH,
+          0, 0, frameW, frameH
+        );
+
+        const { data, width, height } = tctx.getImageData(0, 0, frameW, frameH);
+
+        let minX = width;
+        let minY = height;
+        let maxX = -1;
+        let maxY = -1;
+
+        for (let y = 0; y < height; y++) {
+          for (let x = 0; x < width; x++) {
+            const alpha = data[(y * width + x) * 4 + 3];
+            if (alpha > 10) {
+              if (x < minX) minX = x;
+              if (y < minY) minY = y;
+              if (x > maxX) maxX = x;
+              if (y > maxY) maxY = y;
+            }
+          }
+        }
+
+        return {
+          frameIndex,
+          sx: col * frameW,
+          sy: row * frameH,
+          minX,
+          minY,
+          maxX,
+          maxY
+        };
+      }
+
+      for (let i = 0; i < cols * rows; i++) {
+        frames.push(analyzeFrame(i));
+      }
+
+      // Marco común que garantiza que ninguna pose se corta
+      const globalMinX = Math.min(...frames.map(f => f.minX));
+      const globalMinY = Math.min(...frames.map(f => f.minY));
+      const globalMaxX = Math.max(...frames.map(f => f.maxX));
+      const globalMaxY = Math.max(...frames.map(f => f.maxY));
+
+      const boxW = globalMaxX - globalMinX + 1;
+      const boxH = globalMaxY - globalMinY + 1;
+
+      // margen interior dentro del canvas
+      const padding = 8;
+
+      // escala para que quepa todo el avatar sin recortes
+      const scale = Math.min(
+        (canvas.width - padding * 2) / boxW,
+        (canvas.height - padding * 2) / boxH
+      );
+
+      const sequence = Array.from({ length: cols * rows }, (_, i) => i);
+      let step = 0;
+
+      function drawFrame(frameIndex) {
+        const meta = frames[frameIndex];
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        const sw = boxW;
+        const sh = boxH;
+
+        const dx = Math.round((canvas.width - sw * scale) / 2);
+        const dy = Math.round((canvas.height - sh * scale) / 2);
+
+        ctx.drawImage(
+          img,
+          meta.sx + globalMinX,
+          meta.sy + globalMinY,
+          sw,
+          sh,
+          dx,
+          dy,
+          sw * scale,
+          sh * scale
+        );
+      }
+
+      drawFrame(sequence[0]);
+
+      setInterval(() => {
+        step = (step + 1) % sequence.length;
+        drawFrame(sequence[step]);
+      }, 180);
+    };
+  </script>
+</body>
+</html>

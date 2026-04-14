@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Avatar animado estable</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 24px;
+      background: #f5f5f5;
+      font-family: sans-serif;
+    }
+
+    canvas {
+      display: block;
+      width: 200px;
+      height: 200px;
+      background: transparent;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="avatar" width="200" height="200"></canvas>
+
+  <script>
+    const canvas = document.getElementById("avatar");
+    const ctx = canvas.getContext("2d");
+
+    const img = new Image();
+    img.src = "nena-v5-emociones.png";
+
+    const cols = 4;
+    const rows = 4;
+
+    img.onload = () => {
+      const frameW = img.naturalWidth / cols;
+      const frameH = img.naturalHeight / rows;
+
+      const tempCanvas = document.createElement("canvas");
+      tempCanvas.width = frameW;
+      tempCanvas.height = frameH;
+      const tctx = tempCanvas.getContext("2d", { willReadFrequently: true });
+
+      const frames = [];
+
+      function analyzeFrame(frameIndex) {
+        const col = frameIndex % cols;
+        const row = Math.floor(frameIndex / cols);
+
+        tctx.clearRect(0, 0, frameW, frameH);
+        tctx.drawImage(
+          img,
+          col * frameW, row * frameH, frameW, frameH,
+          0, 0, frameW, frameH
+        );
+
+        const { data, width, height } = tctx.getImageData(0, 0, frameW, frameH);
+
+        let minX = width;
+        let minY = height;
+        let maxX = -1;
+        let maxY = -1;
+
+        for (let y = 0; y < height; y++) {
+          for (let x = 0; x < width; x++) {
+            const alpha = data[(y * width + x) * 4 + 3];
+            if (alpha > 10) {
+              if (x < minX) minX = x;
+              if (y < minY) minY = y;
+              if (x > maxX) maxX = x;
+              if (y > maxY) maxY = y;
+            }
+          }
+        }
+
+        if (maxX === -1) {
+          return {
+            frameIndex,
+            sx: col * frameW,
+            sy: row * frameH,
+            left: 0,
+            top: 0,
+            right: width - 1,
+            bottom: height - 1,
+            visibleWidth: width,
+            visibleHeight: height,
+            anchorX: width / 2,
+            anchorY: height
+          };
+        }
+
+        const visibleWidth = maxX - minX + 1;
+        const visibleHeight = maxY - minY + 1;
+
+        return {
+          frameIndex,
+          sx: col * frameW,
+          sy: row * frameH,
+          left: minX,
+          top: minY,
+          right: maxX,
+          bottom: maxY,
+          visibleWidth,
+          visibleHeight,
+          anchorX: (minX + maxX) / 2,
+          anchorY: maxY
+        };
+      }
+
+      for (let i = 0; i < cols * rows; i++) {
+        frames.push(analyzeFrame(i));
+      }
+
+      // ancla global: mismo "suelo" y mismo centro visual
+      const targetAnchorX = frameW / 2;
+      const targetAnchorY = Math.max(...frames.map(f => f.anchorY));
+
+      let current = 0;
+
+      function drawFrame(meta) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        const dx = (canvas.width / 2) - targetAnchorX;
+        const dy = (canvas.height / 2) - targetAnchorY + 40;
+        // +40 baja un poco el avatar dentro del canvas; ajusta si quieres
+
+        ctx.drawImage(
+          img,
+          meta.sx, meta.sy, frameW, frameH,
+          Math.round(dx + (targetAnchorX - meta.anchorX)),
+          Math.round(dy + (targetAnchorY - meta.anchorY)),
+          frameW,
+          frameH
+        );
+      }
+
+      drawFrame(frames[current]);
+
+      setInterval(() => {
+        current = (current + 1) % frames.length;
+        drawFrame(frames[current]);
+      }, 180);
+    };
+  </script>
+</body>
+</html>

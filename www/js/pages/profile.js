@@ -149,7 +149,8 @@ class PageProfile extends HTMLElement {
 
     const getUserDisplayName = (user) => {
       if (!user) return '';
-      return user.name || user.first_name || user.email || user.social_id || '';
+      const derivedName = [user.first_name, user.last_name].filter(Boolean).join(' ').trim();
+      return derivedName || user.name || user.email || user.social_id || '';
     };
 
     const getUserAvatar = (user) => {
@@ -1790,7 +1791,6 @@ class PageProfile extends HTMLElement {
       const payload = {
         first_name: firstName,
         last_name: lastName,
-        name: `${firstName} ${lastName}`.trim(),
         birthdate: profileSeed.birthdate || '1901-01-01',
         sex: profileSeed.sex,
         lc: profileSeed.lc,

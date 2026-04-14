@@ -39,6 +39,7 @@ class PageDiagnostics extends HTMLElement {
     const SPEAK_PRONUNCIATION_AVATAR_MODE_KEY = 'appv5:speak-pronunciation-avatar-mode';
     const SPEAK_PRONUNCIATION_AVATAR_OLD = 'old';
     const SPEAK_PRONUNCIATION_AVATAR_NEW = 'new';
+    const SPEAK_PRONUNCIATION_AVATAR_SET2 = 'set2';
     const REFERENCE_TAB_ENABLED_KEY = 'appv5:reference-tab-enabled';
     const CHAT_CATBOT_ENABLED_KEY = 'appv5:chat-catbot-enabled';
     const CHAT_CHATBOT_ENABLED_KEY = 'appv5:chat-chatbot-enabled';
@@ -168,9 +169,10 @@ class PageDiagnostics extends HTMLElement {
       const normalized = String(value || '')
         .trim()
         .toLowerCase();
-      return normalized === SPEAK_PRONUNCIATION_AVATAR_OLD
-        ? SPEAK_PRONUNCIATION_AVATAR_OLD
-        : SPEAK_PRONUNCIATION_AVATAR_NEW;
+      if (normalized === SPEAK_PRONUNCIATION_AVATAR_OLD) return SPEAK_PRONUNCIATION_AVATAR_OLD;
+      if (normalized === SPEAK_PRONUNCIATION_AVATAR_NEW) return SPEAK_PRONUNCIATION_AVATAR_NEW;
+      if (normalized === SPEAK_PRONUNCIATION_AVATAR_SET2) return SPEAK_PRONUNCIATION_AVATAR_SET2;
+      return SPEAK_PRONUNCIATION_AVATAR_SET2;
     };
     const getStoredSpeakPronunciationAvatarMode = () => {
       const globalValue =
@@ -307,6 +309,9 @@ class PageDiagnostics extends HTMLElement {
                   id="diag-speak-pronunciation-avatar-mode"
                   value="${getStoredSpeakPronunciationAvatarMode()}"
                 >
+                  <ion-segment-button value="set2">
+                    <ion-label>Set 2</ion-label>
+                  </ion-segment-button>
                   <ion-segment-button value="new">
                     <ion-label>Nuevo</ion-label>
                   </ion-segment-button>
@@ -976,7 +981,9 @@ class PageDiagnostics extends HTMLElement {
       }
       if (speakPronunciationAvatarSubEl) {
         speakPronunciationAvatarSubEl.textContent =
-          normalized === SPEAK_PRONUNCIATION_AVATAR_NEW
+          normalized === SPEAK_PRONUNCIATION_AVATAR_SET2
+            ? 'Set 2: nuevo set de bocas realistas con cara completa.'
+            : normalized === SPEAK_PRONUNCIATION_AVATAR_NEW
             ? 'Nuevo: usa la chica con overlays de boca por visema.'
             : 'Antiguo: usa el avatar actual con las bocas simples.';
       }

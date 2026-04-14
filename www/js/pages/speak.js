@@ -106,6 +106,7 @@ class PageSpeak extends HTMLElement {
     const HOME_RETURN_REVEAL_KEY = 'appv5:home-return-reveal-target';
     const SPEAK_PRONUNCIATION_AVATAR_OLD = 'old';
     const SPEAK_PRONUNCIATION_AVATAR_NEW = 'new';
+    const SPEAK_PRONUNCIATION_AVATAR_SET2 = 'set2';
     const MODULE_TROPHY_REWARD_QTY = 1;
     const MODULE_TROPHY_REWARD_ICON = 'trophy';
     const MAX_ROUTE_BADGE_COUNT = 5;
@@ -206,9 +207,10 @@ class PageSpeak extends HTMLElement {
       const normalized = String(value || '')
         .trim()
         .toLowerCase();
-      return normalized === SPEAK_PRONUNCIATION_AVATAR_OLD
-        ? SPEAK_PRONUNCIATION_AVATAR_OLD
-        : SPEAK_PRONUNCIATION_AVATAR_NEW;
+      if (normalized === SPEAK_PRONUNCIATION_AVATAR_OLD) return SPEAK_PRONUNCIATION_AVATAR_OLD;
+      if (normalized === SPEAK_PRONUNCIATION_AVATAR_NEW) return SPEAK_PRONUNCIATION_AVATAR_NEW;
+      if (normalized === SPEAK_PRONUNCIATION_AVATAR_SET2) return SPEAK_PRONUNCIATION_AVATAR_SET2;
+      return SPEAK_PRONUNCIATION_AVATAR_SET2;
     };
     const getStoredPronunciationAvatarMode = () => {
       const globalValue =
@@ -227,6 +229,27 @@ class PageSpeak extends HTMLElement {
     };
     const getPronunciationAvatarConfig = () => {
       const mode = getStoredPronunciationAvatarMode();
+      if (mode === SPEAK_PRONUNCIATION_AVATAR_SET2) {
+        const SET2_BASE = 'assets/speak/set-bocas-2';
+        return {
+          mode,
+          aspectRatio: 3 / 2,
+          headSrc: `${SET2_BASE}/1_neutral.png`,
+          wrapperClass: 'avatar-wrapper avatar-wrapper-wide',
+          mouthBaseClass: 'speak-mouth speak-mouth-full',
+          mouthMap: {
+            NEUTRAL: `${SET2_BASE}/1_neutral.png`,
+            A: `${SET2_BASE}/2_A.png`,
+            E: `${SET2_BASE}/3_O.png`,
+            I: `${SET2_BASE}/6_E.png`,
+            O: `${SET2_BASE}/3_O.png`,
+            U: `${SET2_BASE}/4_U_W.png`,
+            M: `${SET2_BASE}/1_neutral.png`,
+            F: `${SET2_BASE}/5_F_V.png`,
+            TH: `${SET2_BASE}/1_neutral.png`
+          }
+        };
+      }
       if (mode === SPEAK_PRONUNCIATION_AVATAR_NEW) {
         return {
           mode,
@@ -1001,11 +1024,7 @@ class PageSpeak extends HTMLElement {
           renderLine(lineText);
 
           let started = false;
-          const remoteEntry = resolveHeroRemoteAudioEntry(source, locale, index + 1, lineText);
-          if (remoteEntry && token === heroNarrationToken) {
-            started = await playHeroRemoteAudioLine(remoteEntry, token);
-          }
-          if (!started && plugin && typeof plugin.speak === 'function') {
+          if (plugin && typeof plugin.speak === 'function') {
             startHeroMascotTalk();
             const startedAt = Date.now();
             try {
@@ -1031,6 +1050,10 @@ class PageSpeak extends HTMLElement {
                 stopHeroMascotTalk({ settle: true });
               }
             }
+          }
+          const remoteEntry = resolveHeroRemoteAudioEntry(source, locale, index + 1, lineText);
+          if (!started && remoteEntry && token === heroNarrationToken) {
+            started = await playHeroRemoteAudioLine(remoteEntry, token);
           }
           if (!started && token === heroNarrationToken) {
             started = await speakHeroLineWebWithRetry(lineText, token, locale);

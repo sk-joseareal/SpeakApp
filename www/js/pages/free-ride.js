@@ -106,6 +106,12 @@ const DEFAULT_TONE_SCALE = [
   { min: 0, tone: 'bad' }
 ];
 
+const getResolvedUserName = (user) => {
+  if (!user || typeof user !== 'object') return '';
+  const derived = [user.first_name, user.last_name].filter(Boolean).join(' ').trim();
+  return derived || String(user.name || user.email || user.social_id || '').trim();
+};
+
 class PageFreeRide extends HTMLElement {
   constructor() {
     super();
@@ -384,7 +390,7 @@ class PageFreeRide extends HTMLElement {
   }
 
   getBaseLocale() {
-    const fromState = getAppLocale() || (window.varGlobal && window.varGlobal.locale) || 'en';
+    const fromState = getActiveLocale() || (window.varGlobal && window.varGlobal.locale) || 'en';
     return this.normalizeLocale(fromState) || 'en';
   }
 
@@ -1775,8 +1781,9 @@ class PageFreeRide extends HTMLElement {
     if (user && user.id !== undefined && user.id !== null && String(user.id).trim()) {
       body.user_id = String(user.id).trim();
     }
-    if (user && typeof user.name === 'string' && user.name.trim()) {
-      body.user_name = user.name.trim();
+    const userName = getResolvedUserName(user);
+    if (userName) {
+      body.user_name = userName;
     }
 
     const response = await fetch(endpoint, {
@@ -2887,8 +2894,9 @@ class PageFreeRide extends HTMLElement {
     if (user && user.id !== undefined && user.id !== null && String(user.id).trim()) {
       body.user_id = String(user.id).trim();
     }
-    if (user && typeof user.name === 'string' && user.name.trim()) {
-      body.user_name = user.name.trim();
+    const userName = getResolvedUserName(user);
+    if (userName) {
+      body.user_name = userName;
     }
     if (this.isSpeakDebugEnabled()) {
       body.debug = 1;
@@ -4977,11 +4985,14 @@ class PageFreeRide extends HTMLElement {
       let settled = false;
       let cancelTimer = null;
       let startTimeout = null;
-      let maxTimeout = null;
 
       const notifyStart = () => {
         if (started) return;
         started = true;
+        if (startTimeout) {
+          clearTimeout(startTimeout);
+          startTimeout = null;
+        }
         if (onPlaybackStart) onPlaybackStart();
       };
 
@@ -4993,10 +5004,6 @@ class PageFreeRide extends HTMLElement {
         if (startTimeout) {
           clearTimeout(startTimeout);
           startTimeout = null;
-        }
-        if (maxTimeout) {
-          clearTimeout(maxTimeout);
-          maxTimeout = null;
         }
         audio.onplaying = null;
         audio.onended = null;
@@ -5030,11 +5037,6 @@ class PageFreeRide extends HTMLElement {
       startTimeout = setTimeout(() => {
         settle();
       }, 1800);
-
-      const estimatedMs = Math.min(12000, Math.max(1200, Math.round(lineText.length * 80) + 3200));
-      maxTimeout = setTimeout(() => {
-        settle();
-      }, estimatedMs);
 
       audio.onplaying = () => {
         notifyStart();
@@ -5165,26 +5167,10 @@ class PageFreeRide extends HTMLElement {
         setTimeout(resolve, Math.max(0, Number(ms) || 0));
       });
 
-    const estimateLinePlaybackMs = (lineText) => {
-      const chars = String(lineText || '').trim().length;
-      return Math.min(9500, Math.max(900, Math.round(chars * 72)));
-    };
-
-    const waitWebSpeechIdle = async (maxMs = 7000) => {
-      if (!this.canSpeak() || typeof window === 'undefined' || !window.speechSynthesis) return;
-      const synth = window.speechSynthesis;
-      const startedAt = Date.now();
-      while (token === this.narrationToken && Date.now() - startedAt < maxMs) {
-        if (!synth.speaking && !synth.pending && !synth.paused) return;
-        await waitMs(60);
-      }
-    };
-
     const plugin = this.getNativeTtsPlugin();
     const speakLineWithPlugin = async (lineText) => {
       if (!plugin || typeof plugin.speak !== 'function') return false;
       this.startHeroMascotTalk();
-      const startedAt = Date.now();
       try {
         await plugin.speak({
           text: lineText,
@@ -5195,11 +5181,6 @@ class PageFreeRide extends HTMLElement {
           category: 'ambient',
           queueStrategy: 1
         });
-        const minMs = estimateLinePlaybackMs(lineText);
-        const elapsed = Date.now() - startedAt;
-        if (elapsed < minMs && token === this.narrationToken) {
-          await waitMs(minMs - elapsed);
-        }
         return true;
       } catch (err) {
         return false;
@@ -5223,10 +5204,6 @@ class PageFreeRide extends HTMLElement {
       };
 
       let started = await this.speakNarrationWeb(lineText, lang, token, 1500, hooks);
-      if (started && token === this.narrationToken) {
-        const maxWait = Math.min(11000, estimateLinePlaybackMs(lineText) + 2400);
-        await waitWebSpeechIdle(maxWait);
-      }
       if (started || token !== this.narrationToken) return started;
 
       await waitMs(450);
@@ -5234,10 +5211,6 @@ class PageFreeRide extends HTMLElement {
       await this.stopNarrationPlayback();
       if (token !== this.narrationToken) return false;
       started = await this.speakNarrationWeb(lineText, lang, token, 3200, hooks);
-      if (started && token === this.narrationToken) {
-        const maxWait = Math.min(12000, estimateLinePlaybackMs(lineText) + 3000);
-        await waitWebSpeechIdle(maxWait);
-      }
       return started;
     };
 
@@ -5265,10 +5238,10 @@ class PageFreeRide extends HTMLElement {
 
         let started = await this.playNarrationAligned(lineText, lang, token, hooks);
         if (!started && token === this.narrationToken) {
-          started = await speakLineWithPlugin(lineText);
+          started = await speakLineWebWithRetry(lineText);
         }
         if (!started && token === this.narrationToken) {
-          started = await speakLineWebWithRetry(lineText);
+          started = await speakLineWithPlugin(lineText);
         }
         startedAny = startedAny || started;
 

@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Avatar animado</title>
+  <style>
+    .avatar {
+      width: 200px;
+      height: 200px;
+      background-image: url("nena-v5-emociones.png");
+      background-repeat: no-repeat;
+      overflow: hidden;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <div class="avatar" id="avatar"></div>
+
+  <script>
+    const avatar = document.getElementById("avatar");
+    const img = new Image();
+    img.src = "nena-v5-emociones.png";
+
+    img.onload = () => {
+      const cols = 4;
+      const rows = 4;
+
+      const sheetWidth = img.naturalWidth;
+      const sheetHeight = img.naturalHeight;
+
+      const frameWidth = sheetWidth / cols;
+      const frameHeight = sheetHeight / rows;
+
+      // usa el tamaño real del sprite sheet
+      avatar.style.backgroundSize = `${sheetWidth}px ${sheetHeight}px`;
+
+      // corrección vertical manual por frame
+      const sequence = [
+        { frame: 0, yFix: 0 },
+        { frame: 1, yFix: 0 },
+        { frame: 2, yFix: 0 },
+        { frame: 3, yFix: 0 },
+        { frame: 4, yFix: 2 },
+        { frame: 5, yFix: 2 },
+        { frame: 6, yFix: 4 },
+        { frame: 7, yFix: 2 },
+        { frame: 8, yFix: 4 },
+        { frame: 9, yFix: 4 },
+        { frame: 10, yFix: 4 },
+        { frame: 11, yFix: 4 },
+        { frame: 12, yFix: 6 },
+        { frame: 13, yFix: 6 },
+        { frame: 14, yFix: 6 },
+        { frame: 15, yFix: 6 }
+      ];
+
+      let step = 0;
+
+      function renderFrame(item) {
+        const col = item.frame % cols;
+        const row = Math.floor(item.frame / cols);
+
+        const x = col * frameWidth;
+        const y = row * frameHeight - item.yFix;
+
+        avatar.style.backgroundPosition = `-${x}px -${y}px`;
+      }
+
+      renderFrame(sequence[0]);
+
+      setInterval(() => {
+        step = (step + 1) % sequence.length;
+        renderFrame(sequence[step]);
+      }, 180);
+    };
+  </script>
+</body>
+</html>

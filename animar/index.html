@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Avatar animado estable</title>
+  <style>
+    canvas {
+      display: block;
+      width: 220px;
+      height: 220px;
+      background: transparent;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="avatar" width="220" height="220"></canvas>
+
+  <script>
+    const canvas = document.getElementById("avatar");
+    const ctx = canvas.getContext("2d");
+
+    const img = new Image();
+    img.src = "nena-v5-emociones.png";
+
+    const cols = 4;
+    const rows = 4;
+
+    img.onload = () => {
+      const frameW = img.naturalWidth / cols;
+      const frameH = img.naturalHeight / rows;
+
+      const tempCanvas = document.createElement("canvas");
+      tempCanvas.width = frameW;
+      tempCanvas.height = frameH;
+      const tctx = tempCanvas.getContext("2d", { willReadFrequently: true });
+
+      const frames = [];
+
+      function analyzeFrame(frameIndex) {
+        const col = frameIndex % cols;
+        const row = Math.floor(frameIndex / cols);
+
+        tctx.clearRect(0, 0, frameW, frameH);
+        tctx.drawImage(
+          img,
+          col * frameW, row * frameH, frameW, frameH,
+          0, 0, frameW, frameH
+        );
+
+        const { data, width, height } = tctx.getImageData(0, 0, frameW, frameH);
+
+        let minX = width;
+        let minY = height;
+        let maxX = -1;
+        let maxY = -1;
+
+        for (let y = 0; y < height; y++) {
+          for (let x = 0; x < width; x++) {
+            const alpha = data[(y * width + x) * 4 + 3];
+            if (alpha > 10) {
+              if (x < minX) minX = x;
+              if (y < minY) minY = y;
+              if (x > maxX) maxX = x;
+              if (y > maxY) maxY = y;
+            }
+          }
+        }
+
+        return {
+          frameIndex,
+          sx: col * frameW,
+          sy: row * frameH,
+          minX,
+          minY,
+          maxX,
+          maxY,
+          anchorY: maxY
+        };
+      }
+
+      for (let i = 0; i < cols * rows; i++) {
+        frames.push(analyzeFrame(i));
+      }
+
+      const globalTop = Math.min(...frames.map(f => f.minY));
+      const globalBottom = Math.max(...frames.map(f => f.maxY));
+      const globalLeft = Math.min(...frames.map(f => f.minX));
+      const globalRight = Math.max(...frames.map(f => f.maxX));
+
+      const visibleTopToAnchor = globalBottom - globalTop;
+      const visibleBottomToAnchor = frameH - 1 - globalBottom;
+      const visibleWidth = globalRight - globalLeft + 1;
+
+      const paddingTop = 6;
+      const paddingBottom = 6;
+      const paddingX = 6;
+
+      const centerX = canvas.width / 2;
+      const baseY = canvas.height * 0.78;
+
+      const maxScaleByTop =
+        (baseY - paddingTop) / visibleTopToAnchor;
+
+      const maxScaleByBottom =
+        (canvas.height - paddingBottom - baseY) / visibleBottomToAnchor;
+
+      const maxScaleByWidth =
+        (canvas.width - paddingX * 2) / visibleWidth;
+
+      const scale = Math.min(maxScaleByTop, maxScaleByBottom, maxScaleByWidth);
+
+      let current = 0;
+
+      function drawFrame(meta) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        const dx = centerX - (frameW * scale) / 2;
+        const dy = baseY - meta.anchorY * scale;
+
+        ctx.drawImage(
+          img,
+          meta.sx, meta.sy, frameW, frameH,
+          dx, dy,
+          frameW * scale,
+          frameH * scale
+        );
+      }
+
+      drawFrame(frames[current]);
+
+      setInterval(() => {
+        current = (current + 1) % frames.length;
+        drawFrame(frames[current]);
+      }, 180);
+    };
+  </script>
+</body>
+</html>

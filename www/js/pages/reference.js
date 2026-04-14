@@ -81,6 +81,12 @@ const REFERENCE_RIBBON_POPUP_IMAGE = `data:image/svg+xml;charset=UTF-8,${encodeU
 
 let markedParseFnPromise = null;
 
+const getResolvedUserName = (user) => {
+  if (!user || typeof user !== 'object') return '';
+  const derived = [user.first_name, user.last_name].filter(Boolean).join(' ').trim();
+  return derived || String(user.name || user.email || user.social_id || '').trim();
+};
+
 class PageReference extends HTMLElement {
   constructor() {
     super();
@@ -223,7 +229,7 @@ class PageReference extends HTMLElement {
   }
 
   getBaseLocale() {
-    const fromState = this.normalizeLocale(getAppLocale());
+    const fromState = this.normalizeLocale(getActiveLocale());
     if (fromState) return fromState;
     return this.normalizeLocale(window.varGlobal?.locale) || 'en';
   }
@@ -1249,8 +1255,9 @@ class PageReference extends HTMLElement {
     if (user && user.id !== undefined && user.id !== null && String(user.id).trim()) {
       body.user_id = String(user.id).trim();
     }
-    if (user && typeof user.name === 'string' && user.name.trim()) {
-      body.user_name = user.name.trim();
+    const userName = getResolvedUserName(user);
+    if (userName) {
+      body.user_name = userName;
     }
     const response = await fetch(endpoint, {
       method: 'POST',
@@ -1450,11 +1457,14 @@ class PageReference extends HTMLElement {
       let settled = false;
       let cancelTimer = null;
       let startTimeout = null;
-      let maxTimeout = null;
 
       const notifyStart = () => {
         if (started) return;
         started = true;
+        if (startTimeout) {
+          clearTimeout(startTimeout);
+          startTimeout = null;
+        }
         this.startHeroMascotTalk();
       };
 
@@ -1466,10 +1476,6 @@ class PageReference extends HTMLElement {
         if (startTimeout) {
           clearTimeout(startTimeout);
           startTimeout = null;
-        }
-        if (maxTimeout) {
-          clearTimeout(maxTimeout);
-          maxTimeout = null;
         }
         audio.onplaying = null;
         audio.onended = null;
@@ -1503,11 +1509,6 @@ class PageReference extends HTMLElement {
       startTimeout = setTimeout(() => {
         settle();
       }, 1800);
-
-      const estimatedMs = Math.min(12000, Math.max(1200, Math.round(message.length * 84) + 3200));
-      maxTimeout = setTimeout(() => {
-        settle();
-      }, estimatedMs);
 
       audio.onplaying = () => {
         notifyStart();
@@ -1727,10 +1728,10 @@ class PageReference extends HTMLElement {
 
         let started = await this.playHeroNarrationAligned(lineText, lang, token);
         if (!started && token === this.narrationToken) {
-          started = await this.speakHeroWithNativePlugin(lineText, lang, token);
+          started = await this.speakHeroWithWebTts(lineText, lang, token);
         }
         if (!started && token === this.narrationToken) {
-          started = await this.speakHeroWithWebTts(lineText, lang, token);
+          started = await this.speakHeroWithNativePlugin(lineText, lang, token);
         }
         startedAny = startedAny || started;
 

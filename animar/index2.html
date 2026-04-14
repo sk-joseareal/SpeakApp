@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Avatar animado</title>
+  <style>
+    .avatar {
+      width: 200px;              /* ancho de 1 frame */
+      height: 200px;             /* alto de 1 frame */
+      background-image: url("nena-v5-emociones.png");
+      background-repeat: no-repeat;
+      background-size: 800px 800px; /* tamaño total del sprite sheet */
+      image-rendering: auto;
+    }
+  </style>
+</head>
+<body>
+  <div class="avatar" id="avatar"></div>
+
+  <script>
+    const avatar = document.getElementById("avatar");
+
+    const cols = 4;
+    const rows = 4;
+    const frameWidth = 200;
+    const frameHeight = 200;
+    const totalFrames = cols * rows;
+
+    let frame = 0;
+
+    function renderFrame(index) {
+      const col = index % cols;
+      const row = Math.floor(index / cols);
+
+      avatar.style.backgroundPosition = `-${col * frameWidth}px -${row * frameHeight}px`;
+    }
+
+    renderFrame(frame);
+
+    setInterval(() => {
+      frame = (frame + 1) % totalFrames;
+      renderFrame(frame);
+    }, 180);
+  </script>
+</body>
+</html>

@@ -55,6 +55,12 @@ const MODULE_AUDIO_ICON = `
   </span>
 `;
 
+const getResolvedUserName = (user) => {
+  if (!user || typeof user !== 'object') return '';
+  const derived = [user.first_name, user.last_name].filter(Boolean).join(' ').trim();
+  return derived || String(user.name || user.email || user.social_id || '').trim();
+};
+
 class PageHome extends HTMLElement {
   constructor() {
     super();
@@ -1554,7 +1560,7 @@ class PageHome extends HTMLElement {
   }
 
   getBaseLocale() {
-    const fromState = getAppLocale() || (window.varGlobal && window.varGlobal.locale) || 'en';
+    const fromState = getActiveLocale() || (window.varGlobal && window.varGlobal.locale) || 'en';
     return this.normalizeLocale(fromState) || 'en';
   }
 
@@ -1851,8 +1857,9 @@ class PageHome extends HTMLElement {
     if (user && user.id !== undefined && user.id !== null && String(user.id).trim()) {
       body.user_id = String(user.id).trim();
     }
-    if (user && typeof user.name === 'string' && user.name.trim()) {
-      body.user_name = user.name.trim();
+    const userName = getResolvedUserName(user);
+    if (userName) {
+      body.user_name = userName;
     }
 
     const response = await fetch(endpoint, {
@@ -2193,7 +2200,14 @@ class PageHome extends HTMLElement {
         settle();
       }, 1800);
 
-      const estimatedMs = Math.min(12000, Math.max(1200, Math.round(lineText.length * 80) + 3200));
+      const payloadDurationMs = Number(payload && (payload.duration_ms || payload.durationMs || 0)) || 0;
+      const estimatedMs = Math.min(
+        18000,
+        Math.max(
+          1600,
+          payloadDurationMs > 0 ? payloadDurationMs + 1800 : Math.round(lineText.length * 80) + 3200
+        )
+      );
       maxTimeout = setTimeout(() => {
         settle();
       }, estimatedMs);

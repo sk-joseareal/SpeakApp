@@ -245,4 +245,31 @@
       { icon: 'diamond', label: 'diamonds', min: 1, max: 3 }
     ];
   }
+
+  // Fetch realtime connection params from server.
+  // Overwrites key/wsHost/cluster/forceTLS with whatever the server is currently using,
+  // so switching soketi ↔ Pusher only requires changing the server .env — no client build.
+  window.realtimeConfigReady = (async function () {
+    const authEndpoint = window.realtimeConfig.authEndpoint || '';
+    const configUrl = authEndpoint
+      ? authEndpoint.replace(/\/auth$/, '/client-config')
+      : 'https://realtime.curso-ingles.com/realtime/client-config';
+    try {
+      const r = await fetch(configUrl, { cache: 'no-store' });
+      const data = r.ok ? await r.json() : null;
+      if (!data || typeof data !== 'object') return;
+      if (data.key) window.realtimeConfig.key = data.key;
+      if (data.cluster) {
+        window.realtimeConfig.cluster = data.cluster;
+        window.realtimeConfig.wsHost = undefined;
+      } else if (data.wsHost) {
+        window.realtimeConfig.wsHost = data.wsHost;
+        window.realtimeConfig.wssPort = data.wssPort || 443;
+        window.realtimeConfig.cluster = undefined;
+      }
+      if (data.forceTLS !== undefined) {
+        window.realtimeConfig.forceTLS = Boolean(data.forceTLS);
+      }
+    } catch (_) { /* silently keep defaults */ }
+  })();
 })();

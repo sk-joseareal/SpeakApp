@@ -721,6 +721,7 @@ class PageChat extends HTMLElement {
       const config = window.realtimeConfig || {};
       return {
         key: config.key || '',
+        cluster: config.cluster || '',
         wsHost: config.wsHost || '',
         wssPort: config.wssPort || 443,
         forceTLS: config.forceTLS !== undefined ? config.forceTLS : true,
@@ -6686,9 +6687,11 @@ class PageChat extends HTMLElement {
 
       disconnectRealtime();
 
+      const wsOptions = config.cluster
+        ? { cluster: config.cluster }
+        : { wsHost: config.wsHost, wssPort: config.wssPort };
       const options = {
-        wsHost: config.wsHost,
-        wssPort: config.wssPort,
+        ...wsOptions,
         forceTLS: config.forceTLS,
         enabledTransports: config.enabledTransports,
         disableStats: true

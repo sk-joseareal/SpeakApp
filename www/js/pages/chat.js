@@ -6689,7 +6689,7 @@ class PageChat extends HTMLElement {
 
       const wsOptions = config.cluster
         ? { cluster: config.cluster }
-        : { wsHost: config.wsHost, wssPort: config.wssPort };
+        : { wsHost: config.wsHost };
       const options = {
         ...wsOptions,
         forceTLS: config.forceTLS,

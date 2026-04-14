@@ -181,7 +181,7 @@
     window.realtimeConfig.monitorToken = window.REALTIME_MONITOR_TOKEN || '';
   }
   if (window.realtimeConfig.enabledTransports === undefined) {
-    window.realtimeConfig.enabledTransports = ['ws', 'wss'];
+    window.realtimeConfig.enabledTransports = ['wss'];
   }
   if (window.realtimeConfig.channelType === undefined) {
     window.realtimeConfig.channelType = 'private';
@@ -264,7 +264,6 @@
         window.realtimeConfig.wsHost = undefined;
       } else if (data.wsHost) {
         window.realtimeConfig.wsHost = data.wsHost;
-        window.realtimeConfig.wssPort = data.wssPort || 443;
         window.realtimeConfig.cluster = undefined;
       }
       if (data.forceTLS !== undefined) {

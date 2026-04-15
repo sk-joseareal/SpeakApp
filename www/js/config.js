@@ -31,7 +31,7 @@
 
   window.realtimeConfig = window.realtimeConfig || {};
   if (window.realtimeConfig.key === undefined) {
-    window.realtimeConfig.key = window.PUSHER_APP_KEY || 'dev-key-123456';
+    window.realtimeConfig.key = window.PUSHER_APP_KEY || 'key-46c523695ec48aaf02ae4f75';
   }
   if (window.realtimeConfig.wsHost === undefined) {
     window.realtimeConfig.wsHost = window.REALTIME_HOST || 'realtime.curso-ingles.com';

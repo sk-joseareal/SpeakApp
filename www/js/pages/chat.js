@@ -260,6 +260,12 @@ class PageChat extends HTMLElement {
     let pusherCommunityPublicChannel = null;
     let pusherCommunityInboxChannel = null;
     const pusherCommunityDmChannels = new Map();
+    let realtimeReconnectTimer = null;
+    let realtimeReconnectAttempts = 0;
+    let realtimeHealthTimer = null;
+    let realtimePublicSubscribed = false;
+    let realtimeInboxSubscribed = false;
+    let realtimeMainSubscribed = false;
     const communityDmReadRequests = new Map();
     const communityDmDeliveredAcks = new Set();
     let realtimeConnected = false;
@@ -332,8 +338,12 @@ class PageChat extends HTMLElement {
     const COACH_MASCOT_AUDIO_START_DELAY_MS = 140;
     const CHATBOT_AUDIO_RENDER_FALLBACK_MS = 1800;
     const REALTIME_EMIT_TIMEOUT_MS = 8000;
+    const REALTIME_RECONNECT_BASE_MS = 1500;
+    const REALTIME_RECONNECT_MAX_MS = 10000;
+    const REALTIME_HEALTHCHECK_MS = 12000;
     const CHATBOT_REPLY_TIMEOUT_MS = 12000;
-    const COMMUNITY_PUBLIC_CHANNEL = 'site-wide-chat-channel';
+    const COMMUNITY_PUBLIC_ROOM_ID = 'site-wide-chat-channel';
+    const COMMUNITY_PUBLIC_CHANNEL = `private-${COMMUNITY_PUBLIC_ROOM_ID}`;
     const COMMUNITY_USER_INBOX_CHANNEL_PREFIX = 'private-community-user-';
     const COMMUNITY_PRESENCE_HEARTBEAT_MS = 8000;
     const COMMUNITY_PRESENCE_IMMEDIATE_THROTTLE_MS = 3000;
@@ -723,7 +733,6 @@ class PageChat extends HTMLElement {
         key: config.key || '',
         cluster: config.cluster || '',
         wsHost: config.wsHost || '',
-        wsPort: config.wsPort || 80,
         wssPort: config.wssPort || 443,
         forceTLS: config.forceTLS !== undefined ? config.forceTLS : true,
         authEndpoint: config.authEndpoint || '',
@@ -2878,7 +2887,7 @@ class PageChat extends HTMLElement {
         activeRoomType === 'dm'
           ? activeCommunityDmRoomId
           : activeRoomType === 'public'
-            ? COMMUNITY_PUBLIC_CHANNEL
+            ? COMMUNITY_PUBLIC_ROOM_ID
             : '';
       return {
         app_state: appState,
@@ -2960,7 +2969,7 @@ class PageChat extends HTMLElement {
       if (!endpoint || !userId || !isChatEnabledUser(user)) return false;
       const payload = {
         action,
-        room_id: COMMUNITY_PUBLIC_CHANNEL,
+        room_id: COMMUNITY_PUBLIC_ROOM_ID,
         session_id: getCommunityPresenceSessionId(),
         uuid: getClientUuid(),
         platform: getClientPlatform(),
@@ -3066,7 +3075,7 @@ class PageChat extends HTMLElement {
       if (!endpoint || !communityPresenceSessionId || !lastUserId) return;
       const payload = {
         action: 'leave',
-        room_id: COMMUNITY_PUBLIC_CHANNEL,
+        room_id: COMMUNITY_PUBLIC_ROOM_ID,
         session_id: communityPresenceSessionId,
         uuid: getClientUuid(),
         platform: getClientPlatform(),
@@ -6552,6 +6561,12 @@ class PageChat extends HTMLElement {
     };
 
     const disconnectRealtime = () => {
+      clearRealtimeReconnect();
+      clearRealtimeHealthcheck();
+      realtimeReconnectAttempts = 0;
+      realtimePublicSubscribed = false;
+      realtimeInboxSubscribed = false;
+      realtimeMainSubscribed = false;
       clearCommunityPresenceHeartbeat();
       communityDmReadRequests.clear();
       if (chatMode === 'community' || pusherChannelName === COMMUNITY_PUBLIC_CHANNEL) {
@@ -6641,13 +6656,67 @@ class PageChat extends HTMLElement {
         ? pusherClient.connection.state
         : '';
 
+    const clearRealtimeReconnect = () => {
+      if (!realtimeReconnectTimer) return;
+      clearTimeout(realtimeReconnectTimer);
+      realtimeReconnectTimer = null;
+    };
+
+    const clearRealtimeHealthcheck = () => {
+      if (!realtimeHealthTimer) return;
+      clearTimeout(realtimeHealthTimer);
+      realtimeHealthTimer = null;
+    };
+
+    const hasHealthyCommunitySubscriptions = () => {
+      if (!pusherClient || !realtimePublicSubscribed) return false;
+      const userId = pickFirstText(lastUserId);
+      return !userId || realtimeInboxSubscribed;
+    };
+
+    const scheduleRealtimeReconnect = () => {
+      if (realtimeReconnectTimer || !lastChatEnabled || !window.user) return;
+      const delay = Math.min(
+        REALTIME_RECONNECT_MAX_MS,
+        REALTIME_RECONNECT_BASE_MS * Math.max(1, 2 ** realtimeReconnectAttempts)
+      );
+      realtimeReconnectAttempts += 1;
+      realtimeReconnectTimer = setTimeout(() => {
+        realtimeReconnectTimer = null;
+        if (!lastChatEnabled || !window.user) return;
+        disconnectRealtime();
+        connectRealtime(window.user, { silent: true });
+      }, delay);
+    };
+
+    const scheduleRealtimeHealthcheck = () => {
+      clearRealtimeHealthcheck();
+      realtimeHealthTimer = setTimeout(() => {
+        realtimeHealthTimer = null;
+        if (!lastChatEnabled || !window.user) return;
+        const state = getRealtimeConnectionState();
+        const communityModeActive = chatMode === 'community';
+        const healthy =
+          communityModeActive
+            ? state === 'connected' && hasHealthyCommunitySubscriptions()
+            : state === 'connected' && realtimeMainSubscribed;
+        if (!healthy) {
+          disconnectRealtime();
+          connectRealtime(window.user, { silent: true });
+          return;
+        }
+        scheduleRealtimeHealthcheck();
+      }, REALTIME_HEALTHCHECK_MS);
+    };
+
     const hasReusableRealtimeConnection = (expectedChannelName = '') => {
       const existingConnectionState = getRealtimeConnectionState();
-      const hasReusableConnection =
-        existingConnectionState === 'connecting' || existingConnectionState === 'connected';
+      const hasReusableConnection = existingConnectionState === 'connected';
       if (!hasReusableConnection || !pusherClient) return false;
       if (!expectedChannelName) return true;
-      return pusherChannelName === expectedChannelName;
+      if (pusherChannelName !== expectedChannelName) return false;
+      if (chatMode === 'community') return hasHealthyCommunitySubscriptions();
+      return realtimeMainSubscribed;
     };
 
     const connectRealtime = (user, { silent = false } = {}) => {
@@ -6690,11 +6759,7 @@ class PageChat extends HTMLElement {
 
       const wsOptions = config.cluster
         ? { cluster: config.cluster }
-        : {
-            wsHost: config.wsHost,
-            wsPort: config.wsPort,
-            wssPort: config.wssPort
-          };
+        : { wsHost: config.wsHost };
       const options = {
         ...wsOptions,
         forceTLS: config.forceTLS,
@@ -6727,6 +6792,7 @@ class PageChat extends HTMLElement {
       pusherChannelName = connectedMode === 'community' ? COMMUNITY_PUBLIC_CHANNEL : channelName;
 
       pusherClient.connection.bind('connected', () => {
+        realtimeReconnectAttempts = 0;
         realtimeConnected = true;
         applyControlsEnabled();
         updateDraftButtons();
@@ -6742,6 +6808,7 @@ class PageChat extends HTMLElement {
           });
           loadCommunityDmRequests({ force: false });
         }
+        scheduleRealtimeHealthcheck();
       });
       pusherClient.connection.bind('disconnected', () => {
         realtimeConnected = false;
@@ -6750,6 +6817,7 @@ class PageChat extends HTMLElement {
         } else if (connectedMode === 'community') {
           handleCommunityRealtimeDisconnected();
         }
+        scheduleRealtimeReconnect();
       });
       pusherClient.connection.bind('error', (err) => {
         console.warn('[chat] pusher error', err);
@@ -6758,6 +6826,22 @@ class PageChat extends HTMLElement {
           handleChatbotRealtimeDisconnected();
         } else if (connectedMode === 'community') {
           handleCommunityRealtimeDisconnected();
+        }
+        scheduleRealtimeReconnect();
+      });
+      pusherClient.connection.bind('state_change', (states) => {
+        const currentState = pickFirstText(states && states.current).toLowerCase();
+        if (currentState === 'connected') {
+          scheduleRealtimeHealthcheck();
+          return;
+        }
+        if (
+          currentState === 'unavailable' ||
+          currentState === 'disconnected' ||
+          currentState === 'failed'
+        ) {
+          realtimeConnected = false;
+          scheduleRealtimeReconnect();
         }
       });
 
@@ -6869,22 +6953,34 @@ class PageChat extends HTMLElement {
         };
 
         pusherCommunityPublicChannel = pusherClient.subscribe(COMMUNITY_PUBLIC_CHANNEL);
+        pusherCommunityPublicChannel.bind('pusher:subscription_succeeded', () => {
+          realtimePublicSubscribed = true;
+          scheduleRealtimeHealthcheck();
+        });
         pusherCommunityPublicChannel.bind('pusher:subscription_error', (status) => {
+          realtimePublicSubscribed = false;
           console.warn('[chat] subscription error', status);
           realtimeConnected = false;
           handleCommunityRealtimeDisconnected();
+          scheduleRealtimeReconnect();
         });
         pusherCommunityPublicChannel.bind('chat_message', (data) => {
-          handleCommunityIncoming(data, 'public', COMMUNITY_PUBLIC_CHANNEL);
+          handleCommunityIncoming(data, 'public', COMMUNITY_PUBLIC_ROOM_ID);
         });
         pusherCommunityPublicChannel.bind('message_moderation_update', (data) => {
-          applyCommunityMessageModerationUpdate('public', COMMUNITY_PUBLIC_CHANNEL, data);
+          applyCommunityMessageModerationUpdate('public', COMMUNITY_PUBLIC_ROOM_ID, data);
         });
         const communityInboxChannelName = buildCommunityInboxChannelName(userId);
         if (communityInboxChannelName) {
           pusherCommunityInboxChannel = pusherClient.subscribe(communityInboxChannelName);
+          pusherCommunityInboxChannel.bind('pusher:subscription_succeeded', () => {
+            realtimeInboxSubscribed = true;
+            scheduleRealtimeHealthcheck();
+          });
           pusherCommunityInboxChannel.bind('pusher:subscription_error', (status) => {
+            realtimeInboxSubscribed = false;
             console.warn('[chat] inbox subscription error', status);
+            scheduleRealtimeReconnect();
           });
           pusherCommunityInboxChannel.bind('dm_room_upsert', handleCommunityDmRoomUpsert);
           pusherCommunityInboxChannel.bind('dm_message_notice', handleCommunityDmNotice);
@@ -6984,7 +7080,12 @@ class PageChat extends HTMLElement {
       };
 
       pusherChannel = pusherClient.subscribe(channelName);
+      pusherChannel.bind('pusher:subscription_succeeded', () => {
+        realtimeMainSubscribed = true;
+        scheduleRealtimeHealthcheck();
+      });
       pusherChannel.bind('pusher:subscription_error', (status) => {
+        realtimeMainSubscribed = false;
         console.warn('[chat] subscription error', status);
         realtimeConnected = false;
         if (connectedMode === 'chatbot') {
@@ -6992,6 +7093,7 @@ class PageChat extends HTMLElement {
         } else if (connectedMode === 'community') {
           handleCommunityRealtimeDisconnected();
         }
+        scheduleRealtimeReconnect();
       });
       pusherChannel.bind('chat_message', (data) =>
         handleIncoming(data, connectedMode === 'community' ? 'user' : 'bot')
@@ -7683,26 +7785,13 @@ class PageChat extends HTMLElement {
     }
     updateHeaderRewards();
     showLoadingState();
-    accessLoadingTimer = setTimeout(async () => {
-      try {
-        if (window.realtimeConfigReady && typeof window.realtimeConfigReady.then === 'function') {
-          await window.realtimeConfigReady;
-        }
-      } catch (_err) {
-        // keep defaults if remote config bootstrap fails
-      }
+    accessLoadingTimer = setTimeout(() => {
       updateAccessState(window.user);
     }, 180);
     this._userHandler = (event) => updateAccessState(event.detail);
     window.addEventListener('app:user-change', this._userHandler);
     this._tabVisibilityHandler = () => updateAccessState(window.user);
     window.addEventListener('app:tab-visibility-change', this._tabVisibilityHandler);
-    this._realtimeConfigHandler = () => {
-      if (!lastChatEnabled || !window.user) return;
-      disconnectRealtime();
-      connectRealtime(window.user, { silent: true });
-    };
-    window.addEventListener('app:realtime-config-change', this._realtimeConfigHandler);
     this._rewardsHandler = () => updateHeaderRewards();
     window.addEventListener('app:speak-stores-change', this._rewardsHandler);
 
@@ -8285,9 +8374,6 @@ class PageChat extends HTMLElement {
     }
     if (this._rewardsHandler) {
       window.removeEventListener('app:speak-stores-change', this._rewardsHandler);
-    }
-    if (this._realtimeConfigHandler) {
-      window.removeEventListener('app:realtime-config-change', this._realtimeConfigHandler);
     }
     if (this._debugHandler) {
       window.removeEventListener('app:speak-debug', this._debugHandler);

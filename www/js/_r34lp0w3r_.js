@@ -2849,11 +2849,25 @@ const getUserAvatarPath = (user) => {
   return '';
 };
 
+const buildUserIdentitySignature = (user) => {
+  if (!user || typeof user !== 'object') return '';
+  const id = user.id !== undefined && user.id !== null ? String(user.id).trim() : '';
+  const email = typeof user.email === 'string' ? user.email.trim().toLowerCase() : '';
+  const token = typeof user.token === 'string' ? user.token.trim() : '';
+  return [id, email, token].join('::');
+};
+
+const isStillSameCurrentUser = (expectedSignature) => {
+  if (!expectedSignature) return false;
+  return buildUserIdentitySignature(window.user) === expectedSignature;
+};
+
 const refreshUserAvatarLocal = async (user, options = {}) => {
   const fs = window.Capacitor?.Plugins?.Filesystem;
   if (!fs || !user) return;
 
   const force = !!options.force;
+  const expectedUserSignature = buildUserIdentitySignature(user);
   const directory = 'DATA';
   const path = getUserAvatarPath(user);
   if (!path) return;
@@ -2873,7 +2887,9 @@ const refreshUserAvatarLocal = async (user, options = {}) => {
     if (!force && bustedLocal && (user.image_local !== bustedLocal || user.image_path !== path)) {
       user.image_local = bustedLocal;
       user.image_path = path;
-      window.setUser(user);
+      if (isStillSameCurrentUser(expectedUserSignature)) {
+        window.setUser(user);
+      }
     }
     if (!force) return;
   } catch (err) {
@@ -2911,7 +2927,9 @@ const refreshUserAvatarLocal = async (user, options = {}) => {
       if (local) {
         user.image_local = addLocalCacheBust(local);
         user.image_path = path;
-        window.setUser(user);
+        if (isStillSameCurrentUser(expectedUserSignature)) {
+          window.setUser(user);
+        }
       }
       downloaded = true;
       break;
@@ -2923,7 +2941,9 @@ const refreshUserAvatarLocal = async (user, options = {}) => {
     const fallbackRemote = remotes[0];
     if (force && fallbackRemote && user.image_local !== fallbackRemote) {
       user.image_local = fallbackRemote;
-      window.setUser(user);
+      if (isStillSameCurrentUser(expectedUserSignature)) {
+        window.setUser(user);
+      }
       return;
     }
     if (localUrl) {
@@ -2931,18 +2951,24 @@ const refreshUserAvatarLocal = async (user, options = {}) => {
       if (bustedLocal && (user.image_local !== bustedLocal || user.image_path !== path)) {
         user.image_local = bustedLocal;
         user.image_path = path;
-        window.setUser(user);
+        if (isStillSameCurrentUser(expectedUserSignature)) {
+          window.setUser(user);
+        }
       }
       return;
     }
     if (localPath && (user.image_local !== localPath || user.image_path !== path)) {
       user.image_local = addLocalCacheBust(localPath);
       user.image_path = path;
-      window.setUser(user);
+      if (isStillSameCurrentUser(expectedUserSignature)) {
+        window.setUser(user);
+      }
     } else if (fallbackRemote && (user.image_local !== fallbackRemote || user.image_path !== path)) {
       user.image_local = fallbackRemote;
       user.image_path = path;
-      window.setUser(user);
+      if (isStillSameCurrentUser(expectedUserSignature)) {
+        window.setUser(user);
+      }
     }
   }
 };

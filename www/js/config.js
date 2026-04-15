@@ -39,9 +39,6 @@
   if (window.realtimeConfig.wssPort === undefined) {
     window.realtimeConfig.wssPort = window.REALTIME_WSS_PORT || 443;
   }
-  if (window.realtimeConfig.wsPort === undefined) {
-    window.realtimeConfig.wsPort = window.REALTIME_WS_PORT || 80;
-  }
   if (window.realtimeConfig.forceTLS === undefined) {
     const forceTLS = window.REALTIME_FORCE_TLS;
     if (forceTLS === undefined || forceTLS === null || forceTLS === '') {
@@ -249,47 +246,7 @@
     ];
   }
 
-  // Fetch realtime connection params from server.
-  // Overwrites key/wsHost/cluster/forceTLS with whatever the server is currently using,
-  // so switching soketi ↔ Pusher only requires changing the server .env — no client build.
-  window.realtimeConfigReady = (async function () {
-    const authEndpoint = window.realtimeConfig.authEndpoint || '';
-    const configUrl = authEndpoint
-      ? authEndpoint.replace(/\/auth$/, '/client-config')
-      : 'https://realtime.curso-ingles.com/realtime/client-config';
-    try {
-      const r = await fetch(configUrl, { cache: 'no-store' });
-      const data = r.ok ? await r.json() : null;
-      if (!data || typeof data !== 'object') return;
-      if (data.key) window.realtimeConfig.key = data.key;
-      if (data.cluster) {
-        window.realtimeConfig.cluster = data.cluster;
-        window.realtimeConfig.wsHost = undefined;
-      } else if (data.wsHost) {
-        window.realtimeConfig.wsHost = data.wsHost;
-        window.realtimeConfig.cluster = undefined;
-      }
-      if (data.wsPort !== undefined && data.wsPort !== null && data.wsPort !== '') {
-        window.realtimeConfig.wsPort = Number(data.wsPort) || window.realtimeConfig.wsPort;
-      }
-      if (data.wssPort !== undefined && data.wssPort !== null && data.wssPort !== '') {
-        window.realtimeConfig.wssPort = Number(data.wssPort) || window.realtimeConfig.wssPort;
-      }
-      if (data.forceTLS !== undefined) {
-        window.realtimeConfig.forceTLS = Boolean(data.forceTLS);
-      }
-      if (Array.isArray(data.enabledTransports) && data.enabledTransports.length) {
-        window.realtimeConfig.enabledTransports = data.enabledTransports.slice();
-      }
-      try {
-        window.dispatchEvent(
-          new CustomEvent('app:realtime-config-change', {
-            detail: { ...(window.realtimeConfig || {}) }
-          })
-        );
-      } catch (_) {
-        // no-op
-      }
-    } catch (_) { /* silently keep defaults */ }
-  })();
+  // Keep realtime bootstrap synchronous and deterministic.
+  // The chat layer relies on these values being stable from first render.
+  window.realtimeConfigReady = Promise.resolve(window.realtimeConfig);
 })();

@@ -181,7 +181,7 @@
     window.realtimeConfig.monitorToken = window.REALTIME_MONITOR_TOKEN || '';
   }
   if (window.realtimeConfig.enabledTransports === undefined) {
-    window.realtimeConfig.enabledTransports = ['wss'];
+    window.realtimeConfig.enabledTransports = ['ws'];
   }
   if (window.realtimeConfig.channelType === undefined) {
     window.realtimeConfig.channelType = 'private';

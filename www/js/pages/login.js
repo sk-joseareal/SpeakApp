@@ -51,69 +51,13 @@ class PageLogin extends HTMLElement {
       `}
           <div class="${flat ? 'login-embedded-flat' : `card card--plain ${embedded ? 'login-embedded-card' : ''}`}">
             <div class="login-panel" data-panel="login">
-              <button class="login-link-btn login-create-email-btn login-magic-cta" type="button" id="login-magic-link">${copy.magicLoginLink}</button>
+              <button class="login-link-btn login-create-email-btn login-magic-cta" type="button" id="login-magic-link">${copy.continueWithEmail}</button>
               <div class="login-social-stack">
                 ${renderSocialButton('login-google', '', 'assets/social/google.png', copy.socialGoogle)}
                 ${renderSocialButton('login-fb', '', 'assets/social/facebook.png', copy.socialFacebook)}
                 ${showAppleLogin ? renderSocialButton('login-apple', 'login-social-icon-apple', 'assets/social/apple.png', copy.socialApple) : ''}
               </div>
-              <button class="login-link-btn login-create-email-btn" type="button" id="login-register-link">${copy.createWithEmail}</button>
-              <div class="login-email-block">
-                ${
-                  flat
-                    ? `
-                      <div class="login-inputs login-inputs--flat">
-                        <label class="login-input-shell" for="login-user">
-                          <span class="login-input-icon" aria-hidden="true">
-                            <ion-icon name="person-outline"></ion-icon>
-                          </span>
-                          <input
-                            class="chat-text-input login-text-input login-text-input--shell"
-                            autocomplete="username"
-                            name="username"
-                            id="login-user"
-                            type="email"
-                            inputmode="email"
-                            placeholder="${copy.userLabel}"
-                            aria-label="${copy.userLabel}"
-                          >
-                        </label>
-                        <label class="login-input-shell" for="login-pass">
-                          <span class="login-input-icon" aria-hidden="true">
-                            <ion-icon name="lock-closed-outline"></ion-icon>
-                          </span>
-                          <input
-                            class="chat-text-input login-text-input login-text-input--shell"
-                            autocomplete="current-password"
-                            name="password"
-                            id="login-pass"
-                            type="password"
-                            placeholder="${copy.passLabel}"
-                            aria-label="${copy.passLabel}"
-                          >
-                          <button class="login-input-toggle" type="button" id="login-pass-toggle" aria-label="${copy.passLabel}">
-                            <ion-icon name="eye-outline"></ion-icon>
-                          </button>
-                        </label>
-                      </div>
-                    `
-                    : `
-                      <div class="login-inputs">
-                        <label class="login-field" for="login-user">
-                          <span class="login-label">${copy.userLabel}</span>
-                          <input class="chat-text-input login-text-input" autocomplete="username" name="username" id="login-user" type="email" inputmode="email" placeholder="${copy.userPlaceholder}">
-                        </label>
-                        <label class="login-field" for="login-pass">
-                          <span class="login-label">${copy.passLabel}</span>
-                          <input class="chat-text-input login-text-input" autocomplete="current-password" name="password" id="login-pass" type="password" placeholder="${copy.passPlaceholder}">
-                        </label>
-                      </div>
-                    `
-                }
-                <p id="login-error" style="display:none; margin:4px 0 0; color: var(--ion-color-danger, #eb445a); font-size:0.9rem;"></p>
-                ${renderActionButton('login-enter', copy.enter)}
-                <button class="login-link-btn login-create-email-btn" type="button" id="login-forgot-secondary">${copy.forgotPassword}</button>
-              </div>
+              <p id="login-error" style="display:none; margin:0; color: var(--ion-color-danger, #eb445a); font-size:0.9rem;"></p>
             </div>
             <div class="login-panel" data-panel="register" hidden>
               ${
@@ -216,7 +160,7 @@ class PageLogin extends HTMLElement {
                 flat
                   ? `
                     <label class="login-terms-inline" for="register-terms">
-                      <ion-checkbox id="register-terms"></ion-checkbox>
+                      <ion-checkbox id="register-terms" aria-label="${copy.registerTerms}"></ion-checkbox>
                       <span>${copy.registerTerms}</span>
                     </label>
                   `
@@ -233,42 +177,77 @@ class PageLogin extends HTMLElement {
             <div class="login-panel" data-panel="magic" hidden>
               <div id="magic-form">
                 <div class="login-panel-header">
-                  <h3>${copy.magicTitle}</h3>
+                  <h3>${copy.continueWithEmail}</h3>
                   <button class="login-back-top" type="button" id="magic-back">${copy.magicBack}</button>
                 </div>
-                <p class="muted">${copy.magicSubtitle}</p>
                 ${
                   flat
                     ? `
                       <div class="login-inputs login-inputs--flat">
-                        <label class="login-input-shell" for="magic-email">
+                        <label class="login-input-shell" for="email-access-email">
                           <span class="login-input-icon" aria-hidden="true">
                             <ion-icon name="mail-outline"></ion-icon>
                           </span>
                           <input
                             class="chat-text-input login-text-input login-text-input--shell"
                             autocomplete="email"
-                            name="magic-email"
-                            id="magic-email"
+                            name="email-access-email"
+                            id="email-access-email"
                             type="email"
                             inputmode="email"
                             placeholder="${copy.magicEmailLabel}"
                             aria-label="${copy.magicEmailLabel}"
                           >
                         </label>
+                        <div class="login-email-actions">
+                          ${renderActionButton('magic-submit', copy.magicSubmit, 'primary')}
+                        </div>
+                        <div class="login-option-divider" role="presentation">
+                          <span>${copy.passwordOptionDivider}</span>
+                        </div>
+                        <label class="login-input-shell" for="email-access-pass">
+                          <span class="login-input-icon" aria-hidden="true">
+                            <ion-icon name="lock-closed-outline"></ion-icon>
+                          </span>
+                          <input
+                            class="chat-text-input login-text-input login-text-input--shell"
+                            autocomplete="current-password"
+                            name="email-access-pass"
+                            id="email-access-pass"
+                            type="password"
+                            placeholder="${copy.passwordOptionalLabel}"
+                            aria-label="${copy.passwordOptionalLabel}"
+                          >
+                          <button class="login-input-toggle" type="button" id="email-access-pass-toggle" aria-label="${copy.passwordOptionalLabel}">
+                            <ion-icon name="eye-outline"></ion-icon>
+                          </button>
+                        </label>
                       </div>
                     `
                     : `
                       <div class="login-inputs">
-                        <label class="login-field" for="magic-email">
+                        <label class="login-field" for="email-access-email">
                           <span class="login-label">${copy.magicEmailLabel}</span>
-                          <input class="chat-text-input login-text-input" autocomplete="email" name="magic-email" id="magic-email" type="email" inputmode="email" placeholder="${copy.magicEmailPlaceholder}">
+                          <input class="chat-text-input login-text-input" autocomplete="email" name="email-access-email" id="email-access-email" type="email" inputmode="email" placeholder="${copy.magicEmailPlaceholder}">
+                        </label>
+                        <div class="login-email-actions">
+                          ${renderActionButton('magic-submit', copy.magicSubmit, 'primary')}
+                        </div>
+                        <div class="login-option-divider" role="presentation">
+                          <span>${copy.passwordOptionDivider}</span>
+                        </div>
+                        <label class="login-field" for="email-access-pass">
+                          <span class="login-label">${copy.passwordOptionalLabel}</span>
+                          <input class="chat-text-input login-text-input" autocomplete="current-password" name="email-access-pass" id="email-access-pass" type="password" placeholder="${copy.passPlaceholder}">
                         </label>
                       </div>
                     `
                 }
                 <p id="magic-error" style="display:none; margin:4px 0 0; color: var(--ion-color-danger, #eb445a); font-size:0.9rem;"></p>
-                ${renderActionButton('magic-submit', copy.magicSubmit, flat ? 'primary' : 'secondary')}
+                <div class="login-email-actions">
+                  ${renderActionButton('email-access-submit', copy.loginCreateSubmit)}
+                  ${renderActionButton('email-access-recover', copy.forgotPassword)}
+                </div>
               </div>
               <div id="magic-sent" hidden>
                 <h3>${copy.magicSentTitle}</h3>
@@ -457,22 +436,75 @@ class PageLogin extends HTMLElement {
     window.addEventListener('app:login-modal-lock-change', this._modalLockChangeHandler);
     window.addEventListener('app:user-change', this._userChangeHandler);
 
+    const getAccessEmailInput = () => this.querySelector('#email-access-email');
+    const getAccessPassInput = () => this.querySelector('#email-access-pass');
+
+    const deriveNameFromEmail = (email) => {
+      const local = String(email || '').split('@')[0];
+      const parts = local.split(/[._\-+]/).filter(Boolean).slice(0, 2);
+      return (
+        parts
+          .map((chunk) => chunk.charAt(0).toUpperCase() + chunk.slice(1).toLowerCase())
+          .join(' ')
+          .trim() || ''
+      );
+    };
+
+    const seedRegisterFromAccess = () => {
+      const email = getAccessEmailInput()?.value ? String(getAccessEmailInput().value).trim().toLowerCase() : '';
+      const pass = getAccessPassInput()?.value ? String(getAccessPassInput().value) : '';
+      const username = deriveNameFromEmail(email);
+      const registerUsername = this.querySelector('#register-username');
+      const registerEmail = this.querySelector('#register-email');
+      const registerPass = this.querySelector('#register-pass');
+      const registerPassConfirm = this.querySelector('#register-pass-confirm');
+      if (registerUsername && username && !String(registerUsername.value || '').trim()) registerUsername.value = username;
+      if (registerEmail) registerEmail.value = email;
+      if (registerPass) registerPass.value = pass;
+      if (registerPassConfirm) registerPassConfirm.value = pass;
+    };
+
+    const seedRecoverEmail = () => {
+      const email = getAccessEmailInput()?.value ? String(getAccessEmailInput().value).trim().toLowerCase() : '';
+      const recoverEmail = this.querySelector('#recover-email');
+      if (recoverEmail && email) recoverEmail.value = email;
+    };
+
+    const checkEmailStatus = async (email) => {
+      const locale = resolveUiLocale();
+      const result = await doPost('/v3/usr/email-status', null, { email, locale, lang: locale });
+      if (!result.ok || (result.data && result.data.error)) {
+        return {
+          ok: false,
+          error:
+            (result && result.data && result.data.error) ||
+            (result && result.error) ||
+            copy.errors.emailStatusFailed
+        };
+      }
+      return {
+        ok: true,
+        exists: Boolean(result.data && result.data.exists),
+        hasPassword: Boolean(result.data && result.data.has_password)
+      };
+    };
+
     const loginCI = async () => {
       console.log("> loginCI.");
-      setLoginError('');
+      setMagicError('');
 
-      const emailEl = this.querySelector('#login-user');
+      const emailEl = getAccessEmailInput();
       const email = emailEl && emailEl.value ? String(emailEl.value) : '';
 
-      const passEl = this.querySelector('#login-pass');
+      const passEl = getAccessPassInput();
       const pass = passEl && passEl.value ? String(passEl.value) : '';
 
       if (!email || email.length < 3) {
-        setLoginError(copy.errors.loginInvalidUser);
+        setMagicError(copy.errors.magicEmailRequired);
         return;
       }
       if (!pass || pass.length < 3) {
-        setLoginError(copy.errors.loginInvalidPassword);
+        setMagicError(copy.errors.loginInvalidPassword);
         return;
       } 
 
@@ -492,7 +524,7 @@ class PageLogin extends HTMLElement {
         console.log("-> loginCI OK. Login correcto:", JSON.stringify(result.data));
         const user = result.data && result.data.user ? { ...result.data.user } : null;
         if (!user) {
-          setLoginError(copy.errors.loginNoUserData);
+          setMagicError(copy.errors.loginNoUserData);
           return;
         }
 
@@ -551,7 +583,7 @@ class PageLogin extends HTMLElement {
           }
           window.dispatchEvent(new CustomEvent('app:user-change', { detail: user }));
         }
-        setLoginError('');
+        setMagicError('');
         // Si el login es correcto, cerramos el modal
         closeLogin();
       } else {
@@ -560,7 +592,7 @@ class PageLogin extends HTMLElement {
           (result && result.data && result.data.error) ||
           (result && result.error) ||
           copy.errors.loginGeneric;
-        setLoginError(message);
+        setMagicError(message);
       }
       
       
@@ -569,14 +601,14 @@ class PageLogin extends HTMLElement {
 
     const maybeSubmitLogin = (event) => {
       if (event.key !== 'Enter') return;
-      const loginPanel = panels.login;
-      if (loginPanel && loginPanel.hidden) return;
+      const magicPanel = panels.magic;
+      if (magicPanel && magicPanel.hidden) return;
       event.preventDefault();
-      loginCI();
+      loginOrCreate();
     };
 
-    const loginUserInput = this.querySelector('#login-user');
-    const loginPassInput = this.querySelector('#login-pass');
+    const loginUserInput = getAccessEmailInput();
+    const loginPassInput = getAccessPassInput();
     loginUserInput?.addEventListener('keydown', maybeSubmitLogin);
     loginPassInput?.addEventListener('keydown', maybeSubmitLogin);
 
@@ -640,8 +672,67 @@ class PageLogin extends HTMLElement {
     let registerPending = false;
     let recoverPending = false;
     let magicLinkPending = false;
+    let loginCreatePending = false;
     let magicLastUid     = '';
     let otpPending       = false;
+
+    const loginOrCreate = async () => {
+      if (loginCreatePending) return;
+      loginCreatePending = true;
+      const submitBtn = this.querySelector('#email-access-submit');
+      if (submitBtn) submitBtn.disabled = true;
+      setMagicError('');
+
+      const emailEl = getAccessEmailInput();
+      const passEl = getAccessPassInput();
+      const email = emailEl && emailEl.value ? String(emailEl.value).trim().toLowerCase() : '';
+      const pass = passEl && passEl.value ? String(passEl.value) : '';
+
+      if (emailEl) emailEl.value = email;
+
+      if (!email) {
+        setMagicError(copy.errors.magicEmailRequired);
+        loginCreatePending = false;
+        if (submitBtn) submitBtn.disabled = false;
+        return;
+      }
+      if (!isValidEmail(email)) {
+        setMagicError(copy.errors.magicEmailInvalid);
+        loginCreatePending = false;
+        if (submitBtn) submitBtn.disabled = false;
+        return;
+      }
+      if (!pass || pass.length < 3) {
+        setMagicError(copy.errors.loginInvalidPassword);
+        loginCreatePending = false;
+        if (submitBtn) submitBtn.disabled = false;
+        return;
+      }
+
+      const status = await checkEmailStatus(email);
+      if (!status.ok) {
+        setMagicError(status.error || copy.errors.emailStatusFailed);
+        loginCreatePending = false;
+        if (submitBtn) submitBtn.disabled = false;
+        return;
+      }
+
+      if (status.exists) {
+        if (!status.hasPassword) {
+          setMagicError(copy.errors.loginCreateUseAccessLink);
+          loginCreatePending = false;
+          if (submitBtn) submitBtn.disabled = false;
+          return;
+        }
+        await loginCI();
+      } else {
+        seedRegisterFromAccess();
+        setPanel('register');
+      }
+
+      loginCreatePending = false;
+      if (submitBtn) submitBtn.disabled = false;
+    };
 
     const registerAccount = async () => {
       if (registerPending) return;
@@ -714,7 +805,7 @@ class PageLogin extends HTMLElement {
       if (submitBtn) submitBtn.disabled = true;
       setMagicError('');
 
-      const emailEl = this.querySelector('#magic-email');
+      const emailEl = getAccessEmailInput();
       const email = emailEl && emailEl.value ? String(emailEl.value).trim().toLowerCase() : '';
       if (emailEl) emailEl.value = email; // normaliza visualmente
       if (!email) {
@@ -824,22 +915,21 @@ class PageLogin extends HTMLElement {
         return;
       }
       await presentInfo(copy.info.recoverSuccess);
-      setPanel('login');
+      setPanel('magic');
     };
 
-    this.querySelector('#login-enter')?.addEventListener('click', loginCI);
     this.querySelector('#login-apple')?.addEventListener('click', loginApple);
     this.querySelector('#login-google')?.addEventListener('click', loginGoogle);
     this.querySelector('#login-fb')?.addEventListener('click', loginFb);
     this.querySelector('#login-close')?.addEventListener('click', closeLogin);
     this.querySelector('#login-magic-link')?.addEventListener('click', () => setPanel('magic'));
-    this.querySelector('#login-register-link')?.addEventListener('click', () => setPanel('register'));
-    this.querySelector('#login-forgot-link')?.addEventListener('click', () => setPanel('recover'));
-    this.querySelector('#login-forgot-secondary')?.addEventListener('click', () => setPanel('recover'));
-    this.querySelector('#register-back')?.addEventListener('click', () => setPanel('login'));
-    this.querySelector('#recover-back')?.addEventListener('click', () => setPanel('login'));
+    this.querySelector('#register-back')?.addEventListener('click', () => setPanel('magic'));
+    this.querySelector('#recover-back')?.addEventListener('click', () => setPanel('magic'));
     this.querySelector('#magic-back')?.addEventListener('click', () => setPanel('login'));
-    this.querySelector('#magic-back-from-sent')?.addEventListener('click', () => setPanel('login'));
+    this.querySelector('#magic-back-from-sent')?.addEventListener('click', () => {
+      resetMagicPanel();
+      setPanel('magic');
+    });
     this.querySelector('#magic-resend')?.addEventListener('click', () => {
       resetMagicPanel();
       requestMagicLink();
@@ -847,12 +937,17 @@ class PageLogin extends HTMLElement {
     this.querySelector('#register-submit')?.addEventListener('click', registerAccount);
     this.querySelector('#recover-submit')?.addEventListener('click', recoverPassword);
     this.querySelector('#magic-submit')?.addEventListener('click', requestMagicLink);
-    this.querySelector('#magic-email')?.addEventListener('blur', (e) => {
+    this.querySelector('#email-access-submit')?.addEventListener('click', loginOrCreate);
+    this.querySelector('#email-access-recover')?.addEventListener('click', () => {
+      seedRecoverEmail();
+      setPanel('recover');
+    });
+    this.querySelector('#email-access-email')?.addEventListener('blur', (e) => {
       e.target.value = e.target.value.trim().toLowerCase();
     });
-    this.querySelector('#login-pass-toggle')?.addEventListener('click', () => {
-      const passEl = this.querySelector('#login-pass');
-      const iconEl = this.querySelector('#login-pass-toggle ion-icon');
+    this.querySelector('#email-access-pass-toggle')?.addEventListener('click', () => {
+      const passEl = getAccessPassInput();
+      const iconEl = this.querySelector('#email-access-pass-toggle ion-icon');
       if (!passEl) return;
       const showing = passEl.getAttribute('type') === 'text';
       passEl.setAttribute('type', showing ? 'password' : 'text');
@@ -944,8 +1039,9 @@ class PageLogin extends HTMLElement {
     // Dev autologin: ?autologin=1
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('autologin') === '1') {
-      const emailEl = this.querySelector('#login-user');
-      const passEl = this.querySelector('#login-pass');
+      setPanel('magic');
+      const emailEl = getAccessEmailInput();
+      const passEl = getAccessPassInput();
       if (emailEl) emailEl.value = 'johndoe@sokinternet.com';
       if (passEl) passEl.value = 'testing';
       setTimeout(() => loginCI(), 300);

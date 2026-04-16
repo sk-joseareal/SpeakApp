@@ -19,6 +19,7 @@ public class P4w4PluginPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "resizeWebView", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "offsetTopWebView", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "getStatusBarHeight", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "setNativeChrome", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "detectLanguage", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "setStartupHtml", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "reloadWebView", returnType: CAPPluginReturnPromise),
@@ -112,6 +113,56 @@ public class P4w4PluginPlugin: CAPPlugin, CAPBridgedPlugin {
         call.resolve([
             "height": height
         ])
+    }
+
+    private func colorFromHex(_ rawValue: String) -> UIColor? {
+        let trimmed = rawValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        let sanitized = trimmed.hasPrefix("#") ? String(trimmed.dropFirst()) : trimmed
+        guard sanitized.count == 6 || sanitized.count == 8 else { return nil }
+
+        var value: UInt64 = 0
+        guard Scanner(string: sanitized).scanHexInt64(&value) else { return nil }
+
+        if sanitized.count == 6 {
+            return UIColor(
+                red: CGFloat((value & 0xFF0000) >> 16) / 255.0,
+                green: CGFloat((value & 0x00FF00) >> 8) / 255.0,
+                blue: CGFloat(value & 0x0000FF) / 255.0,
+                alpha: 1.0
+            )
+        }
+
+        return UIColor(
+            red: CGFloat((value & 0xFF000000) >> 24) / 255.0,
+            green: CGFloat((value & 0x00FF0000) >> 16) / 255.0,
+            blue: CGFloat((value & 0x0000FF00) >> 8) / 255.0,
+            alpha: CGFloat(value & 0x000000FF) / 255.0
+        )
+    }
+
+    @objc func setNativeChrome(_ call: CAPPluginCall) {
+        guard let rawColor = call.getString("backgroundColor"),
+              let color = colorFromHex(rawColor) else {
+            call.reject("Color de fondo invalido.")
+            return
+        }
+
+        let lightIcons = call.getBool("lightIcons") ?? false
+
+        DispatchQueue.main.async {
+            if let window = self.bridge?.viewController?.view.window ?? UIApplication.shared.windows.first {
+                window.backgroundColor = color
+            }
+
+            self.bridge?.viewController?.view.backgroundColor = color
+            self.bridge?.webView?.superview?.backgroundColor = color
+            self.bridge?.webView?.backgroundColor = .clear
+            self.bridge?.webView?.isOpaque = false
+
+            print(">#P4w4Plugin#> setNativeChrome: bg=\(rawColor) lightIcons=\(lightIcons)")
+            call.resolve()
+        }
     }
 
     @objc func detectLanguage(_ call: CAPPluginCall) {

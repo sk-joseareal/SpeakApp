@@ -28,10 +28,10 @@ public class MainActivity extends BridgeActivity {
 
         Window window = getWindow();
         window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
-        window.setStatusBarColor(Color.parseColor("#f4f6fb"));
-        window.getDecorView().setBackgroundColor(Color.parseColor("#f4f6fb"));
+        window.setStatusBarColor(Color.parseColor("#2d6df0"));
+        window.getDecorView().setBackgroundColor(Color.parseColor("#2d6df0"));
         int flags = window.getDecorView().getSystemUiVisibility();
-        window.getDecorView().setSystemUiVisibility(flags | View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
+        window.getDecorView().setSystemUiVisibility(flags & ~View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
 
 
 

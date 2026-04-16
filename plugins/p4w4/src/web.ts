@@ -28,6 +28,10 @@ export class P4w4PluginWeb extends WebPlugin implements P4w4PluginPlugin {
     };
   }
 
+  async setNativeChrome(_options: { backgroundColor: string; lightIcons?: boolean }): Promise<void> {
+    return;
+  }
+
   async playNotificationBell(_options?: { soundId?: number; durationMs?: number; vibrate?: boolean }): Promise<{ started?: boolean; stream?: number; vibrated?: boolean; mode?: string } | void> {
     return;
   }

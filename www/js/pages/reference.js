@@ -1888,7 +1888,7 @@ class PageReference extends HTMLElement {
     const buttons = Array.from(this.querySelectorAll('[data-reference-lesson-tab]'));
     buttons.forEach((button) => {
       const isActive = String(button.dataset.referenceLessonTab || '').trim() === normalizedTab;
-      button.classList.toggle('is-active', isActive);
+      button.classList.toggle('active', isActive);
       button.setAttribute('aria-selected', isActive ? 'true' : 'false');
       button.setAttribute('tabindex', isActive ? '0' : '-1');
     });
@@ -3768,12 +3768,12 @@ class PageReference extends HTMLElement {
                   <div class="reference-lesson-breadcrumb">${selectedPath}</div>
                 </div>
               </div>
-              <div class="reference-lesson-tabs" role="tablist" aria-label="${this.escapeHtml(
+              <div class="profile-segmented-tabs reference-lesson-tabs" role="tablist" aria-label="${this.escapeHtml(
                 copy.selectedLesson || 'Selected lesson'
               )}">
                 <button
                   type="button"
-                  class="reference-lesson-tab ${activeLessonTab === 'content' ? 'is-active' : ''}"
+                  class="profile-segmented-btn reference-lesson-tab ${activeLessonTab === 'content' ? 'active' : ''}"
                   id="reference-tab-content"
                   data-reference-lesson-tab="content"
                   role="tab"
@@ -3784,7 +3784,7 @@ class PageReference extends HTMLElement {
                 </button>
                 <button
                   type="button"
-                  class="reference-lesson-tab ${activeLessonTab === 'tests' ? 'is-active' : ''}"
+                  class="profile-segmented-btn reference-lesson-tab ${activeLessonTab === 'tests' ? 'active' : ''}"
                   id="reference-tab-tests"
                   data-reference-lesson-tab="tests"
                   role="tab"

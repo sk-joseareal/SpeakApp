@@ -10,6 +10,8 @@ import { getOnboardingCopy, normalizeLocale as normalizeCopyLocale } from '../co
 const SWIPE_MIN_DISTANCE = 52;
 const SWIPE_MAX_OFF_AXIS = 44;
 const ONBOARDING_MASCOT_SRC = 'assets/onboarding/nena-v5.png';
+const ONBOARDING_STATUSBAR_COLOR = '#2d6df0';
+const APP_STATUSBAR_COLOR = '#f4f6fb';
 
 const onboardingSlides = [
   { id: 'confidence', copyKey: 'confidence' },
@@ -21,6 +23,8 @@ class PageOnboarding extends HTMLElement {
   constructor() {
     super();
     this.currentStep = 0;
+    this._layoutRaf = 0;
+    this._chromeRetryTimers = [];
     this.touchGesture = {
       active: false,
       startX: 0,
@@ -34,6 +38,7 @@ class PageOnboarding extends HTMLElement {
     this.render();
     this.cacheElements();
     this.bindEvents();
+    this.applyOnboardingChrome();
     this.updateSlide();
   }
 
@@ -98,6 +103,10 @@ class PageOnboarding extends HTMLElement {
     this.addEventListener('touchstart', (event) => this.handleTouchStart(event), { passive: true });
     this.addEventListener('touchend', (event) => this.handleTouchEnd(event), { passive: true });
     this.addEventListener('touchcancel', () => this.resetSwipeGesture(), { passive: true });
+    this._resizeHandler = () => this.scheduleHeroLayoutSync();
+    window.addEventListener('resize', this._resizeHandler);
+    this._deviceReadyHandler = () => this.applyOnboardingChrome();
+    document.addEventListener('deviceready', this._deviceReadyHandler);
   }
 
   updateSlide() {
@@ -144,7 +153,7 @@ class PageOnboarding extends HTMLElement {
                 </ul>`
               : '<div class="onboarding-v5-body-spacer"></div>'
           }
-          <button class="onboarding-v5-cta" data-action="next" type="button">${this.escapeHtml(cta)}</button>
+          ${this.currentStep === onboardingSlides.length - 1 ? `<button class="onboarding-v5-cta" data-action="next" type="button">${this.escapeHtml(cta)}</button>` : ''}
         </div>
         <div class="onboarding-v5-footer">
           <div class="speak-voice-nav onboarding-v5-nav">
@@ -172,6 +181,7 @@ class PageOnboarding extends HTMLElement {
     `;
     this.dotsEl = this.stageEl.querySelector('[data-field="dots"]');
     this.dotsEl.innerHTML = dotsMarkup;
+    this.scheduleHeroLayoutSync();
   }
 
   goNextStep() {
@@ -245,6 +255,102 @@ class PageOnboarding extends HTMLElement {
     this.touchGesture.ignore = false;
   }
 
+  scheduleHeroLayoutSync() {
+    if (this._layoutRaf) {
+      cancelAnimationFrame(this._layoutRaf);
+    }
+    this._layoutRaf = requestAnimationFrame(() => {
+      this._layoutRaf = 0;
+      this.syncHeroLayout();
+    });
+  }
+
+  setThemeColor(color) {
+    if (typeof document === 'undefined') return;
+    let meta = document.querySelector('meta[name="theme-color"]');
+    if (!meta) {
+      meta = document.createElement('meta');
+      meta.setAttribute('name', 'theme-color');
+      document.head.appendChild(meta);
+    }
+    meta.setAttribute('content', color);
+  }
+
+  clearChromeRetryTimers() {
+    this._chromeRetryTimers.forEach((timerId) => clearTimeout(timerId));
+    this._chromeRetryTimers = [];
+  }
+
+  applyOnboardingChrome() {
+    document.body?.classList?.add('onboarding-chrome-active');
+    this.setThemeColor(ONBOARDING_STATUSBAR_COLOR);
+    this.clearChromeRetryTimers();
+
+    const applyNativeChrome = () => {
+      try {
+        const sb = window.Capacitor?.Plugins?.StatusBar;
+        if (!sb) return;
+        sb.setOverlaysWebView({ overlay: true });
+        sb.setBackgroundColor({ color: ONBOARDING_STATUSBAR_COLOR });
+        sb.setStyle({ style: 'DARK' });
+      } catch (_err) {
+        // no-op
+      }
+    };
+
+    applyNativeChrome();
+    [120, 320, 800].forEach((delay) => {
+      const timerId = setTimeout(() => applyNativeChrome(), delay);
+      this._chromeRetryTimers.push(timerId);
+    });
+  }
+
+  restoreDefaultChrome() {
+    document.body?.classList?.remove('onboarding-chrome-active');
+    this.setThemeColor(APP_STATUSBAR_COLOR);
+    this.clearChromeRetryTimers();
+    try {
+      const sb = window.Capacitor?.Plugins?.StatusBar;
+      if (!sb) return;
+      sb.setOverlaysWebView({ overlay: true });
+      sb.setBackgroundColor({ color: APP_STATUSBAR_COLOR });
+      sb.setStyle({ style: 'LIGHT' });
+    } catch (_err) {
+      // no-op
+    }
+  }
+
+  syncHeroLayout() {
+    const cardEl = this.stageEl?.querySelector('.onboarding-v5-card');
+    const heroEl = this.stageEl?.querySelector('.onboarding-v5-hero');
+    const mascotWrapEl = this.stageEl?.querySelector('.onboarding-v5-mascot-wrap');
+    const mascotEl = this.stageEl?.querySelector('.onboarding-v5-mascot');
+    if (!cardEl || !heroEl || !mascotWrapEl || !mascotEl) return;
+
+    const apply = () => {
+      const heroRect = heroEl.getBoundingClientRect();
+      const mascotRect = mascotWrapEl.getBoundingClientRect();
+      if (!heroRect.height || !mascotRect.height) return;
+
+      const mascotBottomInHero = mascotRect.bottom - heroRect.top;
+      const mascotHeight = mascotRect.height;
+      const heroHeight = heroRect.height;
+
+      const crestOffset = Math.round(Math.max(92, Math.min(124, mascotHeight * 0.29)));
+      const waveTop = Math.round(Math.max(heroHeight * 0.5, mascotBottomInHero - crestOffset));
+      const bodyOverlap = Math.round(Math.max(48, heroHeight - waveTop));
+
+      cardEl.style.setProperty('--onboarding-wave-top', `${waveTop}px`);
+      cardEl.style.setProperty('--onboarding-body-overlap', `${bodyOverlap}px`);
+    };
+
+    if (mascotEl.complete) {
+      apply();
+    } else {
+      mascotEl.addEventListener('load', apply, { once: true });
+    }
+  }
+
   escapeHtml(value) {
     return String(value === undefined || value === null ? '' : value)
       .replace(/&/g, '&amp;')
@@ -252,6 +358,20 @@ class PageOnboarding extends HTMLElement {
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#39;');
+  }
+
+  disconnectedCallback() {
+    this.restoreDefaultChrome();
+    if (this._deviceReadyHandler) {
+      document.removeEventListener('deviceready', this._deviceReadyHandler);
+    }
+    if (this._resizeHandler) {
+      window.removeEventListener('resize', this._resizeHandler);
+    }
+    if (this._layoutRaf) {
+      cancelAnimationFrame(this._layoutRaf);
+      this._layoutRaf = 0;
+    }
   }
 }
 

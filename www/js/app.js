@@ -14,6 +14,61 @@ import './pages/diagnostics.js';
 import './pages/login.js';
 import './pages/notifications.js';
 
+const ONBOARDING_STATUSBAR_COLOR = '#2d6df0';
+const APP_STATUSBAR_COLOR = '#f4f6fb';
+
+function setNativeChrome(color, lightIcons) {
+  try {
+    const nativePlugin = window.Capacitor?.Plugins?.P4w4Plugin;
+    if (!nativePlugin || typeof nativePlugin.setNativeChrome !== 'function') return;
+    nativePlugin.setNativeChrome({ backgroundColor: color, lightIcons });
+  } catch (_err) {
+    // no-op
+  }
+}
+
+function setThemeColor(color) {
+  let meta = document.querySelector('meta[name="theme-color"]');
+  if (!meta) {
+    meta = document.createElement('meta');
+    meta.setAttribute('name', 'theme-color');
+    document.head.appendChild(meta);
+  }
+  meta.setAttribute('content', color);
+}
+
+function isOnboardingPath(path) {
+  const normalized = String(path || '').trim();
+  return normalized === '/' || normalized === '/onboarding';
+}
+
+function applyAppChromeForPath(path) {
+  const onboarding = isOnboardingPath(path);
+  const color = onboarding ? ONBOARDING_STATUSBAR_COLOR : APP_STATUSBAR_COLOR;
+  const lightIcons = onboarding;
+  const style = lightIcons ? 'DARK' : 'LIGHT';
+
+  document.body.classList.toggle('onboarding-chrome-active', onboarding);
+  setThemeColor(color);
+  setNativeChrome(color, lightIcons);
+
+  try {
+    const sb = window.Capacitor?.Plugins?.StatusBar;
+    if (!sb) return;
+    sb.setOverlaysWebView({ overlay: true });
+    sb.setBackgroundColor({ color });
+    sb.setStyle({ style });
+  } catch (_err) {
+    // no-op
+  }
+}
+
+function scheduleAppChromeSync(path) {
+  [0, 120, 320, 800].forEach((delay) => {
+    setTimeout(() => applyAppChromeForPath(path), delay);
+  });
+}
+
 function installIonContentDimensionGuard() {
   customElements.whenDefined('ion-content').then(() => {
     const IonContent = customElements.get('ion-content');
@@ -59,6 +114,7 @@ routerReady.then((router) => {
   ensureInitialHash();
 
   const hashPath = window.location.hash.replace('#', '') || '/';
+  scheduleAppChromeSync(hashPath);
   if (onboardingDone() && (hashPath === '/' || hashPath === '/onboarding')) {
     goToHome('root');
   }
@@ -74,6 +130,7 @@ routerReady.then((router) => {
   router.addEventListener('ionRouteWillChange', (event) => {
     const to = event.detail.to;
     if (!to) return;
+    scheduleAppChromeSync(to);
     if (onboardingDone() && (to === '/' || to === '/onboarding')) {
       goToHome('root');
       return;
@@ -95,6 +152,12 @@ routerReady.then((router) => {
     }
   });
 
+  router.addEventListener('ionRouteDidChange', (event) => {
+    const to = event.detail.to;
+    if (!to) return;
+    scheduleAppChromeSync(to);
+  });
+
   setupSecretDiagnostics(router);
   setupNotificationsModal();
   setupRewardBadgeInfoToasts();
@@ -109,6 +172,11 @@ routerReady.then((router) => {
       }
     }, 400);
   }
+});
+
+document.addEventListener('deviceready', () => {
+  const path = window.location.hash.replace('#', '') || '/';
+  scheduleAppChromeSync(path);
 });
 
 function setupSecretDiagnostics(router) {

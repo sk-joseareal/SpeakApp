@@ -23,11 +23,11 @@ class PageChat extends HTMLElement {
         <div class="page-shell">
           <div class="chat-card-header">
             <div>
-              <div class="chat-mode-toggle" id="chat-mode-toggle" hidden>
-                <button type="button" class="chat-mode-btn is-active" data-mode="public">${uiCopy.modePublic}</button>
-                <button type="button" class="chat-mode-btn" data-mode="private">${uiCopy.modePrivate}</button>
-                <button type="button" class="chat-mode-btn" data-mode="coach">${uiCopy.modeCoach}</button>
-                <button type="button" class="chat-mode-btn" data-mode="catbot">${uiCopy.modeCatbot}</button>
+              <div class="chat-mode-toggle profile-segmented-tabs" id="chat-mode-toggle" hidden>
+                <button type="button" class="chat-mode-btn profile-segmented-btn active" data-mode="public">${uiCopy.modePublic}</button>
+                <button type="button" class="chat-mode-btn profile-segmented-btn" data-mode="private">${uiCopy.modePrivate}</button>
+                <button type="button" class="chat-mode-btn profile-segmented-btn" data-mode="coach">${uiCopy.modeCoach}</button>
+                <button type="button" class="chat-mode-btn profile-segmented-btn" data-mode="catbot">${uiCopy.modeCatbot}</button>
               </div>
               <p class="muted chat-coach-subtitle" id="chat-coach-subtitle">${uiCopy.coachCatbotSubtitle}</p>
             </div>
@@ -5531,7 +5531,7 @@ class PageChat extends HTMLElement {
       if (!modeToggle) return;
       const activeMode = getVisibleChatMode();
       modeToggle.querySelectorAll('.chat-mode-btn').forEach((btn) => {
-        btn.classList.toggle('is-active', btn.dataset.mode === activeMode);
+        btn.classList.toggle('active', btn.dataset.mode === activeMode);
       });
       const catbotBtn = modeToggle.querySelector('[data-mode="catbot"]');
       if (catbotBtn) {

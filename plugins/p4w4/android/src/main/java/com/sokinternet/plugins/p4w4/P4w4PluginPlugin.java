@@ -199,6 +199,45 @@ public class P4w4PluginPlugin extends Plugin {
     }
 
     @PluginMethod
+    public void setNativeChrome(PluginCall call) {
+        String backgroundColor = call.getString("backgroundColor");
+        boolean lightIcons = call.getBoolean("lightIcons", false);
+        if (backgroundColor == null || backgroundColor.trim().isEmpty()) {
+            call.reject("Color de fondo invalido.");
+            return;
+        }
+
+        getActivity().runOnUiThread(() -> {
+            try {
+                int color = Color.parseColor(backgroundColor);
+                android.view.Window window = getActivity().getWindow();
+                window.setStatusBarColor(color);
+                window.getDecorView().setBackgroundColor(color);
+
+                View webView = bridge.getWebView();
+                if (webView != null) {
+                    webView.setBackgroundColor(Color.TRANSPARENT);
+                }
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    int flags = window.getDecorView().getSystemUiVisibility();
+                    if (lightIcons) {
+                        flags &= ~View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
+                    } else {
+                        flags |= View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
+                    }
+                    window.getDecorView().setSystemUiVisibility(flags);
+                }
+
+                Log.i("P4w4Plugin", ">#P4w4Plugin#> setNativeChrome: bg=" + backgroundColor + " lightIcons=" + lightIcons);
+                call.resolve();
+            } catch (IllegalArgumentException error) {
+                call.reject("Color de fondo invalido.", error);
+            }
+        });
+    }
+
+    @PluginMethod
     public void detectLanguage(PluginCall call) {
         String rawText = call.getString("text", "");
         String text = rawText == null ? "" : rawText.trim();

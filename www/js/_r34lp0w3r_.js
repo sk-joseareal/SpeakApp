@@ -2255,8 +2255,6 @@ document.addEventListener('deviceready', function () {
       const sb = window.Capacitor.Plugins?.StatusBar;
       if (sb) {
         sb.setOverlaysWebView({ overlay: true });
-        sb.setBackgroundColor({ color: '#f4f6fb' }); // fondo claro de la app
-        sb.setStyle({ style: 'LIGHT' }); // iconos oscuros
         sb.getInfo()
           .then((info) => console.log('>#[SB] info', info))
           .catch(() => {});

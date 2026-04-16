@@ -685,7 +685,7 @@ class PageProfile extends HTMLElement {
           (Array.isArray(lesson && lesson.tests) ? lesson.tests : []).forEach((test) => {
             const testKey = getReferenceTestKey('lesson', test);
             const reviewState = getReferenceTestReviewState(test, testKey);
-            if (!reviewState || reviewState.tone !== reviewTone) return;
+            if (!reviewState) return;
             reviewTestEntries.push({
               type: 'reference-test',
               tone: reviewState.tone,
@@ -706,7 +706,7 @@ class PageProfile extends HTMLElement {
           if (!firstLessonCode) return;
           const testKey = getReferenceTestKey('unit', test);
           const reviewState = getReferenceTestReviewState(test, testKey);
-          if (!reviewState || reviewState.tone !== reviewTone) return;
+          if (!reviewState) return;
           reviewTestEntries.push({
             type: 'reference-test',
             tone: reviewState.tone,
@@ -731,11 +731,10 @@ class PageProfile extends HTMLElement {
         const percent = entry && typeof entry.percent === 'number' ? entry.percent : null;
         if (percent === null) return;
         const tone = getScoreTone(percent);
-        if (tone !== reviewTone) return;
         const key = word.toLowerCase();
         const existing = reviewWordsMap.get(key);
         if (!existing || percent < existing.percent) {
-          reviewWordsMap.set(key, { word, percent, sessionId });
+          reviewWordsMap.set(key, { word, percent, tone, sessionId });
         }
       });
     });
@@ -748,7 +747,6 @@ class PageProfile extends HTMLElement {
       const percent = entry && typeof entry.percent === 'number' ? entry.percent : null;
       if (percent === null) return;
       const tone = getScoreTone(percent);
-      if (tone !== reviewTone) return;
       const sessionInfo = sessionLookup.get(sessionId);
       const phrase =
         sessionInfo &&
@@ -758,7 +756,7 @@ class PageProfile extends HTMLElement {
           ? sessionInfo.session.speak.sentence.sentence
           : '';
       if (!phrase) return;
-      reviewPhraseEntries.push({ phrase, percent, sessionId });
+      reviewPhraseEntries.push({ phrase, percent, tone, sessionId });
     });
     reviewPhraseEntries.sort((a, b) => a.phrase.localeCompare(b.phrase));
 
@@ -880,43 +878,23 @@ class PageProfile extends HTMLElement {
     const profileNoteError = this.profileSaveError === true;
     const appMetaLabel = formatAppMeta(window.appMeta);
 
-    const reviewFiltersMarkup = `
-      <div class="review-filters">
-        <button class="review-filter-btn bad ${reviewTone === 'bad' ? 'active' : ''}" type="button" data-tone="bad">
-          <span class="review-dot bad"></span>
-          <span>${escapeHtml(profileCopy.reviewRed || 'Red')}</span>
-        </button>
-        <button class="review-filter-btn okay ${reviewTone === 'okay' ? 'active' : ''}" type="button" data-tone="okay">
-          <span class="review-dot okay"></span>
-          <span>${escapeHtml(profileCopy.reviewYellow || 'Yellow')}</span>
-        </button>
-      </div>
-    `;
-
     const reviewWordsMarkup = reviewWordEntries.length
       ? `<div class="review-words">${reviewWordEntries
           .map(
             (entry) =>
-              `<button class="review-word review-entry ${reviewTone}" type="button" data-type="word" data-word="${escapeHtml(entry.word)}" data-session-id="${escapeHtml(entry.sessionId)}">${escapeHtml(entry.word)}</button>`
+              `<button class="review-word review-entry ${escapeHtml(entry.tone)}" type="button" data-type="word" data-word="${escapeHtml(entry.word)}" data-session-id="${escapeHtml(entry.sessionId)}">${escapeHtml(entry.word)}</button>`
           )
           .join('')}</div>`
-      : `<div class="review-empty">${escapeHtml(
-          String(profileCopy.reviewWordsEmpty || 'No words in {tone}.').replace('{tone}', reviewToneLabel)
-        )}</div>`;
+      : `<div class="review-empty">${escapeHtml(profileCopy.reviewWordsEmpty || 'No words to review.')}</div>`;
 
     const reviewPhrasesMarkup = reviewPhraseEntries.length
       ? `<div class="review-phrases">${reviewPhraseEntries
           .map(
             (entry) =>
-              `<button class="review-word review-phrase review-entry ${reviewTone}" type="button" data-type="phrase" data-session-id="${escapeHtml(entry.sessionId)}">${escapeHtml(entry.phrase)}</button>`
+              `<button class="review-word review-phrase review-entry ${escapeHtml(entry.tone)}" type="button" data-type="phrase" data-session-id="${escapeHtml(entry.sessionId)}">${escapeHtml(entry.phrase)}</button>`
           )
           .join('')}</div>`
-      : `<div class="review-empty">${escapeHtml(
-          String(profileCopy.reviewPhrasesEmpty || 'No phrases in {tone}.').replace(
-            '{tone}',
-            reviewToneLabel
-          )
-        )}</div>`;
+      : `<div class="review-empty">${escapeHtml(profileCopy.reviewPhrasesEmpty || 'No phrases to review.')}</div>`;
 
     const reviewTestsMarkup = reviewTestEntries.length
       ? `<div class="review-tests">${reviewTestEntries
@@ -937,12 +915,7 @@ class PageProfile extends HTMLElement {
             `
           )
           .join('')}</div>`
-      : `<div class="review-empty">${escapeHtml(
-          String(profileCopy.reviewTestsEmpty || 'There are no tests in {tone}.').replace(
-            '{tone}',
-            reviewToneLabel
-          )
-        )}</div>`;
+      : `<div class="review-empty">${escapeHtml(profileCopy.reviewTestsEmpty || 'No tests to review.')}</div>`;
 
     const badgeStore =
       window.r34lp0w3r && window.r34lp0w3r.speakBadges && typeof window.r34lp0w3r.speakBadges === 'object'
@@ -1144,7 +1117,6 @@ class PageProfile extends HTMLElement {
                   </button>
                   <button class="profile-segmented-btn ${reviewActive ? 'active' : ''}" type="button" data-tab="review" role="tab">
                     <span>${escapeHtml(profileCopy.tabReview || 'Review')}</span>
-                    ${reviewItemsCount > 0 ? `<span class="profile-segmented-count">${reviewItemsCount}</span>` : ''}
                   </button>
                 </div>
               </div>
@@ -1155,13 +1127,11 @@ class PageProfile extends HTMLElement {
                 ${progressCardsMarkup}
               </div>
               <div class="profile-progress-section">
-                <h3 class="profile-section-title">${escapeHtml(profileCopy.awardsTitle || 'Premios')}</h3>
                 <div class="profile-stats-grid">
                   ${rewardCardsMarkup}
                 </div>
               </div>
               <div class="profile-earned-badges-section">
-                <h3 class="profile-section-title">${escapeHtml(profileCopy.badgesTitle || 'Badges')}</h3>
                 <div class="profile-earned-badges" id="profile-earned-badges">
                   ${earnedBadgesMarkup}
                 </div>
@@ -1184,10 +1154,10 @@ class PageProfile extends HTMLElement {
                     >
                   </div>
                   <div class="profile-avatar-actions">
-                    <ion-button size="small" shape="round" id="profile-avatar-upload" style="text-transform:none">${escapeHtml(
+                    <ion-button shape="round" id="profile-avatar-upload" style="text-transform:none">${escapeHtml(
                       profileCopy.changePhoto || 'Change photo'
                     )}</ion-button>
-                    <ion-button size="small" shape="round" color="danger" id="profile-avatar-delete" fill="solid" style="text-transform:none">${escapeHtml(
+                    <ion-button shape="round" color="danger" id="profile-avatar-delete" fill="solid" style="text-transform:none">${escapeHtml(
                       profileCopy.deletePhoto || 'Delete'
                     )}</ion-button>
                   </div>
@@ -1329,44 +1299,40 @@ class PageProfile extends HTMLElement {
               </div>
             </div>
             <div class="profile-tab-panel" ${reviewActive && !settingsOpen ? '' : 'hidden'}>
-              ${reviewFiltersMarkup}
               <div class="profile-review-section">
-                <h3 class="profile-section-title">${escapeHtml(
-                  profileCopy.reviewWordsTitle || 'Words to review'
-                )}</h3>
                 <div class="card card--plain profile-review-block">
+                  <h3 class="profile-section-title profile-section-title--with-icon">
+                    <span class="profile-section-icon profile-section-icon--red"><ion-icon name="volume-high-outline"></ion-icon></span>
+                    ${escapeHtml(profileCopy.reviewWordsTitle || 'Words to review')}
+                  </h3>
                   <div class="profile-review-content" data-review-collapse data-collapsed-height="82">
                     ${reviewWordsMarkup}
                   </div>
-                  <button class="profile-review-more" type="button" hidden>${escapeHtml(
-                    profileCopy.reviewMore || 'More'
-                  )}</button>
+                  <button class="profile-review-more" type="button">+</button>
                 </div>
               </div>
               <div class="profile-review-section">
-                <h3 class="profile-section-title">${escapeHtml(
-                  profileCopy.reviewPhrasesTitle || 'Phrases to review'
-                )}</h3>
                 <div class="card card--plain profile-review-block">
+                  <h3 class="profile-section-title profile-section-title--with-icon">
+                    <span class="profile-section-icon profile-section-icon--blue">"</span>
+                    ${escapeHtml(profileCopy.reviewPhrasesTitle || 'Phrases to review')}
+                  </h3>
                   <div class="profile-review-content" data-review-collapse data-collapsed-height="82">
                     ${reviewPhrasesMarkup}
                   </div>
-                  <button class="profile-review-more" type="button" hidden>${escapeHtml(
-                    profileCopy.reviewMore || 'More'
-                  )}</button>
+                  <button class="profile-review-more" type="button">+</button>
                 </div>
               </div>
               <div class="profile-review-section">
-                <h3 class="profile-section-title">${escapeHtml(
-                  profileCopy.reviewTestsTitle || 'Tests to review'
-                )}</h3>
                 <div class="card card--plain profile-review-block">
+                  <h3 class="profile-section-title profile-section-title--with-icon">
+                    <span class="profile-section-icon profile-section-icon--green"><ion-icon name="document-text-outline"></ion-icon></span>
+                    ${escapeHtml(profileCopy.reviewTestsTitle || 'Tests to review')}
+                  </h3>
                   <div class="profile-review-content" data-review-collapse data-collapsed-height="150">
                     ${reviewTestsMarkup}
                   </div>
-                  <button class="profile-review-more" type="button" hidden>${escapeHtml(
-                    profileCopy.reviewMore || 'More'
-                  )}</button>
+                  <button class="profile-review-more" type="button">+</button>
                 </div>
               </div>
             </div>
@@ -2122,17 +2088,6 @@ class PageProfile extends HTMLElement {
 
     updateSaveState();
 
-    const filterButtons = Array.from(this.querySelectorAll('.review-filter-btn'));
-    filterButtons.forEach((button) => {
-      button.addEventListener('click', () => {
-        const tone = button.dataset.tone;
-        if (!tone || tone === this.reviewTone) return;
-        this.reviewTone = tone === 'okay' ? 'okay' : 'bad';
-        if (!window.r34lp0w3r) window.r34lp0w3r = {};
-        window.r34lp0w3r.profileReviewTone = this.reviewTone;
-        this.render();
-      });
-    });
 
     const reviewCollapseBlocks = Array.from(this.querySelectorAll('[data-review-collapse]'));
     reviewCollapseBlocks.forEach((contentEl) => {
@@ -2141,24 +2096,18 @@ class PageProfile extends HTMLElement {
       if (!container || !toggleBtn) return;
       const collapsedHeight = Math.max(0, Number(contentEl.dataset.collapsedHeight) || 0);
       const applyCollapseState = () => {
-        const shouldCollapse = collapsedHeight > 0 && contentEl.scrollHeight > collapsedHeight + 4;
+        const shouldCollapse = collapsedHeight > 0 && contentEl.scrollHeight > collapsedHeight + 60;
         container.classList.toggle('is-collapsible', shouldCollapse);
         if (!shouldCollapse) {
           container.classList.remove('is-expanded');
-          toggleBtn.hidden = true;
           return;
         }
-        toggleBtn.hidden = false;
-        toggleBtn.textContent = container.classList.contains('is-expanded')
-          ? profileCopy.reviewLess || 'Less'
-          : profileCopy.reviewMore || 'More';
+        toggleBtn.textContent = container.classList.contains('is-expanded') ? '−' : '+';
       };
       requestAnimationFrame(applyCollapseState);
       toggleBtn.addEventListener('click', () => {
         container.classList.toggle('is-expanded');
-        toggleBtn.textContent = container.classList.contains('is-expanded')
-          ? profileCopy.reviewLess || 'Less'
-          : profileCopy.reviewMore || 'More';
+        toggleBtn.textContent = container.classList.contains('is-expanded') ? '−' : '+';
       });
     });
 

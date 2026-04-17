@@ -1,12 +1,11 @@
 import UIKit
 import Capacitor
+import AVFoundation
+import MediaPlayer
 
 import Firebase
 import UserNotifications
 import FirebaseMessaging
-
-import UIKit
-import Capacitor
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -14,16 +13,89 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
     private let launchBlue = UIColor(red: 0.1764705882, green: 0.4274509804, blue: 0.9411764706, alpha: 1.0)
 
+    private func applyLaunchChrome() {
+        self.window?.backgroundColor = launchBlue
+        if let bridgeVC = self.window?.rootViewController as? CAPBridgeViewController {
+            bridgeVC.view.backgroundColor = launchBlue
+            bridgeVC.webView?.superview?.backgroundColor = launchBlue
+            bridgeVC.webView?.backgroundColor = .clear
+            bridgeVC.webView?.isOpaque = false
+        }
+    }
+
+    private func configureAmbientAudioSession(active: Bool) {
+        let session = AVAudioSession.sharedInstance()
+        do {
+            try session.setCategory(.ambient, mode: .default, options: [.mixWithOthers])
+            try session.setActive(active)
+            print(">#N00#> Audio session ambient active=\(active)")
+        } catch {
+            print(">#N04#> Error configurando audio session ambient active=\(active): \(error)")
+        }
+    }
+
     private func currentApnsEnvironment() -> String {
         let value = Bundle.main.object(forInfoDictionaryKey: "SpeakAPNSEnvironment") as? String
         return (value ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func clearNowPlayingState() {
+        MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
+        UIApplication.shared.endReceivingRemoteControlEvents()
+    }
+
+    private func stopWebViewMediaPlayback(reason: String) {
+        let js = """
+        (() => {
+          try {
+            document.querySelectorAll('audio,video').forEach((el) => {
+              try { el.pause(); } catch (_) {}
+              try { el.currentTime = 0; } catch (_) {}
+              try { el.srcObject = null; } catch (_) {}
+              try { el.removeAttribute('src'); } catch (_) {}
+              try { el.load(); } catch (_) {}
+            });
+            if (navigator.mediaSession) {
+              try { navigator.mediaSession.metadata = null; } catch (_) {}
+              try { navigator.mediaSession.playbackState = 'none'; } catch (_) {}
+              try { navigator.mediaSession.setActionHandler('play', null); } catch (_) {}
+              try { navigator.mediaSession.setActionHandler('pause', null); } catch (_) {}
+              try { navigator.mediaSession.setActionHandler('seekbackward', null); } catch (_) {}
+              try { navigator.mediaSession.setActionHandler('seekforward', null); } catch (_) {}
+              try { navigator.mediaSession.setActionHandler('previoustrack', null); } catch (_) {}
+              try { navigator.mediaSession.setActionHandler('nexttrack', null); } catch (_) {}
+              try { navigator.mediaSession.setActionHandler('stop', null); } catch (_) {}
+            }
+            return true;
+          } catch (err) {
+            return String(err && err.message ? err.message : err);
+          }
+        })();
+        """
+        guard let webView = (self.window?.rootViewController as? CAPBridgeViewController)?.webView else {
+            print(">#N02#> No se pudo acceder al webView para detener media (\(reason)).")
+            return
+        }
+        webView.evaluateJavaScript(js) { result, error in
+            if let error = error {
+                print(">#N04#> Error deteniendo media web (\(reason)): \(error)")
+                return
+            }
+            print(">#N00#> Media web detenida (\(reason)): \(String(describing: result))")
+        }
+    }
+
+    private func suspendWebAudioSideEffects(reason: String) {
+        stopWebViewMediaPlayback(reason: reason)
+        clearNowPlayingState()
     }
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch.
         
         // Mantiene el azul del splash también en la ventana nativa hasta poco después de ocultarlo.
-        self.window?.backgroundColor = launchBlue
+        applyLaunchChrome()
+        configureAmbientAudioSession(active: true)
 
         print(">#N00#> AppDelegate: Adaptando el webView a la Status Bar.")
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.01) {
@@ -48,21 +120,26 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     }
 
     func applicationWillResignActive(_ application: UIApplication) {
-        // Sent when the application is about to move from active to inactive state. This can occur for certain types of temporary interruptions (such as an incoming phone call or SMS message) or when the user quits the application and it begins the transition to the background state.
-        // Use this method to pause ongoing tasks, disable timers, and invalidate graphics rendering callbacks. Games should use this method to pause the game.
+        applyLaunchChrome()
+        configureAmbientAudioSession(active: false)
+        suspendWebAudioSideEffects(reason: "willResignActive")
     }
 
     func applicationDidEnterBackground(_ application: UIApplication) {
-        // Use this method to release shared resources, save user data, invalidate timers, and store enough application state information to restore your application to its current state in case it is terminated later.
-        // If your application supports background execution, this method is called instead of applicationWillTerminate: when the user quits.
+        applyLaunchChrome()
+        configureAmbientAudioSession(active: false)
+        suspendWebAudioSideEffects(reason: "didEnterBackground")
     }
 
     func applicationWillEnterForeground(_ application: UIApplication) {
-        // Called as part of the transition from the background to the active state; here you can undo many of the changes made on entering the background.
+        // Se deja el azul sólo para la snapshot/background.
+        // El color real al reactivar lo decide JS según la ruta actual.
     }
 
     func applicationDidBecomeActive(_ application: UIApplication) {
         // Restart any tasks that were paused (or not yet started) while the application was inactive. If the application was previously in the background, optionally refresh the user interface.
+        configureAmbientAudioSession(active: true)
+        clearNowPlayingState()
     }
 
     func applicationWillTerminate(_ application: UIApplication) {

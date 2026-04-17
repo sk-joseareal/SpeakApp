@@ -3,6 +3,7 @@ import Capacitor
 import UIKit
 import Speech
 import AudioToolbox
+import AVFoundation
 import NaturalLanguage
 
 /**
@@ -26,15 +27,23 @@ public class P4w4PluginPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "restartApp", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "transcribeAudio", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "resetBadgeCount", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "playNotificationBell", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "playNotificationBell", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "playUiSfx", returnType: CAPPluginReturnPromise)
     ]
     private let implementation = P4w4Plugin()
+    private static var uiSfxPlayers: [String: AVAudioPlayer] = [:]
+    private var uiSfxObserversRegistered = false
 
     @objc func echo(_ call: CAPPluginCall) {
         let value = call.getString("value") ?? ""
         call.resolve([
             "value": implementation.echo(value)
         ])
+    }
+
+    public override func load() {
+        super.load()
+        registerUiSfxLifecycleObserversIfNeeded()
     }
     
 
@@ -162,6 +171,82 @@ public class P4w4PluginPlugin: CAPPlugin, CAPBridgedPlugin {
 
             print(">#P4w4Plugin#> setNativeChrome: bg=\(rawColor) lightIcons=\(lightIcons)")
             call.resolve()
+        }
+    }
+
+    private func resolveAssetUrl(_ assetPath: String) -> URL? {
+        let normalized = assetPath.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !normalized.isEmpty else { return nil }
+        let bundlePath = normalized.hasPrefix("public/") ? normalized : "public/\(normalized)"
+        let candidate = Bundle.main.bundleURL.appendingPathComponent(bundlePath)
+        if FileManager.default.fileExists(atPath: candidate.path) {
+            return candidate
+        }
+        return nil
+    }
+
+    @objc public static func stopAllUiSfxPlayback() {
+        uiSfxPlayers.values.forEach { player in
+            player.stop()
+            player.currentTime = 0
+        }
+        uiSfxPlayers.removeAll()
+    }
+
+    private func registerUiSfxLifecycleObserversIfNeeded() {
+        if uiSfxObserversRegistered { return }
+        uiSfxObserversRegistered = true
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleUiSfxBackgrounding),
+            name: UIApplication.willResignActiveNotification,
+            object: nil
+        )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleUiSfxBackgrounding),
+            name: UIApplication.didEnterBackgroundNotification,
+            object: nil
+        )
+    }
+
+    @objc private func handleUiSfxBackgrounding() {
+        Self.stopAllUiSfxPlayback()
+    }
+
+    @objc func playUiSfx(_ call: CAPPluginCall) {
+        guard let assetPath = call.getString("assetPath"),
+              let assetUrl = resolveAssetUrl(assetPath) else {
+            call.resolve([
+                "started": false,
+                "mode": "ios-native"
+            ])
+            return
+        }
+
+        let volume = max(0, min(1, Float(call.getDouble("volume") ?? 1)))
+
+        DispatchQueue.main.async {
+            do {
+                Self.stopAllUiSfxPlayback()
+                let player = try AVAudioPlayer(contentsOf: assetUrl)
+                player.volume = volume
+                player.prepareToPlay()
+                let started = player.play()
+                if started {
+                    Self.uiSfxPlayers[assetPath] = player
+                }
+                call.resolve([
+                    "started": started,
+                    "mode": "ios-native"
+                ])
+            } catch {
+                print(">#P4w4Plugin#> playUiSfx error: \(error)")
+                call.resolve([
+                    "started": false,
+                    "mode": "ios-native"
+                ])
+            }
         }
     }
 

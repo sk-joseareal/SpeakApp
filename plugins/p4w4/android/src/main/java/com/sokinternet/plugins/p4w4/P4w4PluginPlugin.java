@@ -27,6 +27,8 @@ import android.os.VibratorManager;
 import android.webkit.WebView;
 
 import com.getcapacitor.Bridge;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsControllerCompat;
 
 import android.os.Handler;
 import android.os.Looper;
@@ -62,6 +64,24 @@ public class P4w4PluginPlugin extends Plugin {
     private static final Object VOSK_LOCK = new Object();
     private static Model voskModel = null;
     private static String voskModelPath = null;
+
+    private void applyStatusBarIcons(android.view.Window window, boolean lightIcons) {
+        WindowInsetsControllerCompat controller =
+            WindowCompat.getInsetsController(window, window.getDecorView());
+        if (controller != null) {
+            controller.setAppearanceLightStatusBars(!lightIcons);
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            int flags = window.getDecorView().getSystemUiVisibility();
+            if (lightIcons) {
+                flags &= ~View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
+            } else {
+                flags |= View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
+            }
+            window.getDecorView().setSystemUiVisibility(flags);
+        }
+    }
 
     @PluginMethod
     public void echo(PluginCall call) {
@@ -218,16 +238,7 @@ public class P4w4PluginPlugin extends Plugin {
                 if (webView != null) {
                     webView.setBackgroundColor(Color.TRANSPARENT);
                 }
-
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                    int flags = window.getDecorView().getSystemUiVisibility();
-                    if (lightIcons) {
-                        flags &= ~View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
-                    } else {
-                        flags |= View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
-                    }
-                    window.getDecorView().setSystemUiVisibility(flags);
-                }
+                applyStatusBarIcons(window, lightIcons);
 
                 Log.i("P4w4Plugin", ">#P4w4Plugin#> setNativeChrome: bg=" + backgroundColor + " lightIcons=" + lightIcons);
                 call.resolve();
@@ -235,6 +246,14 @@ public class P4w4PluginPlugin extends Plugin {
                 call.reject("Color de fondo invalido.", error);
             }
         });
+    }
+
+    @PluginMethod
+    public void playUiSfx(PluginCall call) {
+        JSObject ret = new JSObject();
+        ret.put("started", false);
+        ret.put("mode", "android");
+        call.resolve(ret);
     }
 
     @PluginMethod

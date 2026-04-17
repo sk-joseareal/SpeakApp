@@ -35,4 +35,8 @@ export class P4w4PluginWeb extends WebPlugin implements P4w4PluginPlugin {
   async playNotificationBell(_options?: { soundId?: number; durationMs?: number; vibrate?: boolean }): Promise<{ started?: boolean; stream?: number; vibrated?: boolean; mode?: string } | void> {
     return;
   }
+
+  async playUiSfx(_options: { assetPath: string; volume?: number }): Promise<{ started?: boolean; mode?: string } | void> {
+    return { started: false, mode: 'web' };
+  }
 }

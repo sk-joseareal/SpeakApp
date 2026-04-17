@@ -276,12 +276,12 @@ class PageDiagnostics extends HTMLElement {
     this.innerHTML = `
       <ion-header translucent="true">
         <ion-toolbar>
-          <ion-buttons slot="start">
+          <ion-title>Diagnósticos</ion-title>
+          <ion-buttons slot="end">
             <ion-button fill="clear" id="diag-back">
-              <ion-icon slot="icon-only" name="chevron-back"></ion-icon>
+              <ion-icon slot="icon-only" name="close"></ion-icon>
             </ion-button>
           </ion-buttons>
-          <ion-title>Diagnósticos</ion-title>
         </ion-toolbar>
       </ion-header>
       <ion-content fullscreen>
@@ -2510,26 +2510,29 @@ class PageDiagnostics extends HTMLElement {
         updateContentSourcePanel();
       });
     const initialFreeRideAudioMode = getStoredFreeRideAudioMode();
-    updateFreeRideAudioModeUi(setFreeRideAudioMode(initialFreeRideAudioMode));
+    updateFreeRideAudioModeUi(initialFreeRideAudioMode);
     const initialFreeRideAdvancedEnabled = getStoredFreeRideAdvancedEnabled();
-    updateFreeRideAdvancedUi(setFreeRideAdvancedEnabled(initialFreeRideAdvancedEnabled));
+    updateFreeRideAdvancedUi(initialFreeRideAdvancedEnabled);
     const initialFreeRideWordTapAudioEnabled = getStoredFreeRideWordTapAudioEnabled();
-    updateFreeRideWordTapAudioUi(setFreeRideWordTapAudioEnabled(initialFreeRideWordTapAudioEnabled));
+    updateFreeRideWordTapAudioUi(initialFreeRideWordTapAudioEnabled);
     const initialSpeakSessionPercentagesVisible = getStoredSpeakSessionPercentagesVisible();
-    updateSpeakSessionPercentagesUi(setSpeakSessionPercentagesVisible(initialSpeakSessionPercentagesVisible));
+    updateSpeakSessionPercentagesUi(initialSpeakSessionPercentagesVisible);
     const initialSpeakPronunciationAvatarMode = getStoredSpeakPronunciationAvatarMode();
-    updateSpeakPronunciationAvatarUi(
-      setSpeakPronunciationAvatarMode(initialSpeakPronunciationAvatarMode)
-    );
+    updateSpeakPronunciationAvatarUi(initialSpeakPronunciationAvatarMode);
     TAB_VISIBILITY_ORDER.forEach((tab) => {
-      updateTabVisibilityUi(tab, setTabVisibility(tab, getStoredTabVisibility(tab)));
+      updateTabVisibilityUi(tab, getStoredTabVisibility(tab));
     });
     const initialChatCommunityEnabled = getStoredChatCatbotEnabled();
-    updateChatCommunityUi(setChatCatbotEnabled(initialChatCommunityEnabled));
+    updateChatCommunityUi(initialChatCommunityEnabled);
     const initialChatChatbotEnabled = getStoredChatChatbotEnabled();
-    updateChatChatbotUi(setChatChatbotEnabled(initialChatChatbotEnabled));
+    updateChatChatbotUi(initialChatChatbotEnabled);
 
     this.querySelector('#diag-back')?.addEventListener('click', () => {
+      const modal = this.closest('ion-modal');
+      if (modal && typeof modal.dismiss === 'function') {
+        modal.dismiss().catch(() => {});
+        return;
+      }
       ensureInitialHash();
       window.location.hash = '#/tabs';
     });

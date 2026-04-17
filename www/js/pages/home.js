@@ -1144,20 +1144,17 @@ class PageHome extends HTMLElement {
       this.expandedRouteId = activeRoute.id;
       try { localStorage.setItem(HOME_EXPANDED_ROUTE_KEY, this.expandedRouteId); } catch {}
     }
-    const expandedRoute = routes.find((item) => item.id === this.expandedRouteId) || activeRoute;
-    const expandedRouteIndex = routes.findIndex((item) => item.id === expandedRoute.id);
-    const expandedRouteUnlocked =
-      expandedRouteIndex === 0 || routeUnlockList[expandedRouteIndex] === true;
+    const currentExpandedRoute = routes.find((item) => item.id === this.expandedRouteId) || activeRoute;
     if (
       this.expandedRouteId &&
       (!this.expandedModuleId ||
-      !expandedRoute.modules.some((item) => item.id === this.expandedModuleId))
+      !currentExpandedRoute.modules.some((item) => item.id === this.expandedModuleId))
     ) {
       this.expandedModuleId =
-        expandedRoute.id === activeRoute.id
+        currentExpandedRoute.id === activeRoute.id
           ? activeModule.id
-          : expandedRoute.modules[0]
-            ? expandedRoute.modules[0].id
+          : currentExpandedRoute.modules[0]
+            ? currentExpandedRoute.modules[0].id
             : '';
     }
 
@@ -1177,8 +1174,9 @@ class PageHome extends HTMLElement {
       });
     };
 
-    const accordionMarkup = routes
-      .map((route, routeIndex) => {
+    const buildAccordionMarkup = () =>
+      routes
+        .map((route, routeIndex) => {
         const isRouteOpen = route.id === this.expandedRouteId;
         const routeUnlocked = routeIndex === 0 || routeUnlockList[routeIndex] === true;
         const routeProgress = routeProgressList[routeIndex];
@@ -1314,8 +1312,167 @@ class PageHome extends HTMLElement {
             </div>
           </div>
         `;
-      })
-      .join('');
+        })
+        .join('');
+
+    const getExpandedJourneyState = () => {
+      const currentExpandedRoute = routes.find((item) => item.id === this.expandedRouteId) || activeRoute;
+      const currentExpandedRouteIndex = routes.findIndex((item) => item.id === currentExpandedRoute.id);
+      const currentExpandedRouteUnlocked =
+        currentExpandedRouteIndex === 0 || routeUnlockList[currentExpandedRouteIndex] === true;
+      return {
+        expandedRoute: currentExpandedRoute,
+        expandedRouteIndex: currentExpandedRouteIndex,
+        expandedRouteUnlocked: currentExpandedRouteUnlocked,
+        accordionMarkup: buildAccordionMarkup()
+      };
+    };
+
+    const syncJourneyHeader = (state) => {
+      const pillEl = this.querySelector('.journey-start-pill');
+      const startBtnEl = this.querySelector('.journey-start-btn');
+      if (pillEl) {
+        pillEl.innerHTML = `<ion-icon name="headset-outline"></ion-icon>${getRouteTitle(state.expandedRoute)}`;
+      }
+      if (startBtnEl) {
+        startBtnEl.classList.toggle('is-locked', !state.expandedRouteUnlocked);
+        startBtnEl.disabled = !state.expandedRouteUnlocked;
+      }
+    };
+
+    const bindAccordionInteractions = () => {
+      const routeButtons = Array.from(this.querySelectorAll('.route-header'));
+      routeButtons.forEach((button) => {
+        button.addEventListener('click', () => {
+          const routeId = button.dataset.routeId;
+          if (!routeId) return;
+          if (button.dataset.locked === '1') {
+            const routeIndex = routes.findIndex((item) => item.id === routeId);
+            showLockedRouteToast(routeIndex);
+            return;
+          }
+          const isClosingRoute = this.expandedRouteId === routeId;
+          this.expandedRouteId = isClosingRoute ? '' : routeId;
+          try { localStorage.setItem(HOME_EXPANDED_ROUTE_KEY, this.expandedRouteId); } catch {}
+          if (!isClosingRoute) {
+            const route = routes.find((item) => item.id === routeId);
+            if (!route) return;
+            if (!route.modules.some((item) => item.id === this.expandedModuleId)) {
+              this.expandedModuleId = route.modules[0] ? route.modules[0].id : '';
+            }
+            const routeModule =
+              route.modules.find((item) => item.id === this.expandedModuleId) ||
+              route.modules[0] ||
+              null;
+            const targetSession =
+              routeModule &&
+              Array.isArray(routeModule.sessions) &&
+              routeModule.sessions.length &&
+              route.id === activeRoute.id &&
+              routeModule.id === activeModule.id &&
+              activeSession &&
+              routeModule.sessions.some((item) => item.id === activeSession.id)
+                ? activeSession
+                : routeModule && Array.isArray(routeModule.sessions) && routeModule.sessions.length
+                  ? routeModule.sessions[0]
+                  : null;
+            this.queueRoutesCenterScroll({
+              routeId,
+              moduleId: routeModule ? routeModule.id : '',
+              sessionId: targetSession ? targetSession.id : ''
+            });
+          }
+          updateJourneyUi();
+        });
+      });
+
+      const moduleButtons = Array.from(this.querySelectorAll('.module-header'));
+      moduleButtons.forEach((button) => {
+        button.addEventListener('click', () => {
+          const routeId = button.dataset.routeId;
+          const moduleId = button.dataset.moduleId;
+          if (!routeId || !moduleId) return;
+          if (button.dataset.locked === '1') {
+            const routeIndex = routes.findIndex((item) => item.id === routeId);
+            showLockedRouteToast(routeIndex);
+            return;
+          }
+          const route = routes.find((item) => item.id === routeId);
+          const module =
+            route && Array.isArray(route.modules)
+              ? route.modules.find((item) => item.id === moduleId)
+              : null;
+          const isClosing = this.expandedModuleId === moduleId;
+          this.expandedRouteId = routeId;
+          this.expandedModuleId = isClosing ? '' : moduleId;
+          if (isClosing) {
+            this.queueRoutesCenterScroll({
+              routeId,
+              moduleId,
+              sessionId: '',
+              fallback: 'module'
+            });
+          } else {
+            const targetSession =
+              module &&
+              Array.isArray(module.sessions) &&
+              module.sessions.length &&
+              routeId === activeRoute.id &&
+              moduleId === activeModule.id &&
+              activeSession &&
+              module.sessions.some((item) => item.id === activeSession.id)
+                ? activeSession
+                : module && Array.isArray(module.sessions) && module.sessions.length
+                  ? module.sessions[0]
+                  : null;
+            this.queueRoutesCenterScroll({
+              routeId,
+              moduleId,
+              sessionId: targetSession ? targetSession.id : ''
+            });
+          }
+          updateJourneyUi();
+        });
+      });
+
+      const sessionRows = Array.from(this.querySelectorAll('.module-sessions .training-row'));
+      sessionRows.forEach((row) => {
+        row.addEventListener('click', () => {
+          if (row.dataset.locked === '1') {
+            const routeIndex = routes.findIndex((item) => item.id === row.dataset.routeId);
+            showLockedRouteToast(routeIndex);
+            return;
+          }
+          const routeId = row.dataset.routeId;
+          const moduleId = row.dataset.moduleId;
+          const sessionId = row.dataset.sessionId;
+          if (!routeId || !moduleId || !sessionId) return;
+          setSelection({
+            routeId,
+            moduleId,
+            sessionId
+          });
+          this.setPendingHomeReturnScroll(this.homeScrollTop);
+          this.cancelRoutesCentering().catch(() => {});
+          goToSpeak('forward');
+        });
+      });
+    };
+
+    const updateJourneyUi = () => {
+      const state = getExpandedJourneyState();
+      const accordionEl = this.querySelector('.journey-accordion');
+      if (accordionEl) {
+        accordionEl.innerHTML = state.accordionMarkup;
+      }
+      syncJourneyHeader(state);
+      bindAccordionInteractions();
+      this.flushRoutesCenterScroll();
+    };
+
+    const initialJourneyState = getExpandedJourneyState();
+    const { expandedRoute: renderedExpandedRoute, expandedRouteIndex, expandedRouteUnlocked, accordionMarkup } =
+      initialJourneyState;
 
     this.innerHTML = `
       ${renderAppHeader({ title: tabTitle, rewardBadgesId: 'home-reward-badges', locale: uiLocale })}
@@ -1336,10 +1493,10 @@ class PageHome extends HTMLElement {
               </p>
               <div class="journey-start-pill">
                 <ion-icon name="headset-outline"></ion-icon>
-                ${getRouteTitle(expandedRoute)}
+                ${getRouteTitle(renderedExpandedRoute)}
               </div>
             </div>
-            <button class="journey-start-btn ${expandedRouteUnlocked ? '' : 'is-locked'}" type="button">
+            <button class="journey-start-btn ${expandedRouteUnlocked ? '' : 'is-locked'}" type="button" ${expandedRouteUnlocked ? '' : 'disabled'}>
               <ion-icon name="play" class="journey-start-btn-icon"></ion-icon>
               ${copy.go}
             </button>
@@ -1354,24 +1511,25 @@ class PageHome extends HTMLElement {
 
     this.querySelector('.journey-start-btn')?.addEventListener('click', (event) => {
       event.stopPropagation();
-      if (!expandedRouteUnlocked) {
-        showLockedRouteToast(expandedRouteIndex);
+      const currentState = getExpandedJourneyState();
+      if (!currentState.expandedRouteUnlocked) {
+        showLockedRouteToast(currentState.expandedRouteIndex);
         return;
       }
       const startModule =
-        expandedRoute.modules.find((item) => item.id === this.expandedModuleId) ||
-        expandedRoute.modules[0];
+        currentState.expandedRoute.modules.find((item) => item.id === this.expandedModuleId) ||
+        currentState.expandedRoute.modules[0];
       if (!startModule || !Array.isArray(startModule.sessions) || !startModule.sessions.length) return;
       const firstSession = startModule.sessions[0];
       const startSession =
-        expandedRoute.id === activeRoute.id &&
+        currentState.expandedRoute.id === activeRoute.id &&
         startModule.id === activeModule.id &&
         activeSession &&
         startModule.sessions.some((item) => item.id === activeSession.id)
           ? activeSession
           : firstSession;
       setSelection({
-        routeId: expandedRoute.id,
+        routeId: currentState.expandedRoute.id,
         moduleId: startModule.id,
         sessionId: startSession.id
       });
@@ -1379,122 +1537,7 @@ class PageHome extends HTMLElement {
       this.cancelRoutesCentering().catch(() => {});
       goToSpeak('forward');
     });
-
-    const routeButtons = Array.from(this.querySelectorAll('.route-header'));
-    routeButtons.forEach((button) => {
-      button.addEventListener('click', () => {
-        const routeId = button.dataset.routeId;
-        if (!routeId) return;
-        if (button.dataset.locked === '1') {
-          const routeIndex = routes.findIndex((item) => item.id === routeId);
-          showLockedRouteToast(routeIndex);
-          return;
-        }
-        const isClosingRoute = this.expandedRouteId === routeId;
-        this.expandedRouteId = isClosingRoute ? '' : routeId;
-        try { localStorage.setItem(HOME_EXPANDED_ROUTE_KEY, this.expandedRouteId); } catch {}
-        if (isClosingRoute) { this.render(); return; }
-        const route = routes.find((item) => item.id === routeId);
-        if (!route) return;
-        if (!route.modules.some((item) => item.id === this.expandedModuleId)) {
-          this.expandedModuleId = route.modules[0] ? route.modules[0].id : '';
-        }
-        const routeModule =
-          route.modules.find((item) => item.id === this.expandedModuleId) ||
-          route.modules[0] ||
-          null;
-        const targetSession =
-          routeModule &&
-          Array.isArray(routeModule.sessions) &&
-          routeModule.sessions.length &&
-          route.id === activeRoute.id &&
-          routeModule.id === activeModule.id &&
-          activeSession &&
-          routeModule.sessions.some((item) => item.id === activeSession.id)
-            ? activeSession
-            : routeModule && Array.isArray(routeModule.sessions) && routeModule.sessions.length
-              ? routeModule.sessions[0]
-              : null;
-        this.queueRoutesCenterScroll({
-          routeId,
-          moduleId: routeModule ? routeModule.id : '',
-          sessionId: targetSession ? targetSession.id : ''
-        });
-        this.render();
-      });
-    });
-
-    const moduleButtons = Array.from(this.querySelectorAll('.module-header'));
-    moduleButtons.forEach((button) => {
-      button.addEventListener('click', () => {
-        const routeId = button.dataset.routeId;
-        const moduleId = button.dataset.moduleId;
-        if (!routeId || !moduleId) return;
-        if (button.dataset.locked === '1') {
-          const routeIndex = routes.findIndex((item) => item.id === routeId);
-          showLockedRouteToast(routeIndex);
-          return;
-        }
-        const route = routes.find((item) => item.id === routeId);
-        const module =
-          route && Array.isArray(route.modules)
-            ? route.modules.find((item) => item.id === moduleId)
-            : null;
-        const isClosing = this.expandedModuleId === moduleId;
-        this.expandedRouteId = routeId;
-        this.expandedModuleId = isClosing ? '' : moduleId;
-        if (isClosing) {
-          this.queueRoutesCenterScroll({
-            routeId,
-            moduleId,
-            sessionId: '',
-            fallback: 'module'
-          });
-        } else {
-          const targetSession =
-            module &&
-            Array.isArray(module.sessions) &&
-            module.sessions.length &&
-            routeId === activeRoute.id &&
-            moduleId === activeModule.id &&
-            activeSession &&
-            module.sessions.some((item) => item.id === activeSession.id)
-              ? activeSession
-              : module && Array.isArray(module.sessions) && module.sessions.length
-                ? module.sessions[0]
-                : null;
-          this.queueRoutesCenterScroll({
-            routeId,
-            moduleId,
-            sessionId: targetSession ? targetSession.id : ''
-          });
-        }
-        this.render();
-      });
-    });
-
-    const sessionRows = Array.from(this.querySelectorAll('.module-sessions .training-row'));
-    sessionRows.forEach((row) => {
-      row.addEventListener('click', () => {
-        if (row.dataset.locked === '1') {
-          const routeIndex = routes.findIndex((item) => item.id === row.dataset.routeId);
-          showLockedRouteToast(routeIndex);
-          return;
-        }
-        const routeId = row.dataset.routeId;
-        const moduleId = row.dataset.moduleId;
-        const sessionId = row.dataset.sessionId;
-        if (!routeId || !moduleId || !sessionId) return;
-        setSelection({
-          routeId,
-          moduleId,
-          sessionId
-        });
-        this.setPendingHomeReturnScroll(this.homeScrollTop);
-        this.cancelRoutesCentering().catch(() => {});
-        goToSpeak('forward');
-      });
-    });
+    bindAccordionInteractions();
 
     this.updateHeaderRewards();
     this.bindPlanHeroEvents(options);

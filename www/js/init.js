@@ -8,6 +8,8 @@ const initState = {
 window.r34lp0w3r = window.r34lp0w3r || {};
 window.r34lp0w3r.__uiSfxPlayers = window.r34lp0w3r.__uiSfxPlayers || {};
 window.r34lp0w3r.__uiSfxLastPlayedAt = window.r34lp0w3r.__uiSfxLastPlayedAt || {};
+window.r34lp0w3r.__uiSfxBufferCache = window.r34lp0w3r.__uiSfxBufferCache || {};
+window.r34lp0w3r.__uiSfxActiveSources = window.r34lp0w3r.__uiSfxActiveSources || {};
 
 const UI_SFX_SOURCES = {
   green: 'assets/sounds/green.mp3',
@@ -87,6 +89,172 @@ const normalizeUiSfxKey = (value) => {
   return '';
 };
 
+const getUiSfxAudioContext = () => {
+  try {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return null;
+    if (!window.r34lp0w3r.__uiSfxAudioContext) {
+      window.r34lp0w3r.__uiSfxAudioContext = new Ctx();
+    }
+    return window.r34lp0w3r.__uiSfxAudioContext || null;
+  } catch (_err) {
+    return null;
+  }
+};
+
+const loadUiSfxBuffer = async (normalized, src) => {
+  const cached = window.r34lp0w3r.__uiSfxBufferCache[normalized];
+  if (cached && typeof cached.then === 'function') {
+    return cached;
+  }
+  if (cached) return cached;
+
+  const ctx = getUiSfxAudioContext();
+  if (!ctx) return null;
+
+  const pending = fetch(src)
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error(`ui sfx fetch failed: ${response.status}`);
+      }
+      return response.arrayBuffer();
+    })
+    .then((buffer) => ctx.decodeAudioData(buffer.slice(0)))
+    .then((audioBuffer) => {
+      window.r34lp0w3r.__uiSfxBufferCache[normalized] = audioBuffer;
+      return audioBuffer;
+    })
+    .catch((err) => {
+      delete window.r34lp0w3r.__uiSfxBufferCache[normalized];
+      throw err;
+    });
+
+  window.r34lp0w3r.__uiSfxBufferCache[normalized] = pending;
+  return pending;
+};
+
+const stopUiSfxSource = (normalized) => {
+  const source = window.r34lp0w3r.__uiSfxActiveSources[normalized];
+  if (!source) return;
+  delete window.r34lp0w3r.__uiSfxActiveSources[normalized];
+  try {
+    source.onended = null;
+    source.stop(0);
+  } catch (_err) {
+    // no-op
+  }
+};
+
+const stopAllUiSfxPlayback = () => {
+  try {
+    const activeSources =
+      window.r34lp0w3r && window.r34lp0w3r.__uiSfxActiveSources
+        ? window.r34lp0w3r.__uiSfxActiveSources
+        : {};
+    Object.keys(activeSources).forEach((key) => {
+      stopUiSfxSource(key);
+    });
+  } catch (_err) {
+    // no-op
+  }
+
+  try {
+    const players =
+      window.r34lp0w3r && window.r34lp0w3r.__uiSfxPlayers
+        ? window.r34lp0w3r.__uiSfxPlayers
+        : {};
+    Object.values(players).forEach((player) => {
+      if (!player) return;
+      try {
+        player.pause();
+      } catch (_err) {
+        // no-op
+      }
+      try {
+        player.currentTime = 0;
+      } catch (_err) {
+        // no-op
+      }
+    });
+  } catch (_err) {
+    // no-op
+  }
+
+  clearUiSfxMediaSession();
+};
+
+const playUiSfxNatively = async (src, options = {}) => {
+  try {
+    const plugin = window.Capacitor?.Plugins?.P4w4Plugin;
+    const platform =
+      window.Capacitor && typeof window.Capacitor.getPlatform === 'function'
+        ? window.Capacitor.getPlatform()
+        : 'browser';
+    if (platform !== 'ios') return false;
+    if (!plugin || typeof plugin.playUiSfx !== 'function') return false;
+    const result = await plugin.playUiSfx({
+      assetPath: String(src || '').trim(),
+      volume: Number.isFinite(Number(options && options.volume))
+        ? Math.max(0, Math.min(1, Number(options.volume)))
+        : 1
+    });
+    return !!(result && result.started);
+  } catch (_err) {
+    return false;
+  }
+};
+
+const clearUiSfxMediaSession = () => {
+  try {
+    if (!navigator || !navigator.mediaSession) return;
+    navigator.mediaSession.metadata = null;
+    if ('playbackState' in navigator.mediaSession) {
+      navigator.mediaSession.playbackState = 'none';
+    }
+  } catch (_err) {
+    // no-op
+  }
+};
+
+const playUiSfxWithWebAudio = async (normalized, src, options = {}) => {
+  const ctx = getUiSfxAudioContext();
+  if (!ctx) return false;
+
+  if (ctx.state === 'suspended') {
+    try {
+      await ctx.resume();
+    } catch (_err) {
+      return false;
+    }
+  }
+
+  const audioBuffer = await loadUiSfxBuffer(normalized, src);
+  if (!audioBuffer) return false;
+
+  const forceRestart = options && options.forceRestart !== false;
+  if (forceRestart) {
+    stopUiSfxSource(normalized);
+  }
+
+  const volumeRaw = Number(options && options.volume);
+  const volume = Number.isFinite(volumeRaw) ? Math.max(0, Math.min(1, volumeRaw)) : 1;
+
+  const source = ctx.createBufferSource();
+  const gainNode = ctx.createGain();
+  gainNode.gain.value = volume;
+  source.buffer = audioBuffer;
+  source.connect(gainNode);
+  gainNode.connect(ctx.destination);
+  source.onended = () => {
+    if (window.r34lp0w3r.__uiSfxActiveSources[normalized] === source) {
+      delete window.r34lp0w3r.__uiSfxActiveSources[normalized];
+    }
+  };
+  window.r34lp0w3r.__uiSfxActiveSources[normalized] = source;
+  source.start(0);
+  return true;
+};
+
 window.playSpeakUiSound = async (key, options = {}) => {
   try {
     const normalized = normalizeUiSfxKey(key);
@@ -101,11 +269,24 @@ window.playSpeakUiSound = async (key, options = {}) => {
     if (now - lastAt < minGapMs) return false;
     window.r34lp0w3r.__uiSfxLastPlayedAt[normalized] = now;
 
+    const nativeOk = await playUiSfxNatively(src, options).catch(() => false);
+    if (nativeOk) return true;
+
+    const webAudioOk = await playUiSfxWithWebAudio(normalized, src, options).catch(() => false);
+    if (webAudioOk) return true;
+
     let player = window.r34lp0w3r.__uiSfxPlayers[normalized];
     if (!player) {
       player = new Audio(src);
       player.preload = 'auto';
       player.playsInline = true;
+      player.disableRemotePlayback = true;
+      player.addEventListener('ended', clearUiSfxMediaSession);
+      player.addEventListener('pause', () => {
+        if (player.ended || player.currentTime === 0) {
+          clearUiSfxMediaSession();
+        }
+      });
       window.r34lp0w3r.__uiSfxPlayers[normalized] = player;
     }
 
@@ -127,11 +308,35 @@ window.playSpeakUiSound = async (key, options = {}) => {
     if (playResult && typeof playResult.then === 'function') {
       await playResult;
     }
+    clearUiSfxMediaSession();
     return true;
   } catch (_err) {
     return false;
   }
 };
+
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    stopAllUiSfxPlayback();
+  }
+});
+
+document.addEventListener('pause', () => {
+  stopAllUiSfxPlayback();
+});
+
+try {
+  const appPlugin = window.Capacitor?.Plugins?.App;
+  if (appPlugin && typeof appPlugin.addListener === 'function') {
+    appPlugin.addListener('appStateChange', ({ isActive }) => {
+      if (!isActive) {
+        stopAllUiSfxPlayback();
+      }
+    });
+  }
+} catch (_err) {
+  // no-op
+}
 
 const isChromeTtsBrowser = () => {
   if (typeof navigator === 'undefined') return false;
@@ -1439,7 +1644,12 @@ window.syncSpeakProgress = async (opts = {}) => {
     const data = await res.json();
     if (data && data.error && /\(002\)/.test(data.error)) {
       speakSyncInFlight = false;
-      if (typeof window.setUser === 'function') window.setUser(null);
+      window.requestSessionInvalidation?.('syncSpeakProgress', {
+        endpoint,
+        status: res.status,
+        error: data.error,
+        code: '002'
+      });
       return { ok: false, forced_logout: true };
     }
     const acked = Array.isArray(data.acked_ids) ? new Set(data.acked_ids) : null;
@@ -1623,8 +1833,12 @@ const pingSessionValidity = async () => {
     if (!res.ok) return; // error de servidor o red — no tocar sesión
     const data = await res.json();
     if (data && typeof data.error === 'string' && data.error.includes('(002)')) {
-      console.warn('[session] token invalidado, forzando logout');
-      if (typeof window.setUser === 'function') window.setUser(null);
+      window.requestSessionInvalidation?.('pingSessionValidity', {
+        endpoint: summaryEndpoint,
+        status: res.status,
+        error: data.error,
+        code: '002'
+      });
     }
   } catch (err) {
     // error de red — no hacer nada

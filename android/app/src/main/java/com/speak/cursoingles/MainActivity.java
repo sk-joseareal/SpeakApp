@@ -14,6 +14,9 @@ import android.view.ViewGroup;
 import com.getcapacitor.BridgeActivity;
 import com.getcapacitor.Plugin;
 
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsControllerCompat;
+
 
 //import androidx.core.view.WindowCompat;
 //import androidx.core.view.WindowInsetsControllerCompat;
@@ -21,6 +24,24 @@ import com.getcapacitor.Plugin;
 
 
 public class MainActivity extends BridgeActivity {
+
+    private void applyStatusBarIcons(Window window, boolean lightIcons) {
+        WindowInsetsControllerCompat controller =
+            WindowCompat.getInsetsController(window, window.getDecorView());
+        if (controller != null) {
+            controller.setAppearanceLightStatusBars(!lightIcons);
+        }
+
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+            int flags = window.getDecorView().getSystemUiVisibility();
+            if (lightIcons) {
+                flags &= ~View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
+            } else {
+                flags |= View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
+            }
+            window.getDecorView().setSystemUiVisibility(flags);
+        }
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -30,8 +51,7 @@ public class MainActivity extends BridgeActivity {
         window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
         window.setStatusBarColor(Color.parseColor("#2d6df0"));
         window.getDecorView().setBackgroundColor(Color.parseColor("#2d6df0"));
-        int flags = window.getDecorView().getSystemUiVisibility();
-        window.getDecorView().setSystemUiVisibility(flags & ~View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
+        applyStatusBarIcons(window, true);
 
 
 

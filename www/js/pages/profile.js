@@ -13,6 +13,41 @@ import { goToSpeak } from '../nav.js';
 const REFERENCE_TESTS_PROGRESS_STORAGE_PREFIX = 'appv5:reference-tests-progress';
 
 class PageProfile extends HTMLElement {
+  scheduleReviewCollapseRefresh(resetExpanded = false) {
+    if (this._reviewCollapseRaf) {
+      cancelAnimationFrame(this._reviewCollapseRaf);
+      this._reviewCollapseRaf = 0;
+    }
+
+    const run = () => {
+      this._reviewCollapseRaf = 0;
+      if (!this.isConnected) return;
+      const isVisible = this.offsetParent !== null && !this.hidden;
+      if (!isVisible) return;
+
+      const reviewCollapseBlocks = Array.from(this.querySelectorAll('[data-review-collapse]'));
+      reviewCollapseBlocks.forEach((contentEl) => {
+        const container = contentEl.closest('.profile-review-block');
+        const toggleBtn = container ? container.querySelector('.profile-review-more') : null;
+        if (!container || !toggleBtn) return;
+        if (resetExpanded) {
+          container.classList.remove('is-expanded');
+        }
+        const collapsedHeight = Math.max(0, Number(contentEl.dataset.collapsedHeight) || 0);
+        const shouldCollapse = collapsedHeight > 0 && contentEl.scrollHeight > collapsedHeight + 60;
+        container.classList.toggle('is-collapsible', shouldCollapse);
+        if (!shouldCollapse) {
+          container.classList.remove('is-expanded');
+        }
+        toggleBtn.textContent = container.classList.contains('is-expanded') ? '−' : '+';
+      });
+    };
+
+    this._reviewCollapseRaf = requestAnimationFrame(() => {
+      this._reviewCollapseRaf = requestAnimationFrame(run);
+    });
+  }
+
   notifyChromeState() {
     const user = window.user;
     const loggedIn = Boolean(user && user.id !== undefined && user.id !== null);
@@ -51,9 +86,39 @@ class PageProfile extends HTMLElement {
     };
     this._storesHandler = () => this.render();
     this._localeHandler = () => this.render();
+    this._focusHandler = () => this.scheduleReviewCollapseRefresh();
+    this._visibilityHandler = () => {
+      if (!document.hidden) {
+        this.scheduleReviewCollapseRefresh(true);
+      }
+    };
+    this._tabsEl = document.querySelector('ion-tabs');
+    this._tabsDidChangeHandler = (event) => {
+      const tab = String(event && event.detail ? event.detail.tab || '' : '').trim().toLowerCase();
+      if (tab === 'tu') {
+        this.scheduleReviewCollapseRefresh(true);
+      }
+    };
+    this._tabsEl?.addEventListener('ionTabsDidChange', this._tabsDidChangeHandler);
+    this._routerEl = document.querySelector('ion-router');
+    this._routeDidChangeHandler = (event) => {
+      const to = String(event && event.detail ? event.detail.to || '' : '').trim();
+      if (to === '/tabs') {
+        this.scheduleReviewCollapseRefresh(true);
+      }
+    };
+    this._routerEl?.addEventListener('ionRouteDidChange', this._routeDidChangeHandler);
+    this._reviewReturnHandler = () => this.scheduleReviewCollapseRefresh(true);
     window.addEventListener('app:user-change', this._userHandler);
     window.addEventListener('app:speak-stores-change', this._storesHandler);
     window.addEventListener('app:locale-change', this._localeHandler);
+    window.addEventListener('app:profile-review-return', this._reviewReturnHandler);
+    window.addEventListener('focus', this._focusHandler);
+    document.addEventListener('visibilitychange', this._visibilityHandler);
+    this._reviewResizeObserver =
+      typeof ResizeObserver === 'function'
+        ? new ResizeObserver(() => this.scheduleReviewCollapseRefresh())
+        : null;
   }
 
   disconnectedCallback() {
@@ -75,8 +140,35 @@ class PageProfile extends HTMLElement {
     if (this._localeHandler) {
       window.removeEventListener('app:locale-change', this._localeHandler);
     }
+    if (this._reviewReturnHandler) {
+      window.removeEventListener('app:profile-review-return', this._reviewReturnHandler);
+    }
+    if (this._focusHandler) {
+      window.removeEventListener('focus', this._focusHandler);
+    }
+    if (this._visibilityHandler) {
+      document.removeEventListener('visibilitychange', this._visibilityHandler);
+    }
+    if (this._tabsDidChangeHandler) {
+      this._tabsEl?.removeEventListener('ionTabsDidChange', this._tabsDidChangeHandler);
+      this._tabsDidChangeHandler = null;
+      this._tabsEl = null;
+    }
+    if (this._routeDidChangeHandler) {
+      this._routerEl?.removeEventListener('ionRouteDidChange', this._routeDidChangeHandler);
+      this._routeDidChangeHandler = null;
+      this._routerEl = null;
+    }
     if (this._metaHandler) {
       window.removeEventListener('app:meta-change', this._metaHandler);
+    }
+    if (this._reviewCollapseRaf) {
+      cancelAnimationFrame(this._reviewCollapseRaf);
+      this._reviewCollapseRaf = 0;
+    }
+    if (this._reviewResizeObserver) {
+      this._reviewResizeObserver.disconnect();
+      this._reviewResizeObserver = null;
     }
   }
 
@@ -185,6 +277,8 @@ class PageProfile extends HTMLElement {
       const normalized = normalizeScale(toneScale, 'tone');
       return resolveFromScale(normalized, value, 'tone', 'bad');
     };
+
+    const isReviewableTone = (tone) => tone === 'bad' || tone === 'okay';
 
     const escapeHtml = (value) =>
       String(value || '')
@@ -686,6 +780,7 @@ class PageProfile extends HTMLElement {
             const testKey = getReferenceTestKey('lesson', test);
             const reviewState = getReferenceTestReviewState(test, testKey);
             if (!reviewState) return;
+            if (!isReviewableTone(reviewState.tone)) return;
             reviewTestEntries.push({
               type: 'reference-test',
               tone: reviewState.tone,
@@ -707,6 +802,7 @@ class PageProfile extends HTMLElement {
           const testKey = getReferenceTestKey('unit', test);
           const reviewState = getReferenceTestReviewState(test, testKey);
           if (!reviewState) return;
+          if (!isReviewableTone(reviewState.tone)) return;
           reviewTestEntries.push({
             type: 'reference-test',
             tone: reviewState.tone,
@@ -724,14 +820,39 @@ class PageProfile extends HTMLElement {
       });
     });
 
+    const validReviewWordsBySession = new Map();
+    sessionLookup.forEach((sessionInfo, sessionId) => {
+      const session = sessionInfo && sessionInfo.session ? sessionInfo.session : null;
+      const speak = session && session.speak ? session.speak : null;
+      if (!speak) return;
+      const allowed = new Set();
+      const addWord = (value) => {
+        const normalized = String(value || '').trim();
+        if (!normalized) return;
+        allowed.add(normalized.toLowerCase());
+      };
+      addWord(speak.focus);
+      addWord(speak.sound && speak.sound.expected);
+      const spellingWords =
+        speak.spelling && Array.isArray(speak.spelling.words) ? speak.spelling.words : [];
+      spellingWords.forEach(addWord);
+      addWord(speak.spelling && speak.spelling.expected);
+      validReviewWordsBySession.set(sessionId, allowed);
+    });
+
     const reviewWordsMap = new Map();
     Object.entries(wordScoresStore).forEach(([sessionId, sessionScores]) => {
       if (!sessionScores || typeof sessionScores !== 'object') return;
+      const allowedWords = validReviewWordsBySession.get(sessionId);
+      if (!allowedWords || !allowedWords.size) return;
       Object.entries(sessionScores).forEach(([word, entry]) => {
         const percent = entry && typeof entry.percent === 'number' ? entry.percent : null;
         if (percent === null) return;
+        const normalizedWord = String(word || '').trim().toLowerCase();
+        if (!normalizedWord || !allowedWords.has(normalizedWord)) return;
         const tone = getScoreTone(percent);
-        const key = word.toLowerCase();
+        if (!isReviewableTone(tone)) return;
+        const key = normalizedWord;
         const existing = reviewWordsMap.get(key);
         if (!existing || percent < existing.percent) {
           reviewWordsMap.set(key, { word, percent, tone, sessionId });
@@ -747,13 +868,14 @@ class PageProfile extends HTMLElement {
       const percent = entry && typeof entry.percent === 'number' ? entry.percent : null;
       if (percent === null) return;
       const tone = getScoreTone(percent);
+      if (!isReviewableTone(tone)) return;
       const sessionInfo = sessionLookup.get(sessionId);
       const phrase =
         sessionInfo &&
         sessionInfo.session &&
         sessionInfo.session.speak &&
         sessionInfo.session.speak.sentence
-          ? sessionInfo.session.speak.sentence.sentence
+          ? (sessionInfo.session.speak.sentence.expected || sessionInfo.session.speak.sentence.sentence || '')
           : '';
       if (!phrase) return;
       reviewPhraseEntries.push({ phrase, percent, tone, sessionId });
@@ -877,12 +999,28 @@ class PageProfile extends HTMLElement {
     const profileNote = this.profileSaveMessage || '';
     const profileNoteError = this.profileSaveError === true;
     const appMetaLabel = formatAppMeta(window.appMeta);
+    const getStoredReviewSelection = () =>
+      window.r34lp0w3r && window.r34lp0w3r.profileReviewSelected
+        ? window.r34lp0w3r.profileReviewSelected
+        : null;
+    const isSelectedReviewEntry = (type, sessionId = '', extra = {}) => {
+      const selected = getStoredReviewSelection();
+      if (!selected || selected.type !== type) return false;
+      if (String(selected.sessionId || '') !== String(sessionId || '')) return false;
+      return Object.entries(extra).every(
+        ([key, value]) => String(selected[key] || '') === String(value || '')
+      );
+    };
 
     const reviewWordsMarkup = reviewWordEntries.length
       ? `<div class="review-words">${reviewWordEntries
           .map(
             (entry) =>
-              `<button class="review-word review-entry ${escapeHtml(entry.tone)}" type="button" data-type="word" data-word="${escapeHtml(entry.word)}" data-session-id="${escapeHtml(entry.sessionId)}">${escapeHtml(entry.word)}</button>`
+              `<button class="review-word review-entry ${escapeHtml(entry.tone)} ${isSelectedReviewEntry('word', entry.sessionId, {
+                word: entry.word
+              })
+                ? 'is-selected'
+                : ''}" type="button" data-type="word" data-word="${escapeHtml(entry.word)}" data-session-id="${escapeHtml(entry.sessionId)}">${escapeHtml(entry.word)}</button>`
           )
           .join('')}</div>`
       : `<div class="review-empty">${escapeHtml(profileCopy.reviewWordsEmpty || 'No words to review.')}</div>`;
@@ -891,7 +1029,9 @@ class PageProfile extends HTMLElement {
       ? `<div class="review-phrases">${reviewPhraseEntries
           .map(
             (entry) =>
-              `<button class="review-word review-phrase review-entry ${escapeHtml(entry.tone)}" type="button" data-type="phrase" data-session-id="${escapeHtml(entry.sessionId)}">${escapeHtml(entry.phrase)}</button>`
+              `<button class="review-word review-phrase review-entry ${escapeHtml(entry.tone)} ${isSelectedReviewEntry('phrase', entry.sessionId)
+                ? 'is-selected'
+                : ''}" type="button" data-type="phrase" data-session-id="${escapeHtml(entry.sessionId)}">${escapeHtml(entry.phrase)}</button>`
           )
           .join('')}</div>`
       : `<div class="review-empty">${escapeHtml(profileCopy.reviewPhrasesEmpty || 'No phrases to review.')}</div>`;
@@ -901,7 +1041,18 @@ class PageProfile extends HTMLElement {
           .map(
             (entry) => `
               <button
-                class="review-word review-test review-entry ${escapeHtml(entry.tone)}"
+                class="review-word review-test review-entry ${escapeHtml(entry.tone)} ${isSelectedReviewEntry(
+                  'reference-test',
+                  '',
+                  {
+                    courseCode: entry.courseCode,
+                    unitCode: entry.unitCode,
+                    lessonCode: entry.lessonCode,
+                    testKey: entry.testKey
+                  }
+                )
+                  ? 'is-selected'
+                  : ''}"
                 type="button"
                 data-type="reference-test"
                 data-course-code="${escapeHtml(entry.courseCode)}"
@@ -2090,26 +2241,22 @@ class PageProfile extends HTMLElement {
 
 
     const reviewCollapseBlocks = Array.from(this.querySelectorAll('[data-review-collapse]'));
+    if (this._reviewResizeObserver) {
+      this._reviewResizeObserver.disconnect();
+    }
     reviewCollapseBlocks.forEach((contentEl) => {
       const container = contentEl.closest('.profile-review-block');
       const toggleBtn = container ? container.querySelector('.profile-review-more') : null;
       if (!container || !toggleBtn) return;
-      const collapsedHeight = Math.max(0, Number(contentEl.dataset.collapsedHeight) || 0);
-      const applyCollapseState = () => {
-        const shouldCollapse = collapsedHeight > 0 && contentEl.scrollHeight > collapsedHeight + 60;
-        container.classList.toggle('is-collapsible', shouldCollapse);
-        if (!shouldCollapse) {
-          container.classList.remove('is-expanded');
-          return;
-        }
-        toggleBtn.textContent = container.classList.contains('is-expanded') ? '−' : '+';
-      };
-      requestAnimationFrame(applyCollapseState);
       toggleBtn.addEventListener('click', () => {
         container.classList.toggle('is-expanded');
         toggleBtn.textContent = container.classList.contains('is-expanded') ? '−' : '+';
       });
+      if (this._reviewResizeObserver) {
+        this._reviewResizeObserver.observe(contentEl);
+      }
     });
+    this.scheduleReviewCollapseRefresh();
 
     const findSessionLocation = (sessionId) => {
       if (!sessionId) return null;
@@ -2128,6 +2275,13 @@ class PageProfile extends HTMLElement {
           const testKey = String(button.dataset.testKey || '').trim();
           if (!courseCode || !unitCode || !lessonCode || !testKey) return;
           if (!window.r34lp0w3r) window.r34lp0w3r = {};
+          window.r34lp0w3r.profileReviewSelected = {
+            type: 'reference-test',
+            courseCode,
+            unitCode,
+            lessonCode,
+            testKey
+          };
           window.r34lp0w3r.profileForceTab = 'review';
           window.r34lp0w3r.profileReviewTone = this.reviewTone;
           window.r34lp0w3r.referenceDeepLink = {
@@ -2156,11 +2310,20 @@ class PageProfile extends HTMLElement {
         if (!location) return;
         if (!window.r34lp0w3r) window.r34lp0w3r = {};
         if (type === 'phrase') {
+          window.r34lp0w3r.profileReviewSelected = {
+            type: 'phrase',
+            sessionId
+          };
           window.r34lp0w3r.speakStartStep = 'sentence';
           window.r34lp0w3r.speakStartWord = null;
         } else {
           const word = button.dataset.word;
           if (!word) return;
+          window.r34lp0w3r.profileReviewSelected = {
+            type: 'word',
+            sessionId,
+            word
+          };
           window.r34lp0w3r.speakStartStep = 'spelling';
           window.r34lp0w3r.speakStartWord = word;
         }

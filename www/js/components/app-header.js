@@ -11,9 +11,9 @@ export function renderAppHeader({ title, rewardBadgesId, locale }) {
   const localeLabel = String(locale || '').trim().toUpperCase();
   return `
     <ion-header translucent="true">
-      <ion-toolbar class="secret-title">
-        <ion-title class="secret-title"></ion-title>
-        <div slot="start" class="app-toolbar-title">${title}</div>
+      <ion-toolbar class="secret-title-area">
+        <ion-title></ion-title>
+        <div slot="start" class="app-toolbar-title secret-title">${title}</div>
         <div class="app-header-actions" slot="end">
           <div class="reward-badges" id="${rewardBadgesId}"></div>
           <ion-button fill="clear" size="small" class="app-notify-btn">

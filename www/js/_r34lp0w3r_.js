@@ -2299,6 +2299,8 @@ window.varGlobal = {
 const USER_STORAGE_KEY = 'appv5:user';
 const USER_SESSION_STORAGE_KEY = 'appv5:user:session';
 const PUSH_TOKEN_STORAGE_KEY = 'appv5:push-tokens';
+const SESSION_INVALIDATION_LOG_KEY = 'appv5:session-invalidation-log';
+const SESSION_INVALIDATION_CONFIRM_WINDOW_MS = 45000;
 window.user = window.user || null;
 
 const readUserFromStorage = (storage, key) => {
@@ -2378,6 +2380,113 @@ const notifyUserChange = (user) => {
   }
 };
 
+const readSessionInvalidationSessionKey = () => {
+  const user = window.user;
+  if (!user || user.id === undefined || user.id === null) return '';
+  const userId = String(user.id).trim();
+  const token = typeof user.token === 'string' ? user.token.trim() : '';
+  if (!userId) return '';
+  return `${userId}::${token}`;
+};
+
+const clearPendingSessionInvalidation = () => {
+  window.r34lp0w3r = window.r34lp0w3r || {};
+  window.r34lp0w3r.__sessionInvalidationPending = {
+    sessionKey: '',
+    firstAt: 0,
+    source: '',
+    error: ''
+  };
+};
+
+const appendSessionInvalidationLog = (entry) => {
+  try {
+    const current = JSON.parse(localStorage.getItem(SESSION_INVALIDATION_LOG_KEY) || '[]');
+    const safe = Array.isArray(current) ? current : [];
+    safe.push(entry);
+    while (safe.length > 20) safe.shift();
+    localStorage.setItem(SESSION_INVALIDATION_LOG_KEY, JSON.stringify(safe));
+  } catch (err) {
+    console.error('[session] error guardando log de invalidación', err);
+  }
+};
+
+window.requestSessionInvalidation = (source, detail = {}) => {
+  const sessionKey = readSessionInvalidationSessionKey();
+  if (!sessionKey) {
+    return { ok: false, skipped: 'no-user' };
+  }
+  window.r34lp0w3r = window.r34lp0w3r || {};
+  const pending =
+    window.r34lp0w3r.__sessionInvalidationPending &&
+    typeof window.r34lp0w3r.__sessionInvalidationPending === 'object'
+      ? window.r34lp0w3r.__sessionInvalidationPending
+      : { sessionKey: '', firstAt: 0, source: '', error: '' };
+  const now = Date.now();
+  const normalizedSource = String(source || 'unknown').trim() || 'unknown';
+  const errorText =
+    typeof detail.error === 'string'
+      ? detail.error
+      : detail.error && detail.error.message
+      ? String(detail.error.message)
+      : detail.code
+      ? String(detail.code)
+      : '';
+
+  appendSessionInvalidationLog({
+    ts: new Date(now).toISOString(),
+    source: normalizedSource,
+    endpoint: detail.endpoint ? String(detail.endpoint) : '',
+    status: detail.status !== undefined && detail.status !== null ? Number(detail.status) || 0 : 0,
+    error: errorText
+  });
+
+  const confirmed =
+    pending.sessionKey === sessionKey &&
+    pending.firstAt > 0 &&
+    now - pending.firstAt <= SESSION_INVALIDATION_CONFIRM_WINDOW_MS;
+
+  if (confirmed) {
+    console.warn('[session] invalidación confirmada, forzando logout', {
+      source: normalizedSource,
+      previousSource: pending.source,
+      endpoint: detail.endpoint || '',
+      error: errorText
+    });
+    clearPendingSessionInvalidation();
+    if (typeof window.setUser === 'function') {
+      window.setUser(null);
+    } else {
+      window.user = null;
+      notifyUserChange(null);
+    }
+    return { ok: true, loggedOut: true, confirmed: true };
+  }
+
+  window.r34lp0w3r.__sessionInvalidationPending = {
+    sessionKey,
+    firstAt: now,
+    source: normalizedSource,
+    error: errorText
+  };
+  console.warn('[session] invalidación pendiente de confirmación', {
+    source: normalizedSource,
+    endpoint: detail.endpoint || '',
+    status: detail.status || 0,
+    error: errorText
+  });
+  return { ok: true, loggedOut: false, pending: true };
+};
+
+window.getSessionInvalidationLog = () => {
+  try {
+    const current = JSON.parse(localStorage.getItem(SESSION_INVALIDATION_LOG_KEY) || '[]');
+    return Array.isArray(current) ? current : [];
+  } catch (err) {
+    return [];
+  }
+};
+
 window.setUser = (user) => {
   window.user = user || null;
   window.user_id =
@@ -2386,6 +2495,7 @@ window.setUser = (user) => {
       : null;
   ensureUserRemoteAvatar(window.user);
   writeStoredUser(window.user);
+  clearPendingSessionInvalidation();
   if (!window.user) {
     resetSpeakOnLogout();
   }
@@ -3120,8 +3230,12 @@ async function doPost( endpoint, userInfo, data ) {
         console.log(">#C02#> doPost. error in data:", JSON.stringify(result.data.error));
         result.ok = false;
         if (typeof result.data.error === 'string' && result.data.error.includes('(002)')) {
-          console.warn('[session] token invalidado en doPost, forzando logout');
-          if (typeof window.setUser === 'function') window.setUser(null);
+          window.requestSessionInvalidation?.('doPost', {
+            endpoint,
+            status: response.status,
+            error: result.data.error,
+            code: '002'
+          });
         }
       } else {
         console.log(">#C02#> doPost. success:", JSON.stringify(result));

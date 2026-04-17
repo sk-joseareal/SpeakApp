@@ -26,11 +26,9 @@ class PageNotifications extends HTMLElement {
       </ion-header>
       <ion-content fullscreen>
         <div class="page-shell notify-shell">
-          <div class="card notify-card">
-            <div class="notify-title">${this.currentCopy.recentActivity}</div>
-            <div class="notify-list" id="notify-list"></div>
-            <div class="notify-empty" id="notify-empty" hidden>${this.currentCopy.empty}</div>
-          </div>
+          <div class="notify-title">${this.currentCopy.recentActivity}</div>
+          <div class="notify-list" id="notify-list"></div>
+          <div class="notify-empty" id="notify-empty" hidden>${this.currentCopy.empty}</div>
         </div>
       </ion-content>
     `;

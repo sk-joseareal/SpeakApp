@@ -1077,8 +1077,7 @@ class PageSpeak extends HTMLElement {
     const scheduleHeroNarration = (source, delayMs = 90, options = {}) => {
       clearHeroNarrationTimer();
       const locale = normalizeHintLocale(options.locale) || activeHintLocale || getHintUiLocale();
-      const hint = resolveHeroHintText(source, locale);
-      if (!hint || showSummary) return;
+      if (!source || showSummary) return;
 
       const scheduleStart = Date.now();
       const run = async () => {
@@ -4290,6 +4289,12 @@ class PageSpeak extends HTMLElement {
         // no-op
       }
       goToHome('back');
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('app:profile-review-return'));
+      }, 0);
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('app:profile-review-return'));
+      }, 180);
       return true;
     };
 
@@ -4325,8 +4330,7 @@ class PageSpeak extends HTMLElement {
       }
       const source = getHeroSourceByStepKey(getStepKey());
       const locale = activeHintLocale || getHintUiLocale();
-      const hint = resolveHeroHintText(source, locale);
-      if (!source || !hint) return;
+      if (!source) return;
       if (heroNarrationInProgress) return;
       if (Date.now() - heroFirstRenderAt < 1000) return;
       speakHeroNarrationFromSource(source, { locale }).catch(() => {});

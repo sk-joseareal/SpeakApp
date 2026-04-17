@@ -17,6 +17,29 @@ import './pages/notifications.js';
 const ONBOARDING_STATUSBAR_COLOR = '#2d6df0';
 const APP_STATUSBAR_COLOR = '#f4f6fb';
 
+function getCurrentAppPath() {
+  return window.location.hash.replace('#', '') || '/';
+}
+
+function getStatusBarStyle(lightIcons) {
+  const platform =
+    window.Capacitor && typeof window.Capacitor.getPlatform === 'function'
+      ? window.Capacitor.getPlatform()
+      : '';
+  if (platform === 'android') {
+    return lightIcons ? 'LIGHT' : 'DARK';
+  }
+  return lightIcons ? 'DARK' : 'LIGHT';
+}
+
+function isAndroidPlatform() {
+  return (
+    window.Capacitor &&
+    typeof window.Capacitor.getPlatform === 'function' &&
+    window.Capacitor.getPlatform() === 'android'
+  );
+}
+
 function setNativeChrome(color, lightIcons) {
   try {
     const nativePlugin = window.Capacitor?.Plugins?.P4w4Plugin;
@@ -46,7 +69,7 @@ function applyAppChromeForPath(path) {
   const onboarding = isOnboardingPath(path);
   const color = onboarding ? ONBOARDING_STATUSBAR_COLOR : APP_STATUSBAR_COLOR;
   const lightIcons = onboarding;
-  const style = lightIcons ? 'DARK' : 'LIGHT';
+  const style = getStatusBarStyle(lightIcons);
 
   document.body.classList.toggle('onboarding-chrome-active', onboarding);
   setThemeColor(color);
@@ -57,7 +80,9 @@ function applyAppChromeForPath(path) {
     if (!sb) return;
     sb.setOverlaysWebView({ overlay: true });
     sb.setBackgroundColor({ color });
-    sb.setStyle({ style });
+    if (!isAndroidPlatform()) {
+      sb.setStyle({ style });
+    }
   } catch (_err) {
     // no-op
   }
@@ -113,7 +138,7 @@ routerReady.then((router) => {
   setRouter(router);
   ensureInitialHash();
 
-  const hashPath = window.location.hash.replace('#', '') || '/';
+  const hashPath = getCurrentAppPath();
   scheduleAppChromeSync(hashPath);
   if (onboardingDone() && (hashPath === '/' || hashPath === '/onboarding')) {
     goToHome('root');
@@ -158,6 +183,7 @@ routerReady.then((router) => {
     scheduleAppChromeSync(to);
   });
 
+  setupDiagnosticsModal();
   setupSecretDiagnostics(router);
   setupNotificationsModal();
   setupRewardBadgeInfoToasts();
@@ -175,14 +201,39 @@ routerReady.then((router) => {
 });
 
 document.addEventListener('deviceready', () => {
-  const path = window.location.hash.replace('#', '') || '/';
+  const path = getCurrentAppPath();
   scheduleAppChromeSync(path);
 });
 
+const resyncCurrentAppChrome = () => {
+  scheduleAppChromeSync(getCurrentAppPath());
+};
+
+document.addEventListener('resume', resyncCurrentAppChrome);
+window.addEventListener('focus', resyncCurrentAppChrome);
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) {
+    resyncCurrentAppChrome();
+  }
+});
+
+try {
+  const appPlugin = window.Capacitor?.Plugins?.App;
+  if (appPlugin && typeof appPlugin.addListener === 'function') {
+    appPlugin.addListener('appStateChange', ({ isActive }) => {
+      if (isActive) {
+        resyncCurrentAppChrome();
+      }
+    });
+  }
+} catch (_err) {
+  // no-op
+}
+
 function setupSecretDiagnostics(router) {
   const DIAG_UNLOCK_KEY = 'appv5:diag-unlocked';
-  let titleTapCount = 0;
-  let titleTapTimer = null;
+  let lastTitleTapAt = 0;
+  let diagnosticsOpening = false;
   const readUnlocked = () => {
     try {
       return localStorage.getItem(DIAG_UNLOCK_KEY) === 'yes';
@@ -198,45 +249,101 @@ function setupSecretDiagnostics(router) {
     }
   };
   const openDiagnostics = () => {
-    router?.push('/diagnostics', 'forward');
-  };
-  const resetTitleTap = () => {
-    titleTapCount = 0;
-    if (titleTapTimer) {
-      clearTimeout(titleTapTimer);
-      titleTapTimer = null;
-    }
-  };
-  const onTitleTap = () => {
-    titleTapCount += 1;
-    if (titleTapCount >= 2) {
-      const alreadyUnlocked = readUnlocked();
-      resetTitleTap();
-      if (!alreadyUnlocked) {
-        writeUnlocked();
-      }
-      openDiagnostics();
+    if (diagnosticsOpening) return;
+    diagnosticsOpening = true;
+    if (typeof window.openDiagnosticsModal === 'function') {
+      window.openDiagnosticsModal()
+        .catch((err) => {
+          console.error('[diagnostics] error abriendo modal', err);
+        })
+        .finally(() => {
+          diagnosticsOpening = false;
+        });
       return;
     }
-    if (titleTapTimer) {
-      clearTimeout(titleTapTimer);
+    if (getCurrentAppPath() === '/diagnostics') {
+      diagnosticsOpening = false;
+      return;
     }
-    titleTapTimer = setTimeout(() => {
-      resetTitleTap();
-    }, 700);
+    ensureInitialHash();
+    window.location.hash = '#/diagnostics';
+  };
+  const resetDiagnosticsOpening = () => {
+    diagnosticsOpening = false;
+  };
+  router?.addEventListener('ionRouteDidChange', resetDiagnosticsOpening);
+
+  const onTitleTap = (event) => {
+    const now = Date.now();
+    const isDoubleTap = lastTitleTapAt && now - lastTitleTapAt <= 420;
+    lastTitleTapAt = now;
+    if (!isDoubleTap) return;
+    lastTitleTapAt = 0;
+    if (event) {
+      if (typeof event.preventDefault === 'function') event.preventDefault();
+      if (typeof event.stopPropagation === 'function') event.stopPropagation();
+      if (typeof event.stopImmediatePropagation === 'function') event.stopImmediatePropagation();
+    }
+    const alreadyUnlocked = readUnlocked();
+    if (!alreadyUnlocked) {
+      writeUnlocked();
+    }
+    openDiagnostics();
   };
 
   const handler = (event) => {
     const path = event.composedPath ? event.composedPath() : [event.target];
     const hasClassInPath = (className) =>
       path.some((el) => el && el.classList && el.classList.contains(className));
+    const hasInteractiveInPath = () =>
+      path.some(
+        (el) =>
+          el &&
+          typeof el.matches === 'function' &&
+          el.matches('button, ion-button, ion-buttons, a, input, textarea, select, [role="button"], .app-header-actions')
+      );
 
-    const isTitle = hasClassInPath('secret-title');
-    if (!isTitle) return;
-    onTitleTap();
+    const isSecretArea = hasClassInPath('secret-title-area') || hasClassInPath('secret-title');
+    if (!isSecretArea || hasInteractiveInPath()) return;
+    const now = Date.now();
+    const isDoubleTap = lastTitleTapAt && now - lastTitleTapAt <= 420;
+    if (event) {
+      if (typeof event.stopPropagation === 'function') event.stopPropagation();
+      if (typeof event.stopImmediatePropagation === 'function') event.stopImmediatePropagation();
+      if (isDoubleTap && typeof event.preventDefault === 'function') event.preventDefault();
+    }
+    onTitleTap(event);
   };
 
-  document.addEventListener('click', handler);
+  if (typeof window !== 'undefined' && 'PointerEvent' in window) {
+    document.addEventListener('pointerup', handler, true);
+  } else {
+    document.addEventListener('click', handler, true);
+  }
+}
+
+function setupDiagnosticsModal() {
+  let modal = null;
+
+  const openDiagnosticsModal = async () => {
+    if (!modal) {
+      modal = document.createElement('ion-modal');
+      modal.classList.add('diagnostics-modal');
+      modal.component = 'page-diagnostics';
+      modal.backdropDismiss = true;
+      modal.keepContentsMounted = true;
+      document.body.appendChild(modal);
+    }
+    if (modal.presented || modal.isOpen) {
+      return;
+    }
+    if (document.activeElement && typeof document.activeElement.blur === 'function') {
+      document.activeElement.blur();
+    }
+    await modal.present();
+  };
+
+  window.openDiagnosticsModal = openDiagnosticsModal;
 }
 
 function setupNotificationsModal() {
@@ -262,10 +369,6 @@ function setupNotificationsModal() {
       modal.component = 'page-notifications';
       modal.backdropDismiss = true;
       modal.keepContentsMounted = true;
-      const presentingEl = document.querySelector('ion-router-outlet');
-      if (presentingEl) {
-        modal.presentingElement = presentingEl;
-      }
       document.body.appendChild(modal);
     }
 

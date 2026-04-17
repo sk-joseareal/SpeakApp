@@ -13,6 +13,25 @@ const ONBOARDING_MASCOT_SRC = 'assets/onboarding/nena-v5.png';
 const ONBOARDING_STATUSBAR_COLOR = '#2d6df0';
 const APP_STATUSBAR_COLOR = '#f4f6fb';
 
+function getStatusBarStyle(lightIcons) {
+  const platform =
+    window.Capacitor && typeof window.Capacitor.getPlatform === 'function'
+      ? window.Capacitor.getPlatform()
+      : '';
+  if (platform === 'android') {
+    return lightIcons ? 'LIGHT' : 'DARK';
+  }
+  return lightIcons ? 'DARK' : 'LIGHT';
+}
+
+function isAndroidPlatform() {
+  return (
+    window.Capacitor &&
+    typeof window.Capacitor.getPlatform === 'function' &&
+    window.Capacitor.getPlatform() === 'android'
+  );
+}
+
 const onboardingSlides = [
   { id: 'confidence', copyKey: 'confidence' },
   { id: 'feedback', copyKey: 'feedback' },
@@ -292,7 +311,9 @@ class PageOnboarding extends HTMLElement {
         if (!sb) return;
         sb.setOverlaysWebView({ overlay: true });
         sb.setBackgroundColor({ color: ONBOARDING_STATUSBAR_COLOR });
-        sb.setStyle({ style: 'DARK' });
+        if (!isAndroidPlatform()) {
+          sb.setStyle({ style: getStatusBarStyle(true) });
+        }
       } catch (_err) {
         // no-op
       }
@@ -314,7 +335,9 @@ class PageOnboarding extends HTMLElement {
       if (!sb) return;
       sb.setOverlaysWebView({ overlay: true });
       sb.setBackgroundColor({ color: APP_STATUSBAR_COLOR });
-      sb.setStyle({ style: 'LIGHT' });
+      if (!isAndroidPlatform()) {
+        sb.setStyle({ style: getStatusBarStyle(false) });
+      }
     } catch (_err) {
       // no-op
     }

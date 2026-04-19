@@ -8868,6 +8868,611 @@ ion-select.training-pill.active::part(icon) {
   background: linear-gradient(90deg, #7be0b3 0%, #23a36e 100%);
 }
 
+.reference-main-tabs {
+  grid-template-columns: 1fr 1fr;
+}
+
+.reference-tools-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid rgba(203, 213, 225, 0.6);
+  background: #ffffff;
+}
+
+.reference-tool-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  cursor: pointer;
+  border-bottom: 1px solid rgba(203, 213, 225, 0.45);
+  background: transparent;
+  transition: background 0.12s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.reference-tool-item:last-child {
+  border-bottom: none;
+}
+
+.reference-tool-item:active {
+  background: rgba(75, 134, 245, 0.07);
+}
+
+.reference-tool-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #1f2937;
+}
+
+.reference-tool-item ion-icon {
+  color: #94a3b8;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+/* ── Tool detail view ── */
+
+.tool-sticky-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--app-tab-bg-warm, #f8f9fb);
+  padding: 16px 16px 0;
+  max-width: 960px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.tool-view-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 0 12px;
+}
+
+.tool-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: none;
+  background: none;
+  color: #4b86f5;
+  font-size: 0.95rem;
+  font-weight: 500;
+  padding: 6px 0;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.tool-back-btn ion-icon {
+  font-size: 1.1rem;
+}
+
+.tool-view-title {
+  margin: 0;
+  font-family: 'Inter', sans-serif;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.tool-filter-tabs {
+  grid-template-columns: 1fr 1fr;
+}
+
+.tool-loading {
+  padding: 32px 16px;
+  text-align: center;
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+.tool-letter-nav {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 5px;
+  padding: 8px 0 10px;
+  background: var(--app-tab-bg-warm, #f8f9fb);
+}
+
+.tool-letter-nav-btn {
+  border: 1px solid rgba(203, 213, 225, 0.7);
+  background: #ffffff;
+  color: #4b86f5;
+  font-size: 0.88rem;
+  font-weight: 700;
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.1s, color 0.1s;
+}
+
+.tool-letter-nav-btn:active {
+  background: #4b86f5;
+  color: #ffffff;
+}
+
+.tool-content-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 8px 16px 28px;
+  max-width: 960px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.tool-letter-section {
+  margin-bottom: 16px;
+}
+
+.tool-letter-header {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #94a3b8;
+  padding: 6px 4px 6px;
+}
+
+.tool-expr-item {
+  border-radius: 10px;
+  margin-bottom: 7px;
+  background: #ffffff;
+  border: 1px solid rgba(203, 213, 225, 0.55);
+  cursor: pointer;
+  overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.tool-expr-item.is-open {
+  border-color: rgba(75, 134, 245, 0.3);
+}
+
+.tool-expr-item-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+}
+
+.tool-expr-play-zone {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 10px 14px 14px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  min-width: 0;
+}
+
+.tool-expr-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.tool-expr-name {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: #1f2937;
+  transition: color 0.2s;
+}
+
+.tool-expr-translation {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.82rem;
+  color: #6b7280;
+  transition: color 0.2s;
+}
+
+.tool-play-icon {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tool-play-speaker-icon {
+  font-size: 1rem;
+  color: #d1d5db;
+  transition: color 0.15s;
+  display: block;
+}
+
+.tool-expr-play-zone.is-playing .tool-play-speaker-icon {
+  display: none;
+}
+
+.tool-play-waves {
+  display: none;
+  align-items: flex-end;
+  gap: 2.5px;
+  height: 14px;
+}
+
+.tool-expr-play-zone.is-playing .tool-play-waves {
+  display: flex;
+}
+
+.tool-play-waves i {
+  display: block;
+  width: 3px;
+  background: #4b86f5;
+  will-change: opacity;
+  animation: tool-wave-pulse 0.75s ease-in-out infinite;
+}
+
+.tool-play-waves i:nth-child(1) { height: 5px;  animation-delay: 0s; }
+.tool-play-waves i:nth-child(2) { height: 13px; animation-delay: 0.18s; }
+.tool-play-waves i:nth-child(3) { height: 8px;  animation-delay: 0.36s; }
+
+@keyframes tool-wave-pulse {
+  0%, 100% { opacity: 0.2; }
+  50%       { opacity: 1;   }
+}
+
+.tool-expr-play-zone.is-playing .tool-expr-name,
+.tool-expr-play-zone.is-playing .tool-expr-translation,
+.tool-expr-play-zone.is-playing .tool-expr-example-text,
+.tool-expr-play-zone.is-playing .tool-verb-form {
+  color: #4b86f5;
+}
+
+.tool-expr-expand-btn {
+  flex-shrink: 0;
+  border: none;
+  background: none;
+  padding: 10px 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  -webkit-tap-highlight-color: transparent;
+  align-self: stretch;
+}
+
+.tool-expr-chevron {
+  color: #94a3b8;
+  font-size: 0.9rem;
+}
+
+.tool-expr-item.is-open .tool-expr-chevron {
+  color: #4b86f5;
+}
+
+.tool-expr-example {
+  padding: 8px 14px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border-top: 1px solid rgba(203, 213, 225, 0.4);
+}
+
+.tool-expr-example-text {
+  flex: 1;
+  font-size: 0.84rem;
+  font-style: italic;
+  color: #374151;
+  line-height: 1.4;
+  transition: color 0.2s;
+}
+
+.tool-expr-example-play {
+  padding: 0 0 4px;
+}
+
+.tool-expr-example-en {
+  margin: 6px 0 0;
+  font-size: 0.84rem;
+  font-style: italic;
+  color: #374151;
+  line-height: 1.4;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.tool-expr-example-es {
+  margin: 4px 0 0;
+  font-size: 0.8rem;
+  color: #6b7280;
+  line-height: 1.4;
+}
+
+/* ── Verb forms table ── */
+
+.tool-verb-table {
+  display: flex;
+  flex-direction: column;
+  margin-top: 4px;
+}
+
+.tool-verb-row {
+  display: flex;
+  align-items: center;
+  border-top: 1px solid rgba(203, 213, 225, 0.35);
+}
+
+.tool-verb-row:first-child {
+  border-top: none;
+}
+
+.tool-verb-label {
+  flex: 0 0 42%;
+  color: #6b7280;
+  font-size: 0.8rem;
+  padding: 8px 8px 8px 0;
+}
+
+.tool-verb-play-zone.tool-expr-play-zone {
+  flex: 1;
+  padding: 8px 0 8px 6px;
+}
+
+.tool-verb-form {
+  flex: 1;
+  color: #1f2937;
+  font-size: 0.88rem;
+  font-weight: 600;
+  transition: color 0.2s;
+}
+
+/* ── Quote styles ── */
+
+.tool-quote-text {
+  font-style: italic;
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+.tool-quote-author {
+  font-style: normal;
+  font-weight: 500;
+}
+
+.tool-quote-translation {
+  font-size: 0.8rem;
+  color: #6b7280;
+  line-height: 1.4;
+  margin-top: 2px;
+}
+
+/* ── Theme nav (wider pill buttons for quotes) ── */
+
+.tool-theme-nav {
+  gap: 6px;
+}
+
+.tool-theme-nav-btn {
+  width: auto;
+  min-width: 36px;
+  padding: 0 10px;
+  height: 36px;
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+/* ── Phrasal verb expand ── */
+
+.tool-phrasal-example {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.tool-phrasal-example + .tool-phrasal-example {
+  border-top: 1px solid rgba(203, 213, 225, 0.35);
+  margin-top: 10px;
+  padding-top: 10px;
+}
+
+.tool-phrasal-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 0 2px;
+}
+
+.tool-syntax-pill {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  border-radius: 20px;
+  padding: 2px 8px;
+  flex-shrink: 0;
+}
+
+.tool-pill-sep    { background: rgba(75, 134, 245, 0.12); color: #3b6fd4; }
+.tool-pill-insep  { background: rgba(234, 147, 37, 0.12); color: #c47c08; }
+.tool-pill-intrans { background: rgba(34, 197, 94, 0.12); color: #15803d; }
+.tool-pill-other  { background: rgba(148, 163, 184, 0.15); color: #4b5563; }
+
+.tool-phrasal-def {
+  font-size: 0.8rem;
+  color: #374151;
+}
+
+/* ── Vocabulary tool ── */
+
+.tool-vocab-subcat {
+  margin-bottom: 10px;
+}
+
+.tool-vocab-subcat-header {
+  border-bottom: 1px solid rgba(203, 213, 225, 0.4);
+  margin-bottom: 6px;
+}
+
+.tool-vocab-subcat-play.tool-expr-play-zone {
+  padding: 4px 6px 6px 4px;
+  flex: none;
+  width: 100%;
+}
+
+.tool-vocab-subcat-text {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+
+.tool-vocab-subcat-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #374151;
+  transition: color 0.2s;
+}
+
+.tool-vocab-subcat-tr {
+  font-size: 0.78rem;
+  color: #6b7280;
+}
+
+.tool-vocab-subcat-play.is-playing .tool-vocab-subcat-name {
+  color: #4b86f5;
+}
+
+.tool-vocab-words {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tool-vocab-word {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #ffffff;
+  border: 1px solid rgba(203, 213, 225, 0.55);
+  border-radius: 12px;
+  padding: 10px 0 10px 10px;
+  overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.tool-vocab-play-zone.tool-expr-play-zone {
+  flex: 1;
+  padding: 6px 10px 6px 0;
+  min-width: 0;
+}
+
+.tool-vocab-img-wrap {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #f1f5f9;
+}
+
+@keyframes vocab-shimmer {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.tool-vocab-img-skeleton {
+  position: absolute;
+  inset: 0;
+  background: #e2e8f0;
+  overflow: hidden;
+  transition: opacity 0.25s;
+}
+
+.tool-vocab-img-skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.65) 50%, transparent 100%);
+  transform: translateX(-100%);
+  animation: vocab-shimmer 1.4s ease-in-out infinite;
+  will-change: transform;
+}
+
+.tool-vocab-img-skeleton.is-hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.tool-vocab-img-empty {
+  background: #f1f5f9;
+  animation: none;
+}
+
+.tool-vocab-color-swatch {
+  position: absolute;
+  inset: 0;
+}
+
+.tool-vocab-color-swatch::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.1);
+  border-radius: inherit;
+}
+
+.tool-vocab-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.tool-vocab-img.is-loaded {
+  opacity: 1;
+}
+
+.tool-vocab-word-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.tool-vocab-word-name {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #1f2937;
+  transition: color 0.2s;
+}
+
+.tool-vocab-word-tr {
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
 .reference-test-chip-score {
   font-size: 0.77rem;
   font-weight: 700;
@@ -9208,6 +9813,7 @@ ion-select.training-pill.active::part(icon) {
   height: clamp(58px, 12vw, 84px);
   opacity: 0;
   transition: opacity 160ms ease;
+  -webkit-user-select: none;
   user-select: none;
 }
 
@@ -9758,4 +10364,196 @@ ion-select.training-pill.active::part(icon) {
     max-width: 640px;
     margin: 0 auto;
   }
+}
+
+/* ─── Conjugate button (inside verb expand) ─────────────────────────── */
+.conj-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  margin-top: 12px;
+  padding: 9px 16px;
+  background: transparent;
+  border: 1.5px solid #4b86f5;
+  border-radius: 10px;
+  color: #4b86f5;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.conj-btn ion-icon {
+  font-size: 1rem;
+}
+
+/* ─── Conjugation bottom sheet ───────────────────────────────────────── */
+.conj-sheet-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  background: rgba(0, 0, 0, 0);
+  display: flex;
+  align-items: flex-end;
+  transition: background 0.28s ease;
+  pointer-events: none;
+}
+.conj-sheet-overlay.is-open {
+  background: rgba(0, 0, 0, 0.45);
+  pointer-events: auto;
+}
+.conj-sheet {
+  width: 100%;
+  max-height: 82vh;
+  background: #fff;
+  border-radius: 20px 20px 0 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transform: translateY(100%);
+  transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+  box-shadow: 0 -4px 32px rgba(0, 0, 0, 0.15);
+}
+.conj-sheet-overlay.is-open .conj-sheet {
+  transform: translateY(0);
+}
+
+/* Header */
+.conj-sheet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid rgba(203, 213, 225, 0.5);
+  flex-shrink: 0;
+}
+.conj-sheet-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+}
+.conj-sheet-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: #f1f5f9;
+  border: none;
+  border-radius: 50%;
+  color: #64748b;
+  font-size: 1.1rem;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Tense pills */
+.conj-tense-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 12px 16px 10px;
+  flex-shrink: 0;
+  scrollbar-width: none;
+}
+.conj-tense-scroll::-webkit-scrollbar { display: none; }
+.conj-tense-pills {
+  display: flex;
+  gap: 6px;
+  width: max-content;
+}
+.conj-tense-pill {
+  padding: 6px 12px;
+  background: #f1f5f9;
+  border: 1.5px solid transparent;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: #475569;
+  white-space: nowrap;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.conj-tense-pill.active {
+  background: rgba(75, 134, 245, 0.1);
+  border-color: #4b86f5;
+  color: #2563eb;
+  font-weight: 600;
+}
+
+/* Mood tabs */
+.conj-mood-tabs {
+  display: flex;
+  gap: 0;
+  margin: 0 16px 10px;
+  background: #f1f5f9;
+  border-radius: 10px;
+  padding: 3px;
+  flex-shrink: 0;
+}
+.conj-mood-btn {
+  flex: 1;
+  padding: 7px 4px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #64748b;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s, color 0.15s, font-weight 0.15s;
+}
+.conj-mood-btn.active {
+  background: #fff;
+  color: #1e3a6e;
+  font-weight: 700;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Persons list */
+.conj-persons-list {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 0 16px 24px;
+  flex: 1;
+}
+.conj-person-row {
+  display: flex;
+  align-items: center;
+  border-top: 1px solid rgba(203, 213, 225, 0.35);
+}
+.conj-person-row:first-child {
+  border-top: none;
+}
+.conj-person-label {
+  flex: 0 0 26%;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #94a3b8;
+  padding: 4px 8px 4px 0;
+}
+.conj-person-play.tool-expr-play-zone {
+  flex: 1;
+  padding: 10px 0 10px 6px;
+}
+.conj-person-form {
+  flex: 1;
+  font-size: 0.88rem;
+  color: #1f2937;
+  line-height: 1.4;
+  transition: color 0.2s;
+}
+.conj-person-play.is-playing .conj-person-form {
+  color: #4b86f5;
+}
+
+/* Not-found state */
+.conj-not-found {
+  padding: 20px 0;
+  text-align: center;
+  color: #94a3b8;
+  font-size: 0.88rem;
 }

@@ -1,0 +1,618 @@
+{
+  "proverbs": {
+    "letras": [
+      {
+        "letra": "A"
+      },
+      {
+        "letra": "B"
+      },
+      {
+        "letra": "C"
+      },
+      {
+        "letra": "D"
+      },
+      {
+        "letra": "E"
+      },
+      {
+        "letra": "G"
+      },
+      {
+        "letra": "H"
+      },
+      {
+        "letra": "I"
+      },
+      {
+        "letra": "L"
+      },
+      {
+        "letra": "M"
+      },
+      {
+        "letra": "N"
+      },
+      {
+        "letra": "O"
+      },
+      {
+        "letra": "P"
+      },
+      {
+        "letra": "S"
+      },
+      {
+        "letra": "T"
+      },
+      {
+        "letra": "V"
+      },
+      {
+        "letra": "W"
+      },
+      {
+        "letra": "Y"
+      }
+    ],
+    "featured": [
+      {
+        "id": 77,
+        "name": "Actions speak louder than words.",
+        "translation": "Una acción vale más que mil palabras.",
+        "explanation": ""
+      },
+      {
+        "id": 69,
+        "name": "Better late than never.",
+        "translation": "Más vale tarde que nunca.",
+        "explanation": ""
+      },
+      {
+        "id": 68,
+        "name": "Better safe than sorry.",
+        "translation": "Más vale prevenir que lamentar/curar.",
+        "explanation": ""
+      },
+      {
+        "id": 40,
+        "name": "Patience is virture.",
+        "translation": "La paciencia es una gran virtud.",
+        "explanation": ""
+      },
+      {
+        "id": 39,
+        "name": "Practice makes perfect.",
+        "translation": "La práctica hace la perfección.",
+        "explanation": ""
+      },
+      {
+        "id": 33,
+        "name": "The grass is always greener on the other side.",
+        "translation": "La hierba de los vecinos siempre es más verde.",
+        "explanation": ""
+      },
+      {
+        "id": 22,
+        "name": "When it rains it pours.",
+        "translation": "Siempre llueve sobre mojado.",
+        "explanation": ""
+      }
+    ],
+    "A": [
+      {
+        "id": 80,
+        "name": "A bird in the hand is worth two in the bush.",
+        "translation": "Más vale pájaro en mano que ciento volando.\n",
+        "explanation": ""
+      },
+      {
+        "id": 79,
+        "name": "A picture is worth a thousand words.",
+        "translation": "Una imagen vale más que mil palabras.\n",
+        "explanation": ""
+      },
+      {
+        "id": 78,
+        "name": "Absence makes the heart grow fonder.",
+        "translation": "La distancia acerca los corazones.\n",
+        "explanation": ""
+      },
+      {
+        "id": 77,
+        "name": "Actions speak louder than words.",
+        "translation": "Una acción vale más que mil palabras.",
+        "explanation": ""
+      },
+      {
+        "id": 76,
+        "name": "All good things come to those who wait.",
+        "translation": "Lo bueno se hace esperar.\n",
+        "explanation": ""
+      },
+      {
+        "id": 75,
+        "name": "All is fair in love and war.",
+        "translation": "Todo se vale en el amor y la guerra.\n",
+        "explanation": ""
+      },
+      {
+        "id": 74,
+        "name": "All that glitters is not gold.",
+        "translation": "No es oro todo lo que reluce.\n",
+        "explanation": ""
+      },
+      {
+        "id": 73,
+        "name": "All things in moderation.",
+        "translation": "Ni tanto ni tan calvo./Todo en su justa medida.\n",
+        "explanation": ""
+      }
+    ],
+    "B": [
+      {
+        "id": 72,
+        "name": "Bad news travels fast.",
+        "translation": "Las malas noticias vuelan.\n",
+        "explanation": ""
+      },
+      {
+        "id": 71,
+        "name": "Beauty is in the eye of the beholder.",
+        "translation": "La belleza reside en el ojo del observador. / La belleza es una cuestión de opinión.",
+        "explanation": ""
+      },
+      {
+        "id": 70,
+        "name": "Beggars can't be choosers.",
+        "translation": "A buen hambre no hay pan duro.",
+        "explanation": ""
+      },
+      {
+        "id": 69,
+        "name": "Better late than never.",
+        "translation": "Más vale tarde que nunca.",
+        "explanation": ""
+      },
+      {
+        "id": 68,
+        "name": "Better safe than sorry.",
+        "translation": "Más vale prevenir que lamentar/curar.",
+        "explanation": ""
+      },
+      {
+        "id": 67,
+        "name": "Birds of a feather flock together.",
+        "translation": "Dios los cría y ellos se juntan.",
+        "explanation": ""
+      },
+      {
+        "id": 66,
+        "name": "Blood is thicker than water.",
+        "translation": "La sangre tira.\n",
+        "explanation": ""
+      }
+    ],
+    "C": [
+      {
+        "id": 65,
+        "name": "Curiosity killed the cat.",
+        "translation": "La curiosidad mató  al gato.\n",
+        "explanation": ""
+      }
+    ],
+    "D": [
+      {
+        "id": 64,
+        "name": "Different strokes for different folks.",
+        "translation": "Para gustos los colores.",
+        "explanation": ""
+      },
+      {
+        "id": 63,
+        "name": "Don't bite the hand that feeds you.",
+        "translation": "No muerdas la mano que te da de comer.",
+        "explanation": ""
+      },
+      {
+        "id": 62,
+        "name": "Don't count your chickens before they hatch.",
+        "translation": "No cantar victoria antes de tiempo.",
+        "explanation": ""
+      },
+      {
+        "id": 61,
+        "name": "Don't kick a man when he's down.",
+        "translation": "No hagas leña del árbol caído.\n",
+        "explanation": ""
+      },
+      {
+        "id": 60,
+        "name": "Don't stir the pot.",
+        "translation": "No remuevas la olla.",
+        "explanation": ""
+      }
+    ],
+    "E": [
+      {
+        "id": 59,
+        "name": "Early to bed and early to rise, makes a man healthy, wealthy and wise.",
+        "translation": "Acostarse temprano y levantarse temprano hacen a un hombre saludable, rico y sabio.",
+        "explanation": ""
+      },
+      {
+        "id": 58,
+        "name": "Easy come, easy go.",
+        "translation": "Tal y como viene se va.",
+        "explanation": ""
+      },
+      {
+        "id": 12,
+        "name": "Every dog has its day.",
+        "translation": "A cada cerdo le llega su San Martín.",
+        "explanation": "circumstances change/everyone has good times and bad times"
+      }
+    ],
+    "G": [
+      {
+        "id": 57,
+        "name": "Great minds think alike.",
+        "translation": "Las grandes mentes piensan igualmente.",
+        "explanation": ""
+      }
+    ],
+    "H": [
+      {
+        "id": 56,
+        "name": "He who hesitates is lost.",
+        "translation": "Quien duda está perdido.\n",
+        "explanation": ""
+      },
+      {
+        "id": 55,
+        "name": "He who plays with fire gets burned.",
+        "translation": "Quien juega con fuego se quema.\n",
+        "explanation": ""
+      },
+      {
+        "id": 54,
+        "name": "Home is where the heart is.",
+        "translation": "Donde tienes el corazón, tienes tu hogar.\n",
+        "explanation": ""
+      }
+    ],
+    "I": [
+      {
+        "id": 53,
+        "name": "If it ain't broke, don't fix it!",
+        "translation": "No hay que complicar las cosas o complicarse la vida sin necesidad.",
+        "explanation": ""
+      },
+      {
+        "id": 52,
+        "name": "If you can't stand the heat, get out of the kitchen!",
+        "translation": "Si quieres el perro, acepta las pulgas.",
+        "explanation": ""
+      },
+      {
+        "id": 3,
+        "name": "Ignorance is bliss.",
+        "translation": "Bendita ignorancia.\n",
+        "explanation": "what you don’t know won't hurt you"
+      },
+      {
+        "id": 51,
+        "name": "It's always darkest before the dawn.",
+        "translation": "Siempre sale el sol después de la tormenta.\n",
+        "explanation": ""
+      }
+    ],
+    "L": [
+      {
+        "id": 50,
+        "name": "Laughter is the best medicine.",
+        "translation": "La risa es la mejor medicina.\n",
+        "explanation": ""
+      },
+      {
+        "id": 11,
+        "name": "Let sleeping dogs lie.",
+        "translation": "Agua que no has de beber, déjala correr.",
+        "explanation": "don't create problems"
+      },
+      {
+        "id": 49,
+        "name": "Let the chips fall where they may.",
+        "translation": "Deja que pase lo que tenga que pasar.\n",
+        "explanation": ""
+      },
+      {
+        "id": 48,
+        "name": "Let the river run it's course.",
+        "translation": "Deja que el rio siga su curso.\n",
+        "explanation": ""
+      },
+      {
+        "id": 81,
+        "name": "Love is blind.",
+        "translation": "El amor es ciego.",
+        "explanation": "when in love, people ignore problems/lose their good judgement"
+      }
+    ],
+    "M": [
+      {
+        "id": 47,
+        "name": "Many hands make light work.",
+        "translation": "Entre muchos, el trabajo se hace más llevadero.\n",
+        "explanation": ""
+      },
+      {
+        "id": 46,
+        "name": "Money doesn't grow on trees.",
+        "translation": "El dinero no crece en los árboles.",
+        "explanation": ""
+      },
+      {
+        "id": 45,
+        "name": "Money talks.",
+        "translation": "El dinero manda.\n",
+        "explanation": ""
+      }
+    ],
+    "N": [
+      {
+        "id": 44,
+        "name": "Nothing ventured, nothing gained.",
+        "translation": "Quien no arriesga no gana.",
+        "explanation": ""
+      }
+    ],
+    "O": [
+      {
+        "id": 43,
+        "name": "Once bitten, twice shy.",
+        "translation": "Gato escaldado del agua fria huye.",
+        "explanation": ""
+      },
+      {
+        "id": 42,
+        "name": "One man's meat is another man's poison.",
+        "translation": "Para gustos se hicieron los colores. Sobre gustos no hay nada escrito.\n",
+        "explanation": ""
+      },
+      {
+        "id": 41,
+        "name": "Out of sight, out of mind.",
+        "translation": "Ojos que no ven, corazón que no siente.",
+        "explanation": ""
+      }
+    ],
+    "P": [
+      {
+        "id": 40,
+        "name": "Patience is virture.",
+        "translation": "La paciencia es una gran virtud.",
+        "explanation": ""
+      },
+      {
+        "id": 39,
+        "name": "Practice makes perfect.",
+        "translation": "La práctica hace la perfección.",
+        "explanation": ""
+      },
+      {
+        "id": 38,
+        "name": "Practice what you preach.",
+        "translation": "Predica con los hechos.\n",
+        "explanation": ""
+      }
+    ],
+    "S": [
+      {
+        "id": 4,
+        "name": "Seize the day!",
+        "translation": "¡Aprovecha el día!\n",
+        "explanation": "to take advantage of an opportunity"
+      }
+    ],
+    "T": [
+      {
+        "id": 13,
+        "name": "The apple never falls far from the tree.",
+        "translation": "De tal palo tal astilla.",
+        "explanation": "children a like their parents"
+      },
+      {
+        "id": 37,
+        "name": "The devil is in the details.",
+        "translation": "El diablo está en los detalles.\n",
+        "explanation": ""
+      },
+      {
+        "id": 9,
+        "name": "The early bird catches the worm.",
+        "translation": "A quien madruga Dios le ayuda.\n",
+        "explanation": "start early to be successful"
+      },
+      {
+        "id": 36,
+        "name": "The ends (don't) justify the means.",
+        "translation": "El fin (no) justifica los medios.\n",
+        "explanation": ""
+      },
+      {
+        "id": 35,
+        "name": "The fastest way to a man's heart is through his stomach.",
+        "translation": "Por el estómago se llega al corazón.",
+        "explanation": ""
+      },
+      {
+        "id": 34,
+        "name": "The first step is always the hardest.",
+        "translation": "El primer escalón es el más dificil.",
+        "explanation": ""
+      },
+      {
+        "id": 33,
+        "name": "The grass is always greener on the other side.",
+        "translation": "La hierba de los vecinos siempre es más verde.",
+        "explanation": ""
+      },
+      {
+        "id": 32,
+        "name": "The pen is mightier than the sword.",
+        "translation": "La pluma es más poderosa que la espada.",
+        "explanation": ""
+      },
+      {
+        "id": 31,
+        "name": "The proof of the pudding is in the eating.",
+        "translation": "La experiencia es la madre de la ciencia.",
+        "explanation": ""
+      },
+      {
+        "id": 8,
+        "name": "There are plenty of fish in the sea.",
+        "translation": "El mar está lleno de peces.\n",
+        "explanation": "there are other men/women"
+      },
+      {
+        "id": 30,
+        "name": "There's no such thing as a free lunch.",
+        "translation": "Nadie da nada por nada./Nada es gratis.\n",
+        "explanation": ""
+      },
+      {
+        "id": 29,
+        "name": "There's no use crying over spilled milk.",
+        "translation": "De nada sirve llorar sobre la leche derramada.",
+        "explanation": ""
+      },
+      {
+        "id": 10,
+        "name": "Truth is stranger than fiction.",
+        "translation": "La realidad supera a la ficción.\n",
+        "explanation": "sometimes fiction is more believable than reality"
+      },
+      {
+        "id": 28,
+        "name": "Two heads are better than one.",
+        "translation": "Cuatro ojos ven más que dos.",
+        "explanation": ""
+      }
+    ],
+    "V": [
+      {
+        "id": 27,
+        "name": "Variety is the spice of life.",
+        "translation": "En la variedad, está el gusto.\n",
+        "explanation": ""
+      }
+    ],
+    "W": [
+      {
+        "id": 26,
+        "name": "Waste not, want not.",
+        "translation": "Quien no malgasta no pasa necesidades.",
+        "explanation": ""
+      },
+      {
+        "id": 25,
+        "name": "What goes around, comes around.",
+        "translation": "Cada uno recoge lo que siembra./Lo que se siembra, se cosecha.",
+        "explanation": ""
+      },
+      {
+        "id": 24,
+        "name": "What goes up must come down.",
+        "translation": " Todo lo que sube tiene que bajar.",
+        "explanation": ""
+      },
+      {
+        "id": 23,
+        "name": "What's one man's trash is another man's treasure.",
+        "translation": "Los desechos de un hombre son el tesoro de otro.",
+        "explanation": ""
+      },
+      {
+        "id": 6,
+        "name": "When in Rome, do as the Romans do.",
+        "translation": "Donde fueres, haz lo que vieres.",
+        "explanation": "to do/act/behave like those around you"
+      },
+      {
+        "id": 22,
+        "name": "When it rains it pours.",
+        "translation": "Siempre llueve sobre mojado.",
+        "explanation": ""
+      },
+      {
+        "id": 21,
+        "name": "When life gives you lemons, make lemonade.",
+        "translation": "Si la vida te da limones, haz limonada.",
+        "explanation": ""
+      },
+      {
+        "id": 20,
+        "name": "When the cat is away the mice will play.",
+        "translation": "Cuando el gato duerme, bailan los ratones.\n",
+        "explanation": ""
+      },
+      {
+        "id": 19,
+        "name": "Where there's a will, there's a way.",
+        "translation": "Querer es poder.",
+        "explanation": ""
+      }
+    ],
+    "Y": [
+      {
+        "id": 18,
+        "name": "You are what you eat.",
+        "translation": "Somos lo que comemos.\n",
+        "explanation": ""
+      },
+      {
+        "id": 17,
+        "name": "You can't judge a book by its cover.",
+        "translation": "No fiarse de las apariencias.\n",
+        "explanation": ""
+      },
+      {
+        "id": 7,
+        "name": "You can't look a gift horse in the mouth.",
+        "translation": "A caballo regalao, no le mires el dentao.\n",
+        "explanation": "to appreciate what you are given"
+      },
+      {
+        "id": 16,
+        "name": "You can't teach an old dog new tricks.",
+        "translation": "No hay quien enseñe trucos nuevos al perro viejo.",
+        "explanation": ""
+      },
+      {
+        "id": 5,
+        "name": "You made your bed now you must lie in it.",
+        "translation": "Tú te lo guisas, tú te lo comes.",
+        "explanation": "to live with the consequences of one's decisions/behavior"
+      },
+      {
+        "id": 15,
+        "name": "You scratch my back and I'll scratch yours.",
+        "translation": "Hoy por ti, manaña por mí.\n",
+        "explanation": ""
+      },
+      {
+        "id": 14,
+        "name": "You win some you lose some.",
+        "translation": "A veces se gana, a veces se pierde.",
+        "explanation": ""
+      }
+    ]
+  },
+  "error": "",
+  "random_string": "*dummy_random_string*",
+  "hash": "*dummy_hash*",
+  "updated": true
+}

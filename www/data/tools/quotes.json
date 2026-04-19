@@ -1,0 +1,888 @@
+{
+  "quotes": {
+    "21": [
+      {
+        "id": 14,
+        "text": "Young love is a flame; very pretty, often very hot and fierce, but still only light and flickering. The love of the older and disciplined heart is a coals, deep burning, unquenchable.",
+        "text_translation": "El amor juvenil es una llama; muy bonita, a menudo muy caliente y feroz, pero es sólo luz y parpadeo. El amor del corazón más viejo y disciplinado es como el carbón en combustión, no se apaga.",
+        "author": "Henry Ward Beecher"
+      },
+      {
+        "id": 15,
+        "text": "Love is something eternal; the aspect may change but not the essence.",
+        "text_translation": "El amor es algo eterno, el aspecto puede cambiar, pero no la esencia. ",
+        "author": "Vincent Van Gogh"
+      },
+      {
+        "id": 16,
+        "text": "There is always some madness in love. But there is also always some reason in madness.",
+        "text_translation": "Siempre hay alguna locura en el amor. Pero también siempre hay alguna razón en la locura.",
+        "author": "Friedrich Nietzsche"
+      },
+      {
+        "id": 17,
+        "text": "A kiss is a lovely trick, designed by nature, to stop words when speech becomes unnecessary.",
+        "text_translation": "El beso es un truco encantador diseñado por la naturaleza para dejar de hablar cuando las palabras se vuelven superfluas. ",
+        "author": "Ingrid Bergman"
+      }
+    ],
+    "22": [
+      {
+        "id": 33,
+        "text": "Life is pleasant. Death is peaceful. It's the transition that's troublesome.",
+        "text_translation": "La vida es agradable. La muerte es pacífica. Lo problemático es la transición.",
+        "author": "Isaac Asimov"
+      },
+      {
+        "id": 34,
+        "text": "Life is a long lesson in humility.",
+        "text_translation": "La vida es una larga lección de humildad.",
+        "author": "James M. Barrie"
+      },
+      {
+        "id": 35,
+        "text": "Life is the art of drawing sufficient conclusions from insufficient premises.",
+        "text_translation": "La vida es el arte de sacar conclusiones suficientes a partir de datos insuficientes.",
+        "author": "Samuel Butler"
+      },
+      {
+        "id": 36,
+        "text": "The unexamined life is not worth living.",
+        "text_translation": "Una vida no examinada no merece la pena ser vivida.",
+        "author": "Socrates"
+      }
+    ],
+    "23": [
+      {
+        "id": 13,
+        "text": "Happiness is an imaginary condition, formerly often attributed by the living to the dead, now usually attributed to children, and by children to adults.",
+        "text_translation": "La felicidad es una condición imaginaria, antiguamente atribuida por los vivos a los difuntos, ahora atribuida usualmente por los adultos a los niños, y por los niños a los adultos.",
+        "author": "Thomas Szasz"
+      },
+      {
+        "id": 23,
+        "text": "Happiness is nothing more than good health and a bad memory.",
+        "text_translation": "La felicidad es sencillamente buena salud y mala memoria.",
+        "author": "Albert Schweitzer"
+      },
+      {
+        "id": 24,
+        "text": "Happiness is not the absence of problems, but the ability to deal with them.",
+        "text_translation": "La felicidad no es la ausencia de problemas, sino la capacidad de hacer frente a ellos.",
+        "author": "Charles de Montesquieu"
+      },
+      {
+        "id": 25,
+        "text": "Happiness is having a large, loving, caring, close-knit family in another city.",
+        "text_translation": "La felicidad es tener una gran familia, cariñosa, diligente, que se preocupe por uno y que esté unida; pero que viva en otra ciudad.",
+        "author": "George Burns"
+      },
+      {
+        "id": 26,
+        "text": "Man is the artificer of his own happiness.",
+        "text_translation": "El hombre es el artesano de su propia felicidad.",
+        "author": "Henry David Thoreau"
+      }
+    ],
+    "24": [
+      {
+        "id": 29,
+        "text": "For peace is not mere absence of war, but is a virtue that springs from the force of character.",
+        "text_translation": "La paz no es la mera ausencia de guerra, sino que es una virtud que nace de la fuerza de carácter.",
+        "author": "Baruch Spinoza"
+      },
+      {
+        "id": 30,
+        "text": "You can't separate peace from freedom because no one can be at peace unless he has his freedom.",
+        "text_translation": "No puedes separar la paz de la libertad porque nadie puede estar en paz a no ser que tenga su libertad.",
+        "author": "Malcolm X"
+      }
+    ],
+    "25": [],
+    "26": [
+      {
+        "id": 18,
+        "text": "Education is the best provision for old age.",
+        "text_translation": "La educación es la mejor provisión para la vejez.",
+        "author": "Aristotle"
+      },
+      {
+        "id": 19,
+        "text": "I have never let my schooling interfere with my education.",
+        "text_translation": "Nunca he dejado que mis estudios interfieran en mi educación.",
+        "author": "Mark Twain"
+      }
+    ],
+    "27": [
+      {
+        "id": 20,
+        "text": "If a man empties his purse into his head no one can take it away from him. An investment in knowledge always pays the best interest.",
+        "text_translation": "Si un hombre vacía su monedero en su cabeza, nadie se lo podrá quitar. La inversión en el conocimiento siempre paga el mejor interés.",
+        "author": "Benjamin Franklin"
+      },
+      {
+        "id": 21,
+        "text": "Knowledge is power.",
+        "text_translation": "El conocimiento es poder.",
+        "author": "Sir Francis Bacon"
+      },
+      {
+        "id": 22,
+        "text": "The only good is knowledge and the only evil is ignorance.",
+        "text_translation": "El único bien es el conocimiento y el único mal es la ignorancia.",
+        "author": "Socrates"
+      }
+    ],
+    "28": [
+      {
+        "id": 27,
+        "text": "Speak properly, and in as few words as you can, but always plainly; for the end of speech is not ostentation, but to be understood.",
+        "text_translation": "Habla correctamente y con tan pocas palabras como puedas, pero siempre con claridad, porque el fin de la conversación no es la ostentación, sino el ser comprendido.",
+        "author": "William Penn"
+      },
+      {
+        "id": 28,
+        "text": "My words fly up, my thoughts remain below: Words without thoughts never to heaven go.",
+        "text_translation": "Mis palabras vuelan a lo alto, mis pensamientos se quedan abajo. Las palabras sin pensamientos nunca van al cielo.",
+        "author": "William Shakespeare (Hamlet)"
+      }
+    ],
+    "29": [
+      {
+        "id": 31,
+        "text": "Beautiful young people are accidents of nature, but beautiful old people are works of art.",
+        "text_translation": "Los jóvenes hermosos son accidentes de la Naturaleza, pero los ancianos hermosos son obras de arte.",
+        "author": "Eleanor Roosevelt"
+      },
+      {
+        "id": 32,
+        "text": "Think of all the beauty still left around you and be happy.",
+        "text_translation": "Piensa en toda la belleza que queda a tu alrededor y sé feliz.",
+        "author": "Anne Frank"
+      }
+    ],
+    "30": [
+      {
+        "id": 37,
+        "text": "The only sense that is common in the long run, is the sense of change-and we all instinctively avoid it.",
+        "text_translation": "El único sentido que es común a largo plazo es el sentido del cambio y todos instintivamente lo evitamos.",
+        "author": "E. B. White"
+      },
+      {
+        "id": 38,
+        "text": "There is nothing like returning to a place that remains unchanged to find the ways in which you yourself have altered.",
+        "text_translation": "No hay nada como volver a un lugar que permanece sin cambios para descubrir cómo has cambiado tú.",
+        "author": "Nelson Mandela"
+      },
+      {
+        "id": 39,
+        "text": "Few will have the greatness to bend history itself; but each of us can work to change a small portion of events, and in the total of all those acts will be written the history of this generation.",
+        "text_translation": "Pocos tendrán la grandeza de cambiar la historia, pero cada uno de nosotros puede trabajar para cambiar una pequeña parte de los acontecimientos, y en el total de todos estos actos se escribirá la historia de esta generación.",
+        "author": "Robert F. Kennedy"
+      }
+    ],
+    "31": [
+      {
+        "id": 40,
+        "text": "Hide not your talents, they for use were made. What's a sun-dial in the shade?",
+        "text_translation": "No escondas tus talentos, fueron hechos para ser usados. ¿De qué serviría un reloj de sol en la sombra?",
+        "author": "Benjamin Franklin"
+      }
+    ],
+    "32": [
+      {
+        "id": 41,
+        "text": "It is unwise to be too sure of one's own wisdom. It is healthy to be reminded that the strongest might weaken and the wisest might err.",
+        "text_translation": "No es prudente estar demasiado seguro de la propia sabiduría. Es saludable recordar que el más fuerte puede debilitarse y el más sabio puede errar.",
+        "author": "Mahatma Gandhi"
+      },
+      {
+        "id": 42,
+        "text": "We don't receive wisdom; we must discover it for ourselves after a journey that no one can take for us or spare us.",
+        "text_translation": "No recibimos la sabiduría, debemos descubrirla por nosotros mismos, después de un viaje a través de lo inexplorado que nadie más puede realizar por nosotros.",
+        "author": "Marcel Proust"
+      },
+      {
+        "id": 43,
+        "text": "The fool doth think he is wise, but the wise man knows himself to be a fool.",
+        "text_translation": "El necio se cree sabio, pero el sabio sabe que es un tonto.",
+        "author": "William Shakespeare"
+      }
+    ],
+    "33": [
+      {
+        "id": 44,
+        "text": "Courage is not simply one of the virtues , but the form of every virtue at the testing point.",
+        "text_translation": "El coraje no es simplemente una de las virtudes, sino la forma de las virtudes en el momento de la prueba.",
+        "author": "C. S. Lewis"
+      },
+      {
+        "id": 45,
+        "text": "It is curious that physical courage should be so common in the world and moral courage so rare.",
+        "text_translation": "Es curioso que el coraje físico sea tan habitual en el mundo y el coraje moral tan raro.",
+        "author": "Mark Twain"
+      }
+    ],
+    "34": [
+      {
+        "id": 46,
+        "text": "Speech is civilization itself... It is silence which isolates.",
+        "text_translation": "El habla es la civilización misma... Solo el silencio aísla.",
+        "author": "Thomas Mann"
+      }
+    ],
+    "35": [
+      {
+        "id": 47,
+        "text": "Death is more universal than life; everyone dies but not everyone lives.",
+        "text_translation": "La muerte es más universal que la vida; todo el mundo muere, pero no todo el mundo vive.",
+        "author": "A. Sachs"
+      },
+      {
+        "id": 48,
+        "text": "He not busy being born is busy dying.",
+        "text_translation": "Él que no está ocupado naciendo está ocupado muriendo.",
+        "author": "Bob Dylan"
+      },
+      {
+        "id": 49,
+        "text": "Life does not cease to be funny when people die any more than it ceases to be serious when people laugh.",
+        "text_translation": "La vida no deja de ser graciosa cuando la gente muere más de lo que deja de ser seria cuando la gente se ríe.",
+        "author": "George Bernard Shaw"
+      }
+    ],
+    "36": [
+      {
+        "id": 50,
+        "text": "The secret to creativity is knowing how to hide your sources.",
+        "text_translation": "El secreto de la creatividad es saber cómo ocultar tus fuentes.",
+        "author": "Albert Einstein"
+      },
+      {
+        "id": 51,
+        "text": "Every child is an artist. The problem is how to remain an artist once he grows up.",
+        "text_translation": "Todo niño es un artista. EL problema radica en que lo siga siendo cuando crezca.",
+        "author": "Pablo Picasso"
+      }
+    ],
+    "37": [
+      {
+        "id": 52,
+        "text": "If the English language made any sense, a catastrophe would be an apostrophe with fur.",
+        "text_translation": "Si la lengua inglesa tuviera algún sentido, una catástrofe sería un apóstrofe con la piel.",
+        "author": "Doug Larson"
+      },
+      {
+        "id": 53,
+        "text": "England and America are two countries separated by a common language.",
+        "text_translation": "Inglaterra y los Estados Unidos son dos países separados por un idioma común.",
+        "author": "George Bernard Shaw"
+      }
+    ],
+    "38": [
+      {
+        "id": 54,
+        "text": "Experience is not what happens to a man; it is what a man does with what happens to him.",
+        "text_translation": "La experiencia no es lo que te sucede, sino lo que haces con lo que te sucede.",
+        "author": "Aldous Huxley"
+      },
+      {
+        "id": 55,
+        "text": "Experience is the name everyone gives to their mistakes.",
+        "text_translation": "Experiencia es el nombre que damos a nuestras equivocaciones.",
+        "author": "Oscar Wilde"
+      }
+    ],
+    "39": [
+      {
+        "id": 56,
+        "text": "Everything that is really great and inspiring is created by the individual who can labor in freedom.",
+        "text_translation": "Todo lo que es realmente grande e inspirador es creado por el individuo que puede trabajar en libertad.",
+        "author": "Albert Einstein"
+      },
+      {
+        "id": 57,
+        "text": "Liberty means responsibility. That is why most men dread it.  ",
+        "text_translation": "La libertad supone responsabilidad. Por eso la mayoría de los hombres la temen.",
+        "author": "George Bernard Shaw"
+      }
+    ],
+    "40": [
+      {
+        "id": 58,
+        "text": "The meeting of two personalities is like the contact of two chemical substances: if there is any reaction, both are transformed.",
+        "text_translation": "El encuentro de dos personalidades es como el contacto de dos sustancias químicas: si hay alguna reacción, ambas se transforman.",
+        "author": "Carl Jung"
+      },
+      {
+        "id": 59,
+        "text": "The ornament of a house is the friends who frequent it.",
+        "text_translation": "El ornamento de una casa son los amigos que la frecuentan.",
+        "author": "Ralph Waldo Emerson"
+      }
+    ],
+    "41": [
+      {
+        "id": 60,
+        "text": "The weak can never forgive. Forgiveness is the attribute of the strong.",
+        "text_translation": "Los débiles nunca pueden perdonar. El perdón es el atributo de los fuertes.",
+        "author": "Mahatma Gandhi"
+      },
+      {
+        "id": 61,
+        "text": "Always forgive your enemies; nothing annoys them so much.",
+        "text_translation": "Perdona siempre a tu enemigo; no hay nada que le enfurezca más.",
+        "author": "Oscar Wilde"
+      }
+    ],
+    "42": [
+      {
+        "id": 62,
+        "text": "All I need to make a comedy is a park, a policeman and a pretty girl.",
+        "text_translation": "Todo lo que necesito para hacer una comedia es un parque, un policía y una chica guapa.",
+        "author": "Charlie Chaplin"
+      },
+      {
+        "id": 63,
+        "text": "Humor is just another defense against the universe.",
+        "text_translation": "El humor es sólo otra defensa contra el universo.",
+        "author": "Mel Brooks"
+      }
+    ],
+    "43": [
+      {
+        "id": 64,
+        "text": "The test of a first-rate intelligence is the ability to hold two opposed ideas in the mind at the same time, and still retain the ability to function.",
+        "text_translation": "La verdadera prueba de una inteligencia superior es poder conservar simultáneamente en la cabeza dos ideas, y seguir funcionando.",
+        "author": "F. Scott Fitzgerald"
+      },
+      {
+        "id": 65,
+        "text": "Sometimes I think the surest sign that intelligent life exists elsewhere in the universe is that none of it has tried to contact us.",
+        "text_translation": "A veces pienso que la prueba más fehaciente de que existe vida inteligente en el universo es que nadie ha intentado contactar con nosotros.",
+        "author": "Bill Watterson"
+      }
+    ],
+    "44": [
+      {
+        "id": 66,
+        "text": "Injustice anywhere is a threat to justice everywhere.",
+        "text_translation": "La injusticia en cualquier parte es una amenaza a la justicia en todas partes.",
+        "author": "Martin Luther King Jr."
+      },
+      {
+        "id": 67,
+        "text": "If it were not for injustice, men would not know justice.",
+        "text_translation": "Si no fuera por la injusticia, los hombres no conocerían la justicia.",
+        "author": "Heraclitus"
+      }
+    ],
+    "45": [
+      {
+        "id": 68,
+        "text": "Learning is not compulsory... neither is survival.",
+        "text_translation": "El aprendizaje no es obligatorio... tampoco es la supervivencia.",
+        "author": "W. Edwards Deming"
+      },
+      {
+        "id": 69,
+        "text": "Anyone who stops learning is old, whether twenty or eighty. Anyone who keeps learning stays young. The greatest thing you can do is keep your mind young.",
+        "text_translation": "Es viejo, quien deja de aprender, ya sea a los veinte o a los ochenta. Cualquiera que sigue aprendiendo permanece joven. La cosa más maravillosa de la vida es mantener tu mente joven.",
+        "author": "Henry Ford"
+      },
+      {
+        "id": 70,
+        "text": "The wisest mind has something yet to learn.",
+        "text_translation": "La mente más sabia aún tiene algo que aprender.",
+        "author": "George Santayana"
+      }
+    ],
+    "46": [
+      {
+        "id": 71,
+        "text": "It has been said that man is a rational animal. All my life I have been searching for evidence which could support this.",
+        "text_translation": "Se ha dicho que el hombre es un animal racional. Toda mi vida he estado buscando evidencia que pueda sostener esto.",
+        "author": "Bertrand Russell"
+      },
+      {
+        "id": 72,
+        "text": " From such crooked wood as that which man is made of, nothing straight can be fashioned. ",
+        "text_translation": "De la madera torcida de la humanidad no puede obtenerse nada que sea realmente recto.",
+        "author": "Immanuel Kant"
+      },
+      {
+        "id": 73,
+        "text": "You must not lose faith in humanity. Humanity is an ocean; if a few drops of the ocean are dirty, the ocean does not become dirty.",
+        "text_translation": "No debes perder la fe en la humanidad. La humanidad es un océano; si unas pocas gotas del océano están sucias, el océano no se vuelve sucio.",
+        "author": "Mahatma Gandhi"
+      },
+      {
+        "id": 74,
+        "text": "Man is the Only Animal that Blushes. Or needs to.",
+        "text_translation": "El hombre es el único animal que se sonroja. O que necesita hacerlo.",
+        "author": "Mark Twain"
+      }
+    ],
+    "47": [
+      {
+        "id": 75,
+        "text": "What nature delivers to us is never stale. Because what nature creates has eternity in it.",
+        "text_translation": "Lo que la naturaleza nos entrega nunca es obsoleto. Porque lo que la naturaleza crea tiene la eternidad en ella.",
+        "author": "Isaac Bashevis Singer"
+      },
+      {
+        "id": 76,
+        "text": "In wildness is the preservation of the world.",
+        "text_translation": "En el estado salvaje reside la preservación del mundo.",
+        "author": "Henry David Thoreau"
+      },
+      {
+        "id": 77,
+        "text": "I believe in God, only I spell it Nature.",
+        "text_translation": "Yo creo en Dios, sólo lo deletreo naturaleza.",
+        "author": "Frank Lloyd Wright"
+      },
+      {
+        "id": 78,
+        "text": "I would feel more optimistic about a bright future for man if he spent less time proving that he can outwit Nature and more time tasting her sweetness and respecting her seniority.",
+        "text_translation": "Me sentiría más optimista sobre un futuro brillante para el hombre si él pasó menos tiempo en demostrar que puede ser más listo que la naturaleza y más tiempo saboreando su dulzura y respeto a su antigüedad.",
+        "author": "E. B. White"
+      },
+      {
+        "id": 79,
+        "text": "I speak for the trees, for the trees have no tongues.",
+        "text_translation": "Hablo por los árboles, pues los árboles no tienen lengua.",
+        "author": "Dr. Suess"
+      }
+    ],
+    "48": [
+      {
+        "id": 80,
+        "text": "What's money? A man is a success if he gets up in the morning and goes to bed at night and in between does what he wants to do.",
+        "text_translation": "¿Qué es el dinero? Un hombre es un éxito si se levanta por la mañana y se va a la cama por la noche y en el medio hace lo que quiere hacer.",
+        "author": "Bob Dylan"
+      },
+      {
+        "id": 81,
+        "text": " Men are born to succeed, not fail. ",
+        "text_translation": "Los hombres nacen para triunfar, no fallar.",
+        "author": "Henry David Thoreau"
+      },
+      {
+        "id": 82,
+        "text": "You always pass failure on the way to success.",
+        "text_translation": "Siempre pasas por el fracaso en el camino al éxito.",
+        "author": "Mickey Rooney"
+      },
+      {
+        "id": 83,
+        "text": "Success is the ability to go from one failure to another with no loss of enthusiasm.",
+        "text_translation": "Éxito es la capacidad de ir de un fracaso a otro sin pérdida de entusiasmo.",
+        "author": "Winston Churchill"
+      },
+      {
+        "id": 84,
+        "text": "Eighty percent of success is showing up.",
+        "text_translation": "El ochenta por ciento del éxito es aparecer.",
+        "author": "Woody Allen"
+      }
+    ],
+    "49": [
+      {
+        "id": 85,
+        "text": "Science may set limits to knowledge, but should not set limits to imagination.",
+        "text_translation": "La ciencia puede establecer límites al conocimiento, pero no debe establecer límites a la imaginación.",
+        "author": "Bertrand Russell"
+      },
+      {
+        "id": 86,
+        "text": "The most exciting phrase to hear in science, the one that heralds new discoveries, is not 'Eureka!' (I found it!) but 'That's funny ...'",
+        "text_translation": "La frase más emocionante que se puede escuchar en el ámbito de la ciencia, la que anuncia nuevos descubrimientos, no es “¡Eureka!” (¡lo encontré!) sino “¡que gracioso…!”",
+        "author": "Isaac Asimov"
+      }
+    ],
+    "50": [
+      {
+        "id": 87,
+        "text": "'Tis better to be silent and be thought a fool, than to speak and remove all doubt.",
+        "text_translation": "Es mejor callar y ser considerado un tonto, que hablar y eliminar toda duda.",
+        "author": "Abraham Lincoln"
+      },
+      {
+        "id": 88,
+        "text": "In the end, we will remember not the words of our enemies, but the silence of our friends.",
+        "text_translation": "Al final no recordaremos las palabras de nuestros enemigos, sino el silencio de nuestros amigos.",
+        "author": "Martin Luther King Jr."
+      }
+    ],
+    "51": [
+      {
+        "id": 89,
+        "text": "Early to bed and early to rise makes a man healthy, wealthy, and wise.",
+        "text_translation": "Acostarse temprano y levantarse temprano hace a un hombre saludable, rico y sabio.",
+        "author": "Benjamin Franklin"
+      }
+    ],
+    "themes": [
+      {
+        "id": 21,
+        "name": "Amor",
+        "name_en": "Love"
+      },
+      {
+        "id": 22,
+        "name": "Vida",
+        "name_en": "Life"
+      },
+      {
+        "id": 23,
+        "name": "Felicidad",
+        "name_en": "Happiness"
+      },
+      {
+        "id": 24,
+        "name": "Paz",
+        "name_en": "Peace"
+      },
+      {
+        "id": 25,
+        "name": "Comportamiento",
+        "name_en": "Behaviour"
+      },
+      {
+        "id": 26,
+        "name": "Educación",
+        "name_en": "Education"
+      },
+      {
+        "id": 27,
+        "name": "Conocimiento",
+        "name_en": "Knowledge"
+      },
+      {
+        "id": 28,
+        "name": "Lenguaje",
+        "name_en": "Language"
+      },
+      {
+        "id": 29,
+        "name": "Belleza",
+        "name_en": "Beauty"
+      },
+      {
+        "id": 30,
+        "name": "Cambios",
+        "name_en": "Change"
+      },
+      {
+        "id": 31,
+        "name": "Talento",
+        "name_en": "Talento"
+      },
+      {
+        "id": 32,
+        "name": "Sabiduría",
+        "name_en": "Wisdom"
+      },
+      {
+        "id": 33,
+        "name": "Coraje",
+        "name_en": "Courage"
+      },
+      {
+        "id": 34,
+        "name": "Civilización",
+        "name_en": "Civilization"
+      },
+      {
+        "id": 35,
+        "name": "Muerte",
+        "name_en": "Death"
+      },
+      {
+        "id": 36,
+        "name": "Creatividad",
+        "name_en": "Creativity"
+      },
+      {
+        "id": 37,
+        "name": "Inglés",
+        "name_en": "English"
+      },
+      {
+        "id": 38,
+        "name": "Experiencia",
+        "name_en": "Experience"
+      },
+      {
+        "id": 39,
+        "name": "Libertad",
+        "name_en": "Freedom"
+      },
+      {
+        "id": 40,
+        "name": "Amistad",
+        "name_en": "Friendship"
+      },
+      {
+        "id": 41,
+        "name": "El perdón",
+        "name_en": "Forgiveness"
+      },
+      {
+        "id": 42,
+        "name": "Humor",
+        "name_en": "Humor"
+      },
+      {
+        "id": 43,
+        "name": "Inteligencia",
+        "name_en": "Intelligence"
+      },
+      {
+        "id": 44,
+        "name": "Justicia",
+        "name_en": "Justice"
+      },
+      {
+        "id": 45,
+        "name": "Aprendizaje",
+        "name_en": "Learning"
+      },
+      {
+        "id": 46,
+        "name": "Humanidad",
+        "name_en": "Humanity"
+      },
+      {
+        "id": 47,
+        "name": "Naturaleza  ",
+        "name_en": "Nature"
+      },
+      {
+        "id": 48,
+        "name": "Éxito",
+        "name_en": "Success"
+      },
+      {
+        "id": 49,
+        "name": "Ciencia",
+        "name_en": "Science"
+      },
+      {
+        "id": 50,
+        "name": "Silencio",
+        "name_en": "Silence"
+      },
+      {
+        "id": 51,
+        "name": "Riqueza",
+        "name_en": "Wealth"
+      }
+    ],
+    "featured": [
+      {
+        "id": 15,
+        "text": "Love is something eternal; the aspect may change but not the essence.",
+        "text_translation": "El amor es algo eterno, el aspecto puede cambiar, pero no la esencia. ",
+        "author": "Vincent Van Gogh"
+      },
+      {
+        "id": 16,
+        "text": "There is always some madness in love. But there is also always some reason in madness.",
+        "text_translation": "Siempre hay alguna locura en el amor. Pero también siempre hay alguna razón en la locura.",
+        "author": "Friedrich Nietzsche"
+      },
+      {
+        "id": 18,
+        "text": "Education is the best provision for old age.",
+        "text_translation": "La educación es la mejor provisión para la vejez.",
+        "author": "Aristotle"
+      },
+      {
+        "id": 19,
+        "text": "I have never let my schooling interfere with my education.",
+        "text_translation": "Nunca he dejado que mis estudios interfieran en mi educación.",
+        "author": "Mark Twain"
+      },
+      {
+        "id": 20,
+        "text": "If a man empties his purse into his head no one can take it away from him. An investment in knowledge always pays the best interest.",
+        "text_translation": "Si un hombre vacía su monedero en su cabeza, nadie se lo podrá quitar. La inversión en el conocimiento siempre paga el mejor interés.",
+        "author": "Benjamin Franklin"
+      },
+      {
+        "id": 21,
+        "text": "Knowledge is power.",
+        "text_translation": "El conocimiento es poder.",
+        "author": "Sir Francis Bacon"
+      },
+      {
+        "id": 22,
+        "text": "The only good is knowledge and the only evil is ignorance.",
+        "text_translation": "El único bien es el conocimiento y el único mal es la ignorancia.",
+        "author": "Socrates"
+      },
+      {
+        "id": 24,
+        "text": "Happiness is not the absence of problems, but the ability to deal with them.",
+        "text_translation": "La felicidad no es la ausencia de problemas, sino la capacidad de hacer frente a ellos.",
+        "author": "Charles de Montesquieu"
+      },
+      {
+        "id": 27,
+        "text": "Speak properly, and in as few words as you can, but always plainly; for the end of speech is not ostentation, but to be understood.",
+        "text_translation": "Habla correctamente y con tan pocas palabras como puedas, pero siempre con claridad, porque el fin de la conversación no es la ostentación, sino el ser comprendido.",
+        "author": "William Penn"
+      },
+      {
+        "id": 28,
+        "text": "My words fly up, my thoughts remain below: Words without thoughts never to heaven go.",
+        "text_translation": "Mis palabras vuelan a lo alto, mis pensamientos se quedan abajo. Las palabras sin pensamientos nunca van al cielo.",
+        "author": "William Shakespeare (Hamlet)"
+      },
+      {
+        "id": 31,
+        "text": "Beautiful young people are accidents of nature, but beautiful old people are works of art.",
+        "text_translation": "Los jóvenes hermosos son accidentes de la Naturaleza, pero los ancianos hermosos son obras de arte.",
+        "author": "Eleanor Roosevelt"
+      },
+      {
+        "id": 34,
+        "text": "Life is a long lesson in humility.",
+        "text_translation": "La vida es una larga lección de humildad.",
+        "author": "James M. Barrie"
+      },
+      {
+        "id": 36,
+        "text": "The unexamined life is not worth living.",
+        "text_translation": "Una vida no examinada no merece la pena ser vivida.",
+        "author": "Socrates"
+      },
+      {
+        "id": 38,
+        "text": "There is nothing like returning to a place that remains unchanged to find the ways in which you yourself have altered.",
+        "text_translation": "No hay nada como volver a un lugar que permanece sin cambios para descubrir cómo has cambiado tú.",
+        "author": "Nelson Mandela"
+      },
+      {
+        "id": 39,
+        "text": "Few will have the greatness to bend history itself; but each of us can work to change a small portion of events, and in the total of all those acts will be written the history of this generation.",
+        "text_translation": "Pocos tendrán la grandeza de cambiar la historia, pero cada uno de nosotros puede trabajar para cambiar una pequeña parte de los acontecimientos, y en el total de todos estos actos se escribirá la historia de esta generación.",
+        "author": "Robert F. Kennedy"
+      },
+      {
+        "id": 40,
+        "text": "Hide not your talents, they for use were made. What's a sun-dial in the shade?",
+        "text_translation": "No escondas tus talentos, fueron hechos para ser usados. ¿De qué serviría un reloj de sol en la sombra?",
+        "author": "Benjamin Franklin"
+      },
+      {
+        "id": 42,
+        "text": "We don't receive wisdom; we must discover it for ourselves after a journey that no one can take for us or spare us.",
+        "text_translation": "No recibimos la sabiduría, debemos descubrirla por nosotros mismos, después de un viaje a través de lo inexplorado que nadie más puede realizar por nosotros.",
+        "author": "Marcel Proust"
+      },
+      {
+        "id": 43,
+        "text": "The fool doth think he is wise, but the wise man knows himself to be a fool.",
+        "text_translation": "El necio se cree sabio, pero el sabio sabe que es un tonto.",
+        "author": "William Shakespeare"
+      },
+      {
+        "id": 45,
+        "text": "It is curious that physical courage should be so common in the world and moral courage so rare.",
+        "text_translation": "Es curioso que el coraje físico sea tan habitual en el mundo y el coraje moral tan raro.",
+        "author": "Mark Twain"
+      },
+      {
+        "id": 46,
+        "text": "Speech is civilization itself... It is silence which isolates.",
+        "text_translation": "El habla es la civilización misma... Solo el silencio aísla.",
+        "author": "Thomas Mann"
+      },
+      {
+        "id": 47,
+        "text": "Death is more universal than life; everyone dies but not everyone lives.",
+        "text_translation": "La muerte es más universal que la vida; todo el mundo muere, pero no todo el mundo vive.",
+        "author": "A. Sachs"
+      },
+      {
+        "id": 50,
+        "text": "The secret to creativity is knowing how to hide your sources.",
+        "text_translation": "El secreto de la creatividad es saber cómo ocultar tus fuentes.",
+        "author": "Albert Einstein"
+      },
+      {
+        "id": 51,
+        "text": "Every child is an artist. The problem is how to remain an artist once he grows up.",
+        "text_translation": "Todo niño es un artista. EL problema radica en que lo siga siendo cuando crezca.",
+        "author": "Pablo Picasso"
+      },
+      {
+        "id": 52,
+        "text": "If the English language made any sense, a catastrophe would be an apostrophe with fur.",
+        "text_translation": "Si la lengua inglesa tuviera algún sentido, una catástrofe sería un apóstrofe con la piel.",
+        "author": "Doug Larson"
+      },
+      {
+        "id": 53,
+        "text": "England and America are two countries separated by a common language.",
+        "text_translation": "Inglaterra y los Estados Unidos son dos países separados por un idioma común.",
+        "author": "George Bernard Shaw"
+      },
+      {
+        "id": 55,
+        "text": "Experience is the name everyone gives to their mistakes.",
+        "text_translation": "Experiencia es el nombre que damos a nuestras equivocaciones.",
+        "author": "Oscar Wilde"
+      },
+      {
+        "id": 58,
+        "text": "The meeting of two personalities is like the contact of two chemical substances: if there is any reaction, both are transformed.",
+        "text_translation": "El encuentro de dos personalidades es como el contacto de dos sustancias químicas: si hay alguna reacción, ambas se transforman.",
+        "author": "Carl Jung"
+      },
+      {
+        "id": 60,
+        "text": "The weak can never forgive. Forgiveness is the attribute of the strong.",
+        "text_translation": "Los débiles nunca pueden perdonar. El perdón es el atributo de los fuertes.",
+        "author": "Mahatma Gandhi"
+      },
+      {
+        "id": 66,
+        "text": "Injustice anywhere is a threat to justice everywhere.",
+        "text_translation": "La injusticia en cualquier parte es una amenaza a la justicia en todas partes.",
+        "author": "Martin Luther King Jr."
+      },
+      {
+        "id": 68,
+        "text": "Learning is not compulsory... neither is survival.",
+        "text_translation": "El aprendizaje no es obligatorio... tampoco es la supervivencia.",
+        "author": "W. Edwards Deming"
+      },
+      {
+        "id": 70,
+        "text": "The wisest mind has something yet to learn.",
+        "text_translation": "La mente más sabia aún tiene algo que aprender.",
+        "author": "George Santayana"
+      },
+      {
+        "id": 80,
+        "text": "What's money? A man is a success if he gets up in the morning and goes to bed at night and in between does what he wants to do.",
+        "text_translation": "¿Qué es el dinero? Un hombre es un éxito si se levanta por la mañana y se va a la cama por la noche y en el medio hace lo que quiere hacer.",
+        "author": "Bob Dylan"
+      },
+      {
+        "id": 89,
+        "text": "Early to bed and early to rise makes a man healthy, wealthy, and wise.",
+        "text_translation": "Acostarse temprano y levantarse temprano hace a un hombre saludable, rico y sabio.",
+        "author": "Benjamin Franklin"
+      }
+    ]
+  },
+  "error": "",
+  "random_string": "*dummy_random_string*",
+  "hash": "*dummy_hash*",
+  "updated": true
+}

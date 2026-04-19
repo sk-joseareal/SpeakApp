@@ -1,0 +1,643 @@
+{
+  "expressions": {
+    "letras": [
+      {
+        "letra": "a"
+      },
+      {
+        "letra": "b"
+      },
+      {
+        "letra": "c"
+      },
+      {
+        "letra": "d"
+      },
+      {
+        "letra": "f"
+      },
+      {
+        "letra": "g"
+      },
+      {
+        "letra": "h"
+      },
+      {
+        "letra": "i"
+      },
+      {
+        "letra": "j"
+      },
+      {
+        "letra": "l"
+      },
+      {
+        "letra": "m"
+      },
+      {
+        "letra": "o"
+      },
+      {
+        "letra": "p"
+      },
+      {
+        "letra": "s"
+      },
+      {
+        "letra": "t"
+      },
+      {
+        "letra": "u"
+      },
+      {
+        "letra": "w"
+      }
+    ],
+    "featured": [
+      {
+        "id": 9,
+        "name": "be asleep",
+        "translation": "estar dormido",
+        "example": "I was asleep when you called.",
+        "example_translation": "Yo estaba dormido cuando llamaste."
+      },
+      {
+        "id": 10,
+        "name": "be away",
+        "translation": "estar ausente, fuera",
+        "example": "I am going to be away for a while.",
+        "example_translation": "Voy a estar ausente durante un tiempo."
+      },
+      {
+        "id": 25,
+        "name": "brand new",
+        "translation": "completamente nuevo",
+        "example": "She loves brand new clothes.",
+        "example_translation": "A ella le encanta la ropa nueva."
+      },
+      {
+        "id": 7359,
+        "name": "by the way",
+        "translation": "por cierto ",
+        "example": "By the way, I saw your sister yesterday.",
+        "example_translation": "Por cierto, vi a tu hermana ayer."
+      },
+      {
+        "id": 36,
+        "name": "first of all",
+        "translation": "ante todo/en primer lugar",
+        "example": "First of all, we would like to wish everyone a Happy New Year.",
+        "example_translation": "Ante todo desearíamos desearle a todo el mundo un feliz año nuevo."
+      },
+      {
+        "id": 39,
+        "name": "have a shower",
+        "translation": "darse una ducha",
+        "example": "John has a shower every night before he goes to sleep.",
+        "example_translation": "John se ducha cada noche antes de acostarse."
+      },
+      {
+        "id": 40,
+        "name": "have dinner",
+        "translation": "cenar",
+        "example": "May I have fish for dinner? It is my favourite dish.",
+        "example_translation": "¿Puedo comer pescado para la cena? Es mi plato favorito."
+      },
+      {
+        "id": 43,
+        "name": "if only",
+        "translation": "si tan solo",
+        "example": "If only I didn't have so many obligations.",
+        "example_translation": "Si tan solo no tuviera tantas obligaciones."
+      },
+      {
+        "id": 56,
+        "name": "just in case",
+        "translation": "por si acaso",
+        "example": "Give me your phone number, just in case there is a problem.",
+        "example_translation": "Dame tu número de teléfono, por si acaso hay un problema."
+      },
+      {
+        "id": 77,
+        "name": "on second thought",
+        "translation": "pensándolo bien",
+        "example": "On second thought, I will accept the job.",
+        "example_translation": "Pensándolo bien aceptaré el trabajo."
+      },
+      {
+        "id": 78,
+        "name": "on the way",
+        "translation": "en camino",
+        "example": "I met John on the way home.",
+        "example_translation": "Me encontré a John de camino a casa."
+      },
+      {
+        "id": 19,
+        "name": "on time",
+        "translation": "a tiempo/puntual",
+        "example": "Will my flight be on time?",
+        "example_translation": "¿Será puntual mi vuelo?"
+      },
+      {
+        "id": 8,
+        "name": "to be about to do something",
+        "translation": "a punto de hacer algo",
+        "example": "I was about to do my homework when my mother rang.",
+        "example_translation": "Estaba a punto de hacer los deberes cuando me llamó mi madre."
+      },
+      {
+        "id": 13,
+        "name": "to be grateful for",
+        "translation": "estar agradecido por",
+        "example": "You should be grateful for what you have.",
+        "example_translation": "Tendrías que estar agradecido por lo que tienes."
+      },
+      {
+        "id": 20,
+        "name": "to be right",
+        "translation": "tener razón",
+        "example": "I think you are right on this issue.",
+        "example_translation": "Creo que tienes razón en este tema."
+      },
+      {
+        "id": 24,
+        "name": "to be wrong",
+        "translation": "estar equivocado",
+        "example": "What do you do when you know you are wrong?",
+        "example_translation": "¿Qué haces cuando sabes que estás equivocado?"
+      },
+      {
+        "id": 26,
+        "name": "to change one's mind",
+        "translation": "cambiar de opinión",
+        "example": "It's never too late to change one's mind.",
+        "example_translation": "Nunca es demasiado tarde para cambiar de opinión."
+      },
+      {
+        "id": 28,
+        "name": "to do one's best",
+        "translation": "hacer algo lo mejor posible",
+        "example": "Everyone should try to do their best.",
+        "example_translation": "Todo el mundo tendría que intentar hacer lo mejor posible."
+      }
+    ],
+    "a": [
+      {
+        "id": 1,
+        "name": "after hours ",
+        "translation": "después de horas normales",
+        "example": "The bars are open after hours on Saturdays.",
+        "example_translation": "Los bares están abiertos después de horas los sabados."
+      },
+      {
+        "id": 2,
+        "name": "as a joke",
+        "translation": "en broma",
+        "example": "What began as a joke could have had serious consequences.",
+        "example_translation": "Lo que comenzó como una broma podía haber tenido consecuencias graves."
+      },
+      {
+        "id": 4,
+        "name": "as follows",
+        "translation": "como sigue",
+        "example": "The rules for these classes are as follows:…",
+        "example_translation": "Las normas para estas clases son las siguientes:…"
+      },
+      {
+        "id": 6,
+        "name": "at random",
+        "translation": "al azar",
+        "example": "They chose her CV at random.",
+        "example_translation": "Escogieron su curriculum al azar."
+      }
+    ],
+    "b": [
+      {
+        "id": 9,
+        "name": "be asleep",
+        "translation": "estar dormido",
+        "example": "I was asleep when you called.",
+        "example_translation": "Yo estaba dormido cuando llamaste."
+      },
+      {
+        "id": 10,
+        "name": "be away",
+        "translation": "estar ausente, fuera",
+        "example": "I am going to be away for a while.",
+        "example_translation": "Voy a estar ausente durante un tiempo."
+      },
+      {
+        "id": 11,
+        "name": "be fired",
+        "translation": "ser despedido",
+        "example": "He will have to look for employment after being fired.",
+        "example_translation": "El tendrá que buscar trabajo tras ser despedido."
+      },
+      {
+        "id": 17,
+        "name": "be in labour",
+        "translation": "estar de parto",
+        "example": "A woman is considered to be in labour the moment her water breaks.",
+        "example_translation": "Se considera que una mujer está de parto en el momento en que rompe aguas."
+      },
+      {
+        "id": 25,
+        "name": "brand new",
+        "translation": "completamente nuevo",
+        "example": "She loves brand new clothes.",
+        "example_translation": "A ella le encanta la ropa nueva."
+      },
+      {
+        "id": 7359,
+        "name": "by the way",
+        "translation": "por cierto ",
+        "example": "By the way, I saw your sister yesterday.",
+        "example_translation": "Por cierto, vi a tu hermana ayer."
+      }
+    ],
+    "c": [
+      {
+        "id": 27,
+        "name": "countless times",
+        "translation": "innumerables ocasiones",
+        "example": "I know this has happened countless times.",
+        "example_translation": "Sé que esto ha pasado en innumerables ocasiones."
+      }
+    ],
+    "d": [
+      {
+        "id": 33,
+        "name": "drop the price",
+        "translation": "bajar el precio",
+        "example": "That shop will drop the price of all their items for January.",
+        "example_translation": "Esa tienda bajará los precios de sus productos para enero."
+      }
+    ],
+    "f": [
+      {
+        "id": 36,
+        "name": "first of all",
+        "translation": "ante todo/en primer lugar",
+        "example": "First of all, we would like to wish everyone a Happy New Year.",
+        "example_translation": "Ante todo desearíamos desearle a todo el mundo un feliz año nuevo."
+      }
+    ],
+    "g": [
+      {
+        "id": 37,
+        "name": "go downstairs",
+        "translation": "bajar las escaleras",
+        "example": "You will have to go downstairs, I forgot the jacket.",
+        "example_translation": "Tendrás que bajar, he olvidado la chaqueta."
+      }
+    ],
+    "h": [
+      {
+        "id": 39,
+        "name": "have a shower",
+        "translation": "darse una ducha",
+        "example": "John has a shower every night before he goes to sleep.",
+        "example_translation": "John se ducha cada noche antes de acostarse."
+      },
+      {
+        "id": 40,
+        "name": "have dinner",
+        "translation": "cenar",
+        "example": "May I have fish for dinner? It is my favourite dish.",
+        "example_translation": "¿Puedo comer pescado para la cena? Es mi plato favorito."
+      }
+    ],
+    "i": [
+      {
+        "id": 42,
+        "name": "if it is all the same to ",
+        "translation": "si te da lo mismo",
+        "example": "If it is all the same to you, I would like to buy this one instead.",
+        "example_translation": "Si a ti te da igual me gustaría comprar este mejor."
+      },
+      {
+        "id": 43,
+        "name": "if only",
+        "translation": "si tan solo",
+        "example": "If only I didn't have so many obligations.",
+        "example_translation": "Si tan solo no tuviera tantas obligaciones."
+      },
+      {
+        "id": 45,
+        "name": "in any case",
+        "translation": "en cualquier caso",
+        "example": "I don't want to go to the party and in any case, I haven't been invited.",
+        "example_translation": "No quiero ir a la fiesta y en cualquier caso, no he sido invitado."
+      },
+      {
+        "id": 46,
+        "name": "in due time",
+        "translation": "a su debido tiempo",
+        "example": "You will know the truth in due time.",
+        "example_translation": "Sabrás la verdad a su debido tiempo."
+      },
+      {
+        "id": 49,
+        "name": "in some way or other",
+        "translation": "de alguna manera u otra",
+        "example": "Many people have contributed to these notes in some way or other.",
+        "example_translation": "Mucha gente ha contribuido a estas anotaciones de una manera u otra."
+      },
+      {
+        "id": 51,
+        "name": "in the small (wee) hours",
+        "translation": "a altas horas de la madrugada",
+        "example": "I was lying in bed awake until the small hours of the morning.",
+        "example_translation": "Estaba tumbado/a en la cama despierto/a hasta altas horas de la madrugada."
+      },
+      {
+        "id": 100,
+        "name": "in the wink of an eye",
+        "translation": "en un abrir y cerrar de ojos",
+        "example": "She got dressed in the wink of an eye.",
+        "example_translation": "Ella se vistió en un abrir y cerrar de ojos."
+      }
+    ],
+    "j": [
+      {
+        "id": 56,
+        "name": "just in case",
+        "translation": "por si acaso",
+        "example": "Give me your phone number, just in case there is a problem.",
+        "example_translation": "Dame tu número de teléfono, por si acaso hay un problema."
+      },
+      {
+        "id": 57,
+        "name": "just now",
+        "translation": "ahora mismo",
+        "example": "Sorry I have just now seen your e-mail.",
+        "example_translation": "Disculpa, acabo de ver tu correo."
+      }
+    ],
+    "l": [
+      {
+        "id": 62,
+        "name": "lean towards something",
+        "translation": "inclinarse por una opinión",
+        "example": "I am leaning towards taking the job.",
+        "example_translation": "Me inclino por coger el trabajo."
+      }
+    ],
+    "m": [
+      {
+        "id": 69,
+        "name": "make a remark",
+        "translation": "hacer una observación",
+        "example": "He wanted to make a remark regarding the previous meeting.",
+        "example_translation": "Él quiso hacer una observación con referencia a la reunión previa."
+      },
+      {
+        "id": 71,
+        "name": "much to one's regret",
+        "translation": "muy a pesar",
+        "example": "Much to my regret I have to postpone my wedding with Tom.",
+        "example_translation": "Muy a mi pesar tengo que posponer mi boda con Tom."
+      }
+    ],
+    "o": [
+      {
+        "id": 77,
+        "name": "on second thought",
+        "translation": "pensándolo bien",
+        "example": "On second thought, I will accept the job.",
+        "example_translation": "Pensándolo bien aceptaré el trabajo."
+      },
+      {
+        "id": 78,
+        "name": "on the way",
+        "translation": "en camino",
+        "example": "I met John on the way home.",
+        "example_translation": "Me encontré a John de camino a casa."
+      },
+      {
+        "id": 19,
+        "name": "on time",
+        "translation": "a tiempo/puntual",
+        "example": "Will my flight be on time?",
+        "example_translation": "¿Será puntual mi vuelo?"
+      }
+    ],
+    "p": [
+      {
+        "id": 79,
+        "name": "pay in cash",
+        "translation": "pagar en efectivo",
+        "example": "If you don't have a credit card, you can pay in cash.",
+        "example_translation": "Si no tienes una tarjeta de credito, puedes pagar en efectivo."
+      },
+      {
+        "id": 82,
+        "name": "put something right",
+        "translation": "arreglar algo",
+        "example": "I have to put right this situation.",
+        "example_translation": "Tengo que arreglar esta situación."
+      }
+    ],
+    "s": [
+      {
+        "id": 87,
+        "name": "speak plainly",
+        "translation": "hablar claro",
+        "example": "You must speak plainly to be understood.",
+        "example_translation": "Tienes que hablar con claridad para ser entendido."
+      }
+    ],
+    "t": [
+      {
+        "id": 90,
+        "name": "tell the way",
+        "translation": "indicar el camino",
+        "example": "Can you tell me the way to the local police office?",
+        "example_translation": "¿Me puede decir el camino a la oficina de la policía local?"
+      },
+      {
+        "id": 91,
+        "name": "the naked truth",
+        "translation": "la pura verdad",
+        "example": "The naked truth is always better than the best dress.",
+        "example_translation": "La pura verdad siempre es mejor que el mejor vestido."
+      },
+      {
+        "id": 5,
+        "name": "to ask for trouble",
+        "translation": "armar jaleo",
+        "example": "You better not ask for trouble in this discotech.",
+        "example_translation": "Mejor no armes jaleo en esta discoteca."
+      },
+      {
+        "id": 8,
+        "name": "to be about to do something",
+        "translation": "a punto de hacer algo",
+        "example": "I was about to do my homework when my mother rang.",
+        "example_translation": "Estaba a punto de hacer los deberes cuando me llamó mi madre."
+      },
+      {
+        "id": 12,
+        "name": "to be fully informed",
+        "translation": "estar bien informado",
+        "example": "He prefers to be fully informed about the state of his bank account.",
+        "example_translation": "Él prefiere estar bien informado sobre el estado de su cuenta bancaria."
+      },
+      {
+        "id": 13,
+        "name": "to be grateful for",
+        "translation": "estar agradecido por",
+        "example": "You should be grateful for what you have.",
+        "example_translation": "Tendrías que estar agradecido por lo que tienes."
+      },
+      {
+        "id": 14,
+        "name": "to be identical to",
+        "translation": "ser idéntico a algo",
+        "example": "This poster is identical to that other one.",
+        "example_translation": "Este póster es idéntico a aquel otro."
+      },
+      {
+        "id": 55,
+        "name": "to be no good",
+        "translation": "no sirve de nada",
+        "example": "It's no good shouting at me like that.",
+        "example_translation": "No sirve de nada gritarme de esa manera."
+      },
+      {
+        "id": 18,
+        "name": "to be of age",
+        "translation": "ser mayor de edad",
+        "example": "He will be of age to drink next week.",
+        "example_translation": "Será mayor de edad para beber la semana que viene."
+      },
+      {
+        "id": 20,
+        "name": "to be right",
+        "translation": "tener razón",
+        "example": "I think you are right on this issue.",
+        "example_translation": "Creo que tienes razón en este tema."
+      },
+      {
+        "id": 54,
+        "name": "to be rumored ",
+        "translation": "se rumorea",
+        "example": "It is rumoured that a big snake lives in this park.",
+        "example_translation": "Se rumorea que una serpiente grande vive en este parque."
+      },
+      {
+        "id": 21,
+        "name": "to be under age",
+        "translation": "ser menor de edad",
+        "example": "He will still be under age next month.",
+        "example_translation": "El mes que viene todavía será menor de edad."
+      },
+      {
+        "id": 22,
+        "name": "to be upset",
+        "translation": "estar disgustado",
+        "example": "My mother is upset because I didn't go to school today.",
+        "example_translation": "Mi madre está disgustada porque no fui a la escuela hoy."
+      },
+      {
+        "id": 24,
+        "name": "to be wrong",
+        "translation": "estar equivocado",
+        "example": "What do you do when you know you are wrong?",
+        "example_translation": "¿Qué haces cuando sabes que estás equivocado?"
+      },
+      {
+        "id": 26,
+        "name": "to change one's mind",
+        "translation": "cambiar de opinión",
+        "example": "It's never too late to change one's mind.",
+        "example_translation": "Nunca es demasiado tarde para cambiar de opinión."
+      },
+      {
+        "id": 28,
+        "name": "to do one's best",
+        "translation": "hacer algo lo mejor posible",
+        "example": "Everyone should try to do their best.",
+        "example_translation": "Todo el mundo tendría que intentar hacer lo mejor posible."
+      },
+      {
+        "id": 30,
+        "name": "to doubt someone's word",
+        "translation": "dudar de la palabra de alguien",
+        "example": "This is not the first time that he lied to me. I will always doubt his word.",
+        "example_translation": "No es la primera vez que él me miente. Siempo dudo de su palabra."
+      },
+      {
+        "id": 31,
+        "name": "to draw a conclusion",
+        "translation": "sacar una conclusión",
+        "example": "Is there sufficient information available on which to draw a conclusion?",
+        "example_translation": "¿Hay suficiente información disponible para sacar una conclusión?"
+      },
+      {
+        "id": 59,
+        "name": "to keep a secret",
+        "translation": "guardar un secreto",
+        "example": "Three may keep a secret if two of them are dead.",
+        "example_translation": "Tres pueden guardar un secreto si dos de ellos están muertos."
+      },
+      {
+        "id": 65,
+        "name": "to look on the bright side of things",
+        "translation": "ver la parte positiva de las cosas",
+        "example": "You are such an optomist. You always look on the bright side of things.",
+        "example_translation": "Eres optimista porque siempre miras la parte positiva de las cosas."
+      },
+      {
+        "id": 67,
+        "name": "to lose one's temper",
+        "translation": "perder los estribos",
+        "example": "When something becomes difficult, one should make sure to never lose one's temper.",
+        "example_translation": "Cuando algo se complica, uno tendría que asegurarse de no perder nunca los estribos."
+      },
+      {
+        "id": 74,
+        "name": "to not have the slightest doubt",
+        "translation": "sin la menor duda",
+        "example": "I didn't have the the slightest doubt that he was lying.",
+        "example_translation": "Sin ninguna duda sabía que él estaba mintiendo."
+      },
+      {
+        "id": 98,
+        "name": "to waste (one's) time ",
+        "translation": "perder el tiempo",
+        "example": "Life is too short to waste one's time.",
+        "example_translation": "La vida es muy corta para perder el tiempo."
+      }
+    ],
+    "u": [
+      {
+        "id": 94,
+        "name": "under no circumstances",
+        "translation": "bajo ningún concepto",
+        "example": "Under no circumstances will I let the enemy know the information.",
+        "example_translation": "Bajo ninguna circunstancia le daré a conocer la información al enemigo."
+      }
+    ],
+    "w": [
+      {
+        "id": 102,
+        "name": "within one's reach",
+        "translation": "al alcance de la mano",
+        "example": "I currently have many options within my reach.",
+        "example_translation": "Actualmente tengo a mi alcance bastantes opciones."
+      },
+      {
+        "id": 104,
+        "name": "without warning",
+        "translation": "sin aviso",
+        "example": "The operating system restarts without warning.",
+        "example_translation": "El sistema operativo se reinicia sin avisar."
+      }
+    ]
+  },
+  "error": "",
+  "random_string": "*dummy_random_string*",
+  "hash": "*dummy_hash*",
+  "updated": true
+}

@@ -41,6 +41,7 @@ class PageDiagnostics extends HTMLElement {
     const SPEAK_PRONUNCIATION_AVATAR_NEW = 'new';
     const SPEAK_PRONUNCIATION_AVATAR_SET2 = 'set2';
     const REFERENCE_TAB_ENABLED_KEY = 'appv5:reference-tab-enabled';
+    const REFERENCE_TOOLS_ENABLED_KEY = 'appv5:reference-tools-enabled';
     const CHAT_CATBOT_ENABLED_KEY = 'appv5:chat-catbot-enabled';
     const CHAT_CHATBOT_ENABLED_KEY = 'appv5:chat-chatbot-enabled';
     const TAB_VISIBILITY_ORDER = ['home', 'freeride', 'reference', 'chat', 'tu'];
@@ -232,6 +233,26 @@ class PageDiagnostics extends HTMLElement {
     const getStoredReferenceTabEnabled = () => {
       return getStoredTabVisibility('reference');
     };
+    const normalizeReferenceToolsEnabled = (value) => {
+      if (typeof value === 'boolean') return value;
+      const normalized = String(value || '')
+        .trim()
+        .toLowerCase();
+      if (!normalized) return false;
+      return ['1', 'true', 'on'].includes(normalized);
+    };
+    const getStoredReferenceToolsEnabled = () => {
+      const globalValue =
+        window.r34lp0w3r && Object.prototype.hasOwnProperty.call(window.r34lp0w3r, 'referenceToolsEnabled')
+          ? window.r34lp0w3r.referenceToolsEnabled
+          : undefined;
+      if (globalValue !== undefined) return normalizeReferenceToolsEnabled(globalValue);
+      try {
+        return normalizeReferenceToolsEnabled(localStorage.getItem(REFERENCE_TOOLS_ENABLED_KEY));
+      } catch (err) {
+        return false;
+      }
+    };
     const normalizeChatCatbotEnabled = (value) => {
       if (typeof value === 'boolean') return value;
       const normalized = String(value || '')
@@ -324,6 +345,13 @@ class PageDiagnostics extends HTMLElement {
             </div>
 
             ${buildTabVisibilityToggleMarkup()}
+            <div class="diag-debug-toggle" style="margin-top: 10px;">
+              <div class="diag-debug-text">
+                <div class="diag-debug-title">Reference tools</div>
+                <div class="diag-debug-sub" id="diag-reference-tools-sub"></div>
+              </div>
+              <ion-toggle id="diag-reference-tools-toggle" aria-label="Reference tools" ${getStoredReferenceToolsEnabled() ? 'checked' : ''}></ion-toggle>
+            </div>
             <div class="diag-debug-toggle" style="margin-top: 10px;">
               <div class="diag-debug-text">
                 <div class="diag-debug-title">Catbot</div>
@@ -808,6 +836,8 @@ class PageDiagnostics extends HTMLElement {
     const freeRideAdvancedSubEl = this.querySelector('#diag-free-ride-advanced-sub');
     const freeRideWordTapAudioToggleEl = this.querySelector('#diag-free-ride-word-tap-audio-toggle');
     const freeRideWordTapAudioSubEl = this.querySelector('#diag-free-ride-word-tap-audio-sub');
+    const referenceToolsToggleEl = this.querySelector('#diag-reference-tools-toggle');
+    const referenceToolsSubEl = this.querySelector('#diag-reference-tools-sub');
     const speakSessionPercentagesToggleEl = this.querySelector('#diag-speak-session-percentages-toggle');
     const speakSessionPercentagesSubEl = this.querySelector('#diag-speak-session-percentages-sub');
     const speakPronunciationAvatarModeEl = this.querySelector('#diag-speak-pronunciation-avatar-mode');
@@ -923,6 +953,36 @@ class PageDiagnostics extends HTMLElement {
         freeRideWordTapAudioSubEl.textContent = normalized
           ? 'Activado: al tocar palabras en Free ride (frase y popup) reproduce el fragmento correspondiente del audio grabado.'
           : 'Desactivado: tocar palabras solo selecciona/inspecciona, sin reproducir fragmentos.';
+      }
+      return normalized;
+    };
+
+    const setReferenceToolsEnabled = (enabled) => {
+      const normalized = normalizeReferenceToolsEnabled(enabled);
+      window.r34lp0w3r = window.r34lp0w3r || {};
+      window.r34lp0w3r.referenceToolsEnabled = normalized;
+      try {
+        localStorage.setItem(REFERENCE_TOOLS_ENABLED_KEY, normalized ? '1' : '0');
+      } catch (err) {
+        // no-op
+      }
+      window.dispatchEvent(
+        new CustomEvent('app:reference-tools-enabled-change', {
+          detail: { enabled: normalized }
+        })
+      );
+      return normalized;
+    };
+
+    const updateReferenceToolsUi = (enabled) => {
+      const normalized = normalizeReferenceToolsEnabled(enabled);
+      if (referenceToolsToggleEl) {
+        referenceToolsToggleEl.checked = normalized;
+      }
+      if (referenceToolsSubEl) {
+        referenceToolsSubEl.textContent = normalized
+          ? 'Activado: muestra el selector Cursos / Herramientas en el tab Referencia.'
+          : 'Desactivado: el tab Referencia solo muestra los cursos.';
       }
       return normalized;
     };
@@ -2515,6 +2575,8 @@ class PageDiagnostics extends HTMLElement {
     updateFreeRideAdvancedUi(initialFreeRideAdvancedEnabled);
     const initialFreeRideWordTapAudioEnabled = getStoredFreeRideWordTapAudioEnabled();
     updateFreeRideWordTapAudioUi(initialFreeRideWordTapAudioEnabled);
+    const initialReferenceToolsEnabled = getStoredReferenceToolsEnabled();
+    updateReferenceToolsUi(initialReferenceToolsEnabled);
     const initialSpeakSessionPercentagesVisible = getStoredSpeakSessionPercentagesVisible();
     updateSpeakSessionPercentagesUi(initialSpeakSessionPercentagesVisible);
     const initialSpeakPronunciationAvatarMode = getStoredSpeakPronunciationAvatarMode();
@@ -2698,6 +2760,13 @@ class PageDiagnostics extends HTMLElement {
           ? Boolean(event.detail.checked)
           : Boolean(freeRideWordTapAudioToggleEl.checked);
       updateFreeRideWordTapAudioUi(setFreeRideWordTapAudioEnabled(nextEnabled));
+    });
+    referenceToolsToggleEl?.addEventListener('ionChange', (event) => {
+      const nextEnabled =
+        event && event.detail && event.detail.checked !== undefined
+          ? Boolean(event.detail.checked)
+          : Boolean(referenceToolsToggleEl.checked);
+      updateReferenceToolsUi(setReferenceToolsEnabled(nextEnabled));
     });
     speakSessionPercentagesToggleEl?.addEventListener('ionChange', (event) => {
       const nextVisible =

@@ -1,0 +1,2831 @@
+{
+  "regverbs": {
+    "letras": [
+      {
+        "letra": "a"
+      },
+      {
+        "letra": "b"
+      },
+      {
+        "letra": "c"
+      },
+      {
+        "letra": "d"
+      },
+      {
+        "letra": "e"
+      },
+      {
+        "letra": "f"
+      },
+      {
+        "letra": "g"
+      },
+      {
+        "letra": "h"
+      },
+      {
+        "letra": "i"
+      },
+      {
+        "letra": "j"
+      },
+      {
+        "letra": "k"
+      },
+      {
+        "letra": "l"
+      },
+      {
+        "letra": "m"
+      },
+      {
+        "letra": "n"
+      },
+      {
+        "letra": "o"
+      },
+      {
+        "letra": "p"
+      },
+      {
+        "letra": "r"
+      },
+      {
+        "letra": "s"
+      },
+      {
+        "letra": "t"
+      },
+      {
+        "letra": "u"
+      },
+      {
+        "letra": "v"
+      },
+      {
+        "letra": "w"
+      }
+    ],
+    "featured": [
+      {
+        "id": 8,
+        "name": "agree",
+        "translation": "estar de acuerdo; acordar",
+        "present": "agree",
+        "past_simple": "agreed",
+        "past_participle": "agreed",
+        "gerund": "agreeing"
+      },
+      {
+        "id": 11,
+        "name": "answer",
+        "translation": "responder; contestar",
+        "present": "answer",
+        "past_simple": "answered",
+        "past_participle": "answered",
+        "gerund": "answering"
+      },
+      {
+        "id": 16,
+        "name": "arrive",
+        "translation": "llegar",
+        "present": "arrive",
+        "past_simple": "arrived",
+        "past_participle": "arrived",
+        "gerund": "arriving"
+      },
+      {
+        "id": 17,
+        "name": "ask",
+        "translation": "preguntar; pedir",
+        "present": "ask",
+        "past_simple": "asked",
+        "past_participle": "asked",
+        "gerund": "asking"
+      },
+      {
+        "id": 21,
+        "name": "believe",
+        "translation": "creer",
+        "present": "believe",
+        "past_simple": "believed",
+        "past_participle": "believed",
+        "gerund": "believing"
+      },
+      {
+        "id": 23,
+        "name": "call",
+        "translation": "llamar(se)",
+        "present": "call",
+        "past_simple": "called",
+        "past_participle": "called",
+        "gerund": "calling"
+      },
+      {
+        "id": 25,
+        "name": "carry",
+        "translation": "cargar; llevar",
+        "present": "carry",
+        "past_simple": "carried",
+        "past_participle": "carried",
+        "gerund": "carrying"
+      },
+      {
+        "id": 27,
+        "name": "change",
+        "translation": "cambiar",
+        "present": "change",
+        "past_simple": "changed",
+        "past_participle": "changed",
+        "gerund": "changing"
+      },
+      {
+        "id": 28,
+        "name": "charge",
+        "translation": "cobrar; cargar",
+        "present": "charge",
+        "past_simple": "charged",
+        "past_participle": "charged",
+        "gerund": "charging"
+      },
+      {
+        "id": 31,
+        "name": "clean",
+        "translation": "limpiar",
+        "present": "clean",
+        "past_simple": "cleaned",
+        "past_participle": "cleaned",
+        "gerund": "cleaning"
+      },
+      {
+        "id": 34,
+        "name": "close",
+        "translation": "cerrar",
+        "present": "close",
+        "past_simple": "closed",
+        "past_participle": "closed",
+        "gerund": "closing"
+      },
+      {
+        "id": 47,
+        "name": "continue",
+        "translation": "continuar; seguir",
+        "present": "continue",
+        "past_simple": "continued",
+        "past_participle": "continued",
+        "gerund": "continuing"
+      },
+      {
+        "id": 50,
+        "name": "cook",
+        "translation": "cocinar",
+        "present": "cook",
+        "past_simple": "cooked",
+        "past_participle": "cooked",
+        "gerund": "cooking"
+      },
+      {
+        "id": 57,
+        "name": "cry",
+        "translation": "llorar",
+        "present": "cry",
+        "past_simple": "cried",
+        "past_participle": "cried",
+        "gerund": "crying"
+      },
+      {
+        "id": 59,
+        "name": "dance",
+        "translation": "bailar",
+        "present": "dance",
+        "past_simple": "danced",
+        "past_participle": "danced",
+        "gerund": "dancing"
+      },
+      {
+        "id": 60,
+        "name": "decide",
+        "translation": "decidir",
+        "present": "decide",
+        "past_simple": "decided",
+        "past_participle": "decided",
+        "gerund": "deciding"
+      },
+      {
+        "id": 69,
+        "name": "die",
+        "translation": "morir",
+        "present": "die",
+        "past_simple": "died",
+        "past_participle": "died",
+        "gerund": "dying"
+      },
+      {
+        "id": 78,
+        "name": "enjoy",
+        "translation": "disfrutar",
+        "present": "enjoy",
+        "past_simple": "enjoyed",
+        "past_participle": "enjoyed",
+        "gerund": "enjoying"
+      },
+      {
+        "id": 83,
+        "name": "explain",
+        "translation": "explicar",
+        "present": "explain",
+        "past_simple": "explained",
+        "past_participle": "explained",
+        "gerund": "explaining"
+      },
+      {
+        "id": 87,
+        "name": "fail",
+        "translation": "fallar; fracasar; suspender",
+        "present": "fail",
+        "past_simple": "failed",
+        "past_participle": "failed",
+        "gerund": "failing"
+      },
+      {
+        "id": 90,
+        "name": "finish",
+        "translation": "terminar; acabar; finalizar",
+        "present": "finish",
+        "past_simple": "finished",
+        "past_participle": "finished",
+        "gerund": "finishing"
+      },
+      {
+        "id": 97,
+        "name": "happen",
+        "translation": "pasar; ocurrir; suceder",
+        "present": "happen",
+        "past_simple": "happened",
+        "past_participle": "happened",
+        "gerund": "happening"
+      },
+      {
+        "id": 100,
+        "name": "help",
+        "translation": "ayudar",
+        "present": "help",
+        "past_simple": "helped",
+        "past_participle": "helped",
+        "gerund": "helping"
+      },
+      {
+        "id": 101,
+        "name": "hope",
+        "translation": "esperar",
+        "present": "hope",
+        "past_simple": "hoped",
+        "past_participle": "hoped",
+        "gerund": "hoping"
+      },
+      {
+        "id": 103,
+        "name": "imagine",
+        "translation": "imaginar(se)",
+        "present": "imagine",
+        "past_simple": "imagined",
+        "past_participle": "imagined",
+        "gerund": "imagining"
+      },
+      {
+        "id": 104,
+        "name": "improve",
+        "translation": "mejorar",
+        "present": "improve",
+        "past_simple": "improved",
+        "past_participle": "improved",
+        "gerund": "improving"
+      },
+      {
+        "id": 120,
+        "name": "laugh",
+        "translation": "reir",
+        "present": "laugh",
+        "past_simple": "laughed",
+        "past_participle": "laughed",
+        "gerund": "laughing"
+      },
+      {
+        "id": 121,
+        "name": "like",
+        "translation": "gustar",
+        "present": "like",
+        "past_simple": "liked",
+        "past_participle": "liked",
+        "gerund": "liking"
+      },
+      {
+        "id": 124,
+        "name": "listen",
+        "translation": "escuchar",
+        "present": "listen",
+        "past_simple": "listened",
+        "past_participle": "listened",
+        "gerund": "listening"
+      },
+      {
+        "id": 125,
+        "name": "live",
+        "translation": "vivir",
+        "present": "live",
+        "past_simple": "lived",
+        "past_participle": "lived",
+        "gerund": "living"
+      },
+      {
+        "id": 126,
+        "name": "look",
+        "translation": "mirar",
+        "present": "look",
+        "past_simple": "looked",
+        "past_participle": "looked",
+        "gerund": "looking"
+      },
+      {
+        "id": 127,
+        "name": "love",
+        "translation": "amar; encantar",
+        "present": "love",
+        "past_simple": "loved",
+        "past_participle": "loved",
+        "gerund": "loving"
+      },
+      {
+        "id": 134,
+        "name": "miss",
+        "translation": "extrañar; perder (un bus; una cita, etc.)",
+        "present": "miss",
+        "past_simple": "missed",
+        "past_participle": "missed",
+        "gerund": "missing"
+      },
+      {
+        "id": 136,
+        "name": "need",
+        "translation": "necesitar",
+        "present": "need",
+        "past_simple": "needed",
+        "past_participle": "needed",
+        "gerund": "needing"
+      },
+      {
+        "id": 141,
+        "name": "open",
+        "translation": "abrir",
+        "present": "open",
+        "past_simple": "opened",
+        "past_participle": "opened",
+        "gerund": "opening"
+      },
+      {
+        "id": 144,
+        "name": "pass",
+        "translation": "pasar",
+        "present": "pass",
+        "past_simple": "passed",
+        "past_participle": "passed",
+        "gerund": "passing"
+      },
+      {
+        "id": 149,
+        "name": "play",
+        "translation": "jugar",
+        "present": "play",
+        "past_simple": "played",
+        "past_participle": "played",
+        "gerund": "playing"
+      },
+      {
+        "id": 167,
+        "name": "receive",
+        "translation": "recibir",
+        "present": "receive",
+        "past_simple": "received",
+        "past_participle": "received",
+        "gerund": "receiving"
+      },
+      {
+        "id": 178,
+        "name": "remember",
+        "translation": "recordar; acordarse de",
+        "present": "remember",
+        "past_simple": "remembered",
+        "past_participle": "remembered",
+        "gerund": "remembering"
+      },
+      {
+        "id": 180,
+        "name": "repeat",
+        "translation": "repetir",
+        "present": "repeat",
+        "past_simple": "repeated",
+        "past_participle": "repeated",
+        "gerund": "repeating"
+      },
+      {
+        "id": 186,
+        "name": "rest",
+        "translation": "descansar",
+        "present": "rest",
+        "past_simple": "rested",
+        "past_participle": "rested",
+        "gerund": "resting"
+      },
+      {
+        "id": 188,
+        "name": "return",
+        "translation": "regresar; volver",
+        "present": "return",
+        "past_simple": "returned",
+        "past_participle": "returned",
+        "gerund": "returning"
+      },
+      {
+        "id": 191,
+        "name": "save",
+        "translation": "guardar; ahorrar",
+        "present": "save",
+        "past_simple": "saved",
+        "past_participle": "saved",
+        "gerund": "saving"
+      },
+      {
+        "id": 196,
+        "name": "share",
+        "translation": "compartir",
+        "present": "share",
+        "past_simple": "shared",
+        "past_participle": "shared",
+        "gerund": "sharing"
+      },
+      {
+        "id": 201,
+        "name": "start",
+        "translation": "empezar; comenzar",
+        "present": "start",
+        "past_simple": "started",
+        "past_participle": "started",
+        "gerund": "starting"
+      },
+      {
+        "id": 203,
+        "name": "stay",
+        "translation": "quedarse; permanecer",
+        "present": "stay",
+        "past_simple": "stayed",
+        "past_participle": "stayed",
+        "gerund": "staying"
+      },
+      {
+        "id": 204,
+        "name": "stop",
+        "translation": "parar; detener",
+        "present": "stop",
+        "past_simple": "stopped",
+        "past_participle": "stopped",
+        "gerund": "stopping"
+      },
+      {
+        "id": 205,
+        "name": "study",
+        "translation": "estudiar",
+        "present": "study",
+        "past_simple": "studied",
+        "past_participle": "studied",
+        "gerund": "studying"
+      },
+      {
+        "id": 214,
+        "name": "talk",
+        "translation": "hablar",
+        "present": "talk",
+        "past_simple": "talked",
+        "past_participle": "talked",
+        "gerund": "talking"
+      },
+      {
+        "id": 218,
+        "name": "touch",
+        "translation": "tocar",
+        "present": "touch",
+        "past_simple": "touched",
+        "past_participle": "touched",
+        "gerund": "touching"
+      },
+      {
+        "id": 220,
+        "name": "travel",
+        "translation": "viajar",
+        "present": "travel",
+        "past_simple": "traveled (US); travelled (UK)",
+        "past_participle": "traveled (US); travelled (UK)",
+        "gerund": "traveling (US); travelling (UK)"
+      },
+      {
+        "id": 222,
+        "name": "try",
+        "translation": "intentar; tratar de; probar",
+        "present": "try",
+        "past_simple": "tried",
+        "past_participle": "tried",
+        "gerund": "trying"
+      },
+      {
+        "id": 223,
+        "name": "turn",
+        "translation": "girar; voltear",
+        "present": "turn",
+        "past_simple": "turned",
+        "past_participle": "turned",
+        "gerund": "turning"
+      },
+      {
+        "id": 224,
+        "name": "use",
+        "translation": "usar; utilizar",
+        "present": "use",
+        "past_simple": "used",
+        "past_participle": "used",
+        "gerund": "using"
+      },
+      {
+        "id": 225,
+        "name": "visit",
+        "translation": "visitar",
+        "present": "visit",
+        "past_simple": "visited",
+        "past_participle": "visited",
+        "gerund": "visiting"
+      },
+      {
+        "id": 227,
+        "name": "wait",
+        "translation": "esperar",
+        "present": "wait",
+        "past_simple": "waited",
+        "past_participle": "waited",
+        "gerund": "waiting"
+      },
+      {
+        "id": 228,
+        "name": "walk",
+        "translation": "caminar; andar",
+        "present": "walk",
+        "past_simple": "walked",
+        "past_participle": "walked",
+        "gerund": "walking"
+      },
+      {
+        "id": 229,
+        "name": "want",
+        "translation": "querer; desear",
+        "present": "want",
+        "past_simple": "wanted",
+        "past_participle": "wanted",
+        "gerund": "wanting"
+      },
+      {
+        "id": 230,
+        "name": "warn",
+        "translation": "advertir; avisar",
+        "present": "warn",
+        "past_simple": "warned",
+        "past_participle": "warned",
+        "gerund": "warning"
+      },
+      {
+        "id": 231,
+        "name": "wash",
+        "translation": "lavar",
+        "present": "wash",
+        "past_simple": "washed",
+        "past_participle": "washed",
+        "gerund": "washing"
+      },
+      {
+        "id": 232,
+        "name": "watch",
+        "translation": "mirar",
+        "present": "watch",
+        "past_simple": "watched",
+        "past_participle": "watched",
+        "gerund": "watching"
+      },
+      {
+        "id": 233,
+        "name": "wish",
+        "translation": "desear",
+        "present": "wish",
+        "past_simple": "wished",
+        "past_participle": "wished",
+        "gerund": "wishing"
+      },
+      {
+        "id": 234,
+        "name": "wonder",
+        "translation": "preguntarse",
+        "present": "wonder",
+        "past_simple": "wondered",
+        "past_participle": "wondered",
+        "gerund": "wondering"
+      },
+      {
+        "id": 235,
+        "name": "work",
+        "translation": "trabajar; currar",
+        "present": "work",
+        "past_simple": "worked",
+        "past_participle": "worked",
+        "gerund": "working"
+      },
+      {
+        "id": 236,
+        "name": "worry",
+        "translation": "preocuparse",
+        "present": "worry",
+        "past_simple": "worried",
+        "past_participle": "worried",
+        "gerund": "worrying"
+      }
+    ],
+    "a": [
+      {
+        "id": 1,
+        "name": "accept",
+        "translation": "aceptar; admitir",
+        "present": "accept",
+        "past_simple": "accepted",
+        "past_participle": "accepted",
+        "gerund": "accepting"
+      },
+      {
+        "id": 3,
+        "name": "achieve",
+        "translation": "lograr; conseguir",
+        "present": "achieve",
+        "past_simple": "achieved",
+        "past_participle": "achieved",
+        "gerund": "achieving"
+      },
+      {
+        "id": 4,
+        "name": "act",
+        "translation": "actuar; interpretar; comportarse",
+        "present": "act",
+        "past_simple": "acted",
+        "past_participle": "acted",
+        "gerund": "acting"
+      },
+      {
+        "id": 5,
+        "name": "add",
+        "translation": "sumar; añadir; agregar",
+        "present": "add",
+        "past_simple": "added",
+        "past_participle": "added",
+        "gerund": "adding"
+      },
+      {
+        "id": 6,
+        "name": "admit",
+        "translation": "admitir; dejar pasar; confesar",
+        "present": "admit",
+        "past_simple": "admitted",
+        "past_participle": "admitted",
+        "gerund": "admitting"
+      },
+      {
+        "id": 7,
+        "name": "affect",
+        "translation": "afectar; influir en",
+        "present": "affect",
+        "past_simple": "affected",
+        "past_participle": "affected",
+        "gerund": "affecting"
+      },
+      {
+        "id": 8,
+        "name": "agree",
+        "translation": "estar de acuerdo; acordar",
+        "present": "agree",
+        "past_simple": "agreed",
+        "past_participle": "agreed",
+        "gerund": "agreeing"
+      },
+      {
+        "id": 9,
+        "name": "aim",
+        "translation": "apuntar; dirigir",
+        "present": "aim",
+        "past_simple": "aimed",
+        "past_participle": "aimed",
+        "gerund": "aiming"
+      },
+      {
+        "id": 10,
+        "name": "allow",
+        "translation": "permitir",
+        "present": "allow",
+        "past_simple": "allowed",
+        "past_participle": "allowed",
+        "gerund": "allowing"
+      },
+      {
+        "id": 11,
+        "name": "answer",
+        "translation": "responder; contestar",
+        "present": "answer",
+        "past_simple": "answered",
+        "past_participle": "answered",
+        "gerund": "answering"
+      },
+      {
+        "id": 12,
+        "name": "appear",
+        "translation": "aparecer",
+        "present": "appear",
+        "past_simple": "appeared",
+        "past_participle": "appeared",
+        "gerund": "appearing"
+      },
+      {
+        "id": 13,
+        "name": "apply",
+        "translation": "aplicar",
+        "present": "apply",
+        "past_simple": "applied",
+        "past_participle": "applied",
+        "gerund": "applying"
+      },
+      {
+        "id": 14,
+        "name": "argue",
+        "translation": "argumentar; discutir; sostener",
+        "present": "argue",
+        "past_simple": "argued",
+        "past_participle": "argued",
+        "gerund": "arguing"
+      },
+      {
+        "id": 15,
+        "name": "arrange",
+        "translation": "arreglar; organizar; ordenar",
+        "present": "arrange",
+        "past_simple": "arranged",
+        "past_participle": "arranged",
+        "gerund": "arranging"
+      },
+      {
+        "id": 16,
+        "name": "arrive",
+        "translation": "llegar",
+        "present": "arrive",
+        "past_simple": "arrived",
+        "past_participle": "arrived",
+        "gerund": "arriving"
+      },
+      {
+        "id": 17,
+        "name": "ask",
+        "translation": "preguntar; pedir",
+        "present": "ask",
+        "past_simple": "asked",
+        "past_participle": "asked",
+        "gerund": "asking"
+      },
+      {
+        "id": 18,
+        "name": "attack",
+        "translation": "atacar",
+        "present": "attack",
+        "past_simple": "attacked",
+        "past_participle": "attacked",
+        "gerund": "attacking"
+      },
+      {
+        "id": 19,
+        "name": "avoid",
+        "translation": "evitar",
+        "present": "avoid",
+        "past_simple": "avoided",
+        "past_participle": "avoided",
+        "gerund": "avoiding"
+      }
+    ],
+    "b": [
+      {
+        "id": 20,
+        "name": "base",
+        "translation": "basar",
+        "present": "base",
+        "past_simple": "based",
+        "past_participle": "based",
+        "gerund": "basing"
+      },
+      {
+        "id": 21,
+        "name": "believe",
+        "translation": "creer",
+        "present": "believe",
+        "past_simple": "believed",
+        "past_participle": "believed",
+        "gerund": "believing"
+      },
+      {
+        "id": 22,
+        "name": "belong",
+        "translation": "pertenecer",
+        "present": "belong",
+        "past_simple": "belonged",
+        "past_participle": "belonged",
+        "gerund": "belonging"
+      }
+    ],
+    "c": [
+      {
+        "id": 23,
+        "name": "call",
+        "translation": "llamar(se)",
+        "present": "call",
+        "past_simple": "called",
+        "past_participle": "called",
+        "gerund": "calling"
+      },
+      {
+        "id": 24,
+        "name": "care",
+        "translation": "importar; preocuparse",
+        "present": "care",
+        "past_simple": "cared",
+        "past_participle": "cared",
+        "gerund": "caring"
+      },
+      {
+        "id": 25,
+        "name": "carry",
+        "translation": "cargar; llevar",
+        "present": "carry",
+        "past_simple": "carried",
+        "past_participle": "carried",
+        "gerund": "carrying"
+      },
+      {
+        "id": 26,
+        "name": "cause",
+        "translation": "causar",
+        "present": "cause",
+        "past_simple": "caused",
+        "past_participle": "caused",
+        "gerund": "causing"
+      },
+      {
+        "id": 27,
+        "name": "change",
+        "translation": "cambiar",
+        "present": "change",
+        "past_simple": "changed",
+        "past_participle": "changed",
+        "gerund": "changing"
+      },
+      {
+        "id": 28,
+        "name": "charge",
+        "translation": "cobrar; cargar",
+        "present": "charge",
+        "past_simple": "charged",
+        "past_participle": "charged",
+        "gerund": "charging"
+      },
+      {
+        "id": 29,
+        "name": "check",
+        "translation": "comprobar; verificar; chequear",
+        "present": "check",
+        "past_simple": "checked",
+        "past_participle": "checked",
+        "gerund": "checking"
+      },
+      {
+        "id": 30,
+        "name": "claim",
+        "translation": "reclamar",
+        "present": "claim",
+        "past_simple": "claimed",
+        "past_participle": "claimed",
+        "gerund": "claiming"
+      },
+      {
+        "id": 31,
+        "name": "clean",
+        "translation": "limpiar",
+        "present": "clean",
+        "past_simple": "cleaned",
+        "past_participle": "cleaned",
+        "gerund": "cleaning"
+      },
+      {
+        "id": 32,
+        "name": "clear",
+        "translation": "despejar(se)",
+        "present": "clear",
+        "past_simple": "cleared",
+        "past_participle": "cleared",
+        "gerund": "clearing"
+      },
+      {
+        "id": 33,
+        "name": "climb",
+        "translation": "escalar; subir; trepar",
+        "present": "climb",
+        "past_simple": "climbed",
+        "past_participle": "climbed",
+        "gerund": "climbing"
+      },
+      {
+        "id": 34,
+        "name": "close",
+        "translation": "cerrar",
+        "present": "close",
+        "past_simple": "closed",
+        "past_participle": "closed",
+        "gerund": "closing"
+      },
+      {
+        "id": 35,
+        "name": "collect",
+        "translation": "coleccionar; reunir",
+        "present": "collect",
+        "past_simple": "collected",
+        "past_participle": "collected",
+        "gerund": "collecting"
+      },
+      {
+        "id": 36,
+        "name": "commit",
+        "translation": "cometer; comprometer(se)",
+        "present": "commit",
+        "past_simple": "committed",
+        "past_participle": "committed",
+        "gerund": "committing"
+      },
+      {
+        "id": 37,
+        "name": "compare",
+        "translation": "comparar",
+        "present": "compare",
+        "past_simple": "compared",
+        "past_participle": "compared",
+        "gerund": "comparing"
+      },
+      {
+        "id": 38,
+        "name": "complain",
+        "translation": "quejarse; reclamar",
+        "present": "complain",
+        "past_simple": "complained",
+        "past_participle": "complained",
+        "gerund": "complaining"
+      },
+      {
+        "id": 39,
+        "name": "complete",
+        "translation": "completar",
+        "present": "complete",
+        "past_simple": "completed",
+        "past_participle": "completed",
+        "gerund": "completing"
+      },
+      {
+        "id": 40,
+        "name": "concern",
+        "translation": "preocupar(se); concernir",
+        "present": "concern",
+        "past_simple": "concerned",
+        "past_participle": "concerned",
+        "gerund": "concerning"
+      },
+      {
+        "id": 41,
+        "name": "confirm",
+        "translation": "confirmar",
+        "present": "confirm",
+        "past_simple": "confirmed",
+        "past_participle": "confirmed",
+        "gerund": "confirming"
+      },
+      {
+        "id": 42,
+        "name": "connect",
+        "translation": "conectar",
+        "present": "connect",
+        "past_simple": "connected",
+        "past_participle": "connected",
+        "gerund": "connecting"
+      },
+      {
+        "id": 43,
+        "name": "consider",
+        "translation": "considerar; tener en cuenta",
+        "present": "consider",
+        "past_simple": "considered",
+        "past_participle": "considered",
+        "gerund": "considering"
+      },
+      {
+        "id": 44,
+        "name": "consist",
+        "translation": "consistir",
+        "present": "consist",
+        "past_simple": "consisted",
+        "past_participle": "consisted",
+        "gerund": "consisting"
+      },
+      {
+        "id": 45,
+        "name": "contact",
+        "translation": "contactar",
+        "present": "contact",
+        "past_simple": "contacted",
+        "past_participle": "contacted",
+        "gerund": "contacting"
+      },
+      {
+        "id": 46,
+        "name": "contain",
+        "translation": "contener",
+        "present": "contain",
+        "past_simple": "contained",
+        "past_participle": "contained",
+        "gerund": "containing"
+      },
+      {
+        "id": 47,
+        "name": "continue",
+        "translation": "continuar; seguir",
+        "present": "continue",
+        "past_simple": "continued",
+        "past_participle": "continued",
+        "gerund": "continuing"
+      },
+      {
+        "id": 48,
+        "name": "contribute",
+        "translation": "contribuir",
+        "present": "contribute",
+        "past_simple": "contributed",
+        "past_participle": "contributed",
+        "gerund": "contributing"
+      },
+      {
+        "id": 49,
+        "name": "control",
+        "translation": "controlar",
+        "present": "control",
+        "past_simple": "controlled",
+        "past_participle": "controlled",
+        "gerund": "controlling"
+      },
+      {
+        "id": 50,
+        "name": "cook",
+        "translation": "cocinar",
+        "present": "cook",
+        "past_simple": "cooked",
+        "past_participle": "cooked",
+        "gerund": "cooking"
+      },
+      {
+        "id": 51,
+        "name": "copy",
+        "translation": "copiar",
+        "present": "copy",
+        "past_simple": "copied",
+        "past_participle": "copied",
+        "gerund": "copying"
+      },
+      {
+        "id": 52,
+        "name": "correct",
+        "translation": "corregir",
+        "present": "correct",
+        "past_simple": "corrected",
+        "past_participle": "corrected",
+        "gerund": "correcting"
+      },
+      {
+        "id": 53,
+        "name": "count",
+        "translation": "contar",
+        "present": "count",
+        "past_simple": "counted",
+        "past_participle": "counted",
+        "gerund": "counting"
+      },
+      {
+        "id": 54,
+        "name": "cover",
+        "translation": "cubrir",
+        "present": "cover",
+        "past_simple": "covered",
+        "past_participle": "covered",
+        "gerund": "covering"
+      },
+      {
+        "id": 55,
+        "name": "create",
+        "translation": "crear",
+        "present": "create",
+        "past_simple": "created",
+        "past_participle": "created",
+        "gerund": "creating"
+      },
+      {
+        "id": 56,
+        "name": "cross",
+        "translation": "cruzar",
+        "present": "cross",
+        "past_simple": "crossed",
+        "past_participle": "crossed",
+        "gerund": "crossing"
+      },
+      {
+        "id": 57,
+        "name": "cry",
+        "translation": "llorar",
+        "present": "cry",
+        "past_simple": "cried",
+        "past_participle": "cried",
+        "gerund": "crying"
+      }
+    ],
+    "d": [
+      {
+        "id": 58,
+        "name": "damage",
+        "translation": "dañar; prejudicar",
+        "present": "damage",
+        "past_simple": "damaged",
+        "past_participle": "damaged",
+        "gerund": "damaging"
+      },
+      {
+        "id": 59,
+        "name": "dance",
+        "translation": "bailar",
+        "present": "dance",
+        "past_simple": "danced",
+        "past_participle": "danced",
+        "gerund": "dancing"
+      },
+      {
+        "id": 60,
+        "name": "decide",
+        "translation": "decidir",
+        "present": "decide",
+        "past_simple": "decided",
+        "past_participle": "decided",
+        "gerund": "deciding"
+      },
+      {
+        "id": 61,
+        "name": "deliver",
+        "translation": "entregar; repartir",
+        "present": "deliver",
+        "past_simple": "delivered",
+        "past_participle": "delivered",
+        "gerund": "delivering"
+      },
+      {
+        "id": 62,
+        "name": "demand",
+        "translation": "exigir",
+        "present": "demand",
+        "past_simple": "demanded",
+        "past_participle": "demanded",
+        "gerund": "demanding"
+      },
+      {
+        "id": 63,
+        "name": "deny",
+        "translation": "negar; denegar",
+        "present": "deny",
+        "past_simple": "denied",
+        "past_participle": "denied",
+        "gerund": "denying"
+      },
+      {
+        "id": 64,
+        "name": "depend",
+        "translation": "depender",
+        "present": "depend",
+        "past_simple": "depended",
+        "past_participle": "depended",
+        "gerund": "depending"
+      },
+      {
+        "id": 65,
+        "name": "describe",
+        "translation": "describir",
+        "present": "describe",
+        "past_simple": "described",
+        "past_participle": "described",
+        "gerund": "describing"
+      },
+      {
+        "id": 66,
+        "name": "design",
+        "translation": "diseñar",
+        "present": "design",
+        "past_simple": "designed",
+        "past_participle": "designed",
+        "gerund": "designing"
+      },
+      {
+        "id": 67,
+        "name": "destroy",
+        "translation": "destruir",
+        "present": "destroy",
+        "past_simple": "destroyed",
+        "past_participle": "destroyed",
+        "gerund": "destroying"
+      },
+      {
+        "id": 68,
+        "name": "develop",
+        "translation": "desarrollar",
+        "present": "develop",
+        "past_simple": "developed",
+        "past_participle": "developed",
+        "gerund": "developing"
+      },
+      {
+        "id": 69,
+        "name": "die",
+        "translation": "morir",
+        "present": "die",
+        "past_simple": "died",
+        "past_participle": "died",
+        "gerund": "dying"
+      },
+      {
+        "id": 70,
+        "name": "disappear",
+        "translation": "desaparecer",
+        "present": "disappear",
+        "past_simple": "disappeared",
+        "past_participle": "disappeared",
+        "gerund": "disappearing"
+      },
+      {
+        "id": 71,
+        "name": "discover",
+        "translation": "descubrir",
+        "present": "discover",
+        "past_simple": "discovered",
+        "past_participle": "discovered",
+        "gerund": "discovering"
+      },
+      {
+        "id": 72,
+        "name": "discuss",
+        "translation": "discutir; hablar de; analizar",
+        "present": "discuss",
+        "past_simple": "discussed",
+        "past_participle": "discussed",
+        "gerund": "discussing"
+      },
+      {
+        "id": 73,
+        "name": "divide",
+        "translation": "dividir",
+        "present": "divide",
+        "past_simple": "divided",
+        "past_participle": "divided",
+        "gerund": "dividing"
+      },
+      {
+        "id": 74,
+        "name": "dress",
+        "translation": "vestirse",
+        "present": "dress",
+        "past_simple": "dressed",
+        "past_participle": "dressed",
+        "gerund": "dressing"
+      },
+      {
+        "id": 75,
+        "name": "drop",
+        "translation": "dejar caer",
+        "present": "drop",
+        "past_simple": "dropped",
+        "past_participle": "dropped",
+        "gerund": "dropping"
+      }
+    ],
+    "e": [
+      {
+        "id": 76,
+        "name": "enable",
+        "translation": "habilitar",
+        "present": "enable",
+        "past_simple": "enabled",
+        "past_participle": "enabled",
+        "gerund": "enabling"
+      },
+      {
+        "id": 77,
+        "name": "encourage",
+        "translation": "animar; impulsar; fomentar",
+        "present": "encourage",
+        "past_simple": "encouraged",
+        "past_participle": "encouraged",
+        "gerund": "encouraging"
+      },
+      {
+        "id": 78,
+        "name": "enjoy",
+        "translation": "disfrutar",
+        "present": "enjoy",
+        "past_simple": "enjoyed",
+        "past_participle": "enjoyed",
+        "gerund": "enjoying"
+      },
+      {
+        "id": 79,
+        "name": "examine",
+        "translation": "examinar",
+        "present": "examine",
+        "past_simple": "examined",
+        "past_participle": "examined",
+        "gerund": "examining"
+      },
+      {
+        "id": 80,
+        "name": "exist",
+        "translation": "existir",
+        "present": "exist",
+        "past_simple": "existed",
+        "past_participle": "existed",
+        "gerund": "existing"
+      },
+      {
+        "id": 81,
+        "name": "expect",
+        "translation": "esperar",
+        "present": "expect",
+        "past_simple": "expected",
+        "past_participle": "expected",
+        "gerund": "expecting"
+      },
+      {
+        "id": 82,
+        "name": "experience",
+        "translation": "experimentar",
+        "present": "experience",
+        "past_simple": "experienced",
+        "past_participle": "experienced",
+        "gerund": "experiencing"
+      },
+      {
+        "id": 83,
+        "name": "explain",
+        "translation": "explicar",
+        "present": "explain",
+        "past_simple": "explained",
+        "past_participle": "explained",
+        "gerund": "explaining"
+      },
+      {
+        "id": 84,
+        "name": "express",
+        "translation": "expresar",
+        "present": "express",
+        "past_simple": "expressed",
+        "past_participle": "expressed",
+        "gerund": "expressing"
+      },
+      {
+        "id": 85,
+        "name": "extend",
+        "translation": "extender; ampliar; prolongar (tiempo)",
+        "present": "extend",
+        "past_simple": "extended",
+        "past_participle": "extended",
+        "gerund": "extending"
+      }
+    ],
+    "f": [
+      {
+        "id": 86,
+        "name": "face",
+        "translation": "afrontar; encarar",
+        "present": "face",
+        "past_simple": "faced",
+        "past_participle": "faced",
+        "gerund": "facing"
+      },
+      {
+        "id": 87,
+        "name": "fail",
+        "translation": "fallar; fracasar; suspender",
+        "present": "fail",
+        "past_simple": "failed",
+        "past_participle": "failed",
+        "gerund": "failing"
+      },
+      {
+        "id": 88,
+        "name": "fasten",
+        "translation": "sujetar; abrocharse; fijar",
+        "present": "fasten",
+        "past_simple": "fastened",
+        "past_participle": "fastened",
+        "gerund": "fastening"
+      },
+      {
+        "id": 89,
+        "name": "fill",
+        "translation": "llenar; rellenar",
+        "present": "fill",
+        "past_simple": "filled",
+        "past_participle": "filled",
+        "gerund": "filling"
+      },
+      {
+        "id": 90,
+        "name": "finish",
+        "translation": "terminar; acabar; finalizar",
+        "present": "finish",
+        "past_simple": "finished",
+        "past_participle": "finished",
+        "gerund": "finishing"
+      },
+      {
+        "id": 91,
+        "name": "fold",
+        "translation": "doblar",
+        "present": "fold",
+        "past_simple": "folded",
+        "past_participle": "folded",
+        "gerund": "folding"
+      },
+      {
+        "id": 92,
+        "name": "follow",
+        "translation": "seguir",
+        "present": "follow",
+        "past_simple": "followed",
+        "past_participle": "followed",
+        "gerund": "following"
+      },
+      {
+        "id": 93,
+        "name": "force",
+        "translation": "forzar; obligar",
+        "present": "force",
+        "past_simple": "forced",
+        "past_participle": "forced",
+        "gerund": "forcing"
+      },
+      {
+        "id": 94,
+        "name": "form",
+        "translation": "formar(se)",
+        "present": "form",
+        "past_simple": "formed",
+        "past_participle": "formed",
+        "gerund": "forming"
+      }
+    ],
+    "g": [
+      {
+        "id": 95,
+        "name": "gain",
+        "translation": "ganar; cobrar",
+        "present": "gain",
+        "past_simple": "gained",
+        "past_participle": "gained",
+        "gerund": "gaining"
+      }
+    ],
+    "h": [
+      {
+        "id": 96,
+        "name": "handle",
+        "translation": "manejar; tratar; tocar",
+        "present": "handle",
+        "past_simple": "handled",
+        "past_participle": "handled",
+        "gerund": "handling"
+      },
+      {
+        "id": 97,
+        "name": "happen",
+        "translation": "pasar; ocurrir; suceder",
+        "present": "happen",
+        "past_simple": "happened",
+        "past_participle": "happened",
+        "gerund": "happening"
+      },
+      {
+        "id": 98,
+        "name": "hate",
+        "translation": "odiar; detestar",
+        "present": "hate",
+        "past_simple": "hated",
+        "past_participle": "hated",
+        "gerund": "hating"
+      },
+      {
+        "id": 99,
+        "name": "head",
+        "translation": "dirigirse",
+        "present": "head",
+        "past_simple": "headed",
+        "past_participle": "headed",
+        "gerund": "heading"
+      },
+      {
+        "id": 100,
+        "name": "help",
+        "translation": "ayudar",
+        "present": "help",
+        "past_simple": "helped",
+        "past_participle": "helped",
+        "gerund": "helping"
+      },
+      {
+        "id": 101,
+        "name": "hope",
+        "translation": "esperar",
+        "present": "hope",
+        "past_simple": "hoped",
+        "past_participle": "hoped",
+        "gerund": "hoping"
+      }
+    ],
+    "i": [
+      {
+        "id": 102,
+        "name": "identify",
+        "translation": "identificar",
+        "present": "identify",
+        "past_simple": "identified",
+        "past_participle": "identified",
+        "gerund": "identifying"
+      },
+      {
+        "id": 103,
+        "name": "imagine",
+        "translation": "imaginar(se)",
+        "present": "imagine",
+        "past_simple": "imagined",
+        "past_participle": "imagined",
+        "gerund": "imagining"
+      },
+      {
+        "id": 104,
+        "name": "improve",
+        "translation": "mejorar",
+        "present": "improve",
+        "past_simple": "improved",
+        "past_participle": "improved",
+        "gerund": "improving"
+      },
+      {
+        "id": 105,
+        "name": "include",
+        "translation": "incluir",
+        "present": "include",
+        "past_simple": "included",
+        "past_participle": "included",
+        "gerund": "including"
+      },
+      {
+        "id": 106,
+        "name": "increase",
+        "translation": "aumentar; subir",
+        "present": "increase",
+        "past_simple": "increased",
+        "past_participle": "increased",
+        "gerund": "increasing"
+      },
+      {
+        "id": 107,
+        "name": "indicate",
+        "translation": "indicar",
+        "present": "indicate",
+        "past_simple": "indicated",
+        "past_participle": "indicated",
+        "gerund": "indicating"
+      },
+      {
+        "id": 108,
+        "name": "influence",
+        "translation": "influir en; infuenciar",
+        "present": "influence",
+        "past_simple": "influenced",
+        "past_participle": "influenced",
+        "gerund": "influencing"
+      },
+      {
+        "id": 109,
+        "name": "inform",
+        "translation": "informar",
+        "present": "inform",
+        "past_simple": "informed",
+        "past_participle": "informed",
+        "gerund": "informing"
+      },
+      {
+        "id": 110,
+        "name": "intend",
+        "translation": "tener la intención de; pretender",
+        "present": "intend",
+        "past_simple": "intended",
+        "past_participle": "intended",
+        "gerund": "intending"
+      },
+      {
+        "id": 111,
+        "name": "introduce",
+        "translation": "presentar (una persona); introducir",
+        "present": "introduce",
+        "past_simple": "introduced",
+        "past_participle": "introduced",
+        "gerund": "introducing"
+      },
+      {
+        "id": 112,
+        "name": "invite",
+        "translation": "invitar",
+        "present": "invite",
+        "past_simple": "invited",
+        "past_participle": "invited",
+        "gerund": "inviting"
+      },
+      {
+        "id": 113,
+        "name": "involve",
+        "translation": "involucrar; implicar; suponer",
+        "present": "involve",
+        "past_simple": "involved",
+        "past_participle": "involved",
+        "gerund": "involving"
+      }
+    ],
+    "j": [
+      {
+        "id": 114,
+        "name": "join",
+        "translation": "unir(se); ingresar en; afiliarse a; acompañar a",
+        "present": "join",
+        "past_simple": "joined",
+        "past_participle": "joined",
+        "gerund": "joining"
+      },
+      {
+        "id": 115,
+        "name": "jump",
+        "translation": "saltar",
+        "present": "jump",
+        "past_simple": "jumped",
+        "past_participle": "jumped",
+        "gerund": "jumping"
+      }
+    ],
+    "k": [
+      {
+        "id": 116,
+        "name": "kick",
+        "translation": "patear; dar una patada",
+        "present": "kick",
+        "past_simple": "kicked",
+        "past_participle": "kicked",
+        "gerund": "kicking"
+      },
+      {
+        "id": 117,
+        "name": "kill",
+        "translation": "matar",
+        "present": "kill",
+        "past_simple": "killed",
+        "past_participle": "killed",
+        "gerund": "killing"
+      },
+      {
+        "id": 118,
+        "name": "knock",
+        "translation": "tocar (la puerta)",
+        "present": "knock",
+        "past_simple": "knocked",
+        "past_participle": "knocked",
+        "gerund": "knocking"
+      }
+    ],
+    "l": [
+      {
+        "id": 119,
+        "name": "last",
+        "translation": "durar",
+        "present": "last",
+        "past_simple": "lasted",
+        "past_participle": "lasted",
+        "gerund": "lasting"
+      },
+      {
+        "id": 120,
+        "name": "laugh",
+        "translation": "reir",
+        "present": "laugh",
+        "past_simple": "laughed",
+        "past_participle": "laughed",
+        "gerund": "laughing"
+      },
+      {
+        "id": 121,
+        "name": "like",
+        "translation": "gustar",
+        "present": "like",
+        "past_simple": "liked",
+        "past_participle": "liked",
+        "gerund": "liking"
+      },
+      {
+        "id": 122,
+        "name": "limit",
+        "translation": "limitar",
+        "present": "limit",
+        "past_simple": "limited",
+        "past_participle": "limited",
+        "gerund": "limiting"
+      },
+      {
+        "id": 123,
+        "name": "link",
+        "translation": "relacionar; vincular; enlazar, conectar",
+        "present": "link",
+        "past_simple": "linked",
+        "past_participle": "linked",
+        "gerund": "linking"
+      },
+      {
+        "id": 124,
+        "name": "listen",
+        "translation": "escuchar",
+        "present": "listen",
+        "past_simple": "listened",
+        "past_participle": "listened",
+        "gerund": "listening"
+      },
+      {
+        "id": 125,
+        "name": "live",
+        "translation": "vivir",
+        "present": "live",
+        "past_simple": "lived",
+        "past_participle": "lived",
+        "gerund": "living"
+      },
+      {
+        "id": 126,
+        "name": "look",
+        "translation": "mirar",
+        "present": "look",
+        "past_simple": "looked",
+        "past_participle": "looked",
+        "gerund": "looking"
+      },
+      {
+        "id": 127,
+        "name": "love",
+        "translation": "amar; encantar",
+        "present": "love",
+        "past_simple": "loved",
+        "past_participle": "loved",
+        "gerund": "loving"
+      }
+    ],
+    "m": [
+      {
+        "id": 128,
+        "name": "manage",
+        "translation": "gestionar; administrar; manejar",
+        "present": "manage",
+        "past_simple": "managed",
+        "past_participle": "managed",
+        "gerund": "managing"
+      },
+      {
+        "id": 129,
+        "name": "mark",
+        "translation": "marcar",
+        "present": "mark",
+        "past_simple": "marked",
+        "past_participle": "marked",
+        "gerund": "marking"
+      },
+      {
+        "id": 130,
+        "name": "matter",
+        "translation": "importar",
+        "present": "matter",
+        "past_simple": "mattered",
+        "past_participle": "mattered",
+        "gerund": "mattering"
+      },
+      {
+        "id": 131,
+        "name": "measure",
+        "translation": "medir",
+        "present": "measure",
+        "past_simple": "measured",
+        "past_participle": "measured",
+        "gerund": "measuring"
+      },
+      {
+        "id": 132,
+        "name": "mention",
+        "translation": "mencionar",
+        "present": "mention",
+        "past_simple": "mentioned",
+        "past_participle": "mentioned",
+        "gerund": "mentioning"
+      },
+      {
+        "id": 133,
+        "name": "mind",
+        "translation": "tener cuidado con; importar; hacer caso de; cuidar",
+        "present": "mind",
+        "past_simple": "minded",
+        "past_participle": "minded",
+        "gerund": "minding"
+      },
+      {
+        "id": 134,
+        "name": "miss",
+        "translation": "extrañar; perder (un bus; una cita, etc.)",
+        "present": "miss",
+        "past_simple": "missed",
+        "past_participle": "missed",
+        "gerund": "missing"
+      },
+      {
+        "id": 135,
+        "name": "move",
+        "translation": "mover",
+        "present": "move",
+        "past_simple": "moved",
+        "past_participle": "moved",
+        "gerund": "moving"
+      }
+    ],
+    "n": [
+      {
+        "id": 136,
+        "name": "need",
+        "translation": "necesitar",
+        "present": "need",
+        "past_simple": "needed",
+        "past_participle": "needed",
+        "gerund": "needing"
+      },
+      {
+        "id": 137,
+        "name": "notice",
+        "translation": "notar",
+        "present": "notice",
+        "past_simple": "noticed",
+        "past_participle": "noticed",
+        "gerund": "noticing"
+      }
+    ],
+    "o": [
+      {
+        "id": 138,
+        "name": "obtain",
+        "translation": "obtener",
+        "present": "obtain",
+        "past_simple": "obtained",
+        "past_participle": "obtained",
+        "gerund": "obtaining"
+      },
+      {
+        "id": 139,
+        "name": "occur",
+        "translation": "ocurrir; suceder",
+        "present": "occur",
+        "past_simple": "occurred",
+        "past_participle": "occurred",
+        "gerund": "occurring"
+      },
+      {
+        "id": 140,
+        "name": "offer",
+        "translation": "ofrecer",
+        "present": "offer",
+        "past_simple": "offered",
+        "past_participle": "offered",
+        "gerund": "offering"
+      },
+      {
+        "id": 141,
+        "name": "open",
+        "translation": "abrir",
+        "present": "open",
+        "past_simple": "opened",
+        "past_participle": "opened",
+        "gerund": "opening"
+      },
+      {
+        "id": 142,
+        "name": "order",
+        "translation": "pedir; ordenar",
+        "present": "order",
+        "past_simple": "ordered",
+        "past_participle": "ordered",
+        "gerund": "ordering"
+      },
+      {
+        "id": 143,
+        "name": "own",
+        "translation": "poseer; tener ",
+        "present": "own",
+        "past_simple": "owned",
+        "past_participle": "owned",
+        "gerund": "owning"
+      }
+    ],
+    "p": [
+      {
+        "id": 144,
+        "name": "pass",
+        "translation": "pasar",
+        "present": "pass",
+        "past_simple": "passed",
+        "past_participle": "passed",
+        "gerund": "passing"
+      },
+      {
+        "id": 145,
+        "name": "perform",
+        "translation": "realizar; actuar",
+        "present": "perform",
+        "past_simple": "performed",
+        "past_participle": "performed",
+        "gerund": "performing"
+      },
+      {
+        "id": 146,
+        "name": "pick",
+        "translation": "escoger; elegir",
+        "present": "pick",
+        "past_simple": "picked",
+        "past_participle": "picked",
+        "gerund": "picking"
+      },
+      {
+        "id": 147,
+        "name": "place",
+        "translation": "colocar",
+        "present": "place",
+        "past_simple": "placed",
+        "past_participle": "placed",
+        "gerund": "placing"
+      },
+      {
+        "id": 148,
+        "name": "plan",
+        "translation": "planear",
+        "present": "plan",
+        "past_simple": "planned",
+        "past_participle": "planned",
+        "gerund": "planning"
+      },
+      {
+        "id": 149,
+        "name": "play",
+        "translation": "jugar",
+        "present": "play",
+        "past_simple": "played",
+        "past_participle": "played",
+        "gerund": "playing"
+      },
+      {
+        "id": 150,
+        "name": "point",
+        "translation": "apuntar; indicar; señalar",
+        "present": "point",
+        "past_simple": "pointed",
+        "past_participle": "pointed",
+        "gerund": "pointing"
+      },
+      {
+        "id": 151,
+        "name": "prefer",
+        "translation": "preferir",
+        "present": "prefer",
+        "past_simple": "preferred",
+        "past_participle": "preferred",
+        "gerund": "preferring"
+      },
+      {
+        "id": 152,
+        "name": "prepare",
+        "translation": "preparar",
+        "present": "prepare",
+        "past_simple": "prepared",
+        "past_participle": "prepared",
+        "gerund": "preparing"
+      },
+      {
+        "id": 153,
+        "name": "present",
+        "translation": "presentar",
+        "present": "present",
+        "past_simple": "presented",
+        "past_participle": "presented",
+        "gerund": "presenting"
+      },
+      {
+        "id": 154,
+        "name": "press",
+        "translation": "presionar",
+        "present": "press",
+        "past_simple": "pressed",
+        "past_participle": "pressed",
+        "gerund": "pressing"
+      },
+      {
+        "id": 155,
+        "name": "prevent",
+        "translation": "prevenir",
+        "present": "prevent",
+        "past_simple": "prevented",
+        "past_participle": "prevented",
+        "gerund": "preventing"
+      },
+      {
+        "id": 156,
+        "name": "produce",
+        "translation": "producir",
+        "present": "produce",
+        "past_simple": "produced",
+        "past_participle": "produced",
+        "gerund": "producing"
+      },
+      {
+        "id": 157,
+        "name": "promise",
+        "translation": "prometer",
+        "present": "promise",
+        "past_simple": "promised",
+        "past_participle": "promised",
+        "gerund": "promising"
+      },
+      {
+        "id": 158,
+        "name": "protect",
+        "translation": "proteger",
+        "present": "protect",
+        "past_simple": "protected",
+        "past_participle": "protected",
+        "gerund": "protecting"
+      },
+      {
+        "id": 159,
+        "name": "prove",
+        "translation": "probar",
+        "present": "prove",
+        "past_simple": "proved",
+        "past_participle": "proved",
+        "gerund": "proving"
+      },
+      {
+        "id": 160,
+        "name": "provide",
+        "translation": "proveer",
+        "present": "provide",
+        "past_simple": "provided",
+        "past_participle": "provided",
+        "gerund": "providing"
+      },
+      {
+        "id": 161,
+        "name": "publish",
+        "translation": "publicar",
+        "present": "publish",
+        "past_simple": "published",
+        "past_participle": "published",
+        "gerund": "publishing"
+      },
+      {
+        "id": 162,
+        "name": "pull",
+        "translation": "tirar",
+        "present": "pull",
+        "past_simple": "pulled",
+        "past_participle": "pulled",
+        "gerund": "pulling"
+      },
+      {
+        "id": 163,
+        "name": "push",
+        "translation": "empujar",
+        "present": "push",
+        "past_simple": "pushed",
+        "past_participle": "pushed",
+        "gerund": "pushing"
+      }
+    ],
+    "r": [
+      {
+        "id": 164,
+        "name": "raise",
+        "translation": "levantar",
+        "present": "raise",
+        "past_simple": "raised",
+        "past_participle": "raised",
+        "gerund": "raising"
+      },
+      {
+        "id": 165,
+        "name": "reach",
+        "translation": "alcanzar",
+        "present": "reach",
+        "past_simple": "reached",
+        "past_participle": "reached",
+        "gerund": "reaching"
+      },
+      {
+        "id": 166,
+        "name": "realize",
+        "translation": "darse cuenta",
+        "present": "realize",
+        "past_simple": "realized",
+        "past_participle": "realized",
+        "gerund": "realizing"
+      },
+      {
+        "id": 167,
+        "name": "receive",
+        "translation": "recibir",
+        "present": "receive",
+        "past_simple": "received",
+        "past_participle": "received",
+        "gerund": "receiving"
+      },
+      {
+        "id": 168,
+        "name": "recognize",
+        "translation": "reconocer",
+        "present": "recognize",
+        "past_simple": "recognized",
+        "past_participle": "recognized",
+        "gerund": "recognizing"
+      },
+      {
+        "id": 169,
+        "name": "record",
+        "translation": "grabar",
+        "present": "record",
+        "past_simple": "recorded",
+        "past_participle": "recorded",
+        "gerund": "recording"
+      },
+      {
+        "id": 170,
+        "name": "reduce",
+        "translation": "reducir",
+        "present": "reduce",
+        "past_simple": "reduced",
+        "past_participle": "reduced",
+        "gerund": "reducing"
+      },
+      {
+        "id": 171,
+        "name": "refer",
+        "translation": "referir",
+        "present": "refer",
+        "past_simple": "referred",
+        "past_participle": "referred",
+        "gerund": "referring"
+      },
+      {
+        "id": 172,
+        "name": "reflect",
+        "translation": "reflexionar; reflejar",
+        "present": "reflect",
+        "past_simple": "reflected",
+        "past_participle": "reflected",
+        "gerund": "reflecting"
+      },
+      {
+        "id": 173,
+        "name": "refuse",
+        "translation": "rechazar",
+        "present": "refuse",
+        "past_simple": "refused",
+        "past_participle": "refused",
+        "gerund": "refusing"
+      },
+      {
+        "id": 174,
+        "name": "regard",
+        "translation": "considerar; concernir",
+        "present": "regard",
+        "past_simple": "regarded",
+        "past_participle": "regarded",
+        "gerund": "regarding"
+      },
+      {
+        "id": 175,
+        "name": "relate",
+        "translation": "relacionar; vincular",
+        "present": "relate",
+        "past_simple": "related",
+        "past_participle": "related",
+        "gerund": "relating"
+      },
+      {
+        "id": 176,
+        "name": "release",
+        "translation": "soltar; liberar",
+        "present": "release",
+        "past_simple": "released",
+        "past_participle": "released",
+        "gerund": "releasing"
+      },
+      {
+        "id": 177,
+        "name": "remain",
+        "translation": "permanecer",
+        "present": "remain",
+        "past_simple": "remained",
+        "past_participle": "remained",
+        "gerund": "remaining"
+      },
+      {
+        "id": 178,
+        "name": "remember",
+        "translation": "recordar; acordarse de",
+        "present": "remember",
+        "past_simple": "remembered",
+        "past_participle": "remembered",
+        "gerund": "remembering"
+      },
+      {
+        "id": 179,
+        "name": "remove",
+        "translation": "quitar, eliminar",
+        "present": "remove",
+        "past_simple": "removed",
+        "past_participle": "removed",
+        "gerund": "removing"
+      },
+      {
+        "id": 180,
+        "name": "repeat",
+        "translation": "repetir",
+        "present": "repeat",
+        "past_simple": "repeated",
+        "past_participle": "repeated",
+        "gerund": "repeating"
+      },
+      {
+        "id": 181,
+        "name": "replace",
+        "translation": "reemplazar",
+        "present": "replace",
+        "past_simple": "replaced",
+        "past_participle": "replaced",
+        "gerund": "replacing"
+      },
+      {
+        "id": 182,
+        "name": "reply",
+        "translation": "responder",
+        "present": "reply",
+        "past_simple": "replied",
+        "past_participle": "replied",
+        "gerund": "replying"
+      },
+      {
+        "id": 183,
+        "name": "report",
+        "translation": "reportar",
+        "present": "report",
+        "past_simple": "reported",
+        "past_participle": "reported",
+        "gerund": "reporting"
+      },
+      {
+        "id": 184,
+        "name": "represent",
+        "translation": "representar",
+        "present": "represent",
+        "past_simple": "represented",
+        "past_participle": "represented",
+        "gerund": "representing"
+      },
+      {
+        "id": 185,
+        "name": "require",
+        "translation": "requerir",
+        "present": "require",
+        "past_simple": "required",
+        "past_participle": "required",
+        "gerund": "requiring"
+      },
+      {
+        "id": 186,
+        "name": "rest",
+        "translation": "descansar",
+        "present": "rest",
+        "past_simple": "rested",
+        "past_participle": "rested",
+        "gerund": "resting"
+      },
+      {
+        "id": 187,
+        "name": "result",
+        "translation": "resultar",
+        "present": "result",
+        "past_simple": "resulted",
+        "past_participle": "resulted",
+        "gerund": "resulting"
+      },
+      {
+        "id": 188,
+        "name": "return",
+        "translation": "regresar; volver",
+        "present": "return",
+        "past_simple": "returned",
+        "past_participle": "returned",
+        "gerund": "returning"
+      },
+      {
+        "id": 189,
+        "name": "reveal",
+        "translation": "revelar",
+        "present": "reveal",
+        "past_simple": "revealed",
+        "past_participle": "revealed",
+        "gerund": "revealing"
+      },
+      {
+        "id": 237,
+        "name": "review",
+        "translation": "revisar; repasar",
+        "present": "review",
+        "past_simple": "reviewed",
+        "past_participle": "reviewed",
+        "gerund": "reviewing"
+      },
+      {
+        "id": 190,
+        "name": "roll",
+        "translation": "enrollar",
+        "present": "roll",
+        "past_simple": "rolled",
+        "past_participle": "rolled",
+        "gerund": "rolling"
+      }
+    ],
+    "s": [
+      {
+        "id": 191,
+        "name": "save",
+        "translation": "guardar; ahorrar",
+        "present": "save",
+        "past_simple": "saved",
+        "past_participle": "saved",
+        "gerund": "saving"
+      },
+      {
+        "id": 192,
+        "name": "seem",
+        "translation": "parecer",
+        "present": "seem",
+        "past_simple": "seemed",
+        "past_participle": "seemed",
+        "gerund": "seeming"
+      },
+      {
+        "id": 193,
+        "name": "separate",
+        "translation": "separar",
+        "present": "separate",
+        "past_simple": "separated",
+        "past_participle": "separated",
+        "gerund": "separating"
+      },
+      {
+        "id": 194,
+        "name": "serve",
+        "translation": "servir",
+        "present": "serve",
+        "past_simple": "served",
+        "past_participle": "served",
+        "gerund": "serving"
+      },
+      {
+        "id": 195,
+        "name": "settle",
+        "translation": "establecerse; instalarse; resolver",
+        "present": "settle",
+        "past_simple": "settled",
+        "past_participle": "settled",
+        "gerund": "settling"
+      },
+      {
+        "id": 196,
+        "name": "share",
+        "translation": "compartir",
+        "present": "share",
+        "past_simple": "shared",
+        "past_participle": "shared",
+        "gerund": "sharing"
+      },
+      {
+        "id": 197,
+        "name": "shout",
+        "translation": "gritar",
+        "present": "shout",
+        "past_simple": "shouted",
+        "past_participle": "shouted",
+        "gerund": "shouting"
+      },
+      {
+        "id": 198,
+        "name": "smile",
+        "translation": "sonreir",
+        "present": "smile",
+        "past_simple": "smiled",
+        "past_participle": "smiled",
+        "gerund": "smiling"
+      },
+      {
+        "id": 199,
+        "name": "sort",
+        "translation": "ordenar; clasificar",
+        "present": "sort",
+        "past_simple": "sorted",
+        "past_participle": "sorted",
+        "gerund": "sorting"
+      },
+      {
+        "id": 200,
+        "name": "sound",
+        "translation": "sonar",
+        "present": "sound",
+        "past_simple": "sounded",
+        "past_participle": "sounded",
+        "gerund": "sounding"
+      },
+      {
+        "id": 201,
+        "name": "start",
+        "translation": "empezar; comenzar",
+        "present": "start",
+        "past_simple": "started",
+        "past_participle": "started",
+        "gerund": "starting"
+      },
+      {
+        "id": 202,
+        "name": "state",
+        "translation": "declarar",
+        "present": "state",
+        "past_simple": "stated",
+        "past_participle": "stated",
+        "gerund": "stating"
+      },
+      {
+        "id": 203,
+        "name": "stay",
+        "translation": "quedarse; permanecer",
+        "present": "stay",
+        "past_simple": "stayed",
+        "past_participle": "stayed",
+        "gerund": "staying"
+      },
+      {
+        "id": 204,
+        "name": "stop",
+        "translation": "parar; detener",
+        "present": "stop",
+        "past_simple": "stopped",
+        "past_participle": "stopped",
+        "gerund": "stopping"
+      },
+      {
+        "id": 205,
+        "name": "study",
+        "translation": "estudiar",
+        "present": "study",
+        "past_simple": "studied",
+        "past_participle": "studied",
+        "gerund": "studying"
+      },
+      {
+        "id": 206,
+        "name": "succeed",
+        "translation": "tener éxito; triunfar",
+        "present": "succeed",
+        "past_simple": "succeeded",
+        "past_participle": "succeeded",
+        "gerund": "succeeding"
+      },
+      {
+        "id": 207,
+        "name": "suffer",
+        "translation": "sufrir",
+        "present": "suffer",
+        "past_simple": "suffered",
+        "past_participle": "suffered",
+        "gerund": "suffering"
+      },
+      {
+        "id": 208,
+        "name": "suggest",
+        "translation": "sugerir",
+        "present": "suggest",
+        "past_simple": "suggested",
+        "past_participle": "suggested",
+        "gerund": "suggesting"
+      },
+      {
+        "id": 209,
+        "name": "suit",
+        "translation": "sentar bien a; venir bien a",
+        "present": "suit",
+        "past_simple": "suited",
+        "past_participle": "suited",
+        "gerund": "suiting"
+      },
+      {
+        "id": 210,
+        "name": "supply",
+        "translation": "suministrar; proveer",
+        "present": "supply",
+        "past_simple": "supplied",
+        "past_participle": "supplied",
+        "gerund": "supplying"
+      },
+      {
+        "id": 211,
+        "name": "support",
+        "translation": "mantener; apoyar",
+        "present": "support",
+        "past_simple": "supported",
+        "past_participle": "supported",
+        "gerund": "supporting"
+      },
+      {
+        "id": 212,
+        "name": "suppose",
+        "translation": "suponer",
+        "present": "suppose",
+        "past_simple": "supposed",
+        "past_participle": "supposed",
+        "gerund": "supposing"
+      },
+      {
+        "id": 213,
+        "name": "survive",
+        "translation": "sobrevivir",
+        "present": "survive",
+        "past_simple": "survived",
+        "past_participle": "survived",
+        "gerund": "surviving"
+      }
+    ],
+    "t": [
+      {
+        "id": 214,
+        "name": "talk",
+        "translation": "hablar",
+        "present": "talk",
+        "past_simple": "talked",
+        "past_participle": "talked",
+        "gerund": "talking"
+      },
+      {
+        "id": 215,
+        "name": "tend",
+        "translation": "tender; atender; cuidar",
+        "present": "tend",
+        "past_simple": "tended",
+        "past_participle": "tended",
+        "gerund": "tending"
+      },
+      {
+        "id": 216,
+        "name": "test",
+        "translation": "probar",
+        "present": "test",
+        "past_simple": "tested",
+        "past_participle": "tested",
+        "gerund": "testing"
+      },
+      {
+        "id": 217,
+        "name": "thank",
+        "translation": "agradecer",
+        "present": "thank",
+        "past_simple": "thanked",
+        "past_participle": "thanked",
+        "gerund": "thanking"
+      },
+      {
+        "id": 218,
+        "name": "touch",
+        "translation": "tocar",
+        "present": "touch",
+        "past_simple": "touched",
+        "past_participle": "touched",
+        "gerund": "touching"
+      },
+      {
+        "id": 219,
+        "name": "train",
+        "translation": "entrenar",
+        "present": "train",
+        "past_simple": "trained",
+        "past_participle": "trained",
+        "gerund": "training"
+      },
+      {
+        "id": 220,
+        "name": "travel",
+        "translation": "viajar",
+        "present": "travel",
+        "past_simple": "traveled (US); travelled (UK)",
+        "past_participle": "traveled (US); travelled (UK)",
+        "gerund": "traveling (US); travelling (UK)"
+      },
+      {
+        "id": 221,
+        "name": "treat",
+        "translation": "tratar",
+        "present": "treat",
+        "past_simple": "treated",
+        "past_participle": "treated",
+        "gerund": "treating"
+      },
+      {
+        "id": 222,
+        "name": "try",
+        "translation": "intentar; tratar de; probar",
+        "present": "try",
+        "past_simple": "tried",
+        "past_participle": "tried",
+        "gerund": "trying"
+      },
+      {
+        "id": 223,
+        "name": "turn",
+        "translation": "girar; voltear",
+        "present": "turn",
+        "past_simple": "turned",
+        "past_participle": "turned",
+        "gerund": "turning"
+      }
+    ],
+    "u": [
+      {
+        "id": 224,
+        "name": "use",
+        "translation": "usar; utilizar",
+        "present": "use",
+        "past_simple": "used",
+        "past_participle": "used",
+        "gerund": "using"
+      }
+    ],
+    "v": [
+      {
+        "id": 225,
+        "name": "visit",
+        "translation": "visitar",
+        "present": "visit",
+        "past_simple": "visited",
+        "past_participle": "visited",
+        "gerund": "visiting"
+      },
+      {
+        "id": 226,
+        "name": "vote",
+        "translation": "votar",
+        "present": "vote",
+        "past_simple": "voted",
+        "past_participle": "voted",
+        "gerund": "voting"
+      }
+    ],
+    "w": [
+      {
+        "id": 227,
+        "name": "wait",
+        "translation": "esperar",
+        "present": "wait",
+        "past_simple": "waited",
+        "past_participle": "waited",
+        "gerund": "waiting"
+      },
+      {
+        "id": 228,
+        "name": "walk",
+        "translation": "caminar; andar",
+        "present": "walk",
+        "past_simple": "walked",
+        "past_participle": "walked",
+        "gerund": "walking"
+      },
+      {
+        "id": 229,
+        "name": "want",
+        "translation": "querer; desear",
+        "present": "want",
+        "past_simple": "wanted",
+        "past_participle": "wanted",
+        "gerund": "wanting"
+      },
+      {
+        "id": 230,
+        "name": "warn",
+        "translation": "advertir; avisar",
+        "present": "warn",
+        "past_simple": "warned",
+        "past_participle": "warned",
+        "gerund": "warning"
+      },
+      {
+        "id": 231,
+        "name": "wash",
+        "translation": "lavar",
+        "present": "wash",
+        "past_simple": "washed",
+        "past_participle": "washed",
+        "gerund": "washing"
+      },
+      {
+        "id": 232,
+        "name": "watch",
+        "translation": "mirar",
+        "present": "watch",
+        "past_simple": "watched",
+        "past_participle": "watched",
+        "gerund": "watching"
+      },
+      {
+        "id": 233,
+        "name": "wish",
+        "translation": "desear",
+        "present": "wish",
+        "past_simple": "wished",
+        "past_participle": "wished",
+        "gerund": "wishing"
+      },
+      {
+        "id": 234,
+        "name": "wonder",
+        "translation": "preguntarse",
+        "present": "wonder",
+        "past_simple": "wondered",
+        "past_participle": "wondered",
+        "gerund": "wondering"
+      },
+      {
+        "id": 235,
+        "name": "work",
+        "translation": "trabajar; currar",
+        "present": "work",
+        "past_simple": "worked",
+        "past_participle": "worked",
+        "gerund": "working"
+      },
+      {
+        "id": 236,
+        "name": "worry",
+        "translation": "preocuparse",
+        "present": "worry",
+        "past_simple": "worried",
+        "past_participle": "worried",
+        "gerund": "worrying"
+      }
+    ]
+  },
+  "error": "",
+  "random_string": "*dummy_random_string*",
+  "hash": "*dummy_hash*",
+  "updated": true
+}

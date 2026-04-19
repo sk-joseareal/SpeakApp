@@ -37,6 +37,7 @@ const HERO_MASCOT_FRAME_INTERVAL_MS = 150;
 const BROWSER_AUTONARRATION_EXTRA_DELAY_MS = 120;
 const REFERENCE_ALIGNED_CACHE_MAX_ITEMS = 80;
 const REFERENCE_HERO_AUTONARRATION_PLAYED_KEY = 'appv5:reference-hero-auto-narration-played';
+const REFERENCE_TOOLS_ENABLED_KEY = 'appv5:reference-tools-enabled';
 const REFERENCE_TESTS_PROGRESS_STORAGE_PREFIX = 'appv5:reference-tests-progress';
 const REFERENCE_PROGRESS_QUEUE_STORAGE_PREFIX = 'appv5:reference-progress-queue';
 const REFERENCE_TEST_REWARD_ENTRY_PREFIX = 'reference-test';
@@ -124,10 +125,17 @@ class PageReference extends HTMLElement {
     this.pendingReferenceUnitRewardPopup = null;
     this.pendingReferenceCourseBadgePopup = null;
     this.referenceLessonTab = 'content';
+    this.referenceMainTab = 'courses';
     this.referenceLessonTabScrollTop = {
       content: 0,
       tests: 0
     };
+    this.toolView = false;
+    this.activeTool = '';
+    this.toolsDataCache = {};
+    this.expandedToolItemId = null;
+    this.toolFilter = 'featured';
+    this.vocabImageCache = new Set();
   }
 
   connectedCallback() {
@@ -180,6 +188,11 @@ class PageReference extends HTMLElement {
       this._tabChangeHandler(event);
     };
     window.addEventListener('app:tab-change', this._appTabChangeHandler);
+    this._referenceToolsHandler = () => {
+      if (!this.isConnected) return;
+      this.render();
+    };
+    window.addEventListener('app:reference-tools-enabled-change', this._referenceToolsHandler);
     this.flushReferenceProgressQueue({ reason: 'connect' }).catch(() => {});
     this.render();
   }
@@ -209,6 +222,9 @@ class PageReference extends HTMLElement {
     }
     if (this._appTabChangeHandler) {
       window.removeEventListener('app:tab-change', this._appTabChangeHandler);
+    }
+    if (this._referenceToolsHandler) {
+      window.removeEventListener('app:reference-tools-enabled-change', this._referenceToolsHandler);
     }
     if (this._tabUserClickHandler) {
       window.removeEventListener('app:tab-user-click', this._tabUserClickHandler);
@@ -1332,6 +1348,678 @@ class PageReference extends HTMLElement {
     if (!this.narrationTimer) return;
     clearTimeout(this.narrationTimer);
     this.narrationTimer = null;
+  }
+
+  loadToolData(key) {
+    if (this.toolsDataCache[key]) {
+      return Promise.resolve(this.toolsDataCache[key]);
+    }
+    return fetch(`data/tools/${key}.json`)
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
+      .then((data) => {
+        this.toolsDataCache[key] = data;
+        return data;
+      });
+  }
+
+  renderExpressionsToolHtml(data, copy, uiLocale) {
+    const expressions = data.expressions;
+    const letters = (expressions.letras || []).map((l) => l.letra);
+    const filter = this.toolFilter || 'all';
+
+    const showTranslation = uiLocale === 'es';
+    const playIconHtml = this.buildPlayIconHtml();
+    const itemHtml = (item) => `
+      <div class="tool-expr-item" data-tool-item-id="${item.id}">
+        <div class="tool-expr-item-main">
+          <div class="tool-expr-play-zone" data-play-text="${this.escapeHtml(item.name)}">
+            <div class="tool-expr-text">
+              <span class="tool-expr-name">${this.escapeHtml(item.name)}</span>
+              ${showTranslation ? `<span class="tool-expr-translation">${this.escapeHtml(item.translation)}</span>` : ''}
+            </div>
+            ${playIconHtml}
+          </div>
+          <button class="tool-expr-expand-btn" type="button" aria-label="expand">
+            <ion-icon name="chevron-down" class="tool-expr-chevron" aria-hidden="true"></ion-icon>
+          </button>
+        </div>
+      </div>`;
+
+    let contentHtml;
+    if (filter === 'featured') {
+      const featured = expressions.featured || [];
+      contentHtml = `<div class="tool-letter-section">${featured.map(itemHtml).join('')}</div>`;
+    } else {
+      contentHtml = letters.map((letter) => {
+        const items = expressions[letter] || [];
+        return `
+          <div class="tool-letter-section" id="tool-section-${this.escapeHtml(letter)}">
+            <div class="tool-letter-header">${this.escapeHtml(letter.toUpperCase())}</div>
+            ${items.map(itemHtml).join('')}
+          </div>`;
+      }).join('');
+    }
+
+    const letterNavHtml = filter === 'all' ? `
+      <div class="tool-letter-nav" id="tool-letter-nav">
+        ${letters.map((letter) =>
+          `<button class="tool-letter-nav-btn" data-tool-letter="${this.escapeHtml(letter)}">${this.escapeHtml(letter.toUpperCase())}</button>`
+        ).join('')}
+      </div>` : '';
+
+    return `
+      <div class="tool-sticky-header">
+        <div class="tool-view-header">
+          <button class="tool-back-btn" id="tool-back-btn">
+            <ion-icon name="arrow-back" aria-hidden="true"></ion-icon>
+            <span>${this.escapeHtml(copy.backToList || 'Back')}</span>
+          </button>
+          <h2 class="tool-view-title">${this.escapeHtml(copy.toolExpressions || 'Expressions')}</h2>
+        </div>
+        <div class="profile-segmented-tabs tool-filter-tabs">
+          <button class="profile-segmented-btn${filter === 'featured' ? ' active' : ''}" data-tool-filter="featured">${this.escapeHtml(copy.toolFilterFeatured || 'Featured')}</button>
+          <button class="profile-segmented-btn${filter === 'all' ? ' active' : ''}" data-tool-filter="all">${this.escapeHtml(copy.toolFilterAll || 'All')}</button>
+        </div>
+        ${letterNavHtml}
+      </div>
+      <div class="tool-content-list" id="tool-content-list">
+        ${contentHtml}
+      </div>`;
+  }
+
+  buildPlayIconHtml() {
+    return `<span class="tool-play-icon" aria-hidden="true"><ion-icon class="tool-play-speaker-icon" name="volume-medium-outline"></ion-icon><span class="tool-play-waves"><i></i><i></i><i></i></span></span>`;
+  }
+
+  findToolItem(id, data) {
+    const featured = data.featured || [];
+    const letters = (data.letras || []).map((l) => l.letra);
+    const allItems = [...featured, ...letters.flatMap((l) => data[l] || [])];
+    return allItems.find((item) => item.id === id) || null;
+  }
+
+  findQuoteItem(id, quotesData) {
+    const featured = quotesData.featured || [];
+    const themes = quotesData.themes || [];
+    const allItems = [...featured, ...themes.flatMap((t) => quotesData[String(t.id)] || [])];
+    return allItems.find((item) => item.id === id) || null;
+  }
+
+  buildConjugationPersonsHtml(tenseData, mood) {
+    if (!tenseData) return '';
+    const PERSON_LABELS = { I: 'I', You: 'You', hesheit: 'He / She / It', We: 'We', You2: 'You (pl.)', They: 'They' };
+    const PERSON_ORDER = ['I', 'You', 'hesheit', 'We', 'You2', 'They'];
+    const playIconHtml = this.buildPlayIconHtml();
+    return PERSON_ORDER.map((person) => {
+      const text = (tenseData[person] || {})[mood] || '';
+      return `
+        <div class="conj-person-row">
+          <span class="conj-person-label">${this.escapeHtml(PERSON_LABELS[person] || person)}</span>
+          <div class="tool-expr-play-zone conj-person-play" data-play-text="${this.escapeHtml(text)}">
+            <span class="conj-person-form">${this.escapeHtml(text)}</span>
+            ${playIconHtml}
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  buildConjugationSheetHtml(verbName, verbData, uiLocale) {
+    const copy = getReferenceCopy(uiLocale);
+    const TENSE_LABELS = {
+      PresentSimple: 'Present Simple',
+      PresentContinuous: 'Present Continuous',
+      PresentPerfect: 'Present Perfect',
+      PresentPerfectContinuous: 'Pres. Perf. Cont.',
+      PastSimple: 'Past Simple',
+      PastContinuous: 'Past Continuous',
+      PastPerfect: 'Past Perfect',
+      PastPerfectContinuous: 'Past Perf. Cont.',
+      FutureSimple: 'Future Simple',
+      FuturePerfect: 'Future Perfect',
+      Conditional: 'Conditional',
+      ConditionalPerfect: 'Cond. Perfect'
+    };
+    const defaultTense = 'PresentSimple';
+    const defaultMood = 'Affirmative';
+    const title = verbData ? (verbData.infinitive || verbName) : verbName;
+    const tensePillsHtml = Object.entries(TENSE_LABELS).map(([key, label]) =>
+      `<button class="conj-tense-pill${key === defaultTense ? ' active' : ''}" data-tense="${key}">${label}</button>`
+    ).join('');
+    const moodAff = copy.conjMoodAffirmative || 'Affirmative';
+    const moodInt = copy.conjMoodInterrogative || 'Interrogative';
+    const moodNeg = copy.conjMoodNegative || 'Negative';
+    const personsHtml = verbData
+      ? this.buildConjugationPersonsHtml((verbData.tenses || {})[defaultTense], defaultMood)
+      : `<p class="conj-not-found">Not available</p>`;
+    return `
+      <div class="conj-sheet" id="conj-sheet">
+        <div class="conj-sheet-header">
+          <h3 class="conj-sheet-title">${this.escapeHtml(title)}</h3>
+          <button class="conj-sheet-close" aria-label="Close">
+            <ion-icon name="close" aria-hidden="true"></ion-icon>
+          </button>
+        </div>
+        <div class="conj-tense-scroll">
+          <div class="conj-tense-pills">${tensePillsHtml}</div>
+        </div>
+        <div class="conj-mood-tabs">
+          <button class="conj-mood-btn active" data-mood="Affirmative">${this.escapeHtml(moodAff)}</button>
+          <button class="conj-mood-btn" data-mood="Interrogative">${this.escapeHtml(moodInt)}</button>
+          <button class="conj-mood-btn" data-mood="Negative">${this.escapeHtml(moodNeg)}</button>
+        </div>
+        <div class="conj-persons-list" id="conj-persons-list">
+          ${personsHtml}
+        </div>
+      </div>`;
+  }
+
+  async openConjugationSheet(verbName, uiLocale) {
+    this.closeConjugationSheet();
+    let verbData = null;
+    try {
+      const data = await this.loadToolData('conjugations');
+      verbData = (data.conjugations && data.conjugations.data && data.conjugations.data[verbName]) || null;
+    } catch (e) {
+      console.warn('[conj] failed to load conjugations', e);
+    }
+    const overlayEl = document.createElement('div');
+    overlayEl.className = 'conj-sheet-overlay';
+    overlayEl.id = 'conj-sheet-overlay';
+    overlayEl.innerHTML = this.buildConjugationSheetHtml(verbName, verbData, uiLocale);
+    this.appendChild(overlayEl);
+    requestAnimationFrame(() => overlayEl.classList.add('is-open'));
+    overlayEl.addEventListener('click', (event) => {
+      const target = event.target instanceof Element ? event.target : null;
+      if (!target) return;
+      // Close on backdrop tap
+      if (target === overlayEl) { this.closeConjugationSheet(); return; }
+      // Close button
+      if (target.closest('.conj-sheet-close')) { this.closeConjugationSheet(); return; }
+      // Tense pill
+      const tensePill = target.closest('.conj-tense-pill');
+      if (tensePill) {
+        overlayEl.querySelectorAll('.conj-tense-pill').forEach((b) => b.classList.toggle('active', b === tensePill));
+        const tense = tensePill.getAttribute('data-tense');
+        const mood = overlayEl.querySelector('.conj-mood-btn.active')?.getAttribute('data-mood') || 'Affirmative';
+        const personsList = overlayEl.querySelector('#conj-persons-list');
+        if (personsList && verbData) personsList.innerHTML = this.buildConjugationPersonsHtml((verbData.tenses || {})[tense], mood);
+        return;
+      }
+      // Mood button
+      const moodBtn = target.closest('.conj-mood-btn');
+      if (moodBtn) {
+        overlayEl.querySelectorAll('.conj-mood-btn').forEach((b) => b.classList.toggle('active', b === moodBtn));
+        const mood = moodBtn.getAttribute('data-mood');
+        const tense = overlayEl.querySelector('.conj-tense-pill.active')?.getAttribute('data-tense') || 'PresentSimple';
+        const personsList = overlayEl.querySelector('#conj-persons-list');
+        if (personsList && verbData) personsList.innerHTML = this.buildConjugationPersonsHtml((verbData.tenses || {})[tense], mood);
+        return;
+      }
+      // Audio play zone
+      const playZone = target.closest('.tool-expr-play-zone');
+      if (playZone) {
+        const text = String(playZone.getAttribute('data-play-text') || '').trim();
+        if (text) {
+          overlayEl.querySelectorAll('.tool-expr-play-zone.is-playing').forEach((el) => el.classList.remove('is-playing'));
+          playZone.classList.add('is-playing');
+          this.speakHeroNarration(text, 'en').catch(() => {}).finally(() => playZone.classList.remove('is-playing'));
+        }
+        return;
+      }
+    });
+  }
+
+  resolveColorSwatch(name) {
+    if (typeof CSS === 'undefined' || typeof CSS.supports !== 'function') return null;
+    // Try normalized (spaces removed): "light blue" → "lightblue"
+    const normalized = name.toLowerCase().replace(/\s+/g, '');
+    if (CSS.supports('color', normalized)) return normalized;
+    // Try as-is (single-word colors like "red")
+    const lower = name.toLowerCase();
+    if (CSS.supports('color', lower)) return lower;
+    return null;
+  }
+
+  closeConjugationSheet() {
+    const existing = this.querySelector('#conj-sheet-overlay');
+    if (existing) {
+      existing.classList.remove('is-open');
+      setTimeout(() => existing.remove(), 300);
+    }
+  }
+
+  buildToolExpandHtml(id, toolData, uiLocale) {
+    const copy = getReferenceCopy(uiLocale);
+    const playIconHtml = this.buildPlayIconHtml();
+    const showTr = uiLocale === 'es';
+    switch (this.activeTool) {
+      case 'expressions': {
+        const item = this.findToolItem(id, toolData.expressions);
+        if (!item) return '';
+        return `
+          <div class="tool-expr-play-zone tool-expr-example-play" data-play-text="${this.escapeHtml(item.example || '')}">
+            <span class="tool-expr-example-text">${this.escapeHtml(item.example || '')}</span>
+            ${playIconHtml}
+          </div>
+          ${showTr ? `<p class="tool-expr-example-es">${this.escapeHtml(item.example_translation || '')}</p>` : ''}`;
+      }
+      case 'proverbs': {
+        const item = this.findToolItem(id, toolData.proverbs);
+        if (!item) return '';
+        const explanation = String(item.explanation || '').trim();
+        return explanation ? `<p class="tool-expr-example-en">${this.escapeHtml(explanation)}</p>` : '';
+      }
+      case 'regverbs':
+      case 'irregverbs': {
+        const dataKey = this.activeTool === 'irregverbs' ? 'irregverbs' : 'regverbs';
+        const item = this.findToolItem(id, toolData[dataKey]);
+        if (!item) return '';
+        const rows = [
+          { label: copy.verbPresent || 'Present', value: item.present || '' },
+          { label: copy.verbPastSimple || 'Past simple', value: item.past_simple || '' },
+          { label: copy.verbPastParticiple || 'Past participle', value: item.past_participle || '' },
+          { label: copy.verbGerund || 'Gerund', value: item.gerund || '' }
+        ];
+        const conjLabel = copy.conjugate || 'Conjugate';
+        return `<div class="tool-verb-table">${rows.map((row) => `
+          <div class="tool-verb-row">
+            <span class="tool-verb-label">${this.escapeHtml(row.label)}</span>
+            <div class="tool-expr-play-zone tool-verb-play-zone" data-play-text="${this.escapeHtml(row.value)}">
+              <span class="tool-verb-form">${this.escapeHtml(row.value)}</span>
+              ${playIconHtml}
+            </div>
+          </div>`).join('')}</div>
+          <button class="conj-btn" type="button" data-verb="${this.escapeHtml(item.name)}">
+            <ion-icon name="git-branch-outline" aria-hidden="true"></ion-icon>
+            ${this.escapeHtml(conjLabel)}
+          </button>`;
+      }
+      case 'phrasalverbs': {
+        const item = this.findToolItem(id, toolData.phrasverbs);
+        if (!item) return '';
+        const examples = item.examples || [];
+        return examples.map((ex) => {
+          const syntax = String(ex.syntax || '').toLowerCase().trim();
+          const syntaxClass = syntax === 'separable' ? 'tool-pill-sep'
+            : syntax === 'inseparable' ? 'tool-pill-insep'
+            : syntax === 'intransitive' ? 'tool-pill-intrans'
+            : syntax ? 'tool-pill-other' : '';
+          const definition = uiLocale === 'es' ? (ex.definition || '') : (ex.definition_en || ex.definition || '');
+          return `
+            <div class="tool-phrasal-example">
+              <div class="tool-expr-play-zone tool-expr-example-play" data-play-text="${this.escapeHtml(ex.example || '')}">
+                <span class="tool-expr-example-text">${this.escapeHtml(ex.example || '')}</span>
+                ${playIconHtml}
+              </div>
+              ${showTr ? `<p class="tool-expr-example-es">${this.escapeHtml(ex.example_translation || '')}</p>` : ''}
+              ${syntax || definition ? `<div class="tool-phrasal-meta">${syntaxClass ? `<span class="tool-syntax-pill ${this.escapeHtml(syntaxClass)}">${this.escapeHtml(syntax)}</span>` : ''}${definition ? `<span class="tool-phrasal-def">${this.escapeHtml(definition)}</span>` : ''}</div>` : ''}
+            </div>`;
+        }).join('');
+      }
+      default:
+        return '';
+    }
+  }
+
+  renderProverbsToolHtml(data, copy, uiLocale) {
+    const proverbs = data.proverbs;
+    const letters = (proverbs.letras || []).map((l) => l.letra);
+    const filter = this.toolFilter || 'featured';
+    const showTranslation = uiLocale === 'es';
+    const playIconHtml = this.buildPlayIconHtml();
+
+    const itemHtml = (item) => {
+      const explanation = String(item.explanation || '').trim();
+      return `
+        <div class="tool-expr-item" data-tool-item-id="${item.id}">
+          <div class="tool-expr-item-main">
+            <div class="tool-expr-play-zone" data-play-text="${this.escapeHtml(item.name)}">
+              <div class="tool-expr-text">
+                <span class="tool-expr-name">${this.escapeHtml(item.name)}</span>
+                ${showTranslation ? `<span class="tool-expr-translation">${this.escapeHtml(item.translation)}</span>` : ''}
+              </div>
+              ${playIconHtml}
+            </div>
+            ${explanation ? `<button class="tool-expr-expand-btn" type="button" aria-label="expand">
+              <ion-icon name="chevron-down" class="tool-expr-chevron" aria-hidden="true"></ion-icon>
+            </button>` : ''}
+          </div>
+        </div>`;
+    };
+
+    let contentHtml;
+    if (filter === 'featured') {
+      const featured = proverbs.featured || [];
+      contentHtml = `<div class="tool-letter-section">${featured.map(itemHtml).join('')}</div>`;
+    } else {
+      contentHtml = letters.map((letter) => {
+        const items = proverbs[letter] || [];
+        return `
+          <div class="tool-letter-section" id="tool-section-${this.escapeHtml(letter)}">
+            <div class="tool-letter-header">${this.escapeHtml(letter)}</div>
+            ${items.map(itemHtml).join('')}
+          </div>`;
+      }).join('');
+    }
+
+    const letterNavHtml = filter === 'all' ? `
+      <div class="tool-letter-nav" id="tool-letter-nav">
+        ${letters.map((letter) =>
+          `<button class="tool-letter-nav-btn" data-tool-letter="${this.escapeHtml(letter)}">${this.escapeHtml(letter)}</button>`
+        ).join('')}
+      </div>` : '';
+
+    return `
+      <div class="tool-sticky-header">
+        <div class="tool-view-header">
+          <button class="tool-back-btn" id="tool-back-btn">
+            <ion-icon name="arrow-back" aria-hidden="true"></ion-icon>
+            <span>${this.escapeHtml(copy.backToList || 'Back')}</span>
+          </button>
+          <h2 class="tool-view-title">${this.escapeHtml(copy.toolProverbs || 'Proverbs')}</h2>
+        </div>
+        <div class="profile-segmented-tabs tool-filter-tabs">
+          <button class="profile-segmented-btn${filter === 'featured' ? ' active' : ''}" data-tool-filter="featured">${this.escapeHtml(copy.toolFilterFeatured || 'Featured')}</button>
+          <button class="profile-segmented-btn${filter === 'all' ? ' active' : ''}" data-tool-filter="all">${this.escapeHtml(copy.toolFilterAll || 'All')}</button>
+        </div>
+        ${letterNavHtml}
+      </div>
+      <div class="tool-content-list" id="tool-content-list">
+        ${contentHtml}
+      </div>`;
+  }
+
+  renderVerbsToolHtml(verbsData, copy, uiLocale) {
+    const letters = (verbsData.letras || []).map((l) => l.letra);
+    const filter = this.toolFilter || 'featured';
+    const title = this.activeTool === 'irregverbs'
+      ? (copy.toolIrregVerbs || 'Irregular verbs')
+      : (copy.toolRegVerbs || 'Regular verbs');
+    const showTranslation = uiLocale === 'es';
+    const playIconHtml = this.buildPlayIconHtml();
+
+    const itemHtml = (item) => `
+      <div class="tool-expr-item" data-tool-item-id="${item.id}">
+        <div class="tool-expr-item-main">
+          <div class="tool-expr-play-zone" data-play-text="${this.escapeHtml(item.name)}">
+            <div class="tool-expr-text">
+              <span class="tool-expr-name">${this.escapeHtml(item.name)}</span>
+              ${showTranslation ? `<span class="tool-expr-translation">${this.escapeHtml(item.translation)}</span>` : ''}
+            </div>
+            ${playIconHtml}
+          </div>
+          <button class="tool-expr-expand-btn" type="button" aria-label="expand">
+            <ion-icon name="chevron-down" class="tool-expr-chevron" aria-hidden="true"></ion-icon>
+          </button>
+        </div>
+      </div>`;
+
+    let contentHtml;
+    if (filter === 'featured') {
+      const featured = verbsData.featured || [];
+      contentHtml = `<div class="tool-letter-section">${featured.map(itemHtml).join('')}</div>`;
+    } else {
+      contentHtml = letters.map((letter) => {
+        const items = verbsData[letter] || [];
+        return `
+          <div class="tool-letter-section" id="tool-section-${this.escapeHtml(letter)}">
+            <div class="tool-letter-header">${this.escapeHtml(letter.toUpperCase())}</div>
+            ${items.map(itemHtml).join('')}
+          </div>`;
+      }).join('');
+    }
+
+    const letterNavHtml = filter === 'all' ? `
+      <div class="tool-letter-nav" id="tool-letter-nav">
+        ${letters.map((letter) =>
+          `<button class="tool-letter-nav-btn" data-tool-letter="${this.escapeHtml(letter)}">${this.escapeHtml(letter.toUpperCase())}</button>`
+        ).join('')}
+      </div>` : '';
+
+    return `
+      <div class="tool-sticky-header">
+        <div class="tool-view-header">
+          <button class="tool-back-btn" id="tool-back-btn">
+            <ion-icon name="arrow-back" aria-hidden="true"></ion-icon>
+            <span>${this.escapeHtml(copy.backToList || 'Back')}</span>
+          </button>
+          <h2 class="tool-view-title">${this.escapeHtml(title)}</h2>
+        </div>
+        <div class="profile-segmented-tabs tool-filter-tabs">
+          <button class="profile-segmented-btn${filter === 'featured' ? ' active' : ''}" data-tool-filter="featured">${this.escapeHtml(copy.toolFilterFeatured || 'Featured')}</button>
+          <button class="profile-segmented-btn${filter === 'all' ? ' active' : ''}" data-tool-filter="all">${this.escapeHtml(copy.toolFilterAll || 'All')}</button>
+        </div>
+        ${letterNavHtml}
+      </div>
+      <div class="tool-content-list" id="tool-content-list">
+        ${contentHtml}
+      </div>`;
+  }
+
+  renderQuotesToolHtml(data, copy, uiLocale) {
+    const quotes = data.quotes;
+    const themes = quotes.themes || [];
+    const filter = this.toolFilter || 'featured';
+    const showTranslation = uiLocale === 'es';
+    const playIconHtml = this.buildPlayIconHtml();
+
+    const itemHtml = (item) => `
+      <div class="tool-expr-item" data-tool-item-id="${item.id}">
+        <div class="tool-expr-item-main">
+          <div class="tool-expr-play-zone" data-play-text="${this.escapeHtml(item.text || '')}">
+            <div class="tool-expr-text">
+              <span class="tool-expr-name tool-quote-text">${this.escapeHtml(item.text || '')}</span>
+              ${item.author ? `<span class="tool-expr-translation tool-quote-author">— ${this.escapeHtml(item.author)}</span>` : ''}
+              ${showTranslation && item.text_translation ? `<span class="tool-quote-translation">${this.escapeHtml(item.text_translation)}</span>` : ''}
+            </div>
+            ${playIconHtml}
+          </div>
+        </div>
+      </div>`;
+
+    let contentHtml;
+    if (filter === 'featured') {
+      const featured = quotes.featured || [];
+      contentHtml = `<div class="tool-letter-section">${featured.map(itemHtml).join('')}</div>`;
+    } else {
+      contentHtml = themes.map((theme) => {
+        const themeItems = quotes[String(theme.id)] || [];
+        if (!themeItems.length) return '';
+        const themeLabel = uiLocale === 'es' ? theme.name : theme.name_en;
+        return `
+          <div class="tool-letter-section" id="tool-section-${this.escapeHtml(String(theme.id))}">
+            <div class="tool-letter-header">${this.escapeHtml(themeLabel || theme.name || '')}</div>
+            ${themeItems.map(itemHtml).join('')}
+          </div>`;
+      }).join('');
+    }
+
+    const themeNavHtml = filter === 'all' ? `
+      <div class="tool-letter-nav tool-theme-nav" id="tool-letter-nav">
+        ${themes.filter((t) => (quotes[String(t.id)] || []).length > 0).map((theme) => {
+          const label = uiLocale === 'es' ? theme.name : theme.name_en;
+          return `<button class="tool-letter-nav-btn tool-theme-nav-btn" data-tool-letter="${this.escapeHtml(String(theme.id))}">${this.escapeHtml(label || theme.name || '')}</button>`;
+        }).join('')}
+      </div>` : '';
+
+    return `
+      <div class="tool-sticky-header">
+        <div class="tool-view-header">
+          <button class="tool-back-btn" id="tool-back-btn">
+            <ion-icon name="arrow-back" aria-hidden="true"></ion-icon>
+            <span>${this.escapeHtml(copy.backToList || 'Back')}</span>
+          </button>
+          <h2 class="tool-view-title">${this.escapeHtml(copy.toolQuotes || 'Quotes')}</h2>
+        </div>
+        <div class="profile-segmented-tabs tool-filter-tabs">
+          <button class="profile-segmented-btn${filter === 'featured' ? ' active' : ''}" data-tool-filter="featured">${this.escapeHtml(copy.toolFilterFeatured || 'Featured')}</button>
+          <button class="profile-segmented-btn${filter === 'all' ? ' active' : ''}" data-tool-filter="all">${this.escapeHtml(copy.toolFilterAll || 'All')}</button>
+        </div>
+        ${themeNavHtml}
+      </div>
+      <div class="tool-content-list" id="tool-content-list">
+        ${contentHtml}
+      </div>`;
+  }
+
+  renderPhrasalVerbsToolHtml(data, copy, uiLocale) {
+    const phrasverbs = data.phrasverbs;
+    const letters = (phrasverbs.letras || []).map((l) => l.letra);
+    const filter = this.toolFilter || 'featured';
+    const playIconHtml = this.buildPlayIconHtml();
+
+    const itemHtml = (item) => `
+      <div class="tool-expr-item" data-tool-item-id="${item.id}">
+        <div class="tool-expr-item-main">
+          <div class="tool-expr-play-zone" data-play-text="${this.escapeHtml(item.name)}">
+            <div class="tool-expr-text">
+              <span class="tool-expr-name">${this.escapeHtml(item.name)}</span>
+            </div>
+            ${playIconHtml}
+          </div>
+          <button class="tool-expr-expand-btn" type="button" aria-label="expand">
+            <ion-icon name="chevron-down" class="tool-expr-chevron" aria-hidden="true"></ion-icon>
+          </button>
+        </div>
+      </div>`;
+
+    let contentHtml;
+    if (filter === 'featured') {
+      const featured = phrasverbs.featured || [];
+      contentHtml = `<div class="tool-letter-section">${featured.map(itemHtml).join('')}</div>`;
+    } else {
+      contentHtml = letters.map((letter) => {
+        const items = phrasverbs[letter] || [];
+        return `
+          <div class="tool-letter-section" id="tool-section-${this.escapeHtml(letter)}">
+            <div class="tool-letter-header">${this.escapeHtml(letter.toUpperCase())}</div>
+            ${items.map(itemHtml).join('')}
+          </div>`;
+      }).join('');
+    }
+
+    const letterNavHtml = filter === 'all' ? `
+      <div class="tool-letter-nav" id="tool-letter-nav">
+        ${letters.map((letter) =>
+          `<button class="tool-letter-nav-btn" data-tool-letter="${this.escapeHtml(letter)}">${this.escapeHtml(letter.toUpperCase())}</button>`
+        ).join('')}
+      </div>` : '';
+
+    return `
+      <div class="tool-sticky-header">
+        <div class="tool-view-header">
+          <button class="tool-back-btn" id="tool-back-btn">
+            <ion-icon name="arrow-back" aria-hidden="true"></ion-icon>
+            <span>${this.escapeHtml(copy.backToList || 'Back')}</span>
+          </button>
+          <h2 class="tool-view-title">${this.escapeHtml(copy.toolPhrasalVerbs || 'Phrasal verbs')}</h2>
+        </div>
+        <div class="profile-segmented-tabs tool-filter-tabs">
+          <button class="profile-segmented-btn${filter === 'featured' ? ' active' : ''}" data-tool-filter="featured">${this.escapeHtml(copy.toolFilterFeatured || 'Featured')}</button>
+          <button class="profile-segmented-btn${filter === 'all' ? ' active' : ''}" data-tool-filter="all">${this.escapeHtml(copy.toolFilterAll || 'All')}</button>
+        </div>
+        ${letterNavHtml}
+      </div>
+      <div class="tool-content-list" id="tool-content-list">
+        ${contentHtml}
+      </div>`;
+  }
+
+  renderVocabsToolHtml(data, copy, uiLocale) {
+    const vocabs = data.vocabs;
+    const groupKeys = Object.keys(vocabs).sort((a, b) => Number(a) - Number(b));
+    const playIconHtml = this.buildPlayIconHtml();
+
+    const wordHtml = (word) => {
+      const isCached = word.image_url && this.vocabImageCache.has(word.image_url);
+      let imgHtml;
+      if (word.image_url) {
+        imgHtml = `<div class="tool-vocab-img-skeleton${isCached ? ' is-hidden' : ''}"></div>
+           <img class="tool-vocab-img${isCached ? ' is-loaded' : ''}" src="${this.escapeHtml(word.image_url)}" alt="${this.escapeHtml(word.name)}" loading="lazy">`;
+      } else {
+        const swatch = this.resolveColorSwatch(word.name);
+        imgHtml = swatch
+          ? `<div class="tool-vocab-color-swatch" style="background:${swatch}"></div>`
+          : null;
+      }
+      return `
+        <div class="tool-vocab-word">
+          ${imgHtml !== null ? `<div class="tool-vocab-img-wrap">${imgHtml}</div>` : ''}
+          <div class="tool-expr-play-zone tool-vocab-play-zone" data-play-text="${this.escapeHtml(word.name)}">
+            <div class="tool-vocab-word-text">
+              <span class="tool-vocab-word-name">${this.escapeHtml(word.name)}</span>
+              ${uiLocale === 'es' ? `<span class="tool-vocab-word-tr">${this.escapeHtml(word.translation)}</span>` : ''}
+            </div>
+            ${playIconHtml}
+          </div>
+        </div>`;
+    };
+
+    const contentHtml = groupKeys.map((key) => {
+      const group = vocabs[key];
+      const vocabularies = group.vocabularies || [];
+      const vocabsHtml = vocabularies.map((vocab) => {
+        const wordsHtml = (vocab.words || []).map(wordHtml).join('');
+        return `
+          <div class="tool-vocab-subcat">
+            <div class="tool-vocab-subcat-header">
+              <div class="tool-expr-play-zone tool-vocab-subcat-play" data-play-text="${this.escapeHtml(vocab.name)}">
+                <div class="tool-vocab-subcat-text">
+                  <span class="tool-vocab-subcat-name">${this.escapeHtml(vocab.name)}</span>
+                  ${uiLocale === 'es' ? `<span class="tool-vocab-subcat-tr">${this.escapeHtml(vocab.translation)}</span>` : ''}
+                </div>
+                ${playIconHtml}
+              </div>
+            </div>
+            <div class="tool-vocab-words">${wordsHtml}</div>
+          </div>`;
+      }).join('');
+      return `
+        <div class="tool-letter-section" id="tool-section-${this.escapeHtml(key)}">
+          <div class="tool-letter-header">${this.escapeHtml(group.name)}</div>
+          ${vocabsHtml}
+        </div>`;
+    }).join('');
+
+    const groupNavHtml = `
+      <div class="tool-letter-nav tool-theme-nav" id="tool-letter-nav">
+        ${groupKeys.map((key) =>
+          `<button class="tool-letter-nav-btn tool-theme-nav-btn" data-tool-letter="${this.escapeHtml(key)}">${this.escapeHtml(vocabs[key].name)}</button>`
+        ).join('')}
+      </div>`;
+
+    return `
+      <div class="tool-sticky-header">
+        <div class="tool-view-header">
+          <button class="tool-back-btn" id="tool-back-btn">
+            <ion-icon name="arrow-back" aria-hidden="true"></ion-icon>
+            <span>${this.escapeHtml(copy.backToList || 'Back')}</span>
+          </button>
+          <h2 class="tool-view-title">${this.escapeHtml(copy.toolVocabulary || 'Vocabulary')}</h2>
+        </div>
+        ${groupNavHtml}
+      </div>
+      <div class="tool-content-list" id="tool-content-list">
+        ${contentHtml}
+      </div>`;
+  }
+
+  isReferenceToolsEnabled() {
+    const globalValue =
+      window.r34lp0w3r && Object.prototype.hasOwnProperty.call(window.r34lp0w3r, 'referenceToolsEnabled')
+        ? window.r34lp0w3r.referenceToolsEnabled
+        : undefined;
+    if (globalValue !== undefined) return Boolean(globalValue);
+    try {
+      const v = localStorage.getItem(REFERENCE_TOOLS_ENABLED_KEY);
+      if (!v) return false;
+      return ['1', 'true', 'on'].includes(String(v).trim().toLowerCase());
+    } catch (err) {
+      return false;
+    }
   }
 
   hasAutoHeroNarrationPlayed() {
@@ -3514,6 +4202,203 @@ class PageReference extends HTMLElement {
       return;
     }
 
+    if (this.toolView) {
+      const toolData = this.toolsDataCache[this.activeTool];
+      if (!toolData) {
+        this.innerHTML = `
+          ${this.renderHeaderHtml()}
+          <ion-content fullscreen class="home-journey secret-content">
+            <div class="journey-shell reference-shell tool-view-shell">
+              <div class="tool-view-header">
+                <button class="tool-back-btn" id="tool-back-btn">
+                  <ion-icon name="arrow-back" aria-hidden="true"></ion-icon>
+                  <span>${this.escapeHtml(copy.backToList || 'Back')}</span>
+                </button>
+              </div>
+              <div class="tool-loading">${this.escapeHtml(copy.loading || 'Loading...')}</div>
+            </div>
+          </ion-content>
+        `;
+        this.querySelector('.app-locale-btn')?.addEventListener('click', () => {
+          const nextLocale = getNextLocaleCode(getAppLocale() || 'en');
+          setAppLocale(nextLocale);
+          window.dispatchEvent(new CustomEvent('app:locale-change', { detail: { locale: nextLocale } }));
+        });
+        this.querySelector('#tool-back-btn')?.addEventListener('click', () => {
+          this.toolView = false;
+          this.activeTool = '';
+          this.expandedToolItemId = null;
+          this.render();
+        });
+        this.updateHeaderRewards();
+        this.loadToolData(this.activeTool)
+          .then(() => { if (this.isConnected) this.render(); })
+          .catch((err) => console.warn('[tools] data load failed', err));
+        return;
+      }
+
+      let toolBodyHtml = '';
+      switch (this.activeTool) {
+        case 'expressions':
+          toolBodyHtml = this.renderExpressionsToolHtml(toolData, copy, uiLocale);
+          break;
+        case 'proverbs':
+          toolBodyHtml = this.renderProverbsToolHtml(toolData, copy, uiLocale);
+          break;
+        case 'regverbs':
+          toolBodyHtml = this.renderVerbsToolHtml(toolData.regverbs, copy, uiLocale);
+          break;
+        case 'irregverbs':
+          toolBodyHtml = this.renderVerbsToolHtml(toolData.irregverbs, copy, uiLocale);
+          break;
+        case 'quotes':
+          toolBodyHtml = this.renderQuotesToolHtml(toolData, copy, uiLocale);
+          break;
+        case 'phrasalverbs':
+          toolBodyHtml = this.renderPhrasalVerbsToolHtml(toolData, copy, uiLocale);
+          break;
+        case 'vocabs':
+          toolBodyHtml = this.renderVocabsToolHtml(toolData, copy, uiLocale);
+          break;
+        default:
+          break;
+      }
+
+      this.innerHTML = `
+        ${this.renderHeaderHtml()}
+        <ion-content fullscreen class="home-journey secret-content">
+          ${toolBodyHtml}
+        </ion-content>
+      `;
+
+      this.querySelector('.app-locale-btn')?.addEventListener('click', () => {
+        const nextLocale = getNextLocaleCode(getAppLocale() || 'en');
+        setAppLocale(nextLocale);
+        window.dispatchEvent(new CustomEvent('app:locale-change', { detail: { locale: nextLocale } }));
+      });
+      this.querySelector('#tool-back-btn')?.addEventListener('click', () => {
+        this.toolView = false;
+        this.activeTool = '';
+        this.expandedToolItemId = null;
+        this.toolFilter = 'featured';
+        this.render();
+      });
+      this.querySelectorAll('[data-tool-filter]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const nextFilter = String(btn.getAttribute('data-tool-filter') || '').trim();
+          if (!nextFilter || this.toolFilter === nextFilter) return;
+          this.toolFilter = nextFilter;
+          this.expandedToolItemId = null;
+          this.render();
+        });
+      });
+      this.querySelectorAll('.tool-letter-nav-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const letter = btn.getAttribute('data-tool-letter');
+          const sectionEl = this.querySelector(`#tool-section-${letter}`);
+          if (!sectionEl) return;
+          const ionContent = this.querySelector('ion-content');
+          if (ionContent && typeof ionContent.getScrollElement === 'function') {
+            ionContent.getScrollElement().then((scrollEl) => {
+              if (!scrollEl) return;
+              const stickyHeaderEl = this.querySelector('.tool-sticky-header');
+              const stickyBottom = stickyHeaderEl ? stickyHeaderEl.getBoundingClientRect().bottom : 0;
+              const targetTop = scrollEl.scrollTop + sectionEl.getBoundingClientRect().top - stickyBottom - 8;
+              scrollEl.scrollTo({ top: targetTop, behavior: 'smooth' });
+            }).catch(() => {});
+          }
+        });
+      });
+      const contentListEl = this.querySelector('#tool-content-list');
+      if (contentListEl) {
+        contentListEl.addEventListener('click', (event) => {
+          const target = event.target instanceof Element ? event.target : null;
+          if (!target) return;
+
+          // Play zone (name/translation/example) → play audio
+          const playZone = target.closest('.tool-expr-play-zone');
+          if (playZone) {
+            const text = String(playZone.getAttribute('data-play-text') || '').trim();
+            if (text) {
+              contentListEl.querySelectorAll('.tool-expr-play-zone.is-playing').forEach((el) => el.classList.remove('is-playing'));
+              playZone.classList.add('is-playing');
+              this.speakHeroNarration(text, 'en')
+                .catch(() => {})
+                .finally(() => playZone.classList.remove('is-playing'));
+            }
+            return;
+          }
+
+          // Conjugate button → open bottom sheet
+          const conjBtn = target.closest('.conj-btn');
+          if (conjBtn) {
+            const verbName = conjBtn.getAttribute('data-verb');
+            if (verbName) this.openConjugationSheet(verbName, uiLocale);
+            return;
+          }
+
+          // Expand button → toggle in-place
+          const expandBtn = target.closest('.tool-expr-expand-btn');
+          if (expandBtn) {
+            const itemEl = expandBtn.closest('.tool-expr-item');
+            if (!itemEl) return;
+            const id = Number(itemEl.getAttribute('data-tool-item-id'));
+            const isOpen = itemEl.classList.contains('is-open');
+            // Close any currently open item
+            const prevOpen = contentListEl.querySelector('.tool-expr-item.is-open');
+            if (prevOpen && prevOpen !== itemEl) {
+              prevOpen.classList.remove('is-open');
+              prevOpen.querySelector('.tool-expr-example')?.remove();
+              const prevChevron = prevOpen.querySelector('.tool-expr-chevron');
+              if (prevChevron) prevChevron.setAttribute('name', 'chevron-down');
+            }
+            if (isOpen) {
+              itemEl.classList.remove('is-open');
+              itemEl.querySelector('.tool-expr-example')?.remove();
+              const chevron = itemEl.querySelector('.tool-expr-chevron');
+              if (chevron) chevron.setAttribute('name', 'chevron-down');
+              this.expandedToolItemId = null;
+            } else {
+              itemEl.classList.add('is-open');
+              const chevron = itemEl.querySelector('.tool-expr-chevron');
+              if (chevron) chevron.setAttribute('name', 'chevron-up');
+              const expandHtml = this.buildToolExpandHtml(id, toolData, uiLocale);
+              if (expandHtml) {
+                const exDiv = document.createElement('div');
+                exDiv.className = 'tool-expr-example';
+                exDiv.innerHTML = expandHtml;
+                itemEl.appendChild(exDiv);
+              }
+              this.expandedToolItemId = id;
+            }
+          }
+        });
+      }
+      // Vocab image skeleton handling
+      if (this.activeTool === 'vocabs') {
+        this.querySelectorAll('.tool-vocab-img').forEach((img) => {
+          if (img.classList.contains('is-loaded')) return;
+          const skeleton = img.previousElementSibling;
+          const applyLoaded = () => {
+            img.classList.add('is-loaded');
+            this.vocabImageCache.add(img.src);
+            if (skeleton) skeleton.classList.add('is-hidden');
+          };
+          if (img.complete && img.naturalWidth > 0) {
+            applyLoaded();
+          } else {
+            img.addEventListener('load', applyLoaded, { once: true });
+            img.addEventListener('error', () => {
+              img.style.display = 'none';
+            }, { once: true });
+          }
+        });
+      }
+
+      this.updateHeaderRewards();
+      return;
+    }
+
     const progressSnapshot = this.buildReferenceProgressSnapshot(courses);
     const referenceTestsLoadInfo = getReferenceTestsLoadInfo();
     const canSyncReferenceAwards = referenceTestsLoadInfo.status === 'ok';
@@ -3848,6 +4733,36 @@ class PageReference extends HTMLElement {
         </ion-content>
       `;
     } else {
+      const toolsEnabled = this.isReferenceToolsEnabled();
+      const activeMainTab = toolsEnabled ? this.referenceMainTab : 'courses';
+      const heroSubtitle = toolsEnabled && activeMainTab === 'tools'
+        ? (copy.toolsSubtitle || 'Explore vocabulary, expressions, verbs and more.')
+        : (copy.subtitle || '');
+      const toolItems = [
+        { key: 'vocabs', label: copy.toolVocabulary || 'Vocabulary' },
+        { key: 'expressions', label: copy.toolExpressions || 'Expressions' },
+        { key: 'proverbs', label: copy.toolProverbs || 'Proverbs' },
+        { key: 'quotes', label: copy.toolQuotes || 'Quotes' },
+        { key: 'regverbs', label: copy.toolRegVerbs || 'Regular verbs' },
+        { key: 'irregverbs', label: copy.toolIrregVerbs || 'Irregular verbs' },
+        { key: 'phrasalverbs', label: copy.toolPhrasalVerbs || 'Phrasal verbs' }
+      ];
+      const segmentedControlHtml = toolsEnabled ? `
+        <div class="profile-segmented-tabs reference-main-tabs" style="margin: -8px 0;">
+          <button class="profile-segmented-btn${activeMainTab === 'courses' ? ' active' : ''}" data-reference-main-tab="courses">${this.escapeHtml(copy.tabCourses || 'Courses')}</button>
+          <button class="profile-segmented-btn${activeMainTab === 'tools' ? ' active' : ''}" data-reference-main-tab="tools">${this.escapeHtml(copy.tabTools || 'Tools')}</button>
+        </div>` : '';
+      const toolsListHtml = toolsEnabled && activeMainTab === 'tools' ? `
+        <div class="reference-tools-list">
+          ${toolItems.map(item => `
+            <div class="reference-tool-item" data-reference-tool="${this.escapeHtml(item.key)}">
+              <span class="reference-tool-label">${this.escapeHtml(item.label)}</span>
+              <ion-icon name="chevron-forward" aria-hidden="true"></ion-icon>
+            </div>`).join('')}
+        </div>` : '';
+      const mainContentHtml = toolsEnabled && activeMainTab === 'tools'
+        ? toolsListHtml
+        : `<div class="journey-accordion reference-accordion">${accordionMarkup}</div>`;
       this.innerHTML = `
         ${this.renderHeaderHtml()}
         <ion-content fullscreen class="home-journey secret-content">
@@ -3857,13 +4772,13 @@ class PageReference extends HTMLElement {
                 <img id="reference-hero-mascot" class="onboarding-intro-cat" src="${heroMascotSrc}" alt="">
               </span>
               <div class="journey-plan-body">
-                <p class="onboarding-intro-bubble journey-plan-bubble reference-hero-bubble hero-playable-bubble"><span class="journey-plan-bubble-text">${this.escapeHtml(copy.subtitle)}</span></p>
+                <p class="onboarding-intro-bubble journey-plan-bubble reference-hero-bubble hero-playable-bubble"><span class="journey-plan-bubble-text">${this.escapeHtml(heroSubtitle)}</span></p>
               </div>
             </section>
 
-            <div class="journey-accordion reference-accordion">
-              ${accordionMarkup}
-            </div>
+            ${segmentedControlHtml}
+
+            ${mainContentHtml}
           </div>
         </ion-content>
       `;
@@ -4038,7 +4953,11 @@ class PageReference extends HTMLElement {
       });
     } else {
       // ── List view listeners ──
-      this.currentHeroMessage = copy.subtitle;
+      const toolsEnabled = this.isReferenceToolsEnabled();
+      const activeMainTab = toolsEnabled ? this.referenceMainTab : 'courses';
+      this.currentHeroMessage = toolsEnabled && activeMainTab === 'tools'
+        ? (copy.toolsSubtitle || 'Explore vocabulary, expressions, verbs and more.')
+        : (copy.subtitle || '');
       this.currentHeroLocale = uiLocale;
       this.querySelector('.reference-hero-card')?.addEventListener('click', (event) => {
         if (this.isEventInHeaderZone(event)) return;
@@ -4047,6 +4966,27 @@ class PageReference extends HTMLElement {
         const inNarrationZone = target.closest('.journey-plan-mascot-wrap, .onboarding-intro-bubble, .reference-hero-bubble, .journey-plan-bubble');
         if (!inNarrationZone) return;
         this.playHeroNarration(true).catch(() => {});
+      });
+
+      this.querySelectorAll('[data-reference-main-tab]').forEach((button) => {
+        button.addEventListener('click', () => {
+          const nextTab = String(button.getAttribute('data-reference-main-tab') || '').trim();
+          if (!nextTab || this.referenceMainTab === nextTab) return;
+          this.referenceMainTab = nextTab;
+          this.render();
+        });
+      });
+
+      this.querySelectorAll('[data-reference-tool]').forEach((itemEl) => {
+        itemEl.addEventListener('click', () => {
+          const tool = String(itemEl.getAttribute('data-reference-tool') || '').trim();
+          if (!tool) return;
+          this.toolView = true;
+          this.activeTool = tool;
+          this.expandedToolItemId = null;
+          this.toolFilter = 'featured';
+          this.render();
+        });
       });
 
       this.querySelectorAll('[data-action="toggle-course"]').forEach((button) => {

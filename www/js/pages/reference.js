@@ -5216,11 +5216,6 @@ class PageReference extends HTMLElement {
               </section>
             </div>
 
-            <div class="reference-page-hints" aria-hidden="true">
-              <span class="reference-page-hint reference-page-hint-prev ${prevLessonRef ? 'is-visible' : ''}"></span>
-              <span class="reference-page-hint reference-page-hint-next ${nextLessonRef ? 'is-visible' : ''}"></span>
-            </div>
-
             <div class="reference-lesson-nav">
               <button class="reference-nav-btn reference-nav-btn--prev ${prevLessonRef ? '' : 'is-hidden'}" type="button" id="reference-prev-btn">
                 <ion-icon name="chevron-back"></ion-icon>

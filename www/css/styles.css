@@ -1629,6 +1629,32 @@ ion-modal.login-modal page-login .page-shell {
   color: #667085;
 }
 
+@media (max-width: 480px) {
+  .profile-stat-card--reward {
+    flex-direction: column-reverse;
+    align-items: stretch;
+    gap: 6px;
+  }
+  .profile-stat-card--reward .profile-stat-media {
+    width: 72px;
+    height: 72px;
+    margin: 0 auto 2px;
+  }
+  .profile-stat-card--reward .profile-stat-copy {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+  }
+  .profile-stat-card--reward .profile-stat-value {
+    font-size: 1.3rem;
+    flex: 0 0 auto;
+  }
+  .profile-stat-card--reward .profile-stat-label {
+    flex: 1 1 auto;
+    font-size: 0.85rem;
+  }
+}
+
 .profile-overview {
   display: flex;
   align-items: center;
@@ -9854,79 +9880,6 @@ ion-select.training-pill.active::part(icon) {
   color: #194aa8;
 }
 
-.reference-page-hints {
-  position: fixed;
-  left: 0;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  pointer-events: none;
-  z-index: 32;
-  opacity: 0;
-  transition: opacity 160ms ease;
-}
-
-.reference-page-hints.is-card-visible {
-  opacity: 1;
-}
-
-.reference-page-hint {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  transform-origin: center;
-  width: clamp(20px, 4.2vw, 30px);
-  height: clamp(58px, 12vw, 84px);
-  opacity: 0;
-  transition: opacity 160ms ease;
-  -webkit-user-select: none;
-  user-select: none;
-}
-
-.reference-page-hint.is-visible {
-  opacity: 1;
-}
-
-.reference-page-hint::before,
-.reference-page-hint::after {
-  content: '';
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: clamp(3px, 0.7vw, 4px);
-  height: clamp(22px, 4.6vw, 30px);
-  border-radius: 999px;
-  background: rgba(29, 95, 208, 0.34);
-  box-shadow: 0 2px 8px rgba(29, 95, 208, 0.12);
-}
-
-.reference-page-hint-prev::before {
-  transform-origin: 50% 100%;
-  transform: translate(-50%, calc(-100% + 1px)) rotate(40deg);
-}
-
-.reference-page-hint-prev::after {
-  transform-origin: 50% 0%;
-  transform: translate(-50%, -1px) rotate(-40deg);
-}
-
-.reference-page-hint-next::before {
-  transform-origin: 50% 100%;
-  transform: translate(-50%, calc(-100% + 1px)) rotate(-40deg);
-}
-
-.reference-page-hint-next::after {
-  transform-origin: 50% 0%;
-  transform: translate(-50%, -1px) rotate(40deg);
-}
-
-.reference-page-hint-prev {
-  left: max(20px, calc(env(safe-area-inset-left) + 12px));
-}
-
-.reference-page-hint-next {
-  right: max(20px, calc(env(safe-area-inset-right) + 12px));
-}
 
 .route-item {
   background: var(--app-card-warm);

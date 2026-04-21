@@ -142,6 +142,12 @@ class PageSpeak extends HTMLElement {
     let recordingStepKey = null;
     let recordingStream = null;
     let recordedChunks = [];
+    let recordingWaveContext = null;
+    let recordingWaveAnalyser = null;
+    let recordingWaveSource = null;
+    let recordingWaveFrame = null;
+    let recordingWaveData = null;
+    let recordingWaveValues = new Array(5).fill(0);
     let speechRecognizer = null;
     let speechTranscript = '';
     let speechInterim = '';
@@ -2329,7 +2335,7 @@ class PageSpeak extends HTMLElement {
             <button class="speak-circle-btn speak-record-btn ${isRecording ? 'is-recording' : ''}" id="speak-record" type="button" aria-pressed="${isRecording}">
               <span class="record-visual" aria-hidden="true">
                 <ion-icon class="record-mic-icon" name="mic"></ion-icon>
-                <span class="record-live-wave">
+                <span class="record-live-wave" id="speak-record-wave">
                   <span></span><span></span><span></span><span></span><span></span>
                 </span>
               </span>
@@ -2394,9 +2400,11 @@ class PageSpeak extends HTMLElement {
       const recordBtn = stepRoot.querySelector('#speak-record');
       if (!recordBtn) return;
       recordBtn.classList.toggle('is-recording', isRecording);
+      recordBtn.classList.toggle('is-reactive-feedback', isRecording);
       recordBtn.setAttribute('aria-pressed', isRecording ? 'true' : 'false');
       const label = recordBtn.querySelector('.record-label');
       if (label) label.textContent = isRecording ? 'End' : 'Say';
+      applyRecordingWaveValues();
     };
 
     const setRecordingState = (nextState) => {
@@ -2474,6 +2482,105 @@ class PageSpeak extends HTMLElement {
       if (!activePlayButton) return;
       activePlayButton.classList.remove('is-playing');
       activePlayButton = null;
+    };
+
+    const applyRecordingWaveValues = () => {
+      if (!stepRoot) return;
+      const recordWaveEl = stepRoot.querySelector('#speak-record-wave');
+      if (!recordWaveEl) return;
+      recordWaveEl.classList.toggle('is-reactive', isRecording);
+      const bars = Array.from(recordWaveEl.querySelectorAll('span'));
+      bars.forEach((bar, index) => {
+        const value = Number.isFinite(recordingWaveValues[index]) ? recordingWaveValues[index] : 0;
+        bar.style.setProperty('--record-wave-scale', String(Math.max(0.12, Math.min(1.32, value))));
+      });
+    };
+
+    const stopRecordingWaveMonitor = () => {
+      if (recordingWaveFrame) {
+        cancelAnimationFrame(recordingWaveFrame);
+        recordingWaveFrame = null;
+      }
+      if (recordingWaveSource) {
+        try {
+          recordingWaveSource.disconnect();
+        } catch (err) {
+          // no-op
+        }
+        recordingWaveSource = null;
+      }
+      recordingWaveAnalyser = null;
+      recordingWaveData = null;
+      if (recordingWaveContext) {
+        try {
+          if (typeof recordingWaveContext.close === 'function') {
+            recordingWaveContext.close().catch(() => {});
+          }
+        } catch (err) {
+          // no-op
+        }
+        recordingWaveContext = null;
+      }
+      recordingWaveValues = new Array(5).fill(0);
+      applyRecordingWaveValues();
+    };
+
+    const startRecordingWaveMonitor = (stream) => {
+      stopRecordingWaveMonitor();
+      if (!stream) return;
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContext) return;
+      try {
+        recordingWaveContext = new AudioContext();
+        if (typeof recordingWaveContext.resume === 'function') {
+          recordingWaveContext.resume().catch(() => {});
+        }
+        recordingWaveAnalyser = recordingWaveContext.createAnalyser();
+        recordingWaveAnalyser.fftSize = 256;
+        recordingWaveAnalyser.smoothingTimeConstant = 0.82;
+        recordingWaveData = new Uint8Array(recordingWaveAnalyser.frequencyBinCount);
+        recordingWaveSource = recordingWaveContext.createMediaStreamSource(stream);
+        recordingWaveSource.connect(recordingWaveAnalyser);
+      } catch (err) {
+        stopRecordingWaveMonitor();
+        return;
+      }
+
+      const update = () => {
+        if (!recordingWaveAnalyser || !recordingWaveData) return;
+        recordingWaveAnalyser.getByteFrequencyData(recordingWaveData);
+        const bins = recordingWaveData.length || 1;
+        const overallEnergy =
+          recordingWaveData.reduce((sum, value) => sum + value, 0) / (bins * 255);
+        const nextValues = new Array(5).fill(0);
+        const bandWindows = [
+          [0.00, 0.22],
+          [0.12, 0.38],
+          [0.24, 0.56],
+          [0.42, 0.78],
+          [0.62, 1.00]
+        ];
+        for (let i = 0; i < nextValues.length; i += 1) {
+          const [startRatio, endRatio] = bandWindows[i];
+          const startIdx = Math.max(0, Math.floor(startRatio * (bins - 1)));
+          const endIdx = Math.max(startIdx + 1, Math.floor(endRatio * bins));
+          let bandSum = 0;
+          let bandCount = 0;
+          for (let idx = startIdx; idx < endIdx && idx < bins; idx += 1) {
+            bandSum += recordingWaveData[idx];
+            bandCount += 1;
+          }
+          const bandEnergy = bandCount ? (bandSum / bandCount) / 255 : 0;
+          const mixedEnergy = (overallEnergy * 0.76) + (bandEnergy * 0.24);
+          const boostedValue = Math.pow(mixedEnergy, 0.58) * 1.95;
+          nextValues[i] = Math.max(0.12, Math.min(1.32, boostedValue));
+        }
+        recordingWaveValues = nextValues;
+        applyRecordingWaveValues();
+        recordingWaveFrame = requestAnimationFrame(update);
+      };
+
+      update();
     };
 
     const startSpeechRecognition = () => {
@@ -2604,6 +2711,7 @@ class PageSpeak extends HTMLElement {
           }
         };
         mediaRecorder.onstop = () => {
+          stopRecordingWaveMonitor();
           setRecordingState(false);
           const blob = new Blob(recordedChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
           const stepKey = recordingStepKey || getStepKey();
@@ -2647,8 +2755,10 @@ class PageSpeak extends HTMLElement {
         };
         mediaRecorder.start(RECORDING_TIMESLICE);
         setRecordingState(true);
+        startRecordingWaveMonitor(recordingStream);
         startSpeechRecognition();
       } catch (err) {
+        stopRecordingWaveMonitor();
         setRecordingState(false);
         finalizeRecording('', recordingStepKey || getStepKey());
       }
@@ -2657,6 +2767,7 @@ class PageSpeak extends HTMLElement {
     const stopRecording = () => {
       if (!mediaRecorder) {
         recordingStepKey = null;
+        stopRecordingWaveMonitor();
         setRecordingState(false);
         return;
       }
@@ -2671,6 +2782,7 @@ class PageSpeak extends HTMLElement {
         mediaRecorder.stop();
       }
       setRecordingState(false);
+      stopRecordingWaveMonitor();
       stopSpeechRecognition();
     };
 

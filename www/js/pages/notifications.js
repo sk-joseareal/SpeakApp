@@ -17,7 +17,7 @@ class PageNotifications extends HTMLElement {
       <ion-header translucent="true">
         <ion-toolbar>
           <ion-title>${this.currentCopy.title}</ion-title>
-          <ion-buttons slot="end">
+          <ion-buttons slot="start">
             <ion-button fill="clear" id="notify-close-btn">
               <ion-icon slot="icon-only" name="close"></ion-icon>
             </ion-button>

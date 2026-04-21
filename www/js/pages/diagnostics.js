@@ -298,7 +298,7 @@ class PageDiagnostics extends HTMLElement {
       <ion-header translucent="true">
         <ion-toolbar>
           <ion-title>Diagnósticos</ion-title>
-          <ion-buttons slot="end">
+          <ion-buttons slot="start">
             <ion-button fill="clear" id="diag-back">
               <ion-icon slot="icon-only" name="close"></ion-icon>
             </ion-button>
@@ -445,7 +445,7 @@ class PageDiagnostics extends HTMLElement {
               <div class="pill">Training data source</div>
               <pre class="diag-json" id="diag-content-source"></pre>
             </div>
-	            <div class="diag-speak-block">
+            <div class="diag-speak-block">
 	              <div class="pill">Free ride / chatbot audio</div>
               <div class="diag-audio-mode-wrap">
                 <ion-segment id="diag-free-ride-audio-mode" value="${getStoredFreeRideAudioMode()}">

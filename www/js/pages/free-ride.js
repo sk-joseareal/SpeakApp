@@ -28,6 +28,7 @@ const FREE_RIDE_ALIGNED_CACHE_MAX_ITEMS = 36;
 const FREE_RIDE_AUDIO_MODE_KEY = 'appv5:free-ride-audio-mode';
 const FREE_RIDE_AUDIO_MODE_GENERATED = 'generated';
 const FREE_RIDE_AUDIO_MODE_LOCAL = 'local';
+const FREE_RIDE_RECORDING_FEEDBACK_MODE_REACTIVE = 'reactive';
 const FREE_RIDE_PLAYBACK_RATE_KEY = 'appv5:free-ride-playback-rate';
 const FREE_RIDE_PLAYBACK_RATE_MIN = 0.5;
 const FREE_RIDE_PLAYBACK_RATE_MAX = 1.5;
@@ -170,6 +171,12 @@ class PageFreeRide extends HTMLElement {
     this.phraseHighlightTokenEls = [];
     this.phraseHighlightPlaybackMode = '';
     this.playbackRequestToken = 0;
+    this.recordingWaveContext = null;
+    this.recordingWaveAnalyser = null;
+    this.recordingWaveSource = null;
+    this.recordingWaveFrame = null;
+    this.recordingWaveData = null;
+    this.recordingWaveValues = new Array(5).fill(0);
   }
 
   connectedCallback() {
@@ -831,6 +838,10 @@ class PageFreeRide extends HTMLElement {
     } catch (err) {
       return FREE_RIDE_AUDIO_MODE_GENERATED;
     }
+  }
+
+  getFreeRideRecordingFeedbackMode() {
+    return FREE_RIDE_RECORDING_FEEDBACK_MODE_REACTIVE;
   }
 
   setFreeRideAudioMode(mode) {
@@ -5292,6 +5303,7 @@ class PageFreeRide extends HTMLElement {
   }
 
   stopActiveCapture() {
+    this.stopRecordingWaveMonitor();
     this.stopSpeechRecognition();
     this.clearNativeSpeechListeners();
     this.nativeSpeechActive = false;
@@ -5346,6 +5358,110 @@ class PageFreeRide extends HTMLElement {
       this.activePlayButton.classList.remove('is-playing');
       this.activePlayButton = null;
     }
+  }
+
+  stopRecordingWaveMonitor() {
+    if (this.recordingWaveFrame) {
+      cancelAnimationFrame(this.recordingWaveFrame);
+      this.recordingWaveFrame = null;
+    }
+    if (this.recordingWaveSource) {
+      try {
+        this.recordingWaveSource.disconnect();
+      } catch (err) {
+        // no-op
+      }
+      this.recordingWaveSource = null;
+    }
+    this.recordingWaveAnalyser = null;
+    this.recordingWaveData = null;
+    if (this.recordingWaveContext) {
+      try {
+        if (typeof this.recordingWaveContext.close === 'function') {
+          this.recordingWaveContext.close().catch(() => {});
+        }
+      } catch (err) {
+        // no-op
+      }
+      this.recordingWaveContext = null;
+    }
+    this.recordingWaveValues = new Array(5).fill(0);
+    this.applyRecordingWaveValues();
+  }
+
+  startRecordingWaveMonitor(stream) {
+    this.stopRecordingWaveMonitor();
+    if (this.getFreeRideRecordingFeedbackMode() !== FREE_RIDE_RECORDING_FEEDBACK_MODE_REACTIVE) {
+      return;
+    }
+    if (!stream) return;
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) return;
+    try {
+      this.recordingWaveContext = new AudioContext();
+      if (typeof this.recordingWaveContext.resume === 'function') {
+        this.recordingWaveContext.resume().catch(() => {});
+      }
+      this.recordingWaveAnalyser = this.recordingWaveContext.createAnalyser();
+      this.recordingWaveAnalyser.fftSize = 256;
+      this.recordingWaveAnalyser.smoothingTimeConstant = 0.82;
+      this.recordingWaveData = new Uint8Array(this.recordingWaveAnalyser.frequencyBinCount);
+      this.recordingWaveSource = this.recordingWaveContext.createMediaStreamSource(stream);
+      this.recordingWaveSource.connect(this.recordingWaveAnalyser);
+    } catch (err) {
+      this.stopRecordingWaveMonitor();
+      return;
+    }
+
+    const update = () => {
+      if (!this.recordingWaveAnalyser || !this.recordingWaveData) return;
+      this.recordingWaveAnalyser.getByteFrequencyData(this.recordingWaveData);
+      const bins = this.recordingWaveData.length || 1;
+      const overallEnergy =
+        this.recordingWaveData.reduce((sum, value) => sum + value, 0) / (bins * 255);
+      const values = new Array(5).fill(0);
+      const bandWindows = [
+        [0.00, 0.22],
+        [0.12, 0.38],
+        [0.24, 0.56],
+        [0.42, 0.78],
+        [0.62, 1.00]
+      ];
+      for (let i = 0; i < values.length; i += 1) {
+        const [startRatio, endRatio] = bandWindows[i];
+        const startIdx = Math.max(0, Math.floor(startRatio * (bins - 1)));
+        const endIdx = Math.max(startIdx + 1, Math.floor(endRatio * bins));
+        let bandSum = 0;
+        let bandCount = 0;
+        for (let idx = startIdx; idx < endIdx && idx < bins; idx += 1) {
+          bandSum += this.recordingWaveData[idx];
+          bandCount += 1;
+        }
+        const bandEnergy = bandCount ? (bandSum / bandCount) / 255 : 0;
+        const mixedEnergy = (overallEnergy * 0.76) + (bandEnergy * 0.24);
+        const boostedValue = Math.pow(mixedEnergy, 0.58) * 1.95;
+        values[i] = Math.max(0.12, Math.min(1.32, boostedValue));
+      }
+      this.recordingWaveValues = values;
+      this.applyRecordingWaveValues();
+      this.recordingWaveFrame = requestAnimationFrame(update);
+    };
+
+    update();
+  }
+
+  applyRecordingWaveValues() {
+    const recordWaveEl = this.querySelector('#free-ride-record-wave');
+    if (!recordWaveEl) return;
+    const isReactive =
+      this.state.isRecording &&
+      this.getFreeRideRecordingFeedbackMode() === FREE_RIDE_RECORDING_FEEDBACK_MODE_REACTIVE;
+    recordWaveEl.classList.toggle('is-reactive', isReactive);
+    const bars = Array.from(recordWaveEl.querySelectorAll('span'));
+    bars.forEach((bar, index) => {
+      const value = Number.isFinite(this.recordingWaveValues[index]) ? this.recordingWaveValues[index] : 0;
+      bar.style.setProperty('--record-wave-scale', String(Math.max(0.08, Math.min(1.2, value))));
+    });
   }
 
   setActivePlayButton(buttonEl) {
@@ -5748,6 +5864,7 @@ class PageFreeRide extends HTMLElement {
     };
 
     this.mediaRecorder.onstop = () => {
+      this.stopRecordingWaveMonitor();
       this.state.isRecording = false;
 
       const blob = new Blob(this.recordedChunks, {
@@ -5803,6 +5920,7 @@ class PageFreeRide extends HTMLElement {
     this.mediaRecorder.start(RECORDING_TIMESLICE);
     this.state.isRecording = true;
     this.render();
+    this.startRecordingWaveMonitor(this.recordingStream);
   }
 
   stopRecording() {
@@ -5822,6 +5940,7 @@ class PageFreeRide extends HTMLElement {
       this.mediaRecorder.stop();
     }
     this.stopSpeechRecognition();
+    this.stopRecordingWaveMonitor();
     this.state.isRecording = false;
     this.render();
   }
@@ -6063,7 +6182,7 @@ class PageFreeRide extends HTMLElement {
         >
           <span class="record-visual" aria-hidden="true">
             <ion-icon class="record-mic-icon" name="mic"></ion-icon>
-            <span class="record-live-wave">
+            <span class="record-live-wave" id="free-ride-record-wave">
               <span></span><span></span><span></span><span></span><span></span>
             </span>
           </span>
@@ -6187,6 +6306,11 @@ class PageFreeRide extends HTMLElement {
     if (recordBtn) {
       recordBtn.disabled = !hasText || this.state.isTranscribing || languageBlocked;
       recordBtn.classList.toggle('is-recording', this.state.isRecording);
+      recordBtn.classList.toggle(
+        'is-reactive-feedback',
+        this.state.isRecording &&
+          this.getFreeRideRecordingFeedbackMode() === FREE_RIDE_RECORDING_FEEDBACK_MODE_REACTIVE
+      );
       recordBtn.setAttribute('aria-pressed', this.state.isRecording ? 'true' : 'false');
     }
     if (recordLabelEl) {
@@ -6216,6 +6340,7 @@ class PageFreeRide extends HTMLElement {
     if (debugVoiceBtn) {
       debugVoiceBtn.disabled = !this.state.recordingUrl || this.state.isRecording || this.state.isTranscribing;
     }
+    this.applyRecordingWaveValues();
     if (savePhraseBtn) {
       savePhraseBtn.disabled = !hasText || libraryActionsDisabled || languageBlocked;
       savePhraseBtn.hidden = Boolean(languageBlocked);

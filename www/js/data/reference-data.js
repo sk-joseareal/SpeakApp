@@ -155,7 +155,14 @@ const loadReferenceData = async () => {
 };
 
 const getReferenceCourses = () =>
-  dataCache && Array.isArray(dataCache.cursos) ? dataCache.cursos : [];
+  dataCache && Array.isArray(dataCache.cursos)
+    ? dataCache.cursos.filter((c) => c.typeCourse !== 2)
+    : [];
+
+const getReferenceSpecialCourses = () =>
+  dataCache && Array.isArray(dataCache.cursos)
+    ? dataCache.cursos.filter((c) => c.typeCourse === 2)
+    : [];
 
 const resolveReferenceSelection = (nextSelection = selection) => {
   const courses = getReferenceCourses();
@@ -237,6 +244,7 @@ export {
   ensureReferenceData,
   getLocalizedMapField,
   getReferenceCourses,
+  getReferenceSpecialCourses,
   getReferenceDataLoadInfo,
   getReferenceSelection,
   resolveReferenceSelection,

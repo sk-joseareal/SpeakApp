@@ -236,6 +236,13 @@
       window.REFERENCE_TESTS_URL || '/lessons/contenido_tests_es_en.json';
   }
 
+  window.referenceToolsConfig = window.referenceToolsConfig || {};
+  if (window.referenceToolsConfig.translatorEndpoint === undefined) {
+    window.referenceToolsConfig.translatorEndpoint =
+      window.REFERENCE_TRANSLATOR_ENDPOINT ||
+      'https://api.curso-ingles.com/api/v4/tools/translator';
+  }
+
   window.speakSummaryConfig = window.speakSummaryConfig || {};
   if (!window.speakSummaryConfig.range) {
     window.speakSummaryConfig.range = { min: 55, max: 98 };

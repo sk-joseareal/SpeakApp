@@ -5,6 +5,7 @@ import {
   ensureReferenceData,
   getLocalizedMapField,
   getReferenceCourses,
+  getReferenceSpecialCourses,
   getReferenceSelection,
   resolveReferenceSelection,
   setReferenceSelection
@@ -65,6 +66,9 @@ const REFERENCE_COURSE_BADGE_META_BY_CODE = {
 };
 const REFERENCE_LESSON_COMPLETE_DELAY_MS = 30000;
 const REFERENCE_TEST_PASS_PERCENT = 80;
+const SPEAK_USER_STORAGE_KEY = 'appv5:user';
+const REFERENCE_REMOTE_AUTH_SIGNATURE =
+  'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx';
 const REFERENCE_RIBBON_POPUP_IMAGE = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
 <svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" fill="none">
   <defs>
@@ -86,6 +90,39 @@ const getResolvedUserName = (user) => {
   if (!user || typeof user !== 'object') return '';
   const derived = [user.first_name, user.last_name].filter(Boolean).join(' ').trim();
   return derived || String(user.name || user.email || user.social_id || '').trim();
+};
+
+const readStoredSpeakUser = () => {
+  try {
+    const raw = localStorage.getItem(SPEAK_USER_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : null;
+  } catch (_err) {
+    return null;
+  }
+};
+
+const resolveReferenceRemoteAuth = () => {
+  const user = window.user || null;
+  if (user && user.id !== undefined && user.id !== null && user.token) {
+    return { userId: user.id, token: user.token };
+  }
+  const stored = readStoredSpeakUser();
+  if (stored && stored.id !== undefined && stored.id !== null && stored.token) {
+    return { userId: stored.id, token: stored.token };
+  }
+  return null;
+};
+
+const buildReferenceAuthHeaders = () => {
+  const headers = {
+    Authorization: REFERENCE_REMOTE_AUTH_SIGNATURE
+  };
+  if (typeof window.deviceId === 'function') {
+    headers['X-Platform'] = window.deviceId();
+  }
+  return headers;
 };
 
 class PageReference extends HTMLElement {
@@ -136,6 +173,13 @@ class PageReference extends HTMLElement {
     this.expandedToolItemId = null;
     this.toolFilter = 'featured';
     this.vocabImageCache = new Set();
+    this.activeArticleUnitCode = null;
+    this.activeArticleLessonCode = null;
+    this.translatorInput = '';
+    this.translatorResult = null;
+    this.translatorLoading = false;
+    this.translatorError = '';
+    this.translatorRequestId = 0;
   }
 
   connectedCallback() {
@@ -290,11 +334,50 @@ class PageReference extends HTMLElement {
     html = html.replace(/(^|[\s(])\*([^*\n]+?)\*(?=(?:[\s).,;!?]|$))/g, '$1<em>$2</em>');
     html = html.replace(/(^|[\s(])_([^_\n]+?)_(?=(?:[\s).,;!?]|$))/g, '$1<em>$2</em>');
     html = html.replace(
+      /!\[([^\]]*)\]\((https?:\/\/[^\s)]+)\)/g,
+      (_match, alt, url) =>
+        `<img src="${url}" alt="${alt}" class="reference-md-img reference-md-img--inline" loading="lazy">`
+    );
+    html = html.replace(
       /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
       (_match, label, url) =>
         `<a href="${this.escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${label}</a>`
     );
     return html;
+  }
+
+  getTranslatorWordToneClass(word) {
+    const pos = String(word && word.pos ? word.pos : '').trim().toLowerCase();
+    switch (pos) {
+      case 'v':
+        return 'translator-word-card--verb';
+      case 'n':
+        return 'translator-word-card--noun';
+      case 'a':
+      case 's':
+        return 'translator-word-card--adjective';
+      case 'r':
+        return 'translator-word-card--adverb';
+      default:
+        return 'translator-word-card--default';
+    }
+  }
+
+  getTranslatorSyntaxToneClass(item) {
+    const pos = String(item && item.pos ? item.pos : '').trim().toLowerCase();
+    switch (pos) {
+      case 'v':
+        return 'translator-syntax-token--verb';
+      case 'n':
+        return 'translator-syntax-token--noun';
+      case 'a':
+      case 's':
+        return 'translator-syntax-token--adjective';
+      case 'r':
+        return 'translator-syntax-token--adverb';
+      default:
+        return 'translator-syntax-token--default';
+    }
   }
 
   async loadMarkedParseFunction() {
@@ -535,6 +618,13 @@ class PageReference extends HTMLElement {
           i += 1;
         }
         blocks.push(`<ol>${items.map((item) => `<li>${this.parseInlineMarkdown(item)}</li>`).join('')}</ol>`);
+        continue;
+      }
+
+      const imgMatch = trimmed.match(/^!\[([^\]]*)\]\((https?:\/\/\S+)\)$/);
+      if (imgMatch) {
+        blocks.push(`<img src="${this.escapeHtml(imgMatch[2])}" alt="${this.escapeHtml(imgMatch[1])}" class="reference-md-img" loading="lazy">`);
+        i += 1;
         continue;
       }
 
@@ -809,14 +899,14 @@ class PageReference extends HTMLElement {
 
   getReferenceRibbonRewardLabel(uiLocale, qty = REFERENCE_UNIT_RIBBON_REWARD_QTY) {
     const copy = getReferenceCopy(uiLocale || this.getUiLocale(this.getBaseLocale()));
-    return qty === 1 ? copy.ribbonLabelOne || 'ribbon' : copy.ribbonLabelOther || 'ribbons';
+    return qty === 1 ? copy.ribbonLabelOne : copy.ribbonLabelOther;
   }
 
   presentReferenceUnitRewardPopup(entry, uiLocale) {
     if (!entry) return;
     const copy = getReferenceCopy(uiLocale || this.getUiLocale(this.getBaseLocale()));
     const unitTitle = String(entry.unitTitle || '').trim();
-    const title = unitTitle || copy.unitRewardPopupTitle || 'Unit completed';
+    const title = unitTitle || copy.unitRewardPopupTitle;
     const subtitleParts = [];
     if (unitTitle && copy.unitRewardPopupStatus) {
       subtitleParts.push(copy.unitRewardPopupStatus);
@@ -838,7 +928,7 @@ class PageReference extends HTMLElement {
       return;
     }
 
-    const message = subtitle || copy.unitRewardPopupReward || '';
+    const message = subtitle || copy.unitRewardPopupReward;
     if (!window.customElements || typeof window.customElements.get !== 'function') {
       window.alert(message ? `${title}\n\n${message}` : title);
       return;
@@ -1365,6 +1455,214 @@ class PageReference extends HTMLElement {
       });
   }
 
+  resolveTranslatorEndpoint() {
+    const cfg = window.referenceToolsConfig || {};
+    const endpoint = typeof cfg.translatorEndpoint === 'string' ? cfg.translatorEndpoint.trim() : '';
+    return endpoint || 'https://www.curso-ingles.com/api/v4/tools/translator';
+  }
+
+  async fetchTranslatorResult(text, uiLocale) {
+    const endpoint = this.resolveTranslatorEndpoint();
+    const auth = resolveReferenceRemoteAuth();
+    if (!auth) {
+      throw new Error('translator_auth_missing');
+    }
+    const url = new URL(endpoint);
+    url.searchParams.set('text', String(text || '').trim());
+    url.searchParams.set('locale', uiLocale === 'en' ? 'en' : 'es');
+    url.searchParams.set('user_id', String(auth.userId));
+    url.searchParams.set('token', String(auth.token));
+    url.searchParams.set('timestamp', String(Math.round(Date.now() / 1000)));
+    const response = await fetch(url.toString(), {
+      method: 'GET',
+      headers: buildReferenceAuthHeaders()
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    const payload = await response.json();
+    if (payload && typeof payload.error === 'string' && payload.error.includes('(002)')) {
+      window.requestSessionInvalidation?.('referenceTranslator', {
+        endpoint,
+        status: response.status,
+        error: payload.error,
+        code: '002'
+      });
+      throw new Error('translator_auth_invalid');
+    }
+    if (!payload || payload.ok !== true) {
+      throw new Error(payload && payload.error ? payload.error : 'translator_failed');
+    }
+    return payload;
+  }
+
+  async submitTranslator(uiLocale) {
+    const text = String(this.translatorInput || '').replace(/\s+/g, ' ').trim();
+    if (!text) {
+      this.translatorError = getReferenceCopy(uiLocale).translatorEmpty || 'Type something to translate.';
+      this.translatorResult = null;
+      this.render();
+      return;
+    }
+    const requestId = this.translatorRequestId + 1;
+    this.translatorRequestId = requestId;
+    this.translatorLoading = true;
+    this.translatorError = '';
+    this.render();
+    try {
+      const result = await this.fetchTranslatorResult(text, uiLocale);
+      if (this.translatorRequestId !== requestId) return;
+      this.translatorResult = result;
+      this.translatorError = '';
+    } catch (error) {
+      if (this.translatorRequestId !== requestId) return;
+      console.warn('[translator] request failed', error);
+      const copy = getReferenceCopy(uiLocale);
+      this.translatorResult = null;
+      this.translatorError = copy.translatorError;
+    } finally {
+      if (this.translatorRequestId === requestId) {
+        this.translatorLoading = false;
+        if (this.isConnected) this.render();
+      }
+    }
+  }
+
+  renderTranslatorToolHtml(copy, uiLocale) {
+    const result = this.translatorResult;
+    const canSubmit = !this.translatorLoading;
+    const sourceLang = result && result.source_language === 'en' ? 'en' : 'es';
+    const targetLang = result && result.target_language === 'en' ? 'en' : 'es';
+    const syntaxLang = result && result.syntax_language === 'en' ? 'en' : 'es';
+    const syntax = result && Array.isArray(result.syntax) ? result.syntax : [];
+    const words = result && Array.isArray(result.words) ? result.words : [];
+    const variants = result && Array.isArray(result.variants) ? result.variants.filter(Boolean) : [];
+    const playIconHtml = this.buildPlayIconHtml();
+
+    const syntaxHtml = syntax.length
+      ? syntax.map((item) => `
+          <div class="translator-syntax-token ${this.getTranslatorSyntaxToneClass(item)}">
+            <div class="tool-expr-play-zone translator-syntax-play" data-play-text="${this.escapeHtml(item.token || item.lemma || '')}" data-play-lang="${this.escapeHtml(syntaxLang)}">
+              <div class="tool-expr-text">
+                <span class="tool-expr-name">${this.escapeHtml(item.token || item.lemma || '')}</span>
+                <span class="tool-expr-translation">${this.escapeHtml(item.label || item.tag || '')}</span>
+              </div>
+              ${playIconHtml}
+            </div>
+          </div>
+        `).join('')
+      : `<p class="translator-empty">${this.escapeHtml(copy.translatorNoSyntax)}</p>`;
+
+    const wordsHtml = words.length
+      ? words.map((word) => `
+          <article class="translator-word-card ${this.getTranslatorWordToneClass(word)} card card--plain">
+            <div class="translator-word-head">
+              <div class="tool-expr-play-zone translator-word-play" data-play-text="${this.escapeHtml(word.word || '')}" data-play-lang="en">
+                <div class="tool-expr-text">
+                  <span class="tool-expr-name">${this.escapeHtml(word.word || '')}</span>
+                  <span class="tool-expr-translation">${this.escapeHtml(word.pos_label || word.pos || '')}</span>
+                </div>
+                ${playIconHtml}
+              </div>
+            </div>
+            ${(Array.isArray(word.definitions) ? word.definitions : []).map((definition, index) => `
+              <div class="translator-definition">
+                <div class="translator-definition-title">${this.escapeHtml(`${index + 1}. ${definition.definition || ''}`)}</div>
+                ${(Array.isArray(definition.examples) ? definition.examples : []).map((example) => `
+                  <div class="translator-example">
+                    <div class="tool-expr-play-zone tool-expr-example-play" data-play-text="${this.escapeHtml(example.en || '')}" data-play-lang="en">
+                      <span class="tool-expr-example-text">${this.escapeHtml(example.en || '')}</span>
+                      ${playIconHtml}
+                    </div>
+                    ${example.es ? `<p class="tool-expr-example-es">${this.escapeHtml(example.es)}</p>` : ''}
+                  </div>
+                `).join('')}
+              </div>
+            `).join('')}
+            ${word.conjugable && word.conjugation_key ? `
+              <button class="conj-btn" type="button" data-verb="${this.escapeHtml(word.conjugation_key)}">
+                <ion-icon name="git-branch-outline" aria-hidden="true"></ion-icon>
+                ${this.escapeHtml(copy.conjugate)}
+              </button>
+            ` : ''}
+          </article>
+        `).join('')
+      : `<p class="translator-empty">${this.escapeHtml(copy.translatorNoWords)}</p>`;
+
+    return `
+      <div class="tool-sticky-header">
+        <div class="tool-view-header">
+          <button class="tool-back-btn" id="tool-back-btn">
+            <ion-icon name="arrow-back" aria-hidden="true"></ion-icon>
+            <span>${this.escapeHtml(copy.backToList)}</span>
+          </button>
+          <h2 class="tool-view-title">${this.escapeHtml(copy.toolTranslator)}</h2>
+        </div>
+      </div>
+      <div class="tool-content-list tool-content-list--translator" id="tool-content-list">
+        <section class="translator-panel translator-panel--composer card card--plain">
+          <div class="translator-input-shell profile-input-shell">
+            <textarea
+              id="translator-input"
+              class="translator-input profile-input--shell"
+              rows="4"
+              placeholder="${this.escapeHtml(copy.translatorPlaceholder)}"
+            >${this.escapeHtml(this.translatorInput || '')}</textarea>
+          </div>
+          <ion-button class="translator-submit-btn" id="translator-submit-btn" shape="round" ${canSubmit ? '' : 'disabled'}>
+            ${this.escapeHtml(this.translatorLoading ? copy.translatorWorking : copy.translatorTranslate)}
+          </ion-button>
+          ${this.translatorError ? `<p class="translator-feedback translator-feedback--error">${this.escapeHtml(this.translatorError)}</p>` : ''}
+        </section>
+
+        ${result ? `
+          <section class="translator-panel translator-result-panel card card--plain">
+            <div class="translator-result-grid">
+              <div class="translator-result-card card card--plain">
+                <div class="translator-section-label">${this.escapeHtml(copy.translatorSource)}</div>
+                <div class="tool-expr-play-zone translator-result-play" data-play-text="${this.escapeHtml(result.source_text || '')}" data-play-lang="${this.escapeHtml(sourceLang)}">
+                  <div class="tool-expr-text">
+                    <span class="tool-expr-name">${this.escapeHtml(result.source_text || '')}</span>
+                    <span class="tool-expr-translation">${this.escapeHtml(`${copy.translatorDetected}: ${sourceLang.toUpperCase()}`)}</span>
+                  </div>
+                  ${playIconHtml}
+                </div>
+              </div>
+              <div class="translator-result-card card card--plain">
+                <div class="translator-section-label">${this.escapeHtml(copy.translatorResult)}</div>
+                <div class="tool-expr-play-zone translator-result-play" data-play-text="${this.escapeHtml(result.translated_text || '')}" data-play-lang="${this.escapeHtml(targetLang)}">
+                  <div class="tool-expr-text">
+                    <span class="tool-expr-name">${this.escapeHtml(result.translated_text || '')}</span>
+                    <span class="tool-expr-translation">${this.escapeHtml(targetLang.toUpperCase())}</span>
+                  </div>
+                  ${playIconHtml}
+                </div>
+              </div>
+            </div>
+
+            ${variants.length ? `
+              <div class="translator-result-block">
+                <div class="translator-section-label">${this.escapeHtml(copy.translatorAlternatives)}</div>
+                <div class="translator-chip-list">
+                  ${variants.map((item) => `<span class="translator-chip">${this.escapeHtml(item)}</span>`).join('')}
+                </div>
+              </div>
+            ` : ''}
+
+            <div class="translator-result-block">
+              <div class="translator-section-label">${this.escapeHtml(copy.translatorSyntax)}</div>
+              <div class="translator-syntax-list">${syntaxHtml}</div>
+            </div>
+
+            <div class="translator-result-block">
+              <div class="translator-section-label">${this.escapeHtml(copy.translatorWords)}</div>
+              <div class="translator-words-list">${wordsHtml}</div>
+            </div>
+          </section>
+        ` : ''}
+      </div>`;
+  }
+
   renderExpressionsToolHtml(data, copy, uiLocale) {
     const expressions = data.expressions;
     const letters = (expressions.letras || []).map((l) => l.letra);
@@ -1415,13 +1713,13 @@ class PageReference extends HTMLElement {
         <div class="tool-view-header">
           <button class="tool-back-btn" id="tool-back-btn">
             <ion-icon name="arrow-back" aria-hidden="true"></ion-icon>
-            <span>${this.escapeHtml(copy.backToList || 'Back')}</span>
+            <span>${this.escapeHtml(copy.backToList)}</span>
           </button>
-          <h2 class="tool-view-title">${this.escapeHtml(copy.toolExpressions || 'Expressions')}</h2>
+          <h2 class="tool-view-title">${this.escapeHtml(copy.toolExpressions)}</h2>
         </div>
         <div class="profile-segmented-tabs tool-filter-tabs">
-          <button class="profile-segmented-btn${filter === 'featured' ? ' active' : ''}" data-tool-filter="featured">${this.escapeHtml(copy.toolFilterFeatured || 'Featured')}</button>
-          <button class="profile-segmented-btn${filter === 'all' ? ' active' : ''}" data-tool-filter="all">${this.escapeHtml(copy.toolFilterAll || 'All')}</button>
+          <button class="profile-segmented-btn${filter === 'featured' ? ' active' : ''}" data-tool-filter="featured">${this.escapeHtml(copy.toolFilterFeatured)}</button>
+          <button class="profile-segmented-btn${filter === 'all' ? ' active' : ''}" data-tool-filter="all">${this.escapeHtml(copy.toolFilterAll)}</button>
         </div>
         ${letterNavHtml}
       </div>
@@ -1488,9 +1786,9 @@ class PageReference extends HTMLElement {
     const tensePillsHtml = Object.entries(TENSE_LABELS).map(([key, label]) =>
       `<button class="conj-tense-pill${key === defaultTense ? ' active' : ''}" data-tense="${key}">${label}</button>`
     ).join('');
-    const moodAff = copy.conjMoodAffirmative || 'Affirmative';
-    const moodInt = copy.conjMoodInterrogative || 'Interrogative';
-    const moodNeg = copy.conjMoodNegative || 'Negative';
+    const moodAff = copy.conjMoodAffirmative;
+    const moodInt = copy.conjMoodInterrogative;
+    const moodNeg = copy.conjMoodNegative;
     const personsHtml = verbData
       ? this.buildConjugationPersonsHtml((verbData.tenses || {})[defaultTense], defaultMood)
       : `<p class="conj-not-found">Not available</p>`;
@@ -1572,6 +1870,12 @@ class PageReference extends HTMLElement {
     });
   }
 
+  extractFirstMarkdownImage(markdown) {
+    if (!markdown) return null;
+    const match = String(markdown).match(/!\[[^\]]*\]\((https?:\/\/\S+?)\)/);
+    return match ? match[1] : null;
+  }
+
   resolveColorSwatch(name) {
     if (typeof CSS === 'undefined' || typeof CSS.supports !== 'function') return null;
     // Try normalized (spaces removed): "light blue" → "lightblue"
@@ -1618,12 +1922,12 @@ class PageReference extends HTMLElement {
         const item = this.findToolItem(id, toolData[dataKey]);
         if (!item) return '';
         const rows = [
-          { label: copy.verbPresent || 'Present', value: item.present || '' },
-          { label: copy.verbPastSimple || 'Past simple', value: item.past_simple || '' },
-          { label: copy.verbPastParticiple || 'Past participle', value: item.past_participle || '' },
-          { label: copy.verbGerund || 'Gerund', value: item.gerund || '' }
+          { label: copy.verbPresent, value: item.present || '' },
+          { label: copy.verbPastSimple, value: item.past_simple || '' },
+          { label: copy.verbPastParticiple, value: item.past_participle || '' },
+          { label: copy.verbGerund, value: item.gerund || '' }
         ];
-        const conjLabel = copy.conjugate || 'Conjugate';
+        const conjLabel = copy.conjugate;
         return `<div class="tool-verb-table">${rows.map((row) => `
           <div class="tool-verb-row">
             <span class="tool-verb-label">${this.escapeHtml(row.label)}</span>
@@ -1717,13 +2021,13 @@ class PageReference extends HTMLElement {
         <div class="tool-view-header">
           <button class="tool-back-btn" id="tool-back-btn">
             <ion-icon name="arrow-back" aria-hidden="true"></ion-icon>
-            <span>${this.escapeHtml(copy.backToList || 'Back')}</span>
+            <span>${this.escapeHtml(copy.backToList)}</span>
           </button>
-          <h2 class="tool-view-title">${this.escapeHtml(copy.toolProverbs || 'Proverbs')}</h2>
+          <h2 class="tool-view-title">${this.escapeHtml(copy.toolProverbs)}</h2>
         </div>
         <div class="profile-segmented-tabs tool-filter-tabs">
-          <button class="profile-segmented-btn${filter === 'featured' ? ' active' : ''}" data-tool-filter="featured">${this.escapeHtml(copy.toolFilterFeatured || 'Featured')}</button>
-          <button class="profile-segmented-btn${filter === 'all' ? ' active' : ''}" data-tool-filter="all">${this.escapeHtml(copy.toolFilterAll || 'All')}</button>
+          <button class="profile-segmented-btn${filter === 'featured' ? ' active' : ''}" data-tool-filter="featured">${this.escapeHtml(copy.toolFilterFeatured)}</button>
+          <button class="profile-segmented-btn${filter === 'all' ? ' active' : ''}" data-tool-filter="all">${this.escapeHtml(copy.toolFilterAll)}</button>
         </div>
         ${letterNavHtml}
       </div>
@@ -1736,8 +2040,8 @@ class PageReference extends HTMLElement {
     const letters = (verbsData.letras || []).map((l) => l.letra);
     const filter = this.toolFilter || 'featured';
     const title = this.activeTool === 'irregverbs'
-      ? (copy.toolIrregVerbs || 'Irregular verbs')
-      : (copy.toolRegVerbs || 'Regular verbs');
+      ? copy.toolIrregVerbs
+      : copy.toolRegVerbs;
     const showTranslation = uiLocale === 'es';
     const playIconHtml = this.buildPlayIconHtml();
 
@@ -1784,13 +2088,13 @@ class PageReference extends HTMLElement {
         <div class="tool-view-header">
           <button class="tool-back-btn" id="tool-back-btn">
             <ion-icon name="arrow-back" aria-hidden="true"></ion-icon>
-            <span>${this.escapeHtml(copy.backToList || 'Back')}</span>
+            <span>${this.escapeHtml(copy.backToList)}</span>
           </button>
           <h2 class="tool-view-title">${this.escapeHtml(title)}</h2>
         </div>
         <div class="profile-segmented-tabs tool-filter-tabs">
-          <button class="profile-segmented-btn${filter === 'featured' ? ' active' : ''}" data-tool-filter="featured">${this.escapeHtml(copy.toolFilterFeatured || 'Featured')}</button>
-          <button class="profile-segmented-btn${filter === 'all' ? ' active' : ''}" data-tool-filter="all">${this.escapeHtml(copy.toolFilterAll || 'All')}</button>
+          <button class="profile-segmented-btn${filter === 'featured' ? ' active' : ''}" data-tool-filter="featured">${this.escapeHtml(copy.toolFilterFeatured)}</button>
+          <button class="profile-segmented-btn${filter === 'all' ? ' active' : ''}" data-tool-filter="all">${this.escapeHtml(copy.toolFilterAll)}</button>
         </div>
         ${letterNavHtml}
       </div>
@@ -1850,13 +2154,13 @@ class PageReference extends HTMLElement {
         <div class="tool-view-header">
           <button class="tool-back-btn" id="tool-back-btn">
             <ion-icon name="arrow-back" aria-hidden="true"></ion-icon>
-            <span>${this.escapeHtml(copy.backToList || 'Back')}</span>
+            <span>${this.escapeHtml(copy.backToList)}</span>
           </button>
-          <h2 class="tool-view-title">${this.escapeHtml(copy.toolQuotes || 'Quotes')}</h2>
+          <h2 class="tool-view-title">${this.escapeHtml(copy.toolQuotes)}</h2>
         </div>
         <div class="profile-segmented-tabs tool-filter-tabs">
-          <button class="profile-segmented-btn${filter === 'featured' ? ' active' : ''}" data-tool-filter="featured">${this.escapeHtml(copy.toolFilterFeatured || 'Featured')}</button>
-          <button class="profile-segmented-btn${filter === 'all' ? ' active' : ''}" data-tool-filter="all">${this.escapeHtml(copy.toolFilterAll || 'All')}</button>
+          <button class="profile-segmented-btn${filter === 'featured' ? ' active' : ''}" data-tool-filter="featured">${this.escapeHtml(copy.toolFilterFeatured)}</button>
+          <button class="profile-segmented-btn${filter === 'all' ? ' active' : ''}" data-tool-filter="all">${this.escapeHtml(copy.toolFilterAll)}</button>
         </div>
         ${themeNavHtml}
       </div>
@@ -1913,13 +2217,13 @@ class PageReference extends HTMLElement {
         <div class="tool-view-header">
           <button class="tool-back-btn" id="tool-back-btn">
             <ion-icon name="arrow-back" aria-hidden="true"></ion-icon>
-            <span>${this.escapeHtml(copy.backToList || 'Back')}</span>
+            <span>${this.escapeHtml(copy.backToList)}</span>
           </button>
-          <h2 class="tool-view-title">${this.escapeHtml(copy.toolPhrasalVerbs || 'Phrasal verbs')}</h2>
+          <h2 class="tool-view-title">${this.escapeHtml(copy.toolPhrasalVerbs)}</h2>
         </div>
         <div class="profile-segmented-tabs tool-filter-tabs">
-          <button class="profile-segmented-btn${filter === 'featured' ? ' active' : ''}" data-tool-filter="featured">${this.escapeHtml(copy.toolFilterFeatured || 'Featured')}</button>
-          <button class="profile-segmented-btn${filter === 'all' ? ' active' : ''}" data-tool-filter="all">${this.escapeHtml(copy.toolFilterAll || 'All')}</button>
+          <button class="profile-segmented-btn${filter === 'featured' ? ' active' : ''}" data-tool-filter="featured">${this.escapeHtml(copy.toolFilterFeatured)}</button>
+          <button class="profile-segmented-btn${filter === 'all' ? ' active' : ''}" data-tool-filter="all">${this.escapeHtml(copy.toolFilterAll)}</button>
         </div>
         ${letterNavHtml}
       </div>
@@ -1996,14 +2300,94 @@ class PageReference extends HTMLElement {
         <div class="tool-view-header">
           <button class="tool-back-btn" id="tool-back-btn">
             <ion-icon name="arrow-back" aria-hidden="true"></ion-icon>
-            <span>${this.escapeHtml(copy.backToList || 'Back')}</span>
+            <span>${this.escapeHtml(copy.backToList)}</span>
           </button>
-          <h2 class="tool-view-title">${this.escapeHtml(copy.toolVocabulary || 'Vocabulary')}</h2>
+          <h2 class="tool-view-title">${this.escapeHtml(copy.toolVocabulary)}</h2>
         </div>
         ${groupNavHtml}
       </div>
       <div class="tool-content-list" id="tool-content-list">
         ${contentHtml}
+      </div>`;
+  }
+
+  renderArticlesToolHtml(units, toolTitle, copy, uiLocale) {
+    const backLabel = copy.backToList || 'Back';
+    const noContent = copy.noContent || 'No content.';
+
+    const articleRowHtml = (item, dataAttr, iconName, thumbnailUrl = null) => {
+      const title    = this.getText(item, 'display', uiLocale) || '';
+      const subtitle = this.getSecondaryDisplay(item, uiLocale);
+      const iconHtml = thumbnailUrl
+        ? `<div class="training-row-icon articles-row-thumb">
+             <img src="${this.escapeHtml(thumbnailUrl)}" alt="" loading="lazy">
+           </div>`
+        : `<div class="training-row-icon">
+             <ion-icon name="${iconName}" aria-hidden="true"></ion-icon>
+           </div>`;
+      return `
+        <div class="training-row ${dataAttr.cls}" ${dataAttr.attr}="${item.code}">
+          ${iconHtml}
+          <div class="training-row-body">
+            <div class="training-row-title">${this.escapeHtml(title)}</div>
+            ${subtitle ? `<div class="module-sub module-sub-neutral">${this.escapeHtml(subtitle)}</div>` : ''}
+          </div>
+          <ion-icon name="chevron-forward" class="training-row-arrow" aria-hidden="true"></ion-icon>
+        </div>`;
+    };
+
+    const stickyHeader = (viewTitle) => `
+      <div class="tool-sticky-header">
+        <div class="tool-view-header">
+          <button class="tool-back-btn" id="tool-back-btn">
+            <ion-icon name="arrow-back" aria-hidden="true"></ion-icon>
+            <span>${this.escapeHtml(backLabel)}</span>
+          </button>
+          <h2 class="tool-view-title">${this.escapeHtml(viewTitle)}</h2>
+        </div>
+      </div>`;
+
+    // ── Level 2: lesson content ──────────────────────────────────────
+    if (this.activeArticleLessonCode !== null) {
+      let lesson = null;
+      for (const unit of units) {
+        lesson = (unit.lecciones || []).find((l) => l.code === this.activeArticleLessonCode);
+        if (lesson) break;
+      }
+      const lessonTitle = lesson ? this.getText(lesson, 'display', uiLocale) : '';
+      const md = lesson
+        ? (this.getText(lesson, 'view', uiLocale) || this.getText(lesson, 'view', this.getAltLocale(uiLocale)))
+        : '';
+      return `
+        ${stickyHeader(lessonTitle)}
+        <div class="reference-markdown articles-content tool-content-list" id="tool-content-list">
+          ${md
+            ? this.renderMarkdownFallbackHtml(md)
+            : `<p class="reference-empty">${this.escapeHtml(noContent)}</p>`}
+        </div>`;
+    }
+
+    // ── Level 1: all units as group headers with lessons below ───────
+    const ARTICLE_THUMB_FALLBACKS = { 304: 'assets/flags/gbus.png' };
+    const groupsHtml = units.map((unit) => {
+      const unitTitle = this.getText(unit, 'display', uiLocale) || '';
+      const lecciones = unit.lecciones || [];
+      if (!lecciones.length) return '';
+      const lessonsHtml = lecciones.map((l) => {
+        const md = this.getText(l, 'view', uiLocale) || this.getText(l, 'view', this.getAltLocale(uiLocale));
+        const thumb = this.extractFirstMarkdownImage(md) || ARTICLE_THUMB_FALLBACKS[l.code] || null;
+        return articleRowHtml(l, { cls: 'articles-lesson-item', attr: 'data-lesson-code' }, 'reader-outline', thumb);
+      }).join('');
+      return `
+        <div class="tool-letter-section">
+          <div class="tool-letter-header">${this.escapeHtml(unitTitle)}</div>
+          <div class="articles-unit-list">${lessonsHtml}</div>
+        </div>`;
+    }).join('');
+    return `
+      ${stickyHeader(toolTitle)}
+      <div class="tool-content-list" id="tool-content-list">
+        ${groupsHtml}
       </div>`;
   }
 
@@ -3128,8 +3512,8 @@ class PageReference extends HTMLElement {
               value="${this.escapeHtml(safeValues[index])}"
               placeholder="${this.escapeHtml(
                 slotCount > 1
-                  ? `${copy.testsAnswerPlaceholder || 'Answer'} ${index + 1}`
-                  : copy.testsAnswerPlaceholder || 'Answer'
+                  ? `${copy.testsAnswerPlaceholder} ${index + 1}`
+                  : copy.testsAnswerPlaceholder
               )}"
               autocomplete="off"
               autocapitalize="off"
@@ -3157,8 +3541,8 @@ class PageReference extends HTMLElement {
                 value="${this.escapeHtml(value)}"
                 placeholder="${this.escapeHtml(
                   slotCount > 1
-                    ? `${copy.testsAnswerPlaceholder || 'Answer'} ${index + 1}`
-                    : copy.testsAnswerPlaceholder || 'Answer'
+                    ? `${copy.testsAnswerPlaceholder} ${index + 1}`
+                    : copy.testsAnswerPlaceholder
                 )}"
                 autocomplete="off"
                 autocapitalize="off"
@@ -3559,7 +3943,7 @@ class PageReference extends HTMLElement {
 
   renderReferenceTestQuestion(question, testKey, testState, result, copy, uiLocale) {
     const questionCode = String(question.code || '');
-    const questionLabel = this.formatReferenceCopy(copy.testsQuestionLabel || 'Question {n}', {
+    const questionLabel = this.formatReferenceCopy(copy.testsQuestionLabel, {
       n: ''
     });
     const checked = Boolean(testState.checked);
@@ -3639,7 +4023,7 @@ class PageReference extends HTMLElement {
                   )
                   .join('')
               : `<span class="reference-test-reorder-placeholder">${this.escapeHtml(
-                  copy.testsTapWords || 'Tap the words in order to build the answer.'
+                  copy.testsTapWords
                 )}</span>`}
           </div>
           <div class="reference-test-reorder-pool">
@@ -3679,7 +4063,7 @@ class PageReference extends HTMLElement {
           ${
             checked
               ? `<span class="reference-test-status ${result.correct ? 'is-correct' : 'is-incorrect'}">${this.escapeHtml(
-                  result.correct ? copy.testsCorrect || 'Correct' : copy.testsIncorrect || 'Incorrect'
+                  result.correct ? copy.testsCorrect : copy.testsIncorrect
                 )}</span>`
               : ''
           }
@@ -3690,17 +4074,17 @@ class PageReference extends HTMLElement {
             ? `
               <div class="reference-test-feedback">
                 <div class="reference-test-feedback-row">
-                  <strong>${this.escapeHtml(copy.testsYourAnswer || 'Your answer')}</strong>
-                  <span>${this.escapeHtml(result.userDisplay || copy.testsNoAnswer || 'No answer')}</span>
+                  <strong>${this.escapeHtml(copy.testsYourAnswer)}</strong>
+                  <span>${this.escapeHtml(result.userDisplay || copy.testsNoAnswer)}</span>
                 </div>
                 <div class="reference-test-feedback-row">
-                  <strong>${this.escapeHtml(copy.testsCorrectAnswer || 'Correct answer')}</strong>
-                  <span>${this.escapeHtml(result.correctDisplay || copy.testsNoAnswer || 'No answer')}</span>
+                  <strong>${this.escapeHtml(copy.testsCorrectAnswer)}</strong>
+                  <span>${this.escapeHtml(result.correctDisplay || copy.testsNoAnswer)}</span>
                 </div>
                 ${
                   explanation
                     ? `<div class="reference-test-explanation"><strong>${this.escapeHtml(
-                        copy.testsExplanation || 'Explanation'
+                        copy.testsExplanation
                       )}</strong><span>${this.escapeHtml(explanation)}</span></div>`
                     : ''
                 }
@@ -3722,8 +4106,8 @@ class PageReference extends HTMLElement {
     if (loadInfo.status === 'loading' && !allItems.length) {
       sectionEl.innerHTML = `
         <div class="reference-tests-shell">
-          <div class="pill">${this.escapeHtml(copy.lessonTabTests || 'Tests')}</div>
-          <div class="reference-empty">${this.escapeHtml(copy.testsLoading || 'Loading tests...')}</div>
+          <div class="pill">${this.escapeHtml(copy.lessonTabTests)}</div>
+          <div class="reference-empty">${this.escapeHtml(copy.testsLoading)}</div>
         </div>
       `;
       return;
@@ -3732,8 +4116,8 @@ class PageReference extends HTMLElement {
     if (loadInfo.status === 'error' && !allItems.length) {
       sectionEl.innerHTML = `
         <div class="reference-tests-shell">
-          <div class="pill">${this.escapeHtml(copy.lessonTabTests || 'Tests')}</div>
-          <div class="reference-empty">${this.escapeHtml(copy.testsLoadError || 'Reference tests could not be loaded.')}</div>
+          <div class="pill">${this.escapeHtml(copy.lessonTabTests)}</div>
+          <div class="reference-empty">${this.escapeHtml(copy.testsLoadError)}</div>
         </div>
       `;
       return;
@@ -3742,8 +4126,8 @@ class PageReference extends HTMLElement {
     if (!allItems.length) {
       sectionEl.innerHTML = `
         <div class="reference-tests-shell">
-          <div class="pill">${this.escapeHtml(copy.lessonTabTests || 'Tests')}</div>
-          <div class="reference-empty">${this.escapeHtml(copy.testsEmpty || 'No tests are available for this lesson or unit.')}</div>
+          <div class="pill">${this.escapeHtml(copy.lessonTabTests)}</div>
+          <div class="reference-empty">${this.escapeHtml(copy.testsEmpty)}</div>
         </div>
       `;
       return;
@@ -3777,7 +4161,7 @@ class PageReference extends HTMLElement {
                 const itemTitle = this.getLocalizedTestText(item.test.display, uiLocale) || `Test ${item.test.code}`;
                 const itemProgress =
                   progressSnapshot.tests[itemKey] || this.getReferenceTestDisplayProgress(item.test, itemKey);
-                const questionsLabel = this.formatReferenceCopy(copy.testsQuestions || '{n} questions', {
+                const questionsLabel = this.formatReferenceCopy(copy.testsQuestions, {
                   n: Array.isArray(item.test.questions) ? item.test.questions.length : 0
                 });
                 return `
@@ -3818,16 +4202,16 @@ class PageReference extends HTMLElement {
 
     sectionEl.innerHTML = `
       <div class="reference-tests-shell">
-        ${renderItemGroup(copy.lessonTests || 'Lesson tests', lessonItems)}
-        ${renderItemGroup(copy.unitTests || 'Unit tests', unitItems)}
+        ${renderItemGroup(copy.lessonTests, lessonItems)}
+        ${renderItemGroup(copy.unitTests, unitItems)}
         ${
           activeTest
             ? `
               <div class="reference-test-card">
                 <div class="reference-test-card-head">
-                  <div class="pill">${this.escapeHtml(copy.testsSelectedTest || 'Selected test')}</div>
+                  <div class="pill">${this.escapeHtml(copy.testsSelectedTest)}</div>
                   <div class="reference-test-card-meta">${this.escapeHtml(
-                    this.formatReferenceCopy(copy.testsQuestions || '{n} questions', {
+                    this.formatReferenceCopy(copy.testsQuestions, {
                       n: evaluation ? evaluation.total : 0
                     })
                   )}</div>
@@ -3843,7 +4227,7 @@ class PageReference extends HTMLElement {
                     ? `
                       <div class="reference-test-word-bank">
                         <div class="reference-test-word-bank-label">${this.escapeHtml(
-                          copy.testsWordBank || 'Word bank'
+                          copy.testsWordBank
                         )}</div>
                         <div class="reference-test-word-bank-items">
                           ${wordBank
@@ -3867,7 +4251,7 @@ class PageReference extends HTMLElement {
                 ${
                   activeProgress
                     ? `<div class="reference-test-summary ${activeProgress.completed ? 'is-complete' : ''}">${this.escapeHtml(
-                        `${copy.testsResult || 'Result'} · ${
+                        `${copy.testsResult} · ${
                           activeProgress.checked ? activeProgress.correctCount : activeProgress.answeredCount
                         }/${activeProgress.total}`
                       )}</div>`
@@ -3889,7 +4273,7 @@ class PageReference extends HTMLElement {
                         {
                           ...copy,
                           testsQuestionLabel: this.formatReferenceCopy(
-                            copy.testsQuestionLabel || 'Question {n}',
+                            copy.testsQuestionLabel,
                             { n: index + 1 }
                           )
                         },
@@ -3901,14 +4285,14 @@ class PageReference extends HTMLElement {
                 <div class="reference-test-actions">
                   <button type="button" class="reference-test-btn is-primary" data-action="check-reference-test" data-test-key="${this.escapeHtml(
                     activeTestKey
-                  )}">${this.escapeHtml(copy.testsCheck || 'Check answers')}</button>
+                  )}">${this.escapeHtml(copy.testsCheck)}</button>
                   <button type="button" class="reference-test-btn" data-action="reset-reference-test" data-test-key="${this.escapeHtml(
                     activeTestKey
-                  )}">${this.escapeHtml(copy.testsReset || 'Reset')}</button>
+                  )}">${this.escapeHtml(copy.testsReset)}</button>
                 </div>
               </div>
             `
-            : `<div class="reference-empty">${this.escapeHtml(copy.testsPickOne || 'Select a test to get started.')}</div>`
+            : `<div class="reference-empty">${this.escapeHtml(copy.testsPickOne)}</div>`
         }
       </div>
     `;
@@ -4203,6 +4587,124 @@ class PageReference extends HTMLElement {
     }
 
     if (this.toolView) {
+      if (this.activeTool === 'translator') {
+        const toolBodyHtml = this.renderTranslatorToolHtml(copy, uiLocale);
+        this.innerHTML = `
+          ${this.renderHeaderHtml()}
+          <ion-content fullscreen class="home-journey secret-content">
+            ${toolBodyHtml}
+          </ion-content>
+        `;
+
+        this.querySelector('.app-locale-btn')?.addEventListener('click', () => {
+          const nextLocale = getNextLocaleCode(getAppLocale() || 'en');
+          setAppLocale(nextLocale);
+          window.dispatchEvent(new CustomEvent('app:locale-change', { detail: { locale: nextLocale } }));
+        });
+        this.querySelector('#tool-back-btn')?.addEventListener('click', () => {
+          this.toolView = false;
+          this.activeTool = '';
+          this.expandedToolItemId = null;
+          this.toolFilter = 'featured';
+          this.render();
+        });
+
+        const inputEl = this.querySelector('#translator-input');
+        const submitEl = this.querySelector('#translator-submit-btn');
+        if (inputEl) {
+          inputEl.addEventListener('input', () => {
+            this.translatorInput = inputEl.value;
+          });
+          inputEl.addEventListener('keydown', (event) => {
+            if (event.key !== 'Enter' || event.shiftKey) return;
+            event.preventDefault();
+            this.translatorInput = inputEl.value;
+            this.submitTranslator(uiLocale);
+          });
+        }
+        submitEl?.addEventListener('click', (event) => {
+          event.preventDefault();
+          this.translatorInput = inputEl ? inputEl.value : this.translatorInput;
+          this.submitTranslator(uiLocale);
+        });
+
+        const contentListEl = this.querySelector('#tool-content-list');
+        if (contentListEl) {
+          contentListEl.addEventListener('click', (event) => {
+            const target = event.target instanceof Element ? event.target : null;
+            if (!target) return;
+
+            const playZone = target.closest('.tool-expr-play-zone');
+            if (playZone) {
+              const text = String(playZone.getAttribute('data-play-text') || '').trim();
+              const playLang = String(playZone.getAttribute('data-play-lang') || '').trim() || 'en';
+              if (text) {
+                contentListEl.querySelectorAll('.tool-expr-play-zone.is-playing').forEach((el) => el.classList.remove('is-playing'));
+                playZone.classList.add('is-playing');
+                this.speakHeroNarration(text, playLang)
+                  .catch(() => {})
+                  .finally(() => playZone.classList.remove('is-playing'));
+              }
+              return;
+            }
+
+            const conjBtn = target.closest('.conj-btn');
+            if (conjBtn) {
+              const verbName = conjBtn.getAttribute('data-verb');
+              if (verbName) this.openConjugationSheet(verbName, uiLocale);
+            }
+          });
+        }
+
+        this.updateHeaderRewards();
+        return;
+      }
+
+      if (this.activeTool === 'articles' || this.activeTool === 'cheatsheets') {
+        const ARTICLE_UNIT_CODES = new Set([10053, 10054, 10055, 10056]);
+        const specialCourses = getReferenceSpecialCourses();
+        const articlesCourse = specialCourses.find((c) => c.typeCourse === 2) || null;
+        const allUnits = articlesCourse ? (articlesCourse.unidades || []) : [];
+        const units = this.activeTool === 'articles'
+          ? allUnits.filter((u) => ARTICLE_UNIT_CODES.has(u.code))
+          : allUnits.filter((u) => !ARTICLE_UNIT_CODES.has(u.code));
+        const toolTitle = this.activeTool === 'articles'
+          ? (copy.toolArticles || 'Articles')
+          : (copy.toolCheatSheets || 'Cheat sheets');
+        const toolBodyHtml = this.renderArticlesToolHtml(units, toolTitle, copy, uiLocale);
+        this.innerHTML = `
+          ${this.renderHeaderHtml()}
+          <ion-content fullscreen class="home-journey secret-content">
+            ${toolBodyHtml}
+          </ion-content>
+        `;
+        this.querySelector('.app-locale-btn')?.addEventListener('click', () => {
+          const nextLocale = getNextLocaleCode(getAppLocale() || 'en');
+          setAppLocale(nextLocale);
+          window.dispatchEvent(new CustomEvent('app:locale-change', { detail: { locale: nextLocale } }));
+        });
+        this.querySelector('#tool-back-btn')?.addEventListener('click', () => {
+          if (this.activeArticleLessonCode !== null) {
+            this.activeArticleLessonCode = null;
+          } else {
+            this.toolView = false;
+            this.activeTool = '';
+          }
+          this.render();
+        });
+        this.querySelector('#tool-content-list')?.addEventListener('click', (event) => {
+          const target = event.target instanceof Element ? event.target : null;
+          if (!target) return;
+          const lessonItem = target.closest('.articles-lesson-item');
+          if (lessonItem) {
+            this.activeArticleLessonCode = Number(lessonItem.getAttribute('data-lesson-code'));
+            this.render();
+          }
+        });
+        this.updateHeaderRewards();
+        return;
+      }
+
       const toolData = this.toolsDataCache[this.activeTool];
       if (!toolData) {
         this.innerHTML = `
@@ -4212,10 +4714,10 @@ class PageReference extends HTMLElement {
               <div class="tool-view-header">
                 <button class="tool-back-btn" id="tool-back-btn">
                   <ion-icon name="arrow-back" aria-hidden="true"></ion-icon>
-                  <span>${this.escapeHtml(copy.backToList || 'Back')}</span>
+                  <span>${this.escapeHtml(copy.backToList)}</span>
                 </button>
               </div>
-              <div class="tool-loading">${this.escapeHtml(copy.loading || 'Loading...')}</div>
+              <div class="tool-loading">${this.escapeHtml(copy.loading)}</div>
             </div>
           </ion-content>
         `;
@@ -4239,6 +4741,9 @@ class PageReference extends HTMLElement {
 
       let toolBodyHtml = '';
       switch (this.activeTool) {
+        case 'translator':
+          toolBodyHtml = this.renderTranslatorToolHtml(copy, uiLocale);
+          break;
         case 'expressions':
           toolBodyHtml = this.renderExpressionsToolHtml(toolData, copy, uiLocale);
           break;
@@ -4281,6 +4786,8 @@ class PageReference extends HTMLElement {
         this.activeTool = '';
         this.expandedToolItemId = null;
         this.toolFilter = 'featured';
+        this.activeArticleUnitCode = null;
+        this.activeArticleLessonCode = null;
         this.render();
       });
       this.querySelectorAll('[data-tool-filter]').forEach((btn) => {
@@ -4319,10 +4826,11 @@ class PageReference extends HTMLElement {
           const playZone = target.closest('.tool-expr-play-zone');
           if (playZone) {
             const text = String(playZone.getAttribute('data-play-text') || '').trim();
+            const playLang = String(playZone.getAttribute('data-play-lang') || '').trim() || 'en';
             if (text) {
               contentListEl.querySelectorAll('.tool-expr-play-zone.is-playing').forEach((el) => el.classList.remove('is-playing'));
               playZone.classList.add('is-playing');
-              this.speakHeroNarration(text, 'en')
+              this.speakHeroNarration(text, playLang)
                 .catch(() => {})
                 .finally(() => playZone.classList.remove('is-playing'));
             }
@@ -4644,7 +5152,7 @@ class PageReference extends HTMLElement {
               <div class="reference-lesson-topbar">
                 <button class="reference-back-btn" type="button" id="reference-back-btn">
                   <ion-icon name="chevron-back"></ion-icon>
-                  <span>${this.escapeHtml(copy.backToList || 'Back')}</span>
+                  <span>${this.escapeHtml(copy.backToList)}</span>
                 </button>
                 <div class="reference-lesson-topbar-main">
                   <div class="reference-lesson-title">${this.escapeHtml(
@@ -4654,7 +5162,7 @@ class PageReference extends HTMLElement {
                 </div>
               </div>
               <div class="profile-segmented-tabs reference-lesson-tabs" role="tablist" aria-label="${this.escapeHtml(
-                copy.selectedLesson || 'Selected lesson'
+                copy.selectedLesson
               )}">
                 <button
                   type="button"
@@ -4665,7 +5173,7 @@ class PageReference extends HTMLElement {
                   aria-selected="${activeLessonTab === 'content' ? 'true' : 'false'}"
                   aria-controls="reference-content-panel"
                 >
-                  ${this.escapeHtml(copy.lessonTabContent || 'Content')}
+                  ${this.escapeHtml(copy.lessonTabContent)}
                 </button>
                 <button
                   type="button"
@@ -4676,7 +5184,7 @@ class PageReference extends HTMLElement {
                   aria-selected="${activeLessonTab === 'tests' ? 'true' : 'false'}"
                   aria-controls="reference-tests-panel"
                 >
-                  ${this.escapeHtml(copy.lessonTabTests || 'Tests')}
+                  ${this.escapeHtml(copy.lessonTabTests)}
                 </button>
               </div>
             </div>
@@ -4719,13 +5227,13 @@ class PageReference extends HTMLElement {
                 <span>${prevLessonRef ? this.escapeHtml(this.getText(
                   courses.flatMap(c => c.unidades || []).flatMap(u => u.lecciones || []).find(l => String(l.code) === prevLessonRef.lessonCode) || {},
                   'display', uiLocale
-                ) || copy.prev || 'Previous') : ''}</span>
+                ) || copy.prev) : ''}</span>
               </button>
               <button class="reference-nav-btn reference-nav-btn--next ${nextLessonRef ? '' : 'is-hidden'}" type="button" id="reference-next-btn">
                 <span>${nextLessonRef ? this.escapeHtml(this.getText(
                   courses.flatMap(c => c.unidades || []).flatMap(u => u.lecciones || []).find(l => String(l.code) === nextLessonRef.lessonCode) || {},
                   'display', uiLocale
-                ) || copy.next || 'Next') : ''}</span>
+                ) || copy.next) : ''}</span>
                 <ion-icon name="chevron-forward"></ion-icon>
               </button>
             </div>
@@ -4736,28 +5244,34 @@ class PageReference extends HTMLElement {
       const toolsEnabled = this.isReferenceToolsEnabled();
       const activeMainTab = toolsEnabled ? this.referenceMainTab : 'courses';
       const heroSubtitle = toolsEnabled && activeMainTab === 'tools'
-        ? (copy.toolsSubtitle || 'Explore vocabulary, expressions, verbs and more.')
+        ? copy.toolsSubtitle
         : (copy.subtitle || '');
       const toolItems = [
-        { key: 'vocabs', label: copy.toolVocabulary || 'Vocabulary' },
-        { key: 'expressions', label: copy.toolExpressions || 'Expressions' },
-        { key: 'proverbs', label: copy.toolProverbs || 'Proverbs' },
-        { key: 'quotes', label: copy.toolQuotes || 'Quotes' },
-        { key: 'regverbs', label: copy.toolRegVerbs || 'Regular verbs' },
-        { key: 'irregverbs', label: copy.toolIrregVerbs || 'Irregular verbs' },
-        { key: 'phrasalverbs', label: copy.toolPhrasalVerbs || 'Phrasal verbs' }
+        { key: 'translator',   label: copy.toolTranslator,   icon: 'language-outline',     iconBg: '#e0f2fe', iconColor: '#0369a1' },
+        { key: 'vocabs',       label: copy.toolVocabulary,   icon: 'book-outline',         iconBg: '#dcfce7', iconColor: '#15803d' },
+        { key: 'expressions',  label: copy.toolExpressions,  icon: 'chatbubbles-outline',  iconBg: '#dbeafe', iconColor: '#1d4ed8' },
+        { key: 'proverbs',     label: copy.toolProverbs,     icon: 'bulb-outline',         iconBg: '#fef9c3', iconColor: '#a16207' },
+        { key: 'quotes',       label: copy.toolQuotes,       icon: 'reader-outline',       iconBg: '#f3e8ff', iconColor: '#7e22ce' },
+        { key: 'regverbs',     label: copy.toolRegVerbs,     icon: 'create-outline',       iconBg: '#e0e7ff', iconColor: '#4338ca' },
+        { key: 'irregverbs',   label: copy.toolIrregVerbs,   icon: 'shuffle-outline',      iconBg: '#ffedd5', iconColor: '#c2410c' },
+        { key: 'phrasalverbs', label: copy.toolPhrasalVerbs, icon: 'link-outline',          iconBg: '#fce7f3', iconColor: '#be185d' },
+        { key: 'cheatsheets', label: copy.toolCheatSheets, icon: 'document-text-outline',  iconBg: '#f0fdf4', iconColor: '#15803d' },
+        { key: 'articles',    label: copy.toolArticles,    icon: 'newspaper-outline',      iconBg: '#ecfdf5', iconColor: '#059669' }
       ];
       const segmentedControlHtml = toolsEnabled ? `
         <div class="profile-segmented-tabs reference-main-tabs" style="margin: -8px 0;">
-          <button class="profile-segmented-btn${activeMainTab === 'courses' ? ' active' : ''}" data-reference-main-tab="courses">${this.escapeHtml(copy.tabCourses || 'Courses')}</button>
-          <button class="profile-segmented-btn${activeMainTab === 'tools' ? ' active' : ''}" data-reference-main-tab="tools">${this.escapeHtml(copy.tabTools || 'Tools')}</button>
+          <button class="profile-segmented-btn${activeMainTab === 'courses' ? ' active' : ''}" data-reference-main-tab="courses">${this.escapeHtml(copy.tabCourses)}</button>
+          <button class="profile-segmented-btn${activeMainTab === 'tools' ? ' active' : ''}" data-reference-main-tab="tools">${this.escapeHtml(copy.tabTools)}</button>
         </div>` : '';
       const toolsListHtml = toolsEnabled && activeMainTab === 'tools' ? `
         <div class="reference-tools-list">
           ${toolItems.map(item => `
             <div class="reference-tool-item" data-reference-tool="${this.escapeHtml(item.key)}">
+              <div class="reference-tool-icon-wrap" style="background:${item.iconBg}">
+                <ion-icon name="${this.escapeHtml(item.icon)}" style="color:${item.iconColor}" aria-hidden="true"></ion-icon>
+              </div>
               <span class="reference-tool-label">${this.escapeHtml(item.label)}</span>
-              <ion-icon name="chevron-forward" aria-hidden="true"></ion-icon>
+              <ion-icon name="chevron-forward" class="reference-tool-chevron" aria-hidden="true"></ion-icon>
             </div>`).join('')}
         </div>` : '';
       const mainContentHtml = toolsEnabled && activeMainTab === 'tools'
@@ -4956,7 +5470,7 @@ class PageReference extends HTMLElement {
       const toolsEnabled = this.isReferenceToolsEnabled();
       const activeMainTab = toolsEnabled ? this.referenceMainTab : 'courses';
       this.currentHeroMessage = toolsEnabled && activeMainTab === 'tools'
-        ? (copy.toolsSubtitle || 'Explore vocabulary, expressions, verbs and more.')
+        ? copy.toolsSubtitle
         : (copy.subtitle || '');
       this.currentHeroLocale = uiLocale;
       this.querySelector('.reference-hero-card')?.addEventListener('click', (event) => {
@@ -4985,6 +5499,8 @@ class PageReference extends HTMLElement {
           this.activeTool = tool;
           this.expandedToolItemId = null;
           this.toolFilter = 'featured';
+          this.activeArticleUnitCode = null;
+          this.activeArticleLessonCode = null;
           this.render();
         });
       });

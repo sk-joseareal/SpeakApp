@@ -8498,6 +8498,57 @@ ion-select.training-pill.active::part(icon) {
   color: var(--app-muted);
 }
 
+.reference-md-img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: 10px;
+  margin: 10px 0;
+}
+
+.reference-md-img--inline {
+  display: inline;
+  max-height: 1.4em;
+  width: auto;
+  border-radius: 3px;
+  vertical-align: middle;
+  margin: 0 2px;
+}
+
+.articles-row-thumb {
+  background: #e2e8f0;
+  overflow: hidden;
+}
+
+.articles-row-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.articles-unit-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.articles-unit-list .training-row {
+  grid-template-columns: auto 1fr auto;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.articles-content.tool-content-list {
+  padding-top: 16px;
+}
+
+.articles-lesson-section + .articles-lesson-section {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(203, 213, 225, 0.5);
+}
+
 .reference-markdown {
   border: 1px solid #d9e4f7;
   border-radius: 14px;
@@ -8885,8 +8936,8 @@ ion-select.training-pill.active::part(icon) {
 .reference-tool-item {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 14px 16px;
+  gap: 12px;
+  padding: 11px 14px;
   cursor: pointer;
   border-bottom: 1px solid rgba(203, 213, 225, 0.45);
   background: transparent;
@@ -8902,14 +8953,29 @@ ion-select.training-pill.active::part(icon) {
   background: rgba(75, 134, 245, 0.07);
 }
 
+.reference-tool-icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.reference-tool-icon-wrap ion-icon {
+  font-size: 1.2rem;
+}
+
 .reference-tool-label {
+  flex: 1;
   font-family: 'Inter', sans-serif;
   font-size: 0.95rem;
   font-weight: 500;
   color: #1f2937;
 }
 
-.reference-tool-item ion-icon {
+.reference-tool-chevron {
   color: #94a3b8;
   font-size: 1rem;
   flex-shrink: 0;
@@ -10386,6 +10452,309 @@ ion-select.training-pill.active::part(icon) {
 }
 .conj-btn ion-icon {
   font-size: 1rem;
+}
+
+.tool-content-list--translator {
+  gap: 16px;
+}
+
+.translator-panel {
+  border-radius: 24px;
+  border: 1px solid #e7edf8;
+  box-shadow: 0 10px 24px rgba(90, 116, 164, 0.08);
+  padding: 18px;
+}
+
+.translator-panel--composer {
+  padding-top: 16px;
+}
+
+.translator-label,
+.translator-section-label {
+  display: block;
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #7c86a6;
+}
+
+.translator-input-shell {
+  grid-template-columns: 1fr;
+  align-items: stretch;
+  margin-top: 0;
+  padding: 14px 18px;
+  min-height: 148px;
+}
+
+.translator-input {
+  width: 100%;
+  min-height: 118px;
+  color: #2b3553;
+  font-family: inherit;
+  font-size: 1.04rem;
+  line-height: 1.55;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.translator-input.profile-input--shell {
+  min-height: 118px;
+}
+
+.translator-input:focus {
+  outline: none;
+}
+
+.translator-submit-btn {
+  width: 100%;
+  margin-top: 12px;
+  --border-radius: 20px;
+  --background: linear-gradient(135deg, #4b86f5 0%, #2d6df0 100%);
+  --background-hover: linear-gradient(135deg, #4b86f5 0%, #2d6df0 100%);
+  --background-activated: linear-gradient(135deg, #4b86f5 0%, #2d6df0 100%);
+  --color: #ffffff;
+  --padding-top: 14px;
+  --padding-bottom: 14px;
+  --padding-start: 22px;
+  --padding-end: 22px;
+  --min-height: 56px;
+  text-transform: none;
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  box-shadow: none;
+}
+
+.translator-submit-btn[disabled] {
+  opacity: 0.65;
+}
+
+.translator-feedback {
+  margin: 12px 2px 0;
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+
+.translator-feedback--error {
+  color: #b91c1c;
+}
+
+.translator-result-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.translator-result-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+
+.translator-result-card {
+  border-radius: 22px;
+  border: 1px solid #e7edf8;
+  background: #ffffff;
+  box-shadow: 0 10px 24px rgba(90, 116, 164, 0.06);
+  padding: 16px;
+}
+
+.translator-result-card .tool-expr-play-zone {
+  padding: 0;
+}
+
+.translator-result-play .tool-expr-name,
+.translator-word-head .tool-expr-name {
+  color: #232a4a;
+  font-size: 1.02rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.translator-result-play .tool-expr-translation,
+.translator-word-head .tool-expr-translation {
+  color: #7c86a6;
+  font-size: 0.85rem;
+}
+
+.translator-result-block {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.translator-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.translator-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: #dbeafe;
+  color: #1e40af;
+  font-family: inherit;
+  font-size: 0.9rem;
+  line-height: 1;
+  font-weight: 600;
+}
+
+.translator-syntax-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.translator-syntax-token {
+  min-width: 0;
+}
+
+.translator-syntax-token .tool-expr-play-zone {
+  min-width: 0;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid #e7edf8;
+  background: #ffffff;
+  box-shadow: 0 8px 18px rgba(90, 116, 164, 0.05);
+}
+
+.translator-syntax-token--default .tool-expr-play-zone {
+  border-color: #e7edf8;
+  background:
+    linear-gradient(180deg, rgba(248, 250, 252, 0.94) 0%, rgba(255, 255, 255, 1) 55%);
+}
+
+.translator-syntax-token--verb .tool-expr-play-zone {
+  border-color: rgba(96, 165, 250, 0.34);
+  background:
+    linear-gradient(180deg, rgba(219, 234, 254, 0.92) 0%, rgba(255, 255, 255, 1) 55%);
+}
+
+.translator-syntax-token--noun .tool-expr-play-zone {
+  border-color: rgba(45, 212, 191, 0.3);
+  background:
+    linear-gradient(180deg, rgba(204, 251, 241, 0.9) 0%, rgba(255, 255, 255, 1) 55%);
+}
+
+.translator-syntax-token--adjective .tool-expr-play-zone {
+  border-color: rgba(251, 191, 36, 0.34);
+  background:
+    linear-gradient(180deg, rgba(254, 243, 199, 0.92) 0%, rgba(255, 255, 255, 1) 55%);
+}
+
+.translator-syntax-token--adverb .tool-expr-play-zone {
+  border-color: rgba(244, 114, 182, 0.28);
+  background:
+    linear-gradient(180deg, rgba(252, 231, 243, 0.92) 0%, rgba(255, 255, 255, 1) 55%);
+}
+
+.translator-syntax-token .tool-expr-name {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #2b3553;
+}
+
+.translator-syntax-token .tool-expr-translation {
+  font-size: 0.8rem;
+  color: #7c86a6;
+}
+
+.translator-words-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.translator-word-card {
+  border-radius: 22px;
+  border: 1px solid #e7edf8;
+  background: #ffffff;
+  box-shadow: 0 10px 24px rgba(90, 116, 164, 0.06);
+  padding: 16px;
+}
+
+.translator-word-card--default {
+  border-color: #e7edf8;
+  background:
+    linear-gradient(180deg, rgba(248, 250, 252, 0.92) 0%, rgba(255, 255, 255, 1) 42%);
+}
+
+.translator-word-card--verb {
+  border-color: rgba(96, 165, 250, 0.34);
+  background:
+    linear-gradient(180deg, rgba(219, 234, 254, 0.92) 0%, rgba(255, 255, 255, 1) 40%);
+}
+
+.translator-word-card--noun {
+  border-color: rgba(45, 212, 191, 0.3);
+  background:
+    linear-gradient(180deg, rgba(204, 251, 241, 0.88) 0%, rgba(255, 255, 255, 1) 40%);
+}
+
+.translator-word-card--adjective {
+  border-color: rgba(251, 191, 36, 0.34);
+  background:
+    linear-gradient(180deg, rgba(254, 243, 199, 0.9) 0%, rgba(255, 255, 255, 1) 40%);
+}
+
+.translator-word-card--adverb {
+  border-color: rgba(244, 114, 182, 0.28);
+  background:
+    linear-gradient(180deg, rgba(252, 231, 243, 0.9) 0%, rgba(255, 255, 255, 1) 40%);
+}
+
+.translator-word-head .tool-expr-play-zone {
+  padding: 0 0 12px;
+}
+
+.translator-definition + .translator-definition {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(226, 232, 240, 0.85);
+}
+
+.translator-definition-title {
+  font-size: 0.94rem;
+  line-height: 1.5;
+  color: #232a4a;
+  font-weight: 600;
+}
+
+.translator-example + .translator-example {
+  margin-top: 10px;
+}
+
+.translator-example .tool-expr-example-text {
+  color: #334155;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.translator-example .tool-expr-example-es {
+  margin-top: 6px;
+  color: #7c86a6;
+  font-size: 0.87rem;
+  line-height: 1.45;
+}
+
+.translator-empty {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.45;
+  color: #7c86a6;
+}
+
+@media (min-width: 720px) {
+  .translator-result-grid {
+    grid-template-columns: 1fr 1fr;
+  }
 }
 
 /* ─── Conjugation bottom sheet ───────────────────────────────────────── */

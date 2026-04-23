@@ -410,6 +410,74 @@ class PageDiagnostics extends HTMLElement {
               <ion-button size="small" fill="outline" id="pn-10s">Recibir en 10 segundos</ion-button>
             </div>
 
+            <h4 style="margin-top:16px;">In-App Purchases</h4>
+            <div class="diag-actions">
+              <ion-button size="small" fill="outline" id="diag-iap-refresh">Refrescar store</ion-button>
+              <ion-button size="small" fill="outline" id="diag-iap-restore">Restore purchases</ion-button>
+              <ion-button size="small" fill="outline" id="diag-iap-copy">Copiar estado IAP</ion-button>
+              <ion-button size="small" fill="outline" id="diag-iap-clear-timeline">Limpiar timeline</ion-button>
+              <ion-button size="small" fill="outline" id="diag-iap-clear-local">Limpiar premium local</ion-button>
+              <ion-button size="small" fill="outline" id="diag-iap-reread">Releer estado</ion-button>
+            </div>
+            <div class="diag-speak-block">
+              <div class="pill">Estado IAP</div>
+              <div class="diag-usage-status" id="diag-iap-status">Cargando...</div>
+              <div class="diag-iap-field">
+                <div><strong>Última operación:</strong> <span id="diag-iap-last-action">n/a</span></div>
+                <div class="diag-debug-sub">Resume la última acción manual lanzada desde diagnósticos o el último evento relevante de compra o restore.</div>
+              </div>
+              <div class="diag-iap-field">
+                <div><strong>Plataforma IAP:</strong> <span id="diag-iap-platform">n/a</span></div>
+                <div class="diag-debug-sub">Plataforma reportada por el último evento IAP o por la tienda actual.</div>
+              </div>
+              <div class="diag-iap-field">
+                <div><strong>User ID:</strong> <span id="diag-iap-user-id">n/a</span></div>
+                <div class="diag-debug-sub">Usuario que se usaría ahora mismo para validar la compra en backend.</div>
+              </div>
+              <div class="diag-iap-field">
+                <div><strong>Plugin:</strong> <span id="diag-iap-plugin">n/a</span></div>
+                <div class="diag-debug-sub">Indica si el plugin CdvPurchase está cargado en este dispositivo.</div>
+              </div>
+              <div class="diag-iap-field">
+                <div><strong>Store:</strong> <span id="diag-iap-store">n/a</span></div>
+                <div class="diag-debug-sub">Resumen de la tienda: si está accesible y cuántos productos ha detectado.</div>
+              </div>
+              <div class="diag-iap-field">
+                <div><strong>Usuario premium:</strong> <span id="diag-iap-user-premium">n/a</span></div>
+                <div class="diag-debug-sub">Estado premium que la app deduce ahora mismo del usuario cargado.</div>
+              </div>
+              <div class="diag-iap-field">
+                <div><strong>Expira:</strong> <span id="diag-iap-user-expiry">n/a</span></div>
+                <div class="diag-debug-sub">Fecha de expiración del usuario actual en memoria, normalmente ya sincronizada con backend.</div>
+              </div>
+              <div class="diag-iap-field">
+                <div><strong>Compra local:</strong> <span id="diag-iap-local-expiry">n/a</span></div>
+                <div class="diag-debug-sub">Última expiración guardada localmente en el dispositivo tras una compra, restore o verify válidos.</div>
+              </div>
+              <div class="diag-iap-field">
+                <div><strong>Compra local ID:</strong> <span id="diag-iap-local-id">n/a</span></div>
+                <div class="diag-debug-sub">Identificador de compra guardado en memoria por el bridge premium más reciente.</div>
+              </div>
+              <div class="pill" style="margin-top:12px;">Checklist</div>
+              <div class="diag-debug-sub">Fases del flujo más reciente para detectar si el fallo es tienda, backend o estado local.</div>
+              <div class="diag-usage-list" id="diag-iap-checklist"></div>
+              <div class="pill" style="margin-top:12px;">Último evento IAP</div>
+              <div class="diag-debug-sub">Último evento técnico recibido del store: ready, updated, approved, verified, error, etc.</div>
+              <pre class="diag-json" id="diag-iap-last-event"></pre>
+              <div class="pill" style="margin-top:12px;">Último resultado bridge</div>
+              <div class="diag-debug-sub">Último entitlement que el puente entregó a la app. Es lo que acaba actualizando premium/expiración local.</div>
+              <pre class="diag-json" id="diag-iap-last-result"></pre>
+              <div class="pill" style="margin-top:12px;">Último resultado backend</div>
+              <div class="diag-debug-sub">Resumen técnico de la respuesta más reciente de verificación para compra o restore.</div>
+              <pre class="diag-json" id="diag-iap-last-backend"></pre>
+              <div class="pill" style="margin-top:12px;">Timeline IAP</div>
+              <div class="diag-debug-sub">Últimos eventos en orden temporal, con fuente y resultado resumidos.</div>
+              <div class="diag-usage-list" id="diag-iap-timeline"></div>
+              <div class="pill" style="margin-top:12px;">Productos detectados</div>
+              <div class="diag-debug-sub">Productos registrados por el plugin en esta ejecución. Si hay botón Comprar, el store los considera comprables.</div>
+              <div class="diag-usage-list" id="diag-iap-products"></div>
+            </div>
+
             <h4 style="margin-top:16px;">AdMob</h4>
             <div class="diag-actions">
               <ion-button size="small" fill="outline" id="admob-form">Formulario autorización</ion-button>
@@ -741,6 +809,368 @@ class PageDiagnostics extends HTMLElement {
       imgEl.src = initial;
     };
 
+    const readStoredPurchaseExpiry = () => {
+      try {
+        return {
+          ts: localStorage.getItem('_purchase_expires') || '',
+          human: localStorage.getItem('_purchase_expires_human') || ''
+        };
+      } catch (_err) {
+        return { ts: '', human: '' };
+      }
+    };
+
+    const formatIapDate = (value) => {
+      if (!value) return 'n/a';
+      const numeric = Number(value);
+      const date = Number.isFinite(numeric) && numeric > 0 ? new Date(numeric) : new Date(value);
+      if (Number.isNaN(date.getTime())) return String(value);
+      return date.toISOString();
+    };
+
+    const getLastIapStoreEvent = () => {
+      if (window.__lastIapStoreEvent) return window.__lastIapStoreEvent;
+      return null;
+    };
+
+    const ensureIapDiagnosticsState = () => {
+      if (!window.__iapDiagnosticsState || typeof window.__iapDiagnosticsState !== 'object') {
+        window.__iapDiagnosticsState = {
+          history: [],
+          lastAction: null,
+          lastBackend: null
+        };
+      }
+      if (!Array.isArray(window.__iapDiagnosticsState.history)) {
+        window.__iapDiagnosticsState.history = [];
+      }
+      return window.__iapDiagnosticsState;
+    };
+
+    const pushIapHistory = (entry) => {
+      const state = ensureIapDiagnosticsState();
+      state.history.unshift({
+        at: new Date().toISOString(),
+        ...(entry && typeof entry === 'object' ? entry : { type: 'unknown' })
+      });
+      state.history = state.history.slice(0, 20);
+    };
+
+    const setIapLastAction = (action) => {
+      const state = ensureIapDiagnosticsState();
+      state.lastAction = {
+        at: new Date().toISOString(),
+        ...(action && typeof action === 'object' ? action : { label: String(action || 'unknown') })
+      };
+    };
+
+    const summarizeIapBackend = (detail, premiumResult) => {
+      const eventDetail = detail && typeof detail === 'object' ? detail : {};
+      const extra = eventDetail.extra && typeof eventDetail.extra === 'object' ? eventDetail.extra : {};
+      const result = premiumResult && typeof premiumResult === 'object' ? premiumResult : {};
+      return {
+        at: eventDetail.at || new Date().toISOString(),
+        event: eventDetail.type || null,
+        source: extra.source || null,
+        platform: eventDetail.platform || null,
+        productId: eventDetail.productId || null,
+        transactionId: eventDetail.transactionId || null,
+        success:
+          typeof extra.success === 'boolean'
+            ? extra.success
+            : typeof result.register_ok === 'boolean'
+            ? result.register_ok
+            : null,
+        purchase_id: extra.purchase_id || result.purchase_id || null,
+        purchase_expires:
+          extra.purchase_expires !== undefined
+            ? extra.purchase_expires
+            : result.purchase_expires !== undefined
+            ? result.purchase_expires
+            : null
+      };
+    };
+
+    const describeIapOperationStatus = (action) => {
+      if (!action || typeof action !== 'object') return 'n/a';
+      const label = action.label || 'n/a';
+      const status = action.status || 'idle';
+      const at = action.at ? new Date(action.at).toISOString() : '';
+      return at ? `${label} · ${status} · ${at}` : `${label} · ${status}`;
+    };
+
+    const detectIapPlatform = (store, lastEvent) => {
+      if (lastEvent && lastEvent.platform) return lastEvent.platform;
+      const products = store && Array.isArray(store.products) ? store.products : [];
+      const firstWithPlatform = products.find((product) => product && product.platform);
+      return firstWithPlatform ? firstWithPlatform.platform : 'n/a';
+    };
+
+    const getLocalPurchaseId = (lastResult) => {
+      if (lastResult && lastResult.purchase_id) return String(lastResult.purchase_id);
+      if (window.user && window.user.purchase_id) return String(window.user.purchase_id);
+      return 'n/a';
+    };
+
+    const getIapChecklistLines = (store, lastEvent, lastResult, localPurchase, user) => {
+      const type = lastEvent && lastEvent.type ? String(lastEvent.type) : '';
+      const extra = lastEvent && lastEvent.extra && typeof lastEvent.extra === 'object' ? lastEvent.extra : {};
+      const storeReady = Boolean(store);
+      const approved = ['approved', 'verify-requested', 'verified', 'android-validated', 'ios-validated', 'approved-result', 'restore-result'].includes(type);
+      const sentToBackend = ['verify-requested', 'android-validated', 'ios-validated', 'approved-result', 'restore-result'].includes(type);
+      const backendValidated =
+        ['android-validated', 'ios-validated', 'approved-result', 'restore-result', 'verified'].includes(type) &&
+        extra.success !== false;
+      const premiumPersisted = Boolean(lastResult && lastResult.register_ok && (lastResult.purchase_expires || localPurchase.ts));
+      const finished = type === 'verified' || (type === 'android-validated' && extra.success !== false);
+      const userPremium = Boolean(user && isPremiumUser(user));
+      return [
+        `store ready: ${storeReady ? 'ok' : 'pendiente'}`,
+        `purchase approved by store: ${approved ? 'ok' : 'pendiente'}`,
+        `sent to backend: ${sentToBackend ? 'ok' : 'pendiente'}`,
+        `backend validated: ${backendValidated ? 'ok' : 'pendiente'}`,
+        `premium persisted locally: ${premiumPersisted ? 'ok' : 'pendiente'}`,
+        `transaction finished: ${finished ? 'ok' : 'pendiente'}`,
+        `user premium in memory: ${userPremium ? 'ok' : 'pendiente'}`
+      ];
+    };
+
+    const describeIapHistoryEntry = (entry) => {
+      const at = entry && entry.at ? new Date(entry.at).toISOString().slice(11, 19) : '--:--:--';
+      const type = entry && entry.type ? entry.type : 'unknown';
+      const platform = entry && entry.platform ? entry.platform : 'n/a';
+      const productId = entry && entry.productId ? entry.productId : 'n/a';
+      const transactionId = entry && entry.transactionId ? ` ${entry.transactionId}` : '';
+      const source = entry && entry.source ? ` source=${entry.source}` : '';
+      const success =
+        entry && entry.success !== undefined && entry.success !== null
+          ? ` success=${entry.success ? 'true' : 'false'}`
+          : '';
+      const message = entry && entry.message ? ` ${entry.message}` : '';
+      return `${at} ${type} ${platform} ${productId}${transactionId}${source}${success}${message}`;
+    };
+
+    const buildIapExportPayload = () => {
+      const state = ensureIapDiagnosticsState();
+      const user = window.user && typeof window.user === 'object' ? window.user : null;
+      const lastResult =
+        typeof window.getLastIapPremiumResult === 'function'
+          ? window.getLastIapPremiumResult()
+          : window.__lastGotPremiumResult || null;
+      return {
+        exportedAt: new Date().toISOString(),
+        userId: user && user.id ? user.id : null,
+        userPremium: Boolean(user && isPremiumUser(user)),
+        userExpires: user ? user.expires_date || user.expiresDate || null : null,
+        localPurchase: readStoredPurchaseExpiry(),
+        lastEvent: getLastIapStoreEvent(),
+        lastResult: lastResult,
+        lastAction: state.lastAction || null,
+        lastBackend: state.lastBackend || null,
+        timeline: state.history || []
+      };
+    };
+
+    const isPremiumUser = (user) => {
+      if (!user || typeof user !== 'object') return false;
+      if (user.premium === true || user.premium === '1' || user.premium === 'true') return true;
+      const expiresRaw = user.expires_date || user.expiresDate || '';
+      if (!expiresRaw) return false;
+      const expires = new Date(expiresRaw);
+      if (Number.isNaN(expires.getTime())) return false;
+      return expires.getTime() > Date.now();
+    };
+
+    const getIapStoreProducts = () => {
+      const products =
+        window.CdvPurchase && window.CdvPurchase.store ? window.CdvPurchase.store.products : [];
+      return Array.isArray(products) ? products : [];
+    };
+
+    const describeIapProduct = (product) => {
+      if (!product || typeof product !== 'object') return 'Producto inválido';
+      const offer = Array.isArray(product.offers) && product.offers.length ? product.offers[0] : null;
+      const pricing =
+        offer && Array.isArray(offer.pricingPhases) && offer.pricingPhases.length
+          ? offer.pricingPhases[0]
+          : null;
+      const bits = [
+        product.platform || 'platform?',
+        product.type || 'type?',
+        product.owned ? 'owned' : 'not owned',
+        product.canPurchase ? 'can buy' : 'no buy'
+      ];
+      if (pricing && pricing.price) {
+        bits.push(String(pricing.price));
+      } else if (product.pricing && product.pricing.price) {
+        bits.push(String(product.pricing.price));
+      }
+      return bits.join(' · ');
+    };
+
+    const renderIapProducts = () => {
+      if (!iapProductsEl) return;
+      const products = getIapStoreProducts();
+      iapProductsEl.innerHTML = '';
+      if (!products.length) {
+        const emptyEl = document.createElement('div');
+        emptyEl.className = 'diag-usage-empty';
+        emptyEl.textContent = 'No hay productos registrados o el store todavía no está listo.';
+        iapProductsEl.appendChild(emptyEl);
+        return;
+      }
+
+      products.forEach((product) => {
+        const itemEl = document.createElement('div');
+        itemEl.className = 'diag-usage-row';
+        itemEl.classList.add('diag-iap-product-row');
+
+        const titleEl = document.createElement('div');
+        titleEl.className = 'diag-usage-day';
+        titleEl.classList.add('diag-iap-product-title');
+        titleEl.textContent = product.title || product.id || 'Producto';
+
+        const metaEl = document.createElement('div');
+        metaEl.className = 'diag-usage-meta';
+        metaEl.classList.add('diag-iap-product-meta');
+        metaEl.textContent = `${product.id || 'sin-id'} · ${describeIapProduct(product)}`;
+
+        itemEl.appendChild(titleEl);
+        itemEl.appendChild(metaEl);
+
+        if (product.canPurchase && typeof window.IAPbuyProduct === 'function') {
+          const actionsEl = document.createElement('div');
+          actionsEl.className = 'diag-actions';
+          actionsEl.classList.add('diag-iap-product-actions');
+          const buyBtn = document.createElement('ion-button');
+          buyBtn.setAttribute('size', 'small');
+          buyBtn.setAttribute('fill', 'outline');
+          buyBtn.textContent = 'Comprar';
+          buyBtn.addEventListener('click', () => {
+            try {
+              setIapLastAction({
+                label: `buy ${product.id}`,
+                status: 'running',
+                type: 'manual-buy'
+              });
+              window.IAPbuyProduct(product.id);
+              if (iapStatusEl) iapStatusEl.textContent = `Compra iniciada para ${product.id}`;
+            } catch (err) {
+              setIapLastAction({
+                label: `buy ${product.id}`,
+                status: 'failed',
+                type: 'manual-buy'
+              });
+              if (iapStatusEl) {
+                iapStatusEl.textContent = `Error comprando ${product.id}: ${err.message || String(err)}`;
+              }
+            }
+            setTimeout(() => {
+              renderIapState();
+            }, 1200);
+          });
+          actionsEl.appendChild(buyBtn);
+          itemEl.appendChild(actionsEl);
+        }
+
+        iapProductsEl.appendChild(itemEl);
+      });
+    };
+
+    const renderIapState = () => {
+      const pluginOk = Boolean(window.CdvPurchase);
+      const store = pluginOk ? window.CdvPurchase.store : null;
+      const user = window.user && typeof window.user === 'object' ? window.user : null;
+      const localPurchase = readStoredPurchaseExpiry();
+      const lastEvent = getLastIapStoreEvent();
+      const iapDiagState = ensureIapDiagnosticsState();
+      const lastResult =
+        typeof window.getLastIapPremiumResult === 'function'
+          ? window.getLastIapPremiumResult()
+          : window.__lastGotPremiumResult || null;
+
+      if (iapLastActionEl) {
+        iapLastActionEl.textContent = describeIapOperationStatus(iapDiagState.lastAction);
+      }
+      if (iapPlatformEl) {
+        iapPlatformEl.textContent = detectIapPlatform(store, lastEvent);
+      }
+      if (iapUserIdEl) {
+        iapUserIdEl.textContent = user && user.id ? String(user.id) : (window.user_id ? String(window.user_id) : 'n/a');
+      }
+      if (iapPluginEl) {
+        iapPluginEl.textContent = pluginOk ? 'CdvPurchase cargado' : 'CdvPurchase no disponible';
+      }
+      if (iapStoreEl) {
+        const productCount = store && Array.isArray(store.products) ? store.products.length : 0;
+        iapStoreEl.textContent = store ? `${productCount} productos detectados` : 'store no disponible';
+      }
+      if (iapUserPremiumEl) {
+        iapUserPremiumEl.textContent = user ? (isPremiumUser(user) ? 'sí' : 'no') : 'sin usuario';
+      }
+      if (iapUserExpiryEl) {
+        iapUserExpiryEl.textContent = user ? formatIapDate(user.expires_date || user.expiresDate || '') : 'n/a';
+      }
+      if (iapLocalExpiryEl) {
+        iapLocalExpiryEl.textContent = localPurchase.human || formatIapDate(localPurchase.ts);
+      }
+      if (iapLocalIdEl) {
+        iapLocalIdEl.textContent = getLocalPurchaseId(lastResult);
+      }
+      if (iapLastEventEl) {
+        iapLastEventEl.textContent = formatJson(lastEvent || {});
+      }
+      if (iapLastResultEl) {
+        iapLastResultEl.textContent = formatJson(lastResult || {});
+      }
+      if (iapLastBackendEl) {
+        iapLastBackendEl.textContent = formatJson(iapDiagState.lastBackend || {});
+      }
+      if (iapStatusEl) {
+        if (!pluginOk) {
+          iapStatusEl.textContent = 'Plugin IAP no disponible en este entorno.';
+        } else if (!store) {
+          iapStatusEl.textContent = 'CdvPurchase existe pero no expone store.';
+        } else {
+          iapStatusEl.textContent = 'Store IAP accesible.';
+        }
+      }
+
+      if (iapChecklistEl) {
+        iapChecklistEl.innerHTML = '';
+        getIapChecklistLines(store, lastEvent, lastResult, localPurchase, user).forEach((line) => {
+          const row = document.createElement('div');
+          row.className = 'diag-usage-row';
+          const title = document.createElement('div');
+          title.className = 'diag-usage-day';
+          title.textContent = line;
+          row.appendChild(title);
+          iapChecklistEl.appendChild(row);
+        });
+      }
+      if (iapTimelineEl) {
+        iapTimelineEl.innerHTML = '';
+        if (!iapDiagState.history.length) {
+          const emptyEl = document.createElement('div');
+          emptyEl.className = 'diag-usage-empty';
+          emptyEl.textContent = 'Todavía no hay eventos IAP en esta sesión.';
+          iapTimelineEl.appendChild(emptyEl);
+        } else {
+          iapDiagState.history.forEach((entry) => {
+            const row = document.createElement('div');
+            row.className = 'diag-usage-row';
+            const title = document.createElement('div');
+            title.className = 'diag-usage-day';
+            title.textContent = describeIapHistoryEntry(entry);
+            row.appendChild(title);
+            iapTimelineEl.appendChild(row);
+          });
+        }
+      }
+
+      renderIapProducts();
+    };
+
     const updateUserPanel = (user) => {
       const panel = this.querySelector('#diag-user');
       if (!panel) return;
@@ -774,6 +1204,7 @@ class PageDiagnostics extends HTMLElement {
     updateUserPanel(window.user);
     this._userHandler = (event) => {
       updateUserPanel(event.detail);
+      renderIapState();
       updateTalkPanels();
       refreshUserUsage();
       refreshTtsUserUsage();
@@ -783,6 +1214,52 @@ class PageDiagnostics extends HTMLElement {
       });
     };
     window.addEventListener('app:user-change', this._userHandler);
+    this._iapHandler = () => {
+      renderIapState();
+    };
+    window.addEventListener('app:iap-premium-change', this._iapHandler);
+    this._iapStoreEventHandler = (event) => {
+      const detail = event && event.detail && typeof event.detail === 'object' ? event.detail : {};
+      const extra = detail.extra && typeof detail.extra === 'object' ? detail.extra : {};
+      pushIapHistory({
+        at: detail.at,
+        type: detail.type,
+        platform: detail.platform,
+        productId: detail.productId,
+        transactionId: detail.transactionId,
+        message: detail.message || null,
+        source: extra.source || null,
+        success: extra.success
+      });
+      if (['approved', 'verify-requested', 'verified', 'approved-result', 'restore-result', 'android-validated', 'ios-validated', 'error'].includes(detail.type)) {
+        setIapLastAction({
+          label:
+            detail.type === 'restore-result'
+              ? 'restore purchases'
+              : detail.type === 'approved' || detail.type === 'approved-result'
+              ? `buy ${detail.productId || ''}`.trim()
+              : detail.type,
+          status:
+            detail.type === 'error' || extra.success === false
+              ? 'failed'
+              : ['approved', 'verify-requested'].includes(detail.type)
+              ? 'running'
+              : ['verified', 'approved-result', 'restore-result', 'android-validated', 'ios-validated'].includes(detail.type)
+              ? 'success'
+              : 'idle',
+          type: detail.type
+        });
+      }
+      if (['approved-result', 'restore-result', 'android-validated', 'ios-validated'].includes(detail.type)) {
+        const lastResult =
+          typeof window.getLastIapPremiumResult === 'function'
+            ? window.getLastIapPremiumResult()
+            : window.__lastGotPremiumResult || null;
+        ensureIapDiagnosticsState().lastBackend = summarizeIapBackend(detail, lastResult);
+      }
+      renderIapState();
+    };
+    window.addEventListener('app:iap-store-event', this._iapStoreEventHandler);
 
     const wordsEl = this.querySelector('#diag-speak-words');
     const phraseEl = this.querySelector('#diag-speak-phrase');
@@ -813,6 +1290,22 @@ class PageDiagnostics extends HTMLElement {
     const pronUsageLimitClearBtn = this.querySelector('#diag-pron-usage-limit-clear');
     const pronUsageTotalsEl = this.querySelector('#diag-pron-usage-totals');
     const pronUsageListEl = this.querySelector('#diag-pron-usage-list');
+    const iapStatusEl = this.querySelector('#diag-iap-status');
+    const iapLastActionEl = this.querySelector('#diag-iap-last-action');
+    const iapPlatformEl = this.querySelector('#diag-iap-platform');
+    const iapUserIdEl = this.querySelector('#diag-iap-user-id');
+    const iapPluginEl = this.querySelector('#diag-iap-plugin');
+    const iapStoreEl = this.querySelector('#diag-iap-store');
+    const iapUserPremiumEl = this.querySelector('#diag-iap-user-premium');
+    const iapUserExpiryEl = this.querySelector('#diag-iap-user-expiry');
+    const iapLocalExpiryEl = this.querySelector('#diag-iap-local-expiry');
+    const iapLocalIdEl = this.querySelector('#diag-iap-local-id');
+    const iapChecklistEl = this.querySelector('#diag-iap-checklist');
+    const iapLastEventEl = this.querySelector('#diag-iap-last-event');
+    const iapLastResultEl = this.querySelector('#diag-iap-last-result');
+    const iapLastBackendEl = this.querySelector('#diag-iap-last-backend');
+    const iapTimelineEl = this.querySelector('#diag-iap-timeline');
+    const iapProductsEl = this.querySelector('#diag-iap-products');
     const ttsInputEl = this.querySelector('#diag-tts-input');
     const ttsPlayBtn = this.querySelector('#diag-tts-play');
     const ttsStatusEl = this.querySelector('#diag-tts-status');
@@ -2852,6 +3345,103 @@ class PageDiagnostics extends HTMLElement {
       updateSpeakPanels();
       updateContentSourcePanel();
     });
+    this.querySelector('#diag-iap-refresh')?.addEventListener('click', () => {
+      try {
+        setIapLastAction({
+          label: 'refresh store',
+          status: 'running',
+          type: 'manual-refresh'
+        });
+        if (typeof window.IAPRefresh === 'function') {
+          window.IAPRefresh();
+        } else if (
+          window.CdvPurchase &&
+          window.CdvPurchase.store &&
+          typeof window.CdvPurchase.store.update === 'function'
+        ) {
+          window.CdvPurchase.store.update();
+        }
+      } catch (err) {
+        setIapLastAction({
+          label: 'refresh store',
+          status: 'failed',
+          type: 'manual-refresh'
+        });
+        if (iapStatusEl) {
+          iapStatusEl.textContent = `Error refrescando IAP: ${err.message || String(err)}`;
+        }
+      }
+      setTimeout(() => {
+        renderIapState();
+      }, 1200);
+    });
+    this.querySelector('#diag-iap-restore')?.addEventListener('click', () => {
+      try {
+        setIapLastAction({
+          label: 'restore purchases',
+          status: 'running',
+          type: 'manual-restore'
+        });
+        if (typeof window.IAPrestorePurchases === 'function') {
+          window.IAPrestorePurchases();
+          if (iapStatusEl) iapStatusEl.textContent = 'Restore purchases lanzado.';
+        } else if (iapStatusEl) {
+          iapStatusEl.textContent = 'IAPrestorePurchases no está disponible.';
+        }
+      } catch (err) {
+        setIapLastAction({
+          label: 'restore purchases',
+          status: 'failed',
+          type: 'manual-restore'
+        });
+        if (iapStatusEl) {
+          iapStatusEl.textContent = `Error en restore purchases: ${err.message || String(err)}`;
+        }
+      }
+      setTimeout(() => {
+        renderIapState();
+      }, 1200);
+      setTimeout(() => {
+        renderIapState();
+      }, 3000);
+    });
+    this.querySelector('#diag-iap-copy')?.addEventListener('click', async () => {
+      const text = JSON.stringify(buildIapExportPayload(), null, 2);
+      try {
+        if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+          await navigator.clipboard.writeText(text);
+          if (iapStatusEl) iapStatusEl.textContent = 'Estado IAP copiado al portapapeles.';
+        } else if (iapStatusEl) {
+          iapStatusEl.textContent = 'Clipboard API no disponible en este entorno.';
+        }
+      } catch (err) {
+        if (iapStatusEl) {
+          iapStatusEl.textContent = `Error copiando estado IAP: ${err.message || String(err)}`;
+        }
+      }
+    });
+    this.querySelector('#diag-iap-clear-timeline')?.addEventListener('click', () => {
+      const state = ensureIapDiagnosticsState();
+      state.history = [];
+      state.lastBackend = null;
+      if (iapStatusEl) iapStatusEl.textContent = 'Timeline IAP limpiado.';
+      renderIapState();
+    });
+    this.querySelector('#diag-iap-clear-local')?.addEventListener('click', () => {
+      try {
+        localStorage.removeItem('_purchase_expires');
+        localStorage.removeItem('_purchase_expires_human');
+        localStorage.removeItem('appv5:last-got-premium-result');
+      } catch (err) {
+        console.error('[diag] error limpiando premium local', err);
+      }
+      if (iapStatusEl) iapStatusEl.textContent = 'Estado premium local eliminado.';
+      renderIapState();
+    });
+    this.querySelector('#diag-iap-reread')?.addEventListener('click', () => {
+      if (iapStatusEl) iapStatusEl.textContent = 'Estado IAP releído desde memoria y localStorage.';
+      renderIapState();
+    });
     this.querySelector('#diag-speak-seed')?.addEventListener('click', () => {
       seedSpeakStores();
     });
@@ -2914,6 +3504,7 @@ class PageDiagnostics extends HTMLElement {
         window.openNotificationsModal();
       }
     });
+    renderIapState();
 
     if (ttsPlayBtn) {
       const ttsSupported =
@@ -3107,6 +3698,14 @@ class PageDiagnostics extends HTMLElement {
     if (this._userHandler) {
       window.removeEventListener('app:user-change', this._userHandler);
       this._userHandler = null;
+    }
+    if (this._iapHandler) {
+      window.removeEventListener('app:iap-premium-change', this._iapHandler);
+      this._iapHandler = null;
+    }
+    if (this._iapStoreEventHandler) {
+      window.removeEventListener('app:iap-store-event', this._iapStoreEventHandler);
+      this._iapStoreEventHandler = null;
     }
     if (this._speakStoresHandler) {
       window.removeEventListener('app:speak-stores-change', this._speakStoresHandler);

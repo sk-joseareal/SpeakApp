@@ -382,9 +382,16 @@ class TabsPage extends HTMLElement {
 
     this._tabVisibilityChangeHandler = () => {
       applyTabVisibility();
+      const currentTab = getCurrentSelectedTab();
+      const nextTab = getAllowedTabs()[0] || 'home';
+      if (currentTab && !isAllowedTab(currentTab)) {
+        writeStoredTab(nextTab);
+        forceTab(nextTab);
+        return;
+      }
       const storedTab = normalizeTab(readStoredTab());
       if (storedTab && !isAllowedTab(storedTab)) {
-        writeStoredTab(getAllowedTabs()[0] || 'home');
+        writeStoredTab(nextTab);
       }
     };
     window.addEventListener('app:tab-visibility-change', this._tabVisibilityChangeHandler);

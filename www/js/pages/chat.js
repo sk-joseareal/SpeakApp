@@ -2160,7 +2160,7 @@ class PageChat extends HTMLElement {
             user_id: currentUserId,
             user_name: getUserDisplayName(currentUser),
             avatar: getUserPublicAvatar(currentUser),
-            app: 'speakapp',
+            app: 'cursoingles',
             peer_user_id: peerUserId,
             peer_name: pickFirstText(peer && peer.name),
             peer_avatar: pickFirstText(peer && peer.avatar)
@@ -2352,7 +2352,7 @@ class PageChat extends HTMLElement {
             user_id: currentUserId,
             user_name: getUserDisplayName(currentUser),
             avatar: getUserPublicAvatar(currentUser),
-            app: 'speakapp',
+            app: 'cursoingles',
             premium: isPremiumUser(currentUser),
             peer_user_id: peerUserId,
             peer_name: pickFirstText(peer && peer.name),
@@ -2414,7 +2414,7 @@ class PageChat extends HTMLElement {
             user_id: currentUserId,
             uuid: getClientUuid(),
             platform: getClientPlatform(),
-            app: 'speakapp'
+            app: 'cursoingles'
           })
         });
         let data = null;
@@ -2977,7 +2977,7 @@ class PageChat extends HTMLElement {
         user_name: getUserDisplayName(user),
         email: user && user.email ? user.email : '',
         avatar: getUserPublicAvatar(user),
-        app: 'speakapp',
+        app: 'cursoingles',
         premium: isPremiumUser(user)
       };
       Object.assign(
@@ -3080,7 +3080,7 @@ class PageChat extends HTMLElement {
         uuid: getClientUuid(),
         platform: getClientPlatform(),
         user_id: lastUserId,
-        app: 'speakapp'
+        app: 'cursoingles'
       };
       const realtimeStateToken = getRealtimeStateToken();
       if (realtimeStateToken) {
@@ -3162,7 +3162,7 @@ class PageChat extends HTMLElement {
         user_name: getUserDisplayName(user),
         email: user && user.email ? user.email : '',
         avatar: getUserPublicAvatar(user),
-        app: 'speakapp',
+        app: 'cursoingles',
         premium: isPremiumUser(user)
       };
       try {
@@ -4004,7 +4004,7 @@ class PageChat extends HTMLElement {
             user_id: currentUserId,
             user_name: getUserDisplayName(currentUser),
             avatar: getUserPublicAvatar(currentUser),
-            app: 'speakapp',
+            app: 'cursoingles',
             premium: isPremiumUser(currentUser),
             peer_user_id: pickFirstText(activeRoom.peer && activeRoom.peer.id),
             peer_name: pickFirstText(activeRoom.peer && activeRoom.peer.name),
@@ -6776,7 +6776,7 @@ class PageChat extends HTMLElement {
           name: getUserDisplayName(user),
           email: user.email || '',
           avatar: getUserPublicAvatar(user),
-          app: 'speakapp',
+          app: 'cursoingles',
           premium: isPremiumUser(user)
         };
         options.auth = {
@@ -7375,7 +7375,7 @@ class PageChat extends HTMLElement {
               actorId: pickFirstText(lastUserId),
               actorName: getUserDisplayName(window.user),
               actorAvatar: getUserPublicAvatar(window.user),
-              actorApp: 'speakapp'
+              actorApp: 'cursoingles'
             },
             {
               mode: 'community',

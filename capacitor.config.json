@@ -1,6 +1,6 @@
 {
-  "appId": "com.sokinternet.speak",
-  "appName": "Speak App",
+  "appId": "com.sokinternet.cursoingles",
+  "appName": "English Course",
   "webDir": "www",
   "plugins": {
     "Keyboard": {

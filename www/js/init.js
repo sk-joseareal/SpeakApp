@@ -28,7 +28,7 @@ const PLAN_TAB_VISIBILITY_KEYS = {
 
 const PREMIUM_PLAN_TABS = {
   home: true,
-  freeride: false,
+  freeride: true,
   reference: true,
   chat: true,
   tu: true
@@ -53,8 +53,7 @@ const isPremiumPlanUser = (user) => {
 };
 
 window.applyUserPlanTabVisibility = (user) => {
-  if (!user || typeof user !== 'object') return null;
-  const nextPlan = isPremiumPlanUser(user) ? PREMIUM_PLAN_TABS : STANDARD_PLAN_TABS;
+  const nextPlan = user && typeof user === 'object' && isPremiumPlanUser(user) ? PREMIUM_PLAN_TABS : STANDARD_PLAN_TABS;
   window.r34lp0w3r = window.r34lp0w3r || {};
   window.r34lp0w3r.tabVisibility = { ...nextPlan };
   window.r34lp0w3r.referenceTabEnabled = nextPlan.reference === true;
@@ -1687,8 +1686,10 @@ window.addEventListener('app:user-change', (event) => {
   const prevId = speakLastUserId;
   const isLogin = !isValidSpeakUserId(prevId) && isValidSpeakUserId(nextId);
   const isUserSwitch = isValidSpeakUserId(prevId) && isValidSpeakUserId(nextId) && prevId !== nextId;
-  if (nextUser && (isLogin || isUserSwitch)) {
+  if (isLogin || isUserSwitch || nextUser) {
     window.applyUserPlanTabVisibility(nextUser);
+  } else if (!nextUser) {
+    window.applyUserPlanTabVisibility(null);
   }
   speakLastUserId = nextId;
   if (isValidSpeakUserId(prevId) && !isValidSpeakUserId(nextId)) {

@@ -16,6 +16,9 @@ import './pages/notifications.js';
 
 const ONBOARDING_STATUSBAR_COLOR = '#2d6df0';
 const APP_STATUSBAR_COLOR = '#f4f6fb';
+const PURCHASE_EXPIRES_STORAGE_KEY = '_purchase_expires';
+const PURCHASE_EXPIRES_HUMAN_STORAGE_KEY = '_purchase_expires_human';
+const LAST_IAP_RESULT_STORAGE_KEY = 'appv5:last-got-premium-result';
 
 function getCurrentAppPath() {
   return window.location.hash.replace('#', '') || '/';
@@ -64,6 +67,102 @@ function isOnboardingPath(path) {
   const normalized = String(path || '').trim();
   return normalized === '/' || normalized === '/onboarding';
 }
+
+function parsePurchaseExpiry(value) {
+  if (value === undefined || value === null || value === '') return null;
+  const numeric = Number(value);
+  if (Number.isFinite(numeric) && numeric > 0) return numeric;
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed.getTime();
+}
+
+function purchaseExpiryToIso(value) {
+  const ts = parsePurchaseExpiry(value);
+  if (!ts) return '';
+  return new Date(ts).toISOString();
+}
+
+function isPremiumFromExpiryIso(value) {
+  const ts = parsePurchaseExpiry(value);
+  return Boolean(ts && ts > Date.now());
+}
+
+function persistPurchaseState(result) {
+  const expiresTs = parsePurchaseExpiry(result && result.purchase_expires);
+  try {
+    if (result && result.register_ok && expiresTs) {
+      localStorage.setItem(PURCHASE_EXPIRES_STORAGE_KEY, String(expiresTs));
+      localStorage.setItem(
+        PURCHASE_EXPIRES_HUMAN_STORAGE_KEY,
+        result.purchase_expires_human || new Date(expiresTs).toISOString()
+      );
+    }
+  } catch (err) {
+    console.error('[iap] error guardando expiracion local', err);
+  }
+
+  try {
+    localStorage.setItem(LAST_IAP_RESULT_STORAGE_KEY, JSON.stringify(result || null));
+  } catch (err) {
+    console.error('[iap] error guardando ultimo resultado IAP', err);
+  }
+}
+
+function buildUpdatedUserFromPurchase(currentUser, result) {
+  if (!currentUser || typeof currentUser !== 'object') return currentUser;
+  const nextUser = { ...currentUser };
+  const expiresIso = purchaseExpiryToIso(result && result.purchase_expires);
+  const hasPremium = Boolean(result && result.register_ok && isPremiumFromExpiryIso(expiresIso));
+
+  if (expiresIso) {
+    nextUser.expires_date = expiresIso;
+    nextUser.expiresDate = expiresIso;
+  }
+
+  if (result && result.purchase_id) {
+    nextUser.purchase_id = String(result.purchase_id);
+  }
+
+  if (result && result.register_ok) {
+    nextUser.premium = hasPremium;
+  }
+
+  return nextUser;
+}
+
+window._trigger_gotPremium = (result) => {
+  const safeResult = result && typeof result === 'object' ? { ...result } : { register_ok: false };
+  const nextUser = buildUpdatedUserFromPurchase(window.user, safeResult);
+
+  window.__lastGotPremiumResult = safeResult;
+  persistPurchaseState(safeResult);
+
+  if (nextUser && typeof window.setUser === 'function') {
+    window.setUser(nextUser);
+  } else if (nextUser) {
+    window.user = nextUser;
+    window.dispatchEvent(new CustomEvent('app:user-change', { detail: nextUser }));
+  }
+
+  window.dispatchEvent(
+    new CustomEvent('app:iap-premium-change', {
+      detail: {
+        result: safeResult,
+        user: nextUser || window.user || null
+      }
+    })
+  );
+};
+
+window.getLastIapPremiumResult = () => {
+  if (window.__lastGotPremiumResult) return window.__lastGotPremiumResult;
+  try {
+    return JSON.parse(localStorage.getItem(LAST_IAP_RESULT_STORAGE_KEY) || 'null');
+  } catch (_err) {
+    return null;
+  }
+};
 
 function applyAppChromeForPath(path) {
   const onboarding = isOnboardingPath(path);

@@ -9,8 +9,8 @@
   window.user_id = window.user_id || null;
 
   window.appMeta = window.appMeta || {
-    version: window.APP_VERSION || '1.0.1',
-    build: window.APP_BUILD || '38'
+    version: window.APP_VERSION || '5.0.1',
+    build: window.APP_BUILD || '999005002'
   };
 
   const emitAppMeta = () => {

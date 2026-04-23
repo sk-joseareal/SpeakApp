@@ -1101,7 +1101,7 @@ window.requestBadgeReset = function(reason) {
 
 async function enviarPush(type,delay = 0) {
   console.log(">#C04#> enviarPush.")
-  const destination = 'speak';
+  const destination = 'cursoingles';
   const token = ( type == "apns" ? window.__APNsToken : window.__fcmToken ) 
   console.log(">#C04#> enviarPush. type: " + type + " token: " + token + " delay: " + delay + " destination: " + destination);
   try {
@@ -1291,64 +1291,25 @@ function logLongString(label, str, chunkSize = 500) {
 IAPPurchaseVerify = async function(body, callback) {
 
   console.log(">#V05# IAPPurchaseVerify: body:",JSON.stringify(body));
-  /*
-  {
-    "id":"com.sokinternet.testing",
-    "type":"application",
-    "products":
-      [
-        {
-          "className":"Product",
-          "title":"Year Premium","description":"Unlimited full year access.","platform":"ios-appstore","type":"paid subscription","id":"premium_anual","group":"21704713",
-          "offers":[{"className":"Offer","id":"$","pricingPhases":[{"price":"1,99€","priceMicros":1990000,"currency":"EUR","billingPeriod":"P1Y","paymentMode":"PayAsYouGo","recurrenceMode":"INFINITE_RECURRING"}],"productId":"premium_anual","productType":"paid subscription","productGroup":"21704713","platform":"ios-appstore","offerType":"Default"}],
-          "raw":{"id":"premium_anual","description":"Unlimited full year access.","introPrice":null,"introPricePaymentMode":null,"billingPeriodUnit":"Year","countryCode":"ES","introPricePeriodUnit":null,"discounts":[],"title":"Year Premium","price":"1,99€","billingPeriod":1,"group":"21704713","priceMicros":1990000,"currency":"EUR","introPricePeriod":null,"introPriceMicros":null,"type":"paid subscription","platform":"ios-appstore"},
-          "countryCode":"ES"
-        },
-        {
-          "className":"Product",
-          "title":"Month Premium","description":"Full Month access.","platform":"ios-appstore","type":"paid subscription","id":"premium_month","group":"21704713",          
-          "offers":[{"className":"Offer","id":"$","pricingPhases":[{"price":"0,99€","priceMicros":990000,"currency":"EUR","billingPeriod":"P1M","paymentMode":"PayAsYouGo","recurrenceMode":"INFINITE_RECURRING"}],"productId":"premium_month","productType":"paid subscription","productGroup":"21704713","platform":"ios-appstore","offerType":"Default"}],
-          "raw":{"id":"premium_month","description":"Full Month access.","introPrice":null,"introPricePaymentMode":null,"billingPeriodUnit":"Month","countryCode":"ES","introPricePeriodUnit":null,"discounts":[],"title":"Month Premium","price":"0,99€","billingPeriod":1,"group":"21704713","priceMicros":990000,"currency":"EUR","introPricePeriod":null,"introPriceMicros":null,"type":"paid subscription","platform":"ios-appstore"},
-          "countryCode":"ES"
-        }
-      ],
-    "transaction":
-      {
-        "type":"ios-appstore",
-        "id":"2000000943844642",
-        "appStoreReceipt":"MIIlmgYJKoZIhvcNAQcCoIIlizCCJYcCAQExDzANBglghkgBZQMEAgEFADCCFNAGCSqGSIb3DQEHAaCCFMEEghS9MYIUuTAKAgEIAgEBBAIWADAKAgEUAgEBBAIMADALAgEBAgEBBAMCAQAwCwIBAwIBAQQDDAExMAsCAQsCAQEEAwIBADALAgEPAgEBBAMCAQAwCwIBEAIBAQQDAgEAMAsCARkCAQEEAwIBAzAMAgEKAgEBBAQWAjQrMAwCAQ4CAQEEBAICAMIwDQIBDQIBAQQFAgMCwRQwDQIBEwIBAQQFDAMxLjAwDgIBCQIBAQQGAgRQMzA1MBgCAQQCAQIEEKm3VMJqKEghZY5oPjfJ1zAwGwIBAAIBAQQTDBFQcm9kdWN0aW9uU2FuZGJveDAcAgEFAgEBBBRP3AbNCbgBdC9ejyEcexfLY+7H7DAeAgEMAgEBBBYWFDIwMjUtMDYtMTlUMTE6MTM6MzJaMB4CARICAQEEFhYUMjAxMy0wOC0wMVQwNzowMDowMFowIQIBAgIBAQQZDBdjb20uc29raW50ZXJuZXQudGVzdGluZzBTAgEHAgEBBEuBK5AkJ645lqVO33wLogMJGx+k4ZeFdVxNx6NaRKM3/72ELfLrlwlEL2MYK4vZAG3xNHkyURJbvJto/5q4f1Toa8O4mPySIOWRgjQwagIBBgIBAQRioBqPi66fTaOAStEUZSJJUuOyZczPs9ikxFgh4UTEKuvoxkNulnoWEBz3/A9x0Y5cj/OskXjwDPK3Tayb/cHKOtnfmstl5wd/FC54VJX3kuTsBOao6xqhUSxGKBGY1b+XHuwwggGIAgERAgEBBIIBfjGCAXowCwICBq0CAQEEAgwAMAsCAgawAgEBBAIWADALAgIGsgIBAQQCDAAwCwICBrMCAQEEAgwAMAsCAga0AgEBBAIMADALAgIGtQIBAQQCDAAwCwICBrYCAQEEAgwAMAwCAgalAgEBBAMCAQEwDAICBqsCAQEEAwIBAzAMAgIGrgIBAQQDAgEAMAwCAgaxAgEBBAMCAQAwDAICBrcCAQEEAwIBADAMAgIGugIBAQQDAgEAMBICAgavAgEBBAkCBwca/U+ujtAwGAICBqYCAQEEDwwNcHJlbWl1bV9tb250aDAbAgIGpwIBAQQSDBAyMDAwMDAwOTQzNzc4NjAwMBsCAgapAgEBBBIMEDIwMDAwMDA5NDM3Nzg2MDAwHwICBqgCAQEEFhYUMjAyNS0wNi0xOVQwNjoyODowOFowHwICBqoCAQEEFhYUMjAyNS0wNi0xOVQwNjoyODowOFowHwICBqwCAQEEFhYUMjAyNS0wNi0xOVQwNjozMzowOFowggGIAgERAgEBBIIBfjGCAXowCwICBq0CAQEEAgwAMAsCAgawAgEBBAIWADALAgIGsgIBAQQCDAAwCwICBrMCAQEEAgwAMAsCAga0AgEBBAIMADALAgIGtQIBAQQCDAAwCwICBrYCAQEEAgwAMAwCAgalAgEBBAMCAQEwDAICBqsCAQEEAwIBAzAMAgIGrgIBAQQDAgEAMAwCAgaxAgEBBAMCAQAwDAICBrcCAQEEAwIBADAMAgIGugIBAQQDAgEAMBICAgavAgEBBAkCBwca/U+ujtIwGAICBqYCAQEEDwwNcHJlbWl1bV9tb250aDAbAgIGpwIBAQQSDBAyMDAwMDAwOTQzNzgyOTUwMBsCAgapAgEBBBIMEDIwMDAwMDA5NDM3Nzg2MDAwHwICBqgCAQEEFhYUMjAyNS0wNi0xOVQwNjozMzowOFowHwICBqoCAQEEFhYUMjAyNS0wNi0xOVQwNjoyODowOFowHwICBqwCAQEEFhYUMjAyNS0wNi0xOVQwNjozODowOFowggGIAgERAgEBBIIBfjGCAXowCwICBq0CAQEEAgwAMAsCAgawAgEBBAIWADALAgIGsgIB
-  */
 
-  // 1. Asegurarse de que hay un recibo
   const receipt = body && body.transaction && body.transaction.appStoreReceipt;
+  const source = isRestoreWindowOpen() ? 'restore' : 'approved';
   let productId = undefined;
   if (body && Array.isArray(body.products) && body.products[0]) {
-      productId = body.products[0].id;
+    productId = body.products[0].id;
   }
 
   if (!receipt || !productId) {
-    console.log(">#V05# IAPPurchaseVerify: No hay receipt. o productId. No se puede validar nada. Se devuelve error.");
+    console.log(">#V05# IAPPurchaseVerify: No hay receipt o productId. Se devuelve error.");
     callback({ ok: false, error: "Missing receipt or productId" });
     return;
   }
 
   console.log(">#V05# IAPPurchaseVerify: productID: " + productId + " Envío al backend.");
-
   logLongString('>#V05# IAPPurchaseVerify: receipt:', receipt);
 
-  console.log( ">#V05# IAPPurchaseVerify: body:", JSON.stringify(body) );
-
-// body: 
-//  {
-//      "id":"com.sokinternet.testing",
-//      "type":"application","products":[{"className":"Product","title":"Year Premium","description":"Unlimited full year access.","platform":"ios-appstore","type":"paid subscription","id":"premium_anual","group":"21704713","offers":[{"className":"Offer","id":"$","pricingPhases":[{"price":"1,99 €","priceMicros":1990000,"currency":"EUR","billingPeriod":"P1Y","paymentMode":"PayAsYouGo","recurrenceMode":"INFINITE_RECURRING"}],"productId":"premium_anual","productType":"paid subscription","productGroup":"21704713","platform":"ios-appstore","offerType":"Default"}],"raw":{"id":"premium_anual","description":"Unlimited full year access.","introPrice":null,"introPricePaymentMode":null,"billingPeriodUnit":"Year","countryCode":"ES","introPricePeriodUnit":null,"discounts":[],"title":"Year Premium","price":"1,99 €","billingPeriod":1,"group":"21704713","priceMicros":1990000,"currency":"EUR","introPricePeriod":null,"introPriceMicros":null,"type":"paid subscription","platform":"ios-appstore"},"countryCode":"ES"},{"className":"Product","title":"Month Premium","description":"Full Month access.","platform":"ios-appstore","type":"paid subscription","id":"premium_month","group":"21704713","offers":[{"className":"Offer","id":"$","pricingPhases":[{"price":"0,99 €","priceMicros":990000,"currency":"EUR","billingPeriod":"P1M","paymentMode":"PayAsYouGo","recurrenceMode":"INFINITE_RECURRING"}],"productId":"premium_month","productType":"paid subscription","productGroup":"21704713","platform":"ios-appstore","offerType":"Default"}],"raw":{"id":"premium_month","description":"Full Month access.","introPrice":null,"introPricePaymentMode":null,"billingPeriodUnit":"Month","countryCode":"ES","introPricePeriodUnit":null,"discounts":[],"title":"Month Premium","price":"0,99 €","billingPeriod":1,"group":"21704713","priceMicros":990000,"currency":"EUR","introPricePeriod":null,"introPriceMicros":null,"type":"paid subscription","platform":"ios-appstore"},"countryCode":"ES"}],"transaction":{"type":"ios-appstore","id":"2000000959252222","appStoreReceipt":"MII5tQYJKoZIhvcNAQcCoII5pjCCOaICAQExDzANBglghkgBZQMEAgEFADCCKOsGCSqGSIb3DQEHAaCCKNwEgijYMYIo1DAKAgEIAgEBBAIWADAKAgEUAgEBBAIMADALAgEBAgEBBAMCAQAwCwIBAwIBAQQDDAExMAsCAQsCAQEEAwIBADALAgEPAgEBBAMCAQAwCwIBEAIBAQQDAgEAMAsCARkCAQEEAwIBAzAMAgEKAgEBBAQWAjQrMAwCAQ4CAQEEBAICAMIwDQIBDQIBAQQFAgMCwRQwDQIBEwIBAQQFDAMxLjAwDgIBCQIBAQQGAgRQMzA1MBgCAQQCAQIEEOhbwCor78ROfHLe3yXKt9swGwIBAAIBAQQTDBFQcm9kdWN0aW9uU2FuZGJveDAcAgEFAgEBBBQTYsC/v5P9XC5g+s3wOSUgMrVr4TAeAgEMAgEBBBYWFDIwMjUtMDctMTBUMTY6NTA6MTRaMB4CARICAQEEFhYUMjAxMy0wOC0wMVQwNzowMDowMFowIQIBAgIBAQQZDBdjb20uc29raW50ZXJuZXQudGVzdGluZzBdAgEHAgEBBFW0bm4RcmofhoxTCmwfGdfihR0C0OgEbmMsZh6cG5aXpW2RK+C58dp/pUrgVvJ9wNQGQ9DysbpNZS/ERX3QISu83A6nVh/WYcjuYGTp4tmF398P8VfKMF8CAQYCAQEEV2IyTlLspgdsA/uLG5jyDS9TyunYUfQieZhIAA4ZVDAbnz90o2sMwA/daKCsYZQUnYTqpECmdCeD6+dfOAQUPrzijAXbk+prJe4CxM9Scd/p+l9xXyt+szCCAYgCARECAQEEggF+MYIBejALAgIGrQIBAQQCDAAwCwICBrACAQEEAhYAMAsCAgayAgEBBAIMADALAgIGswIBAQQCDAAwCwICBrQCAQEEAgwAMAsCAga1AgEBBAIMADALAgIGtgIBAQQCDAAwDAICBqUCAQEEAwIBATAMAgIGqwIBAQQDAgEDMAwCAgauAgEBBAMCAQAwDAICBrECAQEEAwIBADAMAgIGtwIBAQQDAgEAMAwCAga6AgEBBAMCAQAwEgICBq8CAQEECQIHBxr9T66O0DAYAgIGpgIBAQQPDA1wcmVtaXVtX21vbnRoMBsCAganAgEBBBIMEDIwMDAwMDA5NDM3Nzg2MDAwGwICBqkCAQEEEgwQMjAwMDAwMDk0Mzc3ODYwMDAfAgIGqAIBAQQWFhQyMDI1LTA2LTE5VDA2OjI4OjA4WjAfAgIGqgIBAQQWFhQyMDI1LTA2LTE5VDA2OjI4OjA4WjAfAgIGrAIBAQQWFhQyMDI1LTA2LTE5VDA2OjMzOjA4WjCCAYgCARECAQEEggF+MYIBejALAgIGrQIBAQQCDAAwCwICBrACAQEEAhYAMAsCAgayAgEBBAIMADALAgIGswIBAQQCDAAwCwICBrQCAQEEAgwAMAsCAga1AgEBBAIMADALAgIGtgIBAQQCDAAwDAICBqUCAQEEAwIBATAMAgIGqwIBAQQDAgEDMAwCAgauAgEBBAMCAQAwDAICBrECAQEEAwIBADAMAgIGtwIBAQQDAgEAMAwCAga6AgEBBAMCAQAwEgICBq8CAQEECQIHBxr9T66O0jAYAgIGpgIBAQQPDA1wcmVtaXVtX21vbnRoMBsCAganAgEBBBIMEDIwMDAwMDA5NDM3ODI5NTAwGwICBqkCAQEEEgwQMjAwMDAwMDk0Mzc3ODYwMDAfAgIGqAIBAQQWFhQyMDI1LTA2LTE5VDA2OjMzOjA4WjAfAgIGqgIBAQQWFhQyMDI1LTA2LTE5VDA2OjI4OjA4WjAfAgIGrAIBAQQWFhQyMDI1LTA2LTE5VDA2OjM4OjA4WjCCAYgCARECAQEEggF+MYIBejALAgIGrQIBAQQCDAAwCwICBrACAQEEAhYAMAsCAgayAgEB
-
-
-  // 2. ENVÍO AL BACKEND
   try {
-
-    const url =  ( window.env === 'PRO' ? window.apiPRO : window.apiDEV ) + '/iap/verify-ios';
-
+    const url = ( window.env === 'PRO' ? window.apiPRO : window.apiDEV ) + '/iap/verify-ios';
     body.userId = window.user_id;
 
     const res = await fetch( url, {
@@ -1357,148 +1318,102 @@ IAPPurchaseVerify = async function(body, callback) {
       body: JSON.stringify(body)
     });
     const response = await res.json();
+    const transaction = response && response.data && response.data.transaction ? response.data.transaction : {};
+    const productType =
+      body && Array.isArray(body.products) && body.products[0] && body.products[0].type
+        ? body.products[0].type
+        : '';
+    const isSubscription = /subscription/i.test(productType);
+    const FOREVER_TS = new Date('2099-12-31T23:59:59Z').getTime();
+    const expiresMs =
+      transaction && transaction.expiresDateMs !== undefined && transaction.expiresDateMs !== null
+        ? parseInt(transaction.expiresDateMs, 10)
+        : undefined;
 
-    // El backend debe devolver algo como { ok: true, data: { ... } }
-    callback(response); // ✅ activa 'verified' si ok === true
+    let result;
 
-    var result;
-
-    if ( response.ok )
-    {
+    if (response.ok) {
       console.log( '>#V05# IAPPurchaseVerify: Compra validada correctamente: response.ok:', response.ok );
       console.log( '>#V05# IAPPurchaseVerify: Compra validada correctamente: response.data.id:', response.data.id );
-      Object.keys( response.data.transaction ).forEach( k => {
-        if ( k == "appStoreReceipt" )
-          console.log( '>#V05# IAPPurchaseVerify: Compra validada correctamente: response.data.transaction' + k + ':', response.data.transaction[k].substring( 0, 20 ) + "..." );
-        else
-          console.log( '>#V05# IAPPurchaseVerify: Compra validada correctamente: response.data.transaction' + k + ':', response.data.transaction[k] );
+
+      Object.keys(transaction).forEach((k) => {
+        if (k === "appStoreReceipt" && typeof transaction[k] === 'string') {
+          console.log( '>#V05# IAPPurchaseVerify: transaction.' + k + ':', transaction[k].substring(0, 20) + "..." );
+        } else {
+          console.log( '>#V05# IAPPurchaseVerify: transaction.' + k + ':', transaction[k] );
+        }
       });
 
-      // >#V05# IAPPurchaseVerify: Compra validada correctamente: response.ok: true
-      // >#V05# IAPPurchaseVerify: Compra validada correctamente: response.data.id: 2000000959262715
-      // >#V05# IAPPurchaseVerify: Compra validada correctamente: response.data.transaction.type: ios-appstore
-      // >#V05# IAPPurchaseVerify: Compra validada correctamente: response.data.transaction.id: appstore.application
-      // >#V05# IAPPurchaseVerify: Compra validada correctamente: response.data.transaction.appStoreReceipt: MIJGHwYJKoZIhvcNAQcC...
-      // >#V05# IAPPurchaseVerify: Compra validada correctamente: response.data.transaction.validatedBy: server
-      // >#V05# IAPPurchaseVerify: Compra validada correctamente: response.data.transaction.originalTransactionId: 2000000943778600
-      // >#V05# IAPPurchaseVerify: Compra validada correctamente: response.data.transaction.expiresDateMs: 1752169213000
-
-      // {
-      //   "ok": true,
-      //   "data": {
-      //     "id": "2000000959257319",
-      //     "transaction": {
-      //       "appStoreReceipt": "...",
-      //       "validatedBy": "server",
-      //       "originalTransactionId": "2000000959257319",
-      //       "expiresDateMs": "1752147633829"
-      //     }
-      //   }
-      // }
-
-      // const now = Date.now();
-      // const durationMs = 365 * 24 * 60 * 60 * 1000; // Por ejemplo, 1 año de suscripción
-      // const expires = new Date(now + durationMs);
-
-      if ( response.ok )
-      {
-        const t = response.data.transaction;
-        const productId = (body && Array.isArray(body.products) && body.products[0] && body.products[0].id) || undefined;
-        const productType = (body && Array.isArray(body.products) && body.products[0] && body.products[0].type) || '';
-        const isSubscription = /subscription/i.test(productType);
-        const FOREVER_TS = new Date('2099-12-31T23:59:59Z').getTime();
-        const expiresMs = t && t.expiresDateMs ? parseInt(t.expiresDateMs) : undefined;
-
-        if (isSubscription && expiresMs) {
-          result = {
-            register_ok: true,
-            purchase_id: t.originalTransactionId || response.data.id || productId,
-            purchase_expires: expiresMs,
-            purchase_expires_human: new Date(expiresMs).toISOString() //.split("T")[0] // formato YYYY-MM-DD
-          };
-        } else {
-          result = {
-            register_ok: true,
-            purchase_id: t && (t.originalTransactionId || t.id) || response.data.id || productId,
-            purchase_expires: FOREVER_TS,
-            purchase_expires_human: new Date(FOREVER_TS).toISOString()
-          };
-        }
-      }
-      else
-      {
+      if (isSubscription && expiresMs) {
         result = {
-          register_ok: false
-        }        
+          register_ok: true,
+          purchase_id: transaction.originalTransactionId || response.data.id || productId,
+          purchase_expires: expiresMs,
+          purchase_expires_human: new Date(expiresMs).toISOString()
+        };
+      } else {
+        result = {
+          register_ok: true,
+          purchase_id: (transaction.originalTransactionId || transaction.id) || response.data.id || productId,
+          purchase_expires: FOREVER_TS,
+          purchase_expires_human: new Date(FOREVER_TS).toISOString()
+        };
       }
-    }
-    else
-    {
-      console.log( '>#V05# IAPPurchaseVerify: Compra NO validada correctamente: ' + JSON.stringify( data.details ) );
-
+    } else {
+      console.log( '>#V05# IAPPurchaseVerify: Compra NO validada correctamente: ' + JSON.stringify( response.error ) );
       result = {
-        register_ok: false,
+        register_ok: false
       };
     }
 
-    console.log( '>#V05# IAPPurchaseVerify: Informando a la App ( window.trigger_gotPremium( result ) ).' );
-    // Lógica de la App
+    console.log( '>#V05# IAPPurchaseVerify: Informando a la App ( window._trigger_gotPremium( result ) ).' );
     if ( window._trigger_gotPremium ) {
-      console.log( "|||||||||||||||| window._trigger_gotPremium( result ) ||||||||||||||||" );
-      // Implementado en index.js
       window._trigger_gotPremium( result );
-    }
-    else
-    {
+    } else {
       console.log( "|||||||||||||||| NO se encontró window._trigger_gotPremium ||||||||||||||||" );
     }
 
+    if (typeof window.emitIapStoreEvent === 'function') {
+      const eventItem = body && body.transaction ? body.transaction : body;
+      window.emitIapStoreEvent('ios-validated', eventItem, {
+        source: source,
+        success: Boolean(result && result.register_ok),
+        purchase_id: result && result.purchase_id ? result.purchase_id : undefined,
+        purchase_expires: result && result.purchase_expires ? result.purchase_expires : undefined
+      });
+      if (source === 'restore') {
+        window.emitIapStoreEvent('restore-result', eventItem, {
+          success: Boolean(result && result.register_ok),
+          purchase_id: result && result.purchase_id ? result.purchase_id : undefined,
+          purchase_expires: result && result.purchase_expires ? result.purchase_expires : undefined
+        });
+        window.__iapRestoreRequestedAt = 0;
+      }
+    }
+
+    callback(response);
   } catch (err) {
     console.log( '>#V05# IAPPurchaseVerify: Error verificando recibo.' );
     console.log( '>#V05# IAPPurchaseVerify: - message:', err.message );
     console.log( '>#V05# IAPPurchaseVerify: - stack:', err.stack );
     console.log( '>#V05# IAPPurchaseVerify: - name:', err.name );
     console.log( '>#V05# IAPPurchaseVerify: - full error:', err );
-    callback({ ok: false, error: err.message }); // ❌ activa 'unverified'
+    if (source === 'restore') {
+      window.__iapRestoreRequestedAt = 0;
+    }
+    callback({ ok: false, error: err.message });
   }
-
-  console.log(">#V05# IAPPurchaseVerify: Llamando al callback con OK: llamará a verified().");
-
-  try {
-    const transaction = body && body.transaction;
-    const txId = body && body.transaction && body.transaction.id;
-    console.log(">#V05# IAPPurchaseVerify: transaction.id = " + txId);
-
-    // Fuerza a decirle al plugin que la verificación ha ido bien.
-    callback({
-      ok: true,
-      data: {
-        id: transaction.id,
-        transaction: transaction
-      }
-    });
-
-    console.log(">#V05# IAPPurchaseVerify: payload para el callback:" + JSON.stringify(payload));
-
-    callback(payload);
-  } catch (e) {
-
-    console.log(">#V05# IAPPurchaseVerify: ERROR al preparar el payload:", e);
-
-    callback({ ok: false, error: 'EXCEPTION:' + e.message });
-
-  }
-
-
-
-
-
-
 };
 
 IAPPurchaseVerified = async function(item) {
 
   console.log(">#V05# LISTENER IAPPurchaseVerified: item:",JSON.stringify(item));
+  if (typeof window.emitIapStoreEvent === 'function') {
+    window.emitIapStoreEvent('verified', item, {
+      status: 'verified',
+      transactionId: item && item.transactionId ? item.transactionId : undefined
+    });
+  }
 
   console.log(">#V05# LISTENER IAPPurchaseVerified: Llamando a item.finish().");
   item.finish()
@@ -1509,11 +1424,189 @@ IAPPurchaseVerified = async function(item) {
 
 // Listeners de IAP ------------------------------------------
 
+window.emitIapStoreEvent = function(type, item, extra) {
+  try {
+    const detail = {
+      type: String(type || '').trim() || 'unknown',
+      at: new Date().toISOString(),
+      platform:
+        item && typeof item === 'object' && item.platform ? item.platform : undefined,
+      className:
+        item && typeof item === 'object' && item.className ? item.className : undefined,
+      productId:
+        item &&
+        typeof item === 'object' &&
+        Array.isArray(item.products) &&
+        item.products[0] &&
+        item.products[0].id
+          ? item.products[0].id
+          : item && item.id
+          ? item.id
+          : undefined,
+      transactionId:
+        item && typeof item === 'object' && item.transactionId ? item.transactionId : undefined,
+      state: item && typeof item === 'object' && item.state ? item.state : undefined,
+      message:
+        item && typeof item === 'object' && item.message ? item.message : undefined,
+      extra: extra && typeof extra === 'object' ? extra : {}
+    };
+    window.__lastIapStoreEvent = detail;
+    window.dispatchEvent(new CustomEvent('app:iap-store-event', { detail }));
+  } catch (err) {
+    console.error('[iap] error emitiendo app:iap-store-event', err);
+  }
+};
+
+window.__iapRestoreRequestedAt = 0;
+
+function isRestoreWindowOpen() {
+  return Boolean(window.__iapRestoreRequestedAt) && (Date.now() - window.__iapRestoreRequestedAt) < 60000;
+}
+
+async function validateAndroidPurchaseWithBackend(item, options) {
+  const opts = options && typeof options === 'object' ? options : {};
+  const source = opts.source || 'unknown';
+  const finishAfterSuccess = opts.finishAfterSuccess !== false;
+
+  if (!item || item.platform !== 'android-playstore') {
+    throw new Error('Android purchase expected');
+  }
+
+  const nativePurchase = item.nativePurchase || {};
+  const packageName = nativePurchase.packageName;
+  const transactionId = item.transactionId || nativePurchase.orderId;
+  const productId =
+    item &&
+    Array.isArray(item.products) &&
+    item.products[0] &&
+    item.products[0].id
+      ? item.products[0].id
+      : nativePurchase.productId;
+  const token = nativePurchase.purchaseToken;
+  const userId = window.user_id;
+
+  if (!packageName || !transactionId || !productId || !token) {
+    throw new Error(
+      'Missing Android purchase data: ' +
+        JSON.stringify({ packageName, transactionId, productId, token: Boolean(token) })
+    );
+  }
+
+  let isSubscription = true;
+  try {
+    const st = window.CdvPurchase && window.CdvPurchase.store;
+    const prod = st && st.get && st.get(productId);
+    if (prod && prod.type) {
+      isSubscription = /subscription/i.test(prod.type);
+    }
+  } catch (e) {
+    // Mantener compatibilidad: suscripción por defecto.
+  }
+
+  const url = (window.env === 'PRO' ? window.apiPRO : window.apiDEV) + '/iap/verify';
+
+  console.log(
+    '>#V05# validateAndroidPurchaseWithBackend:',
+    'source:',
+    source,
+    'userId:',
+    userId,
+    'packageName:',
+    packageName,
+    'transactionId:',
+    transactionId,
+    'productId:',
+    productId,
+    'token:',
+    token
+  );
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      userId: userId,
+      packageName: packageName,
+      transactionId: transactionId,
+      productId: productId,
+      purchaseToken: token,
+      isSubscription: isSubscription,
+      transaction: item
+    })
+  });
+  const data = await response.json();
+  let result;
+
+  if (data.success) {
+    const raw = (data.details && data.details.raw) || {};
+    const FOREVER_TS = new Date('2099-12-31T23:59:59Z').getTime();
+
+    if (isSubscription && raw.expiryTimeMillis) {
+      result = {
+        register_ok: data.details.status === 'VALID',
+        purchase_id: raw.orderId || transactionId || productId,
+        purchase_expires: parseInt(raw.expiryTimeMillis, 10),
+        purchase_expires_human: new Date(parseInt(raw.expiryTimeMillis, 10)).toISOString().split('T')[0]
+      };
+    } else {
+      result = {
+        register_ok: true,
+        purchase_id: raw.orderId || transactionId || productId,
+        purchase_expires: FOREVER_TS,
+        purchase_expires_human: new Date(FOREVER_TS).toISOString().split('T')[0]
+      };
+    }
+
+    if (finishAfterSuccess && !item.isAcknowledged && typeof item.finish === 'function') {
+      console.log('>#V05# validateAndroidPurchaseWithBackend: Llamando a item.finish() tras validacion OK.');
+      item.finish();
+    } else if (item.isAcknowledged) {
+      console.log('>#V05# validateAndroidPurchaseWithBackend: Compra ya acknowledged; no hace falta finish().');
+    }
+  } else {
+    console.error('>#V05# validateAndroidPurchaseWithBackend: Compra NO validada:' + JSON.stringify(data.error));
+    result = {
+      register_ok: false
+    };
+  }
+
+  if (typeof window.emitIapStoreEvent === 'function') {
+    window.emitIapStoreEvent('android-validated', item, {
+      source: source,
+      success: Boolean(result && result.register_ok),
+      purchase_id: result && result.purchase_id ? result.purchase_id : undefined,
+      purchase_expires: result && result.purchase_expires ? result.purchase_expires : undefined
+    });
+    if (source === 'approved') {
+      window.emitIapStoreEvent('approved-result', item, {
+        success: Boolean(result && result.register_ok),
+        purchase_id: result && result.purchase_id ? result.purchase_id : undefined,
+        purchase_expires: result && result.purchase_expires ? result.purchase_expires : undefined
+      });
+    } else if (source === 'restore') {
+      window.emitIapStoreEvent('restore-result', item, {
+        success: Boolean(result && result.register_ok),
+        purchase_id: result && result.purchase_id ? result.purchase_id : undefined,
+        purchase_expires: result && result.purchase_expires ? result.purchase_expires : undefined
+      });
+    }
+  }
+
+  if (window._trigger_gotPremium) {
+    window._trigger_gotPremium(result);
+  }
+
+  return result;
+}
+
 // Listener general para cuando la información de CUALQUIER producto se actualiza.
 // Se dispara después de 'store.initialize()' para cada producto registrado y válido.
 function IAPPurchaseUpdated(item) {
 
   console.log(">#V05# LISTENER IAPPurchaseUpdated: item:",JSON.stringify(item));
+  if (typeof window.emitIapStoreEvent === 'function') {
+    window.emitIapStoreEvent('updated', item);
+  }
   const className = (item && typeof item === 'object' && 'platform' in item) ? item.className : undefined;
   const platform = (item && typeof item === 'object' && 'platform' in item) ? item.platform : undefined;
   console.log(">#V05# LISTENER IAPPurchaseUpdated: className:",className,"platform:",platform);
@@ -1681,23 +1774,11 @@ function IAPPurchaseUpdated(item) {
   else if (className === 'Receipt') {
 
     let purchaseToken, orderId; // Del propio Receipt
-    let productId, isAcknowledged, state; // De la última transacción
 
     if (platform == "android-playstore")
     {
       purchaseToken = item.purchaseToken;
       orderId = item.orderId;
-      // ????????????????????????
-      /*
-      validatePurchaseOnServer({
-        productId,
-        purchaseToken: token,
-        platform: "android",
-      }).then(() function() {
-        console.log("✅ Restauración validada:", productId);
-        // No se hace finish aquí si ya está acknowledged
-      }).catch( function(err) { console.log("❌ Error en restauración:", err) } );
-      */
     } 
     else // ios-appstore
     {
@@ -1735,6 +1816,19 @@ function IAPPurchaseUpdated(item) {
 
         idx += 1;
       });
+
+      if (platform === 'android-playstore' && isRestoreWindowOpen()) {
+        item.transactions.forEach(function(transaction) {
+          if (!transaction || transaction.state !== 'approved') return;
+          validateAndroidPurchaseWithBackend(transaction, {
+            source: 'restore',
+            finishAfterSuccess: true
+          }).catch(function(err) {
+            console.error('>#V05# LISTENER IAPPurchaseUpdated: Error validando restore Android:', err);
+          });
+        });
+        window.__iapRestoreRequestedAt = 0;
+      }
     }
 
   }
@@ -1749,6 +1843,11 @@ function IAPPurchaseUpdated(item) {
 function IAPPPurchaseInitiated(item) {
 
   console.log(">#V05# LISTENER IAPPPurchaseInitiated: item: " + JSON.stringify(item));
+  if (typeof window.emitIapStoreEvent === 'function') {
+    window.emitIapStoreEvent('initiated', item, {
+      status: 'initiated'
+    });
+  }
 
 }
 
@@ -1756,6 +1855,11 @@ function IAPPPurchaseInitiated(item) {
 async function IAPPurchaseApproved(item) {
 
   console.log(">#V05# LISTENER IAPPurchaseApproved: item: " + JSON.stringify(item));
+  if (typeof window.emitIapStoreEvent === 'function') {
+    window.emitIapStoreEvent('approved', item, {
+      status: 'approved'
+    });
+  }
 
   // Aquí la tienda (App Store o Play Store) dan por correcta la compra.
   // Es el momento de ponerle Premium al usuario.
@@ -1809,134 +1913,20 @@ async function IAPPurchaseApproved(item) {
   //
   if (item.platform === "android-playstore")
   {
-
-
-
-//// Llamada a finish() -------------------
-
-    console.log(">#V05# LISTENER IAPPurchaseApproved: Llamando a item.finish().");
-    // Una vez verificado (o para pruebas), finaliza la transacción.
-    // Esto le dice a la tienda que has procesado la compra. Si no lo haces,
-    // la tienda seguirá intentando notificar a la app sobre esta compra 
-    // -> La proxima vez que se abra la app, volverá a provocar approved con la transactión y llamará a esta función.
-    item.finish();
-
-
-//// Verificación en backend --------------
-
-    const url = ( window.env === 'PRO' ? window.apiPRO : window.apiDEV ) + '/iap/verify';
-    const userId = window.user_id;
-
-    const packageName = item.nativePurchase.packageName;
-    const transactionId = item.transactionId;
-    const productId = item.products[0].id;
-    const token = item.nativePurchase.purchaseToken;
-
-    // Determinar si el producto es suscripción o no‑consumible
-    let isSubscription = true;
     try {
-      const st = window.CdvPurchase && window.CdvPurchase.store;
-      const prod = st && st.get && st.get(productId);
-      if (prod && prod.type) {
-        isSubscription = /subscription/i.test(prod.type);
+      await validateAndroidPurchaseWithBackend(item, {
+        source: 'approved',
+        finishAfterSuccess: true
+      });
+    } catch (err) {
+      console.error('>#V05# LISTENER IAPPurchaseApproved: Error validando Android:', err);
+      if (typeof window.emitIapStoreEvent === 'function') {
+        window.emitIapStoreEvent('approved-result', item, {
+          success: false,
+          error: err && err.message ? err.message : String(err)
+        });
       }
-    } catch (e) {
-      // Si falla, mantener true por compatibilidad (suscripción por defecto)
     }
-
-    console.log(">#V05# LISTENER IAPPurchaseApproved: platform: " + item.platform + " userId:" + userId + " packageName:" + packageName + " transactionId: " + transactionId + " productId: " + productId + " token:" + token );
-
-    // verificar el recibo de la compra en el backend (en realidad, registrarlo).
-
-    // Android
-    const response = await fetch( url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        userId: userId,                         // El id del usuario que ha efectuado la compra.
-        packageName: packageName,               // El nombre de tu paquete Android.
-        transactionId: transactionId,           // El Orden number que muestra al usuario en los emails y en la Store.
-        productId: productId,                   // El ID del producto comprado.
-        purchaseToken: token,                   // El token que devuelve Google al hacer la compra.
-        isSubscription: isSubscription,         // true si es suscripción, false si es producto único.
-        transaction: item                       // La transacción entera.
-      })
-    });
-    const data = await response.json();
-    var result;
-    if (data.success) {
-      console.log('>#V05# LISTENER IAPPurchaseApproved: Compra validada correctamente: ' + JSON.stringify(data.details));
-      //  data.details:
-      //  {
-      //    "status":"VALID",
-      //    "expiryTimeMillis":"1752147633829",
-      //    "autoRenewing":true,
-      //    "raw":
-      //      {
-      //        "startTimeMillis":"1752147333829",
-      //        "expiryTimeMillis":"1752147633829",
-      //        "autoRenewing":true,
-      //        "priceCurrencyCode":"EUR",
-      //        "priceAmountMicros":"1190000",
-      //        "countryCode":"ES",
-      //        "developerPayload":"",
-      //        "paymentState":1,
-      //        "orderId":"GPA.3357-9001-7300-75789",
-      //        "purchaseType":0,
-      //        "acknowledgementState":1,
-      //        "kind":"androidpublisher#subscriptionPurchase"
-      //      }
-      //  }
-      
-      // const now = Date.now();
-      // const durationMs = 365 * 24 * 60 * 60 * 1000; // Por ejemplo, 1 año de suscripción
-      // const expires = new Date(now + durationMs);
-      // result = {
-      //   register_ok: true,
-      //   purchase_id: product.id,
-      //   purchase_expires: expires.getTime(), // timestamp en milisegundos
-      //   purchase_expires_human: expires.toISOString().split("T")[0], // formato YYYY-MM-DD
-      // };
-
-      const raw = (data.details && data.details.raw) || {};
-      // Para suscripciones usamos expiryTimeMillis; para no‑consumibles asignamos una fecha muy futura
-      const FOREVER_TS = new Date('2099-12-31T23:59:59Z').getTime();
-      if (isSubscription && raw.expiryTimeMillis) {
-        result = {
-          register_ok: data.details.status === "VALID",
-          purchase_id: (raw.orderId || transactionId || productId),
-          purchase_expires: parseInt(raw.expiryTimeMillis),
-          purchase_expires_human: new Date(parseInt(raw.expiryTimeMillis)).toISOString().split("T")[0] // Fecha legible YYYY-MM-DD
-        }
-      } else {
-        result = {
-          register_ok: true,
-          purchase_id: (raw.orderId || transactionId || productId),
-          purchase_expires: FOREVER_TS,
-          purchase_expires_human: new Date(FOREVER_TS).toISOString().split("T")[0]
-        }
-      }
-
-    } else {
-      console.error('>#V05# LISTENER IAPPurchaseApproved: Compra NO validada correctamente:' + JSON.stringify(data.error));
-
-      result = {
-        register_ok: false,
-      };
-
-    }
-
-    console.log('>#V05# LISTENER IAPPurchaseApproved: Informando a la App ( window._trigger_gotPremium( result ) ).');
-    // Lógica de la App
-    if (window._trigger_gotPremium) {
-      console.log("|||||||||||||||| window._trigger_gotPremium( result ) ||||||||||||||||");
-      // Implementado en inicio.js
-      window._trigger_gotPremium( result );
-    } else {
-      console.log("|||||||||||||||| NO se encontró window._trigger_gotPremium ||||||||||||||||");
-    }
-
-
   }
 
 
@@ -1963,6 +1953,11 @@ async function IAPPurchaseApproved(item) {
   else if (item.platform === "ios-appstore")
   {
     console.log(">#V05# LISTENER IAPPurchaseApproved: platform: " + item.platform + " Llamando a transaction.verify().")
+    if (typeof window.emitIapStoreEvent === 'function') {
+      window.emitIapStoreEvent('verify-requested', item, {
+        status: 'verify-requested'
+      });
+    }
     item.verify();
   }
 
@@ -1988,6 +1983,14 @@ async function IAPPurchaseApproved(item) {
 function IAPStoreReady() {
   console.log(">#V05# LISTENER 'window.CdvPurchase.store.ready'.");
   console.log(">#V05# LISTENER 'window.CdvPurchase.store.ready': window.CdvPurchase.store.products:" + JSON.stringify(window.CdvPurchase.store.products));
+  if (typeof window.emitIapStoreEvent === 'function') {
+    window.emitIapStoreEvent('ready', null, {
+      productCount:
+        window.CdvPurchase && window.CdvPurchase.store && Array.isArray(window.CdvPurchase.store.products)
+          ? window.CdvPurchase.store.products.length
+          : 0
+    });
+  }
   window.CdvPurchase.store.products.forEach( function(product) {
     if (product.owned) {
       console.log(">#V05# LISTENER 'window.CdvPurchase.store.ready': Propietario del producto:", product.id);
@@ -1998,6 +2001,12 @@ function IAPStoreReady() {
 // Listener para manejar errores globales de la tienda.
 function IAPStoreError(error) {
   console.log(">#V05# LISTENER 'window.CdvPurchase.store.error': error.message:", error.message);
+  if (typeof window.emitIapStoreEvent === 'function') {
+    window.emitIapStoreEvent('error', error, {
+      code: error && error.code ? error.code : undefined,
+      message: error && error.message ? error.message : undefined
+    });
+  }
   if (error.message === "USER_CANCELED") // Android, en iOS se llama a IAPPurchaseCancelled desde store.when('product').cancelled()
     console.log(">#V05# LISTENER 'window.CdvPurchase.store.error': Compra cancelada por el usuario.");
   if (error.message === "ITEM_ALREADY_OWNED")
@@ -2168,6 +2177,7 @@ function IAPcheckOwned(productId)
 function IAPrestorePurchases() {
     Rlog()
     Rlog(">#V05#> IAPrestorePurchases: window.CdvPurchase.store.restorePurchases().");
+    window.__iapRestoreRequestedAt = Date.now();
     window.CdvPurchase.store.restorePurchases();
 }
 
@@ -2584,8 +2594,8 @@ const normalizePushTokenInput = (input) => {
     source: pickFirstString(source.source, 'push'),
     uuid,
     user_id: userId,
-    destination: pickFirstString(source.destination, 'speak'),
-    app: 'speakapp',
+    destination: pickFirstString(source.destination, 'cursoingles'),
+    app: 'cursoingles',
     updated_at: new Date().toISOString()
   };
 };
@@ -2645,10 +2655,10 @@ const registerPushTokenRemote = async (record) => {
     platform: record.platform,
     apns_environment: pickFirstString(record.apns_environment),
     source: record.source,
-    destination: record.destination || 'speak',
+    destination: record.destination || 'cursoingles',
     uuid: pickFirstString(record.uuid, window.uuid || window.localStorage.getItem('uuid') || ''),
     user_id: getCurrentPushUserId() || pickFirstString(record.user_id),
-    app: 'speakapp'
+    app: 'cursoingles'
   };
   const res = await fetch(endpoint, {
     method: 'POST',

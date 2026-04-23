@@ -1513,6 +1513,22 @@ ion-modal.login-modal page-login .page-shell {
   text-align: center;
 }
 
+.profile-hero-premium {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: -10px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #f7c948, #f08c00);
+  color: #2f1b00;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  box-shadow: 0 8px 18px rgba(240, 140, 0, 0.22);
+}
+
 .profile-segmented-tabs {
   width: 100%;
   display: grid;
@@ -2561,6 +2577,37 @@ ion-modal.diagnostics-modal ion-content {
 .diag-usage-meta {
   color: var(--app-muted);
   text-align: right;
+}
+
+.diag-iap-field {
+  margin-top: 10px;
+}
+
+.diag-iap-product-row {
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.diag-iap-product-title {
+  flex: 1 1 140px;
+  min-width: 0;
+}
+
+.diag-iap-product-meta {
+  flex: 999 1 220px;
+  min-width: 0;
+  text-align: left;
+  word-break: break-word;
+}
+
+.diag-iap-product-actions {
+  width: 100%;
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+
+.diag-iap-product-actions ion-button {
+  margin-inline-start: 0;
 }
 
 .diag-usage-empty {

@@ -1,4 +1,4 @@
-package com.sokinternet.speak;
+package com.sokinternet.cursoingles;
 
 import com.getcapacitor.BridgeActivity;
 

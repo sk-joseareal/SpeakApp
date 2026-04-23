@@ -245,6 +245,16 @@ class PageProfile extends HTMLElement {
       return derivedName || user.name || user.email || user.social_id || '';
     };
 
+    const isPremiumUser = (candidate) => {
+      if (!candidate || typeof candidate !== 'object') return false;
+      if (candidate.premium === true || candidate.premium === '1' || candidate.premium === 'true') return true;
+      const expiresRaw = candidate.expires_date || candidate.expiresDate || '';
+      if (!expiresRaw) return false;
+      const expires = new Date(expiresRaw);
+      if (Number.isNaN(expires.getTime())) return false;
+      return expires.getTime() > Date.now();
+    };
+
     const getUserAvatar = (user) => {
       if (!user) return '';
       return user.image_local || user.image || '';
@@ -1159,6 +1169,9 @@ class PageProfile extends HTMLElement {
     const userDisplayName = escapeHtml(
       getUserDisplayName(user) || profileCopy.userFallbackName || 'Usuario'
     );
+    const premiumBadgeMarkup = isPremiumUser(user)
+      ? '<div class="profile-hero-premium">Premium</div>'
+      : '';
     const progressCardsMarkup = [
       {
         label: tabsCopy.training || 'Training',
@@ -1262,6 +1275,7 @@ class PageProfile extends HTMLElement {
                   <img class="profile-hero-avatar" src="${avatarSrc}" alt="">
                 </div>
                 <div class="profile-hero-name">${userDisplayName}</div>
+                ${premiumBadgeMarkup}
                 <div class="profile-segmented-tabs" role="tablist">
                   <button class="profile-segmented-btn ${progressActive ? 'active' : ''}" type="button" data-tab="progress" role="tab">
                     <span>${escapeHtml(profileCopy.progressLabel || 'Progreso')}</span>

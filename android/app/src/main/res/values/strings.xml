@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Speak App</string>
-    <string name="title_activity_main">Speak App</string>
-    <string name="package_name">com.sokinternet.speak</string>
-    <string name="custom_url_scheme">com.sokinternet.speak</string>
+    <string name="app_name">English Course</string>
+    <string name="title_activity_main">English Course</string>
+    <string name="package_name">com.sokinternet.cursoingles</string>
+    <string name="custom_url_scheme">com.sokinternet.cursoingles</string>
 </resources>

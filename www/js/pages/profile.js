@@ -247,7 +247,6 @@ class PageProfile extends HTMLElement {
 
     const isPremiumUser = (candidate) => {
       if (!candidate || typeof candidate !== 'object') return false;
-      if (candidate.premium === true || candidate.premium === '1' || candidate.premium === 'true') return true;
       const expiresRaw = candidate.expires_date || candidate.expiresDate || '';
       if (!expiresRaw) return false;
       const expires = new Date(expiresRaw);
@@ -913,12 +912,15 @@ class PageProfile extends HTMLElement {
         return new Intl.DateTimeFormat(fmtLocale, {
           day: 'numeric',
           month: 'short',
-          year: 'numeric'
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false
         }).format(date);
       } catch (err) {
-        return typeof date.toLocaleDateString === 'function'
-          ? date.toLocaleDateString()
-          : date.toISOString().split('T')[0];
+        return typeof date.toLocaleString === 'function'
+          ? date.toLocaleString()
+          : date.toISOString();
       }
     };
     const formatAppMeta = (meta) => {
@@ -971,6 +973,12 @@ class PageProfile extends HTMLElement {
       resetProfileState(null);
     } else if (!this.profileFormState || this._profileSeedId !== userId) {
       resetProfileState(user);
+    } else if (this.profileFormState && this.profileFormSeed) {
+      const nextExpiresDate = user.expires_date || '';
+      this.profileFormState.expires_date = nextExpiresDate;
+      this.profileFormSeed.expires_date = nextExpiresDate;
+      this.profileFormState.email = user.email || '';
+      this.profileFormSeed.email = user.email || '';
     }
     const profileSeed = this.profileFormSeed || {
       first_name: '',

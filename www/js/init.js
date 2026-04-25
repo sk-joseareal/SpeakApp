@@ -44,7 +44,6 @@ const STANDARD_PLAN_TABS = {
 
 const isPremiumPlanUser = (user) => {
   if (!user || typeof user !== 'object') return false;
-  if (user.premium === true || user.premium === '1' || user.premium === 'true') return true;
   const expiresRaw = user.expires_date || user.expiresDate || '';
   if (!expiresRaw) return false;
   const expires = new Date(expiresRaw);

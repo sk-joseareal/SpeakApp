@@ -28,7 +28,7 @@ export class P4w4PluginWeb extends WebPlugin implements P4w4PluginPlugin {
     };
   }
 
-  async setNativeChrome(_options: { backgroundColor: string; lightIcons?: boolean }): Promise<void> {
+  async setNativeChrome(_options: { backgroundColor: string; lightIcons?: boolean; source?: string; path?: string }): Promise<void> {
     return;
   }
 

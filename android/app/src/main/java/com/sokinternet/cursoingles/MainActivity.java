@@ -10,9 +10,12 @@ import android.view.WindowManager;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
+import android.content.Context;
+import android.content.SharedPreferences;
 
 import com.getcapacitor.BridgeActivity;
 import com.getcapacitor.Plugin;
+import com.sokinternet.plugins.p4w4.P4w4PluginPlugin;
 
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
@@ -52,6 +55,7 @@ public class MainActivity extends BridgeActivity {
         window.setStatusBarColor(Color.parseColor("#2d6df0"));
         window.getDecorView().setBackgroundColor(Color.parseColor("#2d6df0"));
         applyStatusBarIcons(window, true);
+        Log.i(">#N00#> MainActivity", "set startup chrome bg=#2d6df0 lightIcons=true");
 
 
 
@@ -78,6 +82,41 @@ public class MainActivity extends BridgeActivity {
                 Log.e(">#N00#> MainActivity", "❌ WebView es null");
             }
         }, 50); // Delay leve para que el WebView esté creado
+    }
+
+    private void reapplyStoredChrome(String reason) {
+        try {
+            SharedPreferences prefs = getSharedPreferences(P4w4PluginPlugin.NATIVE_CHROME_PREFS, Context.MODE_PRIVATE);
+            String backgroundColor = prefs.getString(P4w4PluginPlugin.PREF_BG, "");
+            boolean lightIcons = prefs.getBoolean(P4w4PluginPlugin.PREF_LIGHT_ICONS, true);
+            if (backgroundColor == null || backgroundColor.trim().isEmpty()) {
+                Log.i(">#N00#> MainActivity", "reapplyStoredChrome skipped reason=" + reason + " (no stored chrome)");
+                return;
+            }
+            Window window = getWindow();
+            window.setStatusBarColor(Color.parseColor(backgroundColor));
+            window.getDecorView().setBackgroundColor(Color.parseColor(backgroundColor));
+            applyStatusBarIcons(window, lightIcons);
+            Log.i(">#N00#> MainActivity", "reapplyStoredChrome reason=" + reason + " bg=" + backgroundColor + " lightIcons=" + lightIcons);
+        } catch (Exception error) {
+            Log.e(">#N00#> MainActivity", "reapplyStoredChrome error reason=" + reason + " " + error.getMessage());
+        }
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        getWindow().getDecorView().post(() -> reapplyStoredChrome("onResume"));
+        getWindow().getDecorView().postDelayed(() -> reapplyStoredChrome("onResume+250"), 250);
+        getWindow().getDecorView().postDelayed(() -> reapplyStoredChrome("onResume+900"), 900);
+    }
+
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        if (hasFocus) {
+            getWindow().getDecorView().post(() -> reapplyStoredChrome("onWindowFocusChanged"));
+        }
     }
 
     private int getStatusBarHeight() {

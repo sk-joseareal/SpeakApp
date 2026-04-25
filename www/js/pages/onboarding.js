@@ -1,6 +1,7 @@
 import {
   clearLoginTabsLock,
   getAppLocale,
+  onboardingDone,
   setLoginTabsLock,
   setOnboardingDone
 } from '../state.js';
@@ -14,13 +15,6 @@ const ONBOARDING_STATUSBAR_COLOR = '#2d6df0';
 const APP_STATUSBAR_COLOR = '#f4f6fb';
 
 function getStatusBarStyle(lightIcons) {
-  const platform =
-    window.Capacitor && typeof window.Capacitor.getPlatform === 'function'
-      ? window.Capacitor.getPlatform()
-      : '';
-  if (platform === 'android') {
-    return lightIcons ? 'LIGHT' : 'DARK';
-  }
   return lightIcons ? 'DARK' : 'LIGHT';
 }
 
@@ -30,6 +24,21 @@ function isAndroidPlatform() {
     typeof window.Capacitor.getPlatform === 'function' &&
     window.Capacitor.getPlatform() === 'android'
   );
+}
+
+function setNativeChrome(color, lightIcons, meta = {}) {
+  try {
+    const nativePlugin = window.Capacitor?.Plugins?.P4w4Plugin;
+    if (!nativePlugin || typeof nativePlugin.setNativeChrome !== 'function') return;
+    nativePlugin.setNativeChrome({
+      backgroundColor: color,
+      lightIcons,
+      source: meta && meta.source ? meta.source : '',
+      path: meta && meta.path ? meta.path : ''
+    });
+  } catch (_err) {
+    // no-op
+  }
 }
 
 const onboardingSlides = [
@@ -301,6 +310,13 @@ class PageOnboarding extends HTMLElement {
   }
 
   applyOnboardingChrome() {
+    if (onboardingDone()) {
+      console.log('[chrome] onboarding.applyOnboardingChrome skipped because onboardingDone');
+      this.restoreDefaultChrome();
+      return;
+    }
+
+    console.log('[chrome] onboarding.applyOnboardingChrome');
     document.body?.classList?.add('onboarding-chrome-active');
     this.setThemeColor(ONBOARDING_STATUSBAR_COLOR);
     this.clearChromeRetryTimers();
@@ -310,8 +326,13 @@ class PageOnboarding extends HTMLElement {
         const sb = window.Capacitor?.Plugins?.StatusBar;
         if (!sb) return;
         sb.setOverlaysWebView({ overlay: true });
-        sb.setBackgroundColor({ color: ONBOARDING_STATUSBAR_COLOR });
-        if (!isAndroidPlatform()) {
+        if (isAndroidPlatform()) {
+          setNativeChrome(ONBOARDING_STATUSBAR_COLOR, true, {
+            source: 'onboarding.applyOnboardingChrome',
+            path: (window.location.hash || '').replace('#', '') || '/'
+          });
+        } else {
+          sb.setBackgroundColor({ color: ONBOARDING_STATUSBAR_COLOR });
           sb.setStyle({ style: getStatusBarStyle(true) });
         }
       } catch (_err) {
@@ -327,6 +348,7 @@ class PageOnboarding extends HTMLElement {
   }
 
   restoreDefaultChrome() {
+    console.log('[chrome] onboarding.restoreDefaultChrome');
     document.body?.classList?.remove('onboarding-chrome-active');
     this.setThemeColor(APP_STATUSBAR_COLOR);
     this.clearChromeRetryTimers();
@@ -334,8 +356,13 @@ class PageOnboarding extends HTMLElement {
       const sb = window.Capacitor?.Plugins?.StatusBar;
       if (!sb) return;
       sb.setOverlaysWebView({ overlay: true });
-      sb.setBackgroundColor({ color: APP_STATUSBAR_COLOR });
-      if (!isAndroidPlatform()) {
+      if (isAndroidPlatform()) {
+        setNativeChrome(APP_STATUSBAR_COLOR, false, {
+          source: 'onboarding.restoreDefaultChrome',
+          path: (window.location.hash || '').replace('#', '') || '/'
+        });
+      } else {
+        sb.setBackgroundColor({ color: APP_STATUSBAR_COLOR });
         sb.setStyle({ style: getStatusBarStyle(false) });
       }
     } catch (_err) {

@@ -128,13 +128,14 @@ window.Media.MEDIA_ERROR = 9;
 
 Rlog = function(miString) {
   let div = document.getElementById('r34lp0w3r-log');
-  if (!div) return;
 
   if (typeof miString === 'undefined') {
-    div.innerText = '';
+    if (div) div.innerText = '';
   } else {
     console.log(miString);
-    div.innerText += (div.innerText ? '\n' : '') + miString;
+    if (div) {
+      div.innerText += (div.innerText ? '\n' : '') + miString;
+    }
   }
 }
 
@@ -1189,6 +1190,19 @@ async function restartApp()
 function InAppPurchasesInit() {
     console.log(">#C05# A> InAppPurchasesInit() - INICIO");
 
+    if (window.__iapInitInProgress) {
+      console.log(">#C05# A1> InAppPurchasesInit() - Inicializacion ya en curso. Se ignora llamada duplicada.");
+      return;
+    }
+
+    if (window.__iapInitDone) {
+      console.log(">#C05# A2> InAppPurchasesInit() - Ya inicializado. Se ignora llamada duplicada.");
+      return;
+    }
+
+    window.__iapInitInProgress = true;
+    try {
+
     // Crear una referencia local a la tienda.
     const store = window.CdvPurchase.store;
 
@@ -1242,38 +1256,57 @@ function InAppPurchasesInit() {
     ];
 
     // 2. CONFIGURAR LISTENERS 
-    console.log(">#C05# E> Registrando listeners...");
-    store.when('product').updated(IAPPurchaseUpdated); // También lo lanza para receipts
-    store.when('product').initiated(IAPPPurchaseInitiated); // Acaba de empezar el order()
-    store.when('product').approved(IAPPurchaseApproved); // Compra aprobada (Ambas plataformas)
+    if (!window.__iapListenersBound) {
+      console.log(">#C05# E> Registrando listeners...");
+      store.when('product').updated(IAPPurchaseUpdated); // También lo lanza para receipts
+      store.when('product').initiated(IAPPPurchaseInitiated); // Acaba de empezar el order()
+      store.when('product').approved(IAPPurchaseApproved); // Compra aprobada (Ambas plataformas)
 
-    store.when('product').verified(IAPPurchaseVerified); // Compra verificada (iOS): al llamar a verify() en IAPPurchaseApproved se llama a la función que se define en xxxxxx y cuando esa vuelve se lanza el verified.
+      store.when('product').verified(IAPPurchaseVerified); // Compra verificada (iOS): al llamar a verify() en IAPPurchaseApproved se llama a la función que se define en xxxxxx y cuando esa vuelve se lanza el verified.
+
+      //store.when('product').cancelled(IAPPurchaseCancelled); // El usuario ha cancelado la compra
+      store.ready(IAPStoreReady);
+      store.error(IAPStoreError);
+      window.__iapListenersBound = true;
+      console.log(">#C05# F> Listeners registrados correctamente.");
+    } else {
+      console.log(">#C05# Fbis> Listeners ya registrados. Se reutilizan.");
+    }
 
     store.validator = IAPPurchaseVerify;
-
-    //store.when('product').cancelled(IAPPurchaseCancelled); // El usuario ha cancelado la compra
-    store.ready(IAPStoreReady);
-    store.error(IAPStoreError);
-
-    console.log(">#C05# F> Listeners registrados correctamente.");
 
     console.log(">#C05# FBis> CdvPurchase.Platform: " + JSON.stringify(CdvPurchase.Platform));
 
     // 3. REGISTRAR LOS PRODUCTOS EN LA TIENDA
     // Le decimos al plugin qué productos debe buscar en las tiendas de Apple/Google.
-    console.log(">#C05# G> Registrando productos en la tienda:",JSON.stringify(PRODUCTS));
-    store.register(PRODUCTS);
-    console.log(">#C05# H> Comando de registro enviado.");
+    if (!window.__iapProductsRegistered) {
+      console.log(">#C05# G> Registrando productos en la tienda:",JSON.stringify(PRODUCTS));
+      store.register(PRODUCTS);
+      window.__iapProductsRegistered = true;
+      console.log(">#C05# H> Comando de registro enviado.");
+    } else {
+      console.log(">#C05# Hbis> Productos ya registrados. Se omite register().");
+    }
 
 
     // 4. INICIALIZAR LA TIENDA
     // Este comando inicia la comunicación con los servidores de la App Store / Google Play
     // para obtener la información de los productos registrados.
     // Disparará los listeners 'product.updated' que configuramos antes.
-    console.log(">#C05# I> Iniciando la comunicación con la tienda (store.initialize([platforms]))...");
-    store.initialize([applePlatform,googlePlatform]) 
+    if (!window.__iapStoreInitialized) {
+      console.log(">#C05# I> Iniciando la comunicación con la tienda (store.initialize([platforms]))...");
+      window.__iapStoreInitializeResult = store.initialize([applePlatform,googlePlatform]);
+      window.__iapStoreInitialized = true;
+    } else {
+      console.log(">#C05# Ibis> Store ya inicializado. Se omite initialize().");
+    }
+
+    window.__iapInitDone = true;
 
     console.log(">#C05# J> InAppPurchasesInit() - FIN");
+    } finally {
+      window.__iapInitInProgress = false;
+    }
 }
 
 
@@ -1286,6 +1319,108 @@ function logLongString(label, str, chunkSize = 500) {
   }
 }
 
+const IOS_IAP_PRODUCT_IDS = new Set([
+  'premium_month',
+  'premium_anual',
+  'com.sokinternet.testing.forever',
+  'subsyear0',
+  'com.sokinternet.cursoingles.subsyear25',
+  'com.sokinternet.cursoingles.subsyear50',
+  'com.sokinternet.cursoingles.subsyear',
+  'com.sokinternet.cursoingles.subsmonth',
+  'com.sokinternet.cursoingles.forever'
+]);
+const IOS_IAP_SUBSCRIPTION_PRODUCT_IDS = new Set([
+  'premium_month',
+  'premium_anual',
+  'subsyear0',
+  'com.sokinternet.cursoingles.subsyear25',
+  'com.sokinternet.cursoingles.subsyear50',
+  'com.sokinternet.cursoingles.subsyear',
+  'com.sokinternet.cursoingles.subsmonth'
+]);
+
+const getCurrentIapUserId = () => {
+  const fromUser =
+    window.user && window.user.id !== undefined && window.user.id !== null
+      ? String(window.user.id).trim()
+      : '';
+  const fromGlobal =
+    window.user_id !== undefined && window.user_id !== null ? String(window.user_id).trim() : '';
+  if (fromUser && fromGlobal && fromUser !== fromGlobal) {
+    console.warn('>#V05# IAP userId mismatch; usando window.user.id', { fromUser, fromGlobal });
+  }
+  return fromUser || fromGlobal;
+};
+
+window.__iosIapVerifyInFlightAt = window.__iosIapVerifyInFlightAt || new Map();
+window.__iosIapVerifySourceByKey = window.__iosIapVerifySourceByKey || new Map();
+window.__iosIapExpectedProductByTransactionId = window.__iosIapExpectedProductByTransactionId || new Map();
+const IOS_IAP_VERIFY_IN_FLIGHT_TTL_MS = 30 * 1000;
+
+const normalizeIosIapTransactionId = (transactionId) => {
+  const value = String(transactionId || '').trim();
+  if (!value || value === 'appstore.application') {
+    return '';
+  }
+  return value;
+};
+
+const getIosIapTransactionKey = (transaction, fallbackProductId) => {
+  const productId =
+    transaction && Array.isArray(transaction.products) && transaction.products[0] && transaction.products[0].id
+      ? transaction.products[0].id
+      : fallbackProductId || '';
+  const transactionId = normalizeIosIapTransactionId(
+    transaction && (transaction.transactionId || transaction.id)
+      ? transaction.transactionId || transaction.id
+      : ''
+  );
+  return [productId, transactionId].filter(Boolean).join('::');
+};
+
+const requestIosTransactionVerification = (transaction, source) => {
+  if (!transaction || transaction.platform !== 'ios-appstore' || typeof transaction.verify !== 'function') return;
+  const transactionId = normalizeIosIapTransactionId(
+    transaction && (transaction.transactionId || transaction.id)
+      ? transaction.transactionId || transaction.id
+      : ''
+  );
+  const expectedProductId =
+    transaction && Array.isArray(transaction.products) && transaction.products[0] && transaction.products[0].id
+      ? transaction.products[0].id
+      : '';
+  const key = getIosIapTransactionKey(transaction);
+  const inFlightAt = key ? window.__iosIapVerifyInFlightAt.get(key) : null;
+  if (inFlightAt && Date.now() - inFlightAt < IOS_IAP_VERIFY_IN_FLIGHT_TTL_MS) {
+    console.log('>#V05# requestIosTransactionVerification: Verificacion iOS ya en curso:', key);
+    if (typeof window.emitIapStoreEvent === 'function') {
+      window.emitIapStoreEvent('ios-validation-skipped', transaction, {
+        source: source,
+        reason: 'validation_in_flight'
+      });
+    }
+    return;
+  }
+  if (key) {
+    window.__iosIapVerifyInFlightAt.set(key, Date.now());
+    window.__iosIapVerifySourceByKey.set(key, source || 'receipt-updated');
+  }
+  if (transactionId && expectedProductId) {
+    window.__iosIapExpectedProductByTransactionId.set(transactionId, expectedProductId);
+  }
+  if (typeof window.emitIapStoreEvent === 'function') {
+    window.emitIapStoreEvent('verify-requested', transaction, {
+      source: source,
+      platform: 'ios-appstore',
+      productId: expectedProductId || undefined,
+      transactionId: transactionId || undefined
+    });
+  }
+  console.log('>#V05# requestIosTransactionVerification: Llamando a transaction.verify(). source:', source, 'key:', key);
+  transaction.verify();
+};
+
 // Eso se asigna así: store.validator = IAPPurchaseVerify (sólo se lanzará en iOS)
 // OJO: se lanza también para recibos antiguos al refrescar la store: Será un 'recibo general', y esos se tienen que ignorar.
 IAPPurchaseVerify = async function(body, callback) {
@@ -1293,15 +1428,65 @@ IAPPurchaseVerify = async function(body, callback) {
   console.log(">#V05# IAPPurchaseVerify: body:",JSON.stringify(body));
 
   const receipt = body && body.transaction && body.transaction.appStoreReceipt;
-  const source = isRestoreWindowOpen() ? 'restore' : 'approved';
-  let productId = undefined;
+  const incomingTransactionId =
+    body && body.transaction && (body.transaction.transactionId || body.transaction.id)
+      ? body.transaction.transactionId || body.transaction.id
+      : '';
+  const bodyProductId =
+    body && Array.isArray(body.products) && body.products[0] && body.products[0].id
+      ? body.products[0].id
+      : undefined;
+  const expectedProductId = incomingTransactionId
+    ? window.__iosIapExpectedProductByTransactionId.get(incomingTransactionId)
+    : undefined;
+  let productId = expectedProductId || bodyProductId;
   if (body && Array.isArray(body.products) && body.products[0]) {
-    productId = body.products[0].id;
+    productId = expectedProductId || body.products[0].id;
   }
+  if (expectedProductId && bodyProductId && expectedProductId !== bodyProductId) {
+    console.warn('>#V05# IAPPurchaseVerify: Corrigiendo productId iOS usando transactionId.', {
+      transactionId: incomingTransactionId,
+      expectedProductId,
+      bodyProductId
+    });
+  }
+  const verifyKey = getIosIapTransactionKey(body && body.transaction, productId);
+  const source =
+    (verifyKey && window.__iosIapVerifySourceByKey.get(verifyKey)) ||
+    (isRestoreWindowOpen() ? 'restore' : 'approved');
+  const transactionType = body && body.transaction && body.transaction.type ? String(body.transaction.type) : '';
+  const productType =
+    body && Array.isArray(body.products) && body.products[0] && body.products[0].type
+      ? String(body.products[0].type)
+      : '';
 
   if (!receipt || !productId) {
     console.log(">#V05# IAPPurchaseVerify: No hay receipt o productId. Se devuelve error.");
     callback({ ok: false, error: "Missing receipt or productId" });
+    return;
+  }
+
+  if (!IOS_IAP_PRODUCT_IDS.has(productId)) {
+    console.log(
+      ">#V05# IAPPurchaseVerify: Ignorando recibo iOS no-IAP.",
+      JSON.stringify({ productId, transactionType, productType })
+    );
+    if (typeof window.emitIapStoreEvent === 'function') {
+      window.emitIapStoreEvent('ios-ignored', body && body.transaction ? body.transaction : body, {
+        source: source,
+        success: false,
+        reason: 'unknown_ios_product',
+        productId: productId
+      });
+    }
+    callback({ ok: false, ignored: true, error: 'Ignored unknown iOS product' });
+    return;
+  }
+
+  const userId = getCurrentIapUserId();
+  if (!userId) {
+    console.log(">#V05# IAPPurchaseVerify: No hay usuario activo. No se envia al backend.");
+    callback({ ok: false, error: "Missing active user" });
     return;
   }
 
@@ -1310,20 +1495,43 @@ IAPPurchaseVerify = async function(body, callback) {
 
   try {
     const url = ( window.env === 'PRO' ? window.apiPRO : window.apiDEV ) + '/iap/verify-ios';
-    body.userId = window.user_id;
+    const normalizedProducts = Array.isArray(body && body.products)
+      ? body.products.filter((item) => item && item.id === productId)
+      : [];
+    const payloadProducts =
+      normalizedProducts.length > 0
+        ? normalizedProducts
+        : body && Array.isArray(body.products) && body.products.length > 0
+        ? [{ ...body.products[0], id: productId }]
+        : [{ id: productId }];
+    const payload = {
+      ...body,
+      products: payloadProducts,
+      transaction: {
+        ...(body && body.transaction ? body.transaction : {}),
+        productId: productId,
+        product_id: productId
+      },
+      userId: userId
+    };
+    const eventItem = body && body.transaction ? body.transaction : body;
 
     const res = await fetch( url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
+      body: JSON.stringify(payload)
     });
     const response = await res.json();
     const transaction = response && response.data && response.data.transaction ? response.data.transaction : {};
-    const productType =
-      body && Array.isArray(body.products) && body.products[0] && body.products[0].type
-        ? body.products[0].type
-        : '';
-    const isSubscription = /subscription/i.test(productType);
+    const responseProductId = transaction && transaction.productId ? String(transaction.productId) : '';
+    const resolvedProductId = responseProductId || productId || '';
+    const canonicalOriginalTransactionId = normalizeIosIapTransactionId(transaction && transaction.originalTransactionId);
+    const canonicalTransactionId = normalizeIosIapTransactionId(transaction && (transaction.transactionId || transaction.id));
+    const canonicalResponseId = normalizeIosIapTransactionId(response && response.data && response.data.id);
+    const isSubscription =
+      /subscription/i.test(productType) ||
+      IOS_IAP_SUBSCRIPTION_PRODUCT_IDS.has(resolvedProductId) ||
+      (transaction && transaction.expiresDateMs !== undefined && transaction.expiresDateMs !== null);
     const FOREVER_TS = new Date('2099-12-31T23:59:59Z').getTime();
     const expiresMs =
       transaction && transaction.expiresDateMs !== undefined && transaction.expiresDateMs !== null
@@ -1347,43 +1555,76 @@ IAPPurchaseVerify = async function(body, callback) {
       if (isSubscription && expiresMs) {
         result = {
           register_ok: true,
-          purchase_id: transaction.originalTransactionId || response.data.id || productId,
+          purchase_id: canonicalOriginalTransactionId || canonicalTransactionId || canonicalResponseId || resolvedProductId,
           purchase_expires: expiresMs,
           purchase_expires_human: new Date(expiresMs).toISOString()
         };
-      } else {
+      } else if (!isSubscription && response.data && response.data.id) {
         result = {
           register_ok: true,
-          purchase_id: (transaction.originalTransactionId || transaction.id) || response.data.id || productId,
+          purchase_id: canonicalOriginalTransactionId || canonicalTransactionId || canonicalResponseId || productId,
           purchase_expires: FOREVER_TS,
           purchase_expires_human: new Date(FOREVER_TS).toISOString()
+        };
+      } else {
+        console.log('>#V05# IAPPurchaseVerify: Respuesta iOS OK sin entitlement usable. No se concede premium.');
+        result = {
+          register_ok: false,
+          error: 'Missing iOS entitlement data'
         };
       }
     } else {
       console.log( '>#V05# IAPPurchaseVerify: Compra NO validada correctamente: ' + JSON.stringify( response.error ) );
+      const errorExpiryMs =
+        response &&
+        response.error &&
+        (response.error.expiryTimeMillis !== undefined || response.error.expiresDateMs !== undefined)
+          ? parseInt(response.error.expiryTimeMillis || response.error.expiresDateMs, 10)
+          : null;
       result = {
-        register_ok: false
+        register_ok: false,
+        error: response.error || 'iOS backend validation failed'
       };
+      if (Number.isFinite(errorExpiryMs) && errorExpiryMs > 0) {
+        result.purchase_id =
+          response.error && response.error.raw && response.error.raw.original_transaction_id
+            ? response.error.raw.original_transaction_id
+            : productId;
+        result.purchase_expires = errorExpiryMs;
+        result.purchase_expires_human = new Date(errorExpiryMs).toISOString();
+      }
     }
 
-    console.log( '>#V05# IAPPurchaseVerify: Informando a la App ( window._trigger_gotPremium( result ) ).' );
-    if ( window._trigger_gotPremium ) {
+    if (result && (result.register_ok || result.purchase_expires) && window._trigger_gotPremium) {
+      console.log( '>#V05# IAPPurchaseVerify: Informando a la App ( window._trigger_gotPremium( result ) ).' );
       window._trigger_gotPremium( result );
-    } else {
+    } else if (result && result.register_ok) {
       console.log( "|||||||||||||||| NO se encontró window._trigger_gotPremium ||||||||||||||||" );
+    } else {
+      console.log( '>#V05# IAPPurchaseVerify: No se informa premium porque no hay entitlement usable.' );
     }
 
     if (typeof window.emitIapStoreEvent === 'function') {
-      const eventItem = body && body.transaction ? body.transaction : body;
       window.emitIapStoreEvent('ios-validated', eventItem, {
         source: source,
         success: Boolean(result && result.register_ok),
+        error: result && result.error ? result.error : undefined,
+        productId: productId,
+        transactionId:
+          body && body.transaction && (body.transaction.transactionId || body.transaction.id)
+            ? body.transaction.transactionId || body.transaction.id
+            : undefined,
         purchase_id: result && result.purchase_id ? result.purchase_id : undefined,
         purchase_expires: result && result.purchase_expires ? result.purchase_expires : undefined
       });
       if (source === 'restore') {
         window.emitIapStoreEvent('restore-result', eventItem, {
           success: Boolean(result && result.register_ok),
+          productId: productId,
+          transactionId:
+            body && body.transaction && (body.transaction.transactionId || body.transaction.id)
+              ? body.transaction.transactionId || body.transaction.id
+              : undefined,
           purchase_id: result && result.purchase_id ? result.purchase_id : undefined,
           purchase_expires: result && result.purchase_expires ? result.purchase_expires : undefined
         });
@@ -1392,6 +1633,13 @@ IAPPurchaseVerify = async function(body, callback) {
     }
 
     callback(response);
+    if (verifyKey) {
+      window.__iosIapVerifySourceByKey.delete(verifyKey);
+      window.__iosIapVerifyInFlightAt.delete(verifyKey);
+    }
+    if (incomingTransactionId) {
+      window.__iosIapExpectedProductByTransactionId.delete(incomingTransactionId);
+    }
   } catch (err) {
     console.log( '>#V05# IAPPurchaseVerify: Error verificando recibo.' );
     console.log( '>#V05# IAPPurchaseVerify: - message:', err.message );
@@ -1400,6 +1648,13 @@ IAPPurchaseVerify = async function(body, callback) {
     console.log( '>#V05# IAPPurchaseVerify: - full error:', err );
     if (source === 'restore') {
       window.__iapRestoreRequestedAt = 0;
+    }
+    if (verifyKey) {
+      window.__iosIapVerifySourceByKey.delete(verifyKey);
+      window.__iosIapVerifyInFlightAt.delete(verifyKey);
+    }
+    if (incomingTransactionId) {
+      window.__iosIapExpectedProductByTransactionId.delete(incomingTransactionId);
     }
     callback({ ok: false, error: err.message });
   }
@@ -1426,6 +1681,10 @@ IAPPurchaseVerified = async function(item) {
 
 window.emitIapStoreEvent = function(type, item, extra) {
   try {
+    const extraProductId =
+      extra && typeof extra === 'object' && extra.productId ? String(extra.productId) : undefined;
+    const extraTransactionId =
+      extra && typeof extra === 'object' && extra.transactionId ? String(extra.transactionId) : undefined;
     const detail = {
       type: String(type || '').trim() || 'unknown',
       at: new Date().toISOString(),
@@ -1434,7 +1693,8 @@ window.emitIapStoreEvent = function(type, item, extra) {
       className:
         item && typeof item === 'object' && item.className ? item.className : undefined,
       productId:
-        item &&
+        extraProductId ||
+        (item &&
         typeof item === 'object' &&
         Array.isArray(item.products) &&
         item.products[0] &&
@@ -1442,9 +1702,10 @@ window.emitIapStoreEvent = function(type, item, extra) {
           ? item.products[0].id
           : item && item.id
           ? item.id
-          : undefined,
+          : undefined),
       transactionId:
-        item && typeof item === 'object' && item.transactionId ? item.transactionId : undefined,
+        extraTransactionId ||
+        (item && typeof item === 'object' && item.transactionId ? item.transactionId : undefined),
       state: item && typeof item === 'object' && item.state ? item.state : undefined,
       message:
         item && typeof item === 'object' && item.message ? item.message : undefined,
@@ -1462,6 +1723,72 @@ window.__iapRestoreRequestedAt = 0;
 function isRestoreWindowOpen() {
   return Boolean(window.__iapRestoreRequestedAt) && (Date.now() - window.__iapRestoreRequestedAt) < 60000;
 }
+
+window.__androidIapValidationCache = window.__androidIapValidationCache || new Map();
+window.__androidIapValidationPending = window.__androidIapValidationPending || new Map();
+const ANDROID_IAP_VALIDATION_CACHE_KEY = 'appv5:android-iap-validation-cache';
+const ANDROID_IAP_VALIDATION_CACHE_TTL_MS = 5 * 60 * 1000;
+
+const getAndroidIapValidationKey = (item) => {
+  const nativePurchase = item && item.nativePurchase ? item.nativePurchase : {};
+  const token = nativePurchase.purchaseToken || item?.purchaseId || '';
+  const transactionId = item?.transactionId || nativePurchase.orderId || '';
+  const productId =
+    item && Array.isArray(item.products) && item.products[0] && item.products[0].id
+      ? item.products[0].id
+      : nativePurchase.productId || '';
+  return [productId, transactionId, token].filter(Boolean).join('::');
+};
+
+const readStoredAndroidIapValidationCache = () => {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(ANDROID_IAP_VALIDATION_CACHE_KEY) || '{}');
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+  } catch (_err) {
+    return {};
+  }
+};
+
+const writeStoredAndroidIapValidationCache = (cache) => {
+  try {
+    localStorage.setItem(ANDROID_IAP_VALIDATION_CACHE_KEY, JSON.stringify(cache || {}));
+  } catch (_err) {
+    // no-op
+  }
+};
+
+const rememberAndroidIapValidation = (key, result) => {
+  if (!key) return;
+  const entry = {
+    at: Date.now(),
+    result
+  };
+  window.__androidIapValidationCache.set(key, entry);
+  const stored = readStoredAndroidIapValidationCache();
+  stored[key] = entry;
+  writeStoredAndroidIapValidationCache(stored);
+};
+
+const readRecentAndroidIapValidation = (key) => {
+  if (!key) return null;
+  let entry = window.__androidIapValidationCache.get(key);
+  if (!entry) {
+    const stored = readStoredAndroidIapValidationCache();
+    entry = stored[key] || null;
+    if (entry) {
+      window.__androidIapValidationCache.set(key, entry);
+    }
+  }
+  if (!entry) return null;
+  if (Date.now() - entry.at > ANDROID_IAP_VALIDATION_CACHE_TTL_MS) {
+    window.__androidIapValidationCache.delete(key);
+    const stored = readStoredAndroidIapValidationCache();
+    delete stored[key];
+    writeStoredAndroidIapValidationCache(stored);
+    return null;
+  }
+  return entry.result || null;
+};
 
 async function validateAndroidPurchaseWithBackend(item, options) {
   const opts = options && typeof options === 'object' ? options : {};
@@ -1483,13 +1810,17 @@ async function validateAndroidPurchaseWithBackend(item, options) {
       ? item.products[0].id
       : nativePurchase.productId;
   const token = nativePurchase.purchaseToken;
-  const userId = window.user_id;
+  const userId = getCurrentIapUserId();
+  const validationKey = getAndroidIapValidationKey(item);
 
   if (!packageName || !transactionId || !productId || !token) {
     throw new Error(
       'Missing Android purchase data: ' +
         JSON.stringify({ packageName, transactionId, productId, token: Boolean(token) })
     );
+  }
+  if (!userId) {
+    throw new Error('Missing active user for Android purchase validation');
   }
 
   let isSubscription = true;
@@ -1504,6 +1835,36 @@ async function validateAndroidPurchaseWithBackend(item, options) {
   }
 
   const url = (window.env === 'PRO' ? window.apiPRO : window.apiDEV) + '/iap/verify';
+
+  const recentResult = readRecentAndroidIapValidation(validationKey);
+  if (recentResult) {
+    console.log('>#V05# validateAndroidPurchaseWithBackend: Validacion Android duplicada ignorada:', validationKey);
+    if (typeof window.emitIapStoreEvent === 'function') {
+      window.emitIapStoreEvent('android-validation-skipped', item, {
+        source: source,
+        success: Boolean(recentResult.register_ok),
+        reason: 'recently_validated',
+        purchase_id: recentResult.purchase_id,
+        purchase_expires: recentResult.purchase_expires
+      });
+    }
+    return recentResult;
+  }
+
+  const pendingValidation = validationKey
+    ? window.__androidIapValidationPending.get(validationKey)
+    : null;
+  if (pendingValidation) {
+    console.log('>#V05# validateAndroidPurchaseWithBackend: Validacion Android ya en curso:', validationKey);
+    if (typeof window.emitIapStoreEvent === 'function') {
+      window.emitIapStoreEvent('android-validation-skipped', item, {
+        source: source,
+        success: true,
+        reason: 'validation_in_flight'
+      });
+    }
+    return pendingValidation;
+  }
 
   console.log(
     '>#V05# validateAndroidPurchaseWithBackend:',
@@ -1521,6 +1882,7 @@ async function validateAndroidPurchaseWithBackend(item, options) {
     token
   );
 
+  const validationPromise = (async () => {
   const response = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -1546,28 +1908,47 @@ async function validateAndroidPurchaseWithBackend(item, options) {
         register_ok: data.details.status === 'VALID',
         purchase_id: raw.orderId || transactionId || productId,
         purchase_expires: parseInt(raw.expiryTimeMillis, 10),
-        purchase_expires_human: new Date(parseInt(raw.expiryTimeMillis, 10)).toISOString().split('T')[0]
+        purchase_expires_human: new Date(parseInt(raw.expiryTimeMillis, 10)).toISOString()
       };
     } else {
       result = {
         register_ok: true,
         purchase_id: raw.orderId || transactionId || productId,
         purchase_expires: FOREVER_TS,
-        purchase_expires_human: new Date(FOREVER_TS).toISOString().split('T')[0]
+        purchase_expires_human: new Date(FOREVER_TS).toISOString()
       };
     }
 
     if (finishAfterSuccess && !item.isAcknowledged && typeof item.finish === 'function') {
       console.log('>#V05# validateAndroidPurchaseWithBackend: Llamando a item.finish() tras validacion OK.');
-      item.finish();
+      const finishResult = item.finish();
+      if (finishResult && typeof finishResult.then === 'function') {
+        await finishResult;
+      }
+      console.log('>#V05# validateAndroidPurchaseWithBackend: item.finish() completado.');
     } else if (item.isAcknowledged) {
       console.log('>#V05# validateAndroidPurchaseWithBackend: Compra ya acknowledged; no hace falta finish().');
     }
   } else {
     console.error('>#V05# validateAndroidPurchaseWithBackend: Compra NO validada:' + JSON.stringify(data.error));
+    const errorExpiryMs =
+      data &&
+      data.error &&
+      data.error.expiryTimeMillis !== undefined &&
+      data.error.expiryTimeMillis !== null
+        ? parseInt(data.error.expiryTimeMillis, 10)
+        : null;
     result = {
-      register_ok: false
+      register_ok: false,
+      purchase_id:
+        data && data.error && data.error.raw && data.error.raw.orderId
+          ? data.error.raw.orderId
+          : transactionId || productId
     };
+    if (Number.isFinite(errorExpiryMs) && errorExpiryMs > 0) {
+      result.purchase_expires = errorExpiryMs;
+      result.purchase_expires_human = new Date(errorExpiryMs).toISOString();
+    }
   }
 
   if (typeof window.emitIapStoreEvent === 'function') {
@@ -1596,7 +1977,24 @@ async function validateAndroidPurchaseWithBackend(item, options) {
     window._trigger_gotPremium(result);
   }
 
+  if (result && (result.register_ok || result.purchase_expires)) {
+    rememberAndroidIapValidation(validationKey, result);
+  }
+
   return result;
+  })();
+
+  if (validationKey) {
+    window.__androidIapValidationPending.set(validationKey, validationPromise);
+  }
+
+  try {
+    return await validationPromise;
+  } finally {
+    if (validationKey && window.__androidIapValidationPending.get(validationKey) === validationPromise) {
+      window.__androidIapValidationPending.delete(validationKey);
+    }
+  }
 }
 
 // Listener general para cuando la información de CUALQUIER producto se actualiza.
@@ -1817,17 +2215,29 @@ function IAPPurchaseUpdated(item) {
         idx += 1;
       });
 
-      if (platform === 'android-playstore' && isRestoreWindowOpen()) {
+      if (platform === 'android-playstore') {
+        const restoreWindowOpen = isRestoreWindowOpen();
         item.transactions.forEach(function(transaction) {
           if (!transaction || transaction.state !== 'approved') return;
           validateAndroidPurchaseWithBackend(transaction, {
-            source: 'restore',
+            source: restoreWindowOpen ? 'restore' : 'receipt-updated',
             finishAfterSuccess: true
           }).catch(function(err) {
-            console.error('>#V05# LISTENER IAPPurchaseUpdated: Error validando restore Android:', err);
+            console.error('>#V05# LISTENER IAPPurchaseUpdated: Error validando receipt Android:', err);
           });
         });
-        window.__iapRestoreRequestedAt = 0;
+        if (restoreWindowOpen) {
+          window.__iapRestoreRequestedAt = 0;
+        }
+      } else if (platform === 'ios-appstore') {
+        const restoreWindowOpen = isRestoreWindowOpen();
+        item.transactions.forEach(function(transaction) {
+          if (!transaction || transaction.state !== 'approved') return;
+          requestIosTransactionVerification(transaction, restoreWindowOpen ? 'restore' : 'receipt-updated');
+        });
+        if (restoreWindowOpen) {
+          window.__iapRestoreRequestedAt = 0;
+        }
       }
     }
 
@@ -1953,12 +2363,7 @@ async function IAPPurchaseApproved(item) {
   else if (item.platform === "ios-appstore")
   {
     console.log(">#V05# LISTENER IAPPurchaseApproved: platform: " + item.platform + " Llamando a transaction.verify().")
-    if (typeof window.emitIapStoreEvent === 'function') {
-      window.emitIapStoreEvent('verify-requested', item, {
-        status: 'verify-requested'
-      });
-    }
-    item.verify();
+    requestIosTransactionVerification(item, 'approved');
   }
 
 
@@ -1996,6 +2401,39 @@ function IAPStoreReady() {
       console.log(">#V05# LISTENER 'window.CdvPurchase.store.ready': Propietario del producto:", product.id);
     }
   });
+
+  try {
+    const localReceipts = Array.isArray(window.CdvPurchase.store.localReceipts)
+      ? window.CdvPurchase.store.localReceipts
+      : [];
+    console.log(">#V05# LISTENER 'window.CdvPurchase.store.ready': localReceipts.length:", localReceipts.length);
+    localReceipts.forEach(function(receipt, receiptIdx) {
+      if (!receipt || receipt.platform !== 'ios-appstore' || !Array.isArray(receipt.transactions)) return;
+      console.log(
+        ">#V05# LISTENER 'window.CdvPurchase.store.ready': iOS localReceipt[" + receiptIdx + "] transactions:",
+        receipt.transactions.length
+      );
+      receipt.transactions.forEach(function(transaction) {
+        const productId =
+          transaction && Array.isArray(transaction.products) && transaction.products[0] && transaction.products[0].id
+            ? transaction.products[0].id
+            : '';
+        console.log(
+          ">#V05# LISTENER 'window.CdvPurchase.store.ready': iOS local tx:",
+          JSON.stringify({
+            productId: productId,
+            transactionId: transaction && (transaction.transactionId || transaction.id),
+            state: transaction && transaction.state
+          })
+        );
+        if (!transaction || transaction.state !== 'approved') return;
+        if (!productId || !IOS_IAP_PRODUCT_IDS.has(productId)) return;
+        requestIosTransactionVerification(transaction, 'ready-receipt');
+      });
+    });
+  } catch (err) {
+    console.error(">#V05# LISTENER 'window.CdvPurchase.store.ready': Error inspeccionando localReceipts iOS:", err);
+  }
 }
 
 // Listener para manejar errores globales de la tienda.
@@ -2178,14 +2616,68 @@ function IAPrestorePurchases() {
     Rlog()
     Rlog(">#V05#> IAPrestorePurchases: window.CdvPurchase.store.restorePurchases().");
     window.__iapRestoreRequestedAt = Date.now();
-    window.CdvPurchase.store.restorePurchases();
+    window.emitIapStoreEvent('restore-requested', null, { source: 'manual', restoreWindowMs: 60000 });
+
+    try {
+      const result = window.CdvPurchase.store.restorePurchases();
+      if (result && typeof result.then === 'function') {
+        result
+          .then(() => {
+            window.emitIapStoreEvent('restore-call-result', null, { source: 'manual', success: true });
+          })
+          .catch((err) => {
+            window.emitIapStoreEvent('restore-call-result', null, {
+              source: 'manual',
+              success: false,
+              error: err && err.message ? err.message : String(err)
+            });
+          });
+      } else {
+        window.emitIapStoreEvent('restore-call-result', null, { source: 'manual', success: true, sync: true });
+      }
+      return result;
+    } catch (err) {
+      window.emitIapStoreEvent('restore-call-result', null, {
+        source: 'manual',
+        success: false,
+        error: err && err.message ? err.message : String(err)
+      });
+      throw err;
+    }
 }
 
 // Refrescar store
 function IAPUpdate() {
     Rlog()
     Rlog(">#V05#> IAPRefresh: window.CdvPurchase.store.update().");
-    window.CdvPurchase.store.update();
+    window.emitIapStoreEvent('refresh-requested', null, { source: 'manual' });
+
+    try {
+      const result = window.CdvPurchase.store.update();
+      if (result && typeof result.then === 'function') {
+        result
+          .then(() => {
+            window.emitIapStoreEvent('refresh-call-result', null, { source: 'manual', success: true });
+          })
+          .catch((err) => {
+            window.emitIapStoreEvent('refresh-call-result', null, {
+              source: 'manual',
+              success: false,
+              error: err && err.message ? err.message : String(err)
+            });
+          });
+      } else {
+        window.emitIapStoreEvent('refresh-call-result', null, { source: 'manual', success: true, sync: true });
+      }
+      return result;
+    } catch (err) {
+      window.emitIapStoreEvent('refresh-call-result', null, {
+        source: 'manual',
+        success: false,
+        error: err && err.message ? err.message : String(err)
+      });
+      throw err;
+    }
 }
 
 async function testBackend(platform) {
@@ -2275,10 +2767,18 @@ document.addEventListener('deviceready', function () {
         } catch (err) {
           console.log('>#[SB] css var error', err);
         }
-        // Segundo intento con pequeño retardo, por si el primero se pierde durante la carga
+        // Segundo intento con pequeño retardo, por si el primero se pierde durante la carga.
+        // IMPORTANTE: el estilo definitivo de iconos y color lo gobierna app.js según la ruta
+        // real. Aquí solo reforzamos el overlay para no pisar la decisión posterior con un path
+        // transitorio como '/' antes del redirect a /tabs.
         setTimeout(() => {
           try {
+            const path = (window.location.hash || '').replace('#', '') || '/';
+            console.log('[chrome] _r34lp0w3r deviceready retry overlay', JSON.stringify({ path }));
             sb.setOverlaysWebView({ overlay: true });
+            if (typeof window.scheduleAppChromeSync === 'function') {
+              window.scheduleAppChromeSync(path);
+            }
             sb.getInfo()
               .then((info) => console.log('>#[SB] info (retry)', info))
               .catch(() => {});
@@ -2351,6 +2851,40 @@ const writeStoredUser = (user, options = {}) => {
     writeUserToStorage(window.localStorage, USER_STORAGE_KEY, user);
   }
 };
+
+const parseUserPremiumExpiry = (user) => {
+  if (!user || typeof user !== 'object') return null;
+  const raw = user.expires_date || user.expiresDate || '';
+  if (!raw) return null;
+  const numeric = Number(raw);
+  const date = Number.isFinite(numeric) && numeric > 0 ? new Date(numeric) : new Date(raw);
+  if (Number.isNaN(date.getTime())) return null;
+  return date;
+};
+
+const normalizeUserPremiumState = (user) => {
+  if (!user || typeof user !== 'object') return null;
+  const normalized = { ...user };
+  const expires = parseUserPremiumExpiry(normalized);
+  normalized.premium = Boolean(expires && expires.getTime() > Date.now());
+  if (!normalized.premium) {
+    delete normalized.purchase_id;
+  }
+  return normalized;
+};
+
+const refreshCurrentUserPremiumState = () => {
+  if (!window.user || typeof window.user !== 'object') return false;
+  const wasPremium = window.user.premium === true;
+  const nextUser = normalizeUserPremiumState(window.user);
+  const isPremium = nextUser && nextUser.premium === true;
+  const purchaseChanged = (window.user.purchase_id || '') !== (nextUser && nextUser.purchase_id || '');
+  if (wasPremium === isPremium && !purchaseChanged) return false;
+  window.setUser(nextUser);
+  return true;
+};
+
+window.refreshCurrentUserPremiumState = refreshCurrentUserPremiumState;
 
 const resetSpeakOnLogout = () => {
   if (typeof window.resetSpeakProgress === 'function') {
@@ -2498,7 +3032,7 @@ window.getSessionInvalidationLog = () => {
 };
 
 window.setUser = (user) => {
-  window.user = user || null;
+  window.user = normalizeUserPremiumState(user);
   window.user_id =
     window.user && window.user.id !== undefined && window.user.id !== null
       ? String(window.user.id).trim()
@@ -2511,6 +3045,15 @@ window.setUser = (user) => {
   }
   notifyUserChange(window.user);
 };
+
+window.__premiumExpiryRefreshTimer = window.__premiumExpiryRefreshTimer || null;
+if (!window.__premiumExpiryRefreshTimer) {
+  window.__premiumExpiryRefreshTimer = setInterval(() => {
+    if (typeof window.refreshCurrentUserPremiumState === 'function') {
+      window.refreshCurrentUserPremiumState();
+    }
+  }, 60 * 1000);
+}
 
 const readStoredPushTokens = () => {
   try {
@@ -2889,7 +3432,7 @@ window.loadUser = () => {
   const storedFromSession = readSessionUser();
   const stored = storedFromSession || readLocalUser();
   if (stored) {
-    window.user = stored;
+    window.user = normalizeUserPremiumState(stored);
     window.user_id =
       window.user && window.user.id !== undefined && window.user.id !== null
         ? String(window.user.id).trim()
@@ -3016,6 +3559,21 @@ const refreshUserAvatarLocal = async (user, options = {}) => {
 
   const remotes = getUserAvatarRemoteCandidates(user);
   if (!remotes.length) return;
+
+  // If there are no real remote URLs (only data: SVG fallbacks), the user has no real avatar.
+  // Skip the download/local-file path — using the stale local file would show a broken image.
+  const hasRealRemote = remotes.some(r => /^https?:\/\//i.test(r));
+  if (!hasRealRemote) {
+    if (user.image_local || user.image_path) {
+      user.image_local = '';
+      user.image_path = '';
+      if (isStillSameCurrentUser(expectedUserSignature)) {
+        window.setUser(user);
+      }
+    }
+    return;
+  }
+
   if (window.navigator && window.navigator.onLine === false) {
     if (localUrl) {
       const bustedLocal = addLocalCacheBust(localUrl);
@@ -3360,6 +3918,9 @@ document.addEventListener('DOMContentLoaded', async function() {
         if (typeof window.requestBadgeReset === 'function') {
           window.requestBadgeReset('appStateChange:resume');
         }
+        if (typeof window.refreshCurrentUserPremiumState === 'function') {
+          window.refreshCurrentUserPremiumState();
+        }
         // Implementado en index.js
         if (window._trigger_resume) {
           console.log("|||||||||||||||| window._trigger_resume ||||||||||||||||")
@@ -3441,40 +4002,32 @@ document.addEventListener('DOMContentLoaded', async function() {
       console.log(">#C00.04#> Cordova.Plugins.Keyboard.keyboardDidShow(info). info:",JSON.stringify(info));
 
       const platform = getRuntimePlatform();
-      const allowResize = platform === 'android' && window.__allowKeyboardResize === true;
-      if (!allowResize) {
-        window.__keyboardHeight = 0;
-        return;
-      }
-        
-      console.log(`>#C00.04#> Redimensionando WebView ${info.keyboardHeight} px.`)
+      if (platform !== 'android') return;
 
       // Se supone que no debería, pero viene en dp:
       const rawHeight = info && typeof info.keyboardHeight === 'number' ? info.keyboardHeight : 0;
       const keyboardHeightPx = Math.round(rawHeight * window.devicePixelRatio);
+      console.log(`>#C00.04#> Redimensionando WebView ${keyboardHeightPx} px (${rawHeight} dp).`);
+
       const plugin = window.Capacitor?.Plugins?.P4w4Plugin;
       if (plugin && typeof plugin.resizeWebView === 'function') {
         await plugin.resizeWebView({ offset: keyboardHeightPx });
       }
-
-      // Si viniera en px (Como dice la documentación)
-      // await Capacitor.Plugins.P4w4Plugin.resizeWebView({ offset: info.keyboardHeight })
-
-      window.__keyboardHeight = keyboardHeightPx
+      window.__keyboardHeight = keyboardHeightPx;
     })
     Keyboard.addListener('keyboardWillHide', async info => {
       console.log(">#C00.04#> Cordova.Plugins.Keyboard.keyboardWillHide(info). info:",JSON.stringify(info));
-      console.log(`>#C00.04#> Redimensionando WebView -${window.__keyboardHeight} px.`)
 
       const platform = getRuntimePlatform();
-      const allowResize = platform === 'android' && window.__allowKeyboardResize === true;
-      if (!allowResize) return; // Solo Android ajusta WebView y solo si esta habilitado
+      if (platform !== 'android') return;
 
+      const offset = typeof window.__keyboardHeight === 'number' ? -window.__keyboardHeight : 0;
+      console.log(`>#C00.04#> Restaurando WebView ${offset} px.`);
       const plugin = window.Capacitor?.Plugins?.P4w4Plugin;
       if (plugin && typeof plugin.resizeWebView === 'function') {
-        const offset = typeof window.__keyboardHeight === 'number' ? -window.__keyboardHeight : 0;
         await plugin.resizeWebView({ offset });
       }
+      window.__keyboardHeight = 0;
     })
 
     Keyboard.addListener('keyboardDidHide', async info => {

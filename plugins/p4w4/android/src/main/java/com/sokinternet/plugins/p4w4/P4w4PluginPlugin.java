@@ -25,6 +25,7 @@ import android.os.Vibrator;
 import android.os.VibratorManager;
 
 import android.webkit.WebView;
+import android.content.SharedPreferences;
 
 import com.getcapacitor.Bridge;
 import androidx.core.view.WindowCompat;
@@ -57,6 +58,9 @@ import com.google.mlkit.nl.languageid.LanguageIdentifier;
 
 @CapacitorPlugin(name = "P4w4Plugin")
 public class P4w4PluginPlugin extends Plugin {
+    public static final String NATIVE_CHROME_PREFS = "p4w4_native_chrome";
+    public static final String PREF_BG = "backgroundColor";
+    public static final String PREF_LIGHT_ICONS = "lightIcons";
 
     private P4w4Plugin implementation = new P4w4Plugin();
     private static final String DEFAULT_VOSK_MODEL = "vosk-model-small-en-us-0.15";
@@ -64,6 +68,7 @@ public class P4w4PluginPlugin extends Plugin {
     private static final Object VOSK_LOCK = new Object();
     private static Model voskModel = null;
     private static String voskModelPath = null;
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
     private void applyStatusBarIcons(android.view.Window window, boolean lightIcons) {
         WindowInsetsControllerCompat controller =
@@ -80,6 +85,21 @@ public class P4w4PluginPlugin extends Plugin {
                 flags |= View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
             }
             window.getDecorView().setSystemUiVisibility(flags);
+        }
+    }
+
+    private void applyStatusBarIconsWithRetries(android.view.Window window, boolean lightIcons, String tag) {
+        applyStatusBarIcons(window, lightIcons);
+        int[] retryDelaysMs = new int[] { 60, 180, 420, 900 };
+        for (int delayMs : retryDelaysMs) {
+            mainHandler.postDelayed(() -> {
+                try {
+                    applyStatusBarIcons(window, lightIcons);
+                    Log.i("P4w4Plugin", ">#P4w4Plugin#> applyStatusBarIcons retry: lightIcons=" + lightIcons + " delayMs=" + delayMs + " tag=" + tag);
+                } catch (Exception error) {
+                    Log.e("P4w4Plugin", ">#P4w4Plugin#> applyStatusBarIcons retry error: " + error.getMessage());
+                }
+            }, delayMs);
         }
     }
 
@@ -222,6 +242,8 @@ public class P4w4PluginPlugin extends Plugin {
     public void setNativeChrome(PluginCall call) {
         String backgroundColor = call.getString("backgroundColor");
         boolean lightIcons = call.getBoolean("lightIcons", false);
+        String source = call.getString("source", "");
+        String path = call.getString("path", "");
         if (backgroundColor == null || backgroundColor.trim().isEmpty()) {
             call.reject("Color de fondo invalido.");
             return;
@@ -238,9 +260,14 @@ public class P4w4PluginPlugin extends Plugin {
                 if (webView != null) {
                     webView.setBackgroundColor(Color.TRANSPARENT);
                 }
-                applyStatusBarIcons(window, lightIcons);
+                SharedPreferences prefs = getContext().getSharedPreferences(NATIVE_CHROME_PREFS, Context.MODE_PRIVATE);
+                prefs.edit()
+                    .putString(PREF_BG, backgroundColor)
+                    .putBoolean(PREF_LIGHT_ICONS, lightIcons)
+                    .apply();
+                applyStatusBarIconsWithRetries(window, lightIcons, source + "|" + path);
 
-                Log.i("P4w4Plugin", ">#P4w4Plugin#> setNativeChrome: bg=" + backgroundColor + " lightIcons=" + lightIcons);
+                Log.i("P4w4Plugin", ">#P4w4Plugin#> setNativeChrome: bg=" + backgroundColor + " lightIcons=" + lightIcons + " source=" + source + " path=" + path);
                 call.resolve();
             } catch (IllegalArgumentException error) {
                 call.reject("Color de fondo invalido.", error);

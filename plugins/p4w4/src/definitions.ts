@@ -18,7 +18,7 @@ export interface P4w4PluginPlugin {
   resizeWebView(options: { offset: number }): Promise<void>;
   offsetTopWebView(options: { offset: number }): Promise<void>;
   getStatusBarHeight(): Promise<{ height: number }>;
-  setNativeChrome(options: { backgroundColor: string; lightIcons?: boolean }): Promise<void>;
+  setNativeChrome(options: { backgroundColor: string; lightIcons?: boolean; source?: string; path?: string }): Promise<void>;
   detectLanguage(options: { text: string }): Promise<P4w4LanguageDetectionResult>;
   setStartupHtml(options: { file: string }): Promise<void>;
   resetBadgeCount(): Promise<void>;

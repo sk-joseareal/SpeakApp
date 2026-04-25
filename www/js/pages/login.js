@@ -537,7 +537,12 @@ class PageLogin extends HTMLElement {
             ? window.getUserAvatarRemoteCandidates(user)
             : (user.image ? [String(user.image)] : []);
 
-        if (remotes.length) {
+        // Only attempt filesystem download for real HTTP URLs — data: SVG fallbacks
+        // must not be fetched/saved as .jpg or the local file ends up with SVG
+        // content served as image/jpeg, which shows as a broken image.
+        const downloadableRemotes = remotes.filter(r => /^https?:\/\//i.test(r));
+
+        if (downloadableRemotes.length) {
           if (window.Capacitor?.Plugins?.Filesystem) {
             const localPath = `avatars/${user.id}.jpg`;
             user.image_path = localPath;
@@ -548,7 +553,7 @@ class PageLogin extends HTMLElement {
               console.warn('> No se ha podido crear la carpeta avatars:', err);
             }
             let downloaded = false;
-            for (const remote of remotes) {
+            for (const remote of downloadableRemotes) {
               try {
                 const uri = await download(remote, localPath, 'DATA', { noCache: true });
                 const local =
@@ -564,10 +569,10 @@ class PageLogin extends HTMLElement {
               }
             }
             if (!downloaded) {
-              user.image_local = remotes[0];
+              user.image_local = '';
             }
           } else {
-            user.image_local = remotes[0];
+            user.image_local = downloadableRemotes[0];
           }
         }
 

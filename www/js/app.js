@@ -18,6 +18,7 @@ const ONBOARDING_STATUSBAR_COLOR = '#2d6df0';
 const APP_STATUSBAR_COLOR = '#f4f6fb';
 const PURCHASE_EXPIRES_STORAGE_KEY = '_purchase_expires';
 const PURCHASE_EXPIRES_HUMAN_STORAGE_KEY = '_purchase_expires_human';
+const PURCHASE_USER_ID_STORAGE_KEY = '_purchase_user_id';
 const LAST_IAP_RESULT_STORAGE_KEY = 'appv5:last-got-premium-result';
 
 function getCurrentAppPath() {
@@ -25,13 +26,9 @@ function getCurrentAppPath() {
 }
 
 function getStatusBarStyle(lightIcons) {
-  const platform =
-    window.Capacitor && typeof window.Capacitor.getPlatform === 'function'
-      ? window.Capacitor.getPlatform()
-      : '';
-  if (platform === 'android') {
-    return lightIcons ? 'LIGHT' : 'DARK';
-  }
+  // Capacitor StatusBar plugin: 'DARK' = dark appearance = light/white icons (for dark backgrounds)
+  //                             'LIGHT' = light appearance = dark/black icons (for light backgrounds)
+  // This is the same on both iOS and Android.
   return lightIcons ? 'DARK' : 'LIGHT';
 }
 
@@ -43,11 +40,16 @@ function isAndroidPlatform() {
   );
 }
 
-function setNativeChrome(color, lightIcons) {
+function setNativeChrome(color, lightIcons, meta = {}) {
   try {
     const nativePlugin = window.Capacitor?.Plugins?.P4w4Plugin;
     if (!nativePlugin || typeof nativePlugin.setNativeChrome !== 'function') return;
-    nativePlugin.setNativeChrome({ backgroundColor: color, lightIcons });
+    nativePlugin.setNativeChrome({
+      backgroundColor: color,
+      lightIcons,
+      source: meta && meta.source ? meta.source : '',
+      path: meta && meta.path ? meta.path : ''
+    });
   } catch (_err) {
     // no-op
   }
@@ -90,20 +92,35 @@ function isPremiumFromExpiryIso(value) {
 
 function persistPurchaseState(result) {
   const expiresTs = parsePurchaseExpiry(result && result.purchase_expires);
+  const currentUserId =
+    window.user && window.user.id !== undefined && window.user.id !== null
+      ? String(window.user.id).trim()
+      : '';
   try {
-    if (result && result.register_ok && expiresTs) {
+    if (result && expiresTs) {
       localStorage.setItem(PURCHASE_EXPIRES_STORAGE_KEY, String(expiresTs));
       localStorage.setItem(
         PURCHASE_EXPIRES_HUMAN_STORAGE_KEY,
         result.purchase_expires_human || new Date(expiresTs).toISOString()
       );
+      if (currentUserId) {
+        localStorage.setItem(PURCHASE_USER_ID_STORAGE_KEY, currentUserId);
+      } else {
+        localStorage.removeItem(PURCHASE_USER_ID_STORAGE_KEY);
+      }
     }
   } catch (err) {
     console.error('[iap] error guardando expiracion local', err);
   }
 
   try {
-    localStorage.setItem(LAST_IAP_RESULT_STORAGE_KEY, JSON.stringify(result || null));
+    localStorage.setItem(
+      LAST_IAP_RESULT_STORAGE_KEY,
+      JSON.stringify({
+        ...(result && typeof result === 'object' ? result : {}),
+        user_id: currentUserId || null
+      })
+    );
   } catch (err) {
     console.error('[iap] error guardando ultimo resultado IAP', err);
   }
@@ -126,6 +143,9 @@ function buildUpdatedUserFromPurchase(currentUser, result) {
 
   if (result && result.register_ok) {
     nextUser.premium = hasPremium;
+  } else if (expiresIso) {
+    nextUser.premium = false;
+    delete nextUser.purchase_id;
   }
 
   return nextUser;
@@ -133,6 +153,9 @@ function buildUpdatedUserFromPurchase(currentUser, result) {
 
 window._trigger_gotPremium = (result) => {
   const safeResult = result && typeof result === 'object' ? { ...result } : { register_ok: false };
+  if (window.user && window.user.id !== undefined && window.user.id !== null) {
+    safeResult.user_id = String(window.user.id).trim();
+  }
   const nextUser = buildUpdatedUserFromPurchase(window.user, safeResult);
 
   window.__lastGotPremiumResult = safeResult;
@@ -156,30 +179,50 @@ window._trigger_gotPremium = (result) => {
 };
 
 window.getLastIapPremiumResult = () => {
-  if (window.__lastGotPremiumResult) return window.__lastGotPremiumResult;
+  const currentUserId =
+    window.user && window.user.id !== undefined && window.user.id !== null
+      ? String(window.user.id).trim()
+      : '';
+  if (window.__lastGotPremiumResult) {
+    const resultUserId =
+      window.__lastGotPremiumResult.user_id !== undefined && window.__lastGotPremiumResult.user_id !== null
+        ? String(window.__lastGotPremiumResult.user_id).trim()
+        : '';
+    if (currentUserId) return resultUserId === currentUserId ? window.__lastGotPremiumResult : null;
+    return window.__lastGotPremiumResult;
+  }
   try {
-    return JSON.parse(localStorage.getItem(LAST_IAP_RESULT_STORAGE_KEY) || 'null');
+    const stored = JSON.parse(localStorage.getItem(LAST_IAP_RESULT_STORAGE_KEY) || 'null');
+    const storedUserId =
+      stored && stored.user_id !== undefined && stored.user_id !== null
+        ? String(stored.user_id).trim()
+        : '';
+    if (currentUserId && (!storedUserId || storedUserId !== currentUserId)) return null;
+    return stored;
   } catch (_err) {
     return null;
   }
 };
 
 function applyAppChromeForPath(path) {
-  const onboarding = isOnboardingPath(path);
+  // If the user has completed onboarding, '/' is always a transient router state
+  // before redirecting to '/tabs' — never apply onboarding chrome in that case.
+  const onboarding = isOnboardingPath(path) && !onboardingDone();
   const color = onboarding ? ONBOARDING_STATUSBAR_COLOR : APP_STATUSBAR_COLOR;
   const lightIcons = onboarding;
   const style = getStatusBarStyle(lightIcons);
+  console.log('[chrome] applyAppChromeForPath', JSON.stringify({ path, onboarding, color, lightIcons, style }));
 
   document.body.classList.toggle('onboarding-chrome-active', onboarding);
   setThemeColor(color);
-  setNativeChrome(color, lightIcons);
+  setNativeChrome(color, lightIcons, { source: 'app.js:applyAppChromeForPath', path });
 
   try {
     const sb = window.Capacitor?.Plugins?.StatusBar;
     if (!sb) return;
     sb.setOverlaysWebView({ overlay: true });
-    sb.setBackgroundColor({ color });
     if (!isAndroidPlatform()) {
+      sb.setBackgroundColor({ color });
       sb.setStyle({ style });
     }
   } catch (_err) {
@@ -187,11 +230,17 @@ function applyAppChromeForPath(path) {
   }
 }
 
+let _chromeSyncTimers = [];
 function scheduleAppChromeSync(path) {
-  [0, 120, 320, 800].forEach((delay) => {
-    setTimeout(() => applyAppChromeForPath(path), delay);
-  });
+  _chromeSyncTimers.forEach((id) => clearTimeout(id));
+  console.log('[chrome] scheduleAppChromeSync', JSON.stringify({ path, delays: [0, 120, 320, 800] }));
+  _chromeSyncTimers = [0, 120, 320, 800].map((delay) =>
+    setTimeout(() => applyAppChromeForPath(path), delay)
+  );
 }
+
+window.applyAppChromeForPath = applyAppChromeForPath;
+window.scheduleAppChromeSync = scheduleAppChromeSync;
 
 function installIonContentDimensionGuard() {
   customElements.whenDefined('ion-content').then(() => {
@@ -300,8 +349,8 @@ routerReady.then((router) => {
 });
 
 document.addEventListener('deviceready', () => {
-  const path = getCurrentAppPath();
-  scheduleAppChromeSync(path);
+  // Use a small delay so ensureInitialHash() has settled the URL before syncing chrome.
+  setTimeout(() => scheduleAppChromeSync(getCurrentAppPath()), 200);
 });
 
 const resyncCurrentAppChrome = () => {
@@ -309,7 +358,6 @@ const resyncCurrentAppChrome = () => {
 };
 
 document.addEventListener('resume', resyncCurrentAppChrome);
-window.addEventListener('focus', resyncCurrentAppChrome);
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden) {
     resyncCurrentAppChrome();

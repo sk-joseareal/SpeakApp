@@ -416,6 +416,8 @@ class PageDiagnostics extends HTMLElement {
               <ion-button size="small" fill="outline" id="diag-iap-restore">Restore purchases</ion-button>
               <ion-button size="small" fill="outline" id="diag-iap-copy">Copiar estado IAP</ion-button>
               <ion-button size="small" fill="outline" id="diag-iap-copy-store">Copiar dump store IAP</ion-button>
+              <ion-button size="small" fill="outline" id="diag-iap-copy-support">Copiar soporte IAP</ion-button>
+              <ion-button size="small" fill="outline" id="diag-iap-mail-support">Enviar mail soporte IAP</ion-button>
               <ion-button size="small" fill="outline" id="diag-iap-clear-timeline">Limpiar timeline</ion-button>
               <ion-button size="small" fill="outline" id="diag-iap-clear-local">Limpiar premium local</ion-button>
               <ion-button size="small" fill="outline" id="diag-iap-reread">Releer estado</ion-button>
@@ -471,6 +473,9 @@ class PageDiagnostics extends HTMLElement {
               <div class="pill" style="margin-top:12px;">Último resultado backend</div>
               <div class="diag-debug-sub">Resumen técnico de la respuesta más reciente de verificación para compra o restore.</div>
               <pre class="diag-json" id="diag-iap-last-backend"></pre>
+              <div class="pill" style="margin-top:12px;">Datos para soporte</div>
+              <div class="diag-debug-sub">Úsalo cuando una compra o restore quede vinculada a otra cuenta o haya una reclamación.</div>
+              <pre class="diag-json" id="diag-iap-support-data"></pre>
               <div class="pill" style="margin-top:12px;">Timeline IAP</div>
               <div class="diag-debug-sub">Últimos eventos en orden temporal, con fuente y resultado resumidos.</div>
               <div class="diag-usage-list" id="diag-iap-timeline"></div>
@@ -905,8 +910,49 @@ class PageDiagnostics extends HTMLElement {
             ? extra.purchase_expires
             : result.purchase_expires !== undefined
             ? result.purchase_expires
+            : null,
+        error:
+          extra.error !== undefined && extra.error !== null
+            ? extra.error
+            : result && result.error !== undefined
+            ? result.error
             : null
       };
+    };
+
+    const isOwnershipConflict = (lastBackend, lastResult) => {
+      if (typeof window.isIapOwnershipConflict !== 'function') return false;
+      return Boolean(
+        window.isIapOwnershipConflict(lastBackend && lastBackend.error) ||
+        window.isIapOwnershipConflict(lastResult && lastResult.error)
+      );
+    };
+
+    const buildIapSupportDataText = (lastBackend, lastResult) => {
+      if (typeof window.buildIapSupportPayload !== 'function' || typeof window.formatIapSupportPayload !== 'function') {
+        return 'n/a';
+      }
+      const payload = window.buildIapSupportPayload({
+        issue: isOwnershipConflict(lastBackend, lastResult) ? 'iap_ownership_conflict' : 'iap_support_request',
+        ownership_conflict: isOwnershipConflict(lastBackend, lastResult),
+        source: lastBackend && lastBackend.source ? lastBackend.source : '',
+        platform: lastBackend && lastBackend.platform ? lastBackend.platform : '',
+        product_id: lastBackend && lastBackend.productId ? lastBackend.productId : '',
+        transaction_id: lastBackend && lastBackend.transactionId ? lastBackend.transactionId : '',
+        purchase_id:
+          (lastBackend && lastBackend.purchase_id) ||
+          (lastResult && lastResult.purchase_id) ||
+          '',
+        purchase_expires:
+          (lastBackend && lastBackend.purchase_expires) ||
+          (lastResult && lastResult.purchase_expires) ||
+          '',
+        error:
+          (lastBackend && lastBackend.error) ||
+          (lastResult && lastResult.error) ||
+          ''
+      });
+      return window.formatIapSupportPayload(payload);
     };
 
     const describeIapOperationStatus = (action) => {
@@ -1228,6 +1274,8 @@ class PageDiagnostics extends HTMLElement {
         typeof window.getLastIapPremiumResult === 'function'
           ? window.getLastIapPremiumResult()
           : window.__lastGotPremiumResult || null;
+      const ownershipConflict = isOwnershipConflict(iapDiagState.lastBackend, lastResult);
+      const supportDataText = buildIapSupportDataText(iapDiagState.lastBackend, lastResult);
 
       if (iapLastActionEl) {
         iapLastActionEl.textContent = describeIapOperationStatus(iapDiagState.lastAction);
@@ -1266,11 +1314,16 @@ class PageDiagnostics extends HTMLElement {
       if (iapLastBackendEl) {
         iapLastBackendEl.textContent = formatJson(iapDiagState.lastBackend || {});
       }
+      if (iapSupportDataEl) {
+        iapSupportDataEl.textContent = supportDataText || 'n/a';
+      }
       if (iapStatusEl) {
         if (!pluginOk) {
           iapStatusEl.textContent = 'Plugin IAP no disponible en este entorno.';
         } else if (!store) {
           iapStatusEl.textContent = 'CdvPurchase existe pero no expone store.';
+        } else if (ownershipConflict) {
+          iapStatusEl.textContent = 'Conflicto detectado: la compra parece vinculada a otra cuenta. Copia los datos de soporte o envía el mail.';
         } else {
           iapStatusEl.textContent = 'Store IAP accesible.';
         }
@@ -1448,6 +1501,7 @@ class PageDiagnostics extends HTMLElement {
     const iapLastEventEl = this.querySelector('#diag-iap-last-event');
     const iapLastResultEl = this.querySelector('#diag-iap-last-result');
     const iapLastBackendEl = this.querySelector('#diag-iap-last-backend');
+    const iapSupportDataEl = this.querySelector('#diag-iap-support-data');
     const iapTimelineEl = this.querySelector('#diag-iap-timeline');
     const iapProductsEl = this.querySelector('#diag-iap-products');
     const ttsInputEl = this.querySelector('#diag-tts-input');
@@ -3607,6 +3661,37 @@ class PageDiagnostics extends HTMLElement {
       } catch (err) {
         if (iapStatusEl) {
           iapStatusEl.textContent = `Error copiando dump store IAP: ${err.message || String(err)}`;
+        }
+      }
+    });
+    this.querySelector('#diag-iap-copy-support')?.addEventListener('click', async () => {
+      try {
+        if (typeof window.copyIapSupportPayload === 'function') {
+          await window.copyIapSupportPayload();
+          if (iapStatusEl) iapStatusEl.textContent = 'Datos de soporte IAP copiados al portapapeles.';
+          if (typeof window.presentAppToast === 'function') {
+            window.presentAppToast('Datos de soporte IAP copiados');
+          }
+        } else if (iapStatusEl) {
+          iapStatusEl.textContent = 'Helper de soporte IAP no disponible.';
+        }
+      } catch (err) {
+        if (iapStatusEl) {
+          iapStatusEl.textContent = `Error copiando datos de soporte IAP: ${err.message || String(err)}`;
+        }
+      }
+    });
+    this.querySelector('#diag-iap-mail-support')?.addEventListener('click', () => {
+      try {
+        if (typeof window.openIapSupportMail === 'function') {
+          window.openIapSupportMail();
+          if (iapStatusEl) iapStatusEl.textContent = 'Abriendo mail con datos de soporte IAP.';
+        } else if (iapStatusEl) {
+          iapStatusEl.textContent = 'Helper de mail soporte IAP no disponible.';
+        }
+      } catch (err) {
+        if (iapStatusEl) {
+          iapStatusEl.textContent = `Error abriendo mail soporte IAP: ${err.message || String(err)}`;
         }
       }
     });

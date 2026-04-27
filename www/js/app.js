@@ -90,6 +90,135 @@ function isPremiumFromExpiryIso(value) {
   return Boolean(ts && ts > Date.now());
 }
 
+function getCurrentUserIdText() {
+  return window.user && window.user.id !== undefined && window.user.id !== null
+    ? String(window.user.id).trim()
+    : '';
+}
+
+function readStoredPurchaseStateForUser(userId) {
+  try {
+    const storedUserId = String(localStorage.getItem(PURCHASE_USER_ID_STORAGE_KEY) || '').trim();
+    if (userId && storedUserId && storedUserId !== userId) {
+      return { expiresTs: null, purchase_id: '', human: '', user_id: storedUserId };
+    }
+    const expiresTs = parsePurchaseExpiry(localStorage.getItem(PURCHASE_EXPIRES_STORAGE_KEY) || '');
+    return {
+      expiresTs,
+      purchase_id: '',
+      human: localStorage.getItem(PURCHASE_EXPIRES_HUMAN_STORAGE_KEY) || '',
+      user_id: storedUserId || ''
+    };
+  } catch (_err) {
+    return { expiresTs: null, purchase_id: '', human: '', user_id: '' };
+  }
+}
+
+function readStoredLastIapResultForUser(userId) {
+  try {
+    const stored = JSON.parse(localStorage.getItem(LAST_IAP_RESULT_STORAGE_KEY) || 'null');
+    if (!stored || typeof stored !== 'object') return null;
+    const storedUserId =
+      stored.user_id !== undefined && stored.user_id !== null ? String(stored.user_id).trim() : '';
+    if (userId && storedUserId && storedUserId !== userId) return null;
+    return stored;
+  } catch (_err) {
+    return null;
+  }
+}
+
+function readCurrentEntitlementSnapshot(userId) {
+  const snapshots = [];
+
+  if (window.user && typeof window.user === 'object') {
+    const windowUserId =
+      window.user.id !== undefined && window.user.id !== null ? String(window.user.id).trim() : '';
+    if (!userId || !windowUserId || windowUserId === userId) {
+      const userExpiryTs = parsePurchaseExpiry(window.user.expires_date || window.user.expiresDate || '');
+      if (userExpiryTs) {
+        snapshots.push({
+          expiresTs: userExpiryTs,
+          purchase_id: window.user.purchase_id ? String(window.user.purchase_id) : '',
+          human: new Date(userExpiryTs).toISOString(),
+          source: 'window.user'
+        });
+      }
+    }
+  }
+
+  const memoryResult =
+    window.__lastGotPremiumResult && typeof window.__lastGotPremiumResult === 'object'
+      ? window.__lastGotPremiumResult
+      : null;
+  const candidateResults = [memoryResult, readStoredLastIapResultForUser(userId)];
+  candidateResults.forEach((candidate, idx) => {
+    if (!candidate || typeof candidate !== 'object') return;
+    const candidateUserId =
+      candidate.user_id !== undefined && candidate.user_id !== null ? String(candidate.user_id).trim() : '';
+    if (userId && candidateUserId && candidateUserId !== userId) return;
+    const expiresTs = parsePurchaseExpiry(candidate.purchase_expires);
+    if (!expiresTs) return;
+    snapshots.push({
+      expiresTs,
+      purchase_id: candidate.purchase_id ? String(candidate.purchase_id) : '',
+      human: candidate.purchase_expires_human || new Date(expiresTs).toISOString(),
+      source: idx === 0 ? '__lastGotPremiumResult' : 'localStorage:last-got-premium-result'
+    });
+  });
+
+  const storedPurchase = readStoredPurchaseStateForUser(userId);
+  if (storedPurchase.expiresTs) {
+    snapshots.push({
+      expiresTs: storedPurchase.expiresTs,
+      purchase_id: '',
+      human: storedPurchase.human || new Date(storedPurchase.expiresTs).toISOString(),
+      source: 'localStorage:purchase-expiry'
+    });
+  }
+
+  if (!snapshots.length) return null;
+
+  return snapshots.reduce((best, current) =>
+    !best || current.expiresTs > best.expiresTs ? current : best
+  , null);
+}
+
+function mergePremiumResultWithCurrentState(result) {
+  if (!result || typeof result !== 'object') return result;
+  const incomingExpiryTs = parsePurchaseExpiry(result.purchase_expires);
+  if (!incomingExpiryTs) return result;
+
+  const resultUserId =
+    result.user_id !== undefined && result.user_id !== null ? String(result.user_id).trim() : '';
+  const currentUserId = resultUserId || getCurrentUserIdText();
+  const currentEntitlement = readCurrentEntitlementSnapshot(currentUserId);
+
+  if (!currentEntitlement || !currentEntitlement.expiresTs) {
+    return result;
+  }
+  if (incomingExpiryTs >= currentEntitlement.expiresTs) {
+    return result;
+  }
+
+  console.warn('[iap] ignoring stale entitlement result', {
+    incomingExpiry: new Date(incomingExpiryTs).toISOString(),
+    currentExpiry: new Date(currentEntitlement.expiresTs).toISOString(),
+    incomingPurchaseId: result.purchase_id || '',
+    currentPurchaseId: currentEntitlement.purchase_id || '',
+    currentSource: currentEntitlement.source || ''
+  });
+
+  return {
+    ...result,
+    register_ok: currentEntitlement.expiresTs > Date.now(),
+    purchase_expires: currentEntitlement.expiresTs,
+    purchase_expires_human:
+      currentEntitlement.human || new Date(currentEntitlement.expiresTs).toISOString(),
+    purchase_id: currentEntitlement.purchase_id || result.purchase_id || '',
+    merged_from_stale_result: true
+  };
+}
+
 function persistPurchaseState(result) {
   const expiresTs = parsePurchaseExpiry(result && result.purchase_expires);
   const currentUserId =
@@ -156,10 +285,11 @@ window._trigger_gotPremium = (result) => {
   if (window.user && window.user.id !== undefined && window.user.id !== null) {
     safeResult.user_id = String(window.user.id).trim();
   }
-  const nextUser = buildUpdatedUserFromPurchase(window.user, safeResult);
+  const mergedResult = mergePremiumResultWithCurrentState(safeResult);
+  const nextUser = buildUpdatedUserFromPurchase(window.user, mergedResult);
 
-  window.__lastGotPremiumResult = safeResult;
-  persistPurchaseState(safeResult);
+  window.__lastGotPremiumResult = mergedResult;
+  persistPurchaseState(mergedResult);
 
   if (nextUser && typeof window.setUser === 'function') {
     window.setUser(nextUser);
@@ -171,7 +301,7 @@ window._trigger_gotPremium = (result) => {
   window.dispatchEvent(
     new CustomEvent('app:iap-premium-change', {
       detail: {
-        result: safeResult,
+        result: mergedResult,
         user: nextUser || window.user || null
       }
     })
@@ -202,6 +332,203 @@ window.getLastIapPremiumResult = () => {
   } catch (_err) {
     return null;
   }
+};
+
+window.presentAppToast = (message, options = {}) => {
+  const text = String(message || '').trim();
+  if (!text) return;
+  try {
+    const toast = document.createElement('ion-toast');
+    toast.message = text;
+    const autoDismiss = options.autoDismiss === true || Number(options.duration) > 0;
+    toast.duration = autoDismiss ? Number(options.duration) || 2200 : 0;
+    toast.position = options.position || 'top';
+    if (!autoDismiss) {
+      toast.buttons = [
+        {
+          text: options.closeText || 'Cerrar',
+          role: 'cancel'
+        }
+      ];
+    }
+    document.body.appendChild(toast);
+    toast.present().catch(() => {});
+    toast.addEventListener(
+      'didDismiss',
+      () => {
+        toast.remove();
+      },
+      { once: true }
+    );
+  } catch (_err) {
+    // no-op
+  }
+};
+
+const IAP_SUPPORT_EMAIL = 'contact@sokinternet.com';
+
+function getIapSupportUserSnapshot() {
+  const user = window.user && typeof window.user === 'object' ? window.user : null;
+  return {
+    user_id:
+      user && user.id !== undefined && user.id !== null
+        ? String(user.id).trim()
+        : window.user_id !== undefined && window.user_id !== null
+        ? String(window.user_id).trim()
+        : '',
+    email: user && user.email ? String(user.email).trim() : '',
+    premium: Boolean(user && user.premium),
+    expires_date: user ? user.expires_date || user.expiresDate || '' : ''
+  };
+}
+
+function normalizeIapSupportError(errorValue) {
+  if (errorValue === undefined || errorValue === null) return '';
+  if (typeof errorValue === 'string') return errorValue.trim();
+  if (errorValue && typeof errorValue.message === 'string') return errorValue.message.trim();
+  try {
+    return JSON.stringify(errorValue);
+  } catch (_err) {
+    return String(errorValue);
+  }
+}
+
+window.isIapOwnershipConflict = (value) => {
+  const text = normalizeIapSupportError(value).toLowerCase();
+  if (!text) return false;
+  return (
+    text.includes('owned_by_other_user') ||
+    text.includes('purchase_owned_by_other_user') ||
+    text.includes('already linked to another user') ||
+    text.includes('already associated to another user') ||
+    text.includes('already associated with another user') ||
+    text.includes('already linked to another account') ||
+    text.includes('already associated to another account') ||
+    text.includes('belongs to another user') ||
+    text.includes('belongs to another account')
+  );
+};
+
+window.buildIapSupportPayload = (context = {}) => {
+  const user = getIapSupportUserSnapshot();
+  const lastResult =
+    typeof window.getLastIapPremiumResult === 'function'
+      ? window.getLastIapPremiumResult()
+      : window.__lastGotPremiumResult || null;
+  const lastDiagnosticsBackend =
+    window.__iapDiagnosticsState && window.__iapDiagnosticsState.lastBackend
+      ? window.__iapDiagnosticsState.lastBackend
+      : null;
+  const lastEvent = window.__lastIapStoreEvent || null;
+  const platform =
+    context.platform ||
+    (lastDiagnosticsBackend && lastDiagnosticsBackend.platform) ||
+    (lastEvent && lastEvent.platform) ||
+    (window.Capacitor && typeof window.Capacitor.getPlatform === 'function'
+      ? window.Capacitor.getPlatform()
+      : 'unknown');
+  const meta = window.appMeta || {};
+  const version =
+    meta.version || meta.appVersion || meta.versionName || meta.versionString || '';
+  const build =
+    meta.build || meta.appBuild || meta.buildNumber || meta.versionCode || '';
+  const supportPayload = {
+    issue: context.issue || 'iap_support_request',
+    ownership_conflict: Boolean(
+      context.ownership_conflict ||
+      window.isIapOwnershipConflict(context.error) ||
+      window.isIapOwnershipConflict(lastDiagnosticsBackend && lastDiagnosticsBackend.error) ||
+      window.isIapOwnershipConflict(lastResult && lastResult.error)
+    ),
+    timestamp: new Date().toISOString(),
+    user_id: context.user_id || user.user_id || '',
+    user_email: context.user_email || user.email || '',
+    platform: String(platform || '').trim(),
+    product_id:
+      context.product_id ||
+      context.productId ||
+      (lastDiagnosticsBackend && lastDiagnosticsBackend.productId) ||
+      (lastEvent && lastEvent.productId) ||
+      '',
+    transaction_id:
+      context.transaction_id ||
+      context.transactionId ||
+      (lastDiagnosticsBackend && lastDiagnosticsBackend.transactionId) ||
+      (lastEvent && lastEvent.transactionId) ||
+      '',
+    purchase_id:
+      context.purchase_id ||
+      context.purchaseId ||
+      (lastDiagnosticsBackend && lastDiagnosticsBackend.purchase_id) ||
+      (lastResult && lastResult.purchase_id) ||
+      '',
+    purchase_expires:
+      context.purchase_expires ||
+      (lastDiagnosticsBackend && lastDiagnosticsBackend.purchase_expires) ||
+      (lastResult && lastResult.purchase_expires) ||
+      user.expires_date ||
+      '',
+    error:
+      normalizeIapSupportError(context.error) ||
+      normalizeIapSupportError(lastDiagnosticsBackend && lastDiagnosticsBackend.error) ||
+      normalizeIapSupportError(lastResult && lastResult.error),
+    source:
+      context.source ||
+      (lastDiagnosticsBackend && lastDiagnosticsBackend.source) ||
+      (lastEvent && lastEvent.extra && lastEvent.extra.source) ||
+      '',
+    app_version: version || '',
+    app_build: build || '',
+    uuid: window.uuid || localStorage.getItem('uuid') || '',
+    user_premium: user.premium,
+    user_expires_date: user.expires_date || ''
+  };
+  return supportPayload;
+};
+
+window.formatIapSupportPayload = (payload) => {
+  const data = payload && typeof payload === 'object' ? payload : window.buildIapSupportPayload();
+  return [
+    `issue: ${data.issue || 'iap_support_request'}`,
+    `ownership_conflict: ${data.ownership_conflict ? 'yes' : 'no'}`,
+    `timestamp: ${data.timestamp || ''}`,
+    `user_id: ${data.user_id || ''}`,
+    `user_email: ${data.user_email || ''}`,
+    `platform: ${data.platform || ''}`,
+    `product_id: ${data.product_id || ''}`,
+    `transaction_id: ${data.transaction_id || ''}`,
+    `purchase_id: ${data.purchase_id || ''}`,
+    `purchase_expires: ${data.purchase_expires || ''}`,
+    `source: ${data.source || ''}`,
+    `user_premium: ${data.user_premium ? 'true' : 'false'}`,
+    `user_expires_date: ${data.user_expires_date || ''}`,
+    `app_version: ${data.app_version || ''}`,
+    `app_build: ${data.app_build || ''}`,
+    `uuid: ${data.uuid || ''}`,
+    `error: ${data.error || ''}`
+  ].join('\n');
+};
+
+window.copyIapSupportPayload = async (context = {}) => {
+  const payload = window.buildIapSupportPayload(context);
+  const text = window.formatIapSupportPayload(payload);
+  if (!navigator.clipboard || typeof navigator.clipboard.writeText !== 'function') {
+    throw new Error('Clipboard API not available');
+  }
+  await navigator.clipboard.writeText(text);
+  return payload;
+};
+
+window.openIapSupportMail = (context = {}) => {
+  const payload = window.buildIapSupportPayload(context);
+  const subjectParts = ['IAP support'];
+  if (payload.ownership_conflict) subjectParts.push('ownership conflict');
+  if (payload.product_id) subjectParts.push(payload.product_id);
+  if (payload.user_id) subjectParts.push(`user ${payload.user_id}`);
+  const subject = encodeURIComponent(subjectParts.join(' · '));
+  const body = encodeURIComponent(window.formatIapSupportPayload(payload));
+  window.location.href = `mailto:${IAP_SUPPORT_EMAIL}?subject=${subject}&body=${body}`;
+  return payload;
 };
 
 function applyAppChromeForPath(path) {

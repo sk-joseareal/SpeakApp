@@ -1486,6 +1486,9 @@ IAPPurchaseVerify = async function(body, callback) {
   const userId = getCurrentIapUserId();
   if (!userId) {
     console.log(">#V05# IAPPurchaseVerify: No hay usuario activo. No se envia al backend.");
+    if (source === 'restore') {
+      notifyIapLoginRequired({ source });
+    }
     callback({ ok: false, error: "Missing active user" });
     return;
   }
@@ -1593,7 +1596,17 @@ IAPPurchaseVerify = async function(body, callback) {
         result.purchase_expires = errorExpiryMs;
         result.purchase_expires_human = new Date(errorExpiryMs).toISOString();
       }
+      if (!result.purchase_id) {
+        result.purchase_id =
+          canonicalOriginalTransactionId ||
+          canonicalTransactionId ||
+          canonicalResponseId ||
+          resolvedProductId ||
+          productId;
+      }
     }
+
+    notifyIapOwnershipConflict(result, { source });
 
     if (result && (result.register_ok || result.purchase_expires) && window._trigger_gotPremium) {
       console.log( '>#V05# IAPPurchaseVerify: Informando a la App ( window._trigger_gotPremium( result ) ).' );
@@ -1733,11 +1746,12 @@ const getAndroidIapValidationKey = (item) => {
   const nativePurchase = item && item.nativePurchase ? item.nativePurchase : {};
   const token = nativePurchase.purchaseToken || item?.purchaseId || '';
   const transactionId = item?.transactionId || nativePurchase.orderId || '';
+  const userId = getCurrentIapUserId() || '';
   const productId =
     item && Array.isArray(item.products) && item.products[0] && item.products[0].id
       ? item.products[0].id
       : nativePurchase.productId || '';
-  return [productId, transactionId, token].filter(Boolean).join('::');
+  return [userId, productId, transactionId, token].filter(Boolean).join('::');
 };
 
 const readStoredAndroidIapValidationCache = () => {
@@ -1790,6 +1804,47 @@ const readRecentAndroidIapValidation = (key) => {
   return entry.result || null;
 };
 
+const notifyIapOwnershipConflict = (result, options = {}) => {
+  if (!result || typeof window === 'undefined') return;
+  if (typeof window.isIapOwnershipConflict !== 'function') return;
+  if (!window.isIapOwnershipConflict(result.error)) return;
+
+  const purchaseId = result.purchase_id ? String(result.purchase_id) : '';
+  const message = purchaseId
+    ? `Esta compra ya está vinculada a otra cuenta. ID: ${purchaseId}. Revisa Diagnósticos para copiar o enviar la reclamación.`
+    : 'Esta compra ya está vinculada a otra cuenta. Revisa Diagnósticos para copiar o enviar la reclamación.';
+
+  if (typeof window.presentAppToast === 'function') {
+    window.presentAppToast(message, { duration: 5200 });
+  } else if (typeof window.alert === 'function') {
+    window.alert(message);
+  }
+
+  if (typeof window.emitIapStoreEvent === 'function') {
+    window.emitIapStoreEvent('ownership-conflict', null, {
+      source: options && options.source ? options.source : 'iap',
+      purchase_id: purchaseId || undefined,
+      error: result.error
+    });
+  }
+};
+
+const notifyIapLoginRequired = (options = {}) => {
+  if (typeof window === 'undefined') return;
+  const message = 'Inicia sesión para restaurar o vincular compras a esta cuenta.';
+
+  if (typeof window.presentAppToast === 'function') {
+    window.presentAppToast(message, { duration: 4200 });
+  }
+
+  if (typeof window.emitIapStoreEvent === 'function') {
+    window.emitIapStoreEvent('iap-login-required', null, {
+      source: options && options.source ? options.source : 'iap',
+      error: 'Missing active user'
+    });
+  }
+};
+
 async function validateAndroidPurchaseWithBackend(item, options) {
   const opts = options && typeof options === 'object' ? options : {};
   const source = opts.source || 'unknown';
@@ -1820,6 +1875,7 @@ async function validateAndroidPurchaseWithBackend(item, options) {
     );
   }
   if (!userId) {
+    notifyIapLoginRequired({ source });
     throw new Error('Missing active user for Android purchase validation');
   }
 
@@ -1940,6 +1996,7 @@ async function validateAndroidPurchaseWithBackend(item, options) {
         : null;
     result = {
       register_ok: false,
+      error: data && data.error ? data.error : 'Android backend validation failed',
       purchase_id:
         data && data.error && data.error.raw && data.error.raw.orderId
           ? data.error.raw.orderId
@@ -1951,13 +2008,16 @@ async function validateAndroidPurchaseWithBackend(item, options) {
     }
   }
 
+  notifyIapOwnershipConflict(result, { source });
+
   if (typeof window.emitIapStoreEvent === 'function') {
-    window.emitIapStoreEvent('android-validated', item, {
-      source: source,
-      success: Boolean(result && result.register_ok),
-      purchase_id: result && result.purchase_id ? result.purchase_id : undefined,
-      purchase_expires: result && result.purchase_expires ? result.purchase_expires : undefined
-    });
+      window.emitIapStoreEvent('android-validated', item, {
+        source: source,
+        success: Boolean(result && result.register_ok),
+        error: result && result.error ? result.error : undefined,
+        purchase_id: result && result.purchase_id ? result.purchase_id : undefined,
+        purchase_expires: result && result.purchase_expires ? result.purchase_expires : undefined
+      });
     if (source === 'approved') {
       window.emitIapStoreEvent('approved-result', item, {
         success: Boolean(result && result.register_ok),
@@ -2218,7 +2278,11 @@ function IAPPurchaseUpdated(item) {
       if (platform === 'android-playstore') {
         const restoreWindowOpen = isRestoreWindowOpen();
         item.transactions.forEach(function(transaction) {
-          if (!transaction || transaction.state !== 'approved') return;
+          if (!transaction) return;
+          const isRestorableAndroidTransaction =
+            transaction.state === 'approved' ||
+            (restoreWindowOpen && transaction.state === 'finished');
+          if (!isRestorableAndroidTransaction) return;
           validateAndroidPurchaseWithBackend(transaction, {
             source: restoreWindowOpen ? 'restore' : 'receipt-updated',
             finishAfterSuccess: true
@@ -2232,7 +2296,11 @@ function IAPPurchaseUpdated(item) {
       } else if (platform === 'ios-appstore') {
         const restoreWindowOpen = isRestoreWindowOpen();
         item.transactions.forEach(function(transaction) {
-          if (!transaction || transaction.state !== 'approved') return;
+          if (!transaction) return;
+          const isRestorableIosTransaction =
+            transaction.state === 'approved' ||
+            (restoreWindowOpen && transaction.state === 'finished');
+          if (!isRestorableIosTransaction) return;
           requestIosTransactionVerification(transaction, restoreWindowOpen ? 'restore' : 'receipt-updated');
         });
         if (restoreWindowOpen) {
@@ -2615,6 +2683,15 @@ function IAPcheckOwned(productId)
 function IAPrestorePurchases() {
     Rlog()
     Rlog(">#V05#> IAPrestorePurchases: window.CdvPurchase.store.restorePurchases().");
+    if (!getCurrentIapUserId()) {
+      notifyIapLoginRequired({ source: 'manual-restore' });
+      window.emitIapStoreEvent('restore-call-result', null, {
+        source: 'manual',
+        success: false,
+        error: 'Missing active user'
+      });
+      return Promise.resolve({ skipped: true, error: 'Missing active user' });
+    }
     window.__iapRestoreRequestedAt = Date.now();
     window.emitIapStoreEvent('restore-requested', null, { source: 'manual', restoreWindowMs: 60000 });
 

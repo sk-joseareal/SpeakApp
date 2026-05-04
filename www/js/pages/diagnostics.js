@@ -6,6 +6,7 @@ import {
   getNotifications
 } from '../notifications-store.js';
 import { clearOnboardingDone, getAppLocale } from '../state.js';
+import { setAppTitlebarEnabled } from '../components/app-header.js';
 import {
   ensureTrainingData,
   getLocalizedContentField,
@@ -35,11 +36,51 @@ class PageDiagnostics extends HTMLElement {
     const FREE_RIDE_AUDIO_MODE_LOCAL = 'local';
     const FREE_RIDE_ADVANCED_ENABLED_KEY = 'appv5:free-ride-advanced-enabled';
     const FREE_RIDE_WORD_TAP_AUDIO_ENABLED_KEY = 'appv5:free-ride-word-tap-audio-enabled';
+    const FREE_RIDE_CARD_PADDED_KEY = 'appv5:free-ride-card-padded';
+    const FREE_RIDE_HEADER_COLOR_KEY = 'appv5:free-ride-header-color';
+    const FREE_RIDE_HEADER_COLOR_VALUES = ['white', 'dark', 'blue'];
     const SPEAK_SESSION_PERCENTAGES_VISIBLE_KEY = 'appv5:speak-session-percentages-visible';
+    const APP_TITLEBAR_ENABLED_KEY = 'appv5:app-titlebar-enabled';
+    const APP_STATUSBAR_PRESET_KEY = 'appv5:statusbar-preset';
     const SPEAK_PRONUNCIATION_AVATAR_MODE_KEY = 'appv5:speak-pronunciation-avatar-mode';
     const SPEAK_PRONUNCIATION_AVATAR_OLD = 'old';
     const SPEAK_PRONUNCIATION_AVATAR_NEW = 'new';
     const SPEAK_PRONUNCIATION_AVATAR_SET2 = 'set2';
+    const SPEAK_PRONUNCIATION_AVATAR_VISEMES_REAL = 'visemes-real';
+    const SPEAK_PRONUNCIATION_AVATAR_VISEMES_V2 = 'visemes-v2';
+    const SPEAK_PRONUNCIATION_AVATAR_VISEMES_V1 = 'visemes-v1';
+    const SPEAK_PRONUNCIATION_AVATAR_OPTIONS = [
+      {
+        value: SPEAK_PRONUNCIATION_AVATAR_SET2,
+        label: 'Set 2',
+        description: 'Set 2: nuevo set de bocas realistas con cara completa.'
+      },
+      {
+        value: SPEAK_PRONUNCIATION_AVATAR_NEW,
+        label: 'Nuevo',
+        description: 'Nuevo: usa la chica con overlays de boca por visema.'
+      },
+      {
+        value: SPEAK_PRONUNCIATION_AVATAR_OLD,
+        label: 'Antiguo',
+        description: 'Antiguo: usa el avatar actual con las bocas simples.'
+      },
+      {
+        value: SPEAK_PRONUNCIATION_AVATAR_VISEMES_REAL,
+        label: 'visemes-real',
+        description: 'visemes-real: set realista de visemas en fotos.'
+      },
+      {
+        value: SPEAK_PRONUNCIATION_AVATAR_VISEMES_V2,
+        label: 'visemes-v2',
+        description: 'visemes-v2: set de visemas PNG con etiquetado fonético.'
+      },
+      {
+        value: SPEAK_PRONUNCIATION_AVATAR_VISEMES_V1,
+        label: 'visemes-v1',
+        description: 'visemes-v1: set alternativo de visemas.'
+      }
+    ];
     const REFERENCE_TAB_ENABLED_KEY = 'appv5:reference-tab-enabled';
     const REFERENCE_TOOLS_ENABLED_KEY = 'appv5:reference-tools-enabled';
     const CHAT_CATBOT_ENABLED_KEY = 'appv5:chat-catbot-enabled';
@@ -146,6 +187,33 @@ class PageDiagnostics extends HTMLElement {
         return false;
       }
     };
+    const normalizeFreeRideCardPadded = (value) => {
+      if (typeof value === 'boolean') return value;
+      if (value === null || value === undefined || value === '') return true;
+      const normalized = String(value).trim().toLowerCase();
+      return ['1', 'true', 'on', 'yes'].includes(normalized);
+    };
+    const getStoredFreeRideCardPadded = () => {
+      const globalValue =
+        window.r34lp0w3r && Object.prototype.hasOwnProperty.call(window.r34lp0w3r, 'freeRideCardPadded')
+          ? window.r34lp0w3r.freeRideCardPadded
+          : undefined;
+      if (typeof globalValue === 'boolean') return globalValue;
+      try {
+        const raw = localStorage.getItem(FREE_RIDE_CARD_PADDED_KEY);
+        return normalizeFreeRideCardPadded(raw);
+      } catch (err) {
+        return true;
+      }
+    };
+    const getStoredFreeRideHeaderColor = () => {
+      try {
+        const raw = String(localStorage.getItem(FREE_RIDE_HEADER_COLOR_KEY) || '').trim().toLowerCase();
+        return FREE_RIDE_HEADER_COLOR_VALUES.includes(raw) ? raw : 'white';
+      } catch (_err) {
+        return 'white';
+      }
+    };
     const normalizeSpeakSessionPercentagesVisible = (value) => {
       if (typeof value === 'boolean') return value;
       const normalized = String(value || '')
@@ -166,14 +234,55 @@ class PageDiagnostics extends HTMLElement {
         return true;
       }
     };
+    const normalizeAppTitlebarEnabled = (value) => {
+      if (typeof value === 'boolean') return value;
+      const normalized = String(value || '')
+        .trim()
+        .toLowerCase();
+      if (!normalized) return false;
+      return ['1', 'true', 'on', 'yes'].includes(normalized);
+    };
+    const getStoredAppTitlebarEnabled = () => {
+      const globalValue =
+        window.r34lp0w3r && Object.prototype.hasOwnProperty.call(window.r34lp0w3r, 'appTitlebarEnabled')
+          ? window.r34lp0w3r.appTitlebarEnabled
+          : undefined;
+      if (globalValue !== undefined) return normalizeAppTitlebarEnabled(globalValue);
+      try {
+        return normalizeAppTitlebarEnabled(localStorage.getItem(APP_TITLEBAR_ENABLED_KEY));
+      } catch (err) {
+        return false;
+      }
+    };
+    const normalizeStatusbarPreset = (preset) =>
+      String(preset || '').trim().toLowerCase() === 'clear' ? 'clear' : 'dark';
+    const getStoredStatusbarPreset = () => {
+      const globalValue =
+        window.r34lp0w3r && Object.prototype.hasOwnProperty.call(window.r34lp0w3r, 'appStatusbarPreset')
+          ? window.r34lp0w3r.appStatusbarPreset
+          : undefined;
+      if (globalValue !== undefined) return normalizeStatusbarPreset(globalValue);
+      try {
+        return normalizeStatusbarPreset(localStorage.getItem(APP_STATUSBAR_PRESET_KEY));
+      } catch (_err) {
+        return 'dark';
+      }
+    };
     const normalizeSpeakPronunciationAvatarMode = (value) => {
       const normalized = String(value || '')
         .trim()
         .toLowerCase();
-      if (normalized === SPEAK_PRONUNCIATION_AVATAR_OLD) return SPEAK_PRONUNCIATION_AVATAR_OLD;
-      if (normalized === SPEAK_PRONUNCIATION_AVATAR_NEW) return SPEAK_PRONUNCIATION_AVATAR_NEW;
-      if (normalized === SPEAK_PRONUNCIATION_AVATAR_SET2) return SPEAK_PRONUNCIATION_AVATAR_SET2;
+      if (SPEAK_PRONUNCIATION_AVATAR_OPTIONS.some((option) => option.value === normalized)) {
+        return normalized;
+      }
       return SPEAK_PRONUNCIATION_AVATAR_SET2;
+    };
+    const buildSpeakPronunciationAvatarOptionsMarkup = (selectedValue) => {
+      const selected = normalizeSpeakPronunciationAvatarMode(selectedValue);
+      return SPEAK_PRONUNCIATION_AVATAR_OPTIONS.map(
+        (option) =>
+          `<option value="${option.value}" ${option.value === selected ? 'selected' : ''}>${option.label}</option>`
+      ).join('');
     };
     const getStoredSpeakPronunciationAvatarMode = () => {
       const globalValue =
@@ -318,6 +427,38 @@ class PageDiagnostics extends HTMLElement {
             </div>
             <div class="diag-debug-toggle" style="margin-top: 10px;">
               <div class="diag-debug-text">
+                <div class="diag-debug-title">Statusbar</div>
+                <div class="diag-debug-sub" id="diag-statusbar-preset-sub"></div>
+              </div>
+            </div>
+            <div class="diag-audio-mode-wrap" style="margin-top: 4px;">
+              <ion-segment id="diag-statusbar-preset" value="${getStoredStatusbarPreset()}">
+                <ion-segment-button value="dark"><ion-label>Dark</ion-label></ion-segment-button>
+                <ion-segment-button value="clear"><ion-label>Clear</ion-label></ion-segment-button>
+              </ion-segment>
+            </div>
+            <div class="diag-debug-toggle" style="margin-top: 10px;">
+              <div class="diag-debug-text">
+                <div class="diag-debug-title">Titlebar</div>
+                <div class="diag-debug-sub" id="diag-titlebar-sub"></div>
+              </div>
+              <ion-toggle id="diag-titlebar-toggle" aria-label="Titlebar" ${getStoredAppTitlebarEnabled() ? 'checked' : ''}></ion-toggle>
+            </div>
+            <div class="diag-debug-toggle" style="margin-top: 10px;">
+              <div class="diag-debug-text">
+                <div class="diag-debug-title">Titlebar items (Lab + Sessions)</div>
+                <div class="diag-debug-sub" id="diag-free-ride-header-color-sub"></div>
+              </div>
+            </div>
+            <div class="diag-audio-mode-wrap" style="margin-top: 4px;">
+              <ion-segment id="diag-free-ride-header-color" value="${getStoredFreeRideHeaderColor()}">
+                <ion-segment-button value="white"><ion-label>Blanco</ion-label></ion-segment-button>
+                <ion-segment-button value="dark"><ion-label>Oscuro</ion-label></ion-segment-button>
+                <ion-segment-button value="blue"><ion-label>Azul</ion-label></ion-segment-button>
+              </ion-segment>
+            </div>
+            <div class="diag-debug-toggle" style="margin-top: 10px;">
+              <div class="diag-debug-text">
                 <div class="diag-debug-title">Porcentajes en sesión (Training)</div>
                 <div class="diag-debug-sub" id="diag-speak-session-percentages-sub"></div>
               </div>
@@ -326,20 +467,10 @@ class PageDiagnostics extends HTMLElement {
             <div class="diag-speak-block">
               <div class="diag-debug-title">Avatar pronunciación</div>
               <div class="diag-audio-mode-wrap">
-                <ion-segment
+                <select
                   id="diag-speak-pronunciation-avatar-mode"
-                  value="${getStoredSpeakPronunciationAvatarMode()}"
-                >
-                  <ion-segment-button value="set2">
-                    <ion-label>Set 2</ion-label>
-                  </ion-segment-button>
-                  <ion-segment-button value="new">
-                    <ion-label>Nuevo</ion-label>
-                  </ion-segment-button>
-                  <ion-segment-button value="old">
-                    <ion-label>Antiguo</ion-label>
-                  </ion-segment-button>
-                </ion-segment>
+                  class="diag-select"
+                >${buildSpeakPronunciationAvatarOptionsMarkup(getStoredSpeakPronunciationAvatarMode())}</select>
                 <div class="diag-debug-sub" id="diag-speak-pronunciation-avatar-sub"></div>
               </div>
             </div>
@@ -393,15 +524,6 @@ class PageDiagnostics extends HTMLElement {
                 )
                 .join('')}
             </ul>
-
-            <h4 style="margin-top:16px;">Status bar</h4>
-            <div class="diag-actions">
-              <ion-button size="small" fill="outline" id="sb-blue">Fondo azul</ion-button>
-              <ion-button size="small" fill="outline" id="sb-transparent">Fondo transparente</ion-button>
-              <ion-button size="small" fill="outline" id="sb-light">Iconos oscuros</ion-button>
-              <ion-button size="small" fill="outline" id="sb-dark">Iconos claros</ion-button>
-            </div>
-
             <h4 style="margin-top:16px;">Notificaciones Push</h4>
             <p>Token fcm: <strong>${window.__fcmToken ? window.__fcmToken : 'n/a'}</strong></p>
             <p>Token APNs: <strong>${window.__APNsToken ? window.__APNsToken : 'n/a' }</strong></p>
@@ -545,6 +667,13 @@ class PageDiagnostics extends HTMLElement {
                   <div class="diag-debug-sub" id="diag-free-ride-word-tap-audio-sub"></div>
                 </div>
                 <ion-toggle id="diag-free-ride-word-tap-audio-toggle" aria-label="Audio por palabra (Free ride)" ${getStoredFreeRideWordTapAudioEnabled() ? 'checked' : ''}></ion-toggle>
+              </div>
+              <div class="diag-debug-toggle" style="margin-top: 10px;">
+                <div class="diag-debug-text">
+                  <div class="diag-debug-title">Content card con padding (Lab + Sessions + Training + Reference)</div>
+                  <div class="diag-debug-sub" id="diag-free-ride-card-padded-sub"></div>
+                </div>
+                <ion-toggle id="diag-free-ride-card-padded-toggle" aria-label="Content card con padding (Lab + Sessions + Training + Reference)" ${getStoredFreeRideCardPadded() ? 'checked' : ''}></ion-toggle>
               </div>
             </div>
 
@@ -692,6 +821,45 @@ class PageDiagnostics extends HTMLElement {
                 <pre class="diag-json" id="diag-language-output"></pre>
               </div>
 
+              <h4 style="margin-top:16px;">Traducción nativa</h4>
+              <div class="diag-speak-block">
+                <div class="pill">Translation framework / ML Kit Translate</div>
+                <div class="diag-debug-sub">
+                  Prueba directa del plugin nativo. No usa backend ni el fallback web.
+                </div>
+                <textarea
+                  id="diag-native-translation-input"
+                  class="chat-text-input diag-tts-input"
+                  rows="3"
+                  placeholder="Texto en español para traducir localmente"
+                >hola, quiero pedir un café</textarea>
+                <div class="diag-actions diag-tts-actions">
+                  <ion-button size="small" fill="outline" id="diag-native-translation-status">Comprobar disponibilidad</ion-button>
+                  <ion-button size="small" fill="outline" id="diag-native-translation-run">Traducir</ion-button>
+                </div>
+                <div class="diag-tts-status" id="diag-native-translation-status-text">Pendiente.</div>
+                <pre class="diag-json" id="diag-native-translation-output"></pre>
+              </div>
+
+              <div class="diag-speak-block">
+                <div class="pill">Chrome Translator API</div>
+                <div class="diag-debug-sub">
+                  Prueba de la API de traducción on-device de Chrome. Solo disponible en Chrome 131+ en navegador (no en nativo).
+                </div>
+                <textarea
+                  id="diag-chrome-translation-input"
+                  class="chat-text-input diag-tts-input"
+                  rows="3"
+                  placeholder="Texto en español para traducir con Chrome AI"
+                >hola, quiero pedir un café</textarea>
+                <div class="diag-actions diag-tts-actions">
+                  <ion-button size="small" fill="outline" id="diag-chrome-translation-status">Comprobar disponibilidad</ion-button>
+                  <ion-button size="small" fill="outline" id="diag-chrome-translation-run">Traducir</ion-button>
+                </div>
+                <div class="diag-tts-status" id="diag-chrome-translation-status-text">Pendiente.</div>
+                <pre class="diag-json" id="diag-chrome-translation-output"></pre>
+              </div>
+
               <h4 style="margin-top:16px;">Moderación OpenAI</h4>
               <div class="diag-speak-block">
                 <div class="pill">OpenAI Moderation</div>
@@ -779,6 +947,32 @@ class PageDiagnostics extends HTMLElement {
       debugToggle.addEventListener('ionChange', (event) => {
         const checked = event && event.detail ? event.detail.checked : debugToggle.checked;
         applyDebug(checked);
+      });
+    }
+
+    const titlebarToggle = this.querySelector('#diag-titlebar-toggle');
+    const titlebarSub = this.querySelector('#diag-titlebar-sub');
+    if (titlebarToggle) {
+      const applyTitlebar = (enabled) => {
+        window.r34lp0w3r = window.r34lp0w3r || {};
+        window.r34lp0w3r.appTitlebarEnabled = !!enabled;
+        setAppTitlebarEnabled(enabled);
+      };
+
+      titlebarToggle.checked = getStoredAppTitlebarEnabled();
+      if (titlebarSub) {
+        titlebarSub.textContent = titlebarToggle.checked
+          ? 'Activa la titlebar compartida en las vistas que la usen.'
+          : 'Oculta la titlebar compartida en todas las vistas.';
+      }
+      titlebarToggle.addEventListener('ionChange', (event) => {
+        const checked = event && event.detail ? event.detail.checked : titlebarToggle.checked;
+        applyTitlebar(checked);
+        if (titlebarSub) {
+          titlebarSub.textContent = checked
+            ? 'Activa la titlebar compartida en las vistas que la usen.'
+            : 'Oculta la titlebar compartida en todas las vistas.';
+        }
       });
     }
 
@@ -1511,6 +1705,16 @@ class PageDiagnostics extends HTMLElement {
     const languageDetectBtn = this.querySelector('#diag-language-detect');
     const languageStatusEl = this.querySelector('#diag-language-status');
     const languageOutputEl = this.querySelector('#diag-language-output');
+    const nativeTranslationInputEl = this.querySelector('#diag-native-translation-input');
+    const nativeTranslationStatusBtn = this.querySelector('#diag-native-translation-status');
+    const nativeTranslationRunBtn = this.querySelector('#diag-native-translation-run');
+    const nativeTranslationStatusEl = this.querySelector('#diag-native-translation-status-text');
+    const nativeTranslationOutputEl = this.querySelector('#diag-native-translation-output');
+    const chromeTranslationInputEl = this.querySelector('#diag-chrome-translation-input');
+    const chromeTranslationStatusBtn = this.querySelector('#diag-chrome-translation-status');
+    const chromeTranslationRunBtn = this.querySelector('#diag-chrome-translation-run');
+    const chromeTranslationStatusEl = this.querySelector('#diag-chrome-translation-status-text');
+    const chromeTranslationOutputEl = this.querySelector('#diag-chrome-translation-output');
     const moderationInputEl = this.querySelector('#diag-openai-moderation-input');
     const moderationRunBtn = this.querySelector('#diag-openai-moderation-run');
     const moderationStatusEl = this.querySelector('#diag-openai-moderation-status');
@@ -1521,12 +1725,18 @@ class PageDiagnostics extends HTMLElement {
     const sfxRedBtn = this.querySelector('#diag-sfx-red');
     const sfxNotificationBtn = this.querySelector('#diag-sfx-notification');
     const sfxStatusEl = this.querySelector('#diag-sfx-status');
+    const statusbarPresetEl = this.querySelector('#diag-statusbar-preset');
+    const statusbarPresetSubEl = this.querySelector('#diag-statusbar-preset-sub');
     const freeRideAudioModeEl = this.querySelector('#diag-free-ride-audio-mode');
     const freeRideAudioSubEl = this.querySelector('#diag-free-ride-audio-sub');
     const freeRideAdvancedToggleEl = this.querySelector('#diag-free-ride-advanced-toggle');
     const freeRideAdvancedSubEl = this.querySelector('#diag-free-ride-advanced-sub');
     const freeRideWordTapAudioToggleEl = this.querySelector('#diag-free-ride-word-tap-audio-toggle');
     const freeRideWordTapAudioSubEl = this.querySelector('#diag-free-ride-word-tap-audio-sub');
+    const freeRideCardPaddedToggleEl = this.querySelector('#diag-free-ride-card-padded-toggle');
+    const freeRideCardPaddedSubEl = this.querySelector('#diag-free-ride-card-padded-sub');
+    const freeRideHeaderColorEl = this.querySelector('#diag-free-ride-header-color');
+    const freeRideHeaderColorSubEl = this.querySelector('#diag-free-ride-header-color-sub');
     const referenceToolsToggleEl = this.querySelector('#diag-reference-tools-toggle');
     const referenceToolsSubEl = this.querySelector('#diag-reference-tools-sub');
     const speakSessionPercentagesToggleEl = this.querySelector('#diag-speak-session-percentages-toggle');
@@ -1553,6 +1763,44 @@ class PageDiagnostics extends HTMLElement {
     let pronUsageRequestSeq = 0;
     let ttsUtter = null;
     let ttsPlaying = false;
+
+    const getStatusBarPlugin = () => window.Capacitor?.Plugins?.StatusBar || null;
+
+    const updateStatusbarPresetUi = (preset, message = '') => {
+      const normalized = normalizeStatusbarPreset(preset);
+      if (statusbarPresetEl) {
+        statusbarPresetEl.value = normalized;
+        statusbarPresetEl.disabled = false;
+      }
+      if (statusbarPresetSubEl) {
+        statusbarPresetSubEl.textContent =
+          message ||
+          (getStatusBarPlugin()
+            ? normalized === 'dark'
+              ? 'Dark: elementos oscuros en el statusbar. No cambia el fondo.'
+              : 'Clear: elementos claros en el statusbar. No cambia el fondo.'
+            : 'StatusBar plugin no disponible en este entorno.');
+      }
+      return normalized;
+    };
+
+    const applyStatusbarPreset = async (preset) => {
+      const normalized = normalizeStatusbarPreset(preset);
+      try {
+        localStorage.setItem(APP_STATUSBAR_PRESET_KEY, normalized);
+      } catch (_err) {
+        // no-op
+      }
+      window.r34lp0w3r = window.r34lp0w3r || {};
+      window.r34lp0w3r.appStatusbarPreset = normalized;
+      window.dispatchEvent(
+        new CustomEvent('app:statusbar-preset-change', {
+          detail: { preset: normalized }
+        })
+      );
+      updateStatusbarPresetUi(normalized);
+      return normalized;
+    };
 
     const setFreeRideAudioMode = (mode) => {
       const normalized = normalizeFreeRideAudioMode(mode);
@@ -1648,6 +1896,59 @@ class PageDiagnostics extends HTMLElement {
       return normalized;
     };
 
+    const setFreeRideCardPadded = (enabled) => {
+      const normalized = normalizeFreeRideCardPadded(enabled);
+      window.r34lp0w3r = window.r34lp0w3r || {};
+      window.r34lp0w3r.freeRideCardPadded = normalized;
+      try {
+        localStorage.setItem(FREE_RIDE_CARD_PADDED_KEY, normalized ? '1' : '0');
+      } catch (err) {
+        // no-op
+      }
+      window.dispatchEvent(
+        new CustomEvent('app:free-ride-card-padded-change', {
+          detail: { enabled: normalized }
+        })
+      );
+      return normalized;
+    };
+
+    const updateFreeRideCardPaddedUi = (enabled) => {
+      const normalized = normalizeFreeRideCardPadded(enabled);
+      if (freeRideCardPaddedToggleEl) {
+        freeRideCardPaddedToggleEl.checked = normalized;
+      }
+      if (freeRideCardPaddedSubEl) {
+        freeRideCardPaddedSubEl.textContent = normalized
+          ? 'Activado: el card del Lab tiene padding lateral e inferior simétrico (separado de los bordes y de la tab bar).'
+          : 'Desactivado: el card va a sangre — pegado a los lados y a la tab bar, con efecto cuña en la parte superior.';
+      }
+      return normalized;
+    };
+
+    const setFreeRideHeaderColor = (color) => {
+      const normalized = FREE_RIDE_HEADER_COLOR_VALUES.includes(color) ? color : 'white';
+      try {
+        localStorage.setItem(FREE_RIDE_HEADER_COLOR_KEY, normalized);
+      } catch (_err) {
+        // no-op
+      }
+      window.dispatchEvent(new CustomEvent('app:free-ride-header-color-change', { detail: { color: normalized } }));
+      return normalized;
+    };
+
+    const updateFreeRideHeaderColorUi = (color) => {
+      const normalized = FREE_RIDE_HEADER_COLOR_VALUES.includes(color) ? color : 'white';
+      if (freeRideHeaderColorEl) freeRideHeaderColorEl.value = normalized;
+      if (freeRideHeaderColorSubEl) {
+        freeRideHeaderColorSubEl.textContent =
+          normalized === 'white' ? 'Blanco: título e iconos del header en blanco (Lab + Sessions).' :
+          normalized === 'dark'  ? 'Oscuro: título e iconos del header en azul oscuro (#1a2b47) (Lab + Sessions).' :
+                                   'Azul: título e iconos del header en azul (#4d7df4, igual que el bubble) (Lab + Sessions).';
+      }
+      return normalized;
+    };
+
     const setReferenceToolsEnabled = (enabled) => {
       const normalized = normalizeReferenceToolsEnabled(enabled);
       window.r34lp0w3r = window.r34lp0w3r || {};
@@ -1731,12 +2032,10 @@ class PageDiagnostics extends HTMLElement {
         speakPronunciationAvatarModeEl.value = normalized;
       }
       if (speakPronunciationAvatarSubEl) {
-        speakPronunciationAvatarSubEl.textContent =
-          normalized === SPEAK_PRONUNCIATION_AVATAR_SET2
-            ? 'Set 2: nuevo set de bocas realistas con cara completa.'
-            : normalized === SPEAK_PRONUNCIATION_AVATAR_NEW
-            ? 'Nuevo: usa la chica con overlays de boca por visema.'
-            : 'Antiguo: usa el avatar actual con las bocas simples.';
+        const modeInfo = SPEAK_PRONUNCIATION_AVATAR_OPTIONS.find(
+          (option) => option.value === normalized
+        );
+        speakPronunciationAvatarSubEl.textContent = modeInfo ? modeInfo.description : '';
       }
       return normalized;
     };
@@ -1878,6 +2177,16 @@ class PageDiagnostics extends HTMLElement {
       languageOutputEl.textContent = value || '';
     };
 
+    const setNativeTranslationStatus = (text) => {
+      if (!nativeTranslationStatusEl) return;
+      nativeTranslationStatusEl.textContent = text || '';
+    };
+
+    const setNativeTranslationOutput = (value) => {
+      if (!nativeTranslationOutputEl) return;
+      nativeTranslationOutputEl.textContent = value || '';
+    };
+
     const setModerationStatus = (text) => {
       if (!moderationStatusEl) return;
       moderationStatusEl.textContent = text || '';
@@ -1911,6 +2220,25 @@ class PageDiagnostics extends HTMLElement {
               confidence: formatLanguageConfidence(item && item.confidence)
             }))
           : []
+      };
+      try {
+        return JSON.stringify(formattedResult, null, 2);
+      } catch (err) {
+        return String(formattedResult || '');
+      }
+    };
+
+    const formatNativeTranslationResult = (result) => {
+      const formattedResult = {
+        ...(result || {}),
+        available: result && result.available === true,
+        sourceLanguage: result && (result.sourceLanguage || result.source_language || ''),
+        targetLanguage: result && (result.targetLanguage || result.target_language || ''),
+        sourceText: result && (result.sourceText || result.source_text || ''),
+        translatedText: result && (result.translatedText || result.translated_text || ''),
+        engine: result && result.engine ? result.engine : '',
+        modelDownloaded: result && result.modelDownloaded === true,
+        reason: result && result.reason ? String(result.reason) : ''
       };
       try {
         return JSON.stringify(formattedResult, null, 2);
@@ -3198,7 +3526,7 @@ class PageDiagnostics extends HTMLElement {
         'session-p': { percent: 68, transcript: 'The pink pen is on the paper.' }
       };
       window.r34lp0w3r.speakSessionRewards = {
-        'session-p': { rewardQty: 2, rewardLabel: 'diamonds', rewardIcon: 'diamond' }
+        'session-p': { rewardQty: 1, rewardLabel: 'trophy', rewardIcon: 'trophy' }
       };
       window.r34lp0w3r.speakBadges = {
         'route:sound': {
@@ -3266,6 +3594,10 @@ class PageDiagnostics extends HTMLElement {
     updateFreeRideAdvancedUi(initialFreeRideAdvancedEnabled);
     const initialFreeRideWordTapAudioEnabled = getStoredFreeRideWordTapAudioEnabled();
     updateFreeRideWordTapAudioUi(initialFreeRideWordTapAudioEnabled);
+    const initialFreeRideCardPadded = getStoredFreeRideCardPadded();
+    updateFreeRideCardPaddedUi(initialFreeRideCardPadded);
+    const initialFreeRideHeaderColor = getStoredFreeRideHeaderColor();
+    updateFreeRideHeaderColorUi(initialFreeRideHeaderColor);
     const initialReferenceToolsEnabled = getStoredReferenceToolsEnabled();
     updateReferenceToolsUi(initialReferenceToolsEnabled);
     const initialSpeakSessionPercentagesVisible = getStoredSpeakSessionPercentagesVisible();
@@ -3279,6 +3611,7 @@ class PageDiagnostics extends HTMLElement {
     updateChatCommunityUi(initialChatCommunityEnabled);
     const initialChatChatbotEnabled = getStoredChatChatbotEnabled();
     updateChatChatbotUi(initialChatChatbotEnabled);
+    updateStatusbarPresetUi(getStoredStatusbarPreset());
 
     this.querySelector('#diag-back')?.addEventListener('click', () => {
       const modal = this.closest('ion-modal');
@@ -3308,14 +3641,6 @@ class PageDiagnostics extends HTMLElement {
         }
       });
     };    
-
-    // Controles de StatusBar
-    const hasStatusBarPlugin =
-      !!(window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.StatusBar);
-    bind('#sb-blue', 'setStatusBarBlue', hasStatusBarPlugin);
-    bind('#sb-transparent', 'setStatusBarTransparent', hasStatusBarPlugin);
-    bind('#sb-light', 'setStatusBarLight', hasStatusBarPlugin);
-    bind('#sb-dark', 'setStatusBarDark', hasStatusBarPlugin);
 
     // Controles de Notificaciones Push
     const hasPushPlugin =
@@ -3390,6 +3715,25 @@ class PageDiagnostics extends HTMLElement {
       updateContentSourcePanel();
     });
 
+    const setStatusbarPresetFromControl = (value) => {
+      const nextPreset = normalizeStatusbarPreset(value);
+      applyStatusbarPreset(nextPreset).catch((err) => {
+        updateStatusbarPresetUi(
+          nextPreset,
+          `Error aplicando statusbar: ${err && err.message ? err.message : String(err)}`
+        );
+      });
+    };
+
+    statusbarPresetEl?.addEventListener('ionChange', (event) => {
+      setStatusbarPresetFromControl(event?.detail?.value || statusbarPresetEl.value);
+    });
+    this.querySelectorAll('#diag-statusbar-preset ion-segment-button').forEach((button) => {
+      button.addEventListener('click', () => {
+        setStatusbarPresetFromControl(button.value || button.getAttribute('value'));
+      });
+    });
+
     badgesPickerEl?.addEventListener('click', (event) => {
       const target = event.target instanceof Element ? event.target : null;
       const button = target ? target.closest('[data-badge-id]') : null;
@@ -3452,6 +3796,17 @@ class PageDiagnostics extends HTMLElement {
           : Boolean(freeRideWordTapAudioToggleEl.checked);
       updateFreeRideWordTapAudioUi(setFreeRideWordTapAudioEnabled(nextEnabled));
     });
+    freeRideCardPaddedToggleEl?.addEventListener('ionChange', (event) => {
+      const nextEnabled =
+        event && event.detail && event.detail.checked !== undefined
+          ? Boolean(event.detail.checked)
+          : Boolean(freeRideCardPaddedToggleEl.checked);
+      updateFreeRideCardPaddedUi(setFreeRideCardPadded(nextEnabled));
+    });
+    freeRideHeaderColorEl?.addEventListener('ionChange', (event) => {
+      const nextColor = event?.detail?.value || freeRideHeaderColorEl.value;
+      updateFreeRideHeaderColorUi(setFreeRideHeaderColor(nextColor));
+    });
     referenceToolsToggleEl?.addEventListener('ionChange', (event) => {
       const nextEnabled =
         event && event.detail && event.detail.checked !== undefined
@@ -3466,9 +3821,12 @@ class PageDiagnostics extends HTMLElement {
           : Boolean(speakSessionPercentagesToggleEl.checked);
       updateSpeakSessionPercentagesUi(setSpeakSessionPercentagesVisible(nextVisible));
     });
-    speakPronunciationAvatarModeEl?.addEventListener('ionChange', (event) => {
+    speakPronunciationAvatarModeEl?.addEventListener('change', (event) => {
+      const target = event?.target;
       const nextMode =
-        event && event.detail ? event.detail.value : speakPronunciationAvatarModeEl.value;
+        target && typeof target.value === 'string'
+          ? target.value
+          : speakPronunciationAvatarModeEl.value;
       updateSpeakPronunciationAvatarUi(setSpeakPronunciationAvatarMode(nextMode));
     });
     TAB_VISIBILITY_ORDER.forEach((tab) => {
@@ -3894,6 +4252,262 @@ class PageDiagnostics extends HTMLElement {
           }
         });
       }
+    }
+
+    {
+      const nativePlugin = window.Capacitor?.Plugins?.P4w4Plugin;
+      const canTranslate = nativePlugin && typeof nativePlugin.translateText === 'function';
+      const canCheckStatus = nativePlugin && typeof nativePlugin.getTranslationStatus === 'function';
+      const nativeTranslationTimeoutMs = 120000;
+      const setButtonsDisabled = (disabled) => {
+        if (nativeTranslationStatusBtn) nativeTranslationStatusBtn.disabled = Boolean(disabled) || !canCheckStatus;
+        if (nativeTranslationRunBtn) nativeTranslationRunBtn.disabled = Boolean(disabled) || !canTranslate;
+      };
+      const withNativeTranslationTimeout = (promise, fallback) =>
+        Promise.race([
+          promise,
+          new Promise((resolve) => {
+            setTimeout(
+              () =>
+                resolve({
+                  ...(fallback || {}),
+                  available: false,
+                  translatedText: '',
+                  reason: 'native_translation_timeout'
+                }),
+              nativeTranslationTimeoutMs
+            );
+          })
+        ]);
+      const renderMissingPlugin = () => {
+        setButtonsDisabled(false);
+        if (!nativePlugin) {
+          setNativeTranslationStatus('Plugin P4w4Plugin no disponible en este entorno.');
+        } else if (!canTranslate) {
+          setNativeTranslationStatus('Método translateText no disponible en P4w4Plugin.');
+        } else if (!canCheckStatus) {
+          setNativeTranslationStatus('translateText disponible, getTranslationStatus no disponible.');
+        }
+      };
+      const runNativeTranslationStatus = async () => {
+        if (!canCheckStatus) {
+          renderMissingPlugin();
+          return;
+        }
+        setButtonsDisabled(true);
+        setNativeTranslationStatus('Comprobando disponibilidad...');
+        try {
+          const result = await nativePlugin.getTranslationStatus({
+            sourceLanguage: 'es',
+            targetLanguage: 'en'
+          });
+          setNativeTranslationOutput(formatNativeTranslationResult(result));
+          if (result && result.available === true) {
+            setNativeTranslationStatus(`Disponible: ${result.engine || 'native'} es → en.`);
+          } else {
+            setNativeTranslationStatus(
+              `No disponible: ${(result && result.reason) || 'sin motivo reportado'}.`
+            );
+          }
+        } catch (err) {
+          setNativeTranslationStatus(`Error comprobando disponibilidad: ${err.message || String(err)}`);
+          setNativeTranslationOutput('');
+        } finally {
+          setButtonsDisabled(false);
+        }
+      };
+      const runNativeTranslationTest = async () => {
+        if (!canTranslate) {
+          renderMissingPlugin();
+          return;
+        }
+        const text = String(nativeTranslationInputEl ? nativeTranslationInputEl.value : '').trim();
+        if (!text) {
+          setNativeTranslationStatus('Introduce texto en español para traducir.');
+          setNativeTranslationOutput('');
+          return;
+        }
+
+        setButtonsDisabled(true);
+        setNativeTranslationStatus('Traduciendo localmente...');
+        try {
+          const startedAt = performance.now();
+          const result = await withNativeTranslationTimeout(
+            nativePlugin.translateText({
+              text,
+              sourceLanguage: 'es',
+              targetLanguage: 'en'
+            }),
+            {
+              sourceLanguage: 'es',
+              targetLanguage: 'en',
+              sourceText: text,
+              engine: 'native'
+            }
+          );
+          const elapsedMs = Math.round(performance.now() - startedAt);
+          setNativeTranslationOutput(formatNativeTranslationResult({ ...(result || {}), elapsedMs }));
+          const translatedText = String(
+            result && (result.translatedText || result.translated_text || '')
+          ).trim();
+          if (result && result.available === true && translatedText) {
+            setNativeTranslationStatus(`OK local en ${elapsedMs} ms.`);
+          } else {
+            setNativeTranslationStatus(
+              `Sin traducción local en ${elapsedMs} ms: ${(result && result.reason) || 'sin motivo reportado'}.`
+            );
+          }
+        } catch (err) {
+          setNativeTranslationStatus(`Error traduciendo localmente: ${err.message || String(err)}`);
+          setNativeTranslationOutput('');
+        } finally {
+          setButtonsDisabled(false);
+        }
+      };
+
+      if (nativeTranslationStatusBtn || nativeTranslationRunBtn) {
+        if (!nativePlugin || !canTranslate || !canCheckStatus) {
+          renderMissingPlugin();
+        } else {
+          setNativeTranslationStatus('Listo. Pendiente de prueba nativa.');
+          runNativeTranslationStatus().catch((err) => {
+            setNativeTranslationStatus(`Error comprobando disponibilidad: ${err.message || String(err)}`);
+          });
+        }
+        nativeTranslationStatusBtn?.addEventListener('click', runNativeTranslationStatus);
+        nativeTranslationRunBtn?.addEventListener('click', runNativeTranslationTest);
+      }
+    }
+
+    if (chromeTranslationStatusBtn || chromeTranslationRunBtn) {
+      const setChromeTranslationStatus = (text) => {
+        if (chromeTranslationStatusEl) chromeTranslationStatusEl.textContent = text || '';
+      };
+      const setChromeTranslationOutput = (value) => {
+        if (chromeTranslationOutputEl) chromeTranslationOutputEl.textContent = value || '';
+      };
+      const w = typeof self !== 'undefined' ? self : (typeof window !== 'undefined' ? window : {});
+
+      // Resolve API + normalize to { canTranslate, createTranslator }
+      const resolveChromeTranslatorApi = () => {
+        // Old shape: self.translation.canTranslate / createTranslator
+        if (w.translation && typeof w.translation.canTranslate === 'function') {
+          return {
+            type: 'self.translation',
+            canTranslate: (o) => w.translation.canTranslate(o),
+            createTranslator: (o) => w.translation.createTranslator(o)
+          };
+        }
+        // New shape: window.Translator (class with static methods)
+        const Cls = w.Translator;
+        if (typeof Cls === 'function') {
+          const canTranslate = typeof Cls.canTranslate === 'function'
+            ? (o) => Cls.canTranslate(o)
+            : typeof Cls.availability === 'function'
+              ? async (o) => {
+                  const v = await Cls.availability(o);
+                  return v === 'available' ? 'readily' : v === 'unavailable' ? 'no' : 'after-download';
+                }
+              : () => Promise.resolve('readily');
+          const createTranslator = typeof Cls.create === 'function'
+            ? (o) => Cls.create(o)
+            : (o) => Promise.resolve(new Cls(o));
+          return { type: 'window.Translator', canTranslate, createTranslator };
+        }
+        // ai.translator shape
+        if (w.ai && typeof w.ai.translator?.canTranslate === 'function') {
+          return {
+            type: 'self.ai.translator',
+            canTranslate: (o) => w.ai.translator.canTranslate(o),
+            createTranslator: (o) => w.ai.translator.createTranslator(o)
+          };
+        }
+        return null;
+      };
+
+      const chromeApi = resolveChromeTranslatorApi();
+      const chromeAvailable = Boolean(chromeApi);
+
+      const TranslatorCls = w.Translator;
+      const diagInfo = {
+        'self.translation': typeof w.translation,
+        'self.ai': typeof w.ai,
+        'self.Translator': typeof TranslatorCls,
+        'Translator.canTranslate': TranslatorCls && typeof TranslatorCls.canTranslate,
+        'Translator.availability': TranslatorCls && typeof TranslatorCls.availability,
+        'Translator.create': TranslatorCls && typeof TranslatorCls.create,
+        detected: chromeApi ? chromeApi.type : 'none',
+        isNative: Boolean(w.Capacitor && (typeof w.Capacitor.isNativePlatform === 'function'
+          ? w.Capacitor.isNativePlatform()
+          : w.Capacitor.platform === 'ios' || w.Capacitor.platform === 'android'))
+      };
+
+      if (!chromeAvailable) {
+        setChromeTranslationStatus('Chrome Translator API no detectada. Ver diagnóstico abajo.');
+        setChromeTranslationOutput(JSON.stringify(diagInfo, null, 2));
+        if (chromeTranslationStatusBtn) chromeTranslationStatusBtn.disabled = false;
+        if (chromeTranslationRunBtn) chromeTranslationRunBtn.disabled = true;
+      } else {
+        setChromeTranslationStatus(`API detectada (${chromeApi.type}). Pendiente de prueba.`);
+      }
+
+      const runChromeTranslationStatus = async () => {
+        setChromeTranslationOutput(JSON.stringify(diagInfo, null, 2));
+        if (!chromeAvailable) {
+          setChromeTranslationStatus('API no detectada. Activa chrome://flags/#translation-api y reinicia Chrome.');
+          return;
+        }
+        setChromeTranslationStatus('Comprobando disponibilidad es → en...');
+        try {
+          const availability = await chromeApi.canTranslate({ sourceLanguage: 'es', targetLanguage: 'en' });
+          setChromeTranslationOutput(JSON.stringify({ ...diagInfo, availability }, null, 2));
+          if (availability === 'readily') {
+            setChromeTranslationStatus('Disponible (readily): modelo descargado y listo.');
+          } else if (availability === 'after-download') {
+            setChromeTranslationStatus('Disponible tras descarga (after-download).');
+          } else {
+            setChromeTranslationStatus(`No disponible para es → en: ${availability}`);
+          }
+        } catch (err) {
+          setChromeTranslationStatus(`Error comprobando disponibilidad: ${err.message || String(err)}`);
+          setChromeTranslationOutput(JSON.stringify(diagInfo, null, 2));
+        }
+      };
+
+      const runChromeTranslationTest = async () => {
+        if (!chromeAvailable) return;
+        const text = String(chromeTranslationInputEl ? chromeTranslationInputEl.value : '').trim();
+        if (!text) {
+          setChromeTranslationStatus('Introduce texto para traducir.');
+          return;
+        }
+        if (chromeTranslationStatusBtn) chromeTranslationStatusBtn.disabled = true;
+        if (chromeTranslationRunBtn) chromeTranslationRunBtn.disabled = true;
+        setChromeTranslationStatus('Traduciendo con Chrome AI...');
+        setChromeTranslationOutput('');
+        try {
+          const startedAt = performance.now();
+          const availability = await chromeApi.canTranslate({ sourceLanguage: 'es', targetLanguage: 'en' });
+          if (!availability || availability === 'no') {
+            setChromeTranslationStatus('Par es → en no soportado por Chrome AI.');
+            return;
+          }
+          const translator = await chromeApi.createTranslator({ sourceLanguage: 'es', targetLanguage: 'en' });
+          const translated = await translator.translate(text);
+          const elapsedMs = Math.round(performance.now() - startedAt);
+          const result = { type: chromeApi.type, availability, sourceText: text, translatedText: String(translated || '').trim(), elapsedMs };
+          setChromeTranslationOutput(JSON.stringify(result, null, 2));
+          setChromeTranslationStatus(`OK en ${elapsedMs} ms (${availability}).`);
+        } catch (err) {
+          setChromeTranslationStatus(`Error: ${err.message || String(err)}`);
+        } finally {
+          if (chromeTranslationStatusBtn) chromeTranslationStatusBtn.disabled = false;
+          if (chromeTranslationRunBtn) chromeTranslationRunBtn.disabled = false;
+        }
+      };
+
+      chromeTranslationStatusBtn?.addEventListener('click', runChromeTranslationStatus);
+      chromeTranslationRunBtn?.addEventListener('click', runChromeTranslationTest);
     }
 
     if (moderationRunBtn) {

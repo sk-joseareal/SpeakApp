@@ -1,5 +1,5 @@
 import { getAppLocale, setAppLocale, getActiveLocale, getLocaleOverride, setLocaleOverride, clearLocaleOverride } from '../state.js';
-import { renderAppHeader } from '../components/app-header.js';
+import { isAppTitlebarEnabled, renderAppHeader } from '../components/app-header.js';
 import { ensureTrainingData, getRoutes, setSelection } from '../data/training-data.js';
 import { ensureReferenceData, getLocalizedMapField, getReferenceCourses } from '../data/reference-data.js';
 import {
@@ -202,6 +202,7 @@ class PageProfile extends HTMLElement {
     if (storedReviewTone === 'okay' || storedReviewTone === 'bad') {
       this.reviewTone = storedReviewTone;
     }
+    const titlebarEnabled = isAppTitlebarEnabled();
 
     const routes = getRoutes();
     if (!routes.length && !this._loadingData && !this._trainingDataLoadAttempted) {
@@ -1250,7 +1251,7 @@ class PageProfile extends HTMLElement {
       .join('');
 
     this.innerHTML = `
-      ${loggedIn ? renderAppHeader({ title: tabsCopy.you, rewardBadgesId: 'profile-reward-badges', locale: rawLocaleSetting }) : ''}
+      ${loggedIn ? renderAppHeader({ title: tabsCopy.you }) : ''}
       <ion-content fullscreen class="secret-content profile-content ${loggedIn ? '' : 'profile-content--logged-out'}">
         <div class="page-shell profile-shell ${loggedIn ? '' : `profile-shell--logged-out ${platform === 'android' ? 'profile-shell--logged-out-android' : ''}`}">
           <div id="profile-login-panel" ${loggedIn ? 'hidden' : ''}>
@@ -1273,6 +1274,17 @@ class PageProfile extends HTMLElement {
           <div class="profile-panel" id="profile-content-panel" ${loggedIn ? '' : 'hidden'}>
             ${settingsOpen ? '' : `
             <div class="profile-hero-wrap">
+              ${titlebarEnabled ? '' : `
+              <div class="profile-hero-actions-left">
+                <ion-button fill="clear" size="small" class="app-notify-btn">
+                  <ion-icon slot="icon-only" name="notifications-outline"></ion-icon>
+                </ion-button>
+                <button class="app-locale-btn">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+                  <span class="app-locale-label">${String(rawLocaleSetting || '').trim().toUpperCase()}</span>
+                </button>
+              </div>
+              `}
               <button class="profile-settings-toggle" type="button" id="profile-settings-toggle" aria-label="${escapeHtml(
                 profileCopy.tabPrefs || 'Profile'
               )}">
@@ -1525,7 +1537,6 @@ class PageProfile extends HTMLElement {
       </ion-content>
     `;
 
-    const rewardsEl = this.querySelector('#profile-reward-badges');
     const linksLogin = this.querySelector('#profile-links-login');
     const linksFooter = this.querySelector('#profile-links-footer');
     const appMetaEl = this.querySelector('#profile-app-meta');
@@ -1556,57 +1567,6 @@ class PageProfile extends HTMLElement {
       const shouldShowAppMeta = isLoggedIn && this.settingsOpen === true;
       if (linksFooter) linksFooter.hidden = !shouldShowFooterLinks;
       if (appMetaEl) appMetaEl.hidden = !shouldShowAppMeta;
-    };
-
-    const updateHeaderRewards = () => {
-      if (!rewardsEl) return;
-      const rewards =
-        window.r34lp0w3r && window.r34lp0w3r.speakSessionRewards
-          ? window.r34lp0w3r.speakSessionRewards
-          : {};
-      const totals = {};
-      Object.values(rewards).forEach((entry) => {
-        if (!entry || typeof entry.rewardQty !== 'number') return;
-        const icon = entry.rewardIcon || 'diamond';
-        const rewardKind = String(entry.rewardGroup || icon).trim() || String(icon).trim() || 'diamond';
-        if (!totals[rewardKind]) totals[rewardKind] = { icon, qty: 0 };
-        totals[rewardKind].qty += entry.rewardQty;
-      });
-      const entries = Object.entries(totals).filter(([, meta]) => meta && meta.qty > 0);
-      if (!entries.length) {
-        rewardsEl.innerHTML = '';
-        rewardsEl.hidden = true;
-        return;
-      }
-      rewardsEl.hidden = false;
-      rewardsEl.innerHTML = entries
-        .sort((left, right) => {
-          const leftIcon = String(left[1] && left[1].icon ? left[1].icon : 'diamond').trim().toLowerCase();
-          const rightIcon = String(right[1] && right[1].icon ? right[1].icon : 'diamond').trim().toLowerCase();
-          const getOrder = (icon) =>
-            icon === 'trophy'
-              ? 0
-              : icon === 'ribbon' || icon === 'medal'
-              ? 1
-              : icon === 'diamond'
-              ? 2
-              : 9;
-          const byOrder = getOrder(leftIcon) - getOrder(rightIcon);
-          if (byOrder !== 0) return byOrder;
-          return String(left[0] || '').localeCompare(String(right[0] || ''));
-        })
-        .map(([rewardKind, meta]) => {
-          const icon = meta.icon || 'diamond';
-          const qty = meta.qty || 0;
-          const normalizedIcon = String(icon || '').trim().toLowerCase();
-          const isInteractive =
-            normalizedIcon === 'trophy' ||
-            normalizedIcon === 'ribbon' ||
-            normalizedIcon === 'medal' ||
-            rewardKind === 'reference-unit-ribbon';
-          return `<div class="training-badge reward-badge${isInteractive ? ' is-interactive' : ''}" data-reward-kind="${rewardKind}" data-reward-icon="${icon}" data-reward-qty="${qty}"${isInteractive ? ' role="button" tabindex="0"' : ''}><ion-icon name="${icon}"></ion-icon><span>${qty}</span></div>`;
-        })
-        .join('');
     };
 
     const openLoginModal = async () => {
@@ -2359,7 +2319,6 @@ class PageProfile extends HTMLElement {
     });
 
     updateProfileState(user);
-    updateHeaderRewards();
 
     const applyAppMeta = (meta) => {
       if (!appMetaEl) return;

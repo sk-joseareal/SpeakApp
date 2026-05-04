@@ -23,6 +23,14 @@ import {
   getTabsCopy,
   normalizeLocale as normalizeCopyLocale
 } from '../content/copy.js';
+import {
+  HERO_MASCOT_FRAME_COUNT,
+  HERO_MASCOT_FRAME_INTERVAL_MS,
+  HERO_MASCOT_REST_FRAME,
+  HERO_MASCOT_TALK_FRAME_SEQUENCE,
+  getHeroMascotFramePath,
+  preloadHeroMascotFrames
+} from '../mascot-frames.js';
 
 const MARKED_CDN_URLS = [
   'https://cdn.jsdelivr.net/npm/marked/lib/marked.esm.js',
@@ -32,19 +40,19 @@ const TTS_LANG_BY_LOCALE = {
   es: 'es-ES',
   en: 'en-US'
 };
-const HERO_MASCOT_FRAME_COUNT = 8;
-const HERO_MASCOT_REST_FRAME = 0;
-const HERO_MASCOT_FRAME_INTERVAL_MS = 150;
 const BROWSER_AUTONARRATION_EXTRA_DELAY_MS = 120;
 const REFERENCE_ALIGNED_CACHE_MAX_ITEMS = 80;
 const REFERENCE_HERO_AUTONARRATION_PLAYED_KEY = 'appv5:reference-hero-auto-narration-played';
 const REFERENCE_TOOLS_ENABLED_KEY = 'appv5:reference-tools-enabled';
+const FREE_RIDE_CARD_PADDED_KEY = 'appv5:free-ride-card-padded';
+const FREE_RIDE_HEADER_COLOR_KEY = 'appv5:free-ride-header-color';
+const FREE_RIDE_HEADER_COLOR_VALUES = ['white', 'dark', 'blue'];
 const REFERENCE_TESTS_PROGRESS_STORAGE_PREFIX = 'appv5:reference-tests-progress';
 const REFERENCE_PROGRESS_QUEUE_STORAGE_PREFIX = 'appv5:reference-progress-queue';
 const REFERENCE_TEST_REWARD_ENTRY_PREFIX = 'reference-test';
-const REFERENCE_TEST_DIAMOND_REWARD_QTY = 1;
-const REFERENCE_TEST_DIAMOND_REWARD_LABEL = 'diamonds';
-const REFERENCE_TEST_DIAMOND_REWARD_ICON = 'diamond';
+const REFERENCE_TEST_TROPHY_REWARD_QTY = 1;
+const REFERENCE_TEST_TROPHY_REWARD_LABEL = 'trophy';
+const REFERENCE_TEST_TROPHY_REWARD_ICON = 'trophy';
 const REFERENCE_UNIT_REWARD_ENTRY_PREFIX = 'reference-unit';
 const REFERENCE_UNIT_REWARD_GROUP = 'reference-unit-ribbon';
 const REFERENCE_UNIT_RIBBON_REWARD_QTY = 1;
@@ -125,6 +133,26 @@ const buildReferenceAuthHeaders = () => {
   return headers;
 };
 
+const isFreeRideCardPadded = () => {
+  try {
+    const raw = localStorage.getItem(FREE_RIDE_CARD_PADDED_KEY);
+    if (raw === null || raw === undefined || raw === '') return false;
+    const normalized = String(raw).trim().toLowerCase();
+    return ['1', 'true', 'on', 'yes'].includes(normalized);
+  } catch (_err) {
+    return false;
+  }
+};
+
+const getStoredHeaderColor = () => {
+  try {
+    const raw = String(localStorage.getItem(FREE_RIDE_HEADER_COLOR_KEY) || '').trim().toLowerCase();
+    return FREE_RIDE_HEADER_COLOR_VALUES.includes(raw) ? raw : 'white';
+  } catch (_err) {
+    return 'white';
+  }
+};
+
 class PageReference extends HTMLElement {
   constructor() {
     super();
@@ -180,11 +208,19 @@ class PageReference extends HTMLElement {
     this.translatorLoading = false;
     this.translatorError = '';
     this.translatorRequestId = 0;
+    this.referenceSheetExpanded = false;
+    this.referenceSheetExpandedOffset = 0;
+    this.referenceSheetTranslateY = 0;
+    this.layoutSyncTimer = null;
+    this.layoutSyncRaf = null;
+    this.layoutSyncVersion = 0;
   }
 
   connectedCallback() {
     this.classList.add('ion-page');
-    for (let i = 0; i < HERO_MASCOT_FRAME_COUNT; i++) { new Image().src = `assets/mascot/nena/nena-v5-${String(i).padStart(2, '0')}.png`; }
+    this.applyHeaderColor(getStoredHeaderColor());
+    this.classList.toggle('is-card-padded', isFreeRideCardPadded());
+    preloadHeroMascotFrames();
     this._selectionHandler = () => this.render();
     window.addEventListener('reference:selection-change', this._selectionHandler);
     this._localeHandler = () => {
@@ -204,6 +240,12 @@ class PageReference extends HTMLElement {
       this.render();
     };
     window.addEventListener('app:profile-locale-toggle', this._profileLocaleToggleHandler);
+    this._headerColorHandler = (event) => {
+      if (!this.isConnected) return;
+      const color = event?.detail?.color || getStoredHeaderColor();
+      this.applyHeaderColor(color);
+    };
+    window.addEventListener('app:free-ride-header-color-change', this._headerColorHandler);
     this._userHandler = (event) => {
       this.ensureReferenceTestsPersistenceLoaded(true);
       this.flushReferenceProgressQueue({ reason: 'user-change' }).catch(() => {});
@@ -214,10 +256,6 @@ class PageReference extends HTMLElement {
       this.flushReferenceProgressQueue({ reason: 'online' }).catch(() => {});
     };
     window.addEventListener('online', this._onlineHandler);
-    this._rewardsHandler = () => {
-      this.updateHeaderRewards();
-    };
-    window.addEventListener('app:speak-stores-change', this._rewardsHandler);
     this._tabChangeHandler = (event) => {
       const activeTab = String(event && event.detail ? event.detail.tab || '' : '')
         .trim()
@@ -225,7 +263,12 @@ class PageReference extends HTMLElement {
       if (!activeTab) return;
       if (activeTab !== 'reference') {
         this.stopHeroNarration();
+        return;
       }
+      this.referenceSheetExpandedOffset = this.measureReferenceSheetExpandedOffset();
+      this.applyReferenceSheetState({ animate: false, force: true });
+      this.scheduleLayoutSync(0);
+      this.scheduleLayoutSync(140);
     };
     document.addEventListener('ionTabsDidChange', this._tabChangeHandler);
     this._appTabChangeHandler = (event) => {
@@ -237,7 +280,34 @@ class PageReference extends HTMLElement {
       this.render();
     };
     window.addEventListener('app:reference-tools-enabled-change', this._referenceToolsHandler);
+    this._cardPaddedHandler = (event) => {
+      if (!this.isConnected) return;
+      const detail = event && event.detail ? event.detail : {};
+      const enabled = typeof detail.enabled === 'boolean' ? detail.enabled : isFreeRideCardPadded();
+      this.classList.toggle('is-card-padded', enabled);
+      if (this.isConnected) this.render();
+    };
+    window.addEventListener('app:free-ride-card-padded-change', this._cardPaddedHandler);
+    this._resizeHandler = () => {
+      if (!this.isConnected) return;
+      this.referenceSheetExpandedOffset = this.measureReferenceSheetExpandedOffset();
+      this.applyReferenceSheetState({ animate: false, force: true });
+      this.scheduleLayoutSync(0);
+    };
+    window.addEventListener('resize', this._resizeHandler);
+    this._layoutViewportHandler = () => {
+      if (!this.isConnected) return;
+      this.scheduleLayoutSync(0);
+    };
+    if (window.visualViewport && typeof window.visualViewport.addEventListener === 'function') {
+      window.visualViewport.addEventListener('resize', this._layoutViewportHandler);
+      window.visualViewport.addEventListener('scroll', this._layoutViewportHandler);
+    }
     this.flushReferenceProgressQueue({ reason: 'connect' }).catch(() => {});
+    if (this.isTabActive('reference')) {
+      this.scheduleLayoutSync(0);
+      this.scheduleLayoutSync(140);
+    }
     this.render();
   }
 
@@ -252,11 +322,12 @@ class PageReference extends HTMLElement {
     if (this._profileLocaleToggleHandler) {
       window.removeEventListener('app:profile-locale-toggle', this._profileLocaleToggleHandler);
     }
+    if (this._headerColorHandler) {
+      window.removeEventListener('app:free-ride-header-color-change', this._headerColorHandler);
+      this._headerColorHandler = null;
+    }
     if (this._userHandler) {
       window.removeEventListener('app:user-change', this._userHandler);
-    }
-    if (this._rewardsHandler) {
-      window.removeEventListener('app:speak-stores-change', this._rewardsHandler);
     }
     if (this._onlineHandler) {
       window.removeEventListener('online', this._onlineHandler);
@@ -270,10 +341,26 @@ class PageReference extends HTMLElement {
     if (this._referenceToolsHandler) {
       window.removeEventListener('app:reference-tools-enabled-change', this._referenceToolsHandler);
     }
+    if (this._cardPaddedHandler) {
+      window.removeEventListener('app:free-ride-card-padded-change', this._cardPaddedHandler);
+      this._cardPaddedHandler = null;
+    }
+    if (this._resizeHandler) {
+      window.removeEventListener('resize', this._resizeHandler);
+      this._resizeHandler = null;
+    }
+    if (this._layoutViewportHandler) {
+      if (window.visualViewport && typeof window.visualViewport.removeEventListener === 'function') {
+        window.visualViewport.removeEventListener('resize', this._layoutViewportHandler);
+        window.visualViewport.removeEventListener('scroll', this._layoutViewportHandler);
+      }
+      this._layoutViewportHandler = null;
+    }
     if (this._tabUserClickHandler) {
       window.removeEventListener('app:tab-user-click', this._tabUserClickHandler);
     }
     this.clearReferenceLessonCompletionTimer();
+    this.clearLayoutSync();
     this.stopHeroNarration();
   }
 
@@ -734,59 +821,7 @@ class PageReference extends HTMLElement {
   renderHeaderHtml() {
     const currentLocale = getAppLocale() || 'en';
     const tabTitle = getReferenceCopy(currentLocale).title;
-    return renderAppHeader({ title: tabTitle, rewardBadgesId: 'reference-reward-badges', locale: currentLocale });
-  }
-
-  updateHeaderRewards() {
-    const container = this.querySelector('#reference-reward-badges');
-    if (!container) return;
-    const rewards =
-      window.r34lp0w3r && window.r34lp0w3r.speakSessionRewards
-        ? window.r34lp0w3r.speakSessionRewards
-        : {};
-    const totals = {};
-    Object.values(rewards).forEach((entry) => {
-      if (!entry || typeof entry.rewardQty !== 'number') return;
-      const icon = entry.rewardIcon || 'diamond';
-      const rewardKind = String(entry.rewardGroup || icon).trim() || String(icon).trim() || 'diamond';
-      if (!totals[rewardKind]) totals[rewardKind] = { icon, qty: 0 };
-      totals[rewardKind].qty += entry.rewardQty;
-    });
-    const entries = Object.entries(totals).filter(([, meta]) => meta && meta.qty > 0);
-    if (!entries.length) {
-      container.innerHTML = '';
-      container.hidden = true;
-      return;
-    }
-    container.hidden = false;
-    container.innerHTML = entries
-      .sort((left, right) => {
-        const leftIcon = String(left[1] && left[1].icon ? left[1].icon : 'diamond').trim().toLowerCase();
-        const rightIcon = String(right[1] && right[1].icon ? right[1].icon : 'diamond').trim().toLowerCase();
-        const getOrder = (icon) =>
-          icon === 'trophy'
-            ? 0
-            : icon === 'ribbon' || icon === 'medal'
-            ? 1
-            : icon === 'diamond'
-            ? 2
-            : 9;
-        const byOrder = getOrder(leftIcon) - getOrder(rightIcon);
-        if (byOrder !== 0) return byOrder;
-        return String(left[0] || '').localeCompare(String(right[0] || ''));
-      })
-      .map(([rewardKind, meta]) => {
-        const icon = meta.icon || 'diamond';
-        const qty = meta.qty || 0;
-        const normalizedIcon = String(icon || '').trim().toLowerCase();
-        const isInteractive =
-          normalizedIcon === 'trophy' ||
-          normalizedIcon === 'ribbon' ||
-          normalizedIcon === 'medal' ||
-          rewardKind === REFERENCE_UNIT_REWARD_GROUP;
-        return `<div class="training-badge reward-badge${isInteractive ? ' is-interactive' : ''}" data-reward-kind="${rewardKind}" data-reward-icon="${icon}" data-reward-qty="${qty}"${isInteractive ? ' role="button" tabindex="0"' : ''}><ion-icon name="${icon}"></ion-icon><span>${qty}</span></div>`;
-      })
-      .join('');
+    return renderAppHeader({ title: tabTitle });
   }
 
   getReferenceRewardStore() {
@@ -1389,8 +1424,223 @@ class PageReference extends HTMLElement {
   getHeroMascotFrameSrc(index) {
     const safeIndex = Number.isFinite(index) ? Math.trunc(index) : HERO_MASCOT_REST_FRAME;
     const normalized = Math.max(0, Math.min(HERO_MASCOT_FRAME_COUNT - 1, safeIndex));
-    const padded = String(normalized).padStart(2, '0');
-    return `assets/mascot/nena/nena-v5-${padded}.png`;
+    return getHeroMascotFramePath(normalized);
+  }
+
+  applyHeaderColor(color) {
+    const normalized = FREE_RIDE_HEADER_COLOR_VALUES.includes(color) ? color : 'white';
+    FREE_RIDE_HEADER_COLOR_VALUES.forEach((value) => this.classList.remove(`header-color-${value}`));
+    this.classList.add(`header-color-${normalized}`);
+  }
+
+  getTabsEl() {
+    return this.closest('ion-tabs') || document.querySelector('tabs-page ion-tabs');
+  }
+
+  isTabActive(tabName = 'reference') {
+    const normalizedTabName = String(tabName || '').trim().toLowerCase();
+    const tabHost = this.closest('ion-tab');
+    if (tabHost) {
+      const hostTab = String(tabHost.getAttribute('tab') || '').trim().toLowerCase();
+      if (normalizedTabName && hostTab && hostTab !== normalizedTabName) return false;
+      if (tabHost.getAttribute('aria-hidden') === 'true') return false;
+      if (tabHost.classList.contains('tab-hidden')) return false;
+      const styles = window.getComputedStyle ? window.getComputedStyle(tabHost) : null;
+      if (styles && styles.display === 'none') return false;
+    }
+    const tabsEl = this.getTabsEl();
+    if (tabsEl && normalizedTabName) {
+      const selectedFromAttr = String(tabsEl.getAttribute('selected-tab') || '').trim().toLowerCase();
+      const selectedFromProp =
+        typeof tabsEl.selectedTab === 'string' ? String(tabsEl.selectedTab).trim().toLowerCase() : '';
+      const selected = selectedFromAttr || selectedFromProp;
+      if (selected) return selected === normalizedTabName;
+    }
+    return true;
+  }
+
+  getReferenceContentEl() {
+    return this.querySelector('ion-content.home-journey');
+  }
+
+  getReferenceShellEl() {
+    return this.querySelector('.reference-shell.free-ride-shell') || this.querySelector('.reference-shell');
+  }
+
+  getReferenceSheetEl() {
+    return this.querySelector('.reference-content-card.journey-sheet') || this.querySelector('.reference-content-card');
+  }
+
+  getReferenceSheetHandleEl() {
+    return this.querySelector('.reference-content-card .journey-sheet-handle');
+  }
+
+  updateReferenceCardWedgePath() {
+    const cardEl = this.getReferenceSheetEl();
+    if (!cardEl) return;
+    cardEl.style.removeProperty('clip-path');
+  }
+
+  getReferenceSheetTopInset() {
+    if (document.body.classList.contains('app-titlebar-enabled')) return 0;
+    const shellEl = this.getReferenceShellEl();
+    if (!shellEl) return 0;
+    const paddingTop = Number.parseFloat(window.getComputedStyle(shellEl).paddingTop || '0');
+    return Number.isFinite(paddingTop) ? Math.max(0, Math.round(paddingTop)) : 0;
+  }
+
+  measureReferenceSheetExpandedOffset() {
+    const shellEl = this.getReferenceShellEl();
+    const sheetEl = this.getReferenceSheetEl();
+    if (!shellEl || !sheetEl) return 0;
+    const shellRect = shellEl.getBoundingClientRect();
+    const sheetRect = sheetEl.getBoundingClientRect();
+    const currentTranslate = Number.isFinite(this.referenceSheetTranslateY) ? this.referenceSheetTranslateY : 0;
+    const targetTop = shellRect.top + this.getReferenceSheetTopInset();
+    const offset = Math.max(0, Math.round(sheetRect.top - currentTranslate - targetTop));
+    this.referenceSheetExpandedOffset = offset;
+    return offset;
+  }
+
+  applyReferenceSheetState(options = {}) {
+    const animate = options.animate !== false;
+    const sheetEl = this.getReferenceSheetEl();
+    const handleEl = this.getReferenceSheetHandleEl();
+    if (!sheetEl) return;
+
+    const offset = this.referenceSheetExpanded
+      ? (this.referenceSheetExpandedOffset || this.measureReferenceSheetExpandedOffset())
+      : 0;
+    this.referenceSheetTranslateY = this.referenceSheetExpanded ? -offset : 0;
+
+    sheetEl.dataset.sheetState = this.referenceSheetExpanded ? 'expanded' : 'collapsed';
+    sheetEl.classList.toggle('is-sheet-instant', !animate);
+    const liftMagnitude = Math.max(0, -this.referenceSheetTranslateY);
+    sheetEl.style.setProperty('--sheet-lift', `${liftMagnitude}px`);
+    if (handleEl) {
+      handleEl.setAttribute('aria-expanded', this.referenceSheetExpanded ? 'true' : 'false');
+      handleEl.setAttribute(
+        'aria-label',
+        this.referenceSheetExpanded ? 'Collapse reference card' : 'Expand reference card'
+      );
+    }
+
+    if (!animate) {
+      requestAnimationFrame(() => {
+        if (!sheetEl.isConnected) return;
+        sheetEl.classList.remove('is-sheet-instant');
+      });
+    }
+  }
+
+  setReferenceSheetExpanded(nextExpanded, options = {}) {
+    const expanded = Boolean(nextExpanded);
+    if (this.referenceSheetExpanded === expanded && !options.force) {
+      this.applyReferenceSheetState(options);
+      return;
+    }
+    this.referenceSheetExpanded = expanded;
+    if (
+      expanded &&
+      (!Number.isFinite(this.referenceSheetExpandedOffset) || this.referenceSheetExpandedOffset <= 0)
+    ) {
+      this.referenceSheetExpandedOffset = this.measureReferenceSheetExpandedOffset();
+    }
+    this.applyReferenceSheetState(options);
+  }
+
+  toggleReferenceSheet(options = {}) {
+    this.setReferenceSheetExpanded(!this.referenceSheetExpanded, options);
+  }
+
+  bindReferenceSheetInteractions() {
+    const handleEl = this.getReferenceSheetHandleEl();
+    if (!handleEl) return;
+    handleEl.addEventListener('click', (event) => {
+      event.preventDefault();
+      this.toggleReferenceSheet({ animate: true });
+    });
+    handleEl.addEventListener('keydown', (event) => {
+      const key = event && event.key ? event.key : '';
+      if (key !== 'Enter' && key !== ' ') return;
+      event.preventDefault();
+      this.toggleReferenceSheet({ animate: true });
+    });
+    this.referenceSheetExpandedOffset = this.measureReferenceSheetExpandedOffset();
+    this.applyReferenceSheetState({ animate: false, force: true });
+  }
+
+  clearLayoutSync() {
+    if (this.layoutSyncTimer) {
+      clearTimeout(this.layoutSyncTimer);
+      this.layoutSyncTimer = null;
+    }
+    if (this.layoutSyncRaf) {
+      cancelAnimationFrame(this.layoutSyncRaf);
+      this.layoutSyncRaf = null;
+    }
+    this.layoutSyncVersion += 1;
+  }
+
+  scheduleLayoutSync(delayMs = 0) {
+    if (!this.isConnected) return;
+    if (this.layoutSyncTimer) {
+      clearTimeout(this.layoutSyncTimer);
+      this.layoutSyncTimer = null;
+    }
+
+    const runSync = () => {
+      if (!this.isConnected) return;
+      if (this.layoutSyncRaf) {
+        cancelAnimationFrame(this.layoutSyncRaf);
+      }
+      this.layoutSyncRaf = requestAnimationFrame(() => {
+        this.layoutSyncRaf = null;
+        this.syncLayoutToViewport().catch(() => {});
+      });
+    };
+
+    if (delayMs > 0) {
+      this.layoutSyncTimer = setTimeout(() => {
+        this.layoutSyncTimer = null;
+        runSync();
+      }, delayMs);
+      return;
+    }
+
+    runSync();
+  }
+
+  async syncLayoutToViewport() {
+    if (!this.isConnected) return;
+    if (!this.isTabActive('reference')) return;
+    const shellEl = this.getReferenceShellEl();
+    if (!shellEl) return;
+
+    const callVersion = this.layoutSyncVersion;
+    if (!this.isConnected || callVersion !== this.layoutSyncVersion || !shellEl.isConnected) return;
+
+    const shellRect = shellEl.getBoundingClientRect();
+    const viewport = window.visualViewport;
+    const layoutViewportBottom = window.innerHeight || document.documentElement.clientHeight || 0;
+    const visualViewportBottom = viewport ? viewport.height + viewport.offsetTop : layoutViewportBottom;
+    const tabBarEl = document.querySelector('tabs-page ion-tab-bar');
+    const tabBarTop = tabBarEl ? tabBarEl.getBoundingClientRect().top : layoutViewportBottom;
+    const bottomLimit = Math.min(visualViewportBottom, tabBarTop);
+    const usableHeight = bottomLimit - shellRect.top - 8;
+
+    if (!Number.isFinite(usableHeight) || usableHeight <= 40) {
+      shellEl.style.removeProperty('--free-ride-shell-height');
+      shellEl.style.removeProperty('--journey-shell-height');
+      return;
+    }
+
+    const nextHeight = Math.max(160, Math.floor(usableHeight));
+    shellEl.style.setProperty('--free-ride-shell-height', `${nextHeight}px`);
+    shellEl.style.setProperty('--journey-shell-height', `${nextHeight}px`);
+    this.referenceSheetExpandedOffset = this.measureReferenceSheetExpandedOffset();
+    this.applyReferenceSheetState({ animate: false, force: true });
+    this.updateReferenceCardWedgePath();
   }
 
   setHeroBubbleSpeaking(isSpeaking) {
@@ -1414,10 +1664,13 @@ class PageReference extends HTMLElement {
       this.heroMascotFrameTimer = null;
     }
     this.setHeroBubbleSpeaking(true);
-    this.setHeroMascotFrame(1);
+    this.setHeroMascotFrame(HERO_MASCOT_TALK_FRAME_SEQUENCE[0]);
     this.heroMascotFrameTimer = setInterval(() => {
       if (!this.heroMascotIsTalking) return;
-      const nextIndex = Math.floor(Math.random() * (HERO_MASCOT_FRAME_COUNT - 1)) + 1;
+      const nextIndex =
+        HERO_MASCOT_TALK_FRAME_SEQUENCE[
+          Math.floor(Math.random() * HERO_MASCOT_TALK_FRAME_SEQUENCE.length)
+        ];
       this.setHeroMascotFrame(nextIndex);
     }, HERO_MASCOT_FRAME_INTERVAL_MS);
   }
@@ -2711,6 +2964,7 @@ class PageReference extends HTMLElement {
     const bubbleEl = this.getHeroBubbleEl();
     const hasMultipleLines = lines.length > 1;
     const restLine = lines[0] || null;
+    const originalBubbleHtml = bubbleEl ? bubbleEl.innerHTML : '';
     const originalBubbleMinHeight = bubbleEl ? bubbleEl.style.minHeight : '';
 
     await this.stopHeroNarrationPlayback();
@@ -2761,7 +3015,7 @@ class PageReference extends HTMLElement {
     };
 
     if (bubbleEl) {
-      applyLine(restLine);
+      if (hasMultipleLines && restLine) applyLine(restLine);
       if (hasMultipleLines) {
         const maxHeight = measureMaxLineHeight();
         if (maxHeight > 0) {
@@ -2779,12 +3033,12 @@ class PageReference extends HTMLElement {
 
     const restoreBubble = () => {
       if (!bubbleEl) return;
-      if (restLine) {
+      if (originalBubbleHtml) {
+        bubbleEl.innerHTML = originalBubbleHtml;
+      } else if (restLine) {
         applyLine(restLine);
       }
-      if (!hasMultipleLines) {
-        bubbleEl.style.minHeight = originalBubbleMinHeight;
-      }
+      bubbleEl.style.minHeight = originalBubbleMinHeight;
     };
 
     let startedAny = false;
@@ -3916,7 +4170,7 @@ class PageReference extends HTMLElement {
     }
   }
 
-  awardDiamondForReferenceTest(testKey, options = {}) {
+  awardTrophyForReferenceTest(testKey, options = {}) {
     const normalizedKey = String(testKey || '').trim();
     if (!normalizedKey) return null;
     const rewardStore = this.getReferenceRewardStore();
@@ -3924,9 +4178,9 @@ class PageReference extends HTMLElement {
     if (rewardStore[entryId]) return null;
     const now = Date.now();
     rewardStore[entryId] = {
-      rewardQty: REFERENCE_TEST_DIAMOND_REWARD_QTY,
-      rewardLabel: REFERENCE_TEST_DIAMOND_REWARD_LABEL,
-      rewardIcon: REFERENCE_TEST_DIAMOND_REWARD_ICON,
+      rewardQty: REFERENCE_TEST_TROPHY_REWARD_QTY,
+      rewardLabel: REFERENCE_TEST_TROPHY_REWARD_LABEL,
+      rewardIcon: REFERENCE_TEST_TROPHY_REWARD_ICON,
       ts: now,
       source: 'reference-test'
     };
@@ -3935,9 +4189,9 @@ class PageReference extends HTMLElement {
     this.notifyReferenceRewardStoreChange();
     return {
       entryId,
-      rewardQty: REFERENCE_TEST_DIAMOND_REWARD_QTY,
-      rewardLabel: REFERENCE_TEST_DIAMOND_REWARD_LABEL,
-      rewardIcon: REFERENCE_TEST_DIAMOND_REWARD_ICON
+      rewardQty: REFERENCE_TEST_TROPHY_REWARD_QTY,
+      rewardLabel: REFERENCE_TEST_TROPHY_REWARD_LABEL,
+      rewardIcon: REFERENCE_TEST_TROPHY_REWARD_ICON
     };
   }
 
@@ -4335,7 +4589,7 @@ class PageReference extends HTMLElement {
         const percent = Number(nextProgress.percent) || 0;
         const tone = nextProgress.tone || this.getReferenceScoreTone(percent);
         if (!previousProgress.completed && nextProgress.completed) {
-          this.awardDiamondForReferenceTest(testKey, { reason: 'reference-test-complete' });
+          this.awardTrophyForReferenceTest(testKey, { reason: 'reference-test-complete' });
         }
         this.playReferenceResultSound(tone);
         this.persistReferenceTestsState();
@@ -4530,22 +4784,32 @@ class PageReference extends HTMLElement {
     if (!courses.length) {
       this.innerHTML = `
         ${this.renderHeaderHtml()}
-        <ion-content fullscreen class="home-journey secret-content">
-          <div class="journey-shell reference-shell">
-            <section class="journey-plan-card onboarding-intro-card reference-hero-card">
-              <span class="journey-plan-mascot-wrap" aria-hidden="true">
-                <img id="reference-hero-mascot" class="onboarding-intro-cat" src="${heroMascotSrc}" alt="">
-              </span>
-              <div class="journey-plan-body">
-                <p class="onboarding-intro-bubble journey-plan-bubble reference-hero-bubble hero-playable-bubble"><span class="journey-plan-bubble-text">${this.escapeHtml(copy.subtitle)}</span></p>
+        <ion-content fullscreen class="home-journey free-ride-content secret-content">
+          <div class="speak-shell free-ride-shell journey-shell reference-shell">
+            <section class="free-ride-hero-card journey-plan-card onboarding-intro-card reference-hero-card">
+              <div class="free-ride-hero-stage journey-plan-stage">
+                <span class="journey-plan-mascot-wrap free-ride-mascot-wrap" aria-hidden="true">
+                  <img id="reference-hero-mascot" class="onboarding-intro-cat free-ride-mascot" src="${heroMascotSrc}" alt="">
+                </span>
+                <div class="journey-plan-body">
+                  <p class="onboarding-intro-bubble free-ride-hero-bubble journey-plan-bubble reference-hero-bubble hero-playable-bubble"><span class="journey-plan-bubble-text"><span class="free-ride-hero-bubble-icon" aria-hidden="true"><ion-icon name="volume-high-outline"></ion-icon></span>${this.escapeHtml(copy.subtitle)}</span></p>
+                </div>
               </div>
             </section>
-            <section class="reference-content-card">
-              <div class="reference-empty">${this.escapeHtml(copy.loading)}</div>
+            <section class="free-ride-card journey-sheet reference-content-card">
+              <button class="free-ride-card-handle journey-sheet-handle" type="button" aria-label="Reference content handle" aria-expanded="false">
+                <span class="free-ride-card-handle-pill journey-sheet-handle-pill" aria-hidden="true"></span>
+              </button>
+              <div class="free-ride-card-main journey-sheet-main">
+                <div class="reference-empty">${this.escapeHtml(copy.loading)}</div>
+              </div>
             </section>
           </div>
         </ion-content>
       `;
+      this.bindReferenceSheetInteractions();
+      this.scheduleLayoutSync(0);
+      this.scheduleLayoutSync(140);
 
       this.querySelector('.app-locale-btn')?.addEventListener('click', () => {
         const nextLocale = getNextLocaleCode(getActiveLocale() || 'en');
@@ -4559,11 +4823,10 @@ class PageReference extends HTMLElement {
         if (this.isEventInHeaderZone(event)) return;
         const target = event && event.target instanceof Element ? event.target : null;
         if (!target) return;
-        const inNarrationZone = target.closest('.journey-plan-mascot-wrap, .onboarding-intro-bubble, .reference-hero-bubble, .journey-plan-bubble');
+        const inNarrationZone = target.closest('.onboarding-intro-bubble, .reference-hero-bubble, .free-ride-hero-bubble, .journey-plan-bubble');
         if (!inNarrationZone) return;
         this.playHeroNarration(true).catch(() => {});
       });
-      this.updateHeaderRewards();
       this.currentHeroMessage = copy.subtitle;
       this.currentHeroLocale = uiLocale;
 
@@ -4656,8 +4919,7 @@ class PageReference extends HTMLElement {
           });
         }
 
-        this.updateHeaderRewards();
-        return;
+          return;
       }
 
       if (this.activeTool === 'articles' || this.activeTool === 'cheatsheets') {
@@ -4701,8 +4963,7 @@ class PageReference extends HTMLElement {
             this.render();
           }
         });
-        this.updateHeaderRewards();
-        return;
+          return;
       }
 
       const toolData = this.toolsDataCache[this.activeTool];
@@ -4732,8 +4993,7 @@ class PageReference extends HTMLElement {
           this.expandedToolItemId = null;
           this.render();
         });
-        this.updateHeaderRewards();
-        this.loadToolData(this.activeTool)
+          this.loadToolData(this.activeTool)
           .then(() => { if (this.isConnected) this.render(); })
           .catch((err) => console.warn('[tools] data load failed', err));
         return;
@@ -4903,7 +5163,6 @@ class PageReference extends HTMLElement {
         });
       }
 
-      this.updateHeaderRewards();
       return;
     }
 
@@ -5254,7 +5513,7 @@ class PageReference extends HTMLElement {
         { key: 'articles',    label: copy.toolArticles,    icon: 'newspaper-outline',      iconBg: '#ecfdf5', iconColor: '#059669' }
       ];
       const segmentedControlHtml = toolsEnabled ? `
-        <div class="profile-segmented-tabs reference-main-tabs" style="margin: -8px 0;">
+        <div class="profile-segmented-tabs reference-main-tabs" style="margin: 0 0 8px;">
           <button class="profile-segmented-btn${activeMainTab === 'courses' ? ' active' : ''}" data-reference-main-tab="courses">${this.escapeHtml(copy.tabCourses)}</button>
           <button class="profile-segmented-btn${activeMainTab === 'tools' ? ' active' : ''}" data-reference-main-tab="tools">${this.escapeHtml(copy.tabTools)}</button>
         </div>` : '';
@@ -5274,23 +5533,34 @@ class PageReference extends HTMLElement {
         : `<div class="journey-accordion reference-accordion">${accordionMarkup}</div>`;
       this.innerHTML = `
         ${this.renderHeaderHtml()}
-        <ion-content fullscreen class="home-journey secret-content">
-          <div class="journey-shell reference-shell">
-            <section class="journey-plan-card onboarding-intro-card reference-hero-card">
-              <span class="journey-plan-mascot-wrap" aria-hidden="true">
-                <img id="reference-hero-mascot" class="onboarding-intro-cat" src="${heroMascotSrc}" alt="">
-              </span>
-              <div class="journey-plan-body">
-                <p class="onboarding-intro-bubble journey-plan-bubble reference-hero-bubble hero-playable-bubble"><span class="journey-plan-bubble-text">${this.escapeHtml(heroSubtitle)}</span></p>
+        <ion-content fullscreen class="home-journey free-ride-content secret-content">
+          <div class="speak-shell free-ride-shell journey-shell reference-shell">
+            <section class="free-ride-hero-card journey-plan-card onboarding-intro-card reference-hero-card">
+              <div class="free-ride-hero-stage journey-plan-stage">
+                <span class="journey-plan-mascot-wrap free-ride-mascot-wrap" aria-hidden="true">
+                  <img id="reference-hero-mascot" class="onboarding-intro-cat free-ride-mascot" src="${heroMascotSrc}" alt="">
+                </span>
+                <div class="journey-plan-body">
+                  <p class="onboarding-intro-bubble free-ride-hero-bubble journey-plan-bubble reference-hero-bubble hero-playable-bubble"><span class="journey-plan-bubble-text"><span class="free-ride-hero-bubble-icon" aria-hidden="true"><ion-icon name="volume-high-outline"></ion-icon></span>${this.escapeHtml(heroSubtitle)}</span></p>
+                </div>
               </div>
             </section>
 
-            ${segmentedControlHtml}
-
-            ${mainContentHtml}
+            <section class="free-ride-card journey-sheet reference-content-card">
+              <button class="free-ride-card-handle journey-sheet-handle" type="button" aria-label="Reference content handle" aria-expanded="false">
+                <span class="free-ride-card-handle-pill journey-sheet-handle-pill" aria-hidden="true"></span>
+              </button>
+              <div class="free-ride-card-main journey-sheet-main">
+                ${segmentedControlHtml}
+                ${mainContentHtml}
+              </div>
+            </section>
           </div>
         </ion-content>
       `;
+      this.bindReferenceSheetInteractions();
+      this.scheduleLayoutSync(0);
+      this.scheduleLayoutSync(140);
     }
 
     this.querySelector('.app-locale-btn')?.addEventListener('click', () => {
@@ -5301,7 +5571,9 @@ class PageReference extends HTMLElement {
       }
       window.dispatchEvent(new CustomEvent('app:locale-change', { detail: { locale: nextLocale } }));
     });
-    this.updateHeaderRewards();
+    if (typeof this.updateHeaderRewards === 'function') {
+      this.updateHeaderRewards();
+    }
 
     if (this.lessonView) {
       // ── Lesson view listeners ──
@@ -5472,7 +5744,7 @@ class PageReference extends HTMLElement {
         if (this.isEventInHeaderZone(event)) return;
         const target = event && event.target instanceof Element ? event.target : null;
         if (!target) return;
-        const inNarrationZone = target.closest('.journey-plan-mascot-wrap, .onboarding-intro-bubble, .reference-hero-bubble, .journey-plan-bubble');
+        const inNarrationZone = target.closest('.onboarding-intro-bubble, .reference-hero-bubble, .free-ride-hero-bubble, .journey-plan-bubble');
         if (!inNarrationZone) return;
         this.playHeroNarration(true).catch(() => {});
       });

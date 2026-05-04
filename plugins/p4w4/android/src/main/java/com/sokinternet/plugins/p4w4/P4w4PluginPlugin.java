@@ -55,6 +55,11 @@ import java.nio.charset.StandardCharsets;
 import com.google.mlkit.nl.languageid.IdentifiedLanguage;
 import com.google.mlkit.nl.languageid.LanguageIdentification;
 import com.google.mlkit.nl.languageid.LanguageIdentifier;
+import com.google.mlkit.common.model.DownloadConditions;
+import com.google.mlkit.nl.translate.TranslateLanguage;
+import com.google.mlkit.nl.translate.Translator;
+import com.google.mlkit.nl.translate.TranslatorOptions;
+import com.google.mlkit.nl.translate.Translation;
 
 @CapacitorPlugin(name = "P4w4Plugin")
 public class P4w4PluginPlugin extends Plugin {
@@ -66,8 +71,10 @@ public class P4w4PluginPlugin extends Plugin {
     private static final String DEFAULT_VOSK_MODEL = "vosk-model-small-en-us-0.15";
     private static final String PREFERRED_VOSK_MODEL = "vosk-model-large-en-us-0.22";
     private static final Object VOSK_LOCK = new Object();
+    private static final Object TRANSLATION_LOCK = new Object();
     private static Model voskModel = null;
     private static String voskModelPath = null;
+    private static Translator spanishToEnglishTranslator = null;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
     private void applyStatusBarIcons(android.view.Window window, boolean lightIcons) {
@@ -101,6 +108,42 @@ public class P4w4PluginPlugin extends Plugin {
                 }
             }, delayMs);
         }
+    }
+
+    private int getStatusBarHeightPx() {
+        int result = 0;
+        int resourceId = getContext().getResources().getIdentifier("status_bar_height", "dimen", "android");
+        if (resourceId > 0) {
+            result = getContext().getResources().getDimensionPixelSize(resourceId);
+        }
+        return result;
+    }
+
+    private void applyWebViewStatusBarLayout(View webView, boolean edgeToEdge) {
+        if (webView == null) return;
+        ViewGroup.LayoutParams params = webView.getLayoutParams();
+        if (params == null) return;
+
+        if (edgeToEdge) {
+            webView.setTranslationY(0);
+            params.height = ViewGroup.LayoutParams.MATCH_PARENT;
+            webView.setLayoutParams(params);
+            webView.requestLayout();
+            Log.i("P4w4Plugin", ">#P4w4Plugin#> applyWebViewStatusBarLayout: edge-to-edge");
+            return;
+        }
+
+        int offsetPx = getStatusBarHeightPx();
+        if (offsetPx <= 0) return;
+        View parent = webView.getParent() instanceof View ? (View) webView.getParent() : null;
+        int fullHeight = parent != null && parent.getHeight() > offsetPx
+            ? parent.getHeight()
+            : getContext().getResources().getDisplayMetrics().heightPixels;
+        webView.setTranslationY(offsetPx);
+        params.height = Math.max(1, fullHeight - offsetPx);
+        webView.setLayoutParams(params);
+        webView.requestLayout();
+        Log.i("P4w4Plugin", ">#P4w4Plugin#> applyWebViewStatusBarLayout: offset=" + offsetPx + " height=" + params.height);
     }
 
     @PluginMethod
@@ -234,6 +277,8 @@ public class P4w4PluginPlugin extends Plugin {
         }
         JSObject ret = new JSObject();
         ret.put("height", result);
+        ret.put("platform", "android");
+        ret.put("osVersion", String.valueOf(Build.VERSION.SDK_INT));
         Log.i("P4w4Plugin", ">#P4w4Plugin#> getStatusBarHeight: StatusBar height: " + result + "px");
         call.resolve(ret);
     }
@@ -252,13 +297,17 @@ public class P4w4PluginPlugin extends Plugin {
         getActivity().runOnUiThread(() -> {
             try {
                 int color = Color.parseColor(backgroundColor);
+                boolean transparentChrome = Color.alpha(color) == 0;
+                int nativeBackdropColor = transparentChrome ? Color.parseColor("#a7c6f7") : color;
                 android.view.Window window = getActivity().getWindow();
+                WindowCompat.setDecorFitsSystemWindows(window, !transparentChrome);
                 window.setStatusBarColor(color);
-                window.getDecorView().setBackgroundColor(color);
+                window.getDecorView().setBackgroundColor(nativeBackdropColor);
 
                 View webView = bridge.getWebView();
                 if (webView != null) {
                     webView.setBackgroundColor(Color.TRANSPARENT);
+                    applyWebViewStatusBarLayout(webView, transparentChrome);
                 }
                 SharedPreferences prefs = getContext().getSharedPreferences(NATIVE_CHROME_PREFS, Context.MODE_PRIVATE);
                 prefs.edit()
@@ -267,7 +316,7 @@ public class P4w4PluginPlugin extends Plugin {
                     .apply();
                 applyStatusBarIconsWithRetries(window, lightIcons, source + "|" + path);
 
-                Log.i("P4w4Plugin", ">#P4w4Plugin#> setNativeChrome: bg=" + backgroundColor + " lightIcons=" + lightIcons + " source=" + source + " path=" + path);
+                Log.i("P4w4Plugin", ">#P4w4Plugin#> setNativeChrome: bg=" + backgroundColor + " transparentChrome=" + transparentChrome + " lightIcons=" + lightIcons + " source=" + source + " path=" + path);
                 call.resolve();
             } catch (IllegalArgumentException error) {
                 call.reject("Color de fondo invalido.", error);
@@ -338,7 +387,124 @@ public class P4w4PluginPlugin extends Plugin {
                     identifier.close();
                 } catch (Exception ignored) {
                 }
-                call.reject("Error detectando idioma: " + error.getMessage(), error);
+            call.reject("Error detectando idioma: " + error.getMessage(), error);
+            });
+    }
+
+    private String normalizeTranslationLanguage(String language) {
+        if (language == null) return "";
+        String normalized = language.trim().toLowerCase();
+        if (normalized.isEmpty()) return "";
+        return normalized.split("[-_]")[0];
+    }
+
+    @Override
+    protected void handleOnDestroy() {
+        synchronized (TRANSLATION_LOCK) {
+            if (spanishToEnglishTranslator != null) {
+                try {
+                    spanishToEnglishTranslator.close();
+                } catch (Exception ignored) {
+                }
+                spanishToEnglishTranslator = null;
+            }
+        }
+        super.handleOnDestroy();
+    }
+
+    private Translator getSpanishEnglishTranslator() {
+        synchronized (TRANSLATION_LOCK) {
+            if (spanishToEnglishTranslator == null) {
+                TranslatorOptions options = new TranslatorOptions.Builder()
+                    .setSourceLanguage(TranslateLanguage.SPANISH)
+                    .setTargetLanguage(TranslateLanguage.ENGLISH)
+                    .build();
+                spanishToEnglishTranslator = Translation.getClient(options);
+            }
+            return spanishToEnglishTranslator;
+        }
+    }
+
+    @PluginMethod
+    public void getTranslationStatus(PluginCall call) {
+        String sourceLanguage = normalizeTranslationLanguage(call.getString("sourceLanguage", "es"));
+        String targetLanguage = normalizeTranslationLanguage(call.getString("targetLanguage", "en"));
+        boolean supportedPair = "es".equals(sourceLanguage) && ("en".equals(targetLanguage) || targetLanguage.isEmpty());
+
+        JSObject result = new JSObject();
+        result.put("available", supportedPair);
+        result.put("engine", "android-mlkit");
+        result.put("platform", "android");
+        result.put("sourceLanguage", sourceLanguage);
+        result.put("targetLanguage", targetLanguage.isEmpty() ? "en" : targetLanguage);
+        result.put("modelDownloaded", false);
+        result.put("osVersion", String.valueOf(Build.VERSION.SDK_INT));
+        result.put("reason", supportedPair ? "" : "unsupported_language_pair");
+        call.resolve(result);
+    }
+
+    @PluginMethod
+    public void translateText(PluginCall call) {
+        String rawText = call.getString("text", "");
+        String text = rawText == null ? "" : rawText.trim();
+        String sourceLanguage = normalizeTranslationLanguage(call.getString("sourceLanguage", ""));
+        String targetLanguage = normalizeTranslationLanguage(call.getString("targetLanguage", "en"));
+
+        JSObject result = new JSObject();
+        result.put("sourceLanguage", sourceLanguage);
+        result.put("targetLanguage", targetLanguage.isEmpty() ? "en" : targetLanguage);
+        result.put("sourceText", text);
+        result.put("translatedText", "");
+        result.put("engine", "android-mlkit");
+        result.put("available", true);
+
+        if (text.isEmpty()) {
+            result.put("available", false);
+            result.put("reason", "empty");
+            call.resolve(result);
+            return;
+        }
+
+        if ("en".equals(sourceLanguage) && ("".equals(targetLanguage) || "en".equals(targetLanguage))) {
+            result.put("translatedText", text);
+            result.put("available", true);
+            result.put("modelDownloaded", true);
+            call.resolve(result);
+            return;
+        }
+
+        if (!"es".equals(sourceLanguage) || !("en".equals(targetLanguage) || targetLanguage.isEmpty())) {
+            result.put("available", false);
+            result.put("reason", "unsupported_language_pair");
+            call.resolve(result);
+            return;
+        }
+
+        Translator translator = getSpanishEnglishTranslator();
+        DownloadConditions conditions = new DownloadConditions.Builder().build();
+        translator
+            .downloadModelIfNeeded(conditions)
+            .addOnSuccessListener(unused -> translator.translate(text)
+                .addOnSuccessListener(translatedText -> {
+                    JSObject success = new JSObject();
+                    success.put("available", true);
+                    success.put("sourceLanguage", "es");
+                    success.put("targetLanguage", "en");
+                    success.put("sourceText", text);
+                    success.put("translatedText", translatedText == null ? "" : translatedText.trim());
+                    success.put("engine", "android-mlkit");
+                    success.put("modelDownloaded", true);
+                    call.resolve(success);
+                })
+                .addOnFailureListener(error -> {
+                    result.put("available", false);
+                    result.put("reason", error != null ? error.getMessage() : "translate_failed");
+                    call.resolve(result);
+                }))
+            .addOnFailureListener(error -> {
+                result.put("available", false);
+                result.put("reason", error != null ? error.getMessage() : "download_failed");
+                call.resolve(result);
             });
     }
 

@@ -16,33 +16,29 @@ import {
   normalizeLocale as normalizeCopyLocale
 } from '../content/copy.js';
 import { renderAppHeader } from '../components/app-header.js';
+import {
+  HERO_MASCOT_FRAMES as PLAN_MASCOT_FRAMES,
+  HERO_MASCOT_FRAME_INTERVAL_MS as PLAN_MASCOT_FRAME_INTERVAL_MS,
+  HERO_MASCOT_REST_FRAME as PLAN_MASCOT_REST_FRAME,
+  HERO_MASCOT_TALK_FRAME_SEQUENCE as PLAN_MASCOT_TALK_FRAME_SEQUENCE,
+  preloadHeroMascotFrames
+} from '../mascot-frames.js';
 
 const TTS_LANG_BY_LOCALE = {
   es: 'es-ES',
   en: 'en-US'
 };
 
-const PLAN_MASCOT_FRAMES = [
-  'assets/mascot/nena/nena-v5-00.png',
-  'assets/mascot/nena/nena-v5-01.png',
-  'assets/mascot/nena/nena-v5-02.png',
-  'assets/mascot/nena/nena-v5-03.png',
-  'assets/mascot/nena/nena-v5-04.png',
-  'assets/mascot/nena/nena-v5-05.png',
-  'assets/mascot/nena/nena-v5-06.png',
-  'assets/mascot/nena/nena-v5-07.png'
-];
-const PLAN_MASCOT_REST_FRAME = 0;
-const PLAN_MASCOT_TALK_FRAME_SEQUENCE = [1, 2, 3, 4, 5, 6, 7];
-const PLAN_MASCOT_FRAME_INTERVAL_MS = 150;
 const BROWSER_AUTONARRATION_EXTRA_DELAY_MS = 120;
 const SPEAK_SESSION_PERCENTAGES_VISIBLE_KEY = 'appv5:speak-session-percentages-visible';
 const HOME_ALIGNED_CACHE_MAX_ITEMS = 24;
 const HOME_PLAN_AUTONARRATION_PLAYED_KEY = 'appv5:home-plan-auto-narration-played';
-const HOME_PLAN_TTS_VOICE_PROFILE = 'child';
 const HOME_EXPANDED_ROUTE_KEY = 'appv5:home-expanded-route-id';
 const HOME_RETURN_SCROLL_KEY = 'appv5:home-return-scroll-top';
 const HOME_RETURN_REVEAL_KEY = 'appv5:home-return-reveal-target';
+const FREE_RIDE_HEADER_COLOR_KEY = 'appv5:free-ride-header-color';
+const FREE_RIDE_CARD_PADDED_KEY = 'appv5:free-ride-card-padded';
+const FREE_RIDE_HEADER_COLOR_VALUES = ['white', 'dark', 'blue'];
 const MODULE_AUDIO_ICON = `
   <span class="module-audio-icon" aria-hidden="true">
     <svg viewBox="0 0 24 24" fill="none">
@@ -59,6 +55,26 @@ const getResolvedUserName = (user) => {
   if (!user || typeof user !== 'object') return '';
   const derived = [user.first_name, user.last_name].filter(Boolean).join(' ').trim();
   return derived || String(user.name || user.email || user.social_id || '').trim();
+};
+
+const getStoredHeaderColor = () => {
+  try {
+    const raw = String(localStorage.getItem(FREE_RIDE_HEADER_COLOR_KEY) || '').trim().toLowerCase();
+    return FREE_RIDE_HEADER_COLOR_VALUES.includes(raw) ? raw : 'white';
+  } catch (_err) {
+    return 'white';
+  }
+};
+
+const isFreeRideCardPadded = () => {
+  try {
+    const raw = localStorage.getItem(FREE_RIDE_CARD_PADDED_KEY);
+    if (raw === null || raw === undefined || raw === '') return false;
+    const normalized = String(raw).trim().toLowerCase();
+    return ['1', 'true', 'on', 'yes'].includes(normalized);
+  } catch (_err) {
+    return false;
+  }
 };
 
 class PageHome extends HTMLElement {
@@ -94,11 +110,25 @@ class PageHome extends HTMLElement {
     this._pendingHomeReturnRevealScheduleToken = 0;
     this._renderRAFId = null;
     this._pendingRenderOptions = {};
+    this.journeySheetExpanded = false;
+    this.journeySheetExpandedOffset = 0;
+    this.journeySheetTranslateY = 0;
+    this.journeySheetDragging = false;
+    this.journeySheetPointerId = null;
+    this.journeySheetDragStartY = 0;
+    this.journeySheetDragStartTranslateY = 0;
+    this.journeySheetDragMoved = false;
+    this.journeySheetLastPointerUpTs = 0;
+    this.layoutSyncTimer = null;
+    this.layoutSyncRaf = null;
+    this.layoutSyncVersion = 0;
   }
 
   connectedCallback() {
     this.classList.add('ion-page');
-    PLAN_MASCOT_FRAMES.forEach(src => { new Image().src = src; });
+    this.applyHeaderColor(getStoredHeaderColor());
+    this.classList.toggle('is-card-padded', isFreeRideCardPadded());
+    preloadHeroMascotFrames();
     this.handleSelectionChange = () => {
       const restoreScrollTop = this.homeScrollTop;
       const { route, module } = resolveSelection(getSelection());
@@ -113,57 +143,6 @@ class PageHome extends HTMLElement {
       this.render({ restoreScrollTop });
     };
     window.addEventListener('training:selection-change', this.handleSelectionChange);
-    this.updateHeaderRewards = () => {
-      const container = this.querySelector('#home-reward-badges');
-      if (!container) return;
-      const rewards =
-        window.r34lp0w3r && window.r34lp0w3r.speakSessionRewards
-          ? window.r34lp0w3r.speakSessionRewards
-          : {};
-    const totals = {};
-    Object.values(rewards).forEach((entry) => {
-      if (!entry || typeof entry.rewardQty !== 'number') return;
-      const icon = entry.rewardIcon || 'diamond';
-      const rewardKind = String(entry.rewardGroup || icon).trim() || String(icon).trim() || 'diamond';
-      if (!totals[rewardKind]) totals[rewardKind] = { icon, qty: 0 };
-      totals[rewardKind].qty += entry.rewardQty;
-    });
-      const entries = Object.entries(totals).filter(([, meta]) => meta && meta.qty > 0);
-      if (!entries.length) {
-        container.innerHTML = '';
-        container.hidden = true;
-        return;
-      }
-      container.hidden = false;
-      container.innerHTML = entries
-        .sort((left, right) => {
-          const leftIcon = String(left[1] && left[1].icon ? left[1].icon : 'diamond').trim().toLowerCase();
-          const rightIcon = String(right[1] && right[1].icon ? right[1].icon : 'diamond').trim().toLowerCase();
-          const getOrder = (icon) =>
-            icon === 'trophy'
-              ? 0
-              : icon === 'ribbon' || icon === 'medal'
-              ? 1
-              : icon === 'diamond'
-              ? 2
-              : 9;
-          const byOrder = getOrder(leftIcon) - getOrder(rightIcon);
-          if (byOrder !== 0) return byOrder;
-          return String(left[0] || '').localeCompare(String(right[0] || ''));
-        })
-        .map(([rewardKind, meta]) => {
-          const icon = meta.icon || 'diamond';
-          const qty = meta.qty || 0;
-          const normalizedIcon = String(icon || '').trim().toLowerCase();
-          const isInteractive =
-            normalizedIcon === 'trophy' ||
-            normalizedIcon === 'ribbon' ||
-            normalizedIcon === 'medal' ||
-            rewardKind === 'reference-unit-ribbon';
-          return `<div class="training-badge reward-badge${isInteractive ? ' is-interactive' : ''}" data-reward-kind="${rewardKind}" data-reward-icon="${icon}" data-reward-qty="${qty}"${isInteractive ? ' role="button" tabindex="0"' : ''}><ion-icon name="${icon}"></ion-icon><span>${qty}</span></div>`;
-        })
-        .join('');
-    };
     this._rewardsHandler = () => this.render();
     window.addEventListener('app:speak-stores-change', this._rewardsHandler);
     this._debugHandler = () => this.render();
@@ -185,6 +164,22 @@ class PageHome extends HTMLElement {
       this.render();
     };
     window.addEventListener('app:profile-locale-toggle', this._profileLocaleToggleHandler);
+    this._headerColorHandler = (event) => {
+      if (!this.isConnected) return;
+      const color = event?.detail?.color || getStoredHeaderColor();
+      this.applyHeaderColor(color);
+    };
+    window.addEventListener('app:free-ride-header-color-change', this._headerColorHandler);
+    this._cardPaddedHandler = (event) => {
+      if (!this.isConnected) return;
+      const detail = event && event.detail ? event.detail : {};
+      const enabled = typeof detail.enabled === 'boolean' ? detail.enabled : isFreeRideCardPadded();
+      this.classList.toggle('is-card-padded', enabled);
+      this.journeySheetExpandedOffset = this.measureJourneySheetExpandedOffset();
+      this.applyJourneySheetState({ animate: false, force: true });
+      this.scheduleLayoutSync(0);
+    };
+    window.addEventListener('app:free-ride-card-padded-change', this._cardPaddedHandler);
     this._sessionPercentagesVisibilityHandler = () => {
       if (!this.isConnected) return;
       this.render();
@@ -208,6 +203,10 @@ class PageHome extends HTMLElement {
         }
         return;
       }
+      this.journeySheetExpandedOffset = this.measureJourneySheetExpandedOffset();
+      this.applyJourneySheetState({ animate: false, force: true });
+      this.scheduleLayoutSync(0);
+      this.scheduleLayoutSync(140);
       this.schedulePendingHomeReturnScrollRestore();
       this.schedulePendingHomeReturnReveal();
     };
@@ -225,6 +224,25 @@ class PageHome extends HTMLElement {
       this.schedulePendingHomeReturnReveal();
     };
     this._routerEl?.addEventListener('ionRouteDidChange', this._routeDidChangeHandler);
+    this._resizeHandler = () => {
+      if (!this.isConnected) return;
+      this.journeySheetExpandedOffset = this.measureJourneySheetExpandedOffset();
+      this.applyJourneySheetState({ animate: false, force: true });
+      this.scheduleLayoutSync(0);
+    };
+    window.addEventListener('resize', this._resizeHandler);
+    this._layoutViewportHandler = () => {
+      if (!this.isConnected) return;
+      this.scheduleLayoutSync(0);
+    };
+    if (window.visualViewport && typeof window.visualViewport.addEventListener === 'function') {
+      window.visualViewport.addEventListener('resize', this._layoutViewportHandler);
+      window.visualViewport.addEventListener('scroll', this._layoutViewportHandler);
+    }
+    if (this.isTabActive('home')) {
+      this.scheduleLayoutSync(0);
+      this.scheduleLayoutSync(140);
+    }
     this.render();
   }
 
@@ -243,6 +261,14 @@ class PageHome extends HTMLElement {
     }
     if (this._profileLocaleToggleHandler) {
       window.removeEventListener('app:profile-locale-toggle', this._profileLocaleToggleHandler);
+    }
+    if (this._headerColorHandler) {
+      window.removeEventListener('app:free-ride-header-color-change', this._headerColorHandler);
+      this._headerColorHandler = null;
+    }
+    if (this._cardPaddedHandler) {
+      window.removeEventListener('app:free-ride-card-padded-change', this._cardPaddedHandler);
+      this._cardPaddedHandler = null;
     }
     if (this._sessionPercentagesVisibilityHandler) {
       window.removeEventListener(
@@ -266,6 +292,17 @@ class PageHome extends HTMLElement {
       this._routeDidChangeHandler = null;
       this._routerEl = null;
     }
+    if (this._resizeHandler) {
+      window.removeEventListener('resize', this._resizeHandler);
+      this._resizeHandler = null;
+    }
+    if (this._layoutViewportHandler) {
+      if (window.visualViewport && typeof window.visualViewport.removeEventListener === 'function') {
+        window.visualViewport.removeEventListener('resize', this._layoutViewportHandler);
+        window.visualViewport.removeEventListener('scroll', this._layoutViewportHandler);
+      }
+      this._layoutViewportHandler = null;
+    }
     if (this._renderRAFId) {
       cancelAnimationFrame(this._renderRAFId);
       this._renderRAFId = null;
@@ -274,6 +311,8 @@ class PageHome extends HTMLElement {
     this.detachHomeScrollTracking();
     this.clearPendingHomeReturnScrollRestoreTimers();
     this.clearPendingHomeReturnRevealTimers();
+    this.cancelJourneySheetDrag();
+    this.clearLayoutSync();
     this.stopPlanMascotTalk({ settle: true });
     this.clearNarrationTimer();
     this.stopNarration().catch(() => {});
@@ -402,6 +441,309 @@ class PageHome extends HTMLElement {
     return this.querySelector('ion-content.home-journey');
   }
 
+  getJourneyShellEl() {
+    return this.querySelector('.journey-shell');
+  }
+
+  getJourneySheetEl() {
+    return this.querySelector('.journey-sheet');
+  }
+
+  getJourneySheetHandleEl() {
+    return this.querySelector('.journey-sheet-handle');
+  }
+
+  getJourneySheetMainEl() {
+    return this.querySelector('.journey-sheet-main');
+  }
+
+  updateJourneyCardWedgePath() {
+    const cardEl = this.getJourneySheetEl();
+    if (!cardEl) return;
+    cardEl.style.removeProperty('clip-path');
+  }
+
+  getJourneySheetTopInset() {
+    if (document.body.classList.contains('app-titlebar-enabled')) return 0;
+    const shellEl = this.getJourneyShellEl();
+    if (!shellEl) return 0;
+    const paddingTop = Number.parseFloat(window.getComputedStyle(shellEl).paddingTop || '0');
+    return Number.isFinite(paddingTop) ? Math.max(0, Math.round(paddingTop)) : 0;
+  }
+
+  measureJourneySheetExpandedOffset() {
+    const shellEl = this.getJourneyShellEl();
+    const sheetEl = this.getJourneySheetEl();
+    if (!shellEl || !sheetEl) return 0;
+    const shellRect = shellEl.getBoundingClientRect();
+    const sheetRect = sheetEl.getBoundingClientRect();
+    const currentTranslate = Number.isFinite(this.journeySheetTranslateY) ? this.journeySheetTranslateY : 0;
+    const targetTop = shellRect.top + this.getJourneySheetTopInset();
+    const offset = Math.max(0, Math.round(sheetRect.top - currentTranslate - targetTop));
+    this.journeySheetExpandedOffset = offset;
+    return offset;
+  }
+
+  applyJourneySheetState(options = {}) {
+    const animate = options.animate !== false;
+    const sheetEl = this.getJourneySheetEl();
+    const handleEl = this.getJourneySheetHandleEl();
+    if (!sheetEl) return;
+
+    const offset = this.journeySheetExpanded
+      ? (this.journeySheetExpandedOffset || this.measureJourneySheetExpandedOffset())
+      : 0;
+    this.journeySheetTranslateY = this.journeySheetExpanded ? -offset : 0;
+
+    sheetEl.dataset.sheetState = this.journeySheetExpanded ? 'expanded' : 'collapsed';
+    sheetEl.classList.toggle('is-sheet-dragging', this.journeySheetDragging);
+    sheetEl.classList.toggle('is-sheet-instant', !animate);
+    const liftMagnitude = Math.max(0, -this.journeySheetTranslateY);
+    sheetEl.style.setProperty('--sheet-lift', `${liftMagnitude}px`);
+    if (handleEl) {
+      handleEl.setAttribute('aria-expanded', this.journeySheetExpanded ? 'true' : 'false');
+      handleEl.setAttribute(
+        'aria-label',
+        this.journeySheetExpanded ? 'Collapse training card' : 'Expand training card'
+      );
+    }
+
+    if (!animate) {
+      requestAnimationFrame(() => {
+        if (!sheetEl.isConnected) return;
+        sheetEl.classList.remove('is-sheet-instant');
+      });
+    }
+  }
+
+  setJourneySheetExpanded(nextExpanded, options = {}) {
+    const expanded = Boolean(nextExpanded);
+    if (this.journeySheetExpanded === expanded && !options.force) {
+      this.applyJourneySheetState(options);
+      return;
+    }
+    this.journeySheetExpanded = expanded;
+    if (
+      expanded &&
+      (!Number.isFinite(this.journeySheetExpandedOffset) || this.journeySheetExpandedOffset <= 0)
+    ) {
+      this.journeySheetExpandedOffset = this.measureJourneySheetExpandedOffset();
+    }
+    this.applyJourneySheetState(options);
+  }
+
+  toggleJourneySheet(options = {}) {
+    this.setJourneySheetExpanded(!this.journeySheetExpanded, options);
+  }
+
+  startJourneySheetDrag(event) {
+    const handleEl = event && event.currentTarget ? event.currentTarget : null;
+    const sheetEl = this.getJourneySheetEl();
+    if (!handleEl || !sheetEl || typeof event.pointerId !== 'number') return;
+    if (event.button !== 0) return;
+
+    this.journeySheetExpandedOffset = this.measureJourneySheetExpandedOffset();
+    this.journeySheetDragging = true;
+    this.journeySheetPointerId = event.pointerId;
+    this.journeySheetDragStartY = event.clientY;
+    this.journeySheetDragStartTranslateY = this.journeySheetExpanded ? -this.journeySheetExpandedOffset : 0;
+    this.journeySheetDragMoved = false;
+    sheetEl.classList.add('is-sheet-dragging');
+    this.applyJourneySheetState({ animate: false });
+
+    try {
+      handleEl.setPointerCapture(event.pointerId);
+    } catch (_err) {
+      // no-op
+    }
+    event.preventDefault();
+  }
+
+  moveJourneySheetDrag(event) {
+    if (!this.journeySheetDragging) return;
+    if (typeof event.pointerId === 'number' && event.pointerId !== this.journeySheetPointerId) return;
+    const sheetEl = this.getJourneySheetEl();
+    if (!sheetEl) return;
+
+    const deltaY = Number(event.clientY) - this.journeySheetDragStartY;
+    const nextTranslate = this.journeySheetDragStartTranslateY + deltaY;
+    const minTranslate = -this.journeySheetExpandedOffset;
+    const maxTranslate = 0;
+    const clampedTranslate = Math.max(minTranslate, Math.min(maxTranslate, nextTranslate));
+
+    if (Math.abs(clampedTranslate - this.journeySheetDragStartTranslateY) > 4) {
+      this.journeySheetDragMoved = true;
+    }
+
+    this.journeySheetTranslateY = clampedTranslate;
+    const liftMagnitude = Math.max(0, -clampedTranslate);
+    sheetEl.style.setProperty('--sheet-lift', `${liftMagnitude}px`);
+    event.preventDefault();
+  }
+
+  finishJourneySheetDrag(event) {
+    if (!this.journeySheetDragging) return;
+    if (typeof event.pointerId === 'number' && event.pointerId !== this.journeySheetPointerId) return;
+    const sheetEl = this.getJourneySheetEl();
+    const handleEl = this.getJourneySheetHandleEl();
+    const currentTranslate = Number.isFinite(this.journeySheetTranslateY) ? this.journeySheetTranslateY : 0;
+    const midpoint = -Math.max(0, this.journeySheetExpandedOffset) / 2;
+    const nextExpanded = this.journeySheetDragMoved ? currentTranslate <= midpoint : !this.journeySheetExpanded;
+
+    this.journeySheetDragging = false;
+    this.journeySheetPointerId = null;
+    this.journeySheetDragMoved = false;
+    this.journeySheetLastPointerUpTs = Date.now();
+    if (sheetEl) {
+      sheetEl.classList.remove('is-sheet-dragging');
+    }
+    if (handleEl) {
+      try {
+        if (typeof event.pointerId === 'number' && handleEl.hasPointerCapture(event.pointerId)) {
+          handleEl.releasePointerCapture(event.pointerId);
+        }
+      } catch (_err) {
+        // no-op
+      }
+    }
+    this.setJourneySheetExpanded(nextExpanded, { animate: true });
+  }
+
+  cancelJourneySheetDrag() {
+    if (!this.journeySheetDragging) return;
+    this.journeySheetDragging = false;
+    this.journeySheetPointerId = null;
+    this.journeySheetDragMoved = false;
+    const sheetEl = this.getJourneySheetEl();
+    if (sheetEl) {
+      sheetEl.classList.remove('is-sheet-dragging');
+    }
+    this.setJourneySheetExpanded(this.journeySheetExpanded, { animate: true, force: true });
+  }
+
+  clearLayoutSync() {
+    if (this.layoutSyncTimer) {
+      clearTimeout(this.layoutSyncTimer);
+      this.layoutSyncTimer = null;
+    }
+    if (this.layoutSyncRaf) {
+      cancelAnimationFrame(this.layoutSyncRaf);
+      this.layoutSyncRaf = null;
+    }
+    this.layoutSyncVersion += 1;
+  }
+
+  scheduleLayoutSync(delayMs = 0) {
+    if (!this.isConnected) return;
+    if (this.layoutSyncTimer) {
+      clearTimeout(this.layoutSyncTimer);
+      this.layoutSyncTimer = null;
+    }
+
+    const runSync = () => {
+      if (!this.isConnected) return;
+      if (this.layoutSyncRaf) {
+        cancelAnimationFrame(this.layoutSyncRaf);
+      }
+      this.layoutSyncRaf = requestAnimationFrame(() => {
+        this.layoutSyncRaf = null;
+        this.syncLayoutToViewport().catch(() => {});
+      });
+    };
+
+    if (delayMs > 0) {
+      this.layoutSyncTimer = setTimeout(() => {
+        this.layoutSyncTimer = null;
+        runSync();
+      }, delayMs);
+      return;
+    }
+
+    runSync();
+  }
+
+  async syncLayoutToViewport() {
+    if (!this.isConnected) return;
+    const shellEl = this.getJourneyShellEl();
+    if (!shellEl) return;
+    if (!this.isTabActive('home')) return;
+
+    const callVersion = this.layoutSyncVersion;
+    if (!this.isConnected || callVersion !== this.layoutSyncVersion || !shellEl.isConnected) return;
+
+    const shellRect = shellEl.getBoundingClientRect();
+    const viewport = window.visualViewport;
+    const layoutViewportBottom = window.innerHeight || document.documentElement.clientHeight || 0;
+    const visualViewportBottom = viewport
+      ? viewport.height + viewport.offsetTop
+      : layoutViewportBottom;
+
+    const tabBarEl = document.querySelector('tabs-page ion-tab-bar');
+    const tabBarTop = tabBarEl ? tabBarEl.getBoundingClientRect().top : layoutViewportBottom;
+    const bottomLimit = Math.min(visualViewportBottom, tabBarTop);
+    const usableHeight = bottomLimit - shellRect.top - 8;
+
+    if (!Number.isFinite(usableHeight) || usableHeight <= 40) {
+      shellEl.style.removeProperty('--free-ride-shell-height');
+      shellEl.style.removeProperty('--journey-shell-height');
+      return;
+    }
+
+    const nextHeight = Math.max(160, Math.floor(usableHeight));
+    shellEl.style.setProperty('--free-ride-shell-height', `${nextHeight}px`);
+    shellEl.style.setProperty('--journey-shell-height', `${nextHeight}px`);
+    this.journeySheetExpandedOffset = this.measureJourneySheetExpandedOffset();
+    this.applyJourneySheetState({ animate: false, force: true });
+    this.updateJourneyCardWedgePath();
+  }
+
+  async getHomeScrollHost() {
+    const sheetMainEl = this.getJourneySheetMainEl();
+    if (sheetMainEl) {
+      return { scrollEl: sheetMainEl, contentEl: null };
+    }
+
+    const contentEl = this.getHomeContentEl();
+    if (!contentEl || typeof contentEl.getScrollElement !== 'function') {
+      return { scrollEl: null, contentEl: null };
+    }
+
+    let scrollEl = null;
+    try {
+      scrollEl = await contentEl.getScrollElement();
+    } catch (err) {
+      scrollEl = null;
+    }
+    return { scrollEl, contentEl };
+  }
+
+  async scrollHomeHostTo(host, desiredTop, durationMs = 0) {
+    if (!host || !host.scrollEl) return 0;
+    const scrollEl = host.scrollEl;
+    const maxTop = Math.max(0, (scrollEl.scrollHeight || 0) - (scrollEl.clientHeight || 0));
+    const nextTop = Math.max(0, Math.min(Math.round(Number(desiredTop) || 0), maxTop));
+
+    if (host.contentEl && typeof host.contentEl.scrollToPoint === 'function') {
+      try {
+        await host.contentEl.scrollToPoint(0, nextTop, Math.max(0, Number(durationMs) || 0));
+      } catch (err) {
+        scrollEl.scrollTop = nextTop;
+      }
+      return nextTop;
+    }
+
+    const duration = Math.max(0, Number(durationMs) || 0);
+    if (duration > 0 && typeof scrollEl.scrollTo === 'function') {
+      scrollEl.scrollTo({
+        top: nextTop,
+        behavior: 'smooth'
+      });
+    } else {
+      scrollEl.scrollTop = nextTop;
+    }
+    return nextTop;
+  }
+
   detachHomeScrollTracking() {
     this._homeScrollBindToken += 1;
     if (this._homeScrollEl && this._homeScrollHandler) {
@@ -411,18 +753,12 @@ class PageHome extends HTMLElement {
   }
 
   async bindHomeScrollTracking() {
-    const contentEl = this.getHomeContentEl();
-    if (!contentEl || typeof contentEl.getScrollElement !== 'function') {
+    const { scrollEl } = await this.getHomeScrollHost();
+    if (!scrollEl) {
       this.detachHomeScrollTracking();
       return;
     }
     const bindToken = ++this._homeScrollBindToken;
-    let scrollEl = null;
-    try {
-      scrollEl = await contentEl.getScrollElement();
-    } catch (err) {
-      scrollEl = null;
-    }
     if (!scrollEl || bindToken !== this._homeScrollBindToken || !this.isConnected) return;
     if (!this._homeScrollHandler) {
       this._homeScrollHandler = () => {
@@ -538,27 +874,10 @@ class PageHome extends HTMLElement {
   async restoreHomeScrollPosition(scrollTop = this.homeScrollTop) {
     const desiredTop = Number(scrollTop);
     if (!Number.isFinite(desiredTop) || desiredTop <= 0) return;
-    const contentEl = this.getHomeContentEl();
-    if (!contentEl || typeof contentEl.getScrollElement !== 'function') return;
     await this.waitForNextFrame();
-    let scrollEl = null;
-    try {
-      scrollEl = await contentEl.getScrollElement();
-    } catch (err) {
-      scrollEl = null;
-    }
-    if (!scrollEl) return;
-    const maxTop = Math.max(0, (scrollEl.scrollHeight || 0) - (scrollEl.clientHeight || 0));
-    const nextTop = Math.max(0, Math.min(Math.round(desiredTop), maxTop));
-    if (typeof contentEl.scrollToPoint === 'function') {
-      try {
-        await contentEl.scrollToPoint(0, nextTop, 0);
-      } catch (err) {
-        scrollEl.scrollTop = nextTop;
-      }
-    } else {
-      scrollEl.scrollTop = nextTop;
-    }
+    const host = await this.getHomeScrollHost();
+    if (!host.scrollEl) return;
+    const nextTop = await this.scrollHomeHostTo(host, desiredTop, 0);
     this.homeScrollTop = nextTop;
   }
 
@@ -579,14 +898,7 @@ class PageHome extends HTMLElement {
 
   async isRoutesTargetVisible(targetEl, padding = 20) {
     if (!targetEl || !this.isConnected) return false;
-    const contentEl = this.getHomeContentEl();
-    if (!contentEl || typeof contentEl.getScrollElement !== 'function') return false;
-    let scrollEl = null;
-    try {
-      scrollEl = await contentEl.getScrollElement();
-    } catch (err) {
-      scrollEl = null;
-    }
+    const { scrollEl } = await this.getHomeScrollHost();
     if (!scrollEl) return false;
     const scrollRect = scrollEl.getBoundingClientRect();
     const targetRect = targetEl.getBoundingClientRect();
@@ -598,14 +910,8 @@ class PageHome extends HTMLElement {
 
   async ensureRoutesTargetVisible(targetEl, padding = 20, durationMs = 240) {
     if (!targetEl || !this.isConnected) return false;
-    const contentEl = this.getHomeContentEl();
-    if (!contentEl || typeof contentEl.getScrollElement !== 'function') return false;
-    let scrollEl = null;
-    try {
-      scrollEl = await contentEl.getScrollElement();
-    } catch (err) {
-      scrollEl = null;
-    }
+    const host = await this.getHomeScrollHost();
+    const scrollEl = host.scrollEl;
     if (!scrollEl) return false;
     const scrollRect = scrollEl.getBoundingClientRect();
     const targetRect = targetEl.getBoundingClientRect();
@@ -618,20 +924,7 @@ class PageHome extends HTMLElement {
       delta = targetRect.bottom - bottomLimit;
     }
     if (Math.abs(delta) < 2) return false;
-    const maxTop = Math.max(0, (scrollEl.scrollHeight || 0) - (scrollEl.clientHeight || 0));
-    const nextTop = Math.max(0, Math.min(Math.round(scrollEl.scrollTop + delta), maxTop));
-    if (typeof contentEl.scrollToPoint === 'function') {
-      try {
-        await contentEl.scrollToPoint(0, nextTop, Math.max(0, durationMs));
-      } catch (err) {
-        scrollEl.scrollTop = nextTop;
-      }
-    } else {
-      scrollEl.scrollTo({
-        top: nextTop,
-        behavior: durationMs > 0 ? 'smooth' : 'auto'
-      });
-    }
+    const nextTop = await this.scrollHomeHostTo(host, scrollEl.scrollTop + delta, durationMs);
     this.homeScrollTop = nextTop;
     return true;
   }
@@ -679,41 +972,19 @@ class PageHome extends HTMLElement {
       if (routeHeader) return routeHeader;
     }
 
-    return this.querySelector('.journey-start-btn') || null;
+    return this.querySelector('.route-header') || this.querySelector('.journey-sheet-handle') || null;
   }
 
   async scrollRoutesTargetToCenter(targetEl, durationMs = 340) {
     if (!targetEl || !this.isConnected) return;
-    const contentEl = this.querySelector('ion-content.home-journey');
-    if (!contentEl) return;
-    let scrollEl = null;
-    if (typeof contentEl.getScrollElement === 'function') {
-      try {
-        scrollEl = await contentEl.getScrollElement();
-      } catch (err) {
-        scrollEl = null;
-      }
-    }
+    const host = await this.getHomeScrollHost();
+    const scrollEl = host.scrollEl;
     if (!scrollEl) return;
 
     const scrollRect = scrollEl.getBoundingClientRect();
     const targetRect = targetEl.getBoundingClientRect();
     const delta = targetRect.top - scrollRect.top - (scrollRect.height - targetRect.height) / 2;
-    const nextTop = Math.max(0, Math.round(scrollEl.scrollTop + delta));
-
-    if (typeof contentEl.scrollToPoint === 'function') {
-      try {
-        await contentEl.scrollToPoint(0, nextTop, Math.max(0, durationMs));
-      } catch (err) {
-        // no-op
-      }
-      return;
-    }
-
-    scrollEl.scrollTo({
-      top: nextTop,
-      behavior: durationMs > 0 ? 'smooth' : 'auto'
-    });
+    await this.scrollHomeHostTo(host, scrollEl.scrollTop + delta, durationMs);
   }
 
   flushRoutesCenterScroll() {
@@ -780,31 +1051,25 @@ class PageHome extends HTMLElement {
     const getSessionTitle = (session) => readLocalizedField(session, 'title');
     if (!routes.length) {
       this.innerHTML = `
-        ${renderAppHeader({ title: tabTitle, rewardBadgesId: 'home-reward-badges', locale: uiLocale })}
-        <ion-content fullscreen class="home-journey secret-content">
-          <div class="journey-shell">
-            <section class="journey-plan-card onboarding-intro-card">
-              <span class="journey-plan-mascot-wrap" aria-hidden="true">
-                <img
-                  class="onboarding-intro-cat"
-                  id="home-plan-mascot"
-                  src="${planMascotSrc}"
-                  alt=""
-                >
-              </span>
-              <div class="journey-plan-body">
-                <p class="onboarding-intro-bubble journey-plan-bubble hero-playable-bubble">
-                  <span class="journey-plan-bubble-text">${planRestHtml}</span>
-                </p>
-                <div class="journey-start-pill" style="visibility:hidden" aria-hidden="true">
-                  <ion-icon name="headset-outline"></ion-icon>
-                  &nbsp;
+        ${renderAppHeader({ title: tabTitle })}
+        <ion-content fullscreen class="home-journey free-ride-content secret-content">
+          <div class="speak-shell free-ride-shell journey-shell">
+            <section class="free-ride-hero-card journey-plan-card onboarding-intro-card">
+              <div class="free-ride-hero-stage journey-plan-stage">
+                <span class="journey-plan-mascot-wrap free-ride-mascot-wrap" aria-hidden="true">
+                  <img
+                    class="onboarding-intro-cat free-ride-mascot"
+                    id="home-plan-mascot"
+                    src="${planMascotSrc}"
+                    alt=""
+                  >
+                </span>
+                <div class="journey-plan-body">
+                  <p class="onboarding-intro-bubble free-ride-hero-bubble journey-plan-bubble hero-playable-bubble">
+                    <span class="journey-plan-bubble-text"><span class="free-ride-hero-bubble-icon" aria-hidden="true"><ion-icon name="volume-high-outline"></ion-icon></span>${planRestHtml}</span>
+                  </p>
                 </div>
               </div>
-              <button class="journey-start-btn" type="button" style="visibility:hidden" aria-hidden="true" disabled>
-                <ion-icon name="play" class="journey-start-btn-icon"></ion-icon>
-                ${copy.go}
-              </button>
             </section>
           </div>
         </ion-content>
@@ -822,7 +1087,6 @@ class PageHome extends HTMLElement {
             if (this.isConnected) this.render();
           });
       }
-      this.updateHeaderRewards();
       this.renderPlanMascotFrame(this.planMascotFrameIndex);
       this.setPlanBubbleSpeaking(this.planMascotIsTalking);
       return;
@@ -1104,7 +1368,7 @@ class PageHome extends HTMLElement {
           if (!session) return;
           const reward = rewardsStore[session.id];
           if (!reward || typeof reward.rewardQty !== 'number') return;
-          const icon = reward.rewardIcon || 'diamond';
+          const icon = reward.rewardIcon || 'trophy';
           totals[icon] = (totals[icon] || 0) + reward.rewardQty;
         });
       });
@@ -1198,7 +1462,7 @@ class PageHome extends HTMLElement {
               const pct = getSessionPercent(item);
               return pct !== null && getScoreTone(pct) === 'good';
             }).length;
-            const showChevron = !isModuleOpen;
+            const showChevron = true;
             const moduleLeadIcon =
               toneCls === 'good'
                 ? `<div class="module-circle module-circle-good"><ion-icon name="checkmark"></ion-icon></div>`
@@ -1317,27 +1581,10 @@ class PageHome extends HTMLElement {
 
     const getExpandedJourneyState = () => {
       const currentExpandedRoute = routes.find((item) => item.id === this.expandedRouteId) || activeRoute;
-      const currentExpandedRouteIndex = routes.findIndex((item) => item.id === currentExpandedRoute.id);
-      const currentExpandedRouteUnlocked =
-        currentExpandedRouteIndex === 0 || routeUnlockList[currentExpandedRouteIndex] === true;
       return {
         expandedRoute: currentExpandedRoute,
-        expandedRouteIndex: currentExpandedRouteIndex,
-        expandedRouteUnlocked: currentExpandedRouteUnlocked,
         accordionMarkup: buildAccordionMarkup()
       };
-    };
-
-    const syncJourneyHeader = (state) => {
-      const pillEl = this.querySelector('.journey-start-pill');
-      const startBtnEl = this.querySelector('.journey-start-btn');
-      if (pillEl) {
-        pillEl.innerHTML = `<ion-icon name="headset-outline"></ion-icon>${getRouteTitle(state.expandedRoute)}`;
-      }
-      if (startBtnEl) {
-        startBtnEl.classList.toggle('is-locked', !state.expandedRouteUnlocked);
-        startBtnEl.disabled = !state.expandedRouteUnlocked;
-      }
     };
 
     const bindAccordionInteractions = () => {
@@ -1465,81 +1712,88 @@ class PageHome extends HTMLElement {
       if (accordionEl) {
         accordionEl.innerHTML = state.accordionMarkup;
       }
-      syncJourneyHeader(state);
       bindAccordionInteractions();
+      this.journeySheetExpandedOffset = this.measureJourneySheetExpandedOffset();
+      this.applyJourneySheetState({ animate: false, force: true });
+      this.scheduleLayoutSync(0);
       this.flushRoutesCenterScroll();
     };
 
     const initialJourneyState = getExpandedJourneyState();
-    const { expandedRoute: renderedExpandedRoute, expandedRouteIndex, expandedRouteUnlocked, accordionMarkup } =
-      initialJourneyState;
+    const { accordionMarkup } = initialJourneyState;
 
     this.innerHTML = `
       ${renderAppHeader({ title: tabTitle, rewardBadgesId: 'home-reward-badges', locale: uiLocale })}
-      <ion-content fullscreen class="home-journey secret-content">
-        <div class="journey-shell">
-          <section class="journey-plan-card onboarding-intro-card">
-            <span class="journey-plan-mascot-wrap" aria-hidden="true">
-              <img
-                class="onboarding-intro-cat"
-                id="home-plan-mascot"
-                src="${planMascotSrc}"
-                alt=""
-              >
-            </span>
-            <div class="journey-plan-body">
-              <p class="onboarding-intro-bubble journey-plan-bubble hero-playable-bubble">
-                <span class="journey-plan-bubble-text">${planRestHtml}</span>
-              </p>
-              <div class="journey-start-pill">
-                <ion-icon name="headset-outline"></ion-icon>
-                ${getRouteTitle(renderedExpandedRoute)}
+      <ion-content fullscreen class="home-journey free-ride-content secret-content">
+        <div class="speak-shell free-ride-shell journey-shell">
+          <section class="free-ride-hero-card journey-plan-card onboarding-intro-card">
+            <div class="free-ride-hero-stage journey-plan-stage">
+              <span class="journey-plan-mascot-wrap free-ride-mascot-wrap" aria-hidden="true">
+                <img
+                  class="onboarding-intro-cat free-ride-mascot"
+                  id="home-plan-mascot"
+                  src="${planMascotSrc}"
+                  alt=""
+                >
+              </span>
+              <div class="journey-plan-body">
+                <p class="onboarding-intro-bubble free-ride-hero-bubble journey-plan-bubble hero-playable-bubble">
+                  <span class="journey-plan-bubble-text"><span class="free-ride-hero-bubble-icon" aria-hidden="true"><ion-icon name="volume-high-outline"></ion-icon></span>${planRestHtml}</span>
+                </p>
               </div>
             </div>
-            <button class="journey-start-btn ${expandedRouteUnlocked ? '' : 'is-locked'}" type="button" ${expandedRouteUnlocked ? '' : 'disabled'}>
-              <ion-icon name="play" class="journey-start-btn-icon"></ion-icon>
-              ${copy.go}
-            </button>
           </section>
 
-          <div class="journey-accordion">
-            ${accordionMarkup}
-          </div>
+          <section class="free-ride-card journey-sheet">
+            <button class="free-ride-card-handle journey-sheet-handle" type="button" aria-label="Expand training card" aria-expanded="false">
+              <span class="free-ride-card-handle-pill journey-sheet-handle-pill" aria-hidden="true"></span>
+            </button>
+            <div class="free-ride-card-main journey-sheet-main">
+              <div class="journey-accordion">
+                ${accordionMarkup}
+              </div>
+            </div>
+          </section>
         </div>
       </ion-content>
     `;
-
-    this.querySelector('.journey-start-btn')?.addEventListener('click', (event) => {
-      event.stopPropagation();
-      const currentState = getExpandedJourneyState();
-      if (!currentState.expandedRouteUnlocked) {
-        showLockedRouteToast(currentState.expandedRouteIndex);
+    bindAccordionInteractions();
+    const journeySheetHandleEl = this.getJourneySheetHandleEl();
+    journeySheetHandleEl?.addEventListener('pointerdown', (event) => {
+      this.startJourneySheetDrag(event);
+    });
+    journeySheetHandleEl?.addEventListener('pointermove', (event) => {
+      this.moveJourneySheetDrag(event);
+    });
+    journeySheetHandleEl?.addEventListener('pointerup', (event) => {
+      this.finishJourneySheetDrag(event);
+    });
+    journeySheetHandleEl?.addEventListener('pointercancel', () => {
+      this.cancelJourneySheetDrag();
+    });
+    journeySheetHandleEl?.addEventListener('lostpointercapture', () => {
+      this.cancelJourneySheetDrag();
+    });
+    journeySheetHandleEl?.addEventListener('click', (event) => {
+      const lastPointerUpTs = Number(this.journeySheetLastPointerUpTs) || 0;
+      if (lastPointerUpTs && Date.now() - lastPointerUpTs < 350) {
+        event.preventDefault();
         return;
       }
-      const startModule =
-        currentState.expandedRoute.modules.find((item) => item.id === this.expandedModuleId) ||
-        currentState.expandedRoute.modules[0];
-      if (!startModule || !Array.isArray(startModule.sessions) || !startModule.sessions.length) return;
-      const firstSession = startModule.sessions[0];
-      const startSession =
-        currentState.expandedRoute.id === activeRoute.id &&
-        startModule.id === activeModule.id &&
-        activeSession &&
-        startModule.sessions.some((item) => item.id === activeSession.id)
-          ? activeSession
-          : firstSession;
-      setSelection({
-        routeId: currentState.expandedRoute.id,
-        moduleId: startModule.id,
-        sessionId: startSession.id
-      });
-      this.setPendingHomeReturnScroll(this.homeScrollTop);
-      this.cancelRoutesCentering().catch(() => {});
-      goToSpeak('forward');
+      this.toggleJourneySheet({ animate: true });
     });
-    bindAccordionInteractions();
+    journeySheetHandleEl?.addEventListener('keydown', (event) => {
+      const key = event && event.key ? event.key : '';
+      if (key !== 'Enter' && key !== ' ') return;
+      event.preventDefault();
+      this.toggleJourneySheet({ animate: true });
+    });
+    this.journeySheetExpandedOffset = this.measureJourneySheetExpandedOffset();
+    this.applyJourneySheetState({ animate: false, force: true });
 
-    this.updateHeaderRewards();
+    if (typeof this.updateHeaderRewards === 'function') {
+      this.updateHeaderRewards();
+    }
     this.bindPlanHeroEvents(options);
     this.flushRoutesCenterScroll();
     this.renderPlanMascotFrame(this.planMascotFrameIndex);
@@ -1553,6 +1807,8 @@ class PageHome extends HTMLElement {
     }
     this.schedulePendingHomeReturnScrollRestore();
     this.schedulePendingHomeReturnReveal();
+    this.scheduleLayoutSync(0);
+    this.scheduleLayoutSync(140);
   }
 
   bindPlanHeroEvents(options = {}) {
@@ -1571,7 +1827,7 @@ class PageHome extends HTMLElement {
         ? event.target
         : null;
       if (!target) return;
-      const inNarrationZone = target.closest('.journey-plan-mascot-wrap, .onboarding-intro-bubble');
+      const inNarrationZone = target.closest('.onboarding-intro-bubble, .free-ride-hero-bubble, .journey-plan-bubble');
       if (!inNarrationZone) return;
       this.playPlanNarration({ manual: true });
     });
@@ -1611,6 +1867,12 @@ class PageHome extends HTMLElement {
     const overrideLocale = this.normalizeLocale(this.state.localeOverride);
     if (overrideLocale) return overrideLocale;
     return this.normalizeLocale(baseLocale) || this.getBaseLocale();
+  }
+
+  applyHeaderColor(color) {
+    const normalized = FREE_RIDE_HEADER_COLOR_VALUES.includes(color) ? color : 'white';
+    FREE_RIDE_HEADER_COLOR_VALUES.forEach((value) => this.classList.remove(`header-color-${value}`));
+    this.classList.add(`header-color-${normalized}`);
   }
 
   getTabsEl() {
@@ -1824,9 +2086,7 @@ class PageHome extends HTMLElement {
   }
 
   getPlanNarrationTtsOptions(locale = this.currentUiLocale) {
-    return {
-      voiceProfile: HOME_PLAN_TTS_VOICE_PROFILE
-    };
+    return {};
   }
 
   getAlignedTtsCacheKey(text, lang, options = {}) {
@@ -2357,7 +2617,7 @@ class PageHome extends HTMLElement {
     };
 
     if (bubbleEl) {
-      if (restLine) applyLine(restLine);
+      if (hasMultipleLines && restLine) applyLine(restLine);
       if (hasMultipleLines) {
         const maxHeight = measureMaxLineHeight();
         if (maxHeight > 0) {
@@ -2371,14 +2631,14 @@ class PageHome extends HTMLElement {
     const restoreBubble = () => {
       if (!bubbleEl) return;
       if (bubbleEl.dataset.narrationToken !== String(token)) return;
-      if (restLine) {
+      if (originalBubbleHtml) {
+        bubbleEl.innerHTML = originalBubbleHtml;
+      } else if (restLine) {
         applyLine(restLine);
       } else {
         bubbleEl.innerHTML = originalBubbleHtml;
       }
-      if (!hasMultipleLines) {
-        bubbleEl.style.minHeight = originalBubbleMinHeight;
-      }
+      bubbleEl.style.minHeight = originalBubbleMinHeight;
       delete bubbleEl.dataset.narrationToken;
     };
 

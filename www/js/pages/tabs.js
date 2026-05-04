@@ -1,4 +1,5 @@
 import { getAppLocale, hasLoginTabsLock } from '../state.js';
+import { isAppTitlebarEnabled } from '../components/app-header.js';
 import { getTabsCopy, normalizeLocale as normalizeCopyLocale } from '../content/copy.js';
 
 class TabsPage extends HTMLElement {
@@ -170,6 +171,17 @@ class TabsPage extends HTMLElement {
       } catch (err) {
         return { count: 0, showTabDot: false };
       }
+    };
+
+    const applyNotifyBadge = () => {
+      const profileButton = this.querySelector('ion-tab-button[tab="tu"]');
+      if (!profileButton) return;
+      if (isAppTitlebarEnabled()) {
+        profileButton.classList.remove('has-unread');
+        return;
+      }
+      const hasUnread = document.body.classList.contains('has-unread-notify');
+      profileButton.classList.toggle('has-unread', hasUnread);
     };
 
     const applyChatUnreadBadge = (state = readChatUnreadState()) => {
@@ -348,6 +360,10 @@ class TabsPage extends HTMLElement {
 
       writeStoredTab(tab);
       applyTabBarVisibility();
+      if (tab === 'tu') {
+        const profileButton = this.querySelector('ion-tab-button[tab="tu"]');
+        profileButton?.classList.remove('has-unread');
+      }
       window.dispatchEvent(
         new CustomEvent('app:tab-change', {
           detail: { tab }
@@ -407,6 +423,11 @@ class TabsPage extends HTMLElement {
     };
     window.addEventListener('app:chat-unread-change', this._chatUnreadChangeHandler);
 
+    this._notifyChangeHandler = () => applyNotifyBadge();
+    window.addEventListener('app:notifications-change', this._notifyChangeHandler);
+    this._titlebarChangeHandler = () => applyNotifyBadge();
+    window.addEventListener('app:titlebar-enabled-change', this._titlebarChangeHandler);
+
     this._profileAuthViewChangeHandler = (event) => {
       const detail = event && event.detail ? event.detail : {};
       hideProfileAuthTabBar = detail.hideTabBar === true;
@@ -416,6 +437,7 @@ class TabsPage extends HTMLElement {
 
     applyTabVisibility();
     applyChatUnreadBadge();
+    applyNotifyBadge();
     applyTabBarVisibility();
 
     if (isTabsLocked()) {
@@ -463,6 +485,13 @@ class TabsPage extends HTMLElement {
 
     if (this._chatUnreadChangeHandler) {
       window.removeEventListener('app:chat-unread-change', this._chatUnreadChangeHandler);
+    }
+
+    if (this._notifyChangeHandler) {
+      window.removeEventListener('app:notifications-change', this._notifyChangeHandler);
+    }
+    if (this._titlebarChangeHandler) {
+      window.removeEventListener('app:titlebar-enabled-change', this._titlebarChangeHandler);
     }
 
     if (this._profileAuthViewChangeHandler) {

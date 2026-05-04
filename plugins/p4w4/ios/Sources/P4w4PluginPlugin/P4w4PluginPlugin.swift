@@ -5,6 +5,10 @@ import Speech
 import AudioToolbox
 import AVFoundation
 import NaturalLanguage
+#if canImport(Translation)
+import Translation
+#endif
+import SwiftUI
 
 /**
  * Please read the Capacitor iOS Plugin Development Guide
@@ -14,6 +18,7 @@ import NaturalLanguage
 public class P4w4PluginPlugin: CAPPlugin, CAPBridgedPlugin {
     public let identifier = "P4w4PluginPlugin"
     public let jsName = "P4w4Plugin"
+    private let transparentChromeBackdropColor = UIColor(red: 167.0 / 255.0, green: 198.0 / 255.0, blue: 247.0 / 255.0, alpha: 1.0)
     public let pluginMethods: [CAPPluginMethod] = [
         CAPPluginMethod(name: "echo", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "reverse", returnType: CAPPluginReturnPromise),
@@ -22,6 +27,8 @@ public class P4w4PluginPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "getStatusBarHeight", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "setNativeChrome", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "detectLanguage", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "getTranslationStatus", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "translateText", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "setStartupHtml", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "reloadWebView", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "restartApp", returnType: CAPPluginReturnPromise),
@@ -33,6 +40,10 @@ public class P4w4PluginPlugin: CAPPlugin, CAPBridgedPlugin {
     private let implementation = P4w4Plugin()
     private static var uiSfxPlayers: [String: AVAudioPlayer] = [:]
     private var uiSfxObserversRegistered = false
+    #if canImport(Translation)
+    private var translationBridgeHost: UIViewController?
+    private var translationBridgeModel: AnyObject?
+    #endif
 
     @objc func echo(_ call: CAPPluginCall) {
         let value = call.getString("value") ?? ""
@@ -44,6 +55,11 @@ public class P4w4PluginPlugin: CAPPlugin, CAPBridgedPlugin {
     public override func load() {
         super.load()
         registerUiSfxLifecycleObserversIfNeeded()
+        #if canImport(Translation)
+        if #available(iOS 18.0, *) {
+            installTranslationBridgeIfNeeded()
+        }
+        #endif
     }
     
 
@@ -116,11 +132,14 @@ public class P4w4PluginPlugin: CAPPlugin, CAPBridgedPlugin {
 
     @objc func getStatusBarHeight(_ call: CAPPluginCall) {
         let height = UIApplication.shared.windows.first?.safeAreaInsets.top ?? 0
+        let osVersion = UIDevice.current.systemVersion
 
-        print(">#P4w4Plugin#> getStatusBarHeight: StatusBar height: \(height) pt")
+        print(">#P4w4Plugin#> getStatusBarHeight: StatusBar height: \(height) pt osVersion=\(osVersion)")
 
         call.resolve([
-            "height": height
+            "height": height,
+            "platform": "ios",
+            "osVersion": osVersion
         ])
     }
 
@@ -150,6 +169,26 @@ public class P4w4PluginPlugin: CAPPlugin, CAPBridgedPlugin {
         )
     }
 
+    private func applyWebViewStatusBarLayout(edgeToEdge: Bool) {
+        guard let bridgeVC = self.bridge?.viewController,
+              let webView = self.bridge?.webView else {
+            return
+        }
+
+        let container = webView.superview ?? bridgeVC.view
+        let containerBounds = container?.bounds ?? bridgeVC.view.bounds
+        let safeTop = bridgeVC.view.window?.safeAreaInsets.top ?? UIApplication.shared.windows.first?.safeAreaInsets.top ?? 0
+        let topOffset = edgeToEdge ? 0 : safeTop
+        webView.frame = CGRect(
+            x: 0,
+            y: topOffset,
+            width: containerBounds.width,
+            height: max(0, containerBounds.height - topOffset)
+        )
+        webView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        print(">#P4w4Plugin#> applyWebViewStatusBarLayout: edgeToEdge=\(edgeToEdge) topOffset=\(topOffset)")
+    }
+
     @objc func setNativeChrome(_ call: CAPPluginCall) {
         guard let rawColor = call.getString("backgroundColor"),
               let color = colorFromHex(rawColor) else {
@@ -158,18 +197,21 @@ public class P4w4PluginPlugin: CAPPlugin, CAPBridgedPlugin {
         }
 
         let lightIcons = call.getBool("lightIcons") ?? false
+        let transparentChrome = color.cgColor.alpha <= 0.01
+        let nativeBackdropColor = transparentChrome ? transparentChromeBackdropColor : color
 
         DispatchQueue.main.async {
             if let window = self.bridge?.viewController?.view.window ?? UIApplication.shared.windows.first {
-                window.backgroundColor = color
+                window.backgroundColor = nativeBackdropColor
             }
 
-            self.bridge?.viewController?.view.backgroundColor = color
-            self.bridge?.webView?.superview?.backgroundColor = color
+            self.bridge?.viewController?.view.backgroundColor = nativeBackdropColor
+            self.bridge?.webView?.superview?.backgroundColor = nativeBackdropColor
             self.bridge?.webView?.backgroundColor = .clear
             self.bridge?.webView?.isOpaque = false
+            self.applyWebViewStatusBarLayout(edgeToEdge: transparentChrome)
 
-            print(">#P4w4Plugin#> setNativeChrome: bg=\(rawColor) lightIcons=\(lightIcons)")
+            print(">#P4w4Plugin#> setNativeChrome: bg=\(rawColor) transparentChrome=\(transparentChrome) lightIcons=\(lightIcons)")
             call.resolve()
         }
     }
@@ -294,6 +336,376 @@ public class P4w4PluginPlugin: CAPPlugin, CAPBridgedPlugin {
             "textLength": text.count,
             "alphaChars": alphaChars
         ])
+    }
+
+    @objc func translateText(_ call: CAPPluginCall) {
+        let text = (call.getString("text") ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let sourceLanguage = (call.getString("sourceLanguage") ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let targetLanguage = (call.getString("targetLanguage") ?? "en").trimmingCharacters(in: .whitespacesAndNewlines)
+
+        #if canImport(Translation)
+        if #available(iOS 18.0, *) {
+            installTranslationBridgeIfNeeded()
+            guard let bridgeModel = translationBridgeModel as? P4w4TranslationBridgeModel else {
+                call.resolve([
+                    "available": false,
+                    "sourceLanguage": sourceLanguage,
+                    "targetLanguage": targetLanguage.isEmpty ? "en" : targetLanguage,
+                    "sourceText": text,
+                    "translatedText": "",
+                    "engine": "ios-translation",
+                    "reason": "bridge_unavailable"
+                ])
+                return
+            }
+
+            if text.isEmpty {
+                call.resolve([
+                    "available": false,
+                    "sourceLanguage": sourceLanguage,
+                    "targetLanguage": targetLanguage.isEmpty ? "en" : targetLanguage,
+                    "sourceText": text,
+                    "translatedText": "",
+                    "engine": "ios-translation",
+                    "reason": "empty"
+                ])
+                return
+            }
+
+            let normalizedSource = normalizeTranslationLanguageCode(sourceLanguage)
+            let normalizedTarget = normalizeTranslationLanguageCode(targetLanguage.isEmpty ? "en" : targetLanguage)
+            if normalizedSource == "en" && normalizedTarget == "en" {
+                call.resolve([
+                    "available": true,
+                    "sourceLanguage": "en",
+                    "targetLanguage": "en",
+                    "sourceText": text,
+                    "translatedText": text,
+                    "engine": "ios-translation",
+                    "modelDownloaded": true
+                ])
+                return
+            }
+
+            if normalizedSource != "es" || normalizedTarget != "en" {
+                call.resolve([
+                    "available": false,
+                    "sourceLanguage": normalizedSource,
+                    "targetLanguage": normalizedTarget.isEmpty ? "en" : normalizedTarget,
+                    "sourceText": text,
+                    "translatedText": "",
+                    "engine": "ios-translation",
+                    "reason": "unsupported_language_pair"
+                ])
+                return
+            }
+
+            if #available(iOS 26.0, *) {
+                translateTextDirect(call: call, text: text, sourceLanguage: normalizedSource, targetLanguage: normalizedTarget)
+                return
+            }
+
+            DispatchQueue.main.async {
+                bridgeModel.submitTranslation(call: call, text: text, sourceLanguage: normalizedSource, targetLanguage: normalizedTarget)
+            }
+            return
+        }
+        #endif
+
+        call.resolve([
+            "available": false,
+            "sourceLanguage": sourceLanguage,
+            "targetLanguage": targetLanguage.isEmpty ? "en" : targetLanguage,
+            "sourceText": text,
+            "translatedText": "",
+            "engine": "ios-unsupported",
+            "reason": "unsupported_ios_target"
+        ])
+    }
+
+#if canImport(Translation)
+    private func normalizeTranslationLanguageCode(_ value: String) -> String {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if trimmed.isEmpty { return "" }
+        return trimmed.components(separatedBy: CharacterSet(charactersIn: "-_")).first ?? trimmed
+    }
+
+    @available(iOS 18.0, *)
+    private func installTranslationBridgeIfNeeded() {
+        if translationBridgeHost != nil, translationBridgeModel != nil { return }
+        guard let viewController = bridge?.viewController else { return }
+
+        let model = P4w4TranslationBridgeModel()
+        model.onResolve = { call, payload in
+            DispatchQueue.main.async {
+                call.resolve(payload)
+            }
+        }
+        let host = UIHostingController(rootView: P4w4TranslationBridgeView(model: model))
+        host.view.backgroundColor = .clear
+        host.view.isOpaque = false
+        host.view.alpha = 0.01
+        host.view.frame = CGRect(x: 0, y: 0, width: 1, height: 1)
+        viewController.addChild(host)
+        viewController.view.addSubview(host.view)
+        host.didMove(toParent: viewController)
+
+        translationBridgeModel = model
+        translationBridgeHost = host
+    }
+
+    @available(iOS 18.0, *)
+    private final class P4w4TranslationBridgeModel: ObservableObject {
+        struct PendingRequest {
+            var calls: [CAPPluginCall]
+            let text: String
+            let sourceLanguage: String
+            let targetLanguage: String
+            let requestId: Int
+        }
+
+        @Published var configuration: TranslationSession.Configuration?
+        var pendingRequest: PendingRequest?
+        var onResolve: ((CAPPluginCall, [String: Any]) -> Void)?
+        private var requestCounter: Int = 0
+        private var timeoutWorkItem: DispatchWorkItem?
+        private let requestTimeoutSeconds: TimeInterval = 2.5
+
+        func submitTranslation(call: CAPPluginCall, text: String, sourceLanguage: String, targetLanguage: String) {
+            if var request = pendingRequest,
+               request.text == text,
+               request.sourceLanguage == sourceLanguage,
+               request.targetLanguage == targetLanguage {
+                request.calls.append(call)
+                pendingRequest = request
+                return
+            }
+            resolvePendingRequest(reason: "superseded")
+            requestCounter += 1
+            let requestId = requestCounter
+            pendingRequest = PendingRequest(
+                calls: [call],
+                text: text,
+                sourceLanguage: sourceLanguage,
+                targetLanguage: targetLanguage,
+                requestId: requestId
+            )
+            configuration = nil
+            let timeout = DispatchWorkItem { [weak self] in
+                guard let self = self else { return }
+                guard let request = self.pendingRequest, request.requestId == requestId else { return }
+                self.resolvePendingRequest(reason: "translation_timeout")
+            }
+            timeoutWorkItem = timeout
+            DispatchQueue.main.asyncAfter(deadline: .now() + requestTimeoutSeconds, execute: timeout)
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self else { return }
+                guard let request = self.pendingRequest, request.requestId == requestId else { return }
+                self.configuration = TranslationSession.Configuration(
+                    source: Locale.Language(identifier: request.sourceLanguage),
+                    target: Locale.Language(identifier: request.targetLanguage)
+                )
+            }
+        }
+
+        func handleSession(_ session: TranslationSession) async {
+            guard let request = pendingRequest else { return }
+            do {
+                try await session.prepareTranslation()
+                let response = try await session.translate(request.text)
+                guard pendingRequest?.requestId == request.requestId else { return }
+                let payload: [String: Any] = [
+                    "available": true,
+                    "sourceLanguage": request.sourceLanguage,
+                    "targetLanguage": request.targetLanguage,
+                    "sourceText": request.text,
+                    "translatedText": response.targetText,
+                    "engine": "ios-translation",
+                    "modelDownloaded": true
+                ]
+                resolvePendingRequest(request: request, payload: payload)
+            } catch {
+                guard pendingRequest?.requestId == request.requestId else { return }
+                let payload: [String: Any] = [
+                    "available": false,
+                    "sourceLanguage": request.sourceLanguage,
+                    "targetLanguage": request.targetLanguage,
+                    "sourceText": request.text,
+                    "translatedText": "",
+                    "engine": "ios-translation",
+                    "reason": String(describing: error)
+                ]
+                resolvePendingRequest(request: request, payload: payload)
+            }
+        }
+
+        private func resolvePendingRequest(reason: String) {
+            guard let request = pendingRequest else { return }
+            let payload: [String: Any] = [
+                "available": false,
+                "sourceLanguage": request.sourceLanguage,
+                "targetLanguage": request.targetLanguage,
+                "sourceText": request.text,
+                "translatedText": "",
+                "engine": "ios-translation",
+                "reason": reason
+            ]
+            resolvePendingRequest(request: request, payload: payload)
+        }
+
+        private func resolvePendingRequest(request: PendingRequest, payload: [String: Any]) {
+            if !Thread.isMainThread {
+                DispatchQueue.main.async { [weak self] in
+                    self?.resolvePendingRequest(request: request, payload: payload)
+                }
+                return
+            }
+            guard pendingRequest?.requestId == request.requestId else { return }
+            timeoutWorkItem?.cancel()
+            timeoutWorkItem = nil
+            request.calls.forEach { call in
+                onResolve?(call, payload)
+            }
+            pendingRequest = nil
+            configuration = nil
+        }
+    }
+
+    @available(iOS 18.0, *)
+    private struct P4w4TranslationBridgeView: View {
+        @ObservedObject var model: P4w4TranslationBridgeModel
+
+        var body: some View {
+            Color.clear
+                .frame(width: 1, height: 1)
+                .translationTask(model.configuration) { session in
+                    await model.handleSession(session)
+                }
+        }
+    }
+
+    @available(iOS 26.0, *)
+    private func translateTextDirect(call: CAPPluginCall, text: String, sourceLanguage: String, targetLanguage: String) {
+        Task {
+            do {
+                let source = Locale.Language(identifier: sourceLanguage)
+                let target = Locale.Language(identifier: targetLanguage)
+                let availability = LanguageAvailability()
+                let status = await availability.status(from: source, to: target)
+                guard status == .installed else {
+                    DispatchQueue.main.async {
+                        call.resolve([
+                            "available": false,
+                            "sourceLanguage": sourceLanguage,
+                            "targetLanguage": targetLanguage,
+                            "sourceText": text,
+                            "translatedText": "",
+                            "engine": "ios-translation-direct",
+                            "modelDownloaded": false,
+                            "reason": "language_status_\(String(describing: status))"
+                        ])
+                    }
+                    return
+                }
+                let session = TranslationSession(installedSource: source, target: target)
+                let response = try await session.translate(text)
+                DispatchQueue.main.async {
+                    call.resolve([
+                        "available": true,
+                        "sourceLanguage": sourceLanguage,
+                        "targetLanguage": targetLanguage,
+                        "sourceText": text,
+                        "translatedText": response.targetText,
+                        "engine": "ios-translation-direct",
+                        "modelDownloaded": true
+                    ])
+                }
+            } catch {
+                DispatchQueue.main.async {
+                    call.resolve([
+                        "available": false,
+                        "sourceLanguage": sourceLanguage,
+                        "targetLanguage": targetLanguage,
+                        "sourceText": text,
+                        "translatedText": "",
+                        "engine": "ios-translation-direct",
+                        "modelDownloaded": false,
+                        "reason": String(describing: error)
+                    ])
+                }
+            }
+        }
+    }
+#endif
+
+    @objc func getTranslationStatus(_ call: CAPPluginCall) {
+        let sourceLanguage = normalizeTranslationStatusLanguageCode(call.getString("sourceLanguage") ?? "es")
+        let targetLanguage = normalizeTranslationStatusLanguageCode(call.getString("targetLanguage") ?? "en")
+
+        #if canImport(Translation)
+        if #available(iOS 18.0, *) {
+            if #available(iOS 26.0, *) {
+                let source = Locale.Language(identifier: sourceLanguage)
+                let target = Locale.Language(identifier: targetLanguage)
+                Task {
+                    let status = await LanguageAvailability().status(from: source, to: target)
+                    DispatchQueue.main.async {
+                        call.resolve([
+                            "available": sourceLanguage == "es" && targetLanguage == "en" && status != .unsupported,
+                            "engine": "ios-translation-direct",
+                            "platform": "ios",
+                            "sourceLanguage": sourceLanguage,
+                            "targetLanguage": targetLanguage,
+                            "modelDownloaded": status == .installed,
+                            "languageStatus": String(describing: status),
+                            "osVersion": UIDevice.current.systemVersion,
+                            "reason": sourceLanguage == "es" && targetLanguage == "en" && status != .unsupported ? "" : "unsupported_language_pair"
+                        ])
+                    }
+                }
+                return
+            }
+            call.resolve([
+                "available": sourceLanguage == "es" && targetLanguage == "en",
+                "engine": "ios-translation",
+                "platform": "ios",
+                "sourceLanguage": sourceLanguage,
+                "targetLanguage": targetLanguage,
+                "modelDownloaded": false,
+                "languageStatus": "unknown",
+                "osVersion": UIDevice.current.systemVersion,
+                "reason": sourceLanguage == "es" && targetLanguage == "en" ? "" : "unsupported_language_pair"
+            ])
+            return
+        }
+        call.resolve([
+            "available": false,
+            "engine": "ios-translation",
+            "platform": "ios",
+            "sourceLanguage": sourceLanguage,
+            "targetLanguage": targetLanguage,
+            "modelDownloaded": false,
+            "osVersion": UIDevice.current.systemVersion,
+            "reason": "requires_ios_18"
+        ])
+        #else
+        call.resolve([
+            "available": false,
+            "engine": "ios-translation",
+            "platform": "ios",
+            "sourceLanguage": sourceLanguage,
+            "targetLanguage": targetLanguage,
+            "modelDownloaded": false,
+            "osVersion": UIDevice.current.systemVersion,
+            "reason": "translation_framework_unavailable"
+        ])
+        #endif
+    }
+
+    private func normalizeTranslationStatusLanguageCode(_ value: String) -> String {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if trimmed.isEmpty { return "" }
+        return trimmed.components(separatedBy: CharacterSet(charactersIn: "-_")).first ?? trimmed
     }
 
 

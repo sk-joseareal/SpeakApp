@@ -18,7 +18,7 @@ class PageChat extends HTMLElement {
       (_, idx) => `<span class="talk-wave-bar" style="--i:${idx}"></span>`
     ).join('');
     this.innerHTML = `
-      ${renderAppHeader({ title: getTabsCopy(uiLocale).chat, rewardBadgesId: 'chat-reward-badges', locale: uiLocale })}
+      ${renderAppHeader({ title: getTabsCopy(uiLocale).chat })}
       <ion-content fullscreen class="secret-content chat-content" scroll-y="false">
         <div class="page-shell">
           <div class="chat-card-header">
@@ -157,7 +157,6 @@ class PageChat extends HTMLElement {
     const loginPanel = this.querySelector('#chat-login-panel');
     const lockedPanel = this.querySelector('#chat-locked-panel');
     const loadingPanel = this.querySelector('#chat-loading-panel');
-    const rewardsEl = this.querySelector('#chat-reward-badges');
     const recordBtn = this.querySelector('#chat-record-btn');
     const previewBtn = this.querySelector('#chat-preview-btn');
     const sendBtn = this.querySelector('#chat-send-btn');
@@ -6783,7 +6782,8 @@ class PageChat extends HTMLElement {
             user_id: user.id,
             user_info: JSON.stringify(userInfo),
             token: user.token || ''
-          }
+          },
+          headers: buildRealtimeStateHeaders()
         };
       }
 
@@ -7176,57 +7176,6 @@ class PageChat extends HTMLElement {
         document.activeElement.blur();
       }
       await modal.present();
-    };
-
-    const updateHeaderRewards = () => {
-      if (!rewardsEl) return;
-      const rewards =
-        window.r34lp0w3r && window.r34lp0w3r.speakSessionRewards
-          ? window.r34lp0w3r.speakSessionRewards
-          : {};
-      const totals = {};
-      Object.values(rewards).forEach((entry) => {
-        if (!entry || typeof entry.rewardQty !== 'number') return;
-        const icon = entry.rewardIcon || 'diamond';
-        const rewardKind = String(entry.rewardGroup || icon).trim() || String(icon).trim() || 'diamond';
-        if (!totals[rewardKind]) totals[rewardKind] = { icon, qty: 0 };
-        totals[rewardKind].qty += entry.rewardQty;
-      });
-      const entries = Object.entries(totals).filter(([, meta]) => meta && meta.qty > 0);
-      if (!entries.length) {
-        rewardsEl.innerHTML = '';
-        rewardsEl.hidden = true;
-        return;
-      }
-      rewardsEl.hidden = false;
-      rewardsEl.innerHTML = entries
-        .sort((left, right) => {
-          const leftIcon = String(left[1] && left[1].icon ? left[1].icon : 'diamond').trim().toLowerCase();
-          const rightIcon = String(right[1] && right[1].icon ? right[1].icon : 'diamond').trim().toLowerCase();
-          const getOrder = (icon) =>
-            icon === 'trophy'
-              ? 0
-              : icon === 'ribbon' || icon === 'medal'
-              ? 1
-              : icon === 'diamond'
-              ? 2
-              : 9;
-          const byOrder = getOrder(leftIcon) - getOrder(rightIcon);
-          if (byOrder !== 0) return byOrder;
-          return String(left[0] || '').localeCompare(String(right[0] || ''));
-        })
-        .map(([rewardKind, meta]) => {
-          const icon = meta.icon || 'diamond';
-          const qty = meta.qty || 0;
-          const normalizedIcon = String(icon || '').trim().toLowerCase();
-          const isInteractive =
-            normalizedIcon === 'trophy' ||
-            normalizedIcon === 'ribbon' ||
-            normalizedIcon === 'medal' ||
-            rewardKind === 'reference-unit-ribbon';
-          return `<div class="training-badge reward-badge${isInteractive ? ' is-interactive' : ''}" data-reward-kind="${rewardKind}" data-reward-icon="${icon}" data-reward-qty="${qty}"${isInteractive ? ' role="button" tabindex="0"' : ''}><ion-icon name="${icon}"></ion-icon><span>${qty}</span></div>`;
-        })
-        .join('');
     };
 
     const updateAccessState = (user) => {
@@ -7782,7 +7731,6 @@ class PageChat extends HTMLElement {
       loadCommunityDmPrefs(null);
       loadCommunityDmPendingRequests(null);
     }
-    updateHeaderRewards();
     showLoadingState();
     accessLoadingTimer = setTimeout(() => {
       updateAccessState(window.user);
@@ -7791,9 +7739,6 @@ class PageChat extends HTMLElement {
     window.addEventListener('app:user-change', this._userHandler);
     this._tabVisibilityHandler = () => updateAccessState(window.user);
     window.addEventListener('app:tab-visibility-change', this._tabVisibilityHandler);
-    this._rewardsHandler = () => updateHeaderRewards();
-    window.addEventListener('app:speak-stores-change', this._rewardsHandler);
-
     const updateCoachAvatar = () => {
       if (!coachAvatar) return;
       stopCoachMascotTalk({ settle: false, all: true });
@@ -8370,9 +8315,6 @@ class PageChat extends HTMLElement {
     }
     if (this._tabVisibilityHandler) {
       window.removeEventListener('app:tab-visibility-change', this._tabVisibilityHandler);
-    }
-    if (this._rewardsHandler) {
-      window.removeEventListener('app:speak-stores-change', this._rewardsHandler);
     }
     if (this._debugHandler) {
       window.removeEventListener('app:speak-debug', this._debugHandler);

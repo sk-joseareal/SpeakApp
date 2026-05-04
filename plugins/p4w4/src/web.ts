@@ -1,6 +1,11 @@
 import { WebPlugin } from '@capacitor/core';
 
-import type { P4w4LanguageDetectionResult, P4w4PluginPlugin } from './definitions';
+import type {
+  P4w4LanguageDetectionResult,
+  P4w4PluginPlugin,
+  P4w4TranslationResult,
+  P4w4TranslationStatusResult
+} from './definitions';
 
 export class P4w4PluginWeb extends WebPlugin implements P4w4PluginPlugin {
   async echo(options: { value: string }): Promise<{ value: string }> {
@@ -25,6 +30,34 @@ export class P4w4PluginWeb extends WebPlugin implements P4w4PluginPlugin {
       alternatives: [],
       textLength: text.length,
       alphaChars
+    };
+  }
+
+  async translateText(options: { text: string; sourceLanguage?: string; targetLanguage?: string }): Promise<P4w4TranslationResult> {
+    const text = String(options && options.text ? options.text : '').trim();
+    const sourceLanguage = String(options && options.sourceLanguage ? options.sourceLanguage : '').trim();
+    const targetLanguage = String(options && options.targetLanguage ? options.targetLanguage : 'en').trim() || 'en';
+    return {
+      available: false,
+      sourceLanguage,
+      targetLanguage,
+      sourceText: text,
+      translatedText: '',
+      engine: 'web',
+      reason: 'unsupported'
+    };
+  }
+
+  async getTranslationStatus(options?: { sourceLanguage?: string; targetLanguage?: string }): Promise<P4w4TranslationStatusResult> {
+    const sourceLanguage = String(options && options.sourceLanguage ? options.sourceLanguage : 'es').trim() || 'es';
+    const targetLanguage = String(options && options.targetLanguage ? options.targetLanguage : 'en').trim() || 'en';
+    return {
+      available: false,
+      engine: 'web',
+      platform: 'web',
+      sourceLanguage,
+      targetLanguage,
+      reason: 'unsupported'
     };
   }
 

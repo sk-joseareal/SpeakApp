@@ -249,7 +249,7 @@
   }
   if (!window.speakSummaryConfig.rewards) {
     window.speakSummaryConfig.rewards = [
-      { icon: 'diamond', label: 'diamonds', min: 1, max: 3 }
+      { icon: 'trophy', label: 'trophy', min: 1, max: 1 }
     ];
   }
 

@@ -13,21 +13,61 @@ import {
   getSpeakFeedbackLabelScale,
   getSpeakFeedbackPhrases,
   getSpeakSummaryLabelPrefix,
-  getSpeakSummaryTitleTemplates as getSpeakSummaryTitleTemplatesCopy,
   resolveLocale as resolveCopyLocale
 } from '../content/copy.js';
 import { renderAppHeader } from '../components/app-header.js';
 import { getAppLocale, setAppLocale, getActiveLocale, setLocaleOverride } from '../state.js';
 import { addNotification } from '../notifications-store.js';
 import { goToHome } from '../nav.js';
+import {
+  HERO_MASCOT_FRAME_COUNT,
+  HERO_MASCOT_FRAME_INTERVAL_MS,
+  HERO_MASCOT_REST_FRAME,
+  HERO_MASCOT_TALK_FRAME_SEQUENCE,
+  getHeroMascotFramePath,
+  preloadHeroMascotFrames
+} from '../mascot-frames.js';
+
+const FREE_RIDE_HEADER_COLOR_KEY = 'appv5:free-ride-header-color';
+const FREE_RIDE_HEADER_COLOR_VALUES = ['white', 'dark', 'blue'];
+
+const getStoredHeaderColor = () => {
+  try {
+    const raw = String(localStorage.getItem(FREE_RIDE_HEADER_COLOR_KEY) || '')
+      .trim()
+      .toLowerCase();
+    return FREE_RIDE_HEADER_COLOR_VALUES.includes(raw) ? raw : 'white';
+  } catch (_err) {
+    return 'white';
+  }
+};
 
 class PageSpeak extends HTMLElement {
   connectedCallback() {
     this.classList.add('ion-page');
-    for (let i = 0; i < 8; i++) { new Image().src = `assets/mascot/nena/nena-v5-${String(i).padStart(2, '0')}.png`; }
+    const isSpeakCardPadded = () => {
+      const cached = window.r34lp0w3r && window.r34lp0w3r.freeRideCardPadded;
+      if (typeof cached === 'boolean') return cached;
+      try {
+        const raw = localStorage.getItem('appv5:free-ride-card-padded');
+        if (raw === null || raw === undefined || raw === '') return true;
+        const normalized = String(raw).trim().toLowerCase();
+        return ['1', 'true', 'on', 'yes'].includes(normalized);
+      } catch (_err) {
+        return true;
+      }
+    };
+    this.classList.toggle('is-card-padded', isSpeakCardPadded());
+    const applyHeaderColor = (color) => {
+      const normalized = FREE_RIDE_HEADER_COLOR_VALUES.includes(color) ? color : 'white';
+      FREE_RIDE_HEADER_COLOR_VALUES.forEach((value) => this.classList.remove(`header-color-${value}`));
+      this.classList.add(`header-color-${normalized}`);
+    };
+    applyHeaderColor(getStoredHeaderColor());
+    preloadHeroMascotFrames();
     const appLocale = resolveCopyLocale(getAppLocale() || 'en');
     this.innerHTML = `
-      ${renderAppHeader({ title: '', rewardBadgesId: 'speak-reward-badges', locale: appLocale })}
+      ${renderAppHeader({ title: '', showTitleSlot: true })}
       <ion-content fullscreen class="speak-content secret-content">
         <div class="speak-shell">
           <h2 class="speak-session-title secret-title" id="speak-session-title" hidden></h2>
@@ -42,28 +82,41 @@ class PageSpeak extends HTMLElement {
             >
               Debug
             </button>
-            <span class="speak-hero-mascot-wrap" aria-hidden="true">
-              <img
-                class="onboarding-intro-cat speak-hero-cat"
-                id="speak-hero-mascot"
-                src="assets/mascot/nena/nena-v5-00.png"
-                alt=""
-                aria-hidden="true"
-              >
-            </span>
-            <div class="speak-hero-body">
-              <p class="onboarding-intro-bubble speak-hero-bubble hero-playable-bubble" id="speak-hero-hint-display"></p>
-              <p class="speak-hero-step-title secret-title" id="speak-hero-step-title"></p>
+            <div class="speak-hero-stage">
+              <span class="speak-hero-mascot-wrap" aria-hidden="true">
+                <img
+                  class="onboarding-intro-cat speak-hero-cat"
+                  id="speak-hero-mascot"
+                  src="${getHeroMascotFramePath(HERO_MASCOT_REST_FRAME)}"
+                  alt=""
+                  aria-hidden="true"
+                >
+              </span>
+              <div class="speak-hero-body">
+                <p class="onboarding-intro-bubble speak-hero-bubble hero-playable-bubble" id="speak-hero-hint-display"><span class="speak-hero-bubble-icon" aria-hidden="true"><ion-icon name="volume-high-outline"></ion-icon></span><span class="journey-plan-bubble-text" id="speak-hero-hint-text"></span></p>
+                <p class="speak-hero-step-title secret-title" id="speak-hero-step-title"></p>
+              </div>
             </div>
             <p class="secret-title" id="speak-hero-hint" aria-hidden="true"></p>
           </section>
-          <div class="speak-sheet">
-            <div class="speak-route-banner" id="speak-route-banner" aria-hidden="true"></div>
-            <div class="speak-swipe-stage">
-              <div class="speak-swipe-ghost" id="speak-ghost" aria-hidden="true"></div>
-              <div id="speak-step" class="speak-swipe-active"></div>
+          <section class="speak-sheet" data-sheet-state="collapsed">
+            <button
+              id="speak-sheet-handle"
+              class="speak-sheet-handle"
+              type="button"
+              aria-label="Expand practice card"
+              aria-expanded="false"
+            >
+              <span class="speak-sheet-handle-pill" aria-hidden="true"></span>
+            </button>
+            <div class="speak-sheet-main">
+              <div class="speak-route-banner" id="speak-route-banner" aria-hidden="true"></div>
+              <div class="speak-swipe-stage">
+                <div class="speak-swipe-ghost" id="speak-ghost" aria-hidden="true"></div>
+                <div id="speak-step" class="speak-swipe-active"></div>
+              </div>
             </div>
-          </div>
+          </section>
         </div>
       </ion-content>
     `;
@@ -74,6 +127,7 @@ class PageSpeak extends HTMLElement {
     const sessionTitleEl = this.querySelector('#speak-session-title');
     const headerTitleEl = this.querySelector('.app-toolbar-title');
     const heroHintDisplayEl = this.querySelector('#speak-hero-hint-display');
+    const heroHintTextEl = this.querySelector('#speak-hero-hint-text');
     const heroCardEl = this.querySelector('#speak-hero-card');
     const routeBannerEl = this.querySelector('#speak-route-banner');
     const heroStepTitleEl = this.querySelector('#speak-hero-step-title');
@@ -83,6 +137,7 @@ class PageSpeak extends HTMLElement {
       ? heroFlagBtn.querySelector('.onboarding-intro-flag')
       : null;
     const debugToggleBtn = this.querySelector('#speak-debug-toggle');
+    const sheetHandleBtn = this.querySelector('#speak-sheet-handle');
 
     const AVATAR_BASE = 'assets/speak/avatar';
     const AVATAR_CHICA_BASE = 'assets/speak/avatar-chica';
@@ -100,6 +155,7 @@ class PageSpeak extends HTMLElement {
     const SWIPE_COMMIT_VELOCITY = 0.6;
     const SWIPE_EDGE_GUARD = 16;
     const SWIPE_VERTICAL_RATIO = 1.2;
+    const FREE_RIDE_CARD_PADDED_KEY = 'appv5:free-ride-card-padded';
     const DEBUG_PANEL_OPEN_KEY = 'appv5:speak-debug-panel-open';
     const SPEAK_SESSION_PERCENTAGES_VISIBLE_KEY = 'appv5:speak-session-percentages-visible';
     const SPEAK_PRONUNCIATION_AVATAR_MODE_KEY = 'appv5:speak-pronunciation-avatar-mode';
@@ -107,14 +163,23 @@ class PageSpeak extends HTMLElement {
     const SPEAK_PRONUNCIATION_AVATAR_OLD = 'old';
     const SPEAK_PRONUNCIATION_AVATAR_NEW = 'new';
     const SPEAK_PRONUNCIATION_AVATAR_SET2 = 'set2';
+    const SPEAK_PRONUNCIATION_AVATAR_VISEMES_REAL = 'visemes-real';
+    const SPEAK_PRONUNCIATION_AVATAR_VISEMES_V2 = 'visemes-v2';
+    const SPEAK_PRONUNCIATION_AVATAR_VISEMES_V1 = 'visemes-v1';
+    const SPEAK_PRONUNCIATION_AVATAR_MODES = [
+      SPEAK_PRONUNCIATION_AVATAR_OLD,
+      SPEAK_PRONUNCIATION_AVATAR_NEW,
+      SPEAK_PRONUNCIATION_AVATAR_SET2,
+      SPEAK_PRONUNCIATION_AVATAR_VISEMES_REAL,
+      SPEAK_PRONUNCIATION_AVATAR_VISEMES_V2,
+      SPEAK_PRONUNCIATION_AVATAR_VISEMES_V1
+    ];
     const MODULE_TROPHY_REWARD_QTY = 1;
     const MODULE_TROPHY_REWARD_ICON = 'trophy';
     const MAX_ROUTE_BADGE_COUNT = 5;
-    const HERO_MASCOT_FRAME_COUNT = 8;
-    const HERO_MASCOT_REST_FRAME = 0;
-    const HERO_MASCOT_FRAME_INTERVAL_MS = 150;
     const MIN_RECORDING_BLOB_BYTES = 128;
-    const swipeSurface = this.querySelector('.speak-sheet');
+    const speakSheetSurface = this.querySelector('.speak-sheet');
+    const swipeSurface = this.querySelector('.speak-swipe-stage');
 
     const stepOrder = ['sound', 'spelling', 'sentence'];
     let soundStep = null;
@@ -201,6 +266,15 @@ class PageSpeak extends HTMLElement {
     let hintLocaleOverride = '';
     let activeHintLocale = 'en';
     let avatarResizeObserver = null;
+    let speakSheetExpanded = false;
+    let speakSheetExpandedOffset = 0;
+    let speakSheetTranslateY = 0;
+    let speakSheetDragging = false;
+    let speakSheetPointerId = null;
+    let speakSheetDragStartY = 0;
+    let speakSheetDragStartTranslateY = 0;
+    let speakSheetDragMoved = false;
+    let speakSheetLastPointerUpTs = 0;
 
     const stepState = {
       sound: { recordingUrl: '', recordingBlob: null, transcript: '', percent: null },
@@ -213,9 +287,7 @@ class PageSpeak extends HTMLElement {
       const normalized = String(value || '')
         .trim()
         .toLowerCase();
-      if (normalized === SPEAK_PRONUNCIATION_AVATAR_OLD) return SPEAK_PRONUNCIATION_AVATAR_OLD;
-      if (normalized === SPEAK_PRONUNCIATION_AVATAR_NEW) return SPEAK_PRONUNCIATION_AVATAR_NEW;
-      if (normalized === SPEAK_PRONUNCIATION_AVATAR_SET2) return SPEAK_PRONUNCIATION_AVATAR_SET2;
+      if (SPEAK_PRONUNCIATION_AVATAR_MODES.includes(normalized)) return normalized;
       return SPEAK_PRONUNCIATION_AVATAR_SET2;
     };
     const getStoredPronunciationAvatarMode = () => {
@@ -253,6 +325,69 @@ class PageSpeak extends HTMLElement {
             M: `${SET2_BASE}/1_neutral.png`,
             F: `${SET2_BASE}/5_F_V.png`,
             TH: `${SET2_BASE}/1_neutral.png`
+          }
+        };
+      }
+      if (mode === SPEAK_PRONUNCIATION_AVATAR_VISEMES_V1) {
+        const V1_BASE = 'assets/speak/visemes-v1';
+        return {
+          mode,
+          aspectRatio: 3 / 2,
+          headSrc: `${V1_BASE}/0.png`,
+          wrapperClass: 'avatar-wrapper avatar-wrapper-wide',
+          mouthBaseClass: 'speak-mouth speak-mouth-full',
+          mouthMap: {
+            NEUTRAL: `${V1_BASE}/0.png`,
+            A: `${V1_BASE}/1.png`,
+            E: `${V1_BASE}/11.png`,
+            I: `${V1_BASE}/11.png`,
+            O: `${V1_BASE}/5.png`,
+            U: `${V1_BASE}/6.png`,
+            M: `${V1_BASE}/9.png`,
+            F: `${V1_BASE}/2.png`,
+            TH: `${V1_BASE}/10.png`
+          }
+        };
+      }
+      if (mode === SPEAK_PRONUNCIATION_AVATAR_VISEMES_V2) {
+        const V2_BASE = 'assets/speak/visemes-v2';
+        return {
+          mode,
+          aspectRatio: 800 / 434,
+          headSrc: `${V2_BASE}/visema_0_NEUTRAL.png`,
+          wrapperClass: 'avatar-wrapper avatar-wrapper-wide',
+          mouthBaseClass: 'speak-mouth speak-mouth-full',
+          mouthMap: {
+            NEUTRAL: `${V2_BASE}/visema_0_NEUTRAL.png`,
+            A: `${V2_BASE}/visema_1_A.png`,
+            E: `${V2_BASE}/visema_2_E.png`,
+            I: `${V2_BASE}/visema_3_I.png`,
+            O: `${V2_BASE}/visema_5_O.png`,
+            U: `${V2_BASE}/visema_8_U.png`,
+            M: `${V2_BASE}/visema_7_B_M_P.png`,
+            F: `${V2_BASE}/visema_6_FV.png`,
+            TH: `${V2_BASE}/visema_10_J.png`
+          }
+        };
+      }
+      if (mode === SPEAK_PRONUNCIATION_AVATAR_VISEMES_REAL) {
+        const REAL_BASE = 'assets/speak/visemes-real';
+        return {
+          mode,
+          aspectRatio: 378 / 333,
+          headSrc: `${REAL_BASE}/06-N.jpg`,
+          wrapperClass: 'avatar-wrapper avatar-wrapper-wide',
+          mouthBaseClass: 'speak-mouth speak-mouth-full',
+          mouthMap: {
+            NEUTRAL: `${REAL_BASE}/06-N.jpg`,
+            A: `${REAL_BASE}/01-A.jpg`,
+            E: `${REAL_BASE}/03-IL.jpg`,
+            I: `${REAL_BASE}/03-IL.jpg`,
+            O: `${REAL_BASE}/04-O.jpg`,
+            U: `${REAL_BASE}/12-QW.jpg`,
+            M: `${REAL_BASE}/02-B.jpg`,
+            F: `${REAL_BASE}/11-ZFV.jpg`,
+            TH: `${REAL_BASE}/08-T.jpg`
           }
         };
       }
@@ -606,17 +741,16 @@ class PageSpeak extends HTMLElement {
       return Math.min(Math.max(rounded, 0), HERO_MASCOT_FRAME_COUNT - 1);
     };
 
-    const getHeroMascotFramePath = (frameIndex = HERO_MASCOT_REST_FRAME) => {
+    const getLocalHeroMascotFramePath = (frameIndex = HERO_MASCOT_REST_FRAME) => {
       const normalized = normalizeHeroMascotFrameIndex(frameIndex);
-      const padded = String(normalized).padStart(2, '0');
-      return `assets/mascot/nena/nena-v5-${padded}.png`;
+      return getHeroMascotFramePath(normalized);
     };
 
     const getHeroMascotImageEl = () => this.querySelector('#speak-hero-mascot');
 
     const setHeroBubbleSpeaking = (isSpeaking) => {
-      if (!heroHintEl) return;
-      heroHintEl.classList.toggle('is-speaking', Boolean(isSpeaking));
+      heroHintEl?.classList.toggle('is-speaking', Boolean(isSpeaking));
+      heroHintDisplayEl?.classList.toggle('is-speaking', Boolean(isSpeaking));
     };
 
     const renderHeroMascotFrame = (frameIndex) => {
@@ -624,7 +758,7 @@ class PageSpeak extends HTMLElement {
       heroMascotFrameIndex = normalized;
       const imgEl = getHeroMascotImageEl();
       if (!imgEl) return;
-      const nextSrc = getHeroMascotFramePath(normalized);
+      const nextSrc = getLocalHeroMascotFramePath(normalized);
       if (imgEl.getAttribute('src') !== nextSrc) {
         imgEl.setAttribute('src', nextSrc);
       }
@@ -638,12 +772,12 @@ class PageSpeak extends HTMLElement {
         clearInterval(heroMascotFrameTimer);
         heroMascotFrameTimer = null;
       }
-      let frame = 1;
-      renderHeroMascotFrame(frame);
+      let sequenceIndex = 0;
+      renderHeroMascotFrame(HERO_MASCOT_TALK_FRAME_SEQUENCE[sequenceIndex]);
       heroMascotFrameTimer = setInterval(() => {
         if (!heroMascotIsTalking) return;
-        frame = (frame % (HERO_MASCOT_FRAME_COUNT - 1)) + 1;
-        renderHeroMascotFrame(frame);
+        sequenceIndex = (sequenceIndex + 1) % HERO_MASCOT_TALK_FRAME_SEQUENCE.length;
+        renderHeroMascotFrame(HERO_MASCOT_TALK_FRAME_SEQUENCE[sequenceIndex]);
       }, HERO_MASCOT_FRAME_INTERVAL_MS);
     };
 
@@ -1212,15 +1346,6 @@ class PageSpeak extends HTMLElement {
     const getDefaultLabelScale = (locale = getHintUiLocale()) =>
       getSpeakFeedbackLabelScale(locale).map((item) => ({ ...item }));
 
-    const getDefaultSummaryTitleTemplates = (locale = getHintUiLocale()) => {
-      const templates = getSpeakSummaryTitleTemplatesCopy(locale);
-      return {
-        good: Array.isArray(templates.good) ? templates.good.slice() : [],
-        okay: Array.isArray(templates.okay) ? templates.okay.slice() : [],
-        bad: Array.isArray(templates.bad) ? templates.bad.slice() : []
-      };
-    };
-
     const getDefaultSummaryPhrases = (locale = getHintUiLocale()) => {
       const tonePhrases = getSpeakFeedbackPhrases(locale);
       return {
@@ -1538,33 +1663,104 @@ class PageSpeak extends HTMLElement {
       };
     };
 
-    const getSummaryTitleTemplates = (locale = getHintUiLocale()) => {
-      const fallback = getDefaultSummaryTitleTemplates(locale);
-      const templates = window.r34lp0w3r && window.r34lp0w3r.speakSummaryTitles;
-      const configured = resolveLocaleConfigBlock(templates, locale);
-      return resolveToneListMap(configured, fallback);
+    const applySessionToken = (template, sessionName = '') =>
+      String(template || '')
+        .replace(/\{\{\s*session\s*\}\}/gi, sessionName || '')
+        .replace(/\{session\}/gi, sessionName || '')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+    const getSummaryHeadline = (tone, locale = getHintUiLocale()) => {
+      const normalizedTone = String(tone || 'okay').toLowerCase().trim();
+      const key =
+        normalizedTone === 'good'
+          ? 'summaryHeadlineGood'
+          : normalizedTone === 'bad'
+            ? 'summaryHeadlineBad'
+            : 'summaryHeadlineOkay';
+      const fallback =
+        locale === 'es'
+          ? normalizedTone === 'good'
+            ? 'Excelente'
+            : normalizedTone === 'bad'
+              ? 'Sigue practicando'
+              : 'Buen trabajo'
+          : normalizedTone === 'good'
+            ? 'Excellent'
+            : normalizedTone === 'bad'
+              ? 'Keep practicing'
+              : 'Good work';
+      return getSpeakUiText(key, locale, fallback);
     };
 
-    const formatSummaryTitle = (template, sessionName) => {
-      const base = String(template || '');
-      const withSession = base.replace(/\{\{\s*session\s*\}\}/g, sessionName || '');
-      const trimmed = withSession.replace(/\s+/g, ' ').trim();
-      if (trimmed) return trimmed;
-      return sessionName ? sessionName : '';
+    const getSummarySubline = (tone, sessionName, locale = getHintUiLocale()) => {
+      const normalizedTone = String(tone || 'okay').toLowerCase().trim();
+      const key =
+        normalizedTone === 'good'
+          ? 'summarySublineGood'
+          : normalizedTone === 'bad'
+            ? 'summarySublineBad'
+            : 'summarySublineOkay';
+      const fallbackTemplate =
+        locale === 'es'
+          ? normalizedTone === 'good'
+            ? 'Has completado {{session}}.'
+            : normalizedTone === 'bad'
+              ? 'Vuelve a intentarlo con {{session}}.'
+              : 'Sigue practicando {{session}}.'
+          : normalizedTone === 'good'
+            ? 'You completed {{session}}.'
+            : normalizedTone === 'bad'
+              ? 'Try again with {{session}}.'
+              : 'Keep practicing {{session}}.';
+      const template = getSpeakUiText(key, locale, fallbackTemplate);
+      return applySessionToken(template, sessionName);
     };
 
-    const getSummaryTitle = (tone, sessionName, locale = getHintUiLocale()) => {
-      const templates = getSummaryTitleTemplates(locale);
-      const list = templates && Array.isArray(templates[tone]) ? templates[tone] : [];
-      const fallbackTemplates = getDefaultSummaryTitleTemplates(locale);
-      const fallbackList =
-        tone === 'good'
-          ? fallbackTemplates.good
-          : tone === 'okay'
-          ? fallbackTemplates.okay
-          : fallbackTemplates.bad;
-      const template = pickRandom(list) || pickRandom(fallbackList) || '{{session}}';
-      return formatSummaryTitle(template, sessionName);
+    const getSummaryPillText = (tone, locale = getHintUiLocale()) => {
+      const normalizedTone = String(tone || 'okay').toLowerCase().trim();
+      const key =
+        normalizedTone === 'good'
+          ? 'summaryPillGood'
+          : normalizedTone === 'bad'
+            ? 'summaryPillBad'
+            : 'summaryPillOkay';
+      const fallback =
+        locale === 'es'
+          ? normalizedTone === 'good'
+            ? '¡Muy bien!'
+            : normalizedTone === 'bad'
+              ? 'A mejorar'
+              : 'Vas bien'
+          : normalizedTone === 'good'
+            ? 'Great!'
+            : normalizedTone === 'bad'
+              ? 'Needs work'
+              : 'Good';
+      return getSpeakUiText(key, locale, fallback);
+    };
+
+    const getSummaryHintText = (tone, locale = getHintUiLocale()) => {
+      const normalizedTone = String(tone || 'okay').toLowerCase().trim();
+      const key =
+        normalizedTone === 'good'
+          ? 'summaryHintGood'
+          : normalizedTone === 'bad'
+            ? 'summaryHintBad'
+            : 'summaryHintOkay';
+      const fallback =
+        locale === 'es'
+          ? normalizedTone === 'good'
+            ? 'Sigue practicando y mejorarás aún más.'
+            : normalizedTone === 'bad'
+              ? 'Sigue practicando: cada intento cuenta.'
+              : 'Sigue practicando y lo clavarás pronto.'
+          : normalizedTone === 'good'
+            ? 'Keep practicing and you will improve even more.'
+            : normalizedTone === 'bad'
+              ? 'Keep practicing, every try helps.'
+              : 'Keep practicing and you will nail it soon.';
+      return getSpeakUiText(key, locale, fallback);
     };
 
     const clampPercent = (value) => Math.max(0, Math.min(100, value));
@@ -1594,7 +1790,7 @@ class PageSpeak extends HTMLElement {
         phrase,
         rewardQty: reward ? reward.rewardQty : 0,
         rewardLabel: reward ? reward.rewardLabel : '',
-        rewardIcon: reward ? reward.rewardIcon : 'diamond',
+        rewardIcon: reward ? reward.rewardIcon : 'trophy',
         labelPrefix,
         awardedBadge
       };
@@ -2315,6 +2511,9 @@ class PageSpeak extends HTMLElement {
       const hasVoiceRecording = Boolean(options.hasVoiceRecording);
       const voiceToneRaw = String(options.voiceTone || '').toLowerCase().trim();
       const voiceTone = ['good', 'okay', 'bad'].includes(voiceToneRaw) ? voiceToneRaw : '';
+      const locale = activeHintLocale || getHintUiLocale();
+      const speakCopy = getSpeakCopyBundle(locale) || {};
+      const listenLabel = speakCopy.listen || 'Listen';
       if (isSpeakDebugEnabled() && debugPanelOpen) {
         return `
           <div class="speak-step-bottom">
@@ -2330,33 +2529,46 @@ class PageSpeak extends HTMLElement {
       const scoreHtml = options.scoreHtml || '';
       return `
         <div class="speak-step-bottom">
-          ${scoreHtml}
-          <div class="speak-voice-actions">
-            <button class="speak-circle-btn speak-record-btn ${isRecording ? 'is-recording' : ''}" id="speak-record" type="button" aria-pressed="${isRecording}">
-              <span class="record-visual" aria-hidden="true">
-                <ion-icon class="record-mic-icon" name="mic"></ion-icon>
-                <span class="record-live-wave" id="speak-record-wave">
+          <div class="speak-voice-actions speak-practice-voice-actions">
+            <div class="speak-practice-voice-action speak-practice-voice-action--side">
+              <button
+                class="speak-practice-audio-btn speak-practice-audio-btn--play"
+                id="speak-play-control"
+                type="button"
+                data-play-kind="${key}"
+                aria-label="${listenLabel}"
+              >
+                <ion-icon name="volume-high-outline"></ion-icon>
+              </button>
+              <span class="speak-practice-voice-action-label">${listenLabel}</span>
+            </div>
+            <div class="speak-practice-voice-action speak-practice-voice-action--record">
+              <button class="speak-circle-btn speak-record-btn speak-practice-record-btn ${isRecording ? 'is-recording' : ''}" id="speak-record" type="button" aria-pressed="${isRecording}">
+                <span class="record-visual" aria-hidden="true">
+                  <ion-icon class="record-mic-icon" name="mic"></ion-icon>
+                  <span class="record-live-wave" id="speak-record-wave">
+                    <span></span><span></span><span></span><span></span><span></span>
+                  </span>
+                </span>
+                <span class="record-label speak-practice-record-btn-label">${isRecording ? 'End' : 'Say'}</span>
+              </button>
+            </div>
+            <div class="speak-practice-voice-action speak-practice-voice-action--side">
+              <button
+                class="speak-practice-audio-btn speak-practice-audio-btn--voice speak-voice-btn${voiceTone ? ` tone-${voiceTone}` : ''}"
+                id="speak-voice"
+                type="button"
+                ${hasVoiceRecording ? '' : 'disabled'}
+              >
+                <ion-icon class="speak-voice-icon" name="play-outline"></ion-icon>
+                <span class="speak-voice-icon-wave" aria-hidden="true">
                   <span></span><span></span><span></span><span></span><span></span>
                 </span>
-              </span>
-              <span class="record-label">${isRecording ? 'End' : 'Say'}</span>
-            </button>
-            <button
-              class="speak-circle-btn speak-voice-btn${voiceTone ? ` tone-${voiceTone}` : ''}"
-              id="speak-voice"
-              type="button"
-              ${hasVoiceRecording ? '' : 'disabled'}
-            >
-              <svg class="speak-voice-icon" width="22" height="22" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                <path d="M13 2.16664C10.8573 2.16664 8.76282 2.802 6.98129 3.99238C5.19976 5.18276 3.81123 6.87469 2.99128 8.85422C2.17133 10.8337 1.9568 13.012 2.3748 15.1134C2.7928 17.2149 3.82458 19.1452 5.33965 20.6603C6.85471 22.1753 8.78502 23.2071 10.8865 23.6252C12.9879 24.0431 15.1662 23.8286 17.1456 23.0086C19.1252 22.1887 20.8172 20.8002 22.0075 19.0186C23.1979 17.2371 23.8333 15.1426 23.8333 13C23.8333 10.7014 22.9201 8.49702 21.2949 6.87171C19.6696 5.24639 17.4651 4.3333 15.1666 4.3333C12.8681 4.3333 10.6637 5.24639 9.03837 6.87171C7.41305 8.49702 6.49996 10.7014 6.49996 13V15.1666" stroke="currentColor" stroke-width="2.1658" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M10.8333 13C10.8333 11.8507 11.2898 10.7485 12.1025 9.93587C12.9151 9.12321 14.0173 8.66667 15.1666 8.66667" stroke="currentColor" stroke-width="2.1658" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-              <span class="speak-voice-icon-wave" aria-hidden="true">
-                <span></span><span></span><span></span><span></span><span></span>
-              </span>
-              <span>Your voice</span>
-            </button>
+              </button>
+              <span class="speak-practice-voice-action-label">Your voice</span>
+            </div>
           </div>
+          ${scoreHtml}
           <div class="speak-voice-nav">
             <button class="speak-step-arrow-btn" id="speak-prev-inline" type="button" aria-label="Previous step">
               <ion-icon name="chevron-back"></ion-icon>
@@ -2391,6 +2603,91 @@ class PageSpeak extends HTMLElement {
         seed || `${locale}:${tone}:${value}`,
         fallbackList[0] || getSpeakUiText('feedbackKeep', locale, 'Keep practicing')
       );
+    };
+
+    const getResultToneTitle = (tone, locale = getHintUiLocale()) => {
+      const normalizedTone = String(tone || '').trim().toLowerCase();
+      if (normalizedTone === 'good') {
+        return {
+          key: 'resultExcellent',
+          fallback: 'Excellent'
+        };
+      }
+      if (normalizedTone === 'okay') {
+        return {
+          key: 'resultRegular',
+          fallback: 'Fair'
+        };
+      }
+      return {
+        key: 'resultIncorrect',
+        fallback: 'Incorrect'
+      };
+    };
+
+    const getResultToneIcon = (tone) => {
+      const normalizedTone = String(tone || '').trim().toLowerCase();
+      if (normalizedTone === 'good') return 'checkmark';
+      if (normalizedTone === 'okay') return 'alert';
+      return 'close';
+    };
+
+    const renderMatchResultCard = (options = {}) => {
+      const locale = options.locale || getHintUiLocale();
+      const tone = String(options.tone || 'hint').trim().toLowerCase();
+      const hasScore = Boolean(options.hasScore);
+      const label = String(options.label || '').trim();
+      if (!hasScore) {
+        return `
+          <div class="speak-score-line hint">
+            <div class="speak-result-icon-wrap">
+              <div class="speak-result-icon">
+                <div class="speak-result-icon-inner">
+                  <ion-icon name="ellipsis-horizontal"></ion-icon>
+                </div>
+              </div>
+            </div>
+            <div class="speak-result-copy">
+              <div class="speak-score-line-text">${escapeHtml(label || getSpeakUiText('practicePhrase', locale, 'Practice'))}</div>
+              <div class="speak-score-line-value"></div>
+            </div>
+            <div class="speak-result-meter" hidden aria-hidden="true">
+              <span class="speak-result-meter-segment"><span class="speak-result-meter-fill" style="width:0%"></span></span>
+              <span class="speak-result-meter-segment"><span class="speak-result-meter-fill" style="width:0%"></span></span>
+              <span class="speak-result-meter-segment"><span class="speak-result-meter-fill" style="width:0%"></span></span>
+            </div>
+          </div>
+        `;
+      }
+      const percent = Math.max(0, Math.min(100, Math.round(Number(options.percent) || 0)));
+      const titleMeta = getResultToneTitle(tone, locale);
+      const title = getSpeakUiText(titleMeta.key, locale, titleMeta.fallback);
+      const matchLabel = getSpeakUiText('resultMatchLabel', locale, 'match');
+      const segmentSize = 100 / 3;
+      const fills = [0, 1, 2].map((index) => {
+        const start = index * segmentSize;
+        const end = start + segmentSize;
+        const fillPercent = Math.max(0, Math.min(100, ((percent - start) / (end - start)) * 100));
+        return `<span class="speak-result-meter-segment"><span class="speak-result-meter-fill" style="width:${fillPercent}%"></span></span>`;
+      }).join('');
+      return `
+        <div class="speak-score-line ${tone}">
+          <div class="speak-result-icon-wrap">
+            <div class="speak-result-icon">
+              <div class="speak-result-icon-inner">
+                <ion-icon name="${getResultToneIcon(tone)}"></ion-icon>
+              </div>
+            </div>
+          </div>
+          <div class="speak-result-copy">
+            <div class="speak-score-line-text">${escapeHtml(title)}</div>
+            <div class="speak-score-line-value">${percent}% ${escapeHtml(matchLabel)}</div>
+          </div>
+          <div class="speak-result-meter" aria-hidden="true">
+            ${fills}
+          </div>
+        </div>
+      `;
     };
 
     const getStepKey = () => stepOrder[stepIndex];
@@ -3327,7 +3624,8 @@ class PageSpeak extends HTMLElement {
     };
 
     const getBaseHintLocale = () => {
-      const fromState = getAppLocale() || (window.varGlobal && window.varGlobal.locale) || 'en';
+      const fromState =
+        getActiveLocale() || getAppLocale() || (window.varGlobal && window.varGlobal.locale) || 'en';
       return normalizeHintLocale(resolveCopyLocale(fromState)) || 'en';
     };
 
@@ -3430,7 +3728,9 @@ class PageSpeak extends HTMLElement {
       const speakCopy = getSpeakCopyBundle(locale);
       const heroText = (speakCopy && speakCopy.heroNarration) || "Let's keep practicing!";
       if (heroHintDisplayEl) {
-        heroHintDisplayEl.textContent = heroText;
+        const textEl = heroHintDisplayEl.querySelector('#speak-hero-hint-text');
+        if (textEl) textEl.textContent = heroText;
+        else heroHintDisplayEl.textContent = heroText;
         heroHintDisplayEl.hidden = false;
       }
       // heroHintEl (hidden) carries the same text for TTS playback
@@ -3543,7 +3843,6 @@ class PageSpeak extends HTMLElement {
       const score = getScoreForStep('sound', locale);
       const hasRecording = Boolean(stepState.sound.recordingUrl);
       const transcribing = isTranscribingStep('sound');
-      const showPercentages = areSpeakSessionPercentagesVisible();
       const percent = transcribing ? '' : score && hasRecording ? score.percent : '';
       const tone = transcribing ? 'hint' : score && hasRecording ? score.tone : 'hint';
       const voiceTone = !transcribing && score && hasRecording ? tone : '';
@@ -3552,15 +3851,18 @@ class PageSpeak extends HTMLElement {
         : score && hasRecording
         ? score.label
         : getSpeakUiText('practiceSound', locale, 'Practice the sound');
-      const percentMarkup = showPercentages && percent !== '' ? `${percent}%` : '';
-      const noPercentClass = !showPercentages ? ' speak-score-no-percent' : '';
       const displayText = getSoundDisplayText();
 
-      const stepTitle = getSpeakUiText('stepTitleSound', locale, 'Listen carefully and Say');
+      const stepTitle = getLocalizedStepTitle(soundStep, locale) || getSpeakUiText('stepTitleSound', locale, 'Listen carefully and Say');
       const stepSubtitle = resolveHeroHintText(soundStep, locale);
       return `
         <div class="speak-step speak-step-sound">
           <p class="speak-step-heading">${stepTitle}</p>
+          <div class="speak-phonetic">
+            <span class="speak-phonetic-text" id="speak-phonetic-text">
+              ${highlightLetter(displayText, focusKey)}
+            </span>
+          </div>
           ${stepSubtitle ? `<p class="speak-step-subtitle">${stepSubtitle}</p>` : ''}
           <div class="speak-step-main">
             <div class="speak-avatar-stage">
@@ -3584,20 +3886,19 @@ class PageSpeak extends HTMLElement {
                 </div>
               </div>
             </div>
-
-            <div class="speak-phonetic">
-              <button class="speak-play-btn speak-play-btn--wide" id="speak-play-ref" type="button">
-                <ion-icon name="volume-high"></ion-icon>
-                <span>${(getSpeakCopyBundle(locale) || {}).listen || 'Listen'}</span>
-              </button>
-              <span class="speak-phonetic-text" id="speak-phonetic-text">
-                ${highlightLetter(displayText, focusKey)}
-              </span>
-            </div>
-
           </div>
 
-          ${renderBottomPanel('sound', { hasVoiceRecording: hasRecording, voiceTone, scoreHtml: `<div class="speak-score speak-score-${tone}${noPercentClass}"><div class="speak-score-label">${label}</div><div class="speak-score-value">${percentMarkup}</div></div>` })}
+          ${renderBottomPanel('sound', {
+            hasVoiceRecording: hasRecording,
+            voiceTone,
+            scoreHtml: renderMatchResultCard({
+              locale,
+              tone,
+              hasScore: Boolean(score && hasRecording) && !transcribing,
+              percent,
+              label
+            })
+          })}
         </div>
       `;
     };
@@ -3607,7 +3908,6 @@ class PageSpeak extends HTMLElement {
       const stored = getStoredWordResult(currentSessionId, selectedWord);
       const hasScore = stored && typeof stored.percent === 'number';
       const transcribing = isTranscribingStep('spelling');
-      const showPercentages = areSpeakSessionPercentagesVisible();
       const hasRecording = Boolean(stepState.spelling.recordingUrl);
       const percent = transcribing ? null : hasScore ? stored.percent : null;
       const tone = transcribing ? 'hint' : hasScore ? getScoreTone(percent, locale) : 'hint';
@@ -3617,8 +3917,6 @@ class PageSpeak extends HTMLElement {
         : hasScore
         ? getScoreLabel(percent, locale, `spelling:${selectedWord}:${percent}`)
         : getSpeakUiText('practiceWords', locale, 'Practice the words');
-      const percentMarkup = showPercentages && percent !== null ? `${percent}%` : '';
-      const noPercentClass = !showPercentages ? ' speak-score-no-percent' : '';
 
       const words = spellingStep.words
         .map((word) => {
@@ -3628,7 +3926,7 @@ class PageSpeak extends HTMLElement {
           const toneClass = wordTone ? `speak-word-tone-${wordTone}` : '';
           const toneIcon = wordTone === 'good' ? '<span class="speak-word-icon">✓</span>'
             : wordTone === 'bad' ? '<span class="speak-word-icon">✕</span>'
-            : wordTone === 'okay' ? '<span class="speak-word-icon">~</span>'
+            : wordTone === 'okay' ? '<span class="speak-word-icon">!</span>'
             : '';
           return `
             <button class="speak-word ${toneClass} ${word === selectedWord ? 'is-active' : ''}" data-word="${word}" type="button">
@@ -3639,15 +3937,29 @@ class PageSpeak extends HTMLElement {
         })
         .join('');
 
-      const stepTitle = getSpeakUiText('stepTitleSpelling', locale, 'Say the sound in words');
+      const spellingContentTitle = getLocalizedStepTitle(spellingStep, locale);
+      const spellingFallback = getSpeakUiText('stepTitleSpelling', locale, 'Say the sound in words');
+      const stepTitle = spellingContentTitle || spellingFallback;
+      const stepSubtitle = spellingContentTitle ? spellingFallback : '';
       return `
         <div class="speak-step speak-step-spelling">
-          <p class="speak-step-heading">${stepTitle}</p>
+          ${stepSubtitle ? `<p class="speak-step-heading">${stepSubtitle}</p>` : ''}
+          <p class="speak-step-subtitle">${stepTitle}</p>
           <div class="speak-step-main">
             <div class="speak-word-grid speak-word-grid--single">${words}</div>
           </div>
 
-          ${renderBottomPanel('spelling', { hasVoiceRecording: hasRecording, voiceTone, scoreHtml: `<div class="speak-score speak-score-${tone}${noPercentClass}"><div class="speak-score-label">${label}</div><div class="speak-score-value">${percentMarkup}</div></div>` })}
+          ${renderBottomPanel('spelling', {
+            hasVoiceRecording: hasRecording,
+            voiceTone,
+            scoreHtml: renderMatchResultCard({
+              locale,
+              tone,
+              hasScore: hasScore && !transcribing,
+              percent,
+              label
+            })
+          })}
         </div>
       `;
     };
@@ -3657,7 +3969,6 @@ class PageSpeak extends HTMLElement {
       const score = getScoreForStep('sentence', locale);
       const hasScore = score && typeof score.percent === 'number';
       const transcribing = isTranscribingStep('sentence');
-      const showPercentages = areSpeakSessionPercentagesVisible();
       const hasRecordingUrl = Boolean(stepState.sentence.recordingUrl);
       const percent = transcribing ? '' : hasScore ? score.percent : '';
       const tone = transcribing ? 'hint' : hasScore ? score.tone : 'hint';
@@ -3667,27 +3978,31 @@ class PageSpeak extends HTMLElement {
         : hasScore
         ? score.label
         : getSpeakUiText('practicePhrase', locale, 'Practice the phrase');
-      const sentenceScorePercentMarkup = showPercentages ? `${percent}%` : '';
-      const sentenceScoreLine = hasScore && !transcribing
-        ? `
-          <div class="speak-score-line ${tone}">
-            <div class="speak-score-line-value">${sentenceScorePercentMarkup}</div>
-          </div>
-        `
-        : '';
-
-      const stepTitle = getSpeakUiText('stepTitleSentence', locale, 'Say a whole sentence');
+      const sentenceContentTitle = getLocalizedStepTitle(sentenceStep, locale);
+      const sentenceFallback = getSpeakUiText('stepTitleSentence', locale, 'Say a whole sentence');
+      const stepTitle = sentenceContentTitle || sentenceFallback;
+      const stepSubtitle = sentenceContentTitle ? sentenceFallback : '';
       return `
         <div class="speak-step speak-step-sentence">
-          <p class="speak-step-heading">${stepTitle}</p>
+          ${stepSubtitle ? `<p class="speak-step-heading">${stepSubtitle}</p>` : ''}
+          <p class="speak-step-subtitle">${stepTitle}</p>
           <div class="speak-step-main">
             <button class="speak-sentence" id="speak-play-sentence" type="button">
               <span id="speak-sentence-text">${highlightSentence(sentenceStep.sentence, focusKey)}</span>
             </button>
-            ${sentenceScoreLine}
           </div>
 
-          ${renderBottomPanel('sentence', { hasVoiceRecording: hasRecordingUrl, voiceTone, scoreHtml: `<div class="speak-score speak-score-${tone}${showPercentages ? '' : ' speak-score-no-percent'}"><div class="speak-score-label">${label}</div><div class="speak-score-value">${sentenceScorePercentMarkup}</div></div>` })}
+          ${renderBottomPanel('sentence', {
+            hasVoiceRecording: hasRecordingUrl,
+            voiceTone,
+            scoreHtml: renderMatchResultCard({
+              locale,
+              tone,
+              hasScore: hasScore && !transcribing,
+              percent,
+              label
+            })
+          })}
         </div>
       `;
     };
@@ -3720,16 +4035,44 @@ class PageSpeak extends HTMLElement {
       playSummaryToneSound(summary);
       const percent = summary.percent;
       const tone = summary.tone;
-      const phrase = summary.phrase;
       const showPercentages = areSpeakSessionPercentagesVisible();
+      const words = spellingStep && Array.isArray(spellingStep.words) ? spellingStep.words : [];
+      const sessionWordScores = getSessionWordScores(currentSessionId) || {};
+      const wordsPercent = getWordsPhasePercent();
+      const wordsHasScore = words.some((word) => {
+        const stored = sessionWordScores[word];
+        return stored && typeof stored.percent === 'number';
+      });
+      const wordsTone = getScoreTone(wordsPercent, locale);
+      const wordsLabel = wordsHasScore
+        ? getScoreLabel(wordsPercent, locale, `summary-words:${currentSessionId}:${wordsPercent}`)
+        : getSpeakUiText('practiceWords', locale, 'Practice the words');
+
+      const phraseStored = getStoredPhraseResult(currentSessionId);
+      const phrasePercent = getPhrasePhasePercent();
+      const phraseHasScore = Boolean(
+        phraseStored && typeof phraseStored.percent === 'number'
+      );
+      const phraseTone = getScoreTone(phrasePercent, locale);
+      const phraseLabel = phraseHasScore
+        ? getScoreLabel(phrasePercent, locale, `summary-phrase:${currentSessionId}:${phrasePercent}`)
+        : getSpeakUiText('practicePhrase', locale, 'Practice the phrase');
+
+      const wordsPhaseTitle = getSpeakUiText(
+        'summaryPhaseWords',
+        locale,
+        locale === 'es' ? 'Fase de palabras' : 'Words phase'
+      );
+      const phrasePhaseTitle = getSpeakUiText(
+        'summaryPhasePhrase',
+        locale,
+        locale === 'es' ? 'Fase de frase' : 'Phrase phase'
+      );
       const hasReward =
         typeof summary.rewardQty === 'number' &&
         summary.rewardQty > 0 &&
         typeof summary.rewardLabel === 'string' &&
         summary.rewardLabel.trim();
-      const rewardLabel = hasReward
-        ? `${summary.labelPrefix} ${summary.rewardQty} ${summary.rewardLabel}`
-        : '';
       const badgeUnlockedTemplate = getSpeakUiText(
         'summaryBadgeUnlocked',
         locale,
@@ -3739,41 +4082,83 @@ class PageSpeak extends HTMLElement {
         summary.awardedBadge && summary.awardedBadge.routeTitle
           ? badgeUnlockedTemplate.replace(/\{route\}/g, summary.awardedBadge.routeTitle)
           : '';
-      const summaryTitle = getSummaryTitle(tone, sessionTitle, locale);
+      const summaryHeadline = getSummaryHeadline(tone, locale);
+      const summarySubline = getSummarySubline(tone, sessionTitle, locale);
       const showConfetti = tone === 'good';
       const mascotToneClass = showConfetti ? 'mascot-confetti' : '';
-      const summaryPercentMarkup = showPercentages ? `<span>${percent}%</span>` : '';
+      const summaryPercentMarkup = showPercentages ? `${percent}%` : '--';
       const confettiMarkup = showConfetti ? buildSummaryConfettiHtml(40) : '';
       const continueLabel = getSpeakUiText('summaryContinue', locale, 'Continue');
       const resultBannerText = getSpeakUiText('resultBanner', locale, 'Result');
+      const scoreLabel = getSpeakUiText(
+        'summaryScoreLabel',
+        locale,
+        locale === 'es' ? 'Puntuación final' : 'Final score'
+      );
+      const tonePillText = getSummaryPillText(tone, locale);
+      const hintBaseText = getSummaryHintText(tone, locale);
+      const rewardInlineText = hasReward ? `+${summary.rewardQty} ${summary.rewardLabel}` : '';
+      const perfIcon = hasReward ? String(summary.rewardIcon || 'trophy') : getResultToneIcon(tone);
       return `
         <div class="speak-step speak-step-summary">
-          <div class="speak-route-banner speak-route-banner--result" aria-hidden="true">${resultBannerText}</div>
           <div class="speak-step-summary-body">
           <div class="summary-stage ${showConfetti ? 'is-tone-good' : ''}">
             ${showConfetti ? `<div class="summary-confetti" aria-hidden="true">${confettiMarkup}</div>` : ''}
+            <div class="summary-result-label summary-result-label--floating">${resultBannerText}</div>
             <div class="summary-panel summary-panel-${tone}">
               <div class="summary-panel-inner">
                 <div class="mascot-cat mascot-large ${mascotToneClass}"></div>
-                <div class="summary-title">${summaryTitle}</div>
-                <div class="summary-score ${tone}">
-                  <ion-icon name="checkmark-circle"></ion-icon>
-                  ${summaryPercentMarkup}
+                <div class="summary-title">${escapeHtml(summaryHeadline)}</div>
+                <div class="summary-subtitle">${escapeHtml(summarySubline)}</div>
+                <div class="summary-phase-cards">
+                  <div class="speak-step-bottom summary-phase-card-wrap">
+                    <div class="summary-phase-card-head">
+                      <span class="summary-phase-title">${escapeHtml(wordsPhaseTitle)}</span>
+                    </div>
+                    ${renderMatchResultCard({
+                      locale,
+                      tone: wordsTone,
+                      hasScore: wordsHasScore,
+                      percent: wordsPercent,
+                      label: wordsLabel
+                    })}
+                  </div>
+                  <div class="speak-step-bottom summary-phase-card-wrap">
+                    <div class="summary-phase-card-head">
+                      <span class="summary-phase-title">${escapeHtml(phrasePhaseTitle)}</span>
+                    </div>
+                    ${renderMatchResultCard({
+                      locale,
+                      tone: phraseTone,
+                      hasScore: phraseHasScore,
+                      percent: phrasePercent,
+                      label: phraseLabel
+                    })}
+                  </div>
                 </div>
-                <div class="summary-feedback ${tone}">${phrase}</div>
-                ${
-                  hasReward
-                    ? `<div class="summary-reward">
-                  <div class="summary-reward-label">${rewardLabel}</div>
-                  <ion-icon name="${summary.rewardIcon}"></ion-icon>
-                </div>`
-                    : ''
-                }
+                <div class="summary-performance-card summary-performance-card-${tone}">
+                  <div class="summary-performance-icon-wrap">
+                    <div class="summary-performance-icon">
+                      <ion-icon name="${escapeHtml(perfIcon)}"></ion-icon>
+                    </div>
+                  </div>
+                  <div class="summary-performance-copy">
+                    <div class="summary-performance-label">${escapeHtml(scoreLabel)}</div>
+                    <div class="summary-performance-score-row">
+                      <span class="summary-performance-percent">${escapeHtml(summaryPercentMarkup)}</span>
+                      <span class="summary-performance-pill summary-performance-pill-${tone}">${escapeHtml(tonePillText)}</span>
+                    </div>
+                    <div class="summary-performance-note">
+                      ${escapeHtml(hintBaseText)}
+                      ${rewardInlineText ? `<span class="summary-performance-reward-inline">${escapeHtml(rewardInlineText)}</span>` : ''}
+                    </div>
+                  </div>
+                </div>
                 ${badgeLabel ? `<div class="summary-badge-earned">${badgeLabel}</div>` : ''}
+                <button class="speak-next-btn speak-next-btn--summary" id="speak-next-step" type="button">${continueLabel}</button>
               </div>
             </div>
           </div>
-          <button class="speak-next-btn speak-next-btn--summary" id="speak-next-step" type="button">${continueLabel}</button>
           </div>
         </div>
       `;
@@ -3789,9 +4174,10 @@ class PageSpeak extends HTMLElement {
     const updateHeroCard = (stepKey) => {
       if (!heroCardEl || !heroStepTitleEl || !heroHintEl) return;
       if (showSummary) {
+        setSpeakSheetExpanded(false, { animate: false, force: true });
         heroCardEl.hidden = true;
         if (routeBannerEl) routeBannerEl.hidden = true;
-        swipeSurface?.classList.add('has-summary');
+        speakSheetSurface?.classList.add('has-summary');
         lastHeroNarratedStepKey = '';
         stopHeroNarration().catch(() => {});
         if (debugToggleBtn) {
@@ -3802,7 +4188,7 @@ class PageSpeak extends HTMLElement {
         return;
       }
       if (routeBannerEl) routeBannerEl.hidden = false;
-      swipeSurface?.classList.remove('has-summary');
+      speakSheetSurface?.classList.remove('has-summary');
       heroCardEl.hidden = false;
       const uiLocale = getHintUiLocale(getBaseHintLocale());
       activeHintLocale = uiLocale;
@@ -3820,13 +4206,8 @@ class PageSpeak extends HTMLElement {
       if (headerTitleEl) headerTitleEl.textContent = sessionTitle || '';
       if (routeBannerEl) {
         const speakCopy = getSpeakCopyBundle(uiLocale);
-        const stepBannerTemplate = speakCopy && speakCopy.stepBanner ? speakCopy.stepBanner : 'Step {step} of {total}';
-        const bannerPrefix = stepBannerTemplate
-          .replace('{step}', stepIndex + 1)
-          .replace('{total}', stepOrder.length);
-        const stepSource = getHeroSourceByStepKey(stepKey);
-        const stepTitle = getLocalizedStepTitle(stepSource, uiLocale);
-        routeBannerEl.textContent = stepTitle ? `${bannerPrefix} – ${stepTitle}` : bannerPrefix;
+        const bannerPrefix = `Step ${stepIndex + 1}/${stepOrder.length}`;
+        routeBannerEl.textContent = bannerPrefix;
       }
       if (stepKey !== lastHeroNarratedStepKey) {
         lastHeroNarratedStepKey = stepKey;
@@ -3861,6 +4242,169 @@ class PageSpeak extends HTMLElement {
       if (target) {
         swipeStage.style.minHeight = `${Math.ceil(target)}px`;
       }
+    };
+
+    const getSpeakSheetEl = () => this.querySelector('.speak-sheet');
+    const getSpeakSheetHandleEl = () => this.querySelector('#speak-sheet-handle');
+    const getSpeakShellEl = () => this.querySelector('.speak-shell');
+
+    const getSpeakSheetTopInset = () => {
+      if (document.body.classList.contains('app-titlebar-enabled')) return 0;
+      const shellEl = getSpeakShellEl();
+      if (!shellEl) return 0;
+      const paddingTop = Number.parseFloat(window.getComputedStyle(shellEl).paddingTop || '0');
+      return Number.isFinite(paddingTop) ? Math.max(0, Math.round(paddingTop)) : 0;
+    };
+
+    const measureSpeakSheetExpandedOffset = () => {
+      const shellEl = getSpeakShellEl();
+      const sheetEl = getSpeakSheetEl();
+      if (!shellEl || !sheetEl) return 0;
+      const shellRect = shellEl.getBoundingClientRect();
+      const sheetRect = sheetEl.getBoundingClientRect();
+      const currentTranslate = Number.isFinite(speakSheetTranslateY) ? speakSheetTranslateY : 0;
+      const targetTop = shellRect.top + getSpeakSheetTopInset();
+      const offset = Math.max(0, Math.round(sheetRect.top - currentTranslate - targetTop));
+      speakSheetExpandedOffset = offset;
+      return offset;
+    };
+
+    const applySpeakSheetState = (options = {}) => {
+      const animate = options.animate !== false;
+      const sheetEl = getSpeakSheetEl();
+      const handleEl = getSpeakSheetHandleEl();
+      if (!sheetEl) return;
+
+      const offset = speakSheetExpanded
+        ? (speakSheetExpandedOffset || measureSpeakSheetExpandedOffset())
+        : 0;
+      speakSheetTranslateY = speakSheetExpanded ? -offset : 0;
+
+      sheetEl.dataset.sheetState = speakSheetExpanded ? 'expanded' : 'collapsed';
+      sheetEl.classList.toggle('is-sheet-dragging', speakSheetDragging);
+      sheetEl.classList.toggle('is-sheet-instant', !animate);
+      const liftMagnitude = Math.max(0, -speakSheetTranslateY);
+      sheetEl.style.setProperty('--sheet-lift', `${liftMagnitude}px`);
+      if (handleEl) {
+        handleEl.setAttribute('aria-expanded', speakSheetExpanded ? 'true' : 'false');
+        handleEl.setAttribute(
+          'aria-label',
+          speakSheetExpanded ? 'Collapse practice card' : 'Expand practice card'
+        );
+      }
+
+      if (!animate) {
+        requestAnimationFrame(() => {
+          if (!sheetEl.isConnected) return;
+          sheetEl.classList.remove('is-sheet-instant');
+        });
+      }
+    };
+
+    const setSpeakSheetExpanded = (nextExpanded, options = {}) => {
+      const expanded = Boolean(nextExpanded);
+      if (speakSheetExpanded === expanded && !options.force) {
+        applySpeakSheetState(options);
+        return;
+      }
+      speakSheetExpanded = expanded;
+      if (
+        expanded &&
+        (!Number.isFinite(speakSheetExpandedOffset) || speakSheetExpandedOffset <= 0)
+      ) {
+        speakSheetExpandedOffset = measureSpeakSheetExpandedOffset();
+      }
+      applySpeakSheetState(options);
+    };
+
+    const toggleSpeakSheet = (options = {}) => {
+      setSpeakSheetExpanded(!speakSheetExpanded, options);
+    };
+
+    const startSpeakSheetDrag = (event) => {
+      const handleEl = event && event.currentTarget ? event.currentTarget : null;
+      const sheetEl = getSpeakSheetEl();
+      if (!handleEl || !sheetEl || typeof event.pointerId !== 'number') return;
+      if (event.button !== 0) return;
+      if (showSummary || isRecording || isTranscribing) return;
+
+      speakSheetExpandedOffset = measureSpeakSheetExpandedOffset();
+      speakSheetDragging = true;
+      speakSheetPointerId = event.pointerId;
+      speakSheetDragStartY = event.clientY;
+      speakSheetDragStartTranslateY = speakSheetExpanded ? -speakSheetExpandedOffset : 0;
+      speakSheetDragMoved = false;
+      sheetEl.classList.add('is-sheet-dragging');
+      applySpeakSheetState({ animate: false });
+
+      try {
+        handleEl.setPointerCapture(event.pointerId);
+      } catch (_err) {
+        // no-op
+      }
+      event.preventDefault();
+    };
+
+    const moveSpeakSheetDrag = (event) => {
+      if (!speakSheetDragging) return;
+      if (typeof event.pointerId === 'number' && event.pointerId !== speakSheetPointerId) return;
+      const sheetEl = getSpeakSheetEl();
+      if (!sheetEl) return;
+
+      const deltaY = Number(event.clientY) - speakSheetDragStartY;
+      const nextTranslate = speakSheetDragStartTranslateY + deltaY;
+      const minTranslate = -speakSheetExpandedOffset;
+      const maxTranslate = 0;
+      const clampedTranslate = Math.max(minTranslate, Math.min(maxTranslate, nextTranslate));
+
+      if (Math.abs(clampedTranslate - speakSheetDragStartTranslateY) > 4) {
+        speakSheetDragMoved = true;
+      }
+
+      speakSheetTranslateY = clampedTranslate;
+      const liftMagnitude = Math.max(0, -clampedTranslate);
+      sheetEl.style.setProperty('--sheet-lift', `${liftMagnitude}px`);
+      event.preventDefault();
+    };
+
+    const finishSpeakSheetDrag = (event) => {
+      if (!speakSheetDragging) return;
+      if (typeof event.pointerId === 'number' && event.pointerId !== speakSheetPointerId) return;
+      const sheetEl = getSpeakSheetEl();
+      const handleEl = getSpeakSheetHandleEl();
+      const currentTranslate = Number.isFinite(speakSheetTranslateY) ? speakSheetTranslateY : 0;
+      const midpoint = -Math.max(0, speakSheetExpandedOffset) / 2;
+      const nextExpanded = speakSheetDragMoved ? currentTranslate <= midpoint : !speakSheetExpanded;
+
+      speakSheetDragging = false;
+      speakSheetPointerId = null;
+      speakSheetDragMoved = false;
+      speakSheetLastPointerUpTs = Date.now();
+      if (sheetEl) {
+        sheetEl.classList.remove('is-sheet-dragging');
+      }
+      if (handleEl) {
+        try {
+          if (typeof event.pointerId === 'number' && handleEl.hasPointerCapture(event.pointerId)) {
+            handleEl.releasePointerCapture(event.pointerId);
+          }
+        } catch (_err) {
+          // no-op
+        }
+      }
+      setSpeakSheetExpanded(nextExpanded, { animate: true });
+    };
+
+    const cancelSpeakSheetDrag = () => {
+      if (!speakSheetDragging) return;
+      speakSheetDragging = false;
+      speakSheetPointerId = null;
+      speakSheetDragMoved = false;
+      const sheetEl = getSpeakSheetEl();
+      if (sheetEl) {
+        sheetEl.classList.remove('is-sheet-dragging');
+      }
+      setSpeakSheetExpanded(speakSheetExpanded, { animate: true, force: true });
     };
 
     const disconnectAvatarResizeObserver = () => {
@@ -3963,6 +4507,8 @@ class PageSpeak extends HTMLElement {
       stepRoot.style.transform = '';
 
       bindStepControls();
+      speakSheetExpandedOffset = measureSpeakSheetExpandedOffset();
+      applySpeakSheetState({ animate: false, force: true });
       if (shouldFitAvatar) {
         observeAvatarStage(stepRoot);
         scheduleAvatarFit(stepRoot);
@@ -3973,6 +4519,7 @@ class PageSpeak extends HTMLElement {
 
     const bindStepControls = () => {
       const playRefBtn = stepRoot.querySelector('#speak-play-ref');
+      const playControlBtn = stepRoot.querySelector('#speak-play-control');
       const playWordBtn = stepRoot.querySelector('#speak-play-word');
       const playSentenceBtn = stepRoot.querySelector('#speak-play-sentence');
       const recordBtn = stepRoot.querySelector('#speak-record');
@@ -4012,6 +4559,47 @@ class PageSpeak extends HTMLElement {
         }
         if (soundStep && soundStep.phonetic) {
           playTts(soundStep.phonetic, playRefBtn);
+        }
+      });
+
+      playControlBtn?.addEventListener('click', () => {
+        const playKind = String(playControlBtn.dataset.playKind || getStepKey());
+        if (playKind === 'sound') {
+          if (soundStep && soundStep.expected) {
+            const phonetic =
+              soundStep.phonetic && usesPhoneticDisplay(soundStep.phonetic, soundStep.expected)
+                ? soundStep.phonetic
+                : '';
+            playReferenceAudio({
+              text: soundStep.expected,
+              targetEl: phoneticTextEl,
+              phonetic,
+              withVisemes: true,
+              triggerBtn: playControlBtn
+            });
+            return;
+          }
+          if (soundStep && soundStep.phonetic) {
+            playTts(soundStep.phonetic, playControlBtn);
+          }
+          return;
+        }
+        if (playKind === 'spelling') {
+          if (!selectedWord) return;
+          playReferenceAudio({
+            text: selectedWord,
+            withVisemes: false,
+            triggerBtn: playControlBtn
+          });
+          return;
+        }
+        if (playKind === 'sentence' && sentenceStep && sentenceStep.sentence) {
+          playReferenceAudio({
+            text: sentenceStep.sentence,
+            targetEl: sentenceTextEl,
+            withVisemes: false,
+            triggerBtn: playControlBtn
+          });
         }
       });
 
@@ -4440,6 +5028,8 @@ class PageSpeak extends HTMLElement {
       if (target.closest('button, a, input, textarea, select, label, [role="button"]')) {
         return;
       }
+      const bubbleTarget = target.closest('.speak-hero-bubble, .hero-playable-bubble, .journey-plan-bubble');
+      if (!bubbleTarget) return;
       const source = getHeroSourceByStepKey(getStepKey());
       const locale = activeHintLocale || getHintUiLocale();
       if (!source) return;
@@ -4538,12 +5128,49 @@ class PageSpeak extends HTMLElement {
     const handleViewportResize = () => {
       if (!this.isConnected) return;
       lockHeroCardHeight();
+      speakSheetExpandedOffset = measureSpeakSheetExpandedOffset();
+      applySpeakSheetState({ animate: false, force: true });
       if (stepRoot?.querySelector('.speak-step-sound')) {
         scheduleAvatarFit(stepRoot);
       }
     };
     this._handleSpeakResize = handleViewportResize;
     window.addEventListener('resize', handleViewportResize);
+
+    const handleCardPaddedChange = (event) => {
+      if (!this.isConnected) return;
+      const detail = event && event.detail ? event.detail : {};
+      const enabled =
+        typeof detail.enabled === 'boolean'
+          ? detail.enabled
+          : (() => {
+              const globalValue =
+                window.r34lp0w3r && Object.prototype.hasOwnProperty.call(window.r34lp0w3r, 'freeRideCardPadded')
+                  ? window.r34lp0w3r.freeRideCardPadded
+                  : undefined;
+              if (typeof globalValue === 'boolean') return globalValue;
+              try {
+                const raw = localStorage.getItem(FREE_RIDE_CARD_PADDED_KEY);
+                if (raw === null || raw === undefined || raw === '') return true;
+                return ['1', 'true', 'on', 'yes'].includes(String(raw).trim().toLowerCase());
+              } catch (_err) {
+                return true;
+              }
+            })();
+      this.classList.toggle('is-card-padded', enabled);
+      speakSheetExpandedOffset = measureSpeakSheetExpandedOffset();
+      applySpeakSheetState({ animate: false, force: true });
+    };
+    this._handleSpeakCardPadded = handleCardPaddedChange;
+    window.addEventListener('app:free-ride-card-padded-change', handleCardPaddedChange);
+
+    const handleHeaderColorChange = (event) => {
+      if (!this.isConnected) return;
+      const color = event?.detail?.color || getStoredHeaderColor();
+      applyHeaderColor(color);
+    };
+    this._handleSpeakHeaderColor = handleHeaderColorChange;
+    window.addEventListener('app:free-ride-header-color-change', handleHeaderColorChange);
 
     ensureTrainingData().then(() => {
       heroFirstRenderAt = Date.now();
@@ -4554,53 +5181,40 @@ class PageSpeak extends HTMLElement {
     heroCardEl?.addEventListener('click', handleHeroCardReplayClick);
     debugToggleBtn?.addEventListener('click', toggleDebugPanel);
 
-    const updateHeaderRewards = () => {
-      const container = this.querySelector('#speak-reward-badges');
-      if (!container) return;
-      const rewards = window.r34lp0w3r && window.r34lp0w3r.speakSessionRewards
-        ? window.r34lp0w3r.speakSessionRewards : {};
-      const totals = {};
-      Object.values(rewards).forEach((entry) => {
-        if (!entry || typeof entry.rewardQty !== 'number') return;
-        const icon = entry.rewardIcon || 'diamond';
-        const rewardKind = String(entry.rewardGroup || icon).trim() || String(icon).trim() || 'diamond';
-        if (!totals[rewardKind]) totals[rewardKind] = { icon, qty: 0 };
-        totals[rewardKind].qty += entry.rewardQty;
-      });
-      const entries = Object.entries(totals).filter(([, meta]) => meta && meta.qty > 0);
-      if (!entries.length) { container.innerHTML = ''; container.hidden = true; return; }
-      container.hidden = false;
-      container.innerHTML = entries.sort((left, right) => {
-        const leftIcon = String(left[1] && left[1].icon ? left[1].icon : 'diamond').trim().toLowerCase();
-        const rightIcon = String(right[1] && right[1].icon ? right[1].icon : 'diamond').trim().toLowerCase();
-        const getOrder = (icon) =>
-          icon === 'trophy'
-            ? 0
-            : icon === 'ribbon' || icon === 'medal'
-            ? 1
-            : icon === 'diamond'
-            ? 2
-            : 9;
-        const byOrder = getOrder(leftIcon) - getOrder(rightIcon);
-        if (byOrder !== 0) return byOrder;
-        return String(left[0] || '').localeCompare(String(right[0] || ''));
-      })
-        .map(([rewardKind, meta]) => {
-          const icon = meta.icon || 'diamond';
-          const qty = meta.qty || 0;
-          const normalizedIcon = String(icon || '').trim().toLowerCase();
-          const isInteractive =
-            normalizedIcon === 'trophy' ||
-            normalizedIcon === 'ribbon' ||
-            normalizedIcon === 'medal' ||
-            rewardKind === 'reference-unit-ribbon';
-          return `<div class="training-badge reward-badge${isInteractive ? ' is-interactive' : ''}" data-reward-kind="${rewardKind}" data-reward-icon="${icon}" data-reward-qty="${qty}"${isInteractive ? ' role="button" tabindex="0"' : ''}><ion-icon name="${icon}"></ion-icon><span>${qty}</span></div>`;
-        })
-        .join('');
-    };
-    updateHeaderRewards();
-    this._handleSpeakRewards = updateHeaderRewards;
-    window.addEventListener('app:speak-stores-change', this._handleSpeakRewards);
+    sheetHandleBtn?.addEventListener('pointerdown', (event) => {
+      startSpeakSheetDrag(event);
+    });
+    sheetHandleBtn?.addEventListener('pointermove', (event) => {
+      moveSpeakSheetDrag(event);
+    });
+    sheetHandleBtn?.addEventListener('pointerup', (event) => {
+      finishSpeakSheetDrag(event);
+    });
+    sheetHandleBtn?.addEventListener('pointercancel', () => {
+      cancelSpeakSheetDrag();
+    });
+    sheetHandleBtn?.addEventListener('lostpointercapture', () => {
+      cancelSpeakSheetDrag();
+    });
+    sheetHandleBtn?.addEventListener('click', (event) => {
+      if (showSummary) return;
+      const lastPointerUpTs = Number(speakSheetLastPointerUpTs) || 0;
+      if (lastPointerUpTs && Date.now() - lastPointerUpTs < 350) {
+        event.preventDefault();
+        return;
+      }
+      toggleSpeakSheet({ animate: true });
+    });
+    sheetHandleBtn?.addEventListener('keydown', (event) => {
+      if (showSummary) return;
+      const key = event && event.key ? event.key : '';
+      if (key !== 'Enter' && key !== ' ') return;
+      event.preventDefault();
+      toggleSpeakSheet({ animate: true });
+    });
+
+    applySpeakSheetState({ animate: false, force: true });
+
 
     const localeBtnEl = this.querySelector('.app-locale-btn');
     const handleLocaleBtn = () => {
@@ -4643,15 +5257,18 @@ class PageSpeak extends HTMLElement {
       if (this._handleSpeakResize) {
         window.removeEventListener('resize', this._handleSpeakResize);
       }
+      if (this._handleSpeakCardPadded) {
+        window.removeEventListener('app:free-ride-card-padded-change', this._handleSpeakCardPadded);
+      }
+      if (this._handleSpeakHeaderColor) {
+        window.removeEventListener('app:free-ride-header-color-change', this._handleSpeakHeaderColor);
+      }
       disconnectAvatarResizeObserver();
       if (debugToggleBtn) {
         debugToggleBtn.removeEventListener('click', toggleDebugPanel);
       }
       if (heroFlagBtn) {
         heroFlagBtn.removeEventListener('click', toggleHintLocaleFromFlag);
-      }
-      if (this._handleSpeakRewards) {
-        window.removeEventListener('app:speak-stores-change', this._handleSpeakRewards);
       }
       localeBtnEl?.removeEventListener('click', handleLocaleBtn);
       if (heroCardEl) {

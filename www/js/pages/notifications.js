@@ -192,7 +192,7 @@ const resolveNotifyIcon = (item) => {
   if (item && item.icon) return item.icon;
   switch (item?.type) {
     case 'reward':
-      return 'diamond-outline';
+      return 'trophy-outline';
     case 'review':
       return 'book-outline';
     case 'reminder':

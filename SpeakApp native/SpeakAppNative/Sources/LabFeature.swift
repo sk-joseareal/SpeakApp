@@ -677,6 +677,28 @@ final class LabViewController: UIViewController {
         navigationController?.navigationBar.tintColor = theme.tint
     }
 
+    private func configureNavigationBar() {
+        let titleView = TitleBarView(copy: copy, session: session)
+        titleView.onDoubleTap = { [weak self] in
+            self?.presentDiagnostics()
+        }
+        navigationItem.titleView = titleView
+
+        let notificationsButton = UIBarButtonItem(
+            image: UIImage(systemName: "bell.badge"),
+            primaryAction: UIAction(title: copy.native.notificationsButton) { [weak self] _ in
+                self?.presentNotifications()
+            }
+        )
+        let logoutButton = UIBarButtonItem(
+            image: UIImage(systemName: "rectangle.portrait.and.arrow.right"),
+            primaryAction: UIAction(title: copy.native.logoutButton) { [weak self] _ in
+                self?.sessionStore.logout()
+            }
+        )
+        navigationItem.rightBarButtonItems = [logoutButton, notificationsButton]
+    }
+
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
         updateTextViewHeight()
@@ -709,28 +731,6 @@ final class LabViewController: UIViewController {
     private var savedPhrasesOwnerKey: String {
         let candidate = user?.id.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         return candidate.isEmpty ? "guest" : candidate
-    }
-
-    private func configureNavigationBar() {
-        let titleView = TitleBarView(copy: copy, session: session)
-        titleView.onDoubleTap = { [weak self] in
-            self?.presentDiagnostics()
-        }
-        navigationItem.titleView = titleView
-
-        let notificationsButton = UIBarButtonItem(
-            image: UIImage(systemName: "bell.badge"),
-            primaryAction: UIAction(title: copy.native.notificationsButton) { [weak self] _ in
-                self?.presentNotifications()
-            }
-        )
-        let logoutButton = UIBarButtonItem(
-            image: UIImage(systemName: "rectangle.portrait.and.arrow.right"),
-            primaryAction: UIAction(title: copy.native.logoutButton) { [weak self] _ in
-                self?.sessionStore.logout()
-            }
-        )
-        navigationItem.rightBarButtonItems = [logoutButton, notificationsButton]
     }
 
     private func buildLayout() {

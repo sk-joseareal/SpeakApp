@@ -1,7 +1,8 @@
 import { ensureInitialHash, setRouter, goToHome } from './nav.js';
 import { clearLoginTabsLock, getAppLocale, hasLoginTabsLock, onboardingDone, setOnboardingDone, setLoginTabsLock } from './state.js';
 import { generateDemoNotifications, getUnreadCount, markAllNotificationsRead } from './notifications-store.js';
-import { ensureLegacySpeakCopyGlobals, getAppHeaderCopy } from './content/copy.js';
+import { ensureLegacySpeakCopyGlobals } from './content/copy.js';
+import { isAppTitlebarEnabled } from './components/app-header.js';
 import './pages/onboarding.js';
 import './pages/home.js';
 import './pages/reference.js';
@@ -16,10 +17,19 @@ import './pages/notifications.js';
 
 const ONBOARDING_STATUSBAR_COLOR = '#2d6df0';
 const APP_STATUSBAR_COLOR = '#f4f6fb';
+const LAB_STATUSBAR_COLOR = '#00000000';
+const LAB_THEME_COLOR = '#a9c7f5';
+const APP_STATUSBAR_PRESET_KEY = 'appv5:statusbar-preset';
+const TAB_STORAGE_KEY = 'appv5:active-tab';
+const LAB_TAB_IDS = new Set(['freeride', 'home', 'reference']);
 const PURCHASE_EXPIRES_STORAGE_KEY = '_purchase_expires';
 const PURCHASE_EXPIRES_HUMAN_STORAGE_KEY = '_purchase_expires_human';
 const PURCHASE_USER_ID_STORAGE_KEY = '_purchase_user_id';
 const LAST_IAP_RESULT_STORAGE_KEY = 'appv5:last-got-premium-result';
+
+let currentTabsActiveTab = '';
+let lastNativeStatusBarInfo = { height: 0, platform: '', osVersion: '' };
+let _titlebarCalibrationTimers = [];
 
 function getCurrentAppPath() {
   return window.location.hash.replace('#', '') || '/';
@@ -65,9 +75,228 @@ function setThemeColor(color) {
   meta.setAttribute('content', color);
 }
 
+function normalizeStatusbarPreset(value) {
+  return String(value || '').trim().toLowerCase() === 'clear' ? 'clear' : 'dark';
+}
+
+function getStoredStatusbarPreset() {
+  const globalValue =
+    window.r34lp0w3r && Object.prototype.hasOwnProperty.call(window.r34lp0w3r, 'appStatusbarPreset')
+      ? window.r34lp0w3r.appStatusbarPreset
+      : undefined;
+  if (globalValue !== undefined) return normalizeStatusbarPreset(globalValue);
+  try {
+    return normalizeStatusbarPreset(localStorage.getItem(APP_STATUSBAR_PRESET_KEY));
+  } catch (_err) {
+    return 'dark';
+  }
+}
+
+function setNativeStatusBarCssHeight(height) {
+  const numeric = Number(height);
+  const cssHeight = Number.isFinite(numeric) ? Math.max(0, numeric) : 0;
+  document.documentElement.style.setProperty('--app-native-statusbar-height', `${cssHeight}px`);
+}
+
+function parseMajorVersion(value) {
+  const match = String(value || '').trim().match(/^(\d+)/);
+  return match ? Number(match[1]) : 0;
+}
+
+function syncNativeStatusBarCapabilityClasses(info = {}) {
+  const platform = String(info.platform || '').trim().toLowerCase();
+  const osMajor = parseMajorVersion(info.osVersion);
+  lastNativeStatusBarInfo = {
+    height: Number(info.height) || lastNativeStatusBarInfo.height || 0,
+    platform,
+    osVersion: String(info.osVersion || '').trim()
+  };
+  const needsManualOffset = platform === 'android' || (platform === 'ios' && osMajor >= 26);
+  document.body.classList.toggle('app-statusbar-manual-offset', needsManualOffset);
+  document.body.classList.toggle('app-ios-statusbar-auto-offset', platform === 'ios' && !needsManualOffset);
+  if (osMajor > 0) {
+    document.body.dataset.osMajor = String(osMajor);
+  }
+}
+
+function syncNativeStatusBarCssHeight() {
+  try {
+    const nativePlugin = window.Capacitor?.Plugins?.P4w4Plugin;
+    if (!nativePlugin || typeof nativePlugin.getStatusBarHeight !== 'function') return;
+    Promise.resolve(nativePlugin.getStatusBarHeight())
+      .then((info) => {
+        syncNativeStatusBarCapabilityClasses(info || {});
+        const rawHeight = Number(info && info.height);
+        if (!Number.isFinite(rawHeight) || rawHeight <= 0) return;
+        const cssHeight = isAndroidPlatform()
+          ? rawHeight / Math.max(1, Number(window.devicePixelRatio) || 1)
+          : rawHeight;
+        setNativeStatusBarCssHeight(cssHeight);
+      })
+      .catch(() => {});
+  } catch (_err) {
+    // no-op
+  }
+}
+
+function syncPlatformChromeClasses() {
+  const isAndroid = isAndroidPlatform();
+  document.body.classList.toggle('app-platform-android', isAndroid);
+  document.body.classList.toggle('app-platform-ios', !isAndroid);
+  if (isAndroid) {
+    document.body.classList.add('app-statusbar-manual-offset');
+    document.body.classList.remove('app-ios-statusbar-auto-offset');
+  }
+}
+
+function resetAppTitlebarCalibration() {
+  document.documentElement.style.setProperty('--app-titlebar-y-correction', '0px');
+  document.body.classList.remove('app-titlebar-y-corrected');
+}
+
+function getCurrentNativeStatusBarCssHeight() {
+  const cssValue = window.getComputedStyle(document.documentElement)
+    .getPropertyValue('--app-native-statusbar-height')
+    .trim();
+  const parsedCssValue = Number.parseFloat(cssValue);
+  if (Number.isFinite(parsedCssValue) && parsedCssValue > 0) return parsedCssValue;
+  const rawHeight = Number(lastNativeStatusBarInfo.height) || 0;
+  if (!rawHeight) return 0;
+  return isAndroidPlatform() ? rawHeight / Math.max(1, Number(window.devicePixelRatio) || 1) : rawHeight;
+}
+
+function calibrateAppTitlebarStatusbarOffset() {
+  const isLabTitlebar =
+    document.body.classList.contains('lab-chrome-active') &&
+    document.body.classList.contains('app-titlebar-enabled');
+  if (!isLabTitlebar) {
+    resetAppTitlebarCalibration();
+    return;
+  }
+
+  const platform = String(lastNativeStatusBarInfo.platform || '').trim().toLowerCase();
+  if (platform && platform !== 'ios') {
+    resetAppTitlebarCalibration();
+    return;
+  }
+
+  const candidatePages = ['page-free-ride', 'page-home', 'page-reference', 'page-speak']
+    .map((selector) => document.querySelector(selector))
+    .filter(Boolean);
+  const pageEl =
+    candidatePages.find((el) => {
+      const tabHost = el && typeof el.closest === 'function' ? el.closest('ion-tab') : null;
+      return !tabHost || tabHost.getAttribute('aria-hidden') !== 'true';
+    }) || candidatePages[0] || null;
+  const headerEl = pageEl?.querySelector('ion-header.app-header-shell');
+  const toolbarEl = headerEl?.querySelector('ion-toolbar');
+  if (!pageEl || !headerEl || !toolbarEl || headerEl.hidden) {
+    resetAppTitlebarCalibration();
+    return;
+  }
+
+  const statusbarHeight = getCurrentNativeStatusBarCssHeight();
+  if (!statusbarHeight) {
+    resetAppTitlebarCalibration();
+    return;
+  }
+
+  const contentRects = [
+    toolbarEl.querySelector('.app-toolbar-title')?.getBoundingClientRect(),
+    toolbarEl.querySelector('.app-header-actions')?.getBoundingClientRect()
+  ].filter((rect) => rect && rect.width > 0 && rect.height > 0);
+  if (!contentRects.length) {
+    resetAppTitlebarCalibration();
+    return;
+  }
+
+  const contentTop = Math.min(...contentRects.map((rect) => rect.top));
+  const contentHeight = Math.max(...contentRects.map((rect) => rect.height));
+  const toolbarContentHeight = 56;
+  const desiredContentTop = statusbarHeight + Math.max(0, (toolbarContentHeight - contentHeight) / 2);
+  const currentCorrection = Number.parseFloat(
+    window.getComputedStyle(document.documentElement)
+      .getPropertyValue('--app-titlebar-y-correction')
+      .trim()
+  ) || 0;
+  const uncorrectedContentTop = contentTop - currentCorrection;
+  const extraGap = Math.round(uncorrectedContentTop - desiredContentTop);
+  const correction = extraGap > 6 ? -Math.min(44, extraGap) : 0;
+
+  document.documentElement.style.setProperty('--app-titlebar-y-correction', `${correction}px`);
+  document.body.classList.toggle('app-titlebar-y-corrected', correction !== 0);
+  console.log(
+    '[chrome] titlebar calibration',
+    JSON.stringify({
+      platform: platform || 'unknown',
+      osVersion: lastNativeStatusBarInfo.osVersion || '',
+      statusbarHeight,
+      contentTop: Math.round(contentTop),
+      uncorrectedContentTop: Math.round(uncorrectedContentTop),
+      contentHeight: Math.round(contentHeight),
+      desiredContentTop: Math.round(desiredContentTop),
+      extraGap,
+      correction
+    })
+  );
+}
+
+function scheduleAppTitlebarCalibration() {
+  _titlebarCalibrationTimers.forEach((id) => clearTimeout(id));
+  _titlebarCalibrationTimers = [0, 80, 240, 600].map((delay) =>
+    setTimeout(() => {
+      requestAnimationFrame(calibrateAppTitlebarStatusbarOffset);
+    }, delay)
+  );
+}
+
+function normalizeChromeTabId(tab) {
+  return String(tab || '').trim().toLowerCase();
+}
+
+function getStoredActiveTab() {
+  try {
+    return normalizeChromeTabId(localStorage.getItem(TAB_STORAGE_KEY));
+  } catch (_err) {
+    return '';
+  }
+}
+
+function getCurrentTabsActiveTab() {
+  const tabsEl = document.querySelector('tabs-page ion-tabs');
+  const selectedFromProperty = normalizeChromeTabId(tabsEl && tabsEl.selectedTab);
+  const selectedFromAttribute = normalizeChromeTabId(tabsEl && tabsEl.getAttribute('selected-tab'));
+  const selectedButton = normalizeChromeTabId(
+    document.querySelector('tabs-page ion-tab-button.tab-selected')?.getAttribute('tab')
+  );
+  const selectedVisiblePane = normalizeChromeTabId(
+    document.querySelector('tabs-page ion-tab[tab][aria-hidden="false"]')?.getAttribute('tab')
+  );
+
+  return (
+    selectedVisiblePane ||
+    selectedFromProperty ||
+    selectedFromAttribute ||
+    selectedButton ||
+    currentTabsActiveTab ||
+    getStoredActiveTab()
+  );
+}
+
 function isOnboardingPath(path) {
   const normalized = String(path || '').trim();
   return normalized === '/' || normalized === '/onboarding';
+}
+
+function isLabChromePath(path) {
+  const normalized = String(path || '').trim();
+  if (normalized === '/speak' || normalized.startsWith('/speak/')) return true;
+  if (normalized.includes('freeride') || normalized.includes('free-ride')) return true;
+  if (normalized.includes('/home')) return true;
+  if (normalized === '/tabs' || normalized.startsWith('/tabs')) {
+    return LAB_TAB_IDS.has(getCurrentTabsActiveTab());
+  }
+  return false;
 }
 
 function parsePurchaseExpiry(value) {
@@ -532,16 +761,30 @@ window.openIapSupportMail = (context = {}) => {
 };
 
 function applyAppChromeForPath(path) {
+  syncPlatformChromeClasses();
+  syncNativeStatusBarCssHeight();
   // If the user has completed onboarding, '/' is always a transient router state
   // before redirecting to '/tabs' — never apply onboarding chrome in that case.
   const onboarding = isOnboardingPath(path) && !onboardingDone();
-  const color = onboarding ? ONBOARDING_STATUSBAR_COLOR : APP_STATUSBAR_COLOR;
-  const lightIcons = onboarding;
+  const labChrome = !onboarding && isLabChromePath(path);
+  const statusbarPreset = getStoredStatusbarPreset();
+  const color = onboarding
+    ? ONBOARDING_STATUSBAR_COLOR
+    : labChrome
+    ? LAB_STATUSBAR_COLOR
+    : APP_STATUSBAR_COLOR;
+  const themeColor = labChrome ? LAB_THEME_COLOR : color;
+  const lightIcons = statusbarPreset === 'clear';
   const style = getStatusBarStyle(lightIcons);
-  console.log('[chrome] applyAppChromeForPath', JSON.stringify({ path, onboarding, color, lightIcons, style }));
+  console.log('[chrome] applyAppChromeForPath', JSON.stringify({ path, onboarding, labChrome, statusbarPreset, color, lightIcons, style }));
 
+  window.r34lp0w3r = window.r34lp0w3r || {};
+  window.r34lp0w3r.appStatusbarPreset = statusbarPreset;
+  document.body.classList.toggle('app-statusbar-items-clear', statusbarPreset === 'clear');
+  document.body.classList.toggle('app-statusbar-items-dark', statusbarPreset !== 'clear');
   document.body.classList.toggle('onboarding-chrome-active', onboarding);
-  setThemeColor(color);
+  document.body.classList.toggle('lab-chrome-active', labChrome);
+  setThemeColor(themeColor);
   setNativeChrome(color, lightIcons, { source: 'app.js:applyAppChromeForPath', path });
 
   try {
@@ -555,15 +798,18 @@ function applyAppChromeForPath(path) {
   } catch (_err) {
     // no-op
   }
+  scheduleAppTitlebarCalibration();
 }
 
 let _chromeSyncTimers = [];
 function scheduleAppChromeSync(path) {
   _chromeSyncTimers.forEach((id) => clearTimeout(id));
-  console.log('[chrome] scheduleAppChromeSync', JSON.stringify({ path, delays: [0, 120, 320, 800] }));
-  _chromeSyncTimers = [0, 120, 320, 800].map((delay) =>
-    setTimeout(() => applyAppChromeForPath(path), delay)
-  );
+  console.log('[chrome] scheduleAppChromeSync', JSON.stringify({ path, delays: [0] }));
+  _chromeSyncTimers = [
+    setTimeout(() => {
+      requestAnimationFrame(() => applyAppChromeForPath(path));
+    }, 0)
+  ];
 }
 
 window.applyAppChromeForPath = applyAppChromeForPath;
@@ -630,7 +876,6 @@ routerReady.then((router) => {
   router.addEventListener('ionRouteWillChange', (event) => {
     const to = event.detail.to;
     if (!to) return;
-    scheduleAppChromeSync(to);
     if (onboardingDone() && (to === '/' || to === '/onboarding')) {
       goToHome('root');
       return;
@@ -661,7 +906,7 @@ routerReady.then((router) => {
   setupDiagnosticsModal();
   setupSecretDiagnostics(router);
   setupNotificationsModal();
-  setupRewardBadgeInfoToasts();
+  setupAppTitlebarToggle();
   setupLoginModal();
   setupLoginNotificationsSeed();
   checkMagicToken();
@@ -683,6 +928,26 @@ document.addEventListener('deviceready', () => {
 const resyncCurrentAppChrome = () => {
   scheduleAppChromeSync(getCurrentAppPath());
 };
+
+window.addEventListener('app:tab-change', (event) => {
+  currentTabsActiveTab = normalizeChromeTabId(event && event.detail ? event.detail.tab : '');
+  resyncCurrentAppChrome();
+});
+
+document.addEventListener('ionTabsDidChange', (event) => {
+  const eventTab = normalizeChromeTabId(event && event.detail ? event.detail.tab : '');
+  currentTabsActiveTab = eventTab || getCurrentTabsActiveTab();
+  resyncCurrentAppChrome();
+});
+
+window.addEventListener('app:statusbar-preset-change', (event) => {
+  const requestedPreset = event?.detail?.preset;
+  if (requestedPreset !== undefined) {
+    window.r34lp0w3r = window.r34lp0w3r || {};
+    window.r34lp0w3r.appStatusbarPreset = normalizeStatusbarPreset(requestedPreset);
+  }
+  resyncCurrentAppChrome();
+});
 
 document.addEventListener('resume', resyncCurrentAppChrome);
 document.addEventListener('visibilitychange', () => {
@@ -765,6 +1030,21 @@ function setupSecretDiagnostics(router) {
     openDiagnostics();
   };
 
+  // Selectors whose tap should NOT open diagnostics (they have their own behavior).
+  const DIAG_EXCLUDED_SELECTOR = [
+    // Bubbles with their own audio playback action
+    '.onboarding-intro-bubble',
+    '.free-ride-hero-bubble',
+    '.journey-plan-bubble',
+    '.speak-hero-bubble',
+    '.hero-playable-bubble',
+    // Main content cards (interactive in their own right)
+    '.free-ride-card',
+    '.chat-chat-card',
+    '.profile-hero-card',
+    '.profile-panel'
+  ].join(',');
+
   const handler = (event) => {
     const path = event.composedPath ? event.composedPath() : [event.target];
     const hasClassInPath = (className) =>
@@ -776,9 +1056,16 @@ function setupSecretDiagnostics(router) {
           typeof el.matches === 'function' &&
           el.matches('button, ion-button, ion-buttons, a, input, textarea, select, [role="button"], .app-header-actions')
       );
+    const hasExcludedZoneInPath = () =>
+      path.some(
+        (el) =>
+          el &&
+          typeof el.matches === 'function' &&
+          el.matches(DIAG_EXCLUDED_SELECTOR)
+      );
 
-    const isSecretArea = hasClassInPath('secret-title-area') || hasClassInPath('secret-title');
-    if (!isSecretArea || hasInteractiveInPath()) return;
+    const isContentArea = hasClassInPath('secret-content');
+    if (!isContentArea || hasInteractiveInPath() || hasExcludedZoneInPath()) return;
     const now = Date.now();
     const isDoubleTap = lastTitleTapAt && now - lastTitleTapAt <= 420;
     if (event) {
@@ -814,6 +1101,7 @@ function setupDiagnosticsModal() {
     if (document.activeElement && typeof document.activeElement.blur === 'function') {
       document.activeElement.blur();
     }
+    syncNativeStatusBarCssHeight();
     await modal.present();
   };
 
@@ -869,107 +1157,42 @@ function setupNotificationsModal() {
   });
 }
 
-function setupRewardBadgeInfoToasts() {
-  const isUnitRewardKind = (rewardKind) => {
-    const normalized = String(rewardKind || '').trim().toLowerCase();
-    return (
-      normalized === 'reference-unit-ribbon' ||
-      normalized === 'ribbon' ||
-      normalized === 'medal'
-    );
+function setupAppTitlebarToggle() {
+  const refreshMountedPages = () => {
+    const pages = new Set([
+      ...document.querySelectorAll('ion-router-outlet > *'),
+      ...document.querySelectorAll('ion-tabs ion-tab > *'),
+      ...document.querySelectorAll('page-home, page-free-ride, page-reference, page-chat, page-profile, page-speak')
+    ]);
+    pages.forEach((pageEl) => {
+      if (!pageEl || typeof pageEl.render !== 'function') return;
+      if (pageEl.tagName && pageEl.tagName.toLowerCase() === 'page-diagnostics') return;
+      try {
+        pageEl.render();
+      } catch (err) {
+        console.warn('[app] no se pudo refrescar la titlebar en', pageEl.tagName, err);
+      }
+    });
   };
 
-  const isInteractiveRewardKind = (rewardKind) => {
-    const normalized = String(rewardKind || '').trim().toLowerCase();
-    return normalized === 'trophy' || isUnitRewardKind(normalized);
+  const applyState = () => {
+    const enabled = isAppTitlebarEnabled();
+    document.body.classList.toggle('app-titlebar-enabled', enabled);
+    document.querySelectorAll('ion-header.app-header-shell').forEach((headerEl) => {
+      headerEl.hidden = !enabled;
+    });
   };
 
-  const presentRewardToast = (message) => {
-    const text = String(message || '').trim();
-    if (!text) return;
-    try {
-      const toast = document.createElement('ion-toast');
-      toast.message = text;
-      toast.duration = 2200;
-      toast.position = 'top';
-      document.body.appendChild(toast);
-      toast.present().catch(() => {});
-      toast.addEventListener(
-        'didDismiss',
-        () => {
-          toast.remove();
-        },
-        { once: true }
-      );
-    } catch (_err) {
-      // no-op
+  applyState();
+  window.addEventListener('app:titlebar-enabled-change', () => {
+    applyState();
+    refreshMountedPages();
+    applyState();
+    if (typeof window.scheduleAppChromeSync === 'function') {
+      window.scheduleAppChromeSync(getCurrentAppPath());
+    } else {
+      applyAppChromeForPath(getCurrentAppPath());
     }
-  };
-
-  const getRewardCount = (targetKind) => {
-    const normalizedTarget = String(targetKind || '').trim().toLowerCase();
-    if (!normalizedTarget) return 0;
-    const rewards =
-      window.r34lp0w3r && window.r34lp0w3r.speakSessionRewards
-        ? window.r34lp0w3r.speakSessionRewards
-        : {};
-    return Object.values(rewards).reduce((sum, entry) => {
-      if (!entry || typeof entry.rewardQty !== 'number') return sum;
-      const icon = String(entry.rewardIcon || 'diamond').trim().toLowerCase();
-      const group = String(entry.rewardGroup || icon).trim().toLowerCase();
-      if (group !== normalizedTarget) return sum;
-      return sum + Math.max(0, Math.round(entry.rewardQty));
-    }, 0);
-  };
-
-  const buildRewardMessage = (rewardKind, count) => {
-    const locale = getAppLocale() || (window.varGlobal && window.varGlobal.locale) || 'en';
-    const copy = getAppHeaderCopy(locale);
-    const template =
-      isUnitRewardKind(rewardKind)
-        ? count === 1
-          ? copy.completedUnitsOne
-          : copy.completedUnitsOther
-        : count === 1
-        ? copy.completedModulesOne
-        : copy.completedModulesOther;
-    return String(template || '').replace('{n}', String(count));
-  };
-
-  const handleRewardBadgeInfoRequest = (badgeEl) => {
-    if (!badgeEl) return;
-    const rewardKind = String(badgeEl.dataset.rewardKind || '')
-      .trim()
-      .toLowerCase();
-    const iconName =
-      String(badgeEl.dataset.rewardIcon || '')
-        .trim()
-        .toLowerCase() ||
-      String(badgeEl.querySelector('ion-icon')?.getAttribute('name') || '')
-        .trim()
-        .toLowerCase();
-    const targetKind = rewardKind || iconName;
-    if (!isInteractiveRewardKind(targetKind)) return;
-    const rewardCount = Math.max(0, getRewardCount(targetKind));
-    if (!rewardCount) return;
-    presentRewardToast(buildRewardMessage(targetKind, rewardCount));
-  };
-
-  document.addEventListener('click', (event) => {
-    const path = event.composedPath ? event.composedPath() : [event.target];
-    const rewardBadge = path.find(
-      (el) => el && el.classList && el.classList.contains('reward-badge')
-    );
-    if (!rewardBadge) return;
-    handleRewardBadgeInfoRequest(rewardBadge);
-  });
-
-  document.addEventListener('keydown', (event) => {
-    if (!event || (event.key !== 'Enter' && event.key !== ' ')) return;
-    const target = event.target;
-    if (!target || !target.classList || !target.classList.contains('reward-badge')) return;
-    event.preventDefault();
-    handleRewardBadgeInfoRequest(target);
   });
 }
 

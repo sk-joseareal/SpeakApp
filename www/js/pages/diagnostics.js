@@ -95,7 +95,7 @@ class PageDiagnostics extends HTMLElement {
     };
     const TAB_VISIBILITY_DEFAULTS = {
       home: true,
-      freeride: false,
+      freeride: true,
       reference: false,
       chat: false,
       tu: true
@@ -2232,12 +2232,14 @@ class PageDiagnostics extends HTMLElement {
       const formattedResult = {
         ...(result || {}),
         available: result && result.available === true,
+        supportedPair: result && result.supportedPair === true,
         sourceLanguage: result && (result.sourceLanguage || result.source_language || ''),
         targetLanguage: result && (result.targetLanguage || result.target_language || ''),
         sourceText: result && (result.sourceText || result.source_text || ''),
         translatedText: result && (result.translatedText || result.translated_text || ''),
         engine: result && result.engine ? result.engine : '',
         modelDownloaded: result && result.modelDownloaded === true,
+        languageStatus: result && result.languageStatus ? String(result.languageStatus) : '',
         reason: result && result.reason ? String(result.reason) : ''
       };
       try {
@@ -4304,6 +4306,21 @@ class PageDiagnostics extends HTMLElement {
           setNativeTranslationOutput(formatNativeTranslationResult(result));
           if (result && result.available === true) {
             setNativeTranslationStatus(`Disponible: ${result.engine || 'native'} es → en.`);
+          } else if (
+            result &&
+            String(result.reason || '').trim() === 'language_status_unknown_pre26'
+          ) {
+            setNativeTranslationStatus(
+              'Par soportado (iOS < 26), pero el sistema no expone si el modelo está instalado.'
+            );
+          } else if (
+            result &&
+            (String(result.reason || '').trim() === 'language_status_supported' ||
+              String(result.languageStatus || '').trim() === 'supported')
+          ) {
+            setNativeTranslationStatus(
+              'Par soportado pero modelo no instalado en el dispositivo (status: supported).'
+            );
           } else {
             setNativeTranslationStatus(
               `No disponible: ${(result && result.reason) || 'sin motivo reportado'}.`

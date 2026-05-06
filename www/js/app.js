@@ -15,13 +15,14 @@ import './pages/diagnostics.js';
 import './pages/login.js';
 import './pages/notifications.js';
 
-const ONBOARDING_STATUSBAR_COLOR = '#2d6df0';
+const ONBOARDING_STATUSBAR_COLOR = '#00000000';
+const ONBOARDING_THEME_COLOR = '#a9c7f5';
 const APP_STATUSBAR_COLOR = '#f4f6fb';
 const LAB_STATUSBAR_COLOR = '#00000000';
 const LAB_THEME_COLOR = '#a9c7f5';
 const APP_STATUSBAR_PRESET_KEY = 'appv5:statusbar-preset';
 const TAB_STORAGE_KEY = 'appv5:active-tab';
-const LAB_TAB_IDS = new Set(['freeride', 'home', 'reference']);
+const LAB_TAB_IDS = new Set(['freeride', 'home', 'reference', 'chat', 'tu']);
 const PURCHASE_EXPIRES_STORAGE_KEY = '_purchase_expires';
 const PURCHASE_EXPIRES_HUMAN_STORAGE_KEY = '_purchase_expires_human';
 const PURCHASE_USER_ID_STORAGE_KEY = '_purchase_user_id';
@@ -180,7 +181,7 @@ function calibrateAppTitlebarStatusbarOffset() {
     return;
   }
 
-  const candidatePages = ['page-free-ride', 'page-home', 'page-reference', 'page-speak']
+  const candidatePages = ['page-free-ride', 'page-home', 'page-reference', 'page-chat', 'page-speak', 'page-profile']
     .map((selector) => document.querySelector(selector))
     .filter(Boolean);
   const pageEl =
@@ -773,7 +774,7 @@ function applyAppChromeForPath(path) {
     : labChrome
     ? LAB_STATUSBAR_COLOR
     : APP_STATUSBAR_COLOR;
-  const themeColor = labChrome ? LAB_THEME_COLOR : color;
+  const themeColor = onboarding ? ONBOARDING_THEME_COLOR : labChrome ? LAB_THEME_COLOR : color;
   const lightIcons = statusbarPreset === 'clear';
   const style = getStatusBarStyle(lightIcons);
   console.log('[chrome] applyAppChromeForPath', JSON.stringify({ path, onboarding, labChrome, statusbarPreset, color, lightIcons, style }));
@@ -907,6 +908,7 @@ routerReady.then((router) => {
   setupSecretDiagnostics(router);
   setupNotificationsModal();
   setupAppTitlebarToggle();
+  setupNativeToastTopOffset();
   setupLoginModal();
   setupLoginNotificationsSeed();
   checkMagicToken();
@@ -1194,6 +1196,64 @@ function setupAppTitlebarToggle() {
       applyAppChromeForPath(getCurrentAppPath());
     }
   });
+}
+
+function setupNativeToastTopOffset() {
+  const applyOffset = (toastEl) => {
+    if (!toastEl || !toastEl.style) return;
+    const isNativePlatform =
+      document.body.classList.contains('app-platform-android') ||
+      document.body.classList.contains('app-platform-ios');
+    if (!isNativePlatform) {
+      toastEl.style.removeProperty('--ion-safe-area-top');
+      toastEl.style.removeProperty('padding-top');
+      toastEl.style.removeProperty('margin-top');
+      return;
+    }
+    // Measure the actual rendered header height (includes safe-area inset on iOS)
+    const headerEl = document.querySelector('ion-header.app-header-shell:not([hidden])');
+    const headerHeight = headerEl ? Math.round(headerEl.getBoundingClientRect().height) : 0;
+    let offsetExpr;
+    if (headerHeight > 0) {
+      offsetExpr = `${headerHeight}px`;
+    } else {
+      const usesManualOffset = document.body.classList.contains('app-statusbar-manual-offset');
+      offsetExpr = usesManualOffset
+        ? 'var(--app-native-statusbar-height, env(safe-area-inset-top, 0px))'
+        : 'env(safe-area-inset-top, 0px)';
+    }
+    toastEl.style.setProperty('--ion-safe-area-top', offsetExpr);
+    toastEl.style.removeProperty('padding-top');
+    toastEl.style.setProperty('margin-top', '0');
+    toastEl.dataset.nativeTopOffset = headerHeight > 0 ? 'measured' : 'fallback';
+  };
+
+  const patchExistingToasts = () => {
+    document.querySelectorAll('ion-toast').forEach((toastEl) => applyOffset(toastEl));
+  };
+
+  const observer = new MutationObserver((records) => {
+    records.forEach((record) => {
+      record.addedNodes.forEach((node) => {
+        if (!node || node.nodeType !== 1) return;
+        if (node.tagName && node.tagName.toLowerCase() === 'ion-toast') {
+          applyOffset(node);
+          node.addEventListener('ionToastWillPresent', () => applyOffset(node), { once: true });
+          return;
+        }
+        if (typeof node.querySelectorAll === 'function') {
+          node.querySelectorAll('ion-toast').forEach((toastEl) => {
+            applyOffset(toastEl);
+            toastEl.addEventListener('ionToastWillPresent', () => applyOffset(toastEl), { once: true });
+          });
+        }
+      });
+    });
+  });
+
+  observer.observe(document.body, { childList: true, subtree: true });
+  window.addEventListener('app:titlebar-enabled-change', patchExistingToasts);
+  patchExistingToasts();
 }
 
 function setupLoginModal() {

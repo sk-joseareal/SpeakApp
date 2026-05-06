@@ -1,8 +1,49 @@
 import { getAppLocale, setAppLocale, getActiveLocale, setLocaleOverride } from '../state.js';
 import { renderAppHeader } from '../components/app-header.js';
 import { getChatCopy, getNextLocaleCode, getTabsCopy, normalizeLocale as normalizeCopyLocale } from '../content/copy.js';
+import {
+  HERO_MASCOT_FRAMES as JOURNEY_MASCOT_FRAMES,
+  HERO_MASCOT_REST_FRAME as JOURNEY_MASCOT_REST_FRAME
+} from '../mascot-frames.js';
+
+const CHAT_JOURNEY_MASCOT_SRC = 'assets/mascot/nena/mascota_18.png';
+const TTS_LANG_BY_LOCALE = {
+  es: 'es-ES',
+  en: 'en-US'
+};
+const FREE_RIDE_HEADER_COLOR_KEY = 'appv5:free-ride-header-color';
+const FREE_RIDE_CARD_PADDED_KEY = 'appv5:free-ride-card-padded';
+const FREE_RIDE_HEADER_COLOR_VALUES = ['white', 'dark', 'blue'];
+
+const getStoredHeaderColor = () => {
+  try {
+    const raw = String(localStorage.getItem(FREE_RIDE_HEADER_COLOR_KEY) || '').trim().toLowerCase();
+    return FREE_RIDE_HEADER_COLOR_VALUES.includes(raw) ? raw : 'white';
+  } catch (_err) {
+    return 'white';
+  }
+};
+
+const isFreeRideCardPadded = () => {
+  const cached = window.r34lp0w3r && window.r34lp0w3r.freeRideCardPadded;
+  if (typeof cached === 'boolean') return cached;
+  try {
+    const raw = localStorage.getItem(FREE_RIDE_CARD_PADDED_KEY);
+    if (raw === null || raw === undefined || raw === '') return true;
+    const normalized = String(raw).trim().toLowerCase();
+    return ['1', 'true', 'on', 'yes'].includes(normalized);
+  } catch (_err) {
+    return true;
+  }
+};
 
 class PageChat extends HTMLElement {
+  applyHeaderColor(color) {
+    const normalized = FREE_RIDE_HEADER_COLOR_VALUES.includes(color) ? color : 'white';
+    FREE_RIDE_HEADER_COLOR_VALUES.forEach((value) => this.classList.remove(`header-color-${value}`));
+    this.classList.add(`header-color-${normalized}`);
+  }
+
   connectedCallback() {
     const CHAT_ALWAYS_ON_FOR_TESTING = false;
     const CHAT_MODE_TOGGLE_ALWAYS_VISIBLE_FOR_TESTING = CHAT_ALWAYS_ON_FOR_TESTING;
@@ -12,6 +53,8 @@ class PageChat extends HTMLElement {
     let uiCopy = getChatCopy(uiLocale);
     let tokenFmt = new Intl.NumberFormat(uiLocale === 'es' ? 'es-ES' : 'en-US');
     this.classList.add('ion-page');
+    this.applyHeaderColor(getStoredHeaderColor());
+    this.classList.toggle('is-card-padded', isFreeRideCardPadded());
     const WAVE_BAR_COUNT = 32;
     const waveBarsMarkup = Array.from(
       { length: WAVE_BAR_COUNT },
@@ -19,32 +62,53 @@ class PageChat extends HTMLElement {
     ).join('');
     this.innerHTML = `
       ${renderAppHeader({ title: getTabsCopy(uiLocale).chat })}
-      <ion-content fullscreen class="secret-content chat-content" scroll-y="false">
-        <div class="page-shell">
-          <div class="chat-card-header">
-            <div>
-              <div class="chat-mode-toggle profile-segmented-tabs" id="chat-mode-toggle" hidden>
-                <button type="button" class="chat-mode-btn profile-segmented-btn active" data-mode="public">${uiCopy.modePublic}</button>
-                <button type="button" class="chat-mode-btn profile-segmented-btn" data-mode="private">${uiCopy.modePrivate}</button>
-                <button type="button" class="chat-mode-btn profile-segmented-btn" data-mode="coach">${uiCopy.modeCoach}</button>
-                <button type="button" class="chat-mode-btn profile-segmented-btn" data-mode="catbot">${uiCopy.modeCatbot}</button>
-              </div>
-              <p class="muted chat-coach-subtitle" id="chat-coach-subtitle">${uiCopy.coachCatbotSubtitle}</p>
-            </div>
-            <div class="chat-header-aside">
-              <div class="coach-avatar coach-avatar-cat" id="chat-coach-avatar" aria-label="Coach">
+      <ion-content fullscreen class="secret-content chat-content free-ride-content" scroll-y="false">
+        <div class="speak-shell free-ride-shell chat-shell">
+          <section class="free-ride-hero-card onboarding-intro-card chat-hero-card">
+            <div class="free-ride-hero-stage">
+              <span class="journey-plan-mascot-wrap free-ride-mascot-wrap coach-avatar coach-avatar-journey" id="chat-coach-avatar" aria-hidden="true">
                 <img
-                  class="coach-avatar-mascot"
+                  class="onboarding-intro-cat free-ride-mascot"
                   id="chat-coach-avatar-mascot"
-                  src="/assets/mascot/mascota-boca-08.png"
+                  src="${CHAT_JOURNEY_MASCOT_SRC}"
                   alt=""
                   aria-hidden="true"
                 >
+              </span>
+              <div class="journey-plan-body">
+                <p
+                  class="onboarding-intro-bubble free-ride-hero-bubble journey-plan-bubble hero-playable-bubble chat-hero-bubble"
+                  id="chat-hero-bubble"
+                  role="button"
+                  tabindex="0"
+                  aria-label="${uiCopy.listen}"
+                >
+                  <span class="journey-plan-bubble-text">
+                    <span class="free-ride-hero-bubble-icon" aria-hidden="true"><ion-icon name="volume-high-outline"></ion-icon></span>
+                    <span id="chat-coach-subtitle">${uiCopy.coachCatbotSubtitle}</span>
+                  </span>
+                </p>
               </div>
-              <div class="chat-community-presence" id="chat-community-presence" hidden></div>
             </div>
-          </div>
-          <div class="chat-panel" id="chat-chat-panel">
+          </section>
+          <section class="free-ride-card journey-sheet chat-content-card">
+            <button class="free-ride-card-handle journey-sheet-handle" type="button" aria-label="Chat content handle">
+              <span class="free-ride-card-handle-pill journey-sheet-handle-pill" aria-hidden="true"></span>
+            </button>
+            <div class="free-ride-card-main journey-sheet-main">
+              <div class="page-shell">
+                <div class="chat-card-header">
+                  <div class="chat-mode-toggle profile-segmented-tabs" id="chat-mode-toggle" hidden>
+                    <button type="button" class="chat-mode-btn profile-segmented-btn active" data-mode="public">${uiCopy.modePublic}</button>
+                    <button type="button" class="chat-mode-btn profile-segmented-btn" data-mode="private">${uiCopy.modePrivate}</button>
+                    <button type="button" class="chat-mode-btn profile-segmented-btn" data-mode="coach">${uiCopy.modeCoach}</button>
+                    <button type="button" class="chat-mode-btn profile-segmented-btn" data-mode="catbot">${uiCopy.modeCatbot}</button>
+                  </div>
+                  <div class="chat-header-aside">
+                    <div class="chat-community-presence" id="chat-community-presence" hidden></div>
+                  </div>
+                </div>
+                <div class="chat-panel" id="chat-chat-panel">
             <div class="chat-community-lists" id="chat-community-lists" hidden>
               <section class="chat-community-list-block" id="chat-community-requests-block" hidden>
                 <div class="chat-community-list-title" id="chat-community-requests-title">${uiCopy.communityRequestsTitle}</div>
@@ -81,25 +145,25 @@ class PageChat extends HTMLElement {
             <div class="chat-thread" id="chat-chat-thread" role="log" aria-live="polite" aria-relevant="additions"></div>
             <div class="chat-hint" id="chat-chat-hint"></div>
           </div>
-          <div class="chat-chat-card" id="chat-chat-card" hidden>
-            <div class="chat-access" id="chat-access">
-              <div class="chat-access-panel chat-loading-panel" id="chat-loading-panel" hidden>
-                <ion-spinner name="dots"></ion-spinner>
-                <span>${uiCopy.loadingUser}</span>
-              </div>
-              <div class="chat-access-panel" id="chat-login-panel" hidden>
-                <p>${uiCopy.loginRequired}</p>
-                <button class="chat-btn chat-btn-send chat-login-btn" id="chat-login-btn" type="button">
-                  <ion-icon name="log-in"></ion-icon>
-                  <span>${uiCopy.loginCta}</span>
-                </button>
-              </div>
-              <div class="chat-access-panel" id="chat-locked-panel" hidden>
-                <p>${uiCopy.planLocked}</p>
-                <p class="muted">${uiCopy.planUpgrade}</p>
-              </div>
-            </div>
-            <div class="chat-composer-row" id="chat-composer-row">
+                <div class="chat-chat-card" id="chat-chat-card" hidden>
+                  <div class="chat-access" id="chat-access">
+                    <div class="chat-access-panel chat-loading-panel" id="chat-loading-panel" hidden>
+                      <ion-spinner name="dots"></ion-spinner>
+                      <span>${uiCopy.loadingUser}</span>
+                    </div>
+                    <div class="chat-access-panel" id="chat-login-panel" hidden>
+                      <p>${uiCopy.loginRequired}</p>
+                      <button class="chat-btn chat-btn-send chat-login-btn" id="chat-login-btn" type="button">
+                        <ion-icon name="log-in"></ion-icon>
+                        <span>${uiCopy.loginCta}</span>
+                      </button>
+                    </div>
+                    <div class="chat-access-panel" id="chat-locked-panel" hidden>
+                      <p>${uiCopy.planLocked}</p>
+                      <p class="muted">${uiCopy.planUpgrade}</p>
+                    </div>
+                  </div>
+                  <div class="chat-composer-row" id="chat-composer-row">
                 <div class="chat-text-row" id="chat-text-row" hidden>
                   <input
                     type="text"
@@ -144,8 +208,10 @@ class PageChat extends HTMLElement {
                 </div>
               </div>
             </div>
-          </div>
-        </div>
+              </div>
+            </div>
+        </section>
+      </div>
       </ion-content>
     `;
 
@@ -174,6 +240,8 @@ class PageChat extends HTMLElement {
     const modeToggle = this.querySelector('#chat-mode-toggle');
     const coachAvatar = this.querySelector('#chat-coach-avatar');
     const coachAvatarMascot = this.querySelector('#chat-coach-avatar-mascot');
+    const heroCardEl = this.querySelector('.chat-hero-card');
+    const heroBubbleEl = this.querySelector('#chat-hero-bubble');
     const coachTitleEl = this.querySelector('#chat-coach-title');
     const coachSubtitleEl = this.querySelector('#chat-coach-subtitle');
     const communityPresenceEl = this.querySelector('#chat-community-presence');
@@ -197,7 +265,19 @@ class PageChat extends HTMLElement {
     const composerRow = this.querySelector('#chat-composer-row');
     const textRow = this.querySelector('#chat-text-row');
     const textInput = this.querySelector('#chat-text-input');
+    const chatShellEl = this.querySelector('.chat-shell.free-ride-shell');
+    const chatSheetEl = this.querySelector('.chat-content-card.free-ride-card');
+    const chatSheetHandleEl = this.querySelector('.chat-content-card .journey-sheet-handle');
     let defaultHint = uiCopy.hintDefault;
+    let chatSheetExpanded = false;
+    let chatSheetExpandedOffset = 0;
+    let chatSheetTranslateY = 0;
+    let chatSheetDragging = false;
+    let chatSheetPointerId = null;
+    let chatSheetDragStartY = 0;
+    let chatSheetDragStartTranslateY = 0;
+    let chatSheetDragMoved = false;
+    let chatSheetLastPointerUpTs = 0;
 
     const updateComposerCardVisibility = () => {
       if (!chatCard) return;
@@ -207,6 +287,167 @@ class PageChat extends HTMLElement {
       const hasVisibleComposer = Boolean(composerRow && !composerRow.hidden);
       chatCard.hidden = !hasVisibleAccess && !hasVisibleComposer;
     };
+
+    const getChatSheetTopInset = () => {
+      if (document.body.classList.contains('app-titlebar-enabled')) return 0;
+      if (!chatShellEl) return 0;
+      const paddingTop = Number.parseFloat(window.getComputedStyle(chatShellEl).paddingTop || '0');
+      return Number.isFinite(paddingTop) ? Math.max(0, Math.round(paddingTop)) : 0;
+    };
+
+    const measureChatSheetExpandedOffset = () => {
+      if (!chatShellEl || !chatSheetEl) return 0;
+      const shellRect = chatShellEl.getBoundingClientRect();
+      const sheetRect = chatSheetEl.getBoundingClientRect();
+      const targetTop = shellRect.top + getChatSheetTopInset();
+      const offset = Math.max(0, Math.round(sheetRect.top - chatSheetTranslateY - targetTop));
+      chatSheetExpandedOffset = offset;
+      return offset;
+    };
+
+    const applyChatSheetState = ({ animate = true, force = false } = {}) => {
+      if (!chatSheetEl) return;
+      if (chatSheetExpanded && (!chatSheetExpandedOffset || force)) {
+        measureChatSheetExpandedOffset();
+      }
+      const offset = chatSheetExpanded ? chatSheetExpandedOffset : 0;
+      chatSheetTranslateY = chatSheetExpanded ? -offset : 0;
+      chatSheetEl.dataset.sheetState = chatSheetExpanded ? 'expanded' : 'collapsed';
+      chatSheetEl.classList.toggle('is-sheet-instant', !animate);
+      chatSheetEl.style.setProperty('--sheet-lift', `${Math.max(0, -chatSheetTranslateY)}px`);
+      if (chatSheetHandleEl) {
+        chatSheetHandleEl.setAttribute('aria-expanded', chatSheetExpanded ? 'true' : 'false');
+      }
+      if (!animate) {
+        requestAnimationFrame(() => {
+          if (!chatSheetEl.isConnected) return;
+          chatSheetEl.classList.remove('is-sheet-instant');
+        });
+      }
+    };
+
+    const toggleChatSheet = (animate = true) => {
+      chatSheetExpanded = !chatSheetExpanded;
+      if (chatSheetExpanded && !chatSheetExpandedOffset) {
+        measureChatSheetExpandedOffset();
+      }
+      applyChatSheetState({ animate });
+    };
+
+    const startChatSheetDrag = (event) => {
+      const handleEl = event && event.currentTarget ? event.currentTarget : null;
+      if (!handleEl || !chatSheetEl || typeof event.pointerId !== 'number') return;
+      if (event.button !== 0) return;
+
+      chatSheetExpandedOffset = measureChatSheetExpandedOffset();
+      chatSheetDragging = true;
+      chatSheetPointerId = event.pointerId;
+      chatSheetDragStartY = event.clientY;
+      chatSheetDragStartTranslateY = chatSheetExpanded ? -chatSheetExpandedOffset : 0;
+      chatSheetDragMoved = false;
+      chatSheetEl.classList.add('is-sheet-dragging');
+      applyChatSheetState({ animate: false });
+
+      try {
+        handleEl.setPointerCapture(event.pointerId);
+      } catch (_err) {
+        // no-op
+      }
+      event.preventDefault();
+    };
+
+    const moveChatSheetDrag = (event) => {
+      if (!chatSheetDragging) return;
+      if (typeof event.pointerId === 'number' && event.pointerId !== chatSheetPointerId) return;
+      if (!chatSheetEl) return;
+
+      const deltaY = Number(event.clientY) - chatSheetDragStartY;
+      const nextTranslate = chatSheetDragStartTranslateY + deltaY;
+      const minTranslate = -chatSheetExpandedOffset;
+      const maxTranslate = 0;
+      const clampedTranslate = Math.max(minTranslate, Math.min(maxTranslate, nextTranslate));
+
+      if (Math.abs(clampedTranslate - chatSheetDragStartTranslateY) > 4) {
+        chatSheetDragMoved = true;
+      }
+
+      chatSheetTranslateY = clampedTranslate;
+      chatSheetEl.style.setProperty('--sheet-lift', `${Math.max(0, -clampedTranslate)}px`);
+      event.preventDefault();
+    };
+
+    const finishChatSheetDrag = (event) => {
+      if (!chatSheetDragging) return;
+      if (typeof event.pointerId === 'number' && event.pointerId !== chatSheetPointerId) return;
+
+      const currentTranslate = Number.isFinite(chatSheetTranslateY) ? chatSheetTranslateY : 0;
+      const midpoint = -Math.max(0, chatSheetExpandedOffset) / 2;
+      const nextExpanded = chatSheetDragMoved ? currentTranslate <= midpoint : !chatSheetExpanded;
+
+      chatSheetDragging = false;
+      chatSheetPointerId = null;
+      chatSheetDragMoved = false;
+      chatSheetLastPointerUpTs = Date.now();
+
+      if (chatSheetEl) {
+        chatSheetEl.classList.remove('is-sheet-dragging');
+      }
+      if (chatSheetHandleEl) {
+        try {
+          if (typeof event.pointerId === 'number' && chatSheetHandleEl.hasPointerCapture(event.pointerId)) {
+            chatSheetHandleEl.releasePointerCapture(event.pointerId);
+          }
+        } catch (_err) {
+          // no-op
+        }
+      }
+      chatSheetExpanded = nextExpanded;
+      applyChatSheetState({ animate: true, force: true });
+    };
+
+    const cancelChatSheetDrag = () => {
+      if (!chatSheetDragging) return;
+      chatSheetDragging = false;
+      chatSheetPointerId = null;
+      chatSheetDragMoved = false;
+      if (chatSheetEl) {
+        chatSheetEl.classList.remove('is-sheet-dragging');
+      }
+      applyChatSheetState({ animate: true, force: true });
+    };
+
+    chatSheetHandleEl?.addEventListener('pointerdown', (event) => {
+      startChatSheetDrag(event);
+    });
+    chatSheetHandleEl?.addEventListener('pointermove', (event) => {
+      moveChatSheetDrag(event);
+    });
+    chatSheetHandleEl?.addEventListener('pointerup', (event) => {
+      finishChatSheetDrag(event);
+    });
+    chatSheetHandleEl?.addEventListener('pointercancel', () => {
+      cancelChatSheetDrag();
+    });
+    chatSheetHandleEl?.addEventListener('lostpointercapture', () => {
+      cancelChatSheetDrag();
+    });
+    chatSheetHandleEl?.addEventListener('click', (event) => {
+      const lastPointerUpTs = Number(chatSheetLastPointerUpTs) || 0;
+      if (lastPointerUpTs && Date.now() - lastPointerUpTs < 350) {
+        event.preventDefault();
+        return;
+      }
+      event.preventDefault();
+      toggleChatSheet(true);
+    });
+    chatSheetHandleEl?.addEventListener('keydown', (event) => {
+      const key = event && event.key ? event.key : '';
+      if (key !== 'Enter' && key !== ' ') return;
+      event.preventDefault();
+      toggleChatSheet(true);
+    });
+    measureChatSheetExpandedOffset();
+    applyChatSheetState({ animate: false, force: true });
 
     const DEFAULT_SAMPLE_TRANSCRIPTS = [
       'I would like to order a coffee, please.',
@@ -308,6 +549,10 @@ class PageChat extends HTMLElement {
     const TALK_STATE_RECORDING = 'recording';
     const TALK_STATE_REVIEW = 'review';
     const COACH_MASCOT_SEQUENCES = {
+      community: {
+        framePaths: JOURNEY_MASCOT_FRAMES,
+        restFrame: JOURNEY_MASCOT_REST_FRAME
+      },
       catbot: {
         framePaths: [
           '/assets/mascot/mascota-boca-00.png',
@@ -370,7 +615,7 @@ class PageChat extends HTMLElement {
     const chatThreads = { catbot: [], chatbot: [], community: [] };
     let talkState = TALK_STATE_IDLE;
     let communityHistoryLoading = false;
-    let coachMascotFrameIndex = COACH_MASCOT_SEQUENCES.catbot.restFrame;
+    let coachMascotFrameIndex = COACH_MASCOT_SEQUENCES.community.restFrame;
     let coachMascotFrameTimer = null;
     let coachMascotTalkRefs = 0;
     let recordingStartedAt = 0;
@@ -407,6 +652,51 @@ class PageChat extends HTMLElement {
       typeof window !== 'undefined' &&
       typeof window.speechSynthesis !== 'undefined' &&
       typeof window.SpeechSynthesisUtterance !== 'undefined';
+    const waitForWebVoices = (timeoutMs = 1200) => {
+      if (!canSpeak()) return Promise.resolve([]);
+      const synth = window.speechSynthesis;
+      const voicesNow = typeof synth.getVoices === 'function' ? synth.getVoices() : [];
+      if (voicesNow.length) return Promise.resolve(voicesNow);
+      return new Promise((resolve) => {
+        let done = false;
+        const finish = () => {
+          if (done) return;
+          done = true;
+          if (typeof synth.removeEventListener === 'function') {
+            synth.removeEventListener('voiceschanged', onVoicesChanged);
+          } else {
+            synth.onvoiceschanged = null;
+          }
+          const voices = typeof synth.getVoices === 'function' ? synth.getVoices() : [];
+          resolve(voices);
+        };
+        const onVoicesChanged = () => finish();
+        if (typeof synth.addEventListener === 'function') {
+          synth.addEventListener('voiceschanged', onVoicesChanged, { once: true });
+        } else {
+          synth.onvoiceschanged = onVoicesChanged;
+        }
+        setTimeout(finish, Math.max(0, timeoutMs));
+      });
+    };
+    const waitForDocumentVisible = (timeoutMs = 1600) => {
+      if (typeof document === 'undefined') return Promise.resolve();
+      if (document.visibilityState === 'visible') return Promise.resolve();
+      return new Promise((resolve) => {
+        let done = false;
+        const finish = () => {
+          if (done) return;
+          done = true;
+          document.removeEventListener('visibilitychange', onChange);
+          resolve();
+        };
+        const onChange = () => {
+          if (document.visibilityState === 'visible') finish();
+        };
+        document.addEventListener('visibilitychange', onChange);
+        setTimeout(finish, Math.max(0, timeoutMs));
+      });
+    };
     const normalizeCatbotFeatureEnabled = (value) => {
       if (typeof value === 'boolean') return value;
       const normalized = String(value || '')
@@ -4239,6 +4529,10 @@ class PageChat extends HTMLElement {
       }
       applyThreadViewportClamp();
       scheduleScrollThreadToBottom('auto');
+      if (chatSheetExpanded) {
+        chatSheetExpandedOffset = measureChatSheetExpandedOffset();
+        applyChatSheetState({ animate: false, force: true });
+      }
       const openedByOffset = offset > KEYBOARD_OFFSET_EPSILON && previousOffset <= KEYBOARD_OFFSET_EPSILON;
       if ((keyboardOpen && !wasKeyboardOpen) || openedByOffset) {
         scrollThreadToBottom('auto');
@@ -4334,11 +4628,13 @@ class PageChat extends HTMLElement {
       }
     };
 
-    const getCoachMascotSequenceKey = () => (chatMode === 'chatbot' ? 'chatbot' : 'catbot');
+    const isAnimatedCoachMode = (mode = chatMode) => Boolean(getCoachMascotSequence(mode));
 
     const getCoachMascotSequence = (mode = chatMode) => {
-      const key = mode === 'chatbot' ? 'chatbot' : 'catbot';
-      return COACH_MASCOT_SEQUENCES[key] || COACH_MASCOT_SEQUENCES.catbot;
+      if (mode === 'chatbot') return COACH_MASCOT_SEQUENCES.chatbot;
+      if (mode === 'catbot') return COACH_MASCOT_SEQUENCES.catbot;
+      if (mode === 'community') return COACH_MASCOT_SEQUENCES.community;
+      return COACH_MASCOT_SEQUENCES.community;
     };
 
     const normalizeCoachMascotFrameIndex = (frameIndex, frameCount, fallbackIndex = 0) => {
@@ -4354,7 +4650,7 @@ class PageChat extends HTMLElement {
       const framePaths =
         sequence && Array.isArray(sequence.framePaths) && sequence.framePaths.length
           ? sequence.framePaths
-          : COACH_MASCOT_SEQUENCES.catbot.framePaths;
+          : COACH_MASCOT_SEQUENCES.community.framePaths;
       const restFrame = Number.isFinite(sequence && sequence.restFrame)
         ? sequence.restFrame
         : framePaths.length - 1;
@@ -4391,11 +4687,12 @@ class PageChat extends HTMLElement {
     };
 
     const startCoachMascotTalk = () => {
-      if (chatMode !== 'chatbot' && chatMode !== 'catbot') return;
+      if (!isAnimatedCoachMode(chatMode)) return;
       preloadCoachMascotFrames();
       coachMascotTalkRefs += 1;
       if (coachMascotTalkRefs > 1) return;
       if (coachAvatar) coachAvatar.classList.add('is-speaking');
+      if (heroBubbleEl) heroBubbleEl.classList.add('is-speaking');
       if (coachMascotFrameTimer) {
         clearInterval(coachMascotFrameTimer);
         coachMascotFrameTimer = null;
@@ -4443,11 +4740,12 @@ class PageChat extends HTMLElement {
         coachMascotFrameTimer = null;
       }
       if (coachAvatar) coachAvatar.classList.remove('is-speaking');
+      if (heroBubbleEl) heroBubbleEl.classList.remove('is-speaking');
       if (settle) {
         const sequence = getCoachMascotSequence();
-        const restFrame = Number.isFinite(sequence.restFrame)
+        const restFrame = Number.isFinite(sequence && sequence.restFrame)
           ? sequence.restFrame
-          : Math.max(0, (Array.isArray(sequence.framePaths) ? sequence.framePaths.length : 1) - 1);
+          : Math.max(0, (Array.isArray(sequence && sequence.framePaths) ? sequence.framePaths.length : 1) - 1);
         renderCoachMascotFrame(restFrame, sequence);
       }
     };
@@ -5184,7 +5482,15 @@ class PageChat extends HTMLElement {
 	    };
 
     const playSpeechWeb = (text, options = {}) => {
-      const { onStart, onEnd, onError, skipStop = false, messageId = '', playbackSource = 'native' } = options;
+      const {
+        onStart,
+        onEnd,
+        onError,
+        skipStop = false,
+        messageId = '',
+        playbackSource = 'native',
+        ttsLang = 'en-US'
+      } = options;
       if (!text || !canSpeak()) return false;
       if (!skipStop) {
         stopPlayback();
@@ -5204,7 +5510,7 @@ class PageChat extends HTMLElement {
         stopCoachMascotTalk({ settle: true });
       };
       const utter = new SpeechSynthesisUtterance(text);
-      utter.lang = 'en-US';
+      utter.lang = ttsLang || 'en-US';
       utter.onstart = () => {
         startTalk();
         if (typeof onStart === 'function') onStart(playbackSource);
@@ -5237,7 +5543,15 @@ class PageChat extends HTMLElement {
     };
 
     const playSpeech = (text, options = {}) => {
-      const { onStart, onEnd, onError, skipStop = false, messageId = '', playbackSource = 'native' } = options;
+      const {
+        onStart,
+        onEnd,
+        onError,
+        skipStop = false,
+        messageId = '',
+        playbackSource = 'native',
+        ttsLang = 'en-US'
+      } = options;
       if (!text) return false;
       if (!skipStop) {
         stopPlayback();
@@ -5268,11 +5582,11 @@ class PageChat extends HTMLElement {
           clearActiveMessagePlayback(messageId);
           stopCoachMascotTalk({ settle: true });
         };
-        startTalkTimer = setTimeout(startTalk, 240);
+        startTalk();
         Promise.resolve(
           ttsPlugin.speak({
             text,
-            lang: 'en-US',
+            lang: ttsLang || 'en-US',
             rate: 1.0,
             pitch: 1.0,
             volume: 1.0,
@@ -5292,7 +5606,8 @@ class PageChat extends HTMLElement {
               onError,
               skipStop: true,
               messageId,
-              playbackSource
+              playbackSource,
+              ttsLang
             });
             if (!startedWeb && typeof onError === 'function') {
               onError(err);
@@ -5300,7 +5615,15 @@ class PageChat extends HTMLElement {
           });
         return true;
       }
-      return playSpeechWeb(text, { onStart, onEnd, onError, skipStop: true, messageId, playbackSource });
+      return playSpeechWeb(text, {
+        onStart,
+        onEnd,
+        onError,
+        skipStop: true,
+        messageId,
+        playbackSource,
+        ttsLang
+      });
     };
 
     const playPreviewAudio = ({ audioUrl, speakText }) => {
@@ -5539,6 +5862,7 @@ class PageChat extends HTMLElement {
       if (coachBtn) {
         coachBtn.hidden = !isChatbotFeatureEnabled();
       }
+      updateCommunityNavUnreadUi();
     };
 
     const sanitizeTalkMessage = (message) => {
@@ -7741,18 +8065,23 @@ class PageChat extends HTMLElement {
     window.addEventListener('app:tab-visibility-change', this._tabVisibilityHandler);
     const updateCoachAvatar = () => {
       if (!coachAvatar) return;
+      if (!coachAvatarMascot) return;
       stopCoachMascotTalk({ settle: false, all: true });
-      if (chatMode === 'community') {
-        coachAvatar.hidden = true;
-        return;
-      }
       coachAvatar.hidden = false;
+      coachAvatar.classList.remove('coach-avatar-cat', 'coach-avatar-bot', 'coach-avatar-journey', 'is-compact');
       if (chatMode === 'chatbot') {
-        coachAvatar.classList.remove('coach-avatar-cat');
         coachAvatar.classList.add('coach-avatar-bot');
-      } else {
-        coachAvatar.classList.remove('coach-avatar-bot');
+        coachAvatar.classList.add('is-compact');
+      } else if (chatMode === 'catbot') {
         coachAvatar.classList.add('coach-avatar-cat');
+        coachAvatar.classList.add('is-compact');
+      } else {
+        coachAvatar.classList.add('coach-avatar-journey');
+        const journeySrc = CHAT_JOURNEY_MASCOT_SRC;
+        if (coachAvatarMascot.getAttribute('src') !== journeySrc) {
+          coachAvatarMascot.setAttribute('src', journeySrc);
+        }
+        return;
       }
       preloadCoachMascotFrames();
       const sequence = getCoachMascotSequence();
@@ -7784,6 +8113,9 @@ class PageChat extends HTMLElement {
       if (coachTitleEl) coachTitleEl.textContent = title;
       if (toolbarTitleEl) toolbarTitleEl.textContent = title;
       coachSubtitleEl.textContent = subtitle;
+      if (heroBubbleEl) {
+        heroBubbleEl.setAttribute('aria-label', uiCopy.listen || 'Listen');
+      }
     };
 
     const applyLocaleCopy = (nextLocale, options = {}) => {
@@ -8191,6 +8523,150 @@ class PageChat extends HTMLElement {
       setSurfaceChatMode(mode, { reconnect: true });
     });
 
+    const waitMs = (ms) =>
+      new Promise((resolve) => {
+        setTimeout(resolve, Math.max(0, Number(ms) || 0));
+      });
+
+    const estimateHeroBubblePlaybackMs = (text) => {
+      const chars = String(text || '').trim().length;
+      return Math.min(9500, Math.max(900, Math.round(chars * 72)));
+    };
+
+    const playHeroBubbleAudioUrl = async (url, playbackSource = 'polly') =>
+      new Promise((resolve) => {
+        let settled = false;
+        const settle = (ok) => {
+          if (settled) return;
+          settled = true;
+          resolve(Boolean(ok));
+        };
+        const started = playAudioUrl(url, {
+          skipStop: true,
+          playbackSource,
+          onStart: () => settle(true),
+          onError: () => settle(false)
+        });
+        if (!started) {
+          settle(false);
+          return;
+        }
+        setTimeout(() => settle(true), 1800);
+      });
+
+    const playHeroBubbleAligned = async (bubbleText, bubbleLang, requestToken) => {
+      let payload = null;
+      try {
+        payload = await fetchChatbotAlignedTts(bubbleText, bubbleLang);
+      } catch (err) {
+        payload = null;
+      }
+      if (requestToken !== playbackRequestToken) return false;
+      if (!payload || payload.ok === false) return false;
+      const audioUrl = typeof payload.audio_url === 'string' ? payload.audio_url.trim() : '';
+      if (!audioUrl) return false;
+      const playbackSource =
+        normalizeAudioKind(payload.audio_kind || payload.provider || 'polly') || 'polly';
+      return playHeroBubbleAudioUrl(audioUrl, playbackSource);
+    };
+
+    const playHeroBubbleNative = async (bubbleText, bubbleLang, requestToken) => {
+      const ttsPlugin = getNativeTtsPlugin();
+      if (!ttsPlugin || typeof ttsPlugin.speak !== 'function') return false;
+      const startedAt = Date.now();
+      startCoachMascotTalk();
+      try {
+        await Promise.resolve(
+          ttsPlugin.speak({
+            text: bubbleText,
+            lang: bubbleLang,
+            rate: 1.0,
+            pitch: 1.0,
+            volume: 1.0,
+            category: 'ambient',
+            queueStrategy: 1
+          })
+        );
+        if (requestToken !== playbackRequestToken) return false;
+        const minMs = estimateHeroBubblePlaybackMs(bubbleText);
+        const elapsed = Date.now() - startedAt;
+        if (elapsed < minMs) {
+          await waitMs(minMs - elapsed);
+        }
+        return requestToken === playbackRequestToken;
+      } catch (err) {
+        return false;
+      } finally {
+        if (requestToken === playbackRequestToken) {
+          stopCoachMascotTalk({ settle: true });
+        }
+      }
+    };
+
+    const playHeroBubbleWebOnce = async (bubbleText, bubbleLang, voiceWaitMs = 1500) => {
+      if (!canSpeak()) return false;
+      await waitForDocumentVisible(1800);
+      await waitForWebVoices(voiceWaitMs);
+      return new Promise((resolve) => {
+        let settled = false;
+        const settle = (ok) => {
+          if (settled) return;
+          settled = true;
+          resolve(Boolean(ok));
+        };
+        const started = playSpeechWeb(bubbleText, {
+          skipStop: true,
+          playbackSource: 'hero',
+          ttsLang: bubbleLang,
+          onStart: () => settle(true),
+          onError: () => settle(false)
+        });
+        if (!started) {
+          settle(false);
+          return;
+        }
+        setTimeout(() => settle(true), 1800);
+      });
+    };
+
+    const playHeroBubble = async () => {
+      const bubbleText = String(coachSubtitleEl?.textContent || '').trim();
+      if (!bubbleText) return;
+      const bubbleLang = TTS_LANG_BY_LOCALE[uiLocale] || 'en-US';
+      stopPlayback();
+      const requestToken = playbackRequestToken;
+
+      let started = await playHeroBubbleAligned(bubbleText, bubbleLang, requestToken);
+      if (!started && requestToken === playbackRequestToken) {
+        started = await playHeroBubbleNative(bubbleText, bubbleLang, requestToken);
+      }
+      if (!started && requestToken === playbackRequestToken) {
+        started = await playHeroBubbleWebOnce(bubbleText, bubbleLang, 1500);
+      }
+      if (!started && requestToken === playbackRequestToken) {
+        await waitMs(450);
+        if (requestToken !== playbackRequestToken) return;
+        stopPlayback();
+        await playHeroBubbleWebOnce(bubbleText, bubbleLang, 3200);
+      }
+    };
+
+    const handleHeroBubbleActivate = (event) => {
+      const target = event && event.target instanceof Element ? event.target : null;
+      if (!target) return;
+      const inBubble = target.closest('.chat-hero-bubble, .hero-playable-bubble, .journey-plan-bubble');
+      if (!inBubble) return;
+      if (event.type === 'keydown') {
+        const key = event && event.key ? event.key : '';
+        if (key !== 'Enter' && key !== ' ') return;
+      }
+      event.preventDefault();
+      playHeroBubble().catch(() => {});
+    };
+
+    heroCardEl?.addEventListener('click', handleHeroBubbleActivate);
+    heroCardEl?.addEventListener('keydown', handleHeroBubbleActivate);
+
     catbotFeatureEnabled = getStoredCatbotFeatureEnabled();
     chatbotFeatureEnabled = getStoredChatbotFeatureEnabled();
     window.r34lp0w3r = window.r34lp0w3r || {};
@@ -8248,6 +8724,8 @@ class PageChat extends HTMLElement {
         refreshCommunityPresenceNow({ silent: true });
       }
       if (tab !== 'chat') return;
+      chatSheetExpandedOffset = measureChatSheetExpandedOffset();
+      applyChatSheetState({ animate: false, force: true });
       scrollChatTimelineToLatest('auto');
     };
     window.addEventListener('app:tab-change', this._tabChangeHandler);
@@ -8260,9 +8738,26 @@ class PageChat extends HTMLElement {
         refreshCommunityPresenceNow({ silent: true });
       }
       if (tab !== 'chat') return;
+      chatSheetExpandedOffset = measureChatSheetExpandedOffset();
+      applyChatSheetState({ animate: false, force: true });
       scrollChatTimelineToLatest('auto');
     };
     window.addEventListener('app:tab-user-click', this._tabUserClickHandler);
+    this._headerColorHandler = (event) => {
+      if (!this.isConnected) return;
+      const color = event && event.detail ? event.detail.color : '';
+      this.applyHeaderColor(color || getStoredHeaderColor());
+    };
+    this._cardPaddedHandler = (event) => {
+      if (!this.isConnected) return;
+      const detail = event && event.detail ? event.detail : {};
+      const enabled = typeof detail.enabled === 'boolean' ? detail.enabled : isFreeRideCardPadded();
+      this.classList.toggle('is-card-padded', enabled);
+      chatSheetExpandedOffset = measureChatSheetExpandedOffset();
+      applyChatSheetState({ animate: false, force: true });
+    };
+    window.addEventListener('app:free-ride-header-color-change', this._headerColorHandler);
+    window.addEventListener('app:free-ride-card-padded-change', this._cardPaddedHandler);
 
     this._cleanupChat = () => {
       resetChatSession({ keepIntro: false, setDefaultHint: false });
@@ -8336,6 +8831,12 @@ class PageChat extends HTMLElement {
     }
     if (this._tabUserClickHandler) {
       window.removeEventListener('app:tab-user-click', this._tabUserClickHandler);
+    }
+    if (this._headerColorHandler) {
+      window.removeEventListener('app:free-ride-header-color-change', this._headerColorHandler);
+    }
+    if (this._cardPaddedHandler) {
+      window.removeEventListener('app:free-ride-card-padded-change', this._cardPaddedHandler);
     }
   }
 }

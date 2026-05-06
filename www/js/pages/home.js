@@ -69,11 +69,11 @@ const getStoredHeaderColor = () => {
 const isFreeRideCardPadded = () => {
   try {
     const raw = localStorage.getItem(FREE_RIDE_CARD_PADDED_KEY);
-    if (raw === null || raw === undefined || raw === '') return false;
+    if (raw === null || raw === undefined || raw === '') return true;
     const normalized = String(raw).trim().toLowerCase();
     return ['1', 'true', 'on', 'yes'].includes(normalized);
   } catch (_err) {
-    return false;
+    return true;
   }
 };
 

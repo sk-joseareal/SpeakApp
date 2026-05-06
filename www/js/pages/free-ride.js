@@ -205,7 +205,10 @@ class PageFreeRide extends HTMLElement {
       advancedAssessment: null,
       advancedAssessmentPending: false,
       translationLoading: false,
-      translationError: ''
+      translationError: '',
+      translationBackendError: '',
+      translationLocalHint: '',
+      manualTranslateMode: false
     };
 
     this.currentUiLocale = 'en';
@@ -258,6 +261,7 @@ class PageFreeRide extends HTMLElement {
     this.recordingWaveData = null;
     this.recordingWaveValues = new Array(5).fill(0);
     this.translationRequestId = 0;
+    this.nativeTranslationPrepareAttempted = false;
     this.heroTapTimer = null;
     this.lastHeroTapTs = 0;
     this.freeRideSheetExpanded = false;
@@ -593,6 +597,8 @@ class PageFreeRide extends HTMLElement {
       this.state.expectedSourceText = '';
       this.state.practiceTextOrigin = '';
       this.state.detectedInputLanguage = '';
+      this.state.translationLocalHint = '';
+      this.state.manualTranslateMode = false;
       if (persist) this.persistPracticeText('');
       return;
     }
@@ -610,6 +616,9 @@ class PageFreeRide extends HTMLElement {
     }
     if (dominantLanguage === 'es') {
       this.state.detectedInputLanguage = 'es';
+      if (this.state.manualTranslateMode) {
+        return;
+      }
       if (
         this.state.translationLoading &&
         this.normalizeSavedPhraseComparableText(this.state.expectedSourceText) ===
@@ -633,6 +642,9 @@ class PageFreeRide extends HTMLElement {
     this.state.practiceTextOrigin = 'input';
     this.state.translationLoading = false;
     this.state.translationError = '';
+    this.state.translationBackendError = '';
+    this.state.translationLocalHint = '';
+    this.state.manualTranslateMode = false;
     if (persist) this.persistPracticeText(inputText);
   }
 
@@ -1098,6 +1110,35 @@ class PageFreeRide extends HTMLElement {
     }
   }
 
+  shouldAttemptNativeTranslationPrepare(result) {
+    if (!this.isNativeIOS()) return false;
+    if (this.nativeTranslationPrepareAttempted) return false;
+    const reason = String(result && result.reason ? result.reason : '').trim().toLowerCase();
+    const knownReasons = [
+      'language_status_supported',
+      'language_status_notinstalled',
+      'notinstalled',
+      'language_status_unknown_pre26'
+    ];
+    if (knownReasons.some((token) => reason.includes(token))) return true;
+    return false;
+  }
+
+  async prepareNativeTranslationModel(sourceLanguage = 'es', targetLanguage = 'en') {
+    if (!this.isNativeIOS()) return null;
+    const plugin = this.getNativeTranscribePlugin();
+    if (!plugin || typeof plugin.prepareTranslationModel !== 'function') return null;
+    try {
+      const result = await plugin.prepareTranslationModel({
+        sourceLanguage: this.normalizeDetectedLanguageCode(sourceLanguage) || 'es',
+        targetLanguage: this.normalizeDetectedLanguageCode(targetLanguage) || 'en'
+      });
+      return result && typeof result === 'object' ? result : null;
+    } catch (_err) {
+      return null;
+    }
+  }
+
   resolveChromeTranslatorApi() {
     if (this.isNativeRuntime()) return null;
     const w = typeof self !== 'undefined' ? self : (typeof window !== 'undefined' ? window : {});
@@ -1252,12 +1293,23 @@ class PageFreeRide extends HTMLElement {
     this.state.practiceTextOrigin = 'translation';
     this.state.detectedInputLanguage = sourceLang || fallbackSourceLanguage || 'es';
     this.state.translationError = '';
+    this.state.translationBackendError = '';
+    this.state.translationLocalHint = '';
+    this.state.manualTranslateMode = false;
     this.persistPracticeText(this.state.expectedText, this.currentUiLocale);
     this.clearPracticeResult({ skipRender: true, clearRecording: true });
   }
 
-  setPracticeTranslationFallback(sourceText, sourceLanguage = 'es') {
+  setPracticeTranslationFallback(sourceText, sourceLanguage = 'es', options = {}) {
     const normalizedSourceText = String(sourceText || '').trim();
+    const fromLocal = options && options.fromLocal === true;
+    const localReasonRaw = String((options && options.localReason) || '').trim();
+    const localReason = localReasonRaw.toLowerCase();
+    const localModelMissing =
+      localReason.includes('language_status_supported') ||
+      localReason.includes('language_status_notinstalled') ||
+      localReason.includes('notinstalled') ||
+      localReason.includes('language_status_unknown_pre26');
     this.state.translationLoading = false;
     this.state.expectedText = '';
     this.state.expectedSourceText = normalizedSourceText;
@@ -1267,6 +1319,18 @@ class PageFreeRide extends HTMLElement {
       'translationError',
       'Could not translate right now.'
     );
+    this.state.translationBackendError = '';
+    if (fromLocal) {
+      this.state.manualTranslateMode = true;
+      if (localModelMissing) {
+        this.state.translationLocalHint = this.getLanguageValidationMessage(
+          'translationLocalNotInstalled',
+          'Local translator available but language model is not installed.'
+        );
+      } else {
+        this.state.translationLocalHint = '';
+      }
+    }
     this.persistPracticeText('', this.currentUiLocale);
   }
 
@@ -1297,7 +1361,10 @@ class PageFreeRide extends HTMLElement {
         this.applyTranslatedPracticeText(result, normalizedText, 'es');
       } catch (_err) {
         if (this.translationRequestId !== requestId) return;
-        this.setPracticeTranslationFallback(normalizedText, 'es');
+        this.setPracticeTranslationFallback(normalizedText, 'es', {
+          fromLocal: true,
+          localReason: (_err && _err.message) || ''
+        });
       }
       this.state.translationLoading = false;
       this.updatePhrasePreview(this.currentCopy);
@@ -1317,20 +1384,34 @@ class PageFreeRide extends HTMLElement {
       ) {
         return;
       }
-      this.setPracticeTranslationFallback(normalizedText, 'es');
+      this.setPracticeTranslationFallback(normalizedText, 'es', {
+        fromLocal: true,
+        localReason: 'translation_timeout'
+      });
       this.state.translationLoading = false;
       this.updatePhrasePreview(this.currentCopy);
     }, FREE_RIDE_LOCAL_TRANSLATION_UI_TIMEOUT_MS);
     try {
-      const result = await this.translateFreeRideTextViaNative(normalizedText, 'es', 'en');
+      let result = await this.translateFreeRideTextViaNative(normalizedText, 'es', 'en');
       if (this.translationRequestId !== requestId) return;
+      if ((!result || !result.available || !result.translatedText) && this.shouldAttemptNativeTranslationPrepare(result)) {
+        this.nativeTranslationPrepareAttempted = true;
+        const prepareResult = await this.prepareNativeTranslationModel('es', 'en');
+        if (this.translationRequestId !== requestId) return;
+        if (prepareResult && prepareResult.available === true) {
+          result = await this.translateFreeRideTextViaNative(normalizedText, 'es', 'en');
+        }
+      }
       if (!result || !result.available || !result.translatedText) {
         throw new Error(result && result.reason ? result.reason : 'native_translation_unavailable');
       }
       this.applyTranslatedPracticeText(result, normalizedText, 'es');
     } catch (err) {
       if (this.translationRequestId !== requestId) return;
-      this.setPracticeTranslationFallback(normalizedText, 'es');
+      this.setPracticeTranslationFallback(normalizedText, 'es', {
+        fromLocal: true,
+        localReason: (err && err.message) || ''
+      });
     } finally {
       if (slowFallbackTimer) {
         clearTimeout(slowFallbackTimer);
@@ -1351,6 +1432,7 @@ class PageFreeRide extends HTMLElement {
     const requestId = ++this.translationRequestId;
     this.state.translationLoading = true;
     this.state.translationError = '';
+    this.state.translationBackendError = '';
     this.state.detectedInputLanguage = 'es';
     this.updatePhrasePreview(this.currentCopy);
 
@@ -1365,7 +1447,11 @@ class PageFreeRide extends HTMLElement {
     } catch (err) {
       if (this.translationRequestId !== requestId) return;
       console.warn('[free-ride] remote translation failed', err);
-      this.setPracticeTranslationFallback(text, 'es');
+      this.setPracticeTranslationFallback(text, 'es', { fromLocal: false });
+      this.state.translationBackendError = this.getLanguageValidationMessage(
+        'translationBackendError',
+        'Could not translate with the server. Please try again.'
+      );
     } finally {
       if (this.translationRequestId === requestId) {
         this.state.translationLoading = false;
@@ -2350,6 +2436,9 @@ class PageFreeRide extends HTMLElement {
         : '';
     this.state.translationLoading = false;
     this.state.translationError = '';
+    this.state.translationBackendError = '';
+    this.state.translationLocalHint = '';
+    this.state.manualTranslateMode = false;
     this.persistPhrase(this.state.inputText, this.currentUiLocale);
     this.persistPracticeText(
       this.state.practiceTextOrigin ? this.state.expectedText : '',
@@ -2508,6 +2597,9 @@ class PageFreeRide extends HTMLElement {
         : '';
     this.state.translationLoading = false;
     this.state.translationError = '';
+    this.state.translationBackendError = '';
+    this.state.translationLocalHint = '';
+    this.state.manualTranslateMode = false;
     this.practiceLanguageValidation = this.createEmptyPracticeLanguageValidation();
     this.clearPracticeTranslationTimer();
   }
@@ -4647,8 +4739,13 @@ class PageFreeRide extends HTMLElement {
       );
     const shouldShowTranslationPending =
       inputText &&
-      translationFailedForCurrentInput &&
-      this.state.practiceTextOrigin !== 'translation';
+      this.state.practiceTextOrigin !== 'translation' &&
+      (
+        this.state.manualTranslateMode ||
+        translationFailedForCurrentInput ||
+        this.state.translationLoading ||
+        Boolean(this.state.translationBackendError)
+      );
     if (shouldShowTranslationPending) {
       const pendingText = String(
         copy && copy.translationPending ? copy.translationPending : 'Translation pending'
@@ -5824,7 +5921,13 @@ class PageFreeRide extends HTMLElement {
     }, waitMs);
   }
 
-  playHeroNarration(forceNarration = false) {
+  playHeroNarration(options = false) {
+    const forceNarration =
+      typeof options === 'object' && options !== null
+        ? Boolean(options.force)
+        : Boolean(options);
+    const manualNarration =
+      typeof options === 'object' && options !== null ? Boolean(options.manual) : false;
     if (!forceNarration && !this.isTabActive('freeride')) {
       return Promise.resolve(false);
     }
@@ -5834,7 +5937,10 @@ class PageFreeRide extends HTMLElement {
       return Promise.resolve(false);
     }
     const locale = this.getUiLocale(this.currentUiLocale);
-    return this.speakNarration(lines, locale, { bubbleEl: this.getHeroBubbleEl() })
+    return this.speakNarration(lines, locale, {
+      bubbleEl: this.getHeroBubbleEl(),
+      allowWebFallback: manualNarration
+    })
       .then((started) => {
         if (started && !this.initialHeroNarrationStarted) {
           this.initialHeroNarrationStarted = true;
@@ -6029,6 +6135,7 @@ class PageFreeRide extends HTMLElement {
     const lang = this.getFlagSpeechLocale(normalizedLocale);
     const token = ++this.narrationToken;
     const bubbleEl = options && options.bubbleEl ? options.bubbleEl : this.getHeroBubbleEl();
+    const allowWebFallback = options && options.allowWebFallback === true;
     const hasMultipleLines = lines.length > 1;
     const originalBubbleHtml = bubbleEl ? bubbleEl.innerHTML : '';
     const originalBubbleMinHeight = bubbleEl ? bubbleEl.style.minHeight : '';
@@ -6188,10 +6295,10 @@ class PageFreeRide extends HTMLElement {
 
         let started = await this.playNarrationAligned(lineText, lang, token, hooks);
         if (!started && token === this.narrationToken) {
-          started = await speakLineWebWithRetry(lineText);
-        }
-        if (!started && token === this.narrationToken) {
           started = await speakLineWithPlugin(lineText);
+        }
+        if (!started && allowWebFallback && token === this.narrationToken) {
+          started = await speakLineWebWithRetry(lineText);
         }
         startedAny = startedAny || started;
 
@@ -6913,6 +7020,11 @@ class PageFreeRide extends HTMLElement {
     this.state.inputText = nextInputText;
     this.clearPracticeTranslationTimer();
     this.translationRequestId += 1;
+    this.state.translationBackendError = '';
+    if (!nextInputText) {
+      this.state.translationLocalHint = '';
+      this.state.manualTranslateMode = false;
+    }
     this.persistPhrase(this.state.inputText, this.currentUiLocale);
     if (!nextInputText) {
       this.state.expectedText = '';
@@ -7243,6 +7355,7 @@ class PageFreeRide extends HTMLElement {
     const savePhraseBtn = this.querySelector('#free-ride-save-phrase');
     const openSavedPhrasesBtn = this.querySelector('#free-ride-open-saved-phrases');
     const translateBtn = this.querySelector('#free-ride-translate-btn');
+    const translateStatusEl = this.querySelector('#free-ride-translate-status');
     const inputEl = this.querySelector('#free-ride-input');
     const inputLanguageStatusEl = this.querySelector('#free-ride-input-language-status');
     const inputWordCountEl = this.querySelector('#free-ride-input-word-count');
@@ -7300,19 +7413,39 @@ class PageFreeRide extends HTMLElement {
       this.state.practiceTextOrigin === 'translation' &&
       this.normalizeSavedPhraseComparableText(this.state.expectedSourceText) ===
         this.normalizeSavedPhraseComparableText(inputText);
+    const esDetected =
+      this.normalizeDetectedLanguageCode(this.state.detectedInputLanguage) === 'es';
+    const manualTranslateMode =
+      Boolean(this.state.manualTranslateMode) &&
+      hasInputText &&
+      esDetected;
+    const backendTranslationErrorMessage = String(this.state.translationBackendError || '').trim();
+    const showBackendTranslationError =
+      Boolean(backendTranslationErrorMessage) &&
+      hasInputText &&
+      !translationInProgress &&
+      esDetected &&
+      this.normalizeSavedPhraseComparableText(this.state.expectedSourceText) ===
+        this.normalizeSavedPhraseComparableText(inputText);
+    const localTranslateHintMessage = String(this.state.translationLocalHint || '').trim();
+    const showLocalTranslateHint =
+      Boolean(localTranslateHintMessage) &&
+      manualTranslateMode &&
+      !showBackendTranslationError;
     const inputAcceptedAsEnglish = hasText && this.state.practiceTextOrigin === 'input';
     const shouldShowTranslateButton =
       hasInputText &&
       !libraryActionsDisabled &&
-      translationFailedForCurrentInput &&
-      !translationResolved;
+      esDetected &&
+      !translationResolved &&
+      (manualTranslateMode || translationFailedForCurrentInput);
     const canTranslate =
       hasInputText &&
       !translationInProgress &&
       !libraryActionsDisabled &&
+      esDetected &&
       !translationResolved &&
-      translationFailedForCurrentInput &&
-      this.normalizeDetectedLanguageCode(this.state.detectedInputLanguage) === 'es' &&
+      (manualTranslateMode || translationFailedForCurrentInput) &&
       (!hasText || !inputAcceptedAsEnglish);
 
     if (phraseEl) {
@@ -7390,6 +7523,18 @@ class PageFreeRide extends HTMLElement {
       const inputWordStats = this.getFreeRideInputWordStats(this.state.inputText);
       inputWordCountEl.textContent = `${inputWordStats.count}/${inputWordStats.limit}`;
       inputWordCountEl.classList.toggle('is-over-limit', Boolean(inputWordStats.truncated));
+    }
+    if (translateStatusEl) {
+      const statusText = showBackendTranslationError
+        ? backendTranslationErrorMessage
+        : showLocalTranslateHint
+          ? localTranslateHintMessage
+          : '';
+      translateStatusEl.hidden = false;
+      translateStatusEl.classList.toggle('is-visible', Boolean(statusText));
+      translateStatusEl.classList.toggle('is-error', showBackendTranslationError);
+      translateStatusEl.classList.toggle('is-info', !showBackendTranslationError && showLocalTranslateHint);
+      translateStatusEl.textContent = statusText;
     }
 
     const feedback = this.getFeedbackState(copy);
@@ -7707,7 +7852,7 @@ class PageFreeRide extends HTMLElement {
       this.heroTapTimer = setTimeout(() => {
         this.heroTapTimer = null;
         this.lastHeroTapTs = 0;
-        this.playHeroNarration();
+        this.playHeroNarration({ manual: true });
       }, FREE_RIDE_HERO_DOUBLE_TAP_WINDOW_MS);
     });
 
@@ -7924,6 +8069,7 @@ class PageFreeRide extends HTMLElement {
                 ></textarea>
                 <div class="free-ride-input-meta">
                   <div class="free-ride-input-word-count" id="free-ride-input-word-count" aria-live="polite">0/10</div>
+                  <div class="free-ride-input-inline-message" id="free-ride-translate-status" aria-live="polite"></div>
                   <button
                     id="free-ride-translate-btn"
                     class="free-ride-input-action-btn free-ride-input-action-btn--inline"

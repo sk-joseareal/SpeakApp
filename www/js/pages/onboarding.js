@@ -10,12 +10,31 @@ import { getOnboardingCopy, normalizeLocale as normalizeCopyLocale } from '../co
 
 const SWIPE_MIN_DISTANCE = 52;
 const SWIPE_MAX_OFF_AXIS = 44;
-const ONBOARDING_MASCOT_SRC = 'assets/onboarding/nena-v5.png';
-const ONBOARDING_STATUSBAR_COLOR = '#2d6df0';
+const ONBOARDING_MASCOT_SRC = 'assets/mascot/nena/mascota_18.png';
+const ONBOARDING_STATUSBAR_COLOR = '#00000000';
+const ONBOARDING_THEME_COLOR = '#a9c7f5';
 const APP_STATUSBAR_COLOR = '#f4f6fb';
+const APP_STATUSBAR_PRESET_KEY = 'appv5:statusbar-preset';
 
 function getStatusBarStyle(lightIcons) {
   return lightIcons ? 'DARK' : 'LIGHT';
+}
+
+function normalizeStatusbarPreset(value) {
+  return String(value || '').trim().toLowerCase() === 'clear' ? 'clear' : 'dark';
+}
+
+function getStoredStatusbarPreset() {
+  const globalValue =
+    window.r34lp0w3r && Object.prototype.hasOwnProperty.call(window.r34lp0w3r, 'appStatusbarPreset')
+      ? window.r34lp0w3r.appStatusbarPreset
+      : undefined;
+  if (globalValue !== undefined) return normalizeStatusbarPreset(globalValue);
+  try {
+    return normalizeStatusbarPreset(localStorage.getItem(APP_STATUSBAR_PRESET_KEY));
+  } catch (_err) {
+    return 'dark';
+  }
 }
 
 function isAndroidPlatform() {
@@ -284,13 +303,14 @@ class PageOnboarding extends HTMLElement {
   }
 
   scheduleHeroLayoutSync() {
-    if (this._layoutRaf) {
-      cancelAnimationFrame(this._layoutRaf);
-    }
+    if (this._layoutRaf) cancelAnimationFrame(this._layoutRaf);
+    clearTimeout(this._layoutTimer);
     this._layoutRaf = requestAnimationFrame(() => {
       this._layoutRaf = 0;
       this.syncHeroLayout();
     });
+    // Retry after ion-content has had time to render its shadow DOM
+    this._layoutTimer = setTimeout(() => this.syncHeroLayout(), 120);
   }
 
   setThemeColor(color) {
@@ -318,7 +338,11 @@ class PageOnboarding extends HTMLElement {
 
     console.log('[chrome] onboarding.applyOnboardingChrome');
     document.body?.classList?.add('onboarding-chrome-active');
-    this.setThemeColor(ONBOARDING_STATUSBAR_COLOR);
+    const statusbarPreset = getStoredStatusbarPreset();
+    const lightIcons = statusbarPreset === 'clear';
+    this.setThemeColor(ONBOARDING_THEME_COLOR);
+    document.body?.classList?.toggle('app-statusbar-items-clear', lightIcons);
+    document.body?.classList?.toggle('app-statusbar-items-dark', !lightIcons);
     this.clearChromeRetryTimers();
 
     const applyNativeChrome = () => {
@@ -327,13 +351,13 @@ class PageOnboarding extends HTMLElement {
         if (!sb) return;
         sb.setOverlaysWebView({ overlay: true });
         if (isAndroidPlatform()) {
-          setNativeChrome(ONBOARDING_STATUSBAR_COLOR, true, {
+          setNativeChrome(ONBOARDING_STATUSBAR_COLOR, lightIcons, {
             source: 'onboarding.applyOnboardingChrome',
             path: (window.location.hash || '').replace('#', '') || '/'
           });
         } else {
           sb.setBackgroundColor({ color: ONBOARDING_STATUSBAR_COLOR });
-          sb.setStyle({ style: getStatusBarStyle(true) });
+          sb.setStyle({ style: getStatusBarStyle(lightIcons) });
         }
       } catch (_err) {
         // no-op
@@ -350,6 +374,8 @@ class PageOnboarding extends HTMLElement {
   restoreDefaultChrome() {
     console.log('[chrome] onboarding.restoreDefaultChrome');
     document.body?.classList?.remove('onboarding-chrome-active');
+    const statusbarPreset = getStoredStatusbarPreset();
+    const lightIcons = statusbarPreset === 'clear';
     this.setThemeColor(APP_STATUSBAR_COLOR);
     this.clearChromeRetryTimers();
     try {
@@ -357,13 +383,13 @@ class PageOnboarding extends HTMLElement {
       if (!sb) return;
       sb.setOverlaysWebView({ overlay: true });
       if (isAndroidPlatform()) {
-        setNativeChrome(APP_STATUSBAR_COLOR, false, {
+        setNativeChrome(APP_STATUSBAR_COLOR, lightIcons, {
           source: 'onboarding.restoreDefaultChrome',
           path: (window.location.hash || '').replace('#', '') || '/'
         });
       } else {
         sb.setBackgroundColor({ color: APP_STATUSBAR_COLOR });
-        sb.setStyle({ style: getStatusBarStyle(false) });
+        sb.setStyle({ style: getStatusBarStyle(lightIcons) });
       }
     } catch (_err) {
       // no-op
@@ -375,26 +401,37 @@ class PageOnboarding extends HTMLElement {
     const heroEl = this.stageEl?.querySelector('.onboarding-v5-hero');
     const mascotWrapEl = this.stageEl?.querySelector('.onboarding-v5-mascot-wrap');
     const mascotEl = this.stageEl?.querySelector('.onboarding-v5-mascot');
-    if (!cardEl || !heroEl || !mascotWrapEl || !mascotEl) return;
+    if (!cardEl || !heroEl) return;
 
     const apply = () => {
       const heroRect = heroEl.getBoundingClientRect();
-      const mascotRect = mascotWrapEl.getBoundingClientRect();
-      if (!heroRect.height || !mascotRect.height) return;
+      if (!heroRect.height) return;
 
-      const mascotBottomInHero = mascotRect.bottom - heroRect.top;
-      const mascotHeight = mascotRect.height;
       const heroHeight = heroRect.height;
+      const waveHeight = Math.max(178, Math.min(250, window.innerHeight * 0.22));
+      // border-radius 50%/58% with left:-12% → screen edge intersects ellipse
+      // at ~23.7% of waveHeight. Position wave so that point is at 40% of screen.
+      const waveTop = Math.round(
+        Math.max(heroHeight * 0.35, Math.min(heroHeight * 0.82,
+          window.innerHeight * 0.4 - heroRect.top - 0.237 * waveHeight
+        ))
+      );
 
-      const crestOffset = Math.round(Math.max(92, Math.min(124, mascotHeight * 0.29)));
-      const waveTop = Math.round(Math.max(heroHeight * 0.5, mascotBottomInHero - crestOffset));
-      const bodyOverlap = Math.round(Math.max(48, heroHeight - waveTop));
+      // Position mascot so its bottom is 20px into the wave (using natural ratio).
+      if (mascotWrapEl && mascotEl && mascotEl.naturalWidth && mascotEl.naturalHeight) {
+        const wrapWidth = mascotWrapEl.getBoundingClientRect().width || 319;
+        const mascotHeight = wrapWidth * mascotEl.naturalHeight / mascotEl.naturalWidth;
+        const mascotTop = Math.round(Math.max(8, waveTop + 20 - mascotHeight));
+        cardEl.style.setProperty('--onboarding-mascot-top', `${mascotTop}px`);
+      }
 
       cardEl.style.setProperty('--onboarding-wave-top', `${waveTop}px`);
-      cardEl.style.setProperty('--onboarding-body-overlap', `${bodyOverlap}px`);
+      cardEl.style.setProperty('--onboarding-body-overlap',
+        `${Math.round(Math.max(48, heroHeight - waveTop))}px`);
+      cardEl.classList.add('is-laid-out');
     };
 
-    if (mascotEl.complete) {
+    if (!mascotEl || mascotEl.complete) {
       apply();
     } else {
       mascotEl.addEventListener('load', apply, { once: true });
@@ -422,6 +459,7 @@ class PageOnboarding extends HTMLElement {
       cancelAnimationFrame(this._layoutRaf);
       this._layoutRaf = 0;
     }
+    clearTimeout(this._layoutTimer);
   }
 }
 

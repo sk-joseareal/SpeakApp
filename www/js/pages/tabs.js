@@ -17,7 +17,7 @@ class TabsPage extends HTMLElement {
     };
     const TAB_DEFAULT_VISIBILITY = {
       home: true,
-      freeride: false,
+      freeride: true,
       reference: false,
       chat: false,
       tu: true

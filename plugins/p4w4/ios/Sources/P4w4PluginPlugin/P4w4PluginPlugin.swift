@@ -28,6 +28,7 @@ public class P4w4PluginPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "setNativeChrome", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "detectLanguage", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "getTranslationStatus", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "prepareTranslationModel", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "translateText", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "setStartupHtml", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "reloadWebView", returnType: CAPPluginReturnPromise),
@@ -423,6 +424,126 @@ public class P4w4PluginPlugin: CAPPlugin, CAPBridgedPlugin {
         ])
     }
 
+    @objc func prepareTranslationModel(_ call: CAPPluginCall) {
+        let sourceLanguage = normalizeTranslationStatusLanguageCode(call.getString("sourceLanguage") ?? "es")
+        let targetLanguage = normalizeTranslationStatusLanguageCode(call.getString("targetLanguage") ?? "en")
+        let pairSupported = sourceLanguage == "es" && targetLanguage == "en"
+
+        #if canImport(Translation)
+        if #available(iOS 18.0, *) {
+            guard pairSupported else {
+                call.resolve([
+                    "available": false,
+                    "engine": "ios-translation",
+                    "platform": "ios",
+                    "sourceLanguage": sourceLanguage,
+                    "targetLanguage": targetLanguage,
+                    "modelDownloaded": false,
+                    "reason": "unsupported_language_pair"
+                ])
+                return
+            }
+
+            if #available(iOS 26.0, *) {
+                let source = Locale.Language(identifier: sourceLanguage)
+                let target = Locale.Language(identifier: targetLanguage)
+                Task {
+                    let status = await LanguageAvailability().status(from: source, to: target)
+                    if status == .installed {
+                        DispatchQueue.main.async {
+                            call.resolve([
+                                "available": true,
+                                "supportedPair": true,
+                                "engine": "ios-translation-direct",
+                                "platform": "ios",
+                                "sourceLanguage": sourceLanguage,
+                                "targetLanguage": targetLanguage,
+                                "modelDownloaded": true,
+                                "languageStatus": "installed",
+                                "reason": ""
+                            ])
+                        }
+                        return
+                    }
+                    if status == .unsupported {
+                        DispatchQueue.main.async {
+                            call.resolve([
+                                "available": false,
+                                "supportedPair": false,
+                                "engine": "ios-translation-direct",
+                                "platform": "ios",
+                                "sourceLanguage": sourceLanguage,
+                                "targetLanguage": targetLanguage,
+                                "modelDownloaded": false,
+                                "languageStatus": String(describing: status),
+                                "reason": "unsupported_language_pair"
+                            ])
+                        }
+                        return
+                    }
+                    DispatchQueue.main.async {
+                        self.installTranslationBridgeIfNeeded()
+                        guard let bridgeModel = self.translationBridgeModel as? P4w4TranslationBridgeModel else {
+                            call.resolve([
+                                "available": false,
+                                "supportedPair": true,
+                                "engine": "ios-translation",
+                                "platform": "ios",
+                                "sourceLanguage": sourceLanguage,
+                                "targetLanguage": targetLanguage,
+                                "modelDownloaded": false,
+                                "reason": "bridge_unavailable"
+                            ])
+                            return
+                        }
+                        bridgeModel.submitPrepare(call: call, sourceLanguage: sourceLanguage, targetLanguage: targetLanguage)
+                    }
+                }
+                return
+            }
+
+            installTranslationBridgeIfNeeded()
+            guard let bridgeModel = translationBridgeModel as? P4w4TranslationBridgeModel else {
+                call.resolve([
+                    "available": false,
+                    "supportedPair": true,
+                    "engine": "ios-translation",
+                    "platform": "ios",
+                    "sourceLanguage": sourceLanguage,
+                    "targetLanguage": targetLanguage,
+                    "modelDownloaded": false,
+                    "reason": "bridge_unavailable"
+                ])
+                return
+            }
+            DispatchQueue.main.async {
+                bridgeModel.submitPrepare(call: call, sourceLanguage: sourceLanguage, targetLanguage: targetLanguage)
+            }
+            return
+        }
+
+        call.resolve([
+            "available": false,
+            "engine": "ios-translation",
+            "platform": "ios",
+            "sourceLanguage": sourceLanguage,
+            "targetLanguage": targetLanguage,
+            "modelDownloaded": false,
+            "reason": "requires_ios_18"
+        ])
+        #else
+        call.resolve([
+            "available": false,
+            "engine": "ios-translation",
+            "platform": "ios",
+            "sourceLanguage": sourceLanguage,
+            "targetLanguage": targetLanguage,
+            "modelDownloaded": false,
+            "reason": "translation_framework_unavailable"
+        ])
+        #endif
+    }
+
 #if canImport(Translation)
     private func normalizeTranslationLanguageCode(_ value: String) -> String {
         let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
@@ -456,11 +577,17 @@ public class P4w4PluginPlugin: CAPPlugin, CAPBridgedPlugin {
 
     @available(iOS 18.0, *)
     private final class P4w4TranslationBridgeModel: ObservableObject {
+        enum RequestKind {
+            case translate
+            case prepare
+        }
+
         struct PendingRequest {
             var calls: [CAPPluginCall]
             let text: String
             let sourceLanguage: String
             let targetLanguage: String
+            let kind: RequestKind
             let requestId: Int
         }
 
@@ -469,10 +596,12 @@ public class P4w4PluginPlugin: CAPPlugin, CAPBridgedPlugin {
         var onResolve: ((CAPPluginCall, [String: Any]) -> Void)?
         private var requestCounter: Int = 0
         private var timeoutWorkItem: DispatchWorkItem?
-        private let requestTimeoutSeconds: TimeInterval = 2.5
+        private let translationRequestTimeoutSeconds: TimeInterval = 2.5
+        private let prepareRequestTimeoutSeconds: TimeInterval = 25.0
 
         func submitTranslation(call: CAPPluginCall, text: String, sourceLanguage: String, targetLanguage: String) {
             if var request = pendingRequest,
+               request.kind == .translate,
                request.text == text,
                request.sourceLanguage == sourceLanguage,
                request.targetLanguage == targetLanguage {
@@ -488,6 +617,7 @@ public class P4w4PluginPlugin: CAPPlugin, CAPBridgedPlugin {
                 text: text,
                 sourceLanguage: sourceLanguage,
                 targetLanguage: targetLanguage,
+                kind: .translate,
                 requestId: requestId
             )
             configuration = nil
@@ -497,7 +627,45 @@ public class P4w4PluginPlugin: CAPPlugin, CAPBridgedPlugin {
                 self.resolvePendingRequest(reason: "translation_timeout")
             }
             timeoutWorkItem = timeout
-            DispatchQueue.main.asyncAfter(deadline: .now() + requestTimeoutSeconds, execute: timeout)
+            DispatchQueue.main.asyncAfter(deadline: .now() + translationRequestTimeoutSeconds, execute: timeout)
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self else { return }
+                guard let request = self.pendingRequest, request.requestId == requestId else { return }
+                self.configuration = TranslationSession.Configuration(
+                    source: Locale.Language(identifier: request.sourceLanguage),
+                    target: Locale.Language(identifier: request.targetLanguage)
+                )
+            }
+        }
+
+        func submitPrepare(call: CAPPluginCall, sourceLanguage: String, targetLanguage: String) {
+            if var request = pendingRequest,
+               request.kind == .prepare,
+               request.sourceLanguage == sourceLanguage,
+               request.targetLanguage == targetLanguage {
+                request.calls.append(call)
+                pendingRequest = request
+                return
+            }
+            resolvePendingRequest(reason: "superseded")
+            requestCounter += 1
+            let requestId = requestCounter
+            pendingRequest = PendingRequest(
+                calls: [call],
+                text: "",
+                sourceLanguage: sourceLanguage,
+                targetLanguage: targetLanguage,
+                kind: .prepare,
+                requestId: requestId
+            )
+            configuration = nil
+            let timeout = DispatchWorkItem { [weak self] in
+                guard let self = self else { return }
+                guard let request = self.pendingRequest, request.requestId == requestId else { return }
+                self.resolvePendingRequest(reason: "prepare_timeout")
+            }
+            timeoutWorkItem = timeout
+            DispatchQueue.main.asyncAfter(deadline: .now() + prepareRequestTimeoutSeconds, execute: timeout)
             DispatchQueue.main.async { [weak self] in
                 guard let self = self else { return }
                 guard let request = self.pendingRequest, request.requestId == requestId else { return }
@@ -512,6 +680,22 @@ public class P4w4PluginPlugin: CAPPlugin, CAPBridgedPlugin {
             guard let request = pendingRequest else { return }
             do {
                 try await session.prepareTranslation()
+                if request.kind == .prepare {
+                    guard pendingRequest?.requestId == request.requestId else { return }
+                    let payload: [String: Any] = [
+                        "available": true,
+                        "sourceLanguage": request.sourceLanguage,
+                        "targetLanguage": request.targetLanguage,
+                        "sourceText": "",
+                        "translatedText": "",
+                        "engine": "ios-translation",
+                        "modelDownloaded": true,
+                        "languageStatus": "installed",
+                        "reason": ""
+                    ]
+                    resolvePendingRequest(request: request, payload: payload)
+                    return
+                }
                 let response = try await session.translate(request.text)
                 guard pendingRequest?.requestId == request.requestId else { return }
                 let payload: [String: Any] = [
@@ -530,7 +714,7 @@ public class P4w4PluginPlugin: CAPPlugin, CAPBridgedPlugin {
                     "available": false,
                     "sourceLanguage": request.sourceLanguage,
                     "targetLanguage": request.targetLanguage,
-                    "sourceText": request.text,
+                    "sourceText": request.kind == .prepare ? "" : request.text,
                     "translatedText": "",
                     "engine": "ios-translation",
                     "reason": String(describing: error)
@@ -601,6 +785,7 @@ public class P4w4PluginPlugin: CAPPlugin, CAPBridgedPlugin {
                             "sourceText": text,
                             "translatedText": "",
                             "engine": "ios-translation-direct",
+                            "languageStatus": String(describing: status),
                             "modelDownloaded": false,
                             "reason": "language_status_\(String(describing: status))"
                         ])
@@ -617,6 +802,7 @@ public class P4w4PluginPlugin: CAPPlugin, CAPBridgedPlugin {
                         "sourceText": text,
                         "translatedText": response.targetText,
                         "engine": "ios-translation-direct",
+                        "languageStatus": "installed",
                         "modelDownloaded": true
                     ])
                 }
@@ -629,6 +815,7 @@ public class P4w4PluginPlugin: CAPPlugin, CAPBridgedPlugin {
                         "sourceText": text,
                         "translatedText": "",
                         "engine": "ios-translation-direct",
+                        "languageStatus": "error",
                         "modelDownloaded": false,
                         "reason": String(describing: error)
                     ])
@@ -649,24 +836,43 @@ public class P4w4PluginPlugin: CAPPlugin, CAPBridgedPlugin {
                 let target = Locale.Language(identifier: targetLanguage)
                 Task {
                     let status = await LanguageAvailability().status(from: source, to: target)
+                    let pairSupported = sourceLanguage == "es" && targetLanguage == "en"
+                    let installed = status == .installed
+                    let supportedBySystem = status != .unsupported
+                    let available = pairSupported && installed
+                    let reason: String
+                    if !pairSupported {
+                        reason = "unsupported_language_pair"
+                    } else if !supportedBySystem {
+                        reason = "unsupported_language_pair"
+                    } else if !installed {
+                        reason = "language_status_\(String(describing: status))"
+                    } else {
+                        reason = ""
+                    }
                     DispatchQueue.main.async {
                         call.resolve([
-                            "available": sourceLanguage == "es" && targetLanguage == "en" && status != .unsupported,
+                            "available": available,
+                            "supportedPair": pairSupported && supportedBySystem,
                             "engine": "ios-translation-direct",
                             "platform": "ios",
                             "sourceLanguage": sourceLanguage,
                             "targetLanguage": targetLanguage,
-                            "modelDownloaded": status == .installed,
+                            "modelDownloaded": installed,
                             "languageStatus": String(describing: status),
                             "osVersion": UIDevice.current.systemVersion,
-                            "reason": sourceLanguage == "es" && targetLanguage == "en" && status != .unsupported ? "" : "unsupported_language_pair"
+                            "reason": reason
                         ])
                     }
                 }
                 return
             }
+            let pairSupported = sourceLanguage == "es" && targetLanguage == "en"
             call.resolve([
-                "available": sourceLanguage == "es" && targetLanguage == "en",
+                // iOS 18-25 legacy Translation path does not expose installed/supported model status.
+                // Report support separately and keep availability conservative to avoid false positives.
+                "available": false,
+                "supportedPair": pairSupported,
                 "engine": "ios-translation",
                 "platform": "ios",
                 "sourceLanguage": sourceLanguage,
@@ -674,7 +880,7 @@ public class P4w4PluginPlugin: CAPPlugin, CAPBridgedPlugin {
                 "modelDownloaded": false,
                 "languageStatus": "unknown",
                 "osVersion": UIDevice.current.systemVersion,
-                "reason": sourceLanguage == "es" && targetLanguage == "en" ? "" : "unsupported_language_pair"
+                "reason": pairSupported ? "language_status_unknown_pre26" : "unsupported_language_pair"
             ])
             return
         }

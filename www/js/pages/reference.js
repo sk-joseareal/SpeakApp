@@ -136,11 +136,11 @@ const buildReferenceAuthHeaders = () => {
 const isFreeRideCardPadded = () => {
   try {
     const raw = localStorage.getItem(FREE_RIDE_CARD_PADDED_KEY);
-    if (raw === null || raw === undefined || raw === '') return false;
+    if (raw === null || raw === undefined || raw === '') return true;
     const normalized = String(raw).trim().toLowerCase();
     return ['1', 'true', 'on', 'yes'].includes(normalized);
   } catch (_err) {
-    return false;
+    return true;
   }
 };
 
@@ -211,6 +211,12 @@ class PageReference extends HTMLElement {
     this.referenceSheetExpanded = false;
     this.referenceSheetExpandedOffset = 0;
     this.referenceSheetTranslateY = 0;
+    this.referenceSheetDragging = false;
+    this.referenceSheetPointerId = null;
+    this.referenceSheetDragStartY = 0;
+    this.referenceSheetDragStartTranslateY = 0;
+    this.referenceSheetDragMoved = false;
+    this.referenceSheetLastPointerUpTs = 0;
     this.layoutSyncTimer = null;
     this.layoutSyncRaf = null;
     this.layoutSyncVersion = 0;
@@ -1553,10 +1559,115 @@ class PageReference extends HTMLElement {
     this.setReferenceSheetExpanded(!this.referenceSheetExpanded, options);
   }
 
+  startReferenceSheetDrag(event) {
+    const handleEl = event && event.currentTarget ? event.currentTarget : null;
+    const sheetEl = this.getReferenceSheetEl();
+    if (!handleEl || !sheetEl || typeof event.pointerId !== 'number') return;
+    if (event.button !== 0) return;
+
+    this.referenceSheetExpandedOffset = this.measureReferenceSheetExpandedOffset();
+    this.referenceSheetDragging = true;
+    this.referenceSheetPointerId = event.pointerId;
+    this.referenceSheetDragStartY = event.clientY;
+    this.referenceSheetDragStartTranslateY = this.referenceSheetExpanded ? -this.referenceSheetExpandedOffset : 0;
+    this.referenceSheetDragMoved = false;
+    sheetEl.classList.add('is-sheet-dragging');
+    this.applyReferenceSheetState({ animate: false });
+
+    try {
+      handleEl.setPointerCapture(event.pointerId);
+    } catch (_err) {
+      // no-op
+    }
+    event.preventDefault();
+  }
+
+  moveReferenceSheetDrag(event) {
+    if (!this.referenceSheetDragging) return;
+    if (typeof event.pointerId === 'number' && event.pointerId !== this.referenceSheetPointerId) return;
+    const sheetEl = this.getReferenceSheetEl();
+    if (!sheetEl) return;
+
+    const deltaY = Number(event.clientY) - this.referenceSheetDragStartY;
+    const nextTranslate = this.referenceSheetDragStartTranslateY + deltaY;
+    const minTranslate = -this.referenceSheetExpandedOffset;
+    const maxTranslate = 0;
+    const clampedTranslate = Math.max(minTranslate, Math.min(maxTranslate, nextTranslate));
+
+    if (Math.abs(clampedTranslate - this.referenceSheetDragStartTranslateY) > 4) {
+      this.referenceSheetDragMoved = true;
+    }
+
+    this.referenceSheetTranslateY = clampedTranslate;
+    const liftMagnitude = Math.max(0, -clampedTranslate);
+    sheetEl.style.setProperty('--sheet-lift', `${liftMagnitude}px`);
+    event.preventDefault();
+  }
+
+  finishReferenceSheetDrag(event) {
+    if (!this.referenceSheetDragging) return;
+    if (typeof event.pointerId === 'number' && event.pointerId !== this.referenceSheetPointerId) return;
+    const sheetEl = this.getReferenceSheetEl();
+    const handleEl = this.getReferenceSheetHandleEl();
+    const currentTranslate = Number.isFinite(this.referenceSheetTranslateY) ? this.referenceSheetTranslateY : 0;
+    const midpoint = -Math.max(0, this.referenceSheetExpandedOffset) / 2;
+    const nextExpanded = this.referenceSheetDragMoved ? currentTranslate <= midpoint : !this.referenceSheetExpanded;
+
+    this.referenceSheetDragging = false;
+    this.referenceSheetPointerId = null;
+    this.referenceSheetDragMoved = false;
+    this.referenceSheetLastPointerUpTs = Date.now();
+    if (sheetEl) {
+      sheetEl.classList.remove('is-sheet-dragging');
+    }
+    if (handleEl) {
+      try {
+        if (typeof event.pointerId === 'number' && handleEl.hasPointerCapture(event.pointerId)) {
+          handleEl.releasePointerCapture(event.pointerId);
+        }
+      } catch (_err) {
+        // no-op
+      }
+    }
+    this.setReferenceSheetExpanded(nextExpanded, { animate: true });
+  }
+
+  cancelReferenceSheetDrag() {
+    if (!this.referenceSheetDragging) return;
+    this.referenceSheetDragging = false;
+    this.referenceSheetPointerId = null;
+    this.referenceSheetDragMoved = false;
+    const sheetEl = this.getReferenceSheetEl();
+    if (sheetEl) {
+      sheetEl.classList.remove('is-sheet-dragging');
+    }
+    this.setReferenceSheetExpanded(this.referenceSheetExpanded, { animate: true, force: true });
+  }
+
   bindReferenceSheetInteractions() {
     const handleEl = this.getReferenceSheetHandleEl();
     if (!handleEl) return;
+    handleEl.addEventListener('pointerdown', (event) => {
+      this.startReferenceSheetDrag(event);
+    });
+    handleEl.addEventListener('pointermove', (event) => {
+      this.moveReferenceSheetDrag(event);
+    });
+    handleEl.addEventListener('pointerup', (event) => {
+      this.finishReferenceSheetDrag(event);
+    });
+    handleEl.addEventListener('pointercancel', () => {
+      this.cancelReferenceSheetDrag();
+    });
+    handleEl.addEventListener('lostpointercapture', () => {
+      this.cancelReferenceSheetDrag();
+    });
     handleEl.addEventListener('click', (event) => {
+      const lastPointerUpTs = Number(this.referenceSheetLastPointerUpTs) || 0;
+      if (lastPointerUpTs && Date.now() - lastPointerUpTs < 350) {
+        event.preventDefault();
+        return;
+      }
       event.preventDefault();
       this.toggleReferenceSheet({ animate: true });
     });
@@ -1644,6 +1755,7 @@ class PageReference extends HTMLElement {
   }
 
   setHeroBubbleSpeaking(isSpeaking) {
+    if (this.toolView) return;
     const bubbleEl = this.getHeroBubbleEl();
     if (!bubbleEl) return;
     bubbleEl.classList.toggle('is-speaking', Boolean(isSpeaking));
@@ -1779,6 +1891,23 @@ class PageReference extends HTMLElement {
         if (this.isConnected) this.render();
       }
     }
+  }
+
+  renderReferenceHeroHtml(subtitle, playable = false) {
+    const src = this.getHeroMascotSrc();
+    const extraClass = playable ? ' hero-playable-bubble' : '';
+    const iconHtml = playable ? `<span class="free-ride-hero-bubble-icon" aria-hidden="true"><ion-icon name="volume-high-outline"></ion-icon></span>` : '';
+    return `
+      <section class="free-ride-hero-card journey-plan-card onboarding-intro-card reference-hero-card">
+        <div class="free-ride-hero-stage journey-plan-stage">
+          <span class="journey-plan-mascot-wrap free-ride-mascot-wrap" aria-hidden="true">
+            <img id="reference-hero-mascot" class="onboarding-intro-cat free-ride-mascot" src="${src}" alt="">
+          </span>
+          <div class="journey-plan-body">
+            <p class="onboarding-intro-bubble free-ride-hero-bubble journey-plan-bubble reference-hero-bubble${extraClass}"><span class="journey-plan-bubble-text">${iconHtml}${this.escapeHtml(subtitle)}</span></p>
+          </div>
+        </div>
+      </section>`;
   }
 
   renderTranslatorToolHtml(copy, uiLocale) {
@@ -2733,18 +2862,27 @@ class PageReference extends HTMLElement {
     if (waitMs === 0) {
       if (!this.isConnected) return;
       if (!forceNarration && !this.isReferenceTabActive()) return;
-      this.playHeroNarration(forceNarration).catch(() => {});
+      this.playHeroNarration({ force: forceNarration, manual: false }).catch(() => {});
       return;
     }
     this.narrationTimer = setTimeout(() => {
       this.narrationTimer = null;
       if (!this.isConnected) return;
       if (!forceNarration && !this.isReferenceTabActive()) return;
-      this.playHeroNarration(forceNarration).catch(() => {});
+      this.playHeroNarration({ force: forceNarration, manual: false }).catch(() => {});
     }, waitMs);
   }
 
-  async playHeroNarration(forceNarration = false) {
+  async playHeroNarration(options = false) {
+    let forceNarration = false;
+    let manualNarration = false;
+    if (options && typeof options === 'object') {
+      forceNarration = Boolean(options.force);
+      manualNarration = Boolean(options.manual);
+    } else {
+      forceNarration = Boolean(options);
+      manualNarration = forceNarration;
+    }
     const lines = this.extractNarrationLines(this.currentHeroMessage);
     if (!lines.length) {
       this.stopHeroNarration();
@@ -2752,7 +2890,9 @@ class PageReference extends HTMLElement {
     }
     if (!forceNarration && !this.isReferenceTabActive()) return false;
     const locale = this.normalizeLocale(this.currentHeroLocale) || this.getUiLocale();
-    const started = await this.speakHeroNarration(lines, locale);
+    const started = await this.speakHeroNarration(lines, locale, {
+      allowWebFallback: manualNarration
+    });
     if (started && !this.initialHeroNarrationStarted) {
       this.initialHeroNarrationStarted = true;
       this.markAutoHeroNarrationPlayed();
@@ -2953,7 +3093,7 @@ class PageReference extends HTMLElement {
     });
   }
 
-  async speakHeroNarration(linesOrText, locale) {
+  async speakHeroNarration(linesOrText, locale, options = {}) {
     const lines = Array.isArray(linesOrText)
       ? linesOrText.filter((line) => line && typeof line.text === 'string' && line.text.trim())
       : this.extractNarrationLines(linesOrText);
@@ -2962,6 +3102,7 @@ class PageReference extends HTMLElement {
     const lang = TTS_LANG_BY_LOCALE[normalizedLocale] || 'en-US';
     const token = ++this.narrationToken;
     const bubbleEl = this.getHeroBubbleEl();
+    const allowWebFallback = !options || options.allowWebFallback !== false;
     const hasMultipleLines = lines.length > 1;
     const restLine = lines[0] || null;
     const originalBubbleHtml = bubbleEl ? bubbleEl.innerHTML : '';
@@ -3054,10 +3195,10 @@ class PageReference extends HTMLElement {
 
         let started = await this.playHeroNarrationAligned(lineText, lang, token);
         if (!started && token === this.narrationToken) {
-          started = await this.speakHeroWithWebTts(lineText, lang, token);
-        }
-        if (!started && token === this.narrationToken) {
           started = await this.speakHeroWithNativePlugin(lineText, lang, token);
+        }
+        if (!started && allowWebFallback && token === this.narrationToken) {
+          started = await this.speakHeroWithWebTts(lineText, lang, token);
         }
         startedAny = startedAny || started;
 
@@ -3156,6 +3297,8 @@ class PageReference extends HTMLElement {
   }
 
   async getReferenceLessonScrollTop() {
+    const cardMainEl = this.querySelector('.reference-sublevel-main');
+    if (cardMainEl) return Math.max(0, Number(cardMainEl.scrollTop) || 0);
     const contentEl =
       this.querySelector('ion-content.home-journey') || this.querySelector('ion-content');
     if (!contentEl) return 0;
@@ -3172,6 +3315,8 @@ class PageReference extends HTMLElement {
 
   async setReferenceLessonScrollTop(nextTop = 0) {
     const targetTop = Math.max(0, Number(nextTop) || 0);
+    const cardMainEl = this.querySelector('.reference-sublevel-main');
+    if (cardMainEl) { cardMainEl.scrollTop = targetTop; return; }
     const contentEl =
       this.querySelector('ion-content.home-journey') || this.querySelector('ion-content');
     if (!contentEl) return;
@@ -4854,10 +4999,33 @@ class PageReference extends HTMLElement {
         const toolBodyHtml = this.renderTranslatorToolHtml(copy, uiLocale);
         this.innerHTML = `
           ${this.renderHeaderHtml()}
-          <ion-content fullscreen class="home-journey secret-content">
-            ${toolBodyHtml}
+          <ion-content fullscreen class="home-journey free-ride-content secret-content">
+            <div class="speak-shell free-ride-shell journey-shell reference-shell">
+              ${this.renderReferenceHeroHtml(copy.toolsSubtitle, true)}
+              <section class="free-ride-card journey-sheet reference-content-card">
+                <button class="free-ride-card-handle journey-sheet-handle" type="button" aria-label="Reference content handle" aria-expanded="false">
+                  <span class="free-ride-card-handle-pill journey-sheet-handle-pill" aria-hidden="true"></span>
+                </button>
+                <div class="free-ride-card-main journey-sheet-main reference-sublevel-main">
+                  ${toolBodyHtml}
+                </div>
+              </section>
+            </div>
           </ion-content>
         `;
+        this.bindReferenceSheetInteractions();
+        this.scheduleLayoutSync(0);
+        this.scheduleLayoutSync(140);
+        this.currentHeroMessage = copy.toolsSubtitle;
+        this.currentHeroLocale = uiLocale;
+        this.querySelector('.reference-hero-card')?.addEventListener('click', (event) => {
+          if (this.isEventInHeaderZone(event)) return;
+          const target = event && event.target instanceof Element ? event.target : null;
+          if (!target) return;
+          const inNarrationZone = target.closest('.onboarding-intro-bubble, .reference-hero-bubble, .free-ride-hero-bubble, .journey-plan-bubble');
+          if (!inNarrationZone) return;
+          this.playHeroNarration(true).catch(() => {});
+        });
 
         this.querySelector('.app-locale-btn')?.addEventListener('click', () => {
           const nextLocale = getNextLocaleCode(getAppLocale() || 'en');
@@ -4936,10 +5104,33 @@ class PageReference extends HTMLElement {
         const toolBodyHtml = this.renderArticlesToolHtml(units, toolTitle, copy, uiLocale);
         this.innerHTML = `
           ${this.renderHeaderHtml()}
-          <ion-content fullscreen class="home-journey secret-content">
-            ${toolBodyHtml}
+          <ion-content fullscreen class="home-journey free-ride-content secret-content">
+            <div class="speak-shell free-ride-shell journey-shell reference-shell">
+              ${this.renderReferenceHeroHtml(copy.toolsSubtitle, true)}
+              <section class="free-ride-card journey-sheet reference-content-card">
+                <button class="free-ride-card-handle journey-sheet-handle" type="button" aria-label="Reference content handle" aria-expanded="false">
+                  <span class="free-ride-card-handle-pill journey-sheet-handle-pill" aria-hidden="true"></span>
+                </button>
+                <div class="free-ride-card-main journey-sheet-main reference-sublevel-main">
+                  ${toolBodyHtml}
+                </div>
+              </section>
+            </div>
           </ion-content>
         `;
+        this.bindReferenceSheetInteractions();
+        this.scheduleLayoutSync(0);
+        this.scheduleLayoutSync(140);
+        this.currentHeroMessage = copy.toolsSubtitle;
+        this.currentHeroLocale = uiLocale;
+        this.querySelector('.reference-hero-card')?.addEventListener('click', (event) => {
+          if (this.isEventInHeaderZone(event)) return;
+          const target = event && event.target instanceof Element ? event.target : null;
+          if (!target) return;
+          const inNarrationZone = target.closest('.onboarding-intro-bubble, .reference-hero-bubble, .free-ride-hero-bubble, .journey-plan-bubble');
+          if (!inNarrationZone) return;
+          this.playHeroNarration(true).catch(() => {});
+        });
         this.querySelector('.app-locale-btn')?.addEventListener('click', () => {
           const nextLocale = getNextLocaleCode(getAppLocale() || 'en');
           setAppLocale(nextLocale);
@@ -4970,18 +5161,41 @@ class PageReference extends HTMLElement {
       if (!toolData) {
         this.innerHTML = `
           ${this.renderHeaderHtml()}
-          <ion-content fullscreen class="home-journey secret-content">
-            <div class="journey-shell reference-shell tool-view-shell">
-              <div class="tool-view-header">
-                <button class="tool-back-btn" id="tool-back-btn">
-                  <ion-icon name="arrow-back" aria-hidden="true"></ion-icon>
-                  <span>${this.escapeHtml(copy.backToList)}</span>
+          <ion-content fullscreen class="home-journey free-ride-content secret-content">
+            <div class="speak-shell free-ride-shell journey-shell reference-shell">
+              ${this.renderReferenceHeroHtml(copy.toolsSubtitle, true)}
+              <section class="free-ride-card journey-sheet reference-content-card">
+                <button class="free-ride-card-handle journey-sheet-handle" type="button" aria-label="Reference content handle" aria-expanded="false">
+                  <span class="free-ride-card-handle-pill journey-sheet-handle-pill" aria-hidden="true"></span>
                 </button>
-              </div>
-              <div class="tool-loading">${this.escapeHtml(copy.loading)}</div>
+                <div class="free-ride-card-main journey-sheet-main reference-sublevel-main">
+                  <div class="tool-sticky-header">
+                    <div class="tool-view-header">
+                      <button class="tool-back-btn" id="tool-back-btn">
+                        <ion-icon name="arrow-back" aria-hidden="true"></ion-icon>
+                        <span>${this.escapeHtml(copy.backToList)}</span>
+                      </button>
+                    </div>
+                  </div>
+                  <div class="tool-loading">${this.escapeHtml(copy.loading)}</div>
+                </div>
+              </section>
             </div>
           </ion-content>
         `;
+        this.bindReferenceSheetInteractions();
+        this.scheduleLayoutSync(0);
+        this.scheduleLayoutSync(140);
+        this.currentHeroMessage = copy.toolsSubtitle;
+        this.currentHeroLocale = uiLocale;
+        this.querySelector('.reference-hero-card')?.addEventListener('click', (event) => {
+          if (this.isEventInHeaderZone(event)) return;
+          const target = event && event.target instanceof Element ? event.target : null;
+          if (!target) return;
+          const inNarrationZone = target.closest('.onboarding-intro-bubble, .reference-hero-bubble, .free-ride-hero-bubble, .journey-plan-bubble');
+          if (!inNarrationZone) return;
+          this.playHeroNarration(true).catch(() => {});
+        });
         this.querySelector('.app-locale-btn')?.addEventListener('click', () => {
           const nextLocale = getNextLocaleCode(getAppLocale() || 'en');
           setAppLocale(nextLocale);
@@ -5031,10 +5245,33 @@ class PageReference extends HTMLElement {
 
       this.innerHTML = `
         ${this.renderHeaderHtml()}
-        <ion-content fullscreen class="home-journey secret-content">
-          ${toolBodyHtml}
+        <ion-content fullscreen class="home-journey free-ride-content secret-content">
+          <div class="speak-shell free-ride-shell journey-shell reference-shell">
+            ${this.renderReferenceHeroHtml(copy.toolsSubtitle, true)}
+            <section class="free-ride-card journey-sheet reference-content-card">
+              <button class="free-ride-card-handle journey-sheet-handle" type="button" aria-label="Reference content handle" aria-expanded="false">
+                <span class="free-ride-card-handle-pill journey-sheet-handle-pill" aria-hidden="true"></span>
+              </button>
+              <div class="free-ride-card-main journey-sheet-main reference-sublevel-main">
+                ${toolBodyHtml}
+              </div>
+            </section>
+          </div>
         </ion-content>
       `;
+      this.bindReferenceSheetInteractions();
+      this.scheduleLayoutSync(0);
+      this.scheduleLayoutSync(140);
+      this.currentHeroMessage = copy.toolsSubtitle;
+      this.currentHeroLocale = uiLocale;
+      this.querySelector('.reference-hero-card')?.addEventListener('click', (event) => {
+        if (this.isEventInHeaderZone(event)) return;
+        const target = event && event.target instanceof Element ? event.target : null;
+        if (!target) return;
+        const inNarrationZone = target.closest('.onboarding-intro-bubble, .reference-hero-bubble, .free-ride-hero-bubble, .journey-plan-bubble');
+        if (!inNarrationZone) return;
+        this.playHeroNarration(true).catch(() => {});
+      });
 
       this.querySelector('.app-locale-btn')?.addEventListener('click', () => {
         const nextLocale = getNextLocaleCode(getAppLocale() || 'en');
@@ -5064,15 +5301,12 @@ class PageReference extends HTMLElement {
           const letter = btn.getAttribute('data-tool-letter');
           const sectionEl = this.querySelector(`#tool-section-${letter}`);
           if (!sectionEl) return;
-          const ionContent = this.querySelector('ion-content');
-          if (ionContent && typeof ionContent.getScrollElement === 'function') {
-            ionContent.getScrollElement().then((scrollEl) => {
-              if (!scrollEl) return;
-              const stickyHeaderEl = this.querySelector('.tool-sticky-header');
-              const stickyBottom = stickyHeaderEl ? stickyHeaderEl.getBoundingClientRect().bottom : 0;
-              const targetTop = scrollEl.scrollTop + sectionEl.getBoundingClientRect().top - stickyBottom - 8;
-              scrollEl.scrollTo({ top: targetTop, behavior: 'smooth' });
-            }).catch(() => {});
+          const scrollEl = this.querySelector('.free-ride-card-main');
+          if (scrollEl) {
+            const stickyHeaderEl = this.querySelector('.tool-sticky-header');
+            const stickyBottom = stickyHeaderEl ? stickyHeaderEl.getBoundingClientRect().bottom : 0;
+            const targetTop = scrollEl.scrollTop + sectionEl.getBoundingClientRect().top - stickyBottom - 8;
+            scrollEl.scrollTo({ top: targetTop, behavior: 'smooth' });
           }
         });
       });
@@ -5403,97 +5637,107 @@ class PageReference extends HTMLElement {
     const activeLessonTab = this.getActiveReferenceLessonTab();
 
     if (this.lessonView) {
+      const lessonDisplayTitle = this.getText(selectedLesson, 'display', uiLocale) || `Lesson ${selectedLessonCode}`;
       this.innerHTML = `
         ${this.renderHeaderHtml()}
-        <ion-content fullscreen class="home-journey secret-content">
-          <div class="journey-shell reference-shell reference-shell--lesson">
-            <div class="reference-lesson-sticky">
-              <div class="reference-lesson-topbar">
-                <button class="reference-back-btn" type="button" id="reference-back-btn">
-                  <ion-icon name="chevron-back"></ion-icon>
-                  <span>${this.escapeHtml(copy.backToList)}</span>
-                </button>
-                <div class="reference-lesson-topbar-main">
-                  <div class="reference-lesson-title">${this.escapeHtml(
-                    this.getText(selectedLesson, 'display', uiLocale) || `Lesson ${selectedLessonCode}`
-                  )}</div>
-                  <div class="reference-lesson-breadcrumb">${selectedPath}</div>
+        <ion-content fullscreen class="home-journey free-ride-content secret-content">
+          <div class="speak-shell free-ride-shell journey-shell reference-shell">
+            ${this.renderReferenceHeroHtml(copy.subtitle, true)}
+            <section class="free-ride-card journey-sheet reference-content-card">
+              <button class="free-ride-card-handle journey-sheet-handle" type="button" aria-label="Reference content handle" aria-expanded="false">
+                <span class="free-ride-card-handle-pill journey-sheet-handle-pill" aria-hidden="true"></span>
+              </button>
+              <div class="free-ride-card-main journey-sheet-main reference-sublevel-main">
+                <div class="reference-lesson-sticky">
+                  <div class="reference-lesson-topbar">
+                    <button class="reference-back-btn" type="button" id="reference-back-btn">
+                      <ion-icon name="chevron-back"></ion-icon>
+                      <span>${this.escapeHtml(copy.backToList)}</span>
+                    </button>
+                    <div class="reference-lesson-topbar-main">
+                      <div class="reference-lesson-title">${this.escapeHtml(lessonDisplayTitle)}</div>
+                      <div class="reference-lesson-breadcrumb">${selectedPath}</div>
+                    </div>
+                  </div>
+                  <div class="profile-segmented-tabs reference-lesson-tabs" role="tablist" aria-label="${this.escapeHtml(
+                    copy.selectedLesson
+                  )}">
+                    <button
+                      type="button"
+                      class="profile-segmented-btn reference-lesson-tab ${activeLessonTab === 'content' ? 'active' : ''}"
+                      id="reference-tab-content"
+                      data-reference-lesson-tab="content"
+                      role="tab"
+                      aria-selected="${activeLessonTab === 'content' ? 'true' : 'false'}"
+                      aria-controls="reference-content-panel"
+                    >
+                      ${this.escapeHtml(copy.lessonTabContent)}
+                    </button>
+                    <button
+                      type="button"
+                      class="profile-segmented-btn reference-lesson-tab ${activeLessonTab === 'tests' ? 'active' : ''}"
+                      id="reference-tab-tests"
+                      data-reference-lesson-tab="tests"
+                      role="tab"
+                      aria-selected="${activeLessonTab === 'tests' ? 'true' : 'false'}"
+                      aria-controls="reference-tests-panel"
+                    >
+                      ${this.escapeHtml(copy.lessonTabTests)}
+                    </button>
+                  </div>
+                </div>
+
+                <div class="reference-lesson-stage" id="reference-lesson-stage">
+                  <section
+                    class="reference-lesson-panel reference-lesson-panel--content"
+                    id="reference-content-panel"
+                    role="tabpanel"
+                    aria-labelledby="reference-tab-content"
+                    ${activeLessonTab === 'content' ? '' : 'hidden'}
+                  >
+                    ${
+                      lessonContent
+                        ? `<div class="reference-markdown" id="reference-markdown-content">${this.renderMarkdownFallbackHtml(
+                            lessonContent
+                          )}</div>`
+                        : `<div class="reference-empty">${this.escapeHtml(copy.noContent)}</div>`
+                    }
+                  </section>
+                  <section
+                    class="reference-lesson-panel reference-lesson-panel--tests"
+                    id="reference-tests-panel"
+                    role="tabpanel"
+                    aria-labelledby="reference-tab-tests"
+                    ${activeLessonTab === 'tests' ? '' : 'hidden'}
+                  >
+                    <div id="reference-tests-section"></div>
+                  </section>
+                </div>
+
+                <div class="reference-lesson-nav">
+                  <button class="reference-nav-btn reference-nav-btn--prev ${prevLessonRef ? '' : 'is-hidden'}" type="button" id="reference-prev-btn">
+                    <ion-icon name="chevron-back"></ion-icon>
+                    <span>${prevLessonRef ? this.escapeHtml(this.getText(
+                      courses.flatMap(c => c.unidades || []).flatMap(u => u.lecciones || []).find(l => String(l.code) === prevLessonRef.lessonCode) || {},
+                      'display', uiLocale
+                    ) || copy.prev) : ''}</span>
+                  </button>
+                  <button class="reference-nav-btn reference-nav-btn--next ${nextLessonRef ? '' : 'is-hidden'}" type="button" id="reference-next-btn">
+                    <span>${nextLessonRef ? this.escapeHtml(this.getText(
+                      courses.flatMap(c => c.unidades || []).flatMap(u => u.lecciones || []).find(l => String(l.code) === nextLessonRef.lessonCode) || {},
+                      'display', uiLocale
+                    ) || copy.next) : ''}</span>
+                    <ion-icon name="chevron-forward"></ion-icon>
+                  </button>
                 </div>
               </div>
-              <div class="profile-segmented-tabs reference-lesson-tabs" role="tablist" aria-label="${this.escapeHtml(
-                copy.selectedLesson
-              )}">
-                <button
-                  type="button"
-                  class="profile-segmented-btn reference-lesson-tab ${activeLessonTab === 'content' ? 'active' : ''}"
-                  id="reference-tab-content"
-                  data-reference-lesson-tab="content"
-                  role="tab"
-                  aria-selected="${activeLessonTab === 'content' ? 'true' : 'false'}"
-                  aria-controls="reference-content-panel"
-                >
-                  ${this.escapeHtml(copy.lessonTabContent)}
-                </button>
-                <button
-                  type="button"
-                  class="profile-segmented-btn reference-lesson-tab ${activeLessonTab === 'tests' ? 'active' : ''}"
-                  id="reference-tab-tests"
-                  data-reference-lesson-tab="tests"
-                  role="tab"
-                  aria-selected="${activeLessonTab === 'tests' ? 'true' : 'false'}"
-                  aria-controls="reference-tests-panel"
-                >
-                  ${this.escapeHtml(copy.lessonTabTests)}
-                </button>
-              </div>
-            </div>
-
-            <div class="reference-lesson-stage" id="reference-lesson-stage">
-              <section
-                class="reference-lesson-panel reference-lesson-panel--content"
-                id="reference-content-panel"
-                role="tabpanel"
-                aria-labelledby="reference-tab-content"
-                ${activeLessonTab === 'content' ? '' : 'hidden'}
-              >
-                ${
-                  lessonContent
-                    ? `<div class="reference-markdown" id="reference-markdown-content">${this.renderMarkdownFallbackHtml(
-                        lessonContent
-                      )}</div>`
-                    : `<div class="reference-empty">${this.escapeHtml(copy.noContent)}</div>`
-                }
-              </section>
-              <section
-                class="reference-lesson-panel reference-lesson-panel--tests"
-                id="reference-tests-panel"
-                role="tabpanel"
-                aria-labelledby="reference-tab-tests"
-                ${activeLessonTab === 'tests' ? '' : 'hidden'}
-              >
-                <div id="reference-tests-section"></div>
-              </section>
-            </div>
-
-            <div class="reference-lesson-nav">
-              <button class="reference-nav-btn reference-nav-btn--prev ${prevLessonRef ? '' : 'is-hidden'}" type="button" id="reference-prev-btn">
-                <ion-icon name="chevron-back"></ion-icon>
-                <span>${prevLessonRef ? this.escapeHtml(this.getText(
-                  courses.flatMap(c => c.unidades || []).flatMap(u => u.lecciones || []).find(l => String(l.code) === prevLessonRef.lessonCode) || {},
-                  'display', uiLocale
-                ) || copy.prev) : ''}</span>
-              </button>
-              <button class="reference-nav-btn reference-nav-btn--next ${nextLessonRef ? '' : 'is-hidden'}" type="button" id="reference-next-btn">
-                <span>${nextLessonRef ? this.escapeHtml(this.getText(
-                  courses.flatMap(c => c.unidades || []).flatMap(u => u.lecciones || []).find(l => String(l.code) === nextLessonRef.lessonCode) || {},
-                  'display', uiLocale
-                ) || copy.next) : ''}</span>
-                <ion-icon name="chevron-forward"></ion-icon>
-              </button>
-            </div>
+            </section>
           </div>
         </ion-content>
       `;
+      this.bindReferenceSheetInteractions();
+      this.scheduleLayoutSync(0);
+      this.scheduleLayoutSync(140);
     } else {
       const toolsEnabled = this.isReferenceToolsEnabled();
       const activeMainTab = toolsEnabled ? this.referenceMainTab : 'courses';
@@ -5577,6 +5821,17 @@ class PageReference extends HTMLElement {
 
     if (this.lessonView) {
       // ── Lesson view listeners ──
+      this.currentHeroMessage = copy.subtitle;
+      this.currentHeroLocale = uiLocale;
+      this.querySelector('.reference-hero-card')?.addEventListener('click', (event) => {
+        if (this.isEventInHeaderZone(event)) return;
+        const target = event && event.target instanceof Element ? event.target : null;
+        if (!target) return;
+        const inNarrationZone = target.closest('.onboarding-intro-bubble, .reference-hero-bubble, .free-ride-hero-bubble, .journey-plan-bubble');
+        if (!inNarrationZone) return;
+        this.playHeroNarration(true).catch(() => {});
+      });
+
       if (lessonContent) {
         this.enhanceMarkdownWithMarked(lessonContent, markdownRenderToken);
       }

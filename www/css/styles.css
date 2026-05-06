@@ -68,7 +68,7 @@ ion-app {
 body.onboarding-chrome-active,
 body.onboarding-chrome-active ion-app,
 body.onboarding-chrome-active ion-router-outlet {
-  background: #2d6df0;
+  background: var(--free-ride-view-bg);
 }
 
 body.lab-chrome-active,
@@ -77,14 +77,18 @@ body.lab-chrome-active ion-router-outlet,
 body.lab-chrome-active tabs-page,
 body.lab-chrome-active page-free-ride,
 body.lab-chrome-active page-home,
-body.lab-chrome-active page-reference {
+body.lab-chrome-active page-reference,
+body.lab-chrome-active page-profile,
+body.lab-chrome-active page-chat {
   background: var(--free-ride-view-bg);
 }
 
 /* Keep Lab/Training/Reference visually stable even when chrome classes resync. */
 page-free-ride,
 page-home,
-page-reference {
+page-reference,
+page-profile,
+page-chat {
   background: var(--free-ride-view-bg) !important;
 }
 
@@ -99,20 +103,26 @@ page-home ion-content,
 page-reference ion-content,
 page-free-ride ion-content.free-ride-content,
 page-home ion-content.free-ride-content,
-page-reference ion-content.home-journey {
+page-reference ion-content.home-journey,
+page-chat ion-content.free-ride-content,
+page-profile ion-content.free-ride-content {
   --background: var(--free-ride-view-bg) !important;
   background: transparent !important;
 }
 
 page-free-ride ion-content::part(background),
 page-home ion-content::part(background),
-page-reference ion-content::part(background) {
+page-reference ion-content::part(background),
+page-chat ion-content.free-ride-content::part(background),
+page-profile ion-content.free-ride-content::part(background) {
   background: transparent !important;
 }
 
 page-free-ride ion-content.free-ride-content::part(scroll),
 page-home ion-content.free-ride-content::part(scroll),
-page-reference ion-content.home-journey::part(scroll) {
+page-reference ion-content.home-journey::part(scroll),
+page-chat ion-content.free-ride-content::part(scroll),
+page-profile ion-content.free-ride-content::part(scroll) {
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -708,11 +718,21 @@ page-login .login-social-icon-apple {
   padding-bottom: 6px;
 }
 
+.profile-settings .profile-links--footer {
+  margin-top: 22px;
+  gap: 18px;
+  padding-bottom: 0;
+}
+
 .profile-app-meta {
   text-align: center;
   font-size: 0.75rem;
   color: var(--app-muted);
   margin: 3px 0 8px;
+}
+
+.profile-settings .profile-app-meta {
+  margin: 14px 0 0;
 }
 
 ion-modal.login-modal ion-content {
@@ -945,26 +965,35 @@ page-login[embedded][flat] .login-input-toggle {
 
 .profile-content--logged-out {
   --padding-top: 0;
-  --background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+  --background: var(--free-ride-view-bg);
 }
 
 ion-content.profile-content.profile-content--logged-out {
-  --background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+  --background: var(--free-ride-view-bg);
 }
 
 .profile-shell--logged-out {
-  padding: calc(44px + env(safe-area-inset-top)) 24px 32px;
-  gap: 26px;
-  min-height: 100vh;
+  height: auto;
+  min-height: 0;
+  padding: 4px 0 0;
+  gap: 0;
+}
+
+.profile-shell--logged-out.profile-shell--logged-out-titlebar {
+  padding-top: calc(56px + var(--app-native-statusbar-height, env(safe-area-inset-top, 0px)));
 }
 
 .profile-shell--logged-out-android {
-  padding-top: 18px;
+  padding-top: 4px;
+}
+
+body.lab-chrome-active:not(.app-titlebar-enabled) page-profile .profile-shell--logged-out {
+  padding-top: calc(4px + env(safe-area-inset-top, 0px));
 }
 
 .profile-login-hero {
-  padding-top: 18px;
-  padding-bottom: 42px;
+  padding-top: 6px;
+  padding-bottom: 24px;
 }
 
 #profile-login-panel {
@@ -974,22 +1003,52 @@ ion-content.profile-content.profile-content--logged-out {
 }
 
 .profile-auth-footer {
-  margin-top: auto;
-  padding-top: 24px;
+  margin-top: 0;
+  padding-top: 22px;
 }
 
 .profile-app-meta--auth {
-  margin: 10px 0 0;
+  margin: 12px 0 0;
 }
 
 .profile-login-title {
   margin: 0;
   color: #232a4a;
-  font-size: clamp(1.9rem, 8vw, 2.6rem);
+  font-size: clamp(1.6rem, 7vw, 2.2rem);
   line-height: 1.02;
   letter-spacing: -0.045em;
   font-weight: 800;
   text-align: center;
+}
+
+.profile-auth-hero .free-ride-hero-bubble {
+  max-width: 100%;
+}
+
+.profile-auth-card {
+  margin-top: -34px;
+}
+
+.profile-auth-card .free-ride-card-main {
+  padding-bottom: max(14px, env(safe-area-inset-bottom, 0px));
+}
+
+.profile-auth-hero {
+  padding-top: 12px;
+}
+
+.profile-auth-actions-left {
+  top: max(8px, env(safe-area-inset-top, 0px));
+  left: 8px;
+}
+
+body.lab-chrome-active:not(.app-titlebar-enabled) page-profile .profile-auth-actions-left {
+  position: relative;
+  top: auto;
+  left: auto;
+  z-index: 3;
+  min-height: 34px;
+  margin: 0 0 8px 10px;
 }
 
 page-login .login-social-btn {
@@ -1279,6 +1338,7 @@ ion-modal.login-modal page-login .page-shell {
 #profile-avatar-delete,
 #profile-save-btn,
 .profile-logout-btn,
+.profile-restore-btn,
 .profile-delete-account-btn {
   --border-radius: 20px;
   --padding-top: 16px;
@@ -1295,7 +1355,8 @@ ion-modal.login-modal page-login .page-shell {
 }
 
 #profile-avatar-upload,
-.profile-logout-btn {
+.profile-logout-btn,
+.profile-restore-btn {
   --background: #dbeafe;
   --background-hover: #bfdbfe;
   --background-activated: #bfdbfe;
@@ -1460,6 +1521,15 @@ ion-modal.login-modal page-login .page-shell {
   --border-color-hover: transparent;
 }
 
+.profile-restore-row {
+  margin-top: 8px;
+}
+
+.profile-restore-btn {
+  --color-hover: #1e40af;
+  --border-color-hover: transparent;
+}
+
 .profile-delete-account-row {
   margin-top: 20px;
 }
@@ -1490,6 +1560,53 @@ ion-modal.login-modal page-login .page-shell {
   gap: 18px;
 }
 
+/* New layout: profile hero section (replaces profile-hero-wrap + profile-hero-card) */
+.profile-hero-section {
+  position: relative;
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px 48px;
+  box-sizing: border-box;
+}
+
+.profile-hero-section .profile-hero-avatar-wrap {
+  position: relative;
+  top: auto;
+  left: auto;
+  transform: none;
+}
+
+.profile-hero-section .profile-hero-name {
+  text-align: center;
+}
+
+.profile-hero-section .profile-hero-premium {
+  margin: 0;
+}
+
+.profile-content-card .free-ride-card-main {
+  padding-bottom: 16px;
+}
+
+.profile-settings-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  background: transparent;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  display: flex;
+  flex-direction: column;
+  padding: 0 0 max(8px, env(safe-area-inset-bottom, 0px));
+}
+
+body.lab-chrome-active:not(.app-titlebar-enabled) page-profile .profile-settings-overlay {
+  padding-top: calc(env(safe-area-inset-top, 0px) + 6px);
+}
+
 .profile-hero-wrap {
   position: relative;
   padding-top: 52px;
@@ -1513,7 +1630,7 @@ ion-modal.login-modal page-login .page-shell {
 }
 
 .profile-hero-actions-left .app-notify-btn {
-  --color: #7c86a6;
+  --color: var(--free-ride-header-color, #7c86a6);
   width: 38px;
   height: 38px;
 }
@@ -1523,7 +1640,7 @@ ion-modal.login-modal page-login .page-shell {
 }
 
 .profile-hero-actions-left .app-locale-btn {
-  color: #7c86a6;
+  color: var(--free-ride-header-color, #7c86a6);
 }
 
 .profile-hero-actions-left .app-locale-btn svg {
@@ -1532,7 +1649,7 @@ ion-modal.login-modal page-login .page-shell {
 }
 
 .profile-hero-actions-left .app-locale-label {
-  color: #7c86a6;
+  color: inherit;
   font-size: 1rem;
 }
 
@@ -1546,7 +1663,7 @@ ion-modal.login-modal page-login .page-shell {
   padding: 0;
   border-radius: 50%;
   background: transparent;
-  color: #7c86a6;
+  color: var(--free-ride-header-color, #7c86a6);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1640,19 +1757,22 @@ ion-modal.login-modal page-login .page-shell {
 
 .profile-segmented-btn {
   border: 0;
-  height: auto;
+  height: 100%;
+  min-height: 34px;
   border-radius: 20px;
   background: transparent;
   color: #3d5bd9;
   font-family: inherit;
   font-size: 1.08rem;
   font-weight: 700;
+  line-height: 1;
   letter-spacing: -0.02em;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
   padding: 0 22px;
+  white-space: nowrap;
 }
 
 .profile-segmented-btn.active {
@@ -2946,7 +3066,7 @@ body.app-platform-android.lab-chrome-active ion-modal.diagnostics-modal ion-head
 }
 
 .onboarding-page ion-content {
-  --background: linear-gradient(180deg, #fbfbfc 0%, #eef3fa 100%);
+  --background: var(--free-ride-view-bg);
 }
 
 .onboarding-v5-shell {
@@ -2965,12 +3085,12 @@ body.app-platform-android.lab-chrome-active ion-modal.diagnostics-modal ion-head
 }
 
 .onboarding-v5-card {
-  --onboarding-hero-min-height: 46vh;
+  --onboarding-hero-min-height: 62vh;
   --onboarding-mascot-top: clamp(52px, 7.5vh, 84px);
   --onboarding-mascot-width: clamp(319px, 55vw, 429px);
-  --onboarding-wave-top: 280px;
+  --onboarding-wave-top: 35vh;
   --onboarding-wave-height: clamp(178px, 22vh, 250px);
-  --onboarding-body-overlap: 80px;
+  --onboarding-body-overlap: 27vh;
   --onboarding-body-offset: 34px;
   width: 100%;
   min-height: 100vh;
@@ -2983,8 +3103,7 @@ body.app-platform-android.lab-chrome-active ion-modal.diagnostics-modal ion-head
 .onboarding-v5-hero {
   position: relative;
   min-height: var(--onboarding-hero-min-height);
-  background: radial-gradient(circle at 50% 18%, rgba(255, 255, 255, 0.18), transparent 30%),
-    linear-gradient(135deg, #4f8ef8 0%, #2d6df0 100%);
+  background: var(--free-ride-view-bg);
   overflow: hidden;
 }
 
@@ -3007,9 +3126,9 @@ body.app-platform-android.lab-chrome-active ion-modal.diagnostics-modal ion-head
 }
 
 .onboarding-v5-mascot {
+  display: block;
   width: 100%;
   height: auto;
-  display: block;
   filter: drop-shadow(0 12px 24px rgba(12, 74, 176, 0.2));
 }
 
@@ -3035,6 +3154,7 @@ body.app-platform-android.lab-chrome-active ion-modal.diagnostics-modal ion-head
   max-width: 460px;
   width: 100%;
   margin: calc(-1 * var(--onboarding-body-overlap)) auto 0;
+  min-height: calc(100vh - var(--onboarding-wave-top));
   box-sizing: border-box;
   background: transparent;
   position: relative;
@@ -3139,7 +3259,7 @@ body.app-platform-android.lab-chrome-active ion-modal.diagnostics-modal ion-head
 
 @media (max-width: 380px) {
   .onboarding-v5-card {
-    --onboarding-hero-min-height: 43vh;
+    --onboarding-hero-min-height: 56vh;
     --onboarding-mascot-top: clamp(46px, 7vh, 66px);
     --onboarding-mascot-width: min(90vw, 374px);
     --onboarding-body-overlap: 58px;
@@ -3351,7 +3471,7 @@ page-chat {
 page-chat .page-shell {
   flex: 1;
   min-height: 0;
-  padding: env(safe-area-inset-top, 0px) 16px 6px;
+  padding: 0;
   gap: var(--chat-stack-gap, 12px);
   width: 100%;
   align-self: stretch;
@@ -3465,15 +3585,10 @@ page-chat ion-content::part(scroll) {
 .chat-card-header {
   display: flex;
   justify-content: space-between;
-  align-items: stretch;
+  align-items: center;
   gap: var(--chat-section-gap, 12px);
   margin-top: 0;
   margin-bottom: 0;
-}
-
-.chat-card-header > :first-child {
-  flex: 1 1 0;
-  min-width: 0;
 }
 
 .chat-title-row {
@@ -3490,18 +3605,15 @@ page-chat ion-content::part(scroll) {
 
 .chat-header-aside {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: flex-end;
   justify-content: flex-end;
   flex-shrink: 0;
 }
 
-#chat-coach-subtitle {
-  margin: 6px 0 0;
-  font-size: 0.88rem;
-  font-weight: 400;
-  color: var(--app-muted);
-  padding-left: 4px;
+.chat-card-header .chat-mode-toggle {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .coach-avatar {
@@ -3559,9 +3671,47 @@ page-chat ion-content::part(scroll) {
   max-height: 78%;
 }
 
+.chat-shell {
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-hero-card .coach-avatar {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  border-radius: 0;
+  overflow: visible;
+  background: transparent;
+}
+
+.chat-hero-card .coach-avatar-cat,
+.chat-hero-card .coach-avatar-bot {
+  width: 100%;
+  height: 100%;
+  background: transparent;
+}
+
+.chat-hero-card .coach-avatar-bot.is-compact .free-ride-mascot {
+  transform: translateY(-20px) scale(0.94);
+}
+
+.chat-hero-card .coach-avatar.is-compact .free-ride-mascot {
+  transform: scale(0.94);
+}
+
+.chat-hero-bubble {
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.chat-hero-bubble * {
+  pointer-events: auto;
+}
+
 .chat-mode-toggle {
   grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
-  margin-top: 18px;
+  margin-top: 0;
 }
 
 .chat-mode-btn.has-unread::after {
@@ -3575,6 +3725,15 @@ page-chat ion-content::part(scroll) {
   background: #ef4444;
   border: 2px solid #ffffff;
   z-index: 1;
+}
+
+.chat-mode-btn {
+  position: relative;
+  overflow: visible;
+}
+
+.chat-mode-toggle {
+  overflow: visible;
 }
 
 .chat-text-row {
@@ -3741,7 +3900,7 @@ ion-header.app-header-shell::after {
   font-size: 0.875rem;
   font-weight: 600;
   letter-spacing: normal;
-  color: #1a2b47;
+  color: inherit;
 }
 
 .app-toolbar-title {
@@ -3781,6 +3940,12 @@ page-home.header-color-blue  { --free-ride-header-color: #4d7df4; }
 page-reference.header-color-white { --free-ride-header-color: #ffffff; }
 page-reference.header-color-dark  { --free-ride-header-color: #1a2b47; }
 page-reference.header-color-blue  { --free-ride-header-color: #4d7df4; }
+page-profile.header-color-white { --free-ride-header-color: #ffffff; }
+page-profile.header-color-dark  { --free-ride-header-color: #1a2b47; }
+page-profile.header-color-blue  { --free-ride-header-color: #4d7df4; }
+page-chat.header-color-white { --free-ride-header-color: #ffffff; }
+page-chat.header-color-dark  { --free-ride-header-color: #1a2b47; }
+page-chat.header-color-blue  { --free-ride-header-color: #4d7df4; }
 page-speak.header-color-white { --free-ride-header-color: #ffffff; }
 page-speak.header-color-dark  { --free-ride-header-color: #1a2b47; }
 page-speak.header-color-blue  { --free-ride-header-color: #4d7df4; }
@@ -3792,6 +3957,12 @@ page-home ion-header.app-header-shell ion-toolbar {
   --color: var(--free-ride-header-color, #ffffff);
 }
 page-reference ion-header.app-header-shell ion-toolbar {
+  --color: var(--free-ride-header-color, #ffffff);
+}
+page-profile ion-header.app-header-shell ion-toolbar {
+  --color: var(--free-ride-header-color, #ffffff);
+}
+page-chat ion-header.app-header-shell ion-toolbar {
   --color: var(--free-ride-header-color, #ffffff);
 }
 page-speak ion-header.app-header-shell ion-toolbar {
@@ -3806,6 +3977,14 @@ body.app-platform-android.lab-chrome-active.app-titlebar-enabled page-home ion-h
   --min-height: calc(56px + var(--app-native-statusbar-height, env(safe-area-inset-top, 0px)));
 }
 body.app-platform-android.lab-chrome-active.app-titlebar-enabled page-reference ion-header.app-header-shell ion-toolbar {
+  --padding-top: var(--app-native-statusbar-height, env(safe-area-inset-top, 0px));
+  --min-height: calc(56px + var(--app-native-statusbar-height, env(safe-area-inset-top, 0px)));
+}
+body.app-platform-android.lab-chrome-active.app-titlebar-enabled page-profile ion-header.app-header-shell ion-toolbar {
+  --padding-top: var(--app-native-statusbar-height, env(safe-area-inset-top, 0px));
+  --min-height: calc(56px + var(--app-native-statusbar-height, env(safe-area-inset-top, 0px)));
+}
+body.app-platform-android.lab-chrome-active.app-titlebar-enabled page-chat ion-header.app-header-shell ion-toolbar {
   --padding-top: var(--app-native-statusbar-height, env(safe-area-inset-top, 0px));
   --min-height: calc(56px + var(--app-native-statusbar-height, env(safe-area-inset-top, 0px)));
 }
@@ -3825,69 +4004,70 @@ body.lab-chrome-active.app-titlebar-enabled page-reference ion-header.app-header
 body.lab-chrome-active.app-titlebar-enabled page-reference ion-header.app-header-shell .app-header-actions {
   transform: translateY(var(--app-titlebar-y-correction, 0px));
 }
+body.lab-chrome-active.app-titlebar-enabled page-profile ion-header.app-header-shell .app-toolbar-title,
+body.lab-chrome-active.app-titlebar-enabled page-profile ion-header.app-header-shell .app-header-actions {
+  transform: translateY(var(--app-titlebar-y-correction, 0px));
+}
+body.lab-chrome-active.app-titlebar-enabled page-chat ion-header.app-header-shell .app-toolbar-title,
+body.lab-chrome-active.app-titlebar-enabled page-chat ion-header.app-header-shell .app-header-actions {
+  transform: translateY(var(--app-titlebar-y-correction, 0px));
+}
 body.app-titlebar-enabled page-speak ion-header.app-header-shell .app-toolbar-title,
 body.app-titlebar-enabled page-speak ion-header.app-header-shell .app-header-actions {
   transform: translateY(var(--app-titlebar-y-correction, 0px));
 }
-page-free-ride .app-toolbar-title {
-  color: var(--free-ride-header-color, #ffffff);
+page-free-ride,
+page-home,
+page-reference,
+page-profile,
+page-chat,
+page-speak {
+  --app-header-action-color: var(--free-ride-header-color, #ffffff);
 }
-page-home .app-toolbar-title {
-  color: var(--free-ride-header-color, #ffffff);
+
+page-free-ride .app-toolbar-title,
+page-home .app-toolbar-title,
+page-reference .app-toolbar-title,
+page-profile .app-toolbar-title,
+page-speak .app-toolbar-title,
+page-chat .app-toolbar-title {
+  color: var(--app-header-action-color);
 }
-page-reference .app-toolbar-title {
-  color: var(--free-ride-header-color, #ffffff);
+
+page-free-ride .app-notify-btn,
+page-home .app-notify-btn,
+page-reference .app-notify-btn,
+page-profile .app-notify-btn,
+page-speak .app-notify-btn,
+page-chat .app-notify-btn {
+  --color: var(--app-header-action-color);
 }
-page-speak .app-toolbar-title {
-  color: var(--free-ride-header-color, #ffffff);
+
+page-free-ride .app-locale-btn,
+page-home .app-locale-btn,
+page-reference .app-locale-btn,
+page-profile .app-locale-btn,
+page-speak .app-locale-btn,
+page-chat .app-locale-btn {
+  color: var(--app-header-action-color);
 }
-page-free-ride .app-notify-btn {
-  --color: var(--free-ride-header-color, #ffffff);
+
+page-free-ride .app-locale-btn svg,
+page-home .app-locale-btn svg,
+page-reference .app-locale-btn svg,
+page-profile .app-locale-btn svg,
+page-speak .app-locale-btn svg,
+page-chat .app-locale-btn svg {
+  stroke: var(--app-header-action-color);
 }
-page-home .app-notify-btn {
-  --color: var(--free-ride-header-color, #ffffff);
-}
-page-reference .app-notify-btn {
-  --color: var(--free-ride-header-color, #ffffff);
-}
-page-speak .app-notify-btn {
-  --color: var(--free-ride-header-color, #ffffff);
-}
-page-free-ride .app-locale-btn {
-  color: var(--free-ride-header-color, #ffffff);
-}
-page-home .app-locale-btn {
-  color: var(--free-ride-header-color, #ffffff);
-}
-page-reference .app-locale-btn {
-  color: var(--free-ride-header-color, #ffffff);
-}
-page-speak .app-locale-btn {
-  color: var(--free-ride-header-color, #ffffff);
-}
-page-free-ride .app-locale-btn svg {
-  stroke: var(--free-ride-header-color, #ffffff);
-}
-page-home .app-locale-btn svg {
-  stroke: var(--free-ride-header-color, #ffffff);
-}
-page-reference .app-locale-btn svg {
-  stroke: var(--free-ride-header-color, #ffffff);
-}
-page-speak .app-locale-btn svg {
-  stroke: var(--free-ride-header-color, #ffffff);
-}
-page-free-ride .app-locale-label {
-  color: var(--free-ride-header-color, #ffffff);
-}
-page-home .app-locale-label {
-  color: var(--free-ride-header-color, #ffffff);
-}
-page-reference .app-locale-label {
-  color: var(--free-ride-header-color, #ffffff);
-}
-page-speak .app-locale-label {
-  color: var(--free-ride-header-color, #ffffff);
+
+page-free-ride .app-locale-label,
+page-home .app-locale-label,
+page-reference .app-locale-label,
+page-profile .app-locale-label,
+page-speak .app-locale-label,
+page-chat .app-locale-label {
+  color: var(--app-header-action-color);
 }
 
 .profile-title {
@@ -7068,8 +7248,30 @@ page-speak .speak-content::part(scroll) {
 
 body.lab-chrome-active:not(.app-titlebar-enabled) page-free-ride .free-ride-shell,
 body.lab-chrome-active:not(.app-titlebar-enabled) page-home .free-ride-shell,
-body.lab-chrome-active:not(.app-titlebar-enabled) page-reference .free-ride-shell {
+body.lab-chrome-active:not(.app-titlebar-enabled) page-reference .free-ride-shell,
+body.lab-chrome-active:not(.app-titlebar-enabled) page-chat .free-ride-shell,
+body.lab-chrome-active:not(.app-titlebar-enabled) page-profile .free-ride-shell {
   padding-top: calc(4px + env(safe-area-inset-top, 0px));
+}
+
+body.lab-chrome-active page-speak .speak-shell {
+  padding-top: 4px;
+}
+
+body.lab-chrome-active:not(.app-titlebar-enabled) page-speak .speak-shell {
+  padding-top: calc(4px + env(safe-area-inset-top, 0px));
+}
+
+/* Top toasts in native no-titlebar mode were overlapping the top chrome area.
+   Ionic toast top positioning uses --ion-safe-area-top internally, so we add
+   an extra offset only for native runtime without app titlebar. */
+body.app-platform-android.app-statusbar-manual-offset:not(.app-titlebar-enabled) ion-toast,
+body.app-platform-ios.app-statusbar-manual-offset:not(.app-titlebar-enabled) ion-toast {
+  --ion-safe-area-top: calc(var(--app-native-statusbar-height, env(safe-area-inset-top, 0px)) + 52px);
+}
+
+body.app-platform-ios.app-ios-statusbar-auto-offset:not(.app-titlebar-enabled) ion-toast {
+  --ion-safe-area-top: calc(env(safe-area-inset-top, 0px) + 52px);
 }
 
 .free-ride-title-wrap {
@@ -7218,7 +7420,7 @@ body.lab-chrome-active:not(.app-titlebar-enabled) page-reference .free-ride-shel
 
 .free-ride-hero-bubble.hero-playable-bubble {
   max-width: 100%;
-  width: 100%;
+  width: fit-content;
   padding: 12px 18px 12px 15px;
   display: block;
   border-radius: 24px;
@@ -7308,9 +7510,22 @@ body.lab-chrome-active:not(.app-titlebar-enabled) page-reference .free-ride-shel
   will-change: margin-top;
 }
 
+body.lab-chrome-active page-free-ride .free-ride-card,
+body.lab-chrome-active page-home .free-ride-card,
+body.lab-chrome-active page-reference .free-ride-card,
+body.lab-chrome-active page-chat .free-ride-card,
+body.lab-chrome-active page-profile .free-ride-card {
+  background: rgba(255, 255, 255, 0.86);
+  border-color: rgba(205, 217, 236, 0.88);
+  backdrop-filter: saturate(125%) blur(10px);
+  -webkit-backdrop-filter: saturate(125%) blur(10px);
+}
+
 page-free-ride.is-card-padded .free-ride-card,
 page-home.is-card-padded .free-ride-card,
-page-reference.is-card-padded .free-ride-card {
+page-reference.is-card-padded .free-ride-card,
+page-chat.is-card-padded .free-ride-card,
+page-profile.is-card-padded .free-ride-card {
   margin: -34px var(--free-ride-card-pad) var(--free-ride-card-pad);
   margin-top: calc(-34px - var(--sheet-lift, 0px));
   width: auto;
@@ -7338,7 +7553,7 @@ page-reference.is-card-padded .free-ride-card {
   border: 0;
   background: transparent;
   padding: 0;
-  margin: 0 0 10px;
+  margin: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -7455,19 +7670,37 @@ page-reference.is-card-padded .free-ride-card {
 
 .free-ride-input-inline-message {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   flex: 1 1 auto;
   min-width: 0;
+  min-height: 32px;
   font-size: 0.72rem;
   line-height: 1.25;
   color: #9a3412;
   white-space: normal;
+  overflow: hidden;
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.free-ride-input-inline-message.is-visible {
+  visibility: visible;
+  opacity: 1;
+}
+
+.free-ride-input-inline-message.is-info {
+  color: #64748b;
+}
+
+.free-ride-input-inline-message.is-error {
+  color: #9a3412;
 }
 
 .free-ride-input-meta {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 8px;
   min-width: 0;
   margin-top: 2px;
@@ -9247,9 +9480,7 @@ page-speak.is-card-padded .speak-sheet.has-summary {
   height: 90px;
 }
 
-.training-content,
-.profile-content,
-.chat-content {
+.training-content {
   --background: var(--app-tab-bg-warm);
 }
 
@@ -9764,7 +9995,7 @@ ion-select.training-pill.active::part(icon) {
   border: 0;
   background: transparent;
   padding: 0;
-  margin: 0 0 10px;
+  margin: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -10089,6 +10320,32 @@ ion-select.training-pill.active::part(icon) {
 .reference-nav-btn.is-hidden {
   visibility: hidden;
   pointer-events: none;
+}
+
+/* Sub-level views (lesson / tool) reuse the hero+card shell */
+.reference-sublevel-main {
+  gap: 0;
+}
+
+.reference-sublevel-main .reference-lesson-sticky {
+  --reference-lesson-sticky-cover: 0px;
+  margin-top: 0;
+  padding-top: 10px;
+  background: var(--speak-card, #fff);
+}
+
+.reference-sublevel-main .reference-lesson-nav {
+  background: var(--speak-card, #fff);
+}
+
+.reference-sublevel-main .tool-sticky-header {
+  background: var(--speak-card, #fff);
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.reference-sublevel-main .tool-letter-nav {
+  background: var(--speak-card, #fff);
 }
 
 .reference-selected-path {
@@ -10519,15 +10776,13 @@ ion-select.training-pill.active::part(icon) {
 
 .reference-main-tabs {
   grid-template-columns: 1fr 1fr;
-  min-height: 52px;
-  height: 52px;
-  padding: 6px;
+  width: fit-content;
+  align-self: flex-start;
+  flex-shrink: 0;
 }
 
 .reference-main-tabs .profile-segmented-btn {
-  font-size: 1.14rem;
-  border-radius: 18px;
-  padding: 0 20px;
+  padding: 0 16px;
 }
 
 .reference-tools-list {
@@ -10537,6 +10792,7 @@ ion-select.training-pill.active::part(icon) {
   border-radius: 14px;
   overflow: hidden;
   border: 1px solid rgba(203, 213, 225, 0.6);
+  flex-shrink: 0;
   background: #ffffff;
 }
 
@@ -12494,7 +12750,8 @@ page-speak .speak-content {
   background: none !important;
   box-shadow: none !important;
   padding: 0 18px 0 14px;
-  min-height: 154px;
+  height: 154px;
+  flex: 0 0 auto;
 }
 
 .speak-hero-card::before,
@@ -12525,22 +12782,25 @@ page-speak .speak-content {
   height: 100%;
   box-sizing: border-box;
   padding-bottom: 40px;
+  padding-left: calc(100px + 26px);
   display: flex;
-  align-items: center;
-  gap: 10px;
+  align-items: stretch;
+  gap: 16px;
+  position: relative;
 }
 
 .speak-hero-mascot-wrap {
-  position: relative;
+  position: absolute;
+  left: 0;
+  top: 50%;
   z-index: 1;
   width: 100px;
   height: 100px;
-  flex-shrink: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   overflow: visible;
-  transform: translateY(6px);
+  transform: translateY(calc(-50% - 14px));
 }
 
 .speak-hero-cat {
@@ -12563,7 +12823,6 @@ page-speak .speak-content {
   justify-content: center;
   align-items: flex-start;
   gap: 6px;
-  padding-left: 12px;
 }
 
 .speak-hero-body::before {
@@ -12571,10 +12830,10 @@ page-speak .speak-content {
 }
 
 .speak-hero-bubble.hero-playable-bubble {
-  max-width: 286px;
+  max-width: 100%;
+  width: 100%;
   padding: 12px 18px 12px 15px;
-  display: inline-flex;
-  align-items: center;
+  display: block;
   border-radius: 24px;
   background: linear-gradient(135deg, rgba(77, 125, 244, 0.92) 0%, rgba(67, 116, 240, 0.88) 100%);
   box-shadow: 0 10px 22px rgba(67, 116, 240, 0.16);
@@ -12591,8 +12850,8 @@ page-speak .speak-content {
 .speak-hero-bubble.hero-playable-bubble::before {
   content: '';
   position: absolute;
-  left: -12px;
-  bottom: 15px;
+  left: -10px;
+  bottom: 14px;
   width: 0;
   height: 0;
   border-top: 7px solid transparent;
@@ -12636,6 +12895,7 @@ page-speak .speak-content {
 }
 
 .speak-shell {
+  padding-top: 4px;
   padding-left: 0;
   padding-right: 0;
   gap: 0;
@@ -12643,20 +12903,15 @@ page-speak .speak-content {
 
 .speak-sheet {
   --speak-sheet-pad: 12px;
-  --wedge-inset: 18px;
-  --wedge-depth: 32px;
   margin: -34px 0 0;
   margin-top: calc(-34px - var(--sheet-lift, 0px));
+  flex: 1 1 auto;
+  width: 100%;
+  align-self: auto;
   background: var(--speak-card);
   border: 1px solid var(--speak-outline);
-  clip-path: polygon(
-    var(--wedge-inset) 0%,
-    calc(100% - var(--wedge-inset)) 0%,
-    100% var(--wedge-depth),
-    100% 100%,
-    0% 100%,
-    0% var(--wedge-depth)
-  );
+  border-radius: 24px;
+  clip-path: none;
   filter: drop-shadow(0 10px 28px rgba(26, 44, 88, 0.16));
   padding: 10px 14px 20px;
   display: flex;
@@ -12698,7 +12953,7 @@ page-speak.is-card-padded .speak-sheet {
   border: 0;
   background: transparent;
   padding: 0;
-  margin: 0 0 10px;
+  margin: 0;
   display: flex;
   align-items: center;
   justify-content: center;

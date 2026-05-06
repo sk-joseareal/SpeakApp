@@ -9,10 +9,740 @@ import {
 } from '../data/reference-tests.js';
 import { getNextLocaleCode, getProfileCopy, getTabsCopy, resolveLocale } from '../content/copy.js';
 import { goToSpeak } from '../nav.js';
+import {
+  HERO_MASCOT_FRAMES as PROFILE_AUTH_MASCOT_FRAMES,
+  HERO_MASCOT_FRAME_INTERVAL_MS as PROFILE_AUTH_MASCOT_FRAME_INTERVAL_MS,
+  HERO_MASCOT_REST_FRAME as PROFILE_AUTH_MASCOT_REST_FRAME,
+  HERO_MASCOT_TALK_FRAME_SEQUENCE as PROFILE_AUTH_MASCOT_TALK_FRAME_SEQUENCE,
+  preloadHeroMascotFrames
+} from '../mascot-frames.js';
 
 const REFERENCE_TESTS_PROGRESS_STORAGE_PREFIX = 'appv5:reference-tests-progress';
+const FREE_RIDE_HEADER_COLOR_KEY = 'appv5:free-ride-header-color';
+const FREE_RIDE_CARD_PADDED_KEY = 'appv5:free-ride-card-padded';
+const FREE_RIDE_HEADER_COLOR_VALUES = ['white', 'dark', 'blue'];
+const PROFILE_AUTH_ALIGNED_CACHE_MAX_ITEMS = 12;
+const TTS_LANG_BY_LOCALE = {
+  es: 'es-ES',
+  en: 'en-US'
+};
+
+const getResolvedUserName = (user) => {
+  if (!user || typeof user !== 'object') return '';
+  const derived = [user.first_name, user.last_name].filter(Boolean).join(' ').trim();
+  return derived || String(user.name || user.email || user.social_id || '').trim();
+};
+
+const getStoredHeaderColor = () => {
+  try {
+    const raw = String(localStorage.getItem(FREE_RIDE_HEADER_COLOR_KEY) || '').trim().toLowerCase();
+    return FREE_RIDE_HEADER_COLOR_VALUES.includes(raw) ? raw : 'white';
+  } catch (_err) {
+    return 'white';
+  }
+};
+
+const isFreeRideCardPadded = () => {
+  const cached = window.r34lp0w3r && window.r34lp0w3r.freeRideCardPadded;
+  if (typeof cached === 'boolean') return cached;
+  try {
+    const raw = localStorage.getItem(FREE_RIDE_CARD_PADDED_KEY);
+    if (raw === null || raw === undefined || raw === '') return true;
+    const normalized = String(raw).trim().toLowerCase();
+    return ['1', 'true', 'on', 'yes'].includes(normalized);
+  } catch (_err) {
+    return true;
+  }
+};
 
 class PageProfile extends HTMLElement {
+  constructor() {
+    super();
+    this.authNarrationToken = 0;
+    this.authNarrationAudio = null;
+    this.authAlignedTtsCache = new Map();
+    this.authNarrationPromise = null;
+    this.state = {
+      localeOverride: ''
+    };
+  }
+
+  normalizeAuthMascotFrameIndex(frameIndex) {
+    const value = Number(frameIndex);
+    if (!Number.isFinite(value)) return PROFILE_AUTH_MASCOT_REST_FRAME;
+    const rounded = Math.round(value);
+    return Math.min(Math.max(rounded, 0), PROFILE_AUTH_MASCOT_FRAMES.length - 1);
+  }
+
+  getAuthMascotFramePath(frameIndex = PROFILE_AUTH_MASCOT_REST_FRAME) {
+    const normalized = this.normalizeAuthMascotFrameIndex(frameIndex);
+    return PROFILE_AUTH_MASCOT_FRAMES[normalized] || PROFILE_AUTH_MASCOT_FRAMES[PROFILE_AUTH_MASCOT_REST_FRAME];
+  }
+
+  getAuthMascotImageEl() {
+    return this.querySelector('#profile-auth-hero-mascot');
+  }
+
+  renderAuthMascotFrame(frameIndex) {
+    const normalized = this.normalizeAuthMascotFrameIndex(frameIndex);
+    this.authMascotFrameIndex = normalized;
+    const imageEl = this.getAuthMascotImageEl();
+    if (!imageEl) return;
+    const nextSrc = this.getAuthMascotFramePath(normalized);
+    if (imageEl.getAttribute('src') !== nextSrc) {
+      imageEl.setAttribute('src', nextSrc);
+    }
+  }
+
+  startAuthMascotTalk() {
+    if (this.authMascotIsTalking) return;
+    this.authMascotIsTalking = true;
+    if (this.authMascotFrameTimer) {
+      clearInterval(this.authMascotFrameTimer);
+      this.authMascotFrameTimer = null;
+    }
+    if (!Array.isArray(PROFILE_AUTH_MASCOT_TALK_FRAME_SEQUENCE) || !PROFILE_AUTH_MASCOT_TALK_FRAME_SEQUENCE.length) {
+      this.renderAuthMascotFrame(PROFILE_AUTH_MASCOT_REST_FRAME);
+      return;
+    }
+    let sequenceIndex = 0;
+    this.renderAuthMascotFrame(PROFILE_AUTH_MASCOT_TALK_FRAME_SEQUENCE[sequenceIndex]);
+    this.authMascotFrameTimer = setInterval(() => {
+      if (!this.authMascotIsTalking) return;
+      sequenceIndex = (sequenceIndex + 1) % PROFILE_AUTH_MASCOT_TALK_FRAME_SEQUENCE.length;
+      this.renderAuthMascotFrame(PROFILE_AUTH_MASCOT_TALK_FRAME_SEQUENCE[sequenceIndex]);
+    }, PROFILE_AUTH_MASCOT_FRAME_INTERVAL_MS);
+  }
+
+  stopAuthMascotTalk({ settle = true } = {}) {
+    this.authMascotIsTalking = false;
+    if (this.authMascotFrameTimer) {
+      clearInterval(this.authMascotFrameTimer);
+      this.authMascotFrameTimer = null;
+    }
+    if (settle) {
+      this.renderAuthMascotFrame(PROFILE_AUTH_MASCOT_REST_FRAME);
+    }
+  }
+
+  getNativeTtsPlugin() {
+    if (!this.isNativeRuntime()) return null;
+    if (typeof window === 'undefined') return null;
+    const plugins =
+      window && window.Capacitor && window.Capacitor.Plugins ? window.Capacitor.Plugins : null;
+    if (!plugins) return null;
+    return plugins.TextToSpeech || null;
+  }
+
+  isNativeRuntime() {
+    if (typeof window === 'undefined') return false;
+    const capacitor = window.Capacitor;
+    if (!capacitor) return false;
+    if (typeof capacitor.isNativePlatform === 'function') {
+      return Boolean(capacitor.isNativePlatform());
+    }
+    return capacitor.platform === 'ios' || capacitor.platform === 'android';
+  }
+
+  canWebSpeak() {
+    return (
+      typeof window !== 'undefined' &&
+      typeof window.speechSynthesis !== 'undefined' &&
+      typeof window.SpeechSynthesisUtterance !== 'undefined'
+    );
+  }
+
+  waitForWebVoices(timeoutMs = 1200) {
+    if (!this.canWebSpeak()) return Promise.resolve([]);
+    const synth = window.speechSynthesis;
+    const voicesNow = typeof synth.getVoices === 'function' ? synth.getVoices() : [];
+    if (voicesNow.length) return Promise.resolve(voicesNow);
+    return new Promise((resolve) => {
+      let done = false;
+      const finish = () => {
+        if (done) return;
+        done = true;
+        if (typeof synth.removeEventListener === 'function') {
+          synth.removeEventListener('voiceschanged', onVoicesChanged);
+        } else {
+          synth.onvoiceschanged = null;
+        }
+        const voices = typeof synth.getVoices === 'function' ? synth.getVoices() : [];
+        resolve(voices);
+      };
+      const onVoicesChanged = () => {
+        finish();
+      };
+      if (typeof synth.addEventListener === 'function') {
+        synth.addEventListener('voiceschanged', onVoicesChanged, { once: true });
+      } else {
+        synth.onvoiceschanged = onVoicesChanged;
+      }
+      setTimeout(finish, Math.max(0, timeoutMs));
+    });
+  }
+
+  waitForDocumentVisible(timeoutMs = 1600) {
+    if (typeof document === 'undefined') return Promise.resolve();
+    if (document.visibilityState === 'visible') return Promise.resolve();
+    return new Promise((resolve) => {
+      let done = false;
+      const finish = () => {
+        if (done) return;
+        done = true;
+        document.removeEventListener('visibilitychange', onChange);
+        resolve();
+      };
+      const onChange = () => {
+        if (document.visibilityState === 'visible') finish();
+      };
+      document.addEventListener('visibilitychange', onChange);
+      setTimeout(finish, Math.max(0, timeoutMs));
+    });
+  }
+
+  extractSpeechText(value) {
+    const container = document.createElement('div');
+    container.innerHTML = String(value || '');
+    return String(container.textContent || '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  extractNarrationLines(value) {
+    const raw = String(value || '');
+    if (!raw.trim()) return [];
+    const normalized = raw
+      .replace(/<\s*br\s*\/?>/gi, '\n')
+      .replace(/<\/p>\s*<p>/gi, '\n')
+      .replace(/<\/li>\s*<li>/gi, '\n');
+    const lines = normalized
+      .split(/\r?\n+/)
+      .map((part) => {
+        const html = String(part || '').trim();
+        const text = this.extractSpeechText(html);
+        if (!text) return null;
+        return { text, html };
+      })
+      .filter(Boolean);
+    if (lines.length) return lines;
+    const fallback = this.extractSpeechText(raw);
+    return fallback ? [{ text: fallback, html: '' }] : [];
+  }
+
+  resolveAlignedTtsEndpoint() {
+    const cfg = window.realtimeConfig || {};
+    const direct = cfg.ttsAlignedEndpoint || window.REALTIME_TTS_ALIGNED_ENDPOINT;
+    if (typeof direct === 'string' && direct.trim()) return direct.trim();
+    const emitEndpoint = cfg.emitEndpoint;
+    if (typeof emitEndpoint === 'string' && emitEndpoint.trim()) {
+      const trimmed = emitEndpoint.trim().replace(/\/+$/, '');
+      if (trimmed.endsWith('/emit')) return `${trimmed.slice(0, -5)}/tts/aligned`;
+    }
+    return 'https://realtime.curso-ingles.com/realtime/tts/aligned';
+  }
+
+  buildAlignedTtsHeaders() {
+    const headers = { 'Content-Type': 'application/json' };
+    const cfg = window.realtimeConfig || {};
+    const token = typeof cfg.authToken === 'string' ? cfg.authToken.trim() : '';
+    if (token) headers['x-rt-token'] = token;
+    return headers;
+  }
+
+  normalizeAlignedTtsRequestOptions(options = {}) {
+    const source = options && typeof options === 'object' ? options : {};
+    const voiceProfile = String(source.voiceProfile || source.voice_profile || '').trim().toLowerCase();
+    const voice = String(source.voice || '').trim();
+    const engine = String(source.engine || '').trim().toLowerCase();
+    const rate = String(source.rate || '').trim();
+    const pitch = String(source.pitch || '').trim();
+    return { voiceProfile, voice, engine, rate, pitch };
+  }
+
+  getAuthNarrationTtsOptions() {
+    return {};
+  }
+
+  getAuthAlignedTtsCacheKey(text, lang, options = {}) {
+    const normalized = this.normalizeAlignedTtsRequestOptions(options);
+    return [
+      String(lang || '').trim().toLowerCase(),
+      String(text || '').trim(),
+      normalized.voiceProfile,
+      normalized.voice,
+      normalized.engine,
+      normalized.rate,
+      normalized.pitch
+    ].join('::');
+  }
+
+  getAuthAlignedTtsFromCache(text, lang, options = {}) {
+    const key = this.getAuthAlignedTtsCacheKey(text, lang, options);
+    if (!key || !this.authAlignedTtsCache.has(key)) return null;
+    const cached = this.authAlignedTtsCache.get(key);
+    this.authAlignedTtsCache.delete(key);
+    this.authAlignedTtsCache.set(key, cached);
+    return cached;
+  }
+
+  storeAuthAlignedTtsInCache(text, lang, payload, options = {}) {
+    const key = this.getAuthAlignedTtsCacheKey(text, lang, options);
+    if (!key || !payload) return;
+    this.authAlignedTtsCache.set(key, payload);
+    while (this.authAlignedTtsCache.size > PROFILE_AUTH_ALIGNED_CACHE_MAX_ITEMS) {
+      const oldest = this.authAlignedTtsCache.keys().next();
+      if (oldest && !oldest.done) this.authAlignedTtsCache.delete(oldest.value);
+      else break;
+    }
+  }
+
+  async fetchAuthAlignedTts(text, lang, options = {}) {
+    const expected = String(text || '').trim();
+    const locale = String(lang || '').trim() || 'en-US';
+    if (!expected) return null;
+    const normalizedOptions = this.normalizeAlignedTtsRequestOptions(options);
+    const cached = this.getAuthAlignedTtsFromCache(expected, locale, normalizedOptions);
+    if (cached) return cached;
+    const endpoint = this.resolveAlignedTtsEndpoint();
+    if (!endpoint) return null;
+    const body = { text: expected, locale };
+    if (normalizedOptions.voiceProfile) body.voice_profile = normalizedOptions.voiceProfile;
+    if (normalizedOptions.voice) body.voice = normalizedOptions.voice;
+    if (normalizedOptions.engine) body.engine = normalizedOptions.engine;
+    if (normalizedOptions.rate) body.rate = normalizedOptions.rate;
+    if (normalizedOptions.pitch) body.pitch = normalizedOptions.pitch;
+    const user = window.user;
+    if (user && user.id !== undefined && user.id !== null && String(user.id).trim()) {
+      body.user_id = String(user.id).trim();
+    }
+    const userName = getResolvedUserName(user);
+    if (userName) body.user_name = userName;
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: this.buildAlignedTtsHeaders(),
+      body: JSON.stringify(body)
+    });
+    if (!response.ok) return null;
+    const data = await response.json();
+    if (!data || data.ok !== true) return null;
+    if (typeof data.audio_url !== 'string' || !data.audio_url.trim()) return null;
+    this.storeAuthAlignedTtsInCache(expected, locale, data, normalizedOptions);
+    return data;
+  }
+
+  setAuthBubbleSpeaking(isSpeaking) {
+    const bubbleEl = this.querySelector('#profile-auth-hero-bubble');
+    if (!bubbleEl) return;
+    bubbleEl.classList.toggle('is-speaking', Boolean(isSpeaking));
+  }
+
+  async stopAuthNarrationPlayback() {
+    if (this.authNarrationAudio) {
+      try {
+        this.authNarrationAudio.pause();
+        this.authNarrationAudio.currentTime = 0;
+      } catch (_err) {
+        // no-op
+      }
+      this.authNarrationAudio.onplaying = null;
+      this.authNarrationAudio.onended = null;
+      this.authNarrationAudio.onerror = null;
+      this.authNarrationAudio = null;
+    }
+    const plugin = this.getNativeTtsPlugin();
+    if (plugin && typeof plugin.stop === 'function') {
+      try {
+        await plugin.stop();
+      } catch (_err) {
+        // no-op
+      }
+    }
+    if (this.canWebSpeak() && typeof window.speechSynthesis.cancel === 'function') {
+      if (typeof window.cancelWebSpeech === 'function') window.cancelWebSpeech();
+      else window.speechSynthesis.cancel();
+    }
+    this.stopAuthMascotTalk({ settle: true });
+    this.setAuthBubbleSpeaking(false);
+  }
+
+  async stopAuthHeroSpeech() {
+    this.authNarrationToken += 1;
+    await this.stopAuthNarrationPlayback();
+  }
+
+  async speakAuthNarrationWeb(text, lang, token, voiceWaitMs = 1200, hooks = {}) {
+    if (!this.canWebSpeak()) return false;
+    await this.waitForDocumentVisible(1800);
+    if (token !== this.authNarrationToken) return true;
+    await this.waitForWebVoices(voiceWaitMs);
+    if (token !== this.authNarrationToken) return true;
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = lang;
+    return new Promise((resolve) => {
+      let settled = false;
+      let playbackEnded = false;
+      const notifyPlaybackStart = () => {
+        if (typeof hooks.onPlaybackStart === 'function') hooks.onPlaybackStart();
+      };
+      const notifyPlaybackEnd = () => {
+        if (playbackEnded) return;
+        playbackEnded = true;
+        if (typeof hooks.onPlaybackEnd === 'function') hooks.onPlaybackEnd();
+      };
+      const settle = (started) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(startTimeout);
+        resolve(started);
+      };
+      const startTimeout = setTimeout(() => settle(false), 1800);
+      utter.onstart = () => {
+        notifyPlaybackStart();
+        settle(true);
+      };
+      utter.onend = () => {
+        notifyPlaybackEnd();
+      };
+      utter.onerror = () => {
+        notifyPlaybackEnd();
+        settle(false);
+      };
+      try {
+        const started =
+          typeof window.speakWebUtterance === 'function'
+            ? window.speakWebUtterance(utter)
+            : (() => {
+                window.speechSynthesis.speak(utter);
+                return true;
+              })();
+        if (!started) {
+          notifyPlaybackEnd();
+          settle(false);
+        }
+      } catch (_err) {
+        notifyPlaybackEnd();
+        settle(false);
+      }
+    });
+  }
+
+  async playAuthNarrationAligned(text, lang, token, hooks = {}, ttsOptions = {}) {
+    const lineText = String(text || '').trim();
+    if (!lineText || token !== this.authNarrationToken) return false;
+    let payload = null;
+    try {
+      payload = await this.fetchAuthAlignedTts(lineText, lang, ttsOptions);
+    } catch (_err) {
+      payload = null;
+    }
+    if (!payload && ttsOptions && Object.keys(ttsOptions).length) {
+      try {
+        payload = await this.fetchAuthAlignedTts(lineText, lang);
+      } catch (_err) {
+        payload = null;
+      }
+    }
+    if (!payload || token !== this.authNarrationToken) return false;
+    const audioUrl = String(payload.audio_url || '').trim();
+    if (!audioUrl) return false;
+    const onPlaybackStart =
+      hooks && typeof hooks.onPlaybackStart === 'function' ? hooks.onPlaybackStart : null;
+    const onPlaybackEnd =
+      hooks && typeof hooks.onPlaybackEnd === 'function' ? hooks.onPlaybackEnd : null;
+    const audio = new Audio(audioUrl);
+    audio.preload = 'auto';
+    return new Promise((resolve) => {
+      let started = false;
+      let settled = false;
+      let cancelTimer = null;
+      let startTimeout = null;
+      let maxTimeout = null;
+      const notifyStart = () => {
+        if (started) return;
+        started = true;
+        if (onPlaybackStart) onPlaybackStart();
+      };
+      const cleanup = () => {
+        if (cancelTimer) clearInterval(cancelTimer);
+        if (startTimeout) clearTimeout(startTimeout);
+        if (maxTimeout) clearTimeout(maxTimeout);
+        cancelTimer = null;
+        startTimeout = null;
+        maxTimeout = null;
+        audio.onplaying = null;
+        audio.onended = null;
+        audio.onerror = null;
+        if (this.authNarrationAudio === audio) this.authNarrationAudio = null;
+      };
+      const settle = () => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        if (onPlaybackEnd) onPlaybackEnd();
+        resolve(started);
+      };
+      cancelTimer = setInterval(() => {
+        if (settled) return;
+        if (token !== this.authNarrationToken) {
+          try {
+            audio.pause();
+            audio.currentTime = 0;
+          } catch (_err) {
+            // no-op
+          }
+          settle();
+        }
+      }, 80);
+      startTimeout = setTimeout(() => settle(), 1800);
+      const payloadDurationMs = Number(payload && (payload.duration_ms || payload.durationMs || 0)) || 0;
+      const estimatedMs = Math.min(
+        18000,
+        Math.max(1600, payloadDurationMs > 0 ? payloadDurationMs + 1800 : Math.round(lineText.length * 80) + 3200)
+      );
+      maxTimeout = setTimeout(() => settle(), estimatedMs);
+      audio.onplaying = () => notifyStart();
+      audio.onended = () => settle();
+      audio.onerror = () => settle();
+      this.authNarrationAudio = audio;
+      audio
+        .play()
+        .then(() => {
+          if (token !== this.authNarrationToken) {
+            try {
+              audio.pause();
+              audio.currentTime = 0;
+            } catch (_err) {
+              // no-op
+            }
+            settle();
+            return;
+          }
+          notifyStart();
+        })
+        .catch(() => settle());
+    });
+  }
+
+  async speakAuthNarration(linesOrText, locale, options = {}) {
+    const lines = Array.isArray(linesOrText)
+      ? linesOrText.filter((line) => line && typeof line.text === 'string' && line.text.trim())
+      : this.extractNarrationLines(linesOrText);
+    if (!lines.length) return false;
+    const normalizedLocale = String(locale || 'en').trim().toLowerCase().split('-')[0];
+    const lang = TTS_LANG_BY_LOCALE[normalizedLocale] || 'en-US';
+    const token = ++this.authNarrationToken;
+    const bubbleEl = options && options.bubbleEl ? options.bubbleEl : this.querySelector('#profile-auth-hero-bubble');
+    const allowWebFallback = options && options.allowWebFallback !== false;
+    const alignedTtsOptions =
+      options && options.alignedTtsOptions ? options.alignedTtsOptions : {};
+    const hasMultipleLines = lines.length > 1;
+    const originalBubbleHtml = bubbleEl ? bubbleEl.innerHTML : '';
+    const originalBubbleMinHeight = bubbleEl ? bubbleEl.style.minHeight : '';
+    const restLine = lines[0] || null;
+    await this.stopAuthNarrationPlayback();
+    if (token !== this.authNarrationToken) return false;
+    if (bubbleEl) bubbleEl.dataset.narrationToken = String(token);
+    const applyLine = (line) => {
+      if (!bubbleEl || bubbleEl.dataset.narrationToken !== String(token)) return;
+      const lineHtml = line && typeof line.html === 'string' ? line.html.trim() : '';
+      if (lineHtml) bubbleEl.innerHTML = lineHtml;
+      else bubbleEl.textContent = line && line.text ? line.text : '';
+    };
+    const measureMaxLineHeight = () => {
+      if (!bubbleEl || !hasMultipleLines) return 0;
+      const width =
+        Math.ceil(
+          bubbleEl.getBoundingClientRect().width || bubbleEl.clientWidth || bubbleEl.offsetWidth || 0
+        ) || 0;
+      if (!width) return 0;
+      const probe = document.createElement('div');
+      probe.className = bubbleEl.className;
+      probe.setAttribute('aria-hidden', 'true');
+      probe.style.position = 'absolute';
+      probe.style.visibility = 'hidden';
+      probe.style.pointerEvents = 'none';
+      probe.style.left = '-99999px';
+      probe.style.top = '0';
+      probe.style.width = `${width}px`;
+      probe.style.minHeight = '0';
+      probe.style.height = 'auto';
+      const parent = bubbleEl.parentElement || this;
+      parent.appendChild(probe);
+      let maxHeight = 0;
+      lines.forEach((line) => {
+        const html = line && typeof line.html === 'string' ? line.html.trim() : '';
+        if (html) probe.innerHTML = html;
+        else probe.textContent = line && line.text ? line.text : '';
+        const nextHeight = Math.ceil(
+          Math.max(probe.scrollHeight || 0, probe.getBoundingClientRect().height || 0)
+        );
+        if (nextHeight > maxHeight) maxHeight = nextHeight;
+      });
+      probe.remove();
+      return maxHeight;
+    };
+    if (bubbleEl) {
+      if (hasMultipleLines && restLine) applyLine(restLine);
+      if (hasMultipleLines) {
+        const maxHeight = measureMaxLineHeight();
+        if (maxHeight > 0) bubbleEl.style.minHeight = `${maxHeight}px`;
+      } else {
+        bubbleEl.style.minHeight = originalBubbleMinHeight;
+      }
+    }
+    const restoreBubble = () => {
+      if (!bubbleEl || bubbleEl.dataset.narrationToken !== String(token)) return;
+      if (originalBubbleHtml) bubbleEl.innerHTML = originalBubbleHtml;
+      else if (restLine) applyLine(restLine);
+      else bubbleEl.innerHTML = originalBubbleHtml;
+      bubbleEl.style.minHeight = originalBubbleMinHeight;
+      delete bubbleEl.dataset.narrationToken;
+    };
+    const waitMs = (ms) =>
+      new Promise((resolve) => setTimeout(resolve, Math.max(0, Number(ms) || 0)));
+    const estimateLinePlaybackMs = (lineText) => {
+      const chars = String(lineText || '').trim().length;
+      return Math.min(9500, Math.max(900, Math.round(chars * 72)));
+    };
+    const waitWebSpeechIdle = async (maxMs = 7000) => {
+      if (!this.canWebSpeak() || typeof window === 'undefined' || !window.speechSynthesis) return;
+      const synth = window.speechSynthesis;
+      const startedAt = Date.now();
+      while (token === this.authNarrationToken && Date.now() - startedAt < maxMs) {
+        if (!synth.speaking && !synth.pending && !synth.paused) return;
+        await waitMs(60);
+      }
+    };
+    const plugin = this.getNativeTtsPlugin();
+    const speakLineWithPlugin = async (lineText) => {
+      if (!plugin || typeof plugin.speak !== 'function') return false;
+      this.startAuthMascotTalk();
+      this.setAuthBubbleSpeaking(true);
+      const startedAt = Date.now();
+      try {
+        await plugin.speak({
+          text: lineText,
+          lang,
+          rate: 1.0,
+          pitch: 1.0,
+          volume: 1.0,
+          category: 'ambient',
+          queueStrategy: 1
+        });
+        const minMs = estimateLinePlaybackMs(lineText);
+        const elapsed = Date.now() - startedAt;
+        if (elapsed < minMs && token === this.authNarrationToken) await waitMs(minMs - elapsed);
+        return true;
+      } catch (_err) {
+        return false;
+      } finally {
+        if (token === this.authNarrationToken) {
+          this.stopAuthMascotTalk({ settle: true });
+          this.setAuthBubbleSpeaking(false);
+        }
+      }
+    };
+    const speakLineWebWithRetry = async (lineText) => {
+      const hooks = {
+        onPlaybackStart: () => {
+          if (token !== this.authNarrationToken) return;
+          this.startAuthMascotTalk();
+          this.setAuthBubbleSpeaking(true);
+        },
+        onPlaybackEnd: () => {
+          if (token !== this.authNarrationToken) return;
+          this.stopAuthMascotTalk({ settle: true });
+          this.setAuthBubbleSpeaking(false);
+        }
+      };
+      let started = await this.speakAuthNarrationWeb(lineText, lang, token, 1500, hooks);
+      if (started && token === this.authNarrationToken) {
+        const maxWait = Math.min(11000, estimateLinePlaybackMs(lineText) + 2400);
+        await waitWebSpeechIdle(maxWait);
+      }
+      if (started || token !== this.authNarrationToken) return started;
+      await waitMs(450);
+      if (token !== this.authNarrationToken) return false;
+      await this.stopAuthNarrationPlayback();
+      if (token !== this.authNarrationToken) return false;
+      started = await this.speakAuthNarrationWeb(lineText, lang, token, 3200, hooks);
+      if (started && token === this.authNarrationToken) {
+        const maxWait = Math.min(12000, estimateLinePlaybackMs(lineText) + 3000);
+        await waitWebSpeechIdle(maxWait);
+      }
+      return started;
+    };
+    let startedAny = false;
+    try {
+      for (let index = 0; index < lines.length; index += 1) {
+        if (token !== this.authNarrationToken) return startedAny;
+        const line = lines[index];
+        const lineText = String(line.text || '').trim();
+        if (!lineText) continue;
+        if (hasMultipleLines) applyLine(line);
+        const hooks = {
+          onPlaybackStart: () => {
+            if (token !== this.authNarrationToken) return;
+            this.startAuthMascotTalk();
+            this.setAuthBubbleSpeaking(true);
+          },
+          onPlaybackEnd: () => {
+            if (token !== this.authNarrationToken) return;
+            this.stopAuthMascotTalk({ settle: true });
+            this.setAuthBubbleSpeaking(false);
+          }
+        };
+        let started = await this.playAuthNarrationAligned(lineText, lang, token, hooks, alignedTtsOptions);
+        if (!started && token === this.authNarrationToken) started = await speakLineWithPlugin(lineText);
+        if (!started && allowWebFallback && token === this.authNarrationToken) {
+          started = await speakLineWebWithRetry(lineText);
+        }
+        startedAny = startedAny || started;
+        if (index < lines.length - 1 && token === this.authNarrationToken) await waitMs(130);
+      }
+      return startedAny;
+    } finally {
+      if (token === this.authNarrationToken) {
+        this.stopAuthMascotTalk({ settle: true });
+        this.setAuthBubbleSpeaking(false);
+      }
+      restoreBubble();
+    }
+  }
+
+  playAuthHeroBubble() {
+    if (this.authNarrationPromise) return this.authNarrationPromise;
+    const bubbleEl = this.querySelector('#profile-auth-hero-bubble');
+    const lines = this.extractNarrationLines(bubbleEl ? bubbleEl.innerHTML : '');
+    if (!lines.length) {
+      this.stopAuthHeroSpeech().catch(() => {});
+      return Promise.resolve(false);
+    }
+    const locale = String(getActiveLocale() || (window.varGlobal && window.varGlobal.locale) || 'en')
+      .trim()
+      .toLowerCase()
+      .split('-')[0];
+    const alignedTtsOptions = this.getAuthNarrationTtsOptions(locale);
+    const runPromise = this.speakAuthNarration(lines, locale, {
+      bubbleEl,
+      allowWebFallback: true,
+      alignedTtsOptions
+    })
+      .catch((_err) => false)
+      .finally(() => {
+        if (this.authNarrationPromise === runPromise) this.authNarrationPromise = null;
+      });
+    this.authNarrationPromise = runPromise;
+    return runPromise;
+  }
+
+  applyHeaderColor(color) {
+    const normalized = FREE_RIDE_HEADER_COLOR_VALUES.includes(color) ? color : 'white';
+    FREE_RIDE_HEADER_COLOR_VALUES.forEach((value) => this.classList.remove(`header-color-${value}`));
+    this.classList.add(`header-color-${normalized}`);
+  }
+
   scheduleReviewCollapseRefresh(resetExpanded = false) {
     if (this._reviewCollapseRaf) {
       cancelAnimationFrame(this._reviewCollapseRaf);
@@ -48,6 +778,247 @@ class PageProfile extends HTMLElement {
     });
   }
 
+  getProfileShellEl() {
+    return this.querySelector('.profile-shell.free-ride-shell');
+  }
+
+  getProfileSheetEl() {
+    return this.querySelector('.free-ride-card.profile-content-card');
+  }
+
+  getProfileSheetHandleEl() {
+    return this.querySelector('.profile-content-card .journey-sheet-handle');
+  }
+
+  getProfileSheetTopInset() {
+    if (document.body.classList.contains('app-titlebar-enabled')) return 0;
+    const shellEl = this.getProfileShellEl();
+    if (!shellEl) return 0;
+    const paddingTop = Number.parseFloat(window.getComputedStyle(shellEl).paddingTop || '0');
+    return Number.isFinite(paddingTop) ? Math.max(0, Math.round(paddingTop)) : 0;
+  }
+
+  measureProfileSheetExpandedOffset() {
+    const shellEl = this.getProfileShellEl();
+    const sheetEl = this.getProfileSheetEl();
+    if (!shellEl || !sheetEl) return 0;
+    const shellRect = shellEl.getBoundingClientRect();
+    const sheetRect = sheetEl.getBoundingClientRect();
+    const currentTranslate = Number.isFinite(this.profileSheetTranslateY) ? this.profileSheetTranslateY : 0;
+    const targetTop = shellRect.top + this.getProfileSheetTopInset();
+    const offset = Math.max(0, Math.round(sheetRect.top - currentTranslate - targetTop));
+    this.profileSheetExpandedOffset = offset;
+    return offset;
+  }
+
+  applyProfileSheetState(options = {}) {
+    const animate = options.animate !== false;
+    const sheetEl = this.getProfileSheetEl();
+    const handleEl = this.getProfileSheetHandleEl();
+    if (!sheetEl) return;
+    const offset = this.profileSheetExpanded
+      ? (this.profileSheetExpandedOffset || this.measureProfileSheetExpandedOffset())
+      : 0;
+    this.profileSheetTranslateY = this.profileSheetExpanded ? -offset : 0;
+    sheetEl.dataset.sheetState = this.profileSheetExpanded ? 'expanded' : 'collapsed';
+    sheetEl.classList.toggle('is-sheet-instant', !animate);
+    const liftMagnitude = Math.max(0, -this.profileSheetTranslateY);
+    sheetEl.style.setProperty('--sheet-lift', `${liftMagnitude}px`);
+    if (handleEl) {
+      handleEl.setAttribute('aria-expanded', this.profileSheetExpanded ? 'true' : 'false');
+      handleEl.setAttribute('aria-label', this.profileSheetExpanded ? 'Collapse profile card' : 'Expand profile card');
+    }
+    if (!animate) {
+      requestAnimationFrame(() => {
+        if (!sheetEl.isConnected) return;
+        sheetEl.classList.remove('is-sheet-instant');
+      });
+    }
+  }
+
+  setProfileSheetExpanded(nextExpanded, options = {}) {
+    const expanded = Boolean(nextExpanded);
+    if (this.profileSheetExpanded === expanded && !options.force) {
+      this.applyProfileSheetState(options);
+      return;
+    }
+    this.profileSheetExpanded = expanded;
+    if (expanded && (!Number.isFinite(this.profileSheetExpandedOffset) || this.profileSheetExpandedOffset <= 0)) {
+      this.profileSheetExpandedOffset = this.measureProfileSheetExpandedOffset();
+    }
+    this.applyProfileSheetState(options);
+  }
+
+  toggleProfileSheet(options = {}) {
+    this.setProfileSheetExpanded(!this.profileSheetExpanded, options);
+  }
+
+  startProfileSheetDrag(event) {
+    const handleEl = event && event.currentTarget ? event.currentTarget : null;
+    const sheetEl = this.getProfileSheetEl();
+    if (!handleEl || !sheetEl || typeof event.pointerId !== 'number') return;
+    if (event.button !== 0) return;
+
+    this.profileSheetExpandedOffset = this.measureProfileSheetExpandedOffset();
+    this.profileSheetDragging = true;
+    this.profileSheetPointerId = event.pointerId;
+    this.profileSheetDragStartY = event.clientY;
+    this.profileSheetDragStartTranslateY = this.profileSheetExpanded ? -this.profileSheetExpandedOffset : 0;
+    this.profileSheetDragMoved = false;
+    sheetEl.classList.add('is-sheet-dragging');
+    this.applyProfileSheetState({ animate: false });
+
+    try {
+      handleEl.setPointerCapture(event.pointerId);
+    } catch (_err) {
+      // no-op
+    }
+    event.preventDefault();
+  }
+
+  moveProfileSheetDrag(event) {
+    if (!this.profileSheetDragging) return;
+    if (typeof event.pointerId === 'number' && event.pointerId !== this.profileSheetPointerId) return;
+    const sheetEl = this.getProfileSheetEl();
+    if (!sheetEl) return;
+
+    const deltaY = Number(event.clientY) - this.profileSheetDragStartY;
+    const nextTranslate = this.profileSheetDragStartTranslateY + deltaY;
+    const minTranslate = -this.profileSheetExpandedOffset;
+    const maxTranslate = 0;
+    const clampedTranslate = Math.max(minTranslate, Math.min(maxTranslate, nextTranslate));
+
+    if (Math.abs(clampedTranslate - this.profileSheetDragStartTranslateY) > 4) {
+      this.profileSheetDragMoved = true;
+    }
+
+    this.profileSheetTranslateY = clampedTranslate;
+    const liftMagnitude = Math.max(0, -clampedTranslate);
+    sheetEl.style.setProperty('--sheet-lift', `${liftMagnitude}px`);
+    event.preventDefault();
+  }
+
+  finishProfileSheetDrag(event) {
+    if (!this.profileSheetDragging) return;
+    if (typeof event.pointerId === 'number' && event.pointerId !== this.profileSheetPointerId) return;
+    const sheetEl = this.getProfileSheetEl();
+    const handleEl = this.getProfileSheetHandleEl();
+    const currentTranslate = Number.isFinite(this.profileSheetTranslateY) ? this.profileSheetTranslateY : 0;
+    const midpoint = -Math.max(0, this.profileSheetExpandedOffset) / 2;
+    const nextExpanded = this.profileSheetDragMoved ? currentTranslate <= midpoint : !this.profileSheetExpanded;
+
+    this.profileSheetDragging = false;
+    this.profileSheetPointerId = null;
+    this.profileSheetDragMoved = false;
+    this.profileSheetLastPointerUpTs = Date.now();
+    if (sheetEl) {
+      sheetEl.classList.remove('is-sheet-dragging');
+    }
+    if (handleEl) {
+      try {
+        if (typeof event.pointerId === 'number' && handleEl.hasPointerCapture(event.pointerId)) {
+          handleEl.releasePointerCapture(event.pointerId);
+        }
+      } catch (_err) {
+        // no-op
+      }
+    }
+    this.setProfileSheetExpanded(nextExpanded, { animate: true });
+  }
+
+  cancelProfileSheetDrag() {
+    if (!this.profileSheetDragging) return;
+    this.profileSheetDragging = false;
+    this.profileSheetPointerId = null;
+    this.profileSheetDragMoved = false;
+    const sheetEl = this.getProfileSheetEl();
+    if (sheetEl) {
+      sheetEl.classList.remove('is-sheet-dragging');
+    }
+    this.setProfileSheetExpanded(this.profileSheetExpanded, { animate: true, force: true });
+  }
+
+  bindProfileSheetInteractions() {
+    const handleEl = this.getProfileSheetHandleEl();
+    if (!handleEl) return;
+    handleEl.addEventListener('pointerdown', (e) => {
+      this.startProfileSheetDrag(e);
+    });
+    handleEl.addEventListener('pointermove', (e) => {
+      this.moveProfileSheetDrag(e);
+    });
+    handleEl.addEventListener('pointerup', (e) => {
+      this.finishProfileSheetDrag(e);
+    });
+    handleEl.addEventListener('pointercancel', () => {
+      this.cancelProfileSheetDrag();
+    });
+    handleEl.addEventListener('lostpointercapture', () => {
+      this.cancelProfileSheetDrag();
+    });
+    handleEl.addEventListener('click', (e) => {
+      const lastPointerUpTs = Number(this.profileSheetLastPointerUpTs) || 0;
+      if (lastPointerUpTs && Date.now() - lastPointerUpTs < 350) {
+        e.preventDefault();
+        return;
+      }
+      e.preventDefault();
+      this.toggleProfileSheet({ animate: true });
+    });
+    handleEl.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      e.preventDefault();
+      this.toggleProfileSheet({ animate: true });
+    });
+    this.profileSheetExpandedOffset = this.measureProfileSheetExpandedOffset();
+    this.applyProfileSheetState({ animate: false, force: true });
+  }
+
+  syncProfileLayout() {
+    if (!this.isConnected) return;
+    const shellEl = this.getProfileShellEl();
+    if (!shellEl) return;
+    const loggedInCardEl = this.querySelector('#profile-card-section');
+    if (!loggedInCardEl || loggedInCardEl.hidden) {
+      shellEl.style.removeProperty('--free-ride-shell-height');
+      return;
+    }
+    const viewport = window.visualViewport;
+    const shellRect = shellEl.getBoundingClientRect();
+    const visualViewportBottom = viewport ? (viewport.offsetTop + viewport.height) : window.innerHeight;
+    const tabBar = document.querySelector('ion-tab-bar.app-tab-bar');
+    const tabBarTop = tabBar ? tabBar.getBoundingClientRect().top : visualViewportBottom;
+    const bottomLimit = Math.min(visualViewportBottom, tabBarTop);
+    const usableHeight = bottomLimit - shellRect.top - 8;
+    if (!Number.isFinite(usableHeight) || usableHeight <= 80) {
+      shellEl.style.removeProperty('--free-ride-shell-height');
+      return;
+    }
+    shellEl.style.setProperty('--free-ride-shell-height', `${Math.max(200, Math.floor(usableHeight))}px`);
+    this.profileSheetExpandedOffset = this.measureProfileSheetExpandedOffset();
+    this.applyProfileSheetState({ animate: false, force: true });
+  }
+
+  scheduleProfileLayout(delayMs = 0) {
+    if (!this.isConnected) return;
+    const run = () => {
+      if (this._profileLayoutRaf) cancelAnimationFrame(this._profileLayoutRaf);
+      this._profileLayoutRaf = requestAnimationFrame(() => {
+        this._profileLayoutRaf = null;
+        this.syncProfileLayout();
+      });
+    };
+    if (delayMs > 0) {
+      if (this._profileLayoutTimer) clearTimeout(this._profileLayoutTimer);
+      this._profileLayoutTimer = setTimeout(() => {
+        this._profileLayoutTimer = null;
+        run();
+      }, delayMs);
+    } else {
+      run();
+    }
+  }
+
   notifyChromeState() {
     const user = window.user;
     const loggedIn = Boolean(user && user.id !== undefined && user.id !== null);
@@ -64,6 +1035,21 @@ class PageProfile extends HTMLElement {
 
   connectedCallback() {
     this.classList.add('ion-page');
+    this.applyHeaderColor(getStoredHeaderColor());
+    this.classList.toggle('is-card-padded', isFreeRideCardPadded());
+    preloadHeroMascotFrames();
+    this.profileSheetExpanded = false;
+    this.profileSheetExpandedOffset = 0;
+    this.profileSheetTranslateY = 0;
+    this.profileSheetDragging = false;
+    this.profileSheetPointerId = null;
+    this.profileSheetDragStartY = 0;
+    this.profileSheetDragStartTranslateY = 0;
+    this.profileSheetDragMoved = false;
+    this.profileSheetLastPointerUpTs = 0;
+    this.authMascotFrameIndex = PROFILE_AUTH_MASCOT_REST_FRAME;
+    this.authMascotFrameTimer = null;
+    this.authMascotIsTalking = false;
     if (!this.activeTab) {
       this.activeTab = 'progress';
     }
@@ -97,6 +1083,8 @@ class PageProfile extends HTMLElement {
       const tab = String(event && event.detail ? event.detail.tab || '' : '').trim().toLowerCase();
       if (tab === 'tu') {
         this.scheduleReviewCollapseRefresh(true);
+        this.scheduleProfileLayout(0);
+        this.scheduleProfileLayout(140);
       }
     };
     this._tabsEl?.addEventListener('ionTabsDidChange', this._tabsDidChangeHandler);
@@ -109,19 +1097,49 @@ class PageProfile extends HTMLElement {
     };
     this._routerEl?.addEventListener('ionRouteDidChange', this._routeDidChangeHandler);
     this._reviewReturnHandler = () => this.scheduleReviewCollapseRefresh(true);
+    this._headerColorHandler = (event) => {
+      if (!this.isConnected) return;
+      const color = event && event.detail ? event.detail.color : '';
+      this.applyHeaderColor(color || getStoredHeaderColor());
+    };
+    this._titlebarToggleHandler = () => {
+      if (!this.isConnected) return;
+      this.render();
+      this.scheduleProfileLayout(0);
+      this.scheduleProfileLayout(140);
+    };
+    this._cardPaddedHandler = (event) => {
+      if (!this.isConnected) return;
+      const detail = event && event.detail ? event.detail : {};
+      const enabled = typeof detail.enabled === 'boolean' ? detail.enabled : isFreeRideCardPadded();
+      this.classList.toggle('is-card-padded', enabled);
+      this.profileSheetExpandedOffset = this.measureProfileSheetExpandedOffset();
+      this.applyProfileSheetState({ animate: false, force: true });
+      this.scheduleProfileLayout(0);
+    };
     window.addEventListener('app:user-change', this._userHandler);
     window.addEventListener('app:speak-stores-change', this._storesHandler);
     window.addEventListener('app:locale-change', this._localeHandler);
     window.addEventListener('app:profile-review-return', this._reviewReturnHandler);
+    window.addEventListener('app:free-ride-header-color-change', this._headerColorHandler);
+    window.addEventListener('app:titlebar-enabled-change', this._titlebarToggleHandler);
+    window.addEventListener('app:free-ride-card-padded-change', this._cardPaddedHandler);
     window.addEventListener('focus', this._focusHandler);
     document.addEventListener('visibilitychange', this._visibilityHandler);
     this._reviewResizeObserver =
       typeof ResizeObserver === 'function'
         ? new ResizeObserver(() => this.scheduleReviewCollapseRefresh())
         : null;
+    this._profileResizeHandler = () => this.scheduleProfileLayout(0);
+    window.addEventListener('resize', this._profileResizeHandler);
+    if (window.visualViewport && typeof window.visualViewport.addEventListener === 'function') {
+      window.visualViewport.addEventListener('resize', this._profileResizeHandler);
+      window.visualViewport.addEventListener('scroll', this._profileResizeHandler);
+    }
   }
 
   disconnectedCallback() {
+    this.stopAuthHeroSpeech();
     const tabsPage = document.querySelector('tabs-page');
     if (tabsPage && tabsPage.classList) {
       tabsPage.classList.remove('profile-auth-tabs-hidden');
@@ -142,6 +1160,16 @@ class PageProfile extends HTMLElement {
     }
     if (this._reviewReturnHandler) {
       window.removeEventListener('app:profile-review-return', this._reviewReturnHandler);
+    }
+    if (this._headerColorHandler) {
+      window.removeEventListener('app:free-ride-header-color-change', this._headerColorHandler);
+    }
+    if (this._titlebarToggleHandler) {
+      window.removeEventListener('app:titlebar-enabled-change', this._titlebarToggleHandler);
+    }
+    if (this._cardPaddedHandler) {
+      window.removeEventListener('app:free-ride-card-padded-change', this._cardPaddedHandler);
+      this._cardPaddedHandler = null;
     }
     if (this._focusHandler) {
       window.removeEventListener('focus', this._focusHandler);
@@ -170,9 +1198,20 @@ class PageProfile extends HTMLElement {
       this._reviewResizeObserver.disconnect();
       this._reviewResizeObserver = null;
     }
+    if (this._profileResizeHandler) {
+      window.removeEventListener('resize', this._profileResizeHandler);
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', this._profileResizeHandler);
+        window.visualViewport.removeEventListener('scroll', this._profileResizeHandler);
+      }
+      this._profileResizeHandler = null;
+    }
+    if (this._profileLayoutTimer) { clearTimeout(this._profileLayoutTimer); this._profileLayoutTimer = null; }
+    if (this._profileLayoutRaf) { cancelAnimationFrame(this._profileLayoutRaf); this._profileLayoutRaf = null; }
   }
 
   render() {
+    this.stopAuthHeroSpeech();
     const platform =
       window.r34lp0w3r && typeof window.r34lp0w3r.platform === 'string'
         ? String(window.r34lp0w3r.platform).trim().toLowerCase()
@@ -1181,6 +2220,82 @@ class PageProfile extends HTMLElement {
     const premiumBadgeMarkup = isPremiumUser(user)
       ? '<div class="profile-hero-premium">Premium</div>'
       : '';
+    const authMascotSrc = this.getAuthMascotFramePath(this.authMascotFrameIndex);
+    const authBubbleText = escapeHtml(
+      profileCopy.loginSubtitle || 'Debes iniciar sesión para ver tu perfil.'
+    );
+    const localeLabel = String(rawLocaleSetting || '').trim().toUpperCase() || 'EN';
+    const loggedOutHeaderHtml = titlebarEnabled
+      ? `
+      <ion-header translucent="true" class="app-header-shell">
+        <ion-toolbar class="secret-title-area toolbar-title-default">
+          <ion-title></ion-title>
+          <div slot="start" class="app-toolbar-title secret-title">${escapeHtml(tabsCopy.you || 'Profile')}</div>
+          <div class="app-header-actions profile-auth-header-actions" slot="end">
+            <button class="app-locale-btn" type="button" aria-label="${escapeHtml(localeLabel)}">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"></path>
+                <path d="M2 12h20"></path>
+              </svg>
+              <span class="app-locale-label">${escapeHtml(localeLabel)}</span>
+            </button>
+          </div>
+        </ion-toolbar>
+      </ion-header>`
+      : '';
+    const authInlineLocaleHtml = !titlebarEnabled
+      ? `
+      <div class="profile-hero-actions-left profile-auth-actions-left">
+        <button class="app-locale-btn" type="button" aria-label="${escapeHtml(localeLabel)}">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+          <span class="app-locale-label">${escapeHtml(localeLabel)}</span>
+        </button>
+      </div>`
+      : '';
+    const authShellHtml = !loggedIn
+      ? `
+          ${authInlineLocaleHtml}
+          <section class="free-ride-hero-card journey-plan-card onboarding-intro-card profile-auth-hero" id="profile-auth-hero-section">
+            <div class="free-ride-hero-stage journey-plan-stage">
+              <span class="journey-plan-mascot-wrap free-ride-mascot-wrap" aria-hidden="true">
+                <img id="profile-auth-hero-mascot" class="onboarding-intro-cat free-ride-mascot" src="${authMascotSrc}" alt="">
+              </span>
+              <div class="journey-plan-body">
+                <p
+                  id="profile-auth-hero-bubble"
+                  class="onboarding-intro-bubble free-ride-hero-bubble journey-plan-bubble hero-playable-bubble"
+                  role="button"
+                  tabindex="0"
+                  aria-label="${escapeHtml((rawLocaleSetting || 'es') === 'es' ? 'Reproducir mensaje' : 'Play message')}"
+                >
+                  <span class="journey-plan-bubble-text"><span class="free-ride-hero-bubble-icon" aria-hidden="true"><ion-icon name="volume-high-outline"></ion-icon></span>${authBubbleText}</span>
+                </p>
+              </div>
+            </div>
+          </section>
+          <section class="free-ride-card profile-auth-card" id="profile-auth-card-section">
+            <div class="free-ride-card-main">
+              <div id="profile-login-panel">
+                <div class="profile-login-hero">
+                  <h1 class="profile-login-title">${escapeHtml(profileCopy.loginTitle || 'Inicia sesión')}</h1>
+                </div>
+                <page-login embedded flat></page-login>
+                <div class="profile-auth-footer">
+                  <div class="profile-links profile-links--centered" id="profile-links-login">
+                    <button class="profile-link-btn" type="button" data-action="contact">${escapeHtml(
+                      profileCopy.contact || 'Contact'
+                    )}</button>
+                    <button class="profile-link-btn" type="button" data-action="legal">${escapeHtml(
+                      profileCopy.legal || 'Legal'
+                    )}</button>
+                  </div>
+                  <div class="profile-app-meta profile-app-meta--auth">${escapeHtml(appMetaLabel)}</div>
+                </div>
+              </div>
+            </div>
+          </section>`
+      : '';
     const progressCardsMarkup = [
       {
         label: tabsCopy.training || 'Training',
@@ -1251,63 +2366,47 @@ class PageProfile extends HTMLElement {
       .join('');
 
     this.innerHTML = `
-      ${loggedIn ? renderAppHeader({ title: tabsCopy.you }) : ''}
-      <ion-content fullscreen class="secret-content profile-content ${loggedIn ? '' : 'profile-content--logged-out'}">
-        <div class="page-shell profile-shell ${loggedIn ? '' : `profile-shell--logged-out ${platform === 'android' ? 'profile-shell--logged-out-android' : ''}`}">
-          <div id="profile-login-panel" ${loggedIn ? 'hidden' : ''}>
-            <div class="profile-login-hero">
-              <h1 class="profile-login-title">${escapeHtml(profileCopy.loginTitle || 'Inicia sesión')}</h1>
-            </div>
-            <page-login embedded flat></page-login>
-            <div class="profile-auth-footer" ${loggedIn ? 'hidden' : ''}>
-              <div class="profile-links profile-links--centered" id="profile-links-login" ${loggedIn ? 'hidden' : ''}>
-                <button class="profile-link-btn" type="button" data-action="contact">${escapeHtml(
-                  profileCopy.contact || 'Contact'
-                )}</button>
-                <button class="profile-link-btn" type="button" data-action="legal">${escapeHtml(
-                  profileCopy.legal || 'Legal'
-                )}</button>
-              </div>
-              <div class="profile-app-meta profile-app-meta--auth">${escapeHtml(appMetaLabel)}</div>
-            </div>
-          </div>
-          <div class="profile-panel" id="profile-content-panel" ${loggedIn ? '' : 'hidden'}>
-            ${settingsOpen ? '' : `
-            <div class="profile-hero-wrap">
-              ${titlebarEnabled ? '' : `
-              <div class="profile-hero-actions-left">
-                <ion-button fill="clear" size="small" class="app-notify-btn">
-                  <ion-icon slot="icon-only" name="notifications-outline"></ion-icon>
-                </ion-button>
-                <button class="app-locale-btn">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
-                  <span class="app-locale-label">${String(rawLocaleSetting || '').trim().toUpperCase()}</span>
-                </button>
-              </div>
-              `}
-              <button class="profile-settings-toggle" type="button" id="profile-settings-toggle" aria-label="${escapeHtml(
-                profileCopy.tabPrefs || 'Profile'
-              )}">
-                <ion-icon name="settings-outline"></ion-icon>
+      ${loggedIn ? renderAppHeader({ title: tabsCopy.you }) : loggedOutHeaderHtml}
+      <ion-content fullscreen class="home-journey free-ride-content secret-content profile-content ${loggedIn ? '' : 'profile-content--logged-out'}">
+        <div class="speak-shell free-ride-shell profile-shell ${loggedIn ? '' : `profile-shell--logged-out ${platform === 'android' ? 'profile-shell--logged-out-android' : ''} ${titlebarEnabled ? 'profile-shell--logged-out-titlebar' : ''}`.trim()}">
+          ${authShellHtml}
+          <section class="profile-hero-section" id="profile-hero-section" ${loggedIn ? '' : 'hidden'}>
+            ${titlebarEnabled ? '' : `
+            <div class="profile-hero-actions-left">
+              <ion-button fill="clear" size="small" class="app-notify-btn">
+                <ion-icon slot="icon-only" name="notifications-outline"></ion-icon>
+              </ion-button>
+              <button class="app-locale-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+                <span class="app-locale-label">${String(rawLocaleSetting || '').trim().toUpperCase()}</span>
               </button>
-              <div class="card card--plain profile-hero-card">
-                <div class="profile-hero-avatar-wrap">
-                  <img class="profile-hero-avatar" src="${avatarSrc}" alt="">
-                </div>
-                <div class="profile-hero-name">${userDisplayName}</div>
-                ${premiumBadgeMarkup}
-                <div class="profile-segmented-tabs" role="tablist">
-                  <button class="profile-segmented-btn ${progressActive ? 'active' : ''}" type="button" data-tab="progress" role="tab">
-                    <span>${escapeHtml(profileCopy.progressLabel || 'Progreso')}</span>
-                  </button>
-                  <button class="profile-segmented-btn ${reviewActive ? 'active' : ''}" type="button" data-tab="review" role="tab">
-                    <span>${escapeHtml(profileCopy.tabReview || 'Review')}</span>
-                  </button>
-                </div>
-              </div>
             </div>
             `}
-            <div class="profile-tab-panel" ${progressActive && !settingsOpen ? '' : 'hidden'}>
+            <button class="profile-settings-toggle" type="button" id="profile-settings-toggle" aria-label="${escapeHtml(
+              profileCopy.tabPrefs || 'Profile'
+            )}">
+              <ion-icon name="${settingsOpen ? 'arrow-back' : 'settings-outline'}"></ion-icon>
+            </button>
+            <div class="profile-hero-avatar-wrap">
+              <img class="profile-hero-avatar" src="${avatarSrc}" alt="">
+            </div>
+            <div class="profile-hero-name">${userDisplayName}</div>
+            ${premiumBadgeMarkup}
+          </section>
+          <section class="free-ride-card journey-sheet profile-content-card" id="profile-card-section" ${loggedIn ? '' : 'hidden'}>
+            <button class="free-ride-card-handle journey-sheet-handle" type="button" aria-label="Profile content handle" aria-expanded="false">
+              <span class="free-ride-card-handle-pill journey-sheet-handle-pill" aria-hidden="true"></span>
+            </button>
+            <div class="free-ride-card-main journey-sheet-main">
+              <div class="profile-segmented-tabs" role="tablist">
+                <button class="profile-segmented-btn ${progressActive ? 'active' : ''}" type="button" data-tab="progress" role="tab">
+                  <span>${escapeHtml(profileCopy.progressLabel || 'Progreso')}</span>
+                </button>
+                <button class="profile-segmented-btn ${reviewActive ? 'active' : ''}" type="button" data-tab="review" role="tab">
+                  <span>${escapeHtml(profileCopy.tabReview || 'Review')}</span>
+                </button>
+              </div>
+            <div class="profile-tab-panel" ${progressActive ? '' : 'hidden'}>
               <div class="profile-stats-grid">
                 ${progressCardsMarkup}
               </div>
@@ -1322,168 +2421,7 @@ class PageProfile extends HTMLElement {
                 </div>
               </div>
             </div>
-            <div class="profile-tab-panel" ${settingsOpen ? '' : 'hidden'}>
-              <div class="card card--plain profile-settings">
-                <div class="profile-settings-header">
-                  <button class="profile-settings-back" type="button" id="profile-settings-back">${escapeHtml(
-                    profileCopy.recoverBack || 'Volver'
-                  )}</button>
-                </div>
-                <div class="profile-avatar-block">
-                  <div class="profile-avatar-wrap">
-                    <img
-                      class="profile-avatar-large"
-                      id="profile-avatar-img"
-                      src="${avatarSrc}"
-                      alt="${escapeHtml(profileCopy.profileAvatarAlt || 'Profile avatar')}"
-                    >
-                  </div>
-                  <div class="profile-avatar-actions">
-                    <ion-button shape="round" id="profile-avatar-upload" style="text-transform:none">${escapeHtml(
-                      profileCopy.changePhoto || 'Change photo'
-                    )}</ion-button>
-                    <ion-button shape="round" color="danger" id="profile-avatar-delete" fill="solid" style="text-transform:none">${escapeHtml(
-                      profileCopy.deletePhoto || 'Delete'
-                    )}</ion-button>
-                  </div>
-                  <input type="file" accept="image/jpeg,image/png,image/gif" id="profile-avatar-input" hidden>
-                </div>
-                <div class="profile-form">
-                  <div class="profile-form-row">
-                    <label class="profile-input-shell" for="profile-first-name">
-                      <span class="profile-input-icon" aria-hidden="true">
-                        <ion-icon name="person-outline"></ion-icon>
-                      </span>
-                      <input
-                        class="profile-input profile-input--shell"
-                        type="text"
-                        id="profile-first-name"
-                        value="${escapeHtml(profileState.first_name || '')}"
-                        placeholder="${escapeHtml(profileCopy.firstName || 'First name')}"
-                        aria-label="${escapeHtml(profileCopy.firstName || 'First name')}"
-                      >
-                    </label>
-                    <label class="profile-input-shell" for="profile-last-name">
-                      <span class="profile-input-icon" aria-hidden="true">
-                        <ion-icon name="people-outline"></ion-icon>
-                      </span>
-                      <input
-                        class="profile-input profile-input--shell"
-                        type="text"
-                        id="profile-last-name"
-                        value="${escapeHtml(profileState.last_name || '')}"
-                        placeholder="${escapeHtml(profileCopy.lastName || 'Last name')}"
-                        aria-label="${escapeHtml(profileCopy.lastName || 'Last name')}"
-                      >
-                    </label>
-                  </div>
-                  <div class="profile-form-row">
-                    <label class="profile-input-shell" for="profile-password">
-                      <span class="profile-input-icon" aria-hidden="true">
-                        <ion-icon name="lock-closed-outline"></ion-icon>
-                      </span>
-                      <input
-                        class="profile-input profile-input--shell"
-                        type="password"
-                        id="profile-password"
-                        autocomplete="new-password"
-                        placeholder="${escapeHtml(profileCopy.passwordNewPlaceholder || 'New password')}"
-                        aria-label="${escapeHtml(profileCopy.password || 'Password')}"
-                      >
-                      <button class="profile-input-toggle" type="button" id="profile-password-toggle" aria-label="${escapeHtml(
-                        profileCopy.password || 'Password'
-                      )}">
-                        <ion-icon name="eye-outline"></ion-icon>
-                      </button>
-                    </label>
-                    <label class="profile-input-shell" for="profile-password-confirm">
-                      <span class="profile-input-icon" aria-hidden="true">
-                        <ion-icon name="lock-closed-outline"></ion-icon>
-                      </span>
-                      <input
-                        class="profile-input profile-input--shell"
-                        type="password"
-                        id="profile-password-confirm"
-                        autocomplete="new-password"
-                        placeholder="${escapeHtml(profileCopy.passwordRepeatPlaceholder || 'Repeat password')}"
-                        aria-label="${escapeHtml(profileCopy.passwordRepeat || 'Repeat password')}"
-                      >
-                      <button class="profile-input-toggle" type="button" id="profile-password-confirm-toggle" aria-label="${escapeHtml(
-                        profileCopy.passwordRepeat || 'Repeat password'
-                      )}">
-                        <ion-icon name="eye-outline"></ion-icon>
-                      </button>
-                    </label>
-                  </div>
-                  <div class="profile-form-row">
-                    <label class="profile-input-shell profile-input-shell--select" for="profile-locale">
-                      <span class="profile-input-icon" aria-hidden="true">
-                        <ion-icon name="globe-outline"></ion-icon>
-                      </span>
-                      <select class="profile-input profile-input--shell" id="profile-locale" aria-label="${escapeHtml(
-                        profileCopy.interfaceLanguage || 'Interface language'
-                      )}">
-                        <option value="es"${(user && user.locale || rawLocaleSetting) === 'es' ? ' selected' : ''}>ES</option>
-                        <option value="en"${(user && user.locale || rawLocaleSetting) === 'en' ? ' selected' : ''}>EN</option>
-                      </select>
-                    </label>
-                  </div>
-                  <div class="profile-form-row">
-                    <label class="profile-input-shell" for="profile-email">
-                      <span class="profile-input-icon" aria-hidden="true">
-                        <ion-icon name="mail-outline"></ion-icon>
-                      </span>
-                      <input
-                        class="profile-input profile-input--shell"
-                        type="email"
-                        id="profile-email"
-                        value="${escapeHtml(profileState.email || '')}"
-                        readonly
-                        aria-label="${escapeHtml(profileCopy.email || 'Email')}"
-                      >
-                    </label>
-                    <label class="profile-input-shell" for="profile-expiry">
-                      <span class="profile-input-icon" aria-hidden="true">
-                        <ion-icon name="calendar-outline"></ion-icon>
-                      </span>
-                      <input
-                        class="profile-input profile-input--shell"
-                        type="text"
-                        id="profile-expiry"
-                        value="${escapeHtml(formatExpiry(profileState.expires_date))}"
-                        readonly
-                        aria-label="${escapeHtml(profileCopy.subscriptionUntil || 'Subscription until')}"
-                      >
-                    </label>
-                  </div>
-                </div>
-                <div class="profile-save-row">
-                  <ion-button expand="block" shape="round" id="profile-save-btn">${escapeHtml(
-                    profileCopy.saveChanges || 'Save changes'
-                  )}</ion-button>
-                  <p class="profile-save-note ${profileNoteError ? 'error' : ''}" id="profile-save-note">${
-                    profileNote ? escapeHtml(profileNote) : ''
-                  }</p>
-                </div>
-                <div class="profile-logout-row">
-                  <ion-button expand="block" shape="round" fill="outline" class="profile-logout-btn" id="profile-logout-btn">
-                    <ion-icon slot="start" name="log-out-outline"></ion-icon>
-                    ${escapeHtml(profileCopy.logout || 'Log out')}
-                  </ion-button>
-                </div>
-                <div class="profile-delete-account-row">
-                  <ion-button expand="block" shape="round" color="danger" class="profile-delete-account-btn" id="profile-delete-account-btn">
-                    <ion-icon slot="start" name="trash-outline"></ion-icon>
-                    ${escapeHtml(profileCopy.deleteAccount || 'Delete account')}
-                  </ion-button>
-                  <p class="profile-delete-account-note">${escapeHtml(
-                    profileCopy.deleteAccountHint ||
-                      'Your account will be removed and you will be signed out.'
-                  )}</p>
-                </div>
-              </div>
-            </div>
-            <div class="profile-tab-panel" ${reviewActive && !settingsOpen ? '' : 'hidden'}>
+            <div class="profile-tab-panel" ${reviewActive ? '' : 'hidden'}>
               <div class="profile-review-section">
                 <div class="card card--plain profile-review-block">
                   <h3 class="profile-section-title profile-section-title--with-icon">
@@ -1521,21 +2459,157 @@ class PageProfile extends HTMLElement {
                 </div>
               </div>
             </div>
+            </div>
+          </section>
+          ${settingsOpen && loggedIn ? `
+          <div class="profile-settings-overlay" id="profile-settings-overlay">
+            <div class="card card--plain profile-settings">
+              <div class="profile-settings-header">
+                <button class="profile-settings-back" type="button" id="profile-settings-back">${escapeHtml(
+                  profileCopy.close || (rawLocaleSetting === 'es' ? 'Cerrar' : 'Close')
+                )}</button>
+              </div>
+              <div class="profile-avatar-block">
+                <div class="profile-avatar-wrap">
+                  <img
+                    class="profile-avatar-large"
+                    id="profile-avatar-img"
+                    src="${avatarSrc}"
+                    alt="${escapeHtml(profileCopy.profileAvatarAlt || 'Profile avatar')}"
+                  >
+                </div>
+                <div class="profile-avatar-actions">
+                  <ion-button shape="round" id="profile-avatar-upload" style="text-transform:none">${escapeHtml(
+                    profileCopy.changePhoto || 'Change photo'
+                  )}</ion-button>
+                  <ion-button shape="round" color="danger" id="profile-avatar-delete" fill="solid" style="text-transform:none">${escapeHtml(
+                    profileCopy.deletePhoto || 'Delete'
+                  )}</ion-button>
+                </div>
+                <input type="file" accept="image/jpeg,image/png,image/gif" id="profile-avatar-input" hidden>
+              </div>
+              <div class="profile-form">
+                <div class="profile-form-row">
+                  <label class="profile-input-shell" for="profile-first-name">
+                    <span class="profile-input-icon" aria-hidden="true"><ion-icon name="person-outline"></ion-icon></span>
+                    <input class="profile-input profile-input--shell" type="text" id="profile-first-name"
+                      value="${escapeHtml(profileState.first_name || '')}"
+                      placeholder="${escapeHtml(profileCopy.firstName || 'First name')}"
+                      aria-label="${escapeHtml(profileCopy.firstName || 'First name')}">
+                  </label>
+                  <label class="profile-input-shell" for="profile-last-name">
+                    <span class="profile-input-icon" aria-hidden="true"><ion-icon name="people-outline"></ion-icon></span>
+                    <input class="profile-input profile-input--shell" type="text" id="profile-last-name"
+                      value="${escapeHtml(profileState.last_name || '')}"
+                      placeholder="${escapeHtml(profileCopy.lastName || 'Last name')}"
+                      aria-label="${escapeHtml(profileCopy.lastName || 'Last name')}">
+                  </label>
+                </div>
+                <div class="profile-form-row">
+                  <label class="profile-input-shell" for="profile-password">
+                    <span class="profile-input-icon" aria-hidden="true"><ion-icon name="lock-closed-outline"></ion-icon></span>
+                    <input class="profile-input profile-input--shell" type="password" id="profile-password"
+                      autocomplete="new-password"
+                      placeholder="${escapeHtml(profileCopy.passwordNewPlaceholder || 'New password')}"
+                      aria-label="${escapeHtml(profileCopy.password || 'Password')}">
+                    <button class="profile-input-toggle" type="button" id="profile-password-toggle" aria-label="${escapeHtml(profileCopy.password || 'Password')}">
+                      <ion-icon name="eye-outline"></ion-icon>
+                    </button>
+                  </label>
+                  <label class="profile-input-shell" for="profile-password-confirm">
+                    <span class="profile-input-icon" aria-hidden="true"><ion-icon name="lock-closed-outline"></ion-icon></span>
+                    <input class="profile-input profile-input--shell" type="password" id="profile-password-confirm"
+                      autocomplete="new-password"
+                      placeholder="${escapeHtml(profileCopy.passwordRepeatPlaceholder || 'Repeat password')}"
+                      aria-label="${escapeHtml(profileCopy.passwordRepeat || 'Repeat password')}">
+                    <button class="profile-input-toggle" type="button" id="profile-password-confirm-toggle" aria-label="${escapeHtml(profileCopy.passwordRepeat || 'Repeat password')}">
+                      <ion-icon name="eye-outline"></ion-icon>
+                    </button>
+                  </label>
+                </div>
+                <div class="profile-form-row">
+                  <label class="profile-input-shell profile-input-shell--select" for="profile-locale">
+                    <span class="profile-input-icon" aria-hidden="true"><ion-icon name="globe-outline"></ion-icon></span>
+                    <select class="profile-input profile-input--shell" id="profile-locale" aria-label="${escapeHtml(profileCopy.interfaceLanguage || 'Interface language')}">
+                      <option value="es"${(user && user.locale || rawLocaleSetting) === 'es' ? ' selected' : ''}>ES</option>
+                      <option value="en"${(user && user.locale || rawLocaleSetting) === 'en' ? ' selected' : ''}>EN</option>
+                    </select>
+                  </label>
+                </div>
+                <div class="profile-form-row">
+                  <label class="profile-input-shell" for="profile-email">
+                    <span class="profile-input-icon" aria-hidden="true"><ion-icon name="mail-outline"></ion-icon></span>
+                    <input class="profile-input profile-input--shell" type="email" id="profile-email"
+                      value="${escapeHtml(profileState.email || '')}" readonly
+                      aria-label="${escapeHtml(profileCopy.email || 'Email')}">
+                  </label>
+                  <label class="profile-input-shell" for="profile-expiry">
+                    <span class="profile-input-icon" aria-hidden="true"><ion-icon name="calendar-outline"></ion-icon></span>
+                    <input class="profile-input profile-input--shell" type="text" id="profile-expiry"
+                      value="${escapeHtml(formatExpiry(profileState.expires_date))}" readonly
+                      aria-label="${escapeHtml(profileCopy.subscriptionUntil || 'Subscription until')}">
+                  </label>
+                </div>
+              </div>
+              <div class="profile-save-row">
+                <ion-button expand="block" shape="round" id="profile-save-btn">${escapeHtml(profileCopy.saveChanges || 'Save changes')}</ion-button>
+                <p class="profile-save-note ${profileNoteError ? 'error' : ''}" id="profile-save-note">${profileNote ? escapeHtml(profileNote) : ''}</p>
+              </div>
+              <div class="profile-logout-row">
+                <ion-button expand="block" shape="round" fill="outline" class="profile-logout-btn" id="profile-logout-btn">
+                  <ion-icon slot="start" name="log-out-outline"></ion-icon>
+                  ${escapeHtml(profileCopy.logout || 'Log out')}
+                </ion-button>
+              </div>
+              <div class="profile-restore-row">
+                <ion-button expand="block" shape="round" fill="outline" class="profile-restore-btn" id="profile-restore-purchases-btn">
+                  <ion-icon slot="start" name="refresh-outline"></ion-icon>
+                  ${escapeHtml(profileCopy.restorePurchases || 'Restore purchases')}
+                </ion-button>
+              </div>
+              <div class="profile-delete-account-row">
+                <ion-button expand="block" shape="round" color="danger" class="profile-delete-account-btn" id="profile-delete-account-btn">
+                  <ion-icon slot="start" name="trash-outline"></ion-icon>
+                  ${escapeHtml(profileCopy.deleteAccount || 'Delete account')}
+                </ion-button>
+                <p class="profile-delete-account-note">${escapeHtml(profileCopy.deleteAccountHint || 'Your account will be removed and you will be signed out.')}</p>
+              </div>
+              <div class="profile-links profile-links--footer" id="profile-links-footer">
+                <button class="profile-link-btn" type="button" data-action="contact">${escapeHtml(profileCopy.contact || 'Contact')}</button>
+                <button class="profile-link-btn" type="button" data-action="iap-support">${escapeHtml(
+                  profileCopy.subscriptionSupportMail || 'Send subscription support email'
+                )}</button>
+                <button class="profile-link-btn" type="button" data-action="legal">${escapeHtml(profileCopy.legal || 'Legal')}</button>
+              </div>
+              <div class="profile-app-meta" id="profile-app-meta">${escapeHtml(appMetaLabel)}</div>
+            </div>
           </div>
-          <div class="profile-links profile-links--footer" id="profile-links-footer" ${showFooterLinks ? '' : 'hidden'}>
-            <button class="profile-link-btn" type="button" data-action="contact">${escapeHtml(
-              profileCopy.contact || 'Contact'
-            )}</button>
-            <button class="profile-link-btn" type="button" data-action="legal">${escapeHtml(
-              profileCopy.legal || 'Legal'
-            )}</button>
-          </div>
-          <div class="profile-app-meta" id="profile-app-meta" ${showAppMeta ? '' : 'hidden'}>${escapeHtml(
-            appMetaLabel
-          )}</div>
+          ` : ''}
         </div>
       </ion-content>
     `;
+
+    if (loggedIn) {
+      this.bindProfileSheetInteractions();
+      this.scheduleProfileLayout(0);
+      this.scheduleProfileLayout(140);
+    } else {
+      const authHeroEl = this.querySelector('#profile-auth-hero-section');
+      const handleAuthHeroActivate = (event) => {
+        const target = event && event.target instanceof Element ? event.target : null;
+        if (!target) return;
+        const inBubble = target.closest('#profile-auth-hero-bubble, .hero-playable-bubble, .journey-plan-bubble');
+        if (!inBubble) return;
+        if (event.type === 'keydown') {
+          const key = event && event.key ? event.key : '';
+          if (key !== 'Enter' && key !== ' ') return;
+        }
+        event.preventDefault();
+        this.playAuthHeroBubble().catch(() => {});
+      };
+      authHeroEl?.addEventListener('click', handleAuthHeroActivate);
+      authHeroEl?.addEventListener('keydown', handleAuthHeroActivate);
+    }
 
     const linksLogin = this.querySelector('#profile-links-login');
     const linksFooter = this.querySelector('#profile-links-footer');
@@ -1549,6 +2623,7 @@ class PageProfile extends HTMLElement {
     const profilePasswordConfirm = this.querySelector('#profile-password-confirm');
     const profileSaveBtn = this.querySelector('#profile-save-btn');
     const profileLogoutBtn = this.querySelector('#profile-logout-btn');
+    const profileRestorePurchasesBtn = this.querySelector('#profile-restore-purchases-btn');
     const profileDeleteAccountBtn = this.querySelector('#profile-delete-account-btn');
     const profileSaveNote = this.querySelector('#profile-save-note');
     const profileEarnedBadgesEl = this.querySelector('#profile-earned-badges');
@@ -1559,9 +2634,15 @@ class PageProfile extends HTMLElement {
         nextUser && nextUser.id !== undefined && nextUser.id !== null ? String(nextUser.id) : '';
       const isLoggedIn = Boolean(nextUserId);
       const loginPanel = this.querySelector('#profile-login-panel');
-      const contentPanel = this.querySelector('#profile-content-panel');
+      const authHeroSection = this.querySelector('#profile-auth-hero-section');
+      const authCardSection = this.querySelector('#profile-auth-card-section');
+      const heroSection = this.querySelector('#profile-hero-section');
+      const cardSection = this.querySelector('#profile-card-section');
       if (loginPanel) loginPanel.hidden = isLoggedIn;
-      if (contentPanel) contentPanel.hidden = !isLoggedIn;
+      if (authHeroSection) authHeroSection.hidden = isLoggedIn;
+      if (authCardSection) authCardSection.hidden = isLoggedIn;
+      if (heroSection) heroSection.hidden = !isLoggedIn;
+      if (cardSection) cardSection.hidden = !isLoggedIn;
       if (linksLogin) linksLogin.hidden = isLoggedIn;
       const shouldShowFooterLinks = isLoggedIn && this.settingsOpen === true;
       const shouldShowAppMeta = isLoggedIn && this.settingsOpen === true;
@@ -1746,6 +2827,7 @@ class PageProfile extends HTMLElement {
         profileSaveBtn.disabled = !dirty || !!passwordError || pending;
       }
       if (profileLogoutBtn) profileLogoutBtn.disabled = pending;
+      if (profileRestorePurchasesBtn) profileRestorePurchasesBtn.disabled = pending;
       if (profileDeleteAccountBtn) profileDeleteAccountBtn.disabled = pending;
       if (avatarUploadBtn) avatarUploadBtn.disabled = pending;
       if (avatarDeleteBtn) avatarDeleteBtn.disabled = pending;
@@ -1939,6 +3021,32 @@ class PageProfile extends HTMLElement {
     this.querySelector('#profile-logout-btn')?.addEventListener('click', () => {
       if (typeof window.setUser === 'function') {
         window.setUser(null);
+      }
+    });
+
+    profileRestorePurchasesBtn?.addEventListener('click', () => {
+      try {
+        if (typeof window.IAPrestorePurchases === 'function') {
+          window.IAPrestorePurchases();
+          if (typeof window.presentAppToast === 'function') {
+            window.presentAppToast(
+              rawLocaleSetting === 'es' ? 'Recuperación de compras lanzada.' : 'Restore purchases started.'
+            );
+          }
+        } else if (typeof window.presentAppToast === 'function') {
+          window.presentAppToast(
+            rawLocaleSetting === 'es'
+              ? 'Recuperar compras no está disponible.'
+              : 'Restore purchases is not available.'
+          );
+        }
+      } catch (err) {
+        if (typeof window.presentAppToast === 'function') {
+          const baseMessage = rawLocaleSetting === 'es'
+            ? 'Error al recuperar compras'
+            : 'Error restoring purchases';
+          window.presentAppToast(`${baseMessage}: ${err && err.message ? err.message : String(err)}`);
+        }
       }
     });
 
@@ -2184,7 +3292,14 @@ class PageProfile extends HTMLElement {
     const linkButtons = Array.from(this.querySelectorAll('.profile-link-btn'));
     linkButtons.forEach((button) => {
       const action = button.dataset.action;
-      const fnName = action === 'contact' ? 'sendMail' : action === 'legal' ? 'goWebLegal' : '';
+      const fnName =
+        action === 'contact'
+          ? 'sendMail'
+          : action === 'iap-support'
+          ? 'openIapSupportMail'
+          : action === 'legal'
+          ? 'goWebLegal'
+          : '';
       const fn = fnName ? window[fnName] : null;
       if (typeof fn !== 'function') {
         button.disabled = true;

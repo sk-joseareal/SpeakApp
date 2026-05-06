@@ -36,7 +36,7 @@ const PREMIUM_PLAN_TABS = {
 
 const STANDARD_PLAN_TABS = {
   home: true,
-  freeride: false,
+  freeride: true,
   reference: false,
   chat: false,
   tu: true
@@ -75,6 +75,11 @@ window.applyUserPlanTabVisibility = (user) => {
   );
   return { ...nextPlan };
 };
+
+// Ensure tab visibility is aligned with current plan on boot even if no immediate user-change event fires.
+window.applyUserPlanTabVisibility(
+  window.user && typeof window.user === 'object' ? window.user : null
+);
 
 const normalizeUiSfxKey = (value) => {
   const key = String(value || '')

@@ -1804,20 +1804,83 @@ const readRecentAndroidIapValidation = (key) => {
   return entry.result || null;
 };
 
+const IAP_OWNERSHIP_CONFLICT_ACK_KEY = 'appv5:iap-ownership-conflict-ack';
+
+function hasIapOwnershipConflictAck() {
+  try {
+    return localStorage.getItem(IAP_OWNERSHIP_CONFLICT_ACK_KEY) === '1';
+  } catch (_err) {
+    return false;
+  }
+}
+
+function setIapOwnershipConflictAck() {
+  try {
+    localStorage.setItem(IAP_OWNERSHIP_CONFLICT_ACK_KEY, '1');
+  } catch (_err) {
+    // no-op
+  }
+}
+
+function clearIapOwnershipConflictAck() {
+  try {
+    localStorage.removeItem(IAP_OWNERSHIP_CONFLICT_ACK_KEY);
+  } catch (_err) {
+    // no-op
+  }
+}
+
 const notifyIapOwnershipConflict = (result, options = {}) => {
   if (!result || typeof window === 'undefined') return;
   if (typeof window.isIapOwnershipConflict !== 'function') return;
   if (!window.isIapOwnershipConflict(result.error)) return;
+  if (hasIapOwnershipConflictAck()) return;
 
+  const activeLocaleRaw =
+    (window.r34lp0w3r && window.r34lp0w3r.locale) ||
+    (window.varGlobal && window.varGlobal.locale) ||
+    'es';
+  const activeLocale = String(activeLocaleRaw || '').trim().toLowerCase();
+  const isEnglish = activeLocale.startsWith('en');
   const purchaseId = result.purchase_id ? String(result.purchase_id) : '';
-  const message = purchaseId
-    ? `Esta compra ya está vinculada a otra cuenta. ID: ${purchaseId}. Revisa Diagnósticos para copiar o enviar la reclamación.`
-    : 'Esta compra ya está vinculada a otra cuenta. Revisa Diagnósticos para copiar o enviar la reclamación.';
+  const message = isEnglish
+    ? (purchaseId
+        ? `This subscription is already linked to another account. ID: ${purchaseId}.`
+        : 'This subscription is already linked to another account.')
+    : (purchaseId
+        ? `Esta suscripción ya está vinculada a otra cuenta. ID: ${purchaseId}.`
+        : 'Esta suscripción ya está vinculada a otra cuenta.');
 
-  if (typeof window.presentAppToast === 'function') {
-    window.presentAppToast(message, { duration: 5200 });
+  if (typeof document !== 'undefined' && document.body && typeof customElements !== 'undefined' && customElements.get('ion-toast')) {
+    try {
+      const toast = document.createElement('ion-toast');
+      toast.message = message;
+      toast.duration = 0;
+      toast.position = 'top';
+      toast.buttons = [{ text: 'OK', role: 'cancel' }];
+      document.body.appendChild(toast);
+      toast.present().catch(() => {});
+      toast.addEventListener(
+        'didDismiss',
+        () => {
+          setIapOwnershipConflictAck();
+          toast.remove();
+        },
+        { once: true }
+      );
+    } catch (_err) {
+      if (typeof window.presentAppToast === 'function') {
+        window.presentAppToast(message, { duration: 0, closeText: 'OK' });
+      } else if (typeof window.alert === 'function') {
+        window.alert(message);
+      }
+    }
+  } else if (typeof window.presentAppToast === 'function') {
+    window.presentAppToast(message, { duration: 0, closeText: 'OK' });
+    setIapOwnershipConflictAck();
   } else if (typeof window.alert === 'function') {
     window.alert(message);
+    setIapOwnershipConflictAck();
   }
 
   if (typeof window.emitIapStoreEvent === 'function') {
@@ -2683,6 +2746,7 @@ function IAPcheckOwned(productId)
 function IAPrestorePurchases() {
     Rlog()
     Rlog(">#V05#> IAPrestorePurchases: window.CdvPurchase.store.restorePurchases().");
+    clearIapOwnershipConflictAck();
     if (!getCurrentIapUserId()) {
       notifyIapLoginRequired({ source: 'manual-restore' });
       window.emitIapStoreEvent('restore-call-result', null, {

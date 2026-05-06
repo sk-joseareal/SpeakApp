@@ -1110,6 +1110,7 @@ class PageSpeak extends HTMLElement {
         if (heroNarrationInProgress) return false;
       }
       const locale = normalizeHintLocale(options.locale) || activeHintLocale || getHintUiLocale();
+      const allowWebFallback = Boolean(options && options.manual === true);
       const speakCopy = getSpeakCopyBundle(locale);
       const hint = (speakCopy && speakCopy.heroNarration) || "Let's keep practicing!";
       const lines = extractHeroNarrationLines(hint);
@@ -1164,7 +1165,11 @@ class PageSpeak extends HTMLElement {
           renderLine(lineText);
 
           let started = false;
-          if (plugin && typeof plugin.speak === 'function') {
+          const remoteEntry = resolveHeroRemoteAudioEntry(source, locale, index + 1, lineText);
+          if (remoteEntry && token === heroNarrationToken) {
+            started = await playHeroRemoteAudioLine(remoteEntry, token);
+          }
+          if (!started && plugin && typeof plugin.speak === 'function') {
             startHeroMascotTalk();
             const startedAt = Date.now();
             try {
@@ -1191,11 +1196,7 @@ class PageSpeak extends HTMLElement {
               }
             }
           }
-          const remoteEntry = resolveHeroRemoteAudioEntry(source, locale, index + 1, lineText);
-          if (!started && remoteEntry && token === heroNarrationToken) {
-            started = await playHeroRemoteAudioLine(remoteEntry, token);
-          }
-          if (!started && token === heroNarrationToken) {
+          if (!started && allowWebFallback && token === heroNarrationToken) {
             started = await speakHeroLineWebWithRetry(lineText, token, locale);
           }
           startedAny = startedAny || started;
@@ -1229,7 +1230,10 @@ class PageSpeak extends HTMLElement {
           }
           return;
         }
-        const started = await speakHeroNarrationFromSource(source, { locale }).catch(() => false);
+        const started = await speakHeroNarrationFromSource(source, {
+          locale,
+          manual: false
+        }).catch(() => false);
         if (!started && this.isConnected && !showSummary && Date.now() - scheduleStart < 2600) {
           heroNarrationTimer = setTimeout(run, 160);
         }
@@ -5035,7 +5039,7 @@ class PageSpeak extends HTMLElement {
       if (!source) return;
       if (heroNarrationInProgress) return;
       if (Date.now() - heroFirstRenderAt < 1000) return;
-      speakHeroNarrationFromSource(source, { locale }).catch(() => {});
+      speakHeroNarrationFromSource(source, { locale, manual: true }).catch(() => {});
     };
 
     const prevStep = () => {

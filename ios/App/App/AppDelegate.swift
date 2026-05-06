@@ -12,6 +12,10 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     var window: UIWindow?
     private let launchBlue = UIColor(red: 0.1764705882, green: 0.4274509804, blue: 0.9411764706, alpha: 1.0)
+    // Keep this off by default. When enabled, it manually shifts the WKWebView
+    // by safe-area top, which can fight StatusBar overlay=true and cause visible
+    // vertical jumps during splash/app handoff.
+    private let legacyManualWebViewFrameStatusbarFixEnabled = false
 
     private func applyLaunchChrome() {
         self.window?.backgroundColor = launchBlue
@@ -97,21 +101,25 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         applyLaunchChrome()
         configureAmbientAudioSession(active: true)
 
-        print(">#N00#> AppDelegate: Adaptando el webView a la Status Bar.")
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.01) {
-          if let bridgeVC = self.window?.rootViewController as? CAPBridgeViewController,
-             let webView = bridgeVC.webView {
-            
-            let offset = UIApplication.shared.windows.first?.safeAreaInsets.top ?? 0
-            print(">#N00#> AppDelegate: ⚙️ Ajustando WebView desde AppDelegate con offset \(offset)")
+        if legacyManualWebViewFrameStatusbarFixEnabled {
+            print(">#N00#> AppDelegate: Adaptando el webView a la Status Bar (legacy manual frame fix ON).")
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.01) {
+              if let bridgeVC = self.window?.rootViewController as? CAPBridgeViewController,
+                 let webView = bridgeVC.webView {
+                
+                let offset = UIApplication.shared.windows.first?.safeAreaInsets.top ?? 0
+                print(">#N00#> AppDelegate: ⚙️ Ajustando WebView desde AppDelegate con offset \(offset)")
 
-            let screenHeight = UIScreen.main.bounds.height
-            let newFrame = CGRect(x: 0, y: offset, width: webView.frame.width, height: screenHeight - offset)
-            webView.frame = newFrame
+                let screenHeight = UIScreen.main.bounds.height
+                let newFrame = CGRect(x: 0, y: offset, width: webView.frame.width, height: screenHeight - offset)
+                webView.frame = newFrame
 
-          } else {
-            print(">#N00#> AppDelegate: ❌ No se pudo acceder al WebView desde AppDelegate.")
-          }
+              } else {
+                print(">#N00#> AppDelegate: ❌ No se pudo acceder al WebView desde AppDelegate.")
+              }
+            }
+        } else {
+            print(">#N00#> AppDelegate: legacy manual WebView statusbar fix OFF.")
         }
 
         FirebaseApp.configure()

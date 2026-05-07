@@ -72,6 +72,7 @@ class PageOnboarding extends HTMLElement {
     this.currentStep = 0;
     this._layoutRaf = 0;
     this._chromeRetryTimers = [];
+    this._skipRestoreChromeOnDisconnect = false;
     this.touchGesture = {
       active: false,
       startX: 0,
@@ -127,15 +128,28 @@ class PageOnboarding extends HTMLElement {
           <div class="onboarding-v5-stage" data-field="stage"></div>
         </div>
       </ion-content>
+      <div class="onboarding-v5-footer" data-field="footer">
+        <div class="speak-voice-nav onboarding-v5-nav">
+          <button class="speak-step-arrow-btn" data-action="prev" type="button" aria-label="Previous step" disabled>
+            <ion-icon name="chevron-back"></ion-icon>
+          </button>
+          <div class="speak-step-dots onboarding-v5-dots" data-field="dots"></div>
+          <button class="speak-step-arrow-btn" data-action="next" type="button" aria-label="Next step">
+            <ion-icon name="chevron-forward"></ion-icon>
+          </button>
+        </div>
+      </div>
     `;
   }
 
   cacheElements() {
     this.stageEl = this.querySelector('[data-field="stage"]');
+    this.footerEl = this.querySelector('[data-field="footer"]');
+    this.dotsEl = this.querySelector('[data-field="dots"]');
   }
 
   bindEvents() {
-    this.stageEl?.addEventListener('click', (event) => {
+    this.addEventListener('click', (event) => {
       const button = event.target.closest('[data-action]');
       if (!button) return;
       const action = String(button.dataset.action || '').trim();
@@ -202,32 +216,12 @@ class PageOnboarding extends HTMLElement {
           }
           ${this.currentStep === onboardingSlides.length - 1 ? `<button class="onboarding-v5-cta" data-action="next" type="button">${this.escapeHtml(cta)}</button>` : ''}
         </div>
-        <div class="onboarding-v5-footer">
-          <div class="speak-voice-nav onboarding-v5-nav">
-            <button
-              class="speak-step-arrow-btn"
-              data-action="prev"
-              type="button"
-              aria-label="Previous step"
-              ${this.currentStep === 0 ? 'disabled' : ''}
-            >
-              <ion-icon name="chevron-back"></ion-icon>
-            </button>
-            <div class="speak-step-dots onboarding-v5-dots" data-field="dots"></div>
-            <button
-              class="speak-step-arrow-btn"
-              data-action="next"
-              type="button"
-              aria-label="Next step"
-            >
-              <ion-icon name="chevron-forward"></ion-icon>
-            </button>
-          </div>
-        </div>
       </article>
     `;
-    this.dotsEl = this.stageEl.querySelector('[data-field="dots"]');
-    this.dotsEl.innerHTML = dotsMarkup;
+    // Update persistent footer state
+    if (this.dotsEl) this.dotsEl.innerHTML = dotsMarkup;
+    const prevBtn = this.footerEl?.querySelector('[data-action="prev"]');
+    if (prevBtn) prevBtn.disabled = this.currentStep === 0;
     this.scheduleHeroLayoutSync();
   }
 
@@ -247,7 +241,16 @@ class PageOnboarding extends HTMLElement {
   }
 
   finish() {
+    this._skipRestoreChromeOnDisconnect = true;
+    this.clearChromeRetryTimers();
     setOnboardingDone();
+    try {
+      if (typeof window.applyAppChromeForPath === 'function') {
+        window.applyAppChromeForPath('/tabs');
+      }
+    } catch (_err) {
+      // no-op
+    }
     const user = window.user;
     const loggedIn = Boolean(user && user.id !== undefined && user.id !== null);
     if (loggedIn) {
@@ -417,15 +420,19 @@ class PageOnboarding extends HTMLElement {
         ))
       );
 
-      // Position mascot so its bottom is 20px into the wave (using natural ratio).
-      if (mascotWrapEl && mascotEl && mascotEl.naturalWidth && mascotEl.naturalHeight) {
-        const wrapWidth = mascotWrapEl.getBoundingClientRect().width || 319;
-        const mascotHeight = wrapWidth * mascotEl.naturalHeight / mascotEl.naturalWidth;
-        const mascotTop = Math.round(Math.max(8, waveTop + 20 - mascotHeight));
+      // Size and position mascot so it always tracks the wave:
+      // character bottom lands ~20px into the wave, assuming ~75% character fill.
+      if (mascotEl && mascotEl.naturalWidth && mascotEl.naturalHeight) {
+        const imageRatio = mascotEl.naturalHeight / mascotEl.naturalWidth;
+        const mascotTop = 8;
+        const mascotHeight = (waveTop + 50 - mascotTop) / 0.75;
+        const mascotWidth = Math.round(mascotHeight / imageRatio);
         cardEl.style.setProperty('--onboarding-mascot-top', `${mascotTop}px`);
+        cardEl.style.setProperty('--onboarding-mascot-width', `${mascotWidth}px`);
       }
 
       cardEl.style.setProperty('--onboarding-wave-top', `${waveTop}px`);
+      cardEl.style.setProperty('--onboarding-wave-height', `${heroHeight - waveTop}px`);
       cardEl.style.setProperty('--onboarding-body-overlap',
         `${Math.round(Math.max(48, heroHeight - waveTop))}px`);
       cardEl.classList.add('is-laid-out');
@@ -448,7 +455,10 @@ class PageOnboarding extends HTMLElement {
   }
 
   disconnectedCallback() {
-    this.restoreDefaultChrome();
+    this.clearChromeRetryTimers();
+    if (!this._skipRestoreChromeOnDisconnect) {
+      this.restoreDefaultChrome();
+    }
     if (this._deviceReadyHandler) {
       document.removeEventListener('deviceready', this._deviceReadyHandler);
     }

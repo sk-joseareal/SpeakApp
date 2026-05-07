@@ -65,6 +65,22 @@ class PageProfile extends HTMLElement {
     this.state = {
       localeOverride: ''
     };
+    this._authEntrySettleRaf = 0;
+    this._lastRenderedLoggedIn = null;
+  }
+
+  settleLoggedOutEntryFrame() {
+    if (this._authEntrySettleRaf) {
+      cancelAnimationFrame(this._authEntrySettleRaf);
+      this._authEntrySettleRaf = 0;
+    }
+    this.classList.add('profile-auth-entering');
+    this._authEntrySettleRaf = requestAnimationFrame(() => {
+      this._authEntrySettleRaf = requestAnimationFrame(() => {
+        this.classList.remove('profile-auth-entering');
+        this._authEntrySettleRaf = 0;
+      });
+    });
   }
 
   normalizeAuthMascotFrameIndex(frameIndex) {
@@ -1022,13 +1038,16 @@ class PageProfile extends HTMLElement {
   notifyChromeState() {
     const user = window.user;
     const loggedIn = Boolean(user && user.id !== undefined && user.id !== null);
+    const hideTabBar = !loggedIn;
     const tabsPage = document.querySelector('tabs-page');
     if (tabsPage && tabsPage.classList) {
-      tabsPage.classList.toggle('profile-auth-tabs-hidden', !loggedIn);
+      tabsPage.classList.toggle('profile-auth-tabs-hidden', hideTabBar);
     }
+    if (this._lastProfileAuthHideTabBar === hideTabBar) return;
+    this._lastProfileAuthHideTabBar = hideTabBar;
     window.dispatchEvent(
       new CustomEvent('app:profile-auth-view-change', {
-        detail: { hideTabBar: !loggedIn }
+        detail: { hideTabBar }
       })
     );
   }
@@ -1047,6 +1066,14 @@ class PageProfile extends HTMLElement {
     this.profileSheetDragStartTranslateY = 0;
     this.profileSheetDragMoved = false;
     this.profileSheetLastPointerUpTs = 0;
+    this._lastProfileAuthHideTabBar = null;
+    this._lastAuthUserId = (() => {
+      const currentUser = window.user;
+      if (currentUser && currentUser.id !== undefined && currentUser.id !== null) {
+        return String(currentUser.id);
+      }
+      return '';
+    })();
     this.authMascotFrameIndex = PROFILE_AUTH_MASCOT_REST_FRAME;
     this.authMascotFrameTimer = null;
     this.authMascotIsTalking = false;
@@ -1061,19 +1088,41 @@ class PageProfile extends HTMLElement {
     this.notifyChromeState();
     this._userHandler = (e) => {
       const u = e && e.detail && typeof e.detail === 'object' ? e.detail : null;
+      const sourceUser = u || (window.user && typeof window.user === 'object' ? window.user : null);
+      const nextUserId =
+        sourceUser && sourceUser.id !== undefined && sourceUser.id !== null ? String(sourceUser.id) : '';
+      const prevUserId = String(this._lastAuthUserId || '');
       if (u && u.locale && !getLocaleOverride()) {
         setAppLocale(u.locale);
         if (window.varGlobal && typeof window.varGlobal === 'object') {
           window.varGlobal.locale = u.locale;
         }
       }
+      if (!nextUserId && !prevUserId) {
+        this.notifyChromeState();
+        return;
+      }
+      this._lastAuthUserId = nextUserId;
       this.render();
       this.notifyChromeState();
     };
-    this._storesHandler = () => this.render();
+    this._storesHandler = () => {
+      const currentUser = window.user;
+      const loggedIn = Boolean(currentUser && currentUser.id !== undefined && currentUser.id !== null);
+      if (!loggedIn) return;
+      this.render();
+    };
     this._localeHandler = () => this.render();
-    this._focusHandler = () => this.scheduleReviewCollapseRefresh();
+    const isCurrentProfileLoggedIn = () => {
+      const currentUser = window.user;
+      return Boolean(currentUser && currentUser.id !== undefined && currentUser.id !== null);
+    };
+    this._focusHandler = () => {
+      if (!isCurrentProfileLoggedIn()) return;
+      this.scheduleReviewCollapseRefresh();
+    };
     this._visibilityHandler = () => {
+      if (!isCurrentProfileLoggedIn()) return;
       if (!document.hidden) {
         this.scheduleReviewCollapseRefresh(true);
       }
@@ -1082,16 +1131,20 @@ class PageProfile extends HTMLElement {
     this._tabsDidChangeHandler = (event) => {
       const tab = String(event && event.detail ? event.detail.tab || '' : '').trim().toLowerCase();
       if (tab === 'tu') {
-        this.scheduleReviewCollapseRefresh(true);
+        if (isCurrentProfileLoggedIn()) {
+          this.scheduleReviewCollapseRefresh(true);
+        }
         this.scheduleProfileLayout(0);
-        this.scheduleProfileLayout(140);
+        if (isCurrentProfileLoggedIn()) {
+          this.scheduleProfileLayout(140);
+        }
       }
     };
     this._tabsEl?.addEventListener('ionTabsDidChange', this._tabsDidChangeHandler);
     this._routerEl = document.querySelector('ion-router');
     this._routeDidChangeHandler = (event) => {
       const to = String(event && event.detail ? event.detail.to || '' : '').trim();
-      if (to === '/tabs') {
+      if (to === '/tabs' && isCurrentProfileLoggedIn()) {
         this.scheduleReviewCollapseRefresh(true);
       }
     };
@@ -1106,7 +1159,9 @@ class PageProfile extends HTMLElement {
       if (!this.isConnected) return;
       this.render();
       this.scheduleProfileLayout(0);
-      this.scheduleProfileLayout(140);
+      if (isCurrentProfileLoggedIn()) {
+        this.scheduleProfileLayout(140);
+      }
     };
     this._cardPaddedHandler = (event) => {
       if (!this.isConnected) return;
@@ -1208,6 +1263,8 @@ class PageProfile extends HTMLElement {
     }
     if (this._profileLayoutTimer) { clearTimeout(this._profileLayoutTimer); this._profileLayoutTimer = null; }
     if (this._profileLayoutRaf) { cancelAnimationFrame(this._profileLayoutRaf); this._profileLayoutRaf = null; }
+    if (this._authEntrySettleRaf) { cancelAnimationFrame(this._authEntrySettleRaf); this._authEntrySettleRaf = 0; }
+    this.classList.remove('profile-auth-entering');
   }
 
   render() {
@@ -1242,9 +1299,11 @@ class PageProfile extends HTMLElement {
       this.reviewTone = storedReviewTone;
     }
     const titlebarEnabled = isAppTitlebarEnabled();
+    const bootUser = window.user;
+    const bootLoggedIn = Boolean(bootUser && bootUser.id !== undefined && bootUser.id !== null);
 
     const routes = getRoutes();
-    if (!routes.length && !this._loadingData && !this._trainingDataLoadAttempted) {
+    if (bootLoggedIn && !routes.length && !this._loadingData && !this._trainingDataLoadAttempted) {
       this._loadingData = true;
       this._trainingDataLoadAttempted = true;
       ensureTrainingData()
@@ -1260,6 +1319,7 @@ class PageProfile extends HTMLElement {
     const referenceCourses = getReferenceCourses();
     const referenceTestCourses = getReferenceTestCourses();
     if (
+      bootLoggedIn &&
       (!referenceCourses.length || !referenceTestCourses.length) &&
       !this._loadingReferenceData &&
       !this._referenceDataLoadAttempted
@@ -1933,6 +1993,7 @@ class PageProfile extends HTMLElement {
 
     const userId = user && user.id !== undefined && user.id !== null ? String(user.id) : '';
     const loggedIn = Boolean(userId);
+    const becameLoggedOut = !loggedIn && this._lastRenderedLoggedIn !== false;
     const progressActive = this.activeTab === 'progress';
     const reviewActive = this.activeTab === 'review';
     const settingsOpen = loggedIn && this.settingsOpen === true;
@@ -2610,6 +2671,12 @@ class PageProfile extends HTMLElement {
       authHeroEl?.addEventListener('click', handleAuthHeroActivate);
       authHeroEl?.addEventListener('keydown', handleAuthHeroActivate);
     }
+    if (becameLoggedOut) {
+      this.settleLoggedOutEntryFrame();
+    } else if (loggedIn) {
+      this.classList.remove('profile-auth-entering');
+    }
+    this._lastRenderedLoggedIn = loggedIn;
 
     const linksLogin = this.querySelector('#profile-links-login');
     const linksFooter = this.querySelector('#profile-links-footer');

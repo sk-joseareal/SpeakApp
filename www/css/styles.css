@@ -136,7 +136,6 @@ ion-router-outlet {
   height: 100%;
 }
 
-page-onboarding,
 tabs-page,
 page-home,
 page-reference,
@@ -145,6 +144,10 @@ page-speak,
 page-profile,
 page-chat,
 page-diagnostics {
+  display: block;
+  height: 100%;
+}
+page-onboarding {
   display: block;
   height: 100%;
 }
@@ -1049,6 +1052,12 @@ body.lab-chrome-active:not(.app-titlebar-enabled) page-profile .profile-auth-act
   z-index: 3;
   min-height: 34px;
   margin: 0 0 8px 10px;
+}
+
+page-profile.profile-auth-entering .profile-shell--logged-out,
+page-profile.profile-auth-entering .profile-shell--logged-out * {
+  transition: none !important;
+  animation: none !important;
 }
 
 page-login .login-social-btn {
@@ -3089,12 +3098,12 @@ body.app-platform-android.lab-chrome-active ion-modal.diagnostics-modal ion-head
   --onboarding-mascot-top: clamp(52px, 7.5vh, 84px);
   --onboarding-mascot-width: clamp(319px, 55vw, 429px);
   --onboarding-wave-top: 35vh;
-  --onboarding-wave-height: clamp(178px, 22vh, 250px);
+  --onboarding-wave-height: calc(var(--onboarding-hero-min-height) - var(--onboarding-wave-top));
   --onboarding-body-overlap: 27vh;
-  --onboarding-body-offset: 34px;
+  --onboarding-body-offset: 56px;
   width: 100%;
   min-height: 100vh;
-  background: linear-gradient(180deg, #ffffff 0%, #f5f8fd 100%);
+  background: #ffffff;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -3149,15 +3158,15 @@ body.app-platform-android.lab-chrome-active ion-modal.diagnostics-modal ion-head
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  padding: var(--onboarding-body-offset) 32px 20px;
+  padding: var(--onboarding-body-offset) 32px calc(80px + env(safe-area-inset-bottom, 0px));
   text-align: center;
   max-width: 460px;
   width: 100%;
-  margin: calc(-1 * var(--onboarding-body-overlap)) auto 0;
-  min-height: calc(100vh - var(--onboarding-wave-top));
+  margin: 0 auto;
+  position: relative;
+  top: calc(-1 * var(--onboarding-body-overlap));
   box-sizing: border-box;
   background: transparent;
-  position: relative;
   z-index: 2;
 }
 
@@ -3234,10 +3243,15 @@ body.app-platform-android.lab-chrome-active ion-modal.diagnostics-modal ion-head
 }
 
 .onboarding-v5-footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
   display: flex;
   justify-content: center;
   padding: 6px 24px calc(22px + env(safe-area-inset-bottom));
-  background: linear-gradient(180deg, #f8fbff 0%, rgba(255, 255, 255, 0.98) 100%);
+  background: #f4f7fd;
 }
 
 .onboarding-v5-nav {
@@ -5863,18 +5877,20 @@ page-speak .speak-content::part(scroll) {
 }
 
 .speak-step-arrow-btn {
+  -webkit-appearance: none;
+  appearance: none;
   width: 42px;
   min-width: 42px;
   height: 42px;
   border-radius: 50%;
-  border: 1px solid #dbe4f0;
+  border: 1.5px solid #c8d6e8;
   background: #ffffff;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   color: var(--speak-blue-dark);
   cursor: pointer;
-  box-shadow: 0 4px 10px rgba(22, 30, 50, 0.08);
+  box-shadow: 0 2px 8px rgba(22, 30, 50, 0.14);
 }
 
 .speak-step-arrow-btn ion-icon {
@@ -10134,32 +10150,41 @@ ion-select.training-pill.active::part(icon) {
 }
 
 .lesson-dot {
-  display: inline-block;
-  width: 10px;
-  height: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
+  border: 1.5px solid currentColor;
+  background: transparent;
+  flex-shrink: 0;
+}
+
+.lesson-dot svg {
+  width: 9px;
+  height: 9px;
   flex-shrink: 0;
 }
 
 .lesson-dot.tone-neutral {
-  background: #d1d5db;
+  color: #d1d5db;
 }
 
 .lesson-dot.tone-neutral.is-empty {
-  background: transparent;
-  border: 1.5px dashed #d1d5db;
+  border-style: dashed;
 }
 
 .lesson-dot.tone-good {
-  background: #34d399;
+  color: #34d399;
 }
 
 .lesson-dot.tone-okay {
-  background: #fbbf24;
+  color: #fbbf24;
 }
 
 .lesson-dot.tone-bad {
-  background: #f87171;
+  color: #f87171;
 }
 
 .training-row-icon {

@@ -77,9 +77,14 @@ class TabsPage extends HTMLElement {
     };
     const readTabsCopy = () => getTabsCopy(resolveUiLocale());
     const tabsCopy = readTabsCopy();
+    const initialUser = window.user;
+    const initialLoggedIn = Boolean(initialUser && initialUser.id !== undefined && initialUser.id !== null);
+    const initialLocked = hasLoginTabsLock() && !initialLoggedIn;
+    const initialSelectedTab = initialLocked ? 'tu' : 'home';
+    const initialHideTabBar = initialLocked;
 
     this.innerHTML = `
-      <ion-tabs no-router>
+      <ion-tabs no-router selected-tab="${initialSelectedTab}">
         <ion-tab tab="home">
           <page-home></page-home>
         </ion-tab>
@@ -95,7 +100,7 @@ class TabsPage extends HTMLElement {
         <ion-tab tab="tu">
           <page-profile></page-profile>
         </ion-tab>
-        <ion-tab-bar slot="bottom" class="app-tab-bar">
+        <ion-tab-bar slot="bottom" class="app-tab-bar"${initialHideTabBar ? ' hidden' : ''}>
           <ion-tab-button tab="home">
             <ion-icon name="barbell-outline"></ion-icon>
             <ion-label data-tab-label="home">${tabsCopy.training}</ion-label>
@@ -122,7 +127,7 @@ class TabsPage extends HTMLElement {
 
     const tabsEl = this.querySelector('ion-tabs');
     const tabBarEl = this.querySelector('ion-tab-bar');
-    let hideProfileAuthTabBar = false;
+    let hideProfileAuthTabBar = initialHideTabBar;
     const getCurrentSelectedTab = () => {
       const selectedFromProp =
         tabsEl && typeof tabsEl.selectedTab === 'string' ? normalizeTab(tabsEl.selectedTab) : '';
@@ -276,7 +281,7 @@ class TabsPage extends HTMLElement {
       const selectedFromProp =
         tabsEl && typeof tabsEl.selectedTab === 'string' ? normalizeTab(tabsEl.selectedTab) : '';
       const selectedTab = selectedFromProp || selectedFromAttr;
-      const preferredTab = resolvePreferredTab();
+      const preferredTab = isTabsLocked() ? getLoginTargetTab() : resolvePreferredTab();
       if (!selectedTab || selectedTab !== preferredTab || !allowedTabs.includes(selectedTab)) {
         writeStoredTab(preferredTab);
         forceTab(preferredTab);
@@ -441,7 +446,7 @@ class TabsPage extends HTMLElement {
     applyTabBarVisibility();
 
     if (isTabsLocked()) {
-      setTimeout(() => enforceLoginTabsLock(false), 0);
+      enforceLoginTabsLock(false);
       return;
     }
 

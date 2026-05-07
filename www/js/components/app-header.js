@@ -127,7 +127,7 @@ export function setAppTitlebarEnabled(enabled) {
 
 export function renderAppHeader(_options = {}) {
   const options = _options && typeof _options === 'object' ? _options : {};
-  if (!isAppTitlebarEnabled()) return '';
+  if (!isAppTitlebarEnabled() && !options.forceRender) return '';
   const title = String(options.title || '').trim();
   const showTitleSlot = Boolean(options.showTitleSlot);
   const locale = options.locale;
@@ -145,4 +145,32 @@ export function renderAppHeader(_options = {}) {
       </ion-toolbar>
     </ion-header>
   `;
+}
+
+export function updateAppHeaderRewards(root, rewardBadgesId = '') {
+  const scope =
+    root && typeof root.querySelector === 'function'
+      ? root
+      : document && typeof document.querySelector === 'function'
+        ? document
+        : null;
+  if (!scope) return;
+  const actionsEl = scope.querySelector('ion-header.app-header-shell .app-header-actions');
+  if (!actionsEl) return;
+  const previousBadgesEl = actionsEl.querySelector('.reward-badges');
+  const nextBadgesHtml = renderRewardBadges(String(rewardBadgesId || '').trim());
+  if (!nextBadgesHtml) {
+    previousBadgesEl?.remove();
+    return;
+  }
+  const tpl = document.createElement('template');
+  tpl.innerHTML = nextBadgesHtml.trim();
+  const nextBadgesEl = tpl.content.firstElementChild;
+  if (!nextBadgesEl) return;
+  if (previousBadgesEl) {
+    previousBadgesEl.replaceWith(nextBadgesEl);
+    return;
+  }
+  const notifyBtnEl = actionsEl.querySelector('.app-notify-btn');
+  actionsEl.insertBefore(nextBadgesEl, notifyBtnEl || actionsEl.firstChild);
 }

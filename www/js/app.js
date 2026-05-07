@@ -31,6 +31,9 @@ const LAST_IAP_RESULT_STORAGE_KEY = 'appv5:last-got-premium-result';
 let currentTabsActiveTab = '';
 let lastNativeStatusBarInfo = { height: 0, platform: '', osVersion: '' };
 let _titlebarCalibrationTimers = [];
+let _pendingChromeResyncRaf = 0;
+let _pendingChromeResyncPath = '';
+let _lastAppliedChromeKey = '';
 
 function getCurrentAppPath() {
   return window.location.hash.replace('#', '') || '/';
@@ -777,6 +780,16 @@ function applyAppChromeForPath(path) {
   const themeColor = onboarding ? ONBOARDING_THEME_COLOR : labChrome ? LAB_THEME_COLOR : color;
   const lightIcons = statusbarPreset === 'clear';
   const style = getStatusBarStyle(lightIcons);
+  const chromeKey = [
+    String(path || '').trim(),
+    onboarding ? 'onboarding' : 'app',
+    labChrome ? 'lab' : 'plain',
+    statusbarPreset,
+    color,
+    lightIcons ? 'clear' : 'dark'
+  ].join('|');
+  if (_lastAppliedChromeKey === chromeKey) return;
+  _lastAppliedChromeKey = chromeKey;
   console.log('[chrome] applyAppChromeForPath', JSON.stringify({ path, onboarding, labChrome, statusbarPreset, color, lightIcons, style }));
 
   window.r34lp0w3r = window.r34lp0w3r || {};
@@ -928,7 +941,12 @@ document.addEventListener('deviceready', () => {
 });
 
 const resyncCurrentAppChrome = () => {
-  scheduleAppChromeSync(getCurrentAppPath());
+  _pendingChromeResyncPath = getCurrentAppPath();
+  if (_pendingChromeResyncRaf) return;
+  _pendingChromeResyncRaf = requestAnimationFrame(() => {
+    _pendingChromeResyncRaf = 0;
+    scheduleAppChromeSync(_pendingChromeResyncPath || getCurrentAppPath());
+  });
 };
 
 window.addEventListener('app:tab-change', (event) => {

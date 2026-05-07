@@ -1,5 +1,5 @@
 import { getAppLocale, setAppLocale, getActiveLocale, setLocaleOverride } from '../state.js';
-import { renderAppHeader } from '../components/app-header.js';
+import { renderAppHeader, updateAppHeaderRewards } from '../components/app-header.js';
 import { getChatCopy, getNextLocaleCode, getTabsCopy, normalizeLocale as normalizeCopyLocale } from '../content/copy.js';
 import {
   HERO_MASCOT_FRAMES as JOURNEY_MASCOT_FRAMES,
@@ -61,7 +61,7 @@ class PageChat extends HTMLElement {
       (_, idx) => `<span class="talk-wave-bar" style="--i:${idx}"></span>`
     ).join('');
     this.innerHTML = `
-      ${renderAppHeader({ title: getTabsCopy(uiLocale).chat })}
+      ${renderAppHeader({ title: getTabsCopy(uiLocale).chat, locale: uiLocale, rewardBadgesId: 'chat-reward-badges' })}
       <ion-content fullscreen class="secret-content chat-content free-ride-content" scroll-y="false">
         <div class="speak-shell free-ride-shell chat-shell">
           <section class="free-ride-hero-card onboarding-intro-card chat-hero-card">
@@ -8758,6 +8758,15 @@ class PageChat extends HTMLElement {
     };
     window.addEventListener('app:free-ride-header-color-change', this._headerColorHandler);
     window.addEventListener('app:free-ride-card-padded-change', this._cardPaddedHandler);
+    const syncHeaderRewards = () => {
+      if (!this.isConnected) return;
+      updateAppHeaderRewards(this, 'chat-reward-badges');
+    };
+    syncHeaderRewards();
+    this._rewardStoreHandler = () => {
+      syncHeaderRewards();
+    };
+    window.addEventListener('app:speak-stores-change', this._rewardStoreHandler);
 
     this._cleanupChat = () => {
       resetChatSession({ keepIntro: false, setDefaultHint: false });
@@ -8837,6 +8846,9 @@ class PageChat extends HTMLElement {
     }
     if (this._cardPaddedHandler) {
       window.removeEventListener('app:free-ride-card-padded-change', this._cardPaddedHandler);
+    }
+    if (this._rewardStoreHandler) {
+      window.removeEventListener('app:speak-stores-change', this._rewardStoreHandler);
     }
   }
 }

@@ -1050,8 +1050,9 @@ class PageHome extends HTMLElement {
     const getModuleSubtitle = (module) => readLocalizedField(module, 'subtitle');
     const getSessionTitle = (session) => readLocalizedField(session, 'title');
     if (!routes.length) {
+      const loadingLabel = String(copy.loading || speakCopy.loading || 'Loading...').trim();
       this.innerHTML = `
-        ${renderAppHeader({ title: tabTitle })}
+        ${renderAppHeader({ title: tabTitle, rewardBadgesId: 'home-reward-badges', locale: uiLocale })}
         <ion-content fullscreen class="home-journey free-ride-content secret-content">
           <div class="speak-shell free-ride-shell journey-shell">
             <section class="free-ride-hero-card journey-plan-card onboarding-intro-card">
@@ -1071,10 +1072,55 @@ class PageHome extends HTMLElement {
                 </div>
               </div>
             </section>
+            <section class="free-ride-card journey-sheet">
+              <button class="free-ride-card-handle journey-sheet-handle" type="button" aria-label="Expand training card" aria-expanded="false">
+                <span class="free-ride-card-handle-pill journey-sheet-handle-pill" aria-hidden="true"></span>
+              </button>
+              <div class="free-ride-card-main journey-sheet-main">
+                <div class="journey-accordion">
+                  <div class="reference-empty">${loadingLabel}</div>
+                </div>
+              </div>
+            </section>
           </div>
         </ion-content>
       `;
+      this.dataset.homeRenderState = 'loading';
       this.bindPlanHeroEvents(options);
+      const journeySheetHandleEl = this.getJourneySheetHandleEl();
+      journeySheetHandleEl?.addEventListener('pointerdown', (event) => {
+        this.startJourneySheetDrag(event);
+      });
+      journeySheetHandleEl?.addEventListener('pointermove', (event) => {
+        this.moveJourneySheetDrag(event);
+      });
+      journeySheetHandleEl?.addEventListener('pointerup', (event) => {
+        this.finishJourneySheetDrag(event);
+      });
+      journeySheetHandleEl?.addEventListener('pointercancel', () => {
+        this.cancelJourneySheetDrag();
+      });
+      journeySheetHandleEl?.addEventListener('lostpointercapture', () => {
+        this.cancelJourneySheetDrag();
+      });
+      journeySheetHandleEl?.addEventListener('click', (event) => {
+        const lastPointerUpTs = Number(this.journeySheetLastPointerUpTs) || 0;
+        if (lastPointerUpTs && Date.now() - lastPointerUpTs < 350) {
+          event.preventDefault();
+          return;
+        }
+        this.toggleJourneySheet({ animate: true });
+      });
+      journeySheetHandleEl?.addEventListener('keydown', (event) => {
+        const key = event && event.key ? event.key : '';
+        if (key !== 'Enter' && key !== ' ') return;
+        event.preventDefault();
+        this.toggleJourneySheet({ animate: true });
+      });
+      this.journeySheetExpandedOffset = this.measureJourneySheetExpandedOffset();
+      this.applyJourneySheetState({ animate: false, force: true });
+      this.scheduleLayoutSync(0);
+      this.scheduleLayoutSync(140);
       if (!this._loadingTrainingData && !this._trainingDataLoadAttempted) {
         this._loadingTrainingData = true;
         this._trainingDataLoadAttempted = true;
@@ -1721,8 +1767,7 @@ class PageHome extends HTMLElement {
 
     const initialJourneyState = getExpandedJourneyState();
     const { accordionMarkup } = initialJourneyState;
-
-    this.innerHTML = `
+    const nextHomeHtml = `
       ${renderAppHeader({ title: tabTitle, rewardBadgesId: 'home-reward-badges', locale: uiLocale })}
       <ion-content fullscreen class="home-journey free-ride-content secret-content">
         <div class="speak-shell free-ride-shell journey-shell">
@@ -1757,37 +1802,51 @@ class PageHome extends HTMLElement {
         </div>
       </ion-content>
     `;
+    const isLoadingHydration = this.dataset.homeRenderState === 'loading';
+    if (isLoadingHydration) {
+      const currentAccordion = this.querySelector('.journey-accordion');
+      if (currentAccordion) {
+        currentAccordion.innerHTML = accordionMarkup;
+      } else {
+        this.innerHTML = nextHomeHtml;
+      }
+    } else {
+      this.innerHTML = nextHomeHtml;
+    }
+    this.dataset.homeRenderState = 'ready';
     bindAccordionInteractions();
     const journeySheetHandleEl = this.getJourneySheetHandleEl();
-    journeySheetHandleEl?.addEventListener('pointerdown', (event) => {
-      this.startJourneySheetDrag(event);
-    });
-    journeySheetHandleEl?.addEventListener('pointermove', (event) => {
-      this.moveJourneySheetDrag(event);
-    });
-    journeySheetHandleEl?.addEventListener('pointerup', (event) => {
-      this.finishJourneySheetDrag(event);
-    });
-    journeySheetHandleEl?.addEventListener('pointercancel', () => {
-      this.cancelJourneySheetDrag();
-    });
-    journeySheetHandleEl?.addEventListener('lostpointercapture', () => {
-      this.cancelJourneySheetDrag();
-    });
-    journeySheetHandleEl?.addEventListener('click', (event) => {
-      const lastPointerUpTs = Number(this.journeySheetLastPointerUpTs) || 0;
-      if (lastPointerUpTs && Date.now() - lastPointerUpTs < 350) {
+    if (!isLoadingHydration) {
+      journeySheetHandleEl?.addEventListener('pointerdown', (event) => {
+        this.startJourneySheetDrag(event);
+      });
+      journeySheetHandleEl?.addEventListener('pointermove', (event) => {
+        this.moveJourneySheetDrag(event);
+      });
+      journeySheetHandleEl?.addEventListener('pointerup', (event) => {
+        this.finishJourneySheetDrag(event);
+      });
+      journeySheetHandleEl?.addEventListener('pointercancel', () => {
+        this.cancelJourneySheetDrag();
+      });
+      journeySheetHandleEl?.addEventListener('lostpointercapture', () => {
+        this.cancelJourneySheetDrag();
+      });
+      journeySheetHandleEl?.addEventListener('click', (event) => {
+        const lastPointerUpTs = Number(this.journeySheetLastPointerUpTs) || 0;
+        if (lastPointerUpTs && Date.now() - lastPointerUpTs < 350) {
+          event.preventDefault();
+          return;
+        }
+        this.toggleJourneySheet({ animate: true });
+      });
+      journeySheetHandleEl?.addEventListener('keydown', (event) => {
+        const key = event && event.key ? event.key : '';
+        if (key !== 'Enter' && key !== ' ') return;
         event.preventDefault();
-        return;
-      }
-      this.toggleJourneySheet({ animate: true });
-    });
-    journeySheetHandleEl?.addEventListener('keydown', (event) => {
-      const key = event && event.key ? event.key : '';
-      if (key !== 'Enter' && key !== ' ') return;
-      event.preventDefault();
-      this.toggleJourneySheet({ animate: true });
-    });
+        this.toggleJourneySheet({ animate: true });
+      });
+    }
     this.journeySheetExpandedOffset = this.measureJourneySheetExpandedOffset();
     this.applyJourneySheetState({ animate: false, force: true });
 

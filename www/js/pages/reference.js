@@ -1,4 +1,4 @@
-import { getAppLocale, setAppLocale, getActiveLocale, setLocaleOverride } from '../state.js';
+import { getAppLocale, getActiveLocale, setLocaleOverride } from '../state.js';
 import { renderAppHeader } from '../components/app-header.js';
 import { addNotification } from '../notifications-store.js';
 import {
@@ -825,9 +825,9 @@ class PageReference extends HTMLElement {
   }
 
   renderHeaderHtml() {
-    const currentLocale = getAppLocale() || 'en';
+    const currentLocale = getActiveLocale() || getAppLocale() || 'en';
     const tabTitle = getReferenceCopy(currentLocale).title;
-    return renderAppHeader({ title: tabTitle });
+    return renderAppHeader({ title: tabTitle, locale: currentLocale });
   }
 
   getReferenceRewardStore() {
@@ -3373,9 +3373,10 @@ class PageReference extends HTMLElement {
     const learnDone = lessonProgress && lessonProgress.learnDone;
     const testsTone = lessonProgress && lessonProgress.testsTone ? lessonProgress.testsTone : 'neutral';
     const hasTests = lessonProgress && lessonProgress.hasTests;
-    const learnDot = `<span class="lesson-dot tone-${learnDone ? 'good' : 'neutral'}"></span>`;
+    const tick = `<svg viewBox="0 0 10 10" fill="none" aria-hidden="true"><polyline points="1,5.5 3.8,8.5 9,1.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+    const learnDot = `<span class="lesson-dot tone-${learnDone ? 'good' : 'neutral'}">${learnDone ? tick : ''}</span>`;
     const testsDot = hasTests
-      ? `<span class="lesson-dot tone-${testsTone}"></span>`
+      ? `<span class="lesson-dot tone-${testsTone}">${testsTone !== 'neutral' ? tick : ''}</span>`
       : `<span class="lesson-dot tone-neutral is-empty"></span>`;
     return `<span class="lesson-dots">${learnDot}${testsDot}</span>`;
   }
@@ -5028,8 +5029,11 @@ class PageReference extends HTMLElement {
         });
 
         this.querySelector('.app-locale-btn')?.addEventListener('click', () => {
-          const nextLocale = getNextLocaleCode(getAppLocale() || 'en');
-          setAppLocale(nextLocale);
+          const nextLocale = getNextLocaleCode(getActiveLocale() || 'en');
+          setLocaleOverride(nextLocale);
+          if (window.varGlobal && typeof window.varGlobal === 'object') {
+            window.varGlobal.locale = nextLocale;
+          }
           window.dispatchEvent(new CustomEvent('app:locale-change', { detail: { locale: nextLocale } }));
         });
         this.querySelector('#tool-back-btn')?.addEventListener('click', () => {
@@ -5132,8 +5136,11 @@ class PageReference extends HTMLElement {
           this.playHeroNarration(true).catch(() => {});
         });
         this.querySelector('.app-locale-btn')?.addEventListener('click', () => {
-          const nextLocale = getNextLocaleCode(getAppLocale() || 'en');
-          setAppLocale(nextLocale);
+          const nextLocale = getNextLocaleCode(getActiveLocale() || 'en');
+          setLocaleOverride(nextLocale);
+          if (window.varGlobal && typeof window.varGlobal === 'object') {
+            window.varGlobal.locale = nextLocale;
+          }
           window.dispatchEvent(new CustomEvent('app:locale-change', { detail: { locale: nextLocale } }));
         });
         this.querySelector('#tool-back-btn')?.addEventListener('click', () => {
@@ -5197,8 +5204,11 @@ class PageReference extends HTMLElement {
           this.playHeroNarration(true).catch(() => {});
         });
         this.querySelector('.app-locale-btn')?.addEventListener('click', () => {
-          const nextLocale = getNextLocaleCode(getAppLocale() || 'en');
-          setAppLocale(nextLocale);
+          const nextLocale = getNextLocaleCode(getActiveLocale() || 'en');
+          setLocaleOverride(nextLocale);
+          if (window.varGlobal && typeof window.varGlobal === 'object') {
+            window.varGlobal.locale = nextLocale;
+          }
           window.dispatchEvent(new CustomEvent('app:locale-change', { detail: { locale: nextLocale } }));
         });
         this.querySelector('#tool-back-btn')?.addEventListener('click', () => {
@@ -5274,8 +5284,11 @@ class PageReference extends HTMLElement {
       });
 
       this.querySelector('.app-locale-btn')?.addEventListener('click', () => {
-        const nextLocale = getNextLocaleCode(getAppLocale() || 'en');
-        setAppLocale(nextLocale);
+        const nextLocale = getNextLocaleCode(getActiveLocale() || 'en');
+        setLocaleOverride(nextLocale);
+        if (window.varGlobal && typeof window.varGlobal === 'object') {
+          window.varGlobal.locale = nextLocale;
+        }
         window.dispatchEvent(new CustomEvent('app:locale-change', { detail: { locale: nextLocale } }));
       });
       this.querySelector('#tool-back-btn')?.addEventListener('click', () => {
@@ -5808,8 +5821,8 @@ class PageReference extends HTMLElement {
     }
 
     this.querySelector('.app-locale-btn')?.addEventListener('click', () => {
-      const nextLocale = getNextLocaleCode(getAppLocale() || 'en');
-      setAppLocale(nextLocale);
+      const nextLocale = getNextLocaleCode(getActiveLocale() || 'en');
+      setLocaleOverride(nextLocale);
       if (window.varGlobal && typeof window.varGlobal === 'object') {
         window.varGlobal.locale = nextLocale;
       }

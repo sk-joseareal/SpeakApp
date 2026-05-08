@@ -1046,6 +1046,20 @@ body.lab-chrome-active:not(.app-titlebar-enabled) page-profile .profile-shell--l
   padding-top: 12px;
 }
 
+.profile-onboarding-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  overflow: hidden;
+  background: var(--free-ride-view-bg, #a9c7f5);
+}
+
+.profile-onboarding-overlay page-onboarding {
+  display: block;
+  position: absolute;
+  inset: 0;
+}
+
 .profile-auth-actions-left {
   top: max(8px, env(safe-area-inset-top, 0px));
   left: 8px;
@@ -1061,7 +1075,7 @@ body.lab-chrome-active:not(.app-titlebar-enabled) page-profile .profile-auth-act
 }
 
 page-profile.profile-auth-entering .profile-shell--logged-out,
-page-profile.profile-auth-entering .profile-shell--logged-out * {
+page-profile.profile-auth-entering .profile-shell--logged-out *:not(.profile-onboarding-overlay):not(.profile-onboarding-overlay *) {
   transition: none !important;
   animation: none !important;
 }

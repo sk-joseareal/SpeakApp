@@ -1,4 +1,4 @@
-import { getAppLocale, hasLoginTabsLock } from '../state.js';
+import { getAppLocale, hasLoginTabsLock, onboardingDone } from '../state.js';
 import { isAppTitlebarEnabled } from '../components/app-header.js';
 import { getTabsCopy, normalizeLocale as normalizeCopyLocale } from '../content/copy.js';
 
@@ -80,7 +80,7 @@ class TabsPage extends HTMLElement {
     const initialUser = window.user;
     const initialLoggedIn = Boolean(initialUser && initialUser.id !== undefined && initialUser.id !== null);
     const initialLocked = hasLoginTabsLock() && !initialLoggedIn;
-    const initialSelectedTab = initialLocked ? 'tu' : 'home';
+    const initialSelectedTab = (initialLocked || !onboardingDone()) ? 'tu' : 'home';
     const initialHideTabBar = initialLocked;
 
     this.innerHTML = `
@@ -382,6 +382,12 @@ class TabsPage extends HTMLElement {
     };
     window.addEventListener('app:tabs-lock-change', this._tabsLockChangeHandler);
 
+    this._repeatOnboardingHandler = () => {
+      forceTab('tu');
+      if (tabBarEl) tabBarEl.hidden = true;
+    };
+    window.addEventListener('app:repeat-onboarding', this._repeatOnboardingHandler);
+
     this._userChangeHandler = () => {
       const nowLoggedIn = isLoggedIn();
       const justLoggedIn = !wasLoggedIn && nowLoggedIn;
@@ -473,6 +479,9 @@ class TabsPage extends HTMLElement {
 
     if (this._tabsLockChangeHandler) {
       window.removeEventListener('app:tabs-lock-change', this._tabsLockChangeHandler);
+    }
+    if (this._repeatOnboardingHandler) {
+      window.removeEventListener('app:repeat-onboarding', this._repeatOnboardingHandler);
     }
 
     if (this._userChangeHandler) {

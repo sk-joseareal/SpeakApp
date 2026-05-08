@@ -908,24 +908,23 @@ routerReady.then((router) => {
   if (onboardingDone() && (hashPath === '/' || hashPath === '/onboarding')) {
     goToHome('root');
   }
-  if (!onboardingDone() && (hashPath.startsWith('/tabs') || hashPath === '/speak')) {
-    router.push('/onboarding', 'root');
-  }
 
   const isLoggedIn = () => {
     const user = window.user;
     return Boolean(user && user.id !== undefined && user.id !== null);
   };
 
+  // On first launch (onboarding not done, not logged in), lock tabs before
+  // tabs-page mounts so it initialises with 'tu' as active tab and tab bar hidden.
+  if (!onboardingDone() && !isLoggedIn()) {
+    setLoginTabsLock();
+  }
+
   router.addEventListener('ionRouteWillChange', (event) => {
     const to = event.detail.to;
     if (!to) return;
     if (onboardingDone() && (to === '/' || to === '/onboarding')) {
       goToHome('root');
-      return;
-    }
-    if (!onboardingDone() && (to.startsWith('/tabs') || to === '/speak')) {
-      router.push('/onboarding', 'root');
       return;
     }
     if (hasLoginTabsLock() && !isLoggedIn() && to === '/speak') {

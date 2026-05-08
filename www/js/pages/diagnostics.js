@@ -550,7 +550,13 @@ class PageDiagnostics extends HTMLElement {
             <p>Plataforma: <strong>${platform}</strong></p>
             <p>UUID: <strong>${uuid}</strong></p>
             <p>Entradas en localStorage: <strong>${cacheKeys}</strong></p>
-            <h4 style="margin-top:12px;">Plugins activos</h4>
+
+            <h4 style="margin-top:12px;">Onboarding</h4>
+            <div class="diag-actions">
+              <ion-button size="small" fill="outline" id="diag-onboarding-repeat">Repetir onboarding</ion-button>
+            </div>
+
+            <h4 style="margin-top:16px;">Plugins activos</h4>
             <ul class="diag-list">
               ${plugins
                 .map(
@@ -655,11 +661,6 @@ class PageDiagnostics extends HTMLElement {
             <div class="diag-actions">
               <ion-button size="small" fill="outline" id="var-sendmail">Contact</ion-button>
               <ion-button size="small" fill="outline" id="var-goweblegal">Legal web</ion-button>
-            </div>
-
-            <h4 style="margin-top:16px;">Onboarding</h4>
-            <div class="diag-actions">
-              <ion-button size="small" fill="outline" id="diag-onboarding-repeat">Repetir onboarding</ion-button>
             </div>
 
             <h4 style="margin-top:16px;">Reset app</h4>
@@ -3733,7 +3734,18 @@ class PageDiagnostics extends HTMLElement {
 
     this.querySelector('#diag-onboarding-repeat')?.addEventListener('click', () => {
       clearOnboardingDone();
-      window.location.hash = '#/onboarding';
+      const isLoggedIn = Boolean(window.user && window.user.id !== undefined && window.user.id !== null);
+      if (isLoggedIn) {
+        if (typeof window.setUser === 'function') {
+          try { window.setUser(null); } catch (_) {}
+        } else {
+          window.user = null;
+          window.dispatchEvent(new CustomEvent('app:user-change', { detail: null }));
+        }
+      }
+      window.dispatchEvent(new CustomEvent('app:repeat-onboarding'));
+      const modal = this.closest('ion-modal');
+      if (modal) modal.dismiss();
     });
     this.querySelector('#diag-app-reset')?.addEventListener('click', () => {
       const confirmReset = window.confirm(
@@ -3775,7 +3787,7 @@ class PageDiagnostics extends HTMLElement {
         window.user = null;
       }
 
-      window.location.hash = '#/onboarding';
+      window.location.hash = '#/tabs/tu';
       setTimeout(() => {
         window.location.reload();
       }, 40);

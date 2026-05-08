@@ -19,14 +19,14 @@ export const goToSpeak = async (direction = 'forward') => {
 export const ensureInitialHash = () => {
   const hash = window.location.hash.replace('#', '');
 
-  if (onboardingDone()) {
-    if (!hash || hash === '/') {
-      window.location.hash = '/tabs';
-    }
+  // Redirect non-app hashes (diagnostics, login, empty) to /tabs.
+  // /onboarding stays accessible directly for testing.
+  if (!hash || hash === '/' || hash === '/diagnostics' || hash === '/login') {
+    window.location.hash = '/tabs';
     return;
   }
 
-  if (hash !== '/onboarding') {
-    window.location.hash = '/onboarding';
+  if (onboardingDone() && hash === '/onboarding') {
+    window.location.hash = '/tabs';
   }
 };

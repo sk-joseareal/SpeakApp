@@ -82,11 +82,16 @@ class PageOnboarding extends HTMLElement {
   }
 
   connectedCallback() {
-    this.classList.add('ion-page', 'onboarding-page');
+    const embedded = this.hasAttribute('embedded');
+    if (!embedded) {
+      this.classList.add('ion-page', 'onboarding-page');
+    }
     this.render();
     this.cacheElements();
     this.bindEvents();
-    this.applyOnboardingChrome();
+    if (!embedded) {
+      this.applyOnboardingChrome();
+    }
     this.updateSlide();
   }
 
@@ -122,12 +127,7 @@ class PageOnboarding extends HTMLElement {
   }
 
   render() {
-    this.innerHTML = `
-      <ion-content fullscreen>
-        <div class="onboarding-v5-shell">
-          <div class="onboarding-v5-stage" data-field="stage"></div>
-        </div>
-      </ion-content>
+    const navHtml = `
       <div class="onboarding-v5-footer" data-field="footer">
         <div class="speak-voice-nav onboarding-v5-nav">
           <button class="speak-step-arrow-btn" data-action="prev" type="button" aria-label="Previous step" disabled>
@@ -138,8 +138,22 @@ class PageOnboarding extends HTMLElement {
             <ion-icon name="chevron-forward"></ion-icon>
           </button>
         </div>
-      </div>
-    `;
+      </div>`;
+    if (this.hasAttribute('embedded')) {
+      this.innerHTML = `
+        <div class="onboarding-v5-shell">
+          <div class="onboarding-v5-stage" data-field="stage"></div>
+        </div>
+        ${navHtml}`;
+    } else {
+      this.innerHTML = `
+        <ion-content fullscreen>
+          <div class="onboarding-v5-shell">
+            <div class="onboarding-v5-stage" data-field="stage"></div>
+          </div>
+        </ion-content>
+        ${navHtml}`;
+    }
   }
 
   cacheElements() {
@@ -246,6 +260,12 @@ class PageOnboarding extends HTMLElement {
     this._skipRestoreChromeOnDisconnect = true;
     this.clearChromeRetryTimers();
     setOnboardingDone();
+
+    if (this.hasAttribute('embedded')) {
+      window.dispatchEvent(new CustomEvent('app:onboarding-finish'));
+      return;
+    }
+
     try {
       if (typeof window.applyAppChromeForPath === 'function') {
         window.applyAppChromeForPath('/tabs');
@@ -309,13 +329,16 @@ class PageOnboarding extends HTMLElement {
 
   scheduleHeroLayoutSync() {
     if (this._layoutRaf) cancelAnimationFrame(this._layoutRaf);
-    clearTimeout(this._layoutTimer);
+    this._layoutTimers?.forEach(clearTimeout);
+    this._layoutTimers = [];
     this._layoutRaf = requestAnimationFrame(() => {
       this._layoutRaf = 0;
       this.syncHeroLayout();
     });
-    // Retry after ion-content has had time to render its shadow DOM
-    this._layoutTimer = setTimeout(() => this.syncHeroLayout(), 120);
+    // Retries at increasing intervals — layout may settle later on first load
+    [120, 320, 700].forEach(delay => {
+      this._layoutTimers.push(setTimeout(() => this.syncHeroLayout(), delay));
+    });
   }
 
   setThemeColor(color) {
@@ -458,7 +481,7 @@ class PageOnboarding extends HTMLElement {
 
   disconnectedCallback() {
     this.clearChromeRetryTimers();
-    if (!this._skipRestoreChromeOnDisconnect) {
+    if (!this._skipRestoreChromeOnDisconnect && !this.hasAttribute('embedded')) {
       this.restoreDefaultChrome();
     }
     if (this._deviceReadyHandler) {
@@ -471,7 +494,8 @@ class PageOnboarding extends HTMLElement {
       cancelAnimationFrame(this._layoutRaf);
       this._layoutRaf = 0;
     }
-    clearTimeout(this._layoutTimer);
+    this._layoutTimers?.forEach(clearTimeout);
+    this._layoutTimers = [];
   }
 }
 

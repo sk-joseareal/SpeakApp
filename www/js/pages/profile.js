@@ -1,4 +1,4 @@
-import { getAppLocale, setAppLocale, getActiveLocale, getLocaleOverride, setLocaleOverride, clearLocaleOverride } from '../state.js';
+import { getAppLocale, setAppLocale, getActiveLocale, getLocaleOverride, setLocaleOverride, clearLocaleOverride, onboardingDone, setLoginTabsLock } from '../state.js';
 import { isAppTitlebarEnabled, renderAppHeader } from '../components/app-header.js';
 import { ensureTrainingData, getRoutes, setSelection } from '../data/training-data.js';
 import { ensureReferenceData, getLocalizedMapField, getReferenceCourses } from '../data/reference-data.js';
@@ -1038,7 +1038,11 @@ class PageProfile extends HTMLElement {
   notifyChromeState() {
     const user = window.user;
     const loggedIn = Boolean(user && user.id !== undefined && user.id !== null);
-    const hideTabBar = !loggedIn;
+    // Don't hide the tab bar while the onboarding overlay is active — it covers
+    // everything anyway, and hiding it would affect all other tabs too since
+    // profile is mounted at app start (not just when the user visits the tab).
+    const onboardingActive = Boolean(this.querySelector('#profile-onboarding-overlay'));
+    const hideTabBar = !loggedIn && !onboardingActive;
     const tabsPage = document.querySelector('tabs-page');
     if (tabsPage && tabsPage.classList) {
       tabsPage.classList.toggle('profile-auth-tabs-hidden', hideTabBar);
@@ -1172,6 +1176,10 @@ class PageProfile extends HTMLElement {
       this.applyProfileSheetState({ animate: false, force: true });
       this.scheduleProfileLayout(0);
     };
+    this._onboardingFinishHandler = () => this._runOnboardingTransition();
+    window.addEventListener('app:onboarding-finish', this._onboardingFinishHandler);
+    this._repeatOnboardingHandler = () => { this.render(); this.notifyChromeState(); };
+    window.addEventListener('app:repeat-onboarding', this._repeatOnboardingHandler);
     window.addEventListener('app:user-change', this._userHandler);
     window.addEventListener('app:speak-stores-change', this._storesHandler);
     window.addEventListener('app:locale-change', this._localeHandler);
@@ -1193,7 +1201,87 @@ class PageProfile extends HTMLElement {
     }
   }
 
+  _runOnboardingTransition() {
+    setLoginTabsLock();
+
+    const DURATION = 900;
+
+    // Measure onboarding mascot BEFORE removing overlay
+    const overlay = this.querySelector('#profile-onboarding-overlay');
+    const srcMascot = overlay?.querySelector('.onboarding-v5-mascot');
+    const srcRect = srcMascot ? srcMascot.getBoundingClientRect() : null;
+
+    // Cover at body level — immune to profile re-renders
+    const cover = document.createElement('div');
+    cover.setAttribute('aria-hidden', 'true');
+    cover.style.cssText = 'position:fixed;inset:0;z-index:9999;pointer-events:none;background:var(--free-ride-view-bg,#a7c6f7)';
+    document.body.appendChild(cover);
+
+    if (overlay) overlay.remove();
+
+    // Measure auth mascot using getBoundingClientRect directly — includes transform
+    const authHeroSection = this.querySelector('#profile-auth-hero-section');
+    const authMascot = authHeroSection?.querySelector('#profile-auth-hero-mascot');
+    const dstRect = authMascot ? authMascot.getBoundingClientRect() : null;
+
+    // Fade cover out — auth content (incl. mascot) revealed naturally beneath it
+    cover.animate(
+      [{ opacity: 1 }, { opacity: 0 }],
+      { duration: DURATION, easing: 'ease-in', fill: 'forwards' }
+    ).finished.then(() => {
+      cover.remove();
+      this.notifyChromeState(); // overlay is gone — now hide tab bar for login view
+    });
+
+    // Mascot FLIP — clone flies from onboarding position to auth hero position
+    // z-index 10000 keeps it above the cover (9999)
+    // Auth mascot is NOT hidden — it fades in naturally as the cover fades,
+    // so there's no opacity jump when the clone disappears
+    if (srcRect && dstRect && srcRect.height > 0 && dstRect.height > 0) {
+      const srcCx = srcRect.left + srcRect.width / 2;
+      const srcCy = srcRect.top + srcRect.height / 2;
+      const dstCx = dstRect.left + dstRect.width / 2;
+      const dstCy = dstRect.top + dstRect.height / 2;
+      const scale = dstRect.height > 0 ? srcRect.height / dstRect.height : 1;
+      const tx = srcCx - dstCx;
+      const ty = srcCy - dstCy;
+
+      const clone = document.createElement('img');
+      clone.src = srcMascot.src;
+      clone.setAttribute('aria-hidden', 'true');
+      Object.assign(clone.style, {
+        position: 'fixed',
+        left: `${dstRect.left}px`,
+        top: `${dstRect.top}px`,
+        width: `${dstRect.width}px`,
+        height: `${dstRect.height}px`,
+        transformOrigin: 'center center',
+        zIndex: '10000',
+        objectFit: 'contain',
+        objectPosition: 'center',
+        pointerEvents: 'none',
+      });
+      document.body.appendChild(clone);
+
+      clone.animate(
+        [
+          { transform: `translate(${tx}px, ${ty}px) scale(${scale})`, opacity: 1 },
+          { transform: 'none', opacity: 0, offset: 0.82 },
+          { transform: 'none', opacity: 0 }
+        ],
+        { duration: DURATION, easing: 'cubic-bezier(0,0,0.2,1)', fill: 'forwards' }
+      ).finished.then(() => clone.remove());
+    }
+
+  }
+
   disconnectedCallback() {
+    if (this._onboardingFinishHandler) {
+      window.removeEventListener('app:onboarding-finish', this._onboardingFinishHandler);
+    }
+    if (this._repeatOnboardingHandler) {
+      window.removeEventListener('app:repeat-onboarding', this._repeatOnboardingHandler);
+    }
     this.stopAuthHeroSpeech();
     const tabsPage = document.querySelector('tabs-page');
     if (tabsPage && tabsPage.classList) {
@@ -2355,7 +2443,8 @@ class PageProfile extends HTMLElement {
                 </div>
               </div>
             </div>
-          </section>`
+          </section>
+          ${!onboardingDone() ? '<div class="profile-onboarding-overlay" id="profile-onboarding-overlay"><page-onboarding embedded></page-onboarding></div>' : ''}`
       : '';
     const progressCardsMarkup = [
       {

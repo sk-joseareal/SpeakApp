@@ -147,9 +147,9 @@ const isFreeRideCardPadded = () => {
 const getStoredHeaderColor = () => {
   try {
     const raw = String(localStorage.getItem(FREE_RIDE_HEADER_COLOR_KEY) || '').trim().toLowerCase();
-    return FREE_RIDE_HEADER_COLOR_VALUES.includes(raw) ? raw : 'white';
+    return FREE_RIDE_HEADER_COLOR_VALUES.includes(raw) ? raw : 'blue';
   } catch (_err) {
-    return 'white';
+    return 'blue';
   }
 };
 
@@ -407,6 +407,22 @@ class PageReference extends HTMLElement {
     if (!primary) return secondary;
     const normalize = (value) => String(value || '').trim().toLocaleLowerCase();
     return normalize(primary) === normalize(secondary) ? '' : secondary;
+  }
+
+  getReferenceLessonSubtitle(entry, uiLocale) {
+    return (
+      this.getText(entry, 'intro', uiLocale) ||
+      this.getText(entry, 'intro', this.getAltLocale(uiLocale)) ||
+      ''
+    );
+  }
+
+  getReferenceCourseSubtitle(entry, uiLocale) {
+    return (
+      this.getText(entry, 'short_briefing', uiLocale) ||
+      this.getText(entry, 'short_briefing', this.getAltLocale(uiLocale)) ||
+      ''
+    );
   }
 
   escapeHtml(value) {
@@ -3405,6 +3421,25 @@ class PageReference extends HTMLElement {
     )}">${this.escapeHtml(label)}</span>`;
   }
 
+  renderReferenceProgressBar(percent, tone, options = {}) {
+    const value = Math.max(0, Math.min(100, Math.round(Number(percent) || 0)));
+    const normalizedTone = ['good', 'okay', 'bad', 'neutral'].includes(String(tone || '').trim())
+      ? String(tone || '').trim()
+      : 'neutral';
+    const extraClass = String(options.extraClass || '')
+      .trim()
+      .replace(/\s+/g, ' ');
+    const ariaLabel =
+      options.ariaLabel !== undefined && options.ariaLabel !== null
+        ? String(options.ariaLabel)
+        : `${value}%`;
+    return `
+      <span class="reference-progress-bar tone-${normalizedTone}${extraClass ? ` ${extraClass}` : ''}" aria-label="${this.escapeHtml(ariaLabel)}">
+        <span class="reference-progress-bar-fill" style="width:${value}%"></span>
+      </span>
+    `;
+  }
+
   getReferenceProgressQueueStorageKey(user = window.user || null) {
     return `${REFERENCE_PROGRESS_QUEUE_STORAGE_PREFIX}:${this.getReferenceTestsStorageUserKey(user)}`;
   }
@@ -5521,7 +5556,7 @@ class PageReference extends HTMLElement {
         const courseCode = String(course.code);
         const isCourseOpen = courseCode === this.expandedCourseCode;
         const courseTitle = this.getText(course, 'display', uiLocale) || `Course ${courseCode}`;
-        const courseSubtitle = this.getSecondaryDisplay(course, uiLocale);
+        const courseSubtitle = this.getReferenceCourseSubtitle(course, uiLocale);
         const courseProgress = progressSnapshot.courses[courseCode] || {
           percent: 0,
           tone: 'neutral'
@@ -5549,7 +5584,7 @@ class PageReference extends HTMLElement {
                         unitCode === selectedUnitCode &&
                         lessonCode === selectedLessonCode;
                       const lessonTitle = this.getText(lesson, 'display', uiLocale) || `Lesson ${lessonCode}`;
-                      const lessonSubtitle = this.getSecondaryDisplay(lesson, uiLocale);
+                      const lessonSubtitle = this.getReferenceLessonSubtitle(lesson, uiLocale);
                       const lessonProgress =
                         progressSnapshot.lessons[
                           this.getReferenceLessonProgressKey(courseCode, unitCode, lessonCode)
@@ -5591,15 +5626,23 @@ class PageReference extends HTMLElement {
                   data-course-code="${courseCode}"
                   data-unit-code="${unitCode}"
                 >
-                  <div>
-                    <div class="module-title">${this.escapeHtml(unitTitle)}</div>
+                  <span class="reference-item-icon reference-item-icon-unit" aria-hidden="true">
+                    <ion-icon name="folder-open-outline"></ion-icon>
+                  </span>
+                  <div class="module-copy">
+                    <div class="module-title-row">
+                      <div class="module-title">${this.escapeHtml(unitTitle)}</div>
+                      ${this.renderReferenceProgressPill(unitProgress.percent, unitProgress.tone, {
+                        compact: true,
+                        ariaLabel: `${unitTitle}: ${unitProgress.percent}%`
+                      })}
+                    </div>
                     ${unitSubtitle ? `<div class="module-sub">${this.escapeHtml(unitSubtitle)}</div>` : ''}
-                  </div>
-                  <div class="module-meta">
-                    ${this.renderReferenceProgressPill(unitProgress.percent, unitProgress.tone, {
-                      compact: true,
+                    ${this.renderReferenceProgressBar(unitProgress.percent, unitProgress.tone, {
                       ariaLabel: `${unitTitle}: ${unitProgress.percent}%`
                     })}
+                  </div>
+                  <div class="module-meta" aria-hidden="true">
                     <ion-icon name="${isUnitOpen ? 'chevron-down' : 'chevron-forward'}"></ion-icon>
                   </div>
                 </button>
@@ -5617,17 +5660,28 @@ class PageReference extends HTMLElement {
               data-action="toggle-course"
               data-course-code="${courseCode}"
             >
-              <span>${this.escapeHtml(courseTitle)}</span>
-              <div class="route-header-meta">
-                ${this.renderReferenceProgressPill(courseProgress.percent, courseProgress.tone, {
-                  compact: true,
+              <span class="reference-item-icon reference-item-icon-course" aria-hidden="true">
+                <ion-icon name="school-outline"></ion-icon>
+              </span>
+              <div class="route-header-copy">
+                <div class="route-header-topline">
+                  <span class="route-header-name">${this.escapeHtml(courseTitle)}</span>
+                  ${this.renderReferenceProgressPill(courseProgress.percent, courseProgress.tone, {
+                    compact: true,
+                    extraClass: 'is-course',
+                    ariaLabel: `${courseTitle}: ${courseProgress.percent}%`
+                  })}
+                </div>
+                ${courseSubtitle ? `<div class="route-header-sub">${this.escapeHtml(courseSubtitle)}</div>` : ''}
+                ${this.renderReferenceProgressBar(courseProgress.percent, courseProgress.tone, {
                   extraClass: 'is-course',
                   ariaLabel: `${courseTitle}: ${courseProgress.percent}%`
                 })}
+              </div>
+              <div class="route-header-meta" aria-hidden="true">
                 <ion-icon name="chevron-down"></ion-icon>
               </div>
             </button>
-            ${courseSubtitle ? `<div class="route-note">${this.escapeHtml(courseSubtitle)}</div>` : ''}
             <div class="route-modules">${unitsMarkup}</div>
           </div>
         `;

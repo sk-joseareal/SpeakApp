@@ -36,9 +36,9 @@ const getResolvedUserName = (user) => {
 const getStoredHeaderColor = () => {
   try {
     const raw = String(localStorage.getItem(FREE_RIDE_HEADER_COLOR_KEY) || '').trim().toLowerCase();
-    return FREE_RIDE_HEADER_COLOR_VALUES.includes(raw) ? raw : 'white';
+    return FREE_RIDE_HEADER_COLOR_VALUES.includes(raw) ? raw : 'blue';
   } catch (_err) {
-    return 'white';
+    return 'blue';
   }
 };
 

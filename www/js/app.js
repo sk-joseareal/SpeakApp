@@ -21,6 +21,7 @@ const APP_STATUSBAR_COLOR = '#f4f6fb';
 const LAB_STATUSBAR_COLOR = '#00000000';
 const LAB_THEME_COLOR = '#a9c7f5';
 const APP_STATUSBAR_PRESET_KEY = 'appv5:statusbar-preset';
+const APP_FONT_SF_PRO_ENABLED_KEY = 'appv5:font-sf-pro-enabled';
 const TAB_STORAGE_KEY = 'appv5:active-tab';
 const LAB_TAB_IDS = new Set(['freeride', 'home', 'reference', 'chat', 'tu']);
 const PURCHASE_EXPIRES_STORAGE_KEY = '_purchase_expires';
@@ -94,6 +95,34 @@ function getStoredStatusbarPreset() {
   } catch (_err) {
     return 'dark';
   }
+}
+
+function normalizeAppFontSfProEnabled(value) {
+  if (typeof value === 'boolean') return value;
+  const normalized = String(value || '').trim().toLowerCase();
+  if (!normalized) return false;
+  return ['1', 'true', 'on', 'yes'].includes(normalized);
+}
+
+function getStoredAppFontSfProEnabled() {
+  const globalValue =
+    window.r34lp0w3r && Object.prototype.hasOwnProperty.call(window.r34lp0w3r, 'appFontSfProEnabled')
+      ? window.r34lp0w3r.appFontSfProEnabled
+      : undefined;
+  if (globalValue !== undefined) return normalizeAppFontSfProEnabled(globalValue);
+  try {
+    return normalizeAppFontSfProEnabled(localStorage.getItem(APP_FONT_SF_PRO_ENABLED_KEY));
+  } catch (_err) {
+    return false;
+  }
+}
+
+function applyAppFontPreference(enabled = getStoredAppFontSfProEnabled()) {
+  const normalized = normalizeAppFontSfProEnabled(enabled);
+  window.r34lp0w3r = window.r34lp0w3r || {};
+  window.r34lp0w3r.appFontSfProEnabled = normalized;
+  document.body.classList.toggle('app-font-sf-pro', normalized);
+  return normalized;
 }
 
 function setNativeStatusBarCssHeight(height) {
@@ -862,6 +891,7 @@ function installIonContentDimensionGuard() {
 
 installIonContentDimensionGuard();
 ensureLegacySpeakCopyGlobals();
+applyAppFontPreference();
 
 const routerReady = customElements.whenDefined('ion-router').then(() => document.querySelector('ion-router'));
 
@@ -967,6 +997,10 @@ window.addEventListener('app:statusbar-preset-change', (event) => {
     window.r34lp0w3r.appStatusbarPreset = normalizeStatusbarPreset(requestedPreset);
   }
   resyncCurrentAppChrome();
+});
+
+window.addEventListener('app:font-sf-pro-change', (event) => {
+  applyAppFontPreference(event?.detail?.enabled);
 });
 
 document.addEventListener('resume', resyncCurrentAppChrome);

@@ -100,11 +100,11 @@ export function isAppTitlebarEnabled() {
   if (typeof globalValue === 'boolean') return globalValue;
   try {
     const raw = localStorage.getItem(APP_TITLEBAR_ENABLED_KEY);
-    if (raw === null || raw === '') return false;
+    if (raw === null || raw === '') return true;
     const normalized = String(raw).trim().toLowerCase();
     return ['1', 'true', 'on', 'yes'].includes(normalized);
   } catch (_err) {
-    return false;
+    return true;
   }
 }
 

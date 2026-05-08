@@ -42,6 +42,7 @@ class PageDiagnostics extends HTMLElement {
     const SPEAK_SESSION_PERCENTAGES_VISIBLE_KEY = 'appv5:speak-session-percentages-visible';
     const APP_TITLEBAR_ENABLED_KEY = 'appv5:app-titlebar-enabled';
     const APP_STATUSBAR_PRESET_KEY = 'appv5:statusbar-preset';
+    const APP_FONT_SF_PRO_ENABLED_KEY = 'appv5:font-sf-pro-enabled';
     const SPEAK_PRONUNCIATION_AVATAR_MODE_KEY = 'appv5:speak-pronunciation-avatar-mode';
     const SPEAK_PRONUNCIATION_AVATAR_OLD = 'old';
     const SPEAK_PRONUNCIATION_AVATAR_NEW = 'new';
@@ -209,9 +210,9 @@ class PageDiagnostics extends HTMLElement {
     const getStoredFreeRideHeaderColor = () => {
       try {
         const raw = String(localStorage.getItem(FREE_RIDE_HEADER_COLOR_KEY) || '').trim().toLowerCase();
-        return FREE_RIDE_HEADER_COLOR_VALUES.includes(raw) ? raw : 'white';
+        return FREE_RIDE_HEADER_COLOR_VALUES.includes(raw) ? raw : 'blue';
       } catch (_err) {
-        return 'white';
+        return 'blue';
       }
     };
     const normalizeSpeakSessionPercentagesVisible = (value) => {
@@ -250,6 +251,26 @@ class PageDiagnostics extends HTMLElement {
       if (globalValue !== undefined) return normalizeAppTitlebarEnabled(globalValue);
       try {
         return normalizeAppTitlebarEnabled(localStorage.getItem(APP_TITLEBAR_ENABLED_KEY));
+      } catch (err) {
+        return true;
+      }
+    };
+    const normalizeAppFontSfProEnabled = (value) => {
+      if (typeof value === 'boolean') return value;
+      const normalized = String(value || '')
+        .trim()
+        .toLowerCase();
+      if (!normalized) return false;
+      return ['1', 'true', 'on', 'yes'].includes(normalized);
+    };
+    const getStoredAppFontSfProEnabled = () => {
+      const globalValue =
+        window.r34lp0w3r && Object.prototype.hasOwnProperty.call(window.r34lp0w3r, 'appFontSfProEnabled')
+          ? window.r34lp0w3r.appFontSfProEnabled
+          : undefined;
+      if (globalValue !== undefined) return normalizeAppFontSfProEnabled(globalValue);
+      try {
+        return normalizeAppFontSfProEnabled(localStorage.getItem(APP_FONT_SF_PRO_ENABLED_KEY));
       } catch (err) {
         return false;
       }
@@ -439,6 +460,13 @@ class PageDiagnostics extends HTMLElement {
             </div>
             <div class="diag-debug-toggle" style="margin-top: 10px;">
               <div class="diag-debug-text">
+                <div class="diag-debug-title">SF Pro Display</div>
+                <div class="diag-debug-sub" id="diag-font-sf-pro-sub"></div>
+              </div>
+              <ion-toggle id="diag-font-sf-pro-toggle" aria-label="SF Pro Display" ${getStoredAppFontSfProEnabled() ? 'checked' : ''}></ion-toggle>
+            </div>
+            <div class="diag-debug-toggle" style="margin-top: 10px;">
+              <div class="diag-debug-text">
                 <div class="diag-debug-title">Titlebar</div>
                 <div class="diag-debug-sub" id="diag-titlebar-sub"></div>
               </div>
@@ -456,6 +484,13 @@ class PageDiagnostics extends HTMLElement {
                 <ion-segment-button value="dark"><ion-label>Oscuro</ion-label></ion-segment-button>
                 <ion-segment-button value="blue"><ion-label>Azul</ion-label></ion-segment-button>
               </ion-segment>
+            </div>
+            <div class="diag-debug-toggle" style="margin-top: 10px;">
+              <div class="diag-debug-text">
+                <div class="diag-debug-title">Content card con padding</div>
+                <div class="diag-debug-sub" id="diag-free-ride-card-padded-sub"></div>
+              </div>
+              <ion-toggle id="diag-free-ride-card-padded-toggle" aria-label="Content card con padding" ${getStoredFreeRideCardPadded() ? 'checked' : ''}></ion-toggle>
             </div>
             <div class="diag-debug-toggle" style="margin-top: 10px;">
               <div class="diag-debug-text">
@@ -667,13 +702,6 @@ class PageDiagnostics extends HTMLElement {
                   <div class="diag-debug-sub" id="diag-free-ride-word-tap-audio-sub"></div>
                 </div>
                 <ion-toggle id="diag-free-ride-word-tap-audio-toggle" aria-label="Audio por palabra (Free ride)" ${getStoredFreeRideWordTapAudioEnabled() ? 'checked' : ''}></ion-toggle>
-              </div>
-              <div class="diag-debug-toggle" style="margin-top: 10px;">
-                <div class="diag-debug-text">
-                  <div class="diag-debug-title">Content card con padding (Lab + Sessions + Training + Reference)</div>
-                  <div class="diag-debug-sub" id="diag-free-ride-card-padded-sub"></div>
-                </div>
-                <ion-toggle id="diag-free-ride-card-padded-toggle" aria-label="Content card con padding (Lab + Sessions + Training + Reference)" ${getStoredFreeRideCardPadded() ? 'checked' : ''}></ion-toggle>
               </div>
             </div>
 
@@ -952,6 +980,8 @@ class PageDiagnostics extends HTMLElement {
 
     const titlebarToggle = this.querySelector('#diag-titlebar-toggle');
     const titlebarSub = this.querySelector('#diag-titlebar-sub');
+    const fontSfProToggle = this.querySelector('#diag-font-sf-pro-toggle');
+    const fontSfProSub = this.querySelector('#diag-font-sf-pro-sub');
     if (titlebarToggle) {
       const applyTitlebar = (enabled) => {
         window.r34lp0w3r = window.r34lp0w3r || {};
@@ -973,6 +1003,43 @@ class PageDiagnostics extends HTMLElement {
             ? 'Activa la titlebar compartida en las vistas que la usen.'
             : 'Oculta la titlebar compartida en todas las vistas.';
         }
+      });
+    }
+
+    if (fontSfProToggle) {
+      const updateFontSfProUi = (enabled) => {
+        const normalized = normalizeAppFontSfProEnabled(enabled);
+        fontSfProToggle.checked = normalized;
+        if (fontSfProSub) {
+          fontSfProSub.textContent = normalized
+            ? 'Activado: usa la pila SF Pro del sistema para revisar el impacto visual.'
+            : 'Desactivado: vuelve a la tipografía base actual de la app.';
+        }
+        return normalized;
+      };
+
+      const applyFontSfPro = (enabled) => {
+        const normalized = normalizeAppFontSfProEnabled(enabled);
+        window.r34lp0w3r = window.r34lp0w3r || {};
+        window.r34lp0w3r.appFontSfProEnabled = normalized;
+        try {
+          localStorage.setItem(APP_FONT_SF_PRO_ENABLED_KEY, normalized ? '1' : '0');
+        } catch (_err) {
+          // no-op
+        }
+        window.dispatchEvent(
+          new CustomEvent('app:font-sf-pro-change', {
+            detail: { enabled: normalized }
+          })
+        );
+        return normalized;
+      };
+
+      updateFontSfProUi(getStoredAppFontSfProEnabled());
+      fontSfProToggle.addEventListener('ionChange', (event) => {
+        const checked = event && event.detail ? event.detail.checked : fontSfProToggle.checked;
+        applyFontSfPro(checked);
+        updateFontSfProUi(checked);
       });
     }
 
@@ -1920,8 +1987,8 @@ class PageDiagnostics extends HTMLElement {
       }
       if (freeRideCardPaddedSubEl) {
         freeRideCardPaddedSubEl.textContent = normalized
-          ? 'Activado: el card del Lab tiene padding lateral e inferior simétrico (separado de los bordes y de la tab bar).'
-          : 'Desactivado: el card va a sangre — pegado a los lados y a la tab bar, con efecto cuña en la parte superior.';
+          ? 'Activado: los content cards usan padding lateral e inferior simétrico.'
+          : 'Desactivado: los content cards van a sangre, pegados a los bordes inferiores y laterales.';
       }
       return normalized;
     };

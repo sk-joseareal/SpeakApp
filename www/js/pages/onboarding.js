@@ -222,6 +222,8 @@ class PageOnboarding extends HTMLElement {
     if (this.dotsEl) this.dotsEl.innerHTML = dotsMarkup;
     const prevBtn = this.footerEl?.querySelector('[data-action="prev"]');
     if (prevBtn) prevBtn.disabled = this.currentStep === 0;
+    const nextBtn = this.footerEl?.querySelector('[data-action="next"]');
+    if (nextBtn) nextBtn.disabled = this.currentStep === onboardingSlides.length - 1;
     this.scheduleHeroLayoutSync();
   }
 

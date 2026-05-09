@@ -111,9 +111,11 @@ function getStoredAppFontSfProEnabled() {
       : undefined;
   if (globalValue !== undefined) return normalizeAppFontSfProEnabled(globalValue);
   try {
-    return normalizeAppFontSfProEnabled(localStorage.getItem(APP_FONT_SF_PRO_ENABLED_KEY));
+    const stored = localStorage.getItem(APP_FONT_SF_PRO_ENABLED_KEY);
+    if (stored === null) return true; // SF Pro is the default
+    return normalizeAppFontSfProEnabled(stored);
   } catch (_err) {
-    return false;
+    return true;
   }
 }
 

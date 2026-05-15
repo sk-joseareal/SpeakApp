@@ -1,5 +1,3 @@
-import { onboardingDone } from './state.js';
-
 let routerRef = null;
 
 export const setRouter = (router) => {
@@ -20,13 +18,12 @@ export const ensureInitialHash = () => {
   const hash = window.location.hash.replace('#', '');
 
   // Redirect non-app hashes (diagnostics, login, empty) to /tabs.
-  // /onboarding stays accessible directly for testing.
   if (!hash || hash === '/' || hash === '/diagnostics' || hash === '/login') {
     window.location.hash = '/tabs';
     return;
   }
 
-  if (onboardingDone() && hash === '/onboarding') {
+  if (hash === '/onboarding') {
     window.location.hash = '/tabs';
   }
 };

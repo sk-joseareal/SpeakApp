@@ -27,6 +27,11 @@ import androidx.core.view.WindowInsetsControllerCompat;
 
 
 public class MainActivity extends BridgeActivity {
+    private static final int LEGACY_ANDROID_MAX_SDK = 31;
+
+    private boolean isLegacyAndroidDevice() {
+        return android.os.Build.VERSION.SDK_INT <= LEGACY_ANDROID_MAX_SDK;
+    }
 
     private void applyStatusBarIcons(Window window, boolean lightIcons) {
         WindowInsetsControllerCompat controller =
@@ -49,6 +54,11 @@ public class MainActivity extends BridgeActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        if (isLegacyAndroidDevice()) {
+            Log.i(">#N00#> MainActivity", "onCreate: skip visual chrome/webview mutations on legacy");
+            return;
+        }
 
         Window window = getWindow();
         window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
@@ -106,6 +116,10 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onResume() {
         super.onResume();
+        if (isLegacyAndroidDevice()) {
+            Log.i(">#N00#> MainActivity", "onResume: skip chrome reapply on legacy");
+            return;
+        }
         getWindow().getDecorView().post(() -> reapplyStoredChrome("onResume"));
         getWindow().getDecorView().postDelayed(() -> reapplyStoredChrome("onResume+250"), 250);
         getWindow().getDecorView().postDelayed(() -> reapplyStoredChrome("onResume+900"), 900);
@@ -114,6 +128,9 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onWindowFocusChanged(boolean hasFocus) {
         super.onWindowFocusChanged(hasFocus);
+        if (isLegacyAndroidDevice()) {
+            return;
+        }
         if (hasFocus) {
             getWindow().getDecorView().post(() -> reapplyStoredChrome("onWindowFocusChanged"));
         }

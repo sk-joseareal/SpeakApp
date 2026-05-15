@@ -18,10 +18,10 @@ class PageLogin extends HTMLElement {
         ? String(window.r34lp0w3r.platform).trim().toLowerCase()
         : '';
     const showAppleLogin = platform !== 'android';
-    const renderActionButton = (id, label, tone = 'secondary') =>
+    const renderActionButton = (id, label, tone = 'secondary', tabSkip = false) =>
       flat
-        ? `<button class="login-${tone}-btn" type="button" id="${id}">${label}</button>`
-        : `<ion-button expand="block" shape="round" id="${id}">${label}</ion-button>`;
+        ? `<button class="login-${tone}-btn" type="button" id="${id}"${tabSkip ? ' tabindex="-1"' : ''}>${label}</button>`
+        : `<ion-button expand="block" shape="round" id="${id}"${tabSkip ? ' tabindex="-1"' : ''}>${label}</ion-button>`;
     const renderSocialButton = (id, iconClass, iconSrc, label) =>
       flat
         ? `
@@ -200,7 +200,7 @@ class PageLogin extends HTMLElement {
                           >
                         </label>
                         <div class="login-email-actions">
-                          ${renderActionButton('magic-submit', copy.magicSubmit, 'primary')}
+                          ${renderActionButton('magic-submit', copy.magicSubmit, 'primary', true)}
                         </div>
                         <div class="login-option-divider" role="presentation">
                           <span>${copy.passwordOptionDivider}</span>
@@ -231,7 +231,7 @@ class PageLogin extends HTMLElement {
                           <input class="chat-text-input login-text-input" autocomplete="email" name="email-access-email" id="email-access-email" type="email" inputmode="email" placeholder="${copy.magicEmailPlaceholder}">
                         </label>
                         <div class="login-email-actions">
-                          ${renderActionButton('magic-submit', copy.magicSubmit, 'primary')}
+                          ${renderActionButton('magic-submit', copy.magicSubmit, 'primary', true)}
                         </div>
                         <div class="login-option-divider" role="presentation">
                           <span>${copy.passwordOptionDivider}</span>

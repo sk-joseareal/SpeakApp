@@ -2895,19 +2895,23 @@ document.addEventListener('deviceready', function () {
   // Con esto superponemos el WebView a la barra y alineamos el toolbar.
   try {
     if (window.Capacitor && window.Capacitor.getPlatform && window.Capacitor.getPlatform() === 'android') {
+      const detectLegacyAndroidEarly = () => {
+        if (document.body && document.body.classList.contains('app-android-legacy-webview')) return true;
+        const ua = String(navigator.userAgent || '');
+        const m = ua.match(/Android\s+(\d+)/i);
+        const androidMajor = m ? Number(m[1]) : 0;
+        return Number.isFinite(androidMajor) && androidMajor > 0 && androidMajor <= 12;
+      };
+      const legacyAndroid = detectLegacyAndroidEarly();
+      if (legacyAndroid) {
+        return;
+      }
       const sb = window.Capacitor.Plugins?.StatusBar;
       if (sb) {
         sb.setOverlaysWebView({ overlay: true });
         sb.getInfo()
           .then((info) => console.log('>#[SB] info', info))
           .catch(() => {});
-        // Ajustar padding de safe-area en el DOM cuando se superpone la barra
-        try {
-          document.documentElement.style.setProperty('--ion-safe-area-top', '0px');
-          document.documentElement.style.setProperty('--ion-statusbar-padding', '0px');
-        } catch (err) {
-          console.log('>#[SB] css var error', err);
-        }
         // Segundo intento con pequeño retardo, por si el primero se pierde durante la carga.
         // IMPORTANTE: el estilo definitivo de iconos y color lo gobierna app.js según la ruta
         // real. Aquí solo reforzamos el overlay para no pisar la decisión posterior con un path
@@ -4134,6 +4138,8 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
     return window.r34lp0w3r?.platform || 'unknown';
   };
+  const isLegacyAndroid = () =>
+    Boolean(document.body && document.body.classList.contains('app-android-legacy-webview'));
   if (Keyboard) {
     Keyboard.addListener('keyboardWillShow', async (info) => {
       console.log(">#C00.04#> Cordova.Plugins.Keyboard.keyboardWillShow(info). info:",JSON.stringify(info));
@@ -4144,6 +4150,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 
       const platform = getRuntimePlatform();
       if (platform !== 'android') return;
+      if (isLegacyAndroid()) return;
 
       // Se supone que no debería, pero viene en dp:
       const rawHeight = info && typeof info.keyboardHeight === 'number' ? info.keyboardHeight : 0;
@@ -4161,6 +4168,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 
       const platform = getRuntimePlatform();
       if (platform !== 'android') return;
+      if (isLegacyAndroid()) return;
 
       const offset = typeof window.__keyboardHeight === 'number' ? -window.__keyboardHeight : 0;
       console.log(`>#C00.04#> Restaurando WebView ${offset} px.`);

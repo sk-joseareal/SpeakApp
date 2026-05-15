@@ -23,6 +23,7 @@
 }
 
 :root {
+  --app-viewport-height: 100vh;
   --app-font-family-default: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --app-font-family-sf: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Segoe UI', sans-serif;
   --ion-font-family: var(--app-font-family-default);
@@ -139,7 +140,8 @@ body,
 ion-app,
 ion-router,
 ion-router-outlet {
-  height: 100%;
+  height: var(--app-viewport-height, 100vh);
+  min-height: var(--app-viewport-height, 100vh);
 }
 
 tabs-page,
@@ -3001,6 +3003,17 @@ body.app-platform-android.lab-chrome-active ion-modal.diagnostics-modal ion-head
   backdrop-filter: blur(12px);
 }
 
+/* Legacy Android WebView (SDK <= 31): avoid compositor clipping in bottom tabbar. */
+body.app-android-legacy-webview .app-tab-bar {
+  --background: rgba(255, 255, 255, 1);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  position: relative;
+  z-index: 20000;
+  transform: translateZ(0);
+  will-change: transform;
+}
+
 .app-tab-bar ion-tab-button {
   --ripple-color: rgba(99, 115, 255, 0.3);
   position: relative;
@@ -3099,11 +3112,24 @@ body.app-platform-android.lab-chrome-active ion-modal.diagnostics-modal ion-head
 }
 
 .onboarding-v5-shell {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
+  height: var(--app-viewport-height, 100vh);
+  min-height: var(--app-viewport-height, 100vh);
+  display: grid;
+  grid-template-rows: 1fr auto;
+  overflow: hidden;
   padding: 0;
   box-sizing: border-box;
+}
+
+.onboarding-v5-titlebar {
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #1a2b47;
+  background: #f4f7fd;
 }
 
 .onboarding-v5-stage {
@@ -3111,6 +3137,7 @@ body.app-platform-android.lab-chrome-active ion-modal.diagnostics-modal ion-head
   display: flex;
   align-items: stretch;
   justify-content: center;
+  min-height: 0;
 }
 
 .onboarding-v5-card {
@@ -3122,7 +3149,7 @@ body.app-platform-android.lab-chrome-active ion-modal.diagnostics-modal ion-head
   --onboarding-body-overlap: 27vh;
   --onboarding-body-offset: 56px;
   width: 100%;
-  min-height: 100vh;
+  min-height: 100%;
   background: #ffffff;
   display: flex;
   flex-direction: column;
@@ -3263,15 +3290,30 @@ body.app-platform-android.lab-chrome-active ion-modal.diagnostics-modal ion-head
 }
 
 .onboarding-v5-footer {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  z-index: 10;
+  position: relative;
   display: flex;
   justify-content: center;
   padding: 6px 24px calc(22px + env(safe-area-inset-bottom));
   background: #f4f7fd;
+}
+
+body.app-android-legacy-webview.app-titlebar-enabled page-profile.profile-onboarding-active .profile-onboarding-overlay {
+  top: calc(56px + max(var(--app-native-statusbar-height, 0px), env(safe-area-inset-top, 0px))) !important;
+  bottom: 0 !important;
+}
+
+body.app-android-legacy-webview.app-titlebar-enabled page-profile.profile-onboarding-active #profile-auth-hero-section,
+body.app-android-legacy-webview.app-titlebar-enabled page-profile.profile-onboarding-active #profile-auth-card-section {
+  display: none !important;
+}
+
+body.app-android-legacy-webview.app-titlebar-enabled page-profile.profile-onboarding-active .onboarding-v5-shell {
+  min-height: 100%;
+}
+
+body.app-android-legacy-webview.app-titlebar-enabled page-profile.profile-onboarding-active .onboarding-v5-footer {
+  position: sticky;
+  bottom: 0;
 }
 
 .onboarding-v5-nav {
@@ -3298,7 +3340,7 @@ body.app-platform-android.lab-chrome-active ion-modal.diagnostics-modal ion-head
     --onboarding-mascot-width: min(90vw, 374px);
     --onboarding-body-overlap: 58px;
     --onboarding-body-offset: 26px;
-    min-height: 100vh;
+    min-height: var(--app-viewport-height, 100vh);
   }
 
   .onboarding-v5-body {
@@ -3856,6 +3898,11 @@ ion-header.app-header-shell ion-toolbar {
   --ion-color-base: transparent;
   background: transparent;
   box-shadow: none;
+}
+
+body.app-platform-android.app-titlebar-enabled ion-header.app-header-shell ion-toolbar {
+  --padding-top: max(var(--app-native-statusbar-height, 0px), env(safe-area-inset-top, 0px)) !important;
+  --min-height: calc(56px + max(var(--app-native-statusbar-height, 0px), env(safe-area-inset-top, 0px))) !important;
 }
 
 ion-header.app-header-shell ion-toolbar::part(background) {
@@ -6597,6 +6644,63 @@ page-speak .speak-content::part(scroll) {
   max-width: 100%;
   max-height: 100%;
 }
+.speak-avatar-stage-video {
+  padding: 8px 12px;
+}
+.speak-video-wrap {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.speak-session-video {
+  width: 100%;
+  max-height: 100%;
+  border-radius: 12px;
+  display: block;
+  object-fit: contain;
+  background: #000;
+}
+.speak-video-play-btn {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  transform: none;
+  background: rgba(0, 0, 0, 0.45);
+  border: none;
+  border-radius: 50%;
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 2rem;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  pointer-events: all;
+}
+.speak-video-play-btn.is-playing {
+  opacity: 0;
+  pointer-events: none;
+}
+.speak-video-fullscreen-btn {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  background: rgba(0, 0, 0, 0.45);
+  border: none;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 1.2rem;
+  cursor: pointer;
+}
 
 .speak-step-spelling {
   gap: 10px;
@@ -7290,6 +7394,28 @@ body.lab-chrome-active:not(.app-titlebar-enabled) page-profile .free-ride-shell 
   padding-top: calc(4px + env(safe-area-inset-top, 0px));
 }
 
+/* Legacy Android: freeze top offsets to avoid resume-time safe-area recomputation shifts. */
+body.app-android-legacy-webview ion-app,
+body.app-android-legacy-webview ion-router-outlet,
+body.app-android-legacy-webview tabs-page,
+body.app-android-legacy-webview page-home,
+body.app-android-legacy-webview page-reference,
+body.app-android-legacy-webview page-free-ride,
+body.app-android-legacy-webview page-chat,
+body.app-android-legacy-webview page-profile,
+body.app-android-legacy-webview page-speak {
+  padding-top: 0 !important;
+}
+
+body.app-android-legacy-webview.lab-chrome-active:not(.app-titlebar-enabled) page-free-ride .free-ride-shell,
+body.app-android-legacy-webview.lab-chrome-active:not(.app-titlebar-enabled) page-home .free-ride-shell,
+body.app-android-legacy-webview.lab-chrome-active:not(.app-titlebar-enabled) page-reference .free-ride-shell,
+body.app-android-legacy-webview.lab-chrome-active:not(.app-titlebar-enabled) page-chat .free-ride-shell,
+body.app-android-legacy-webview.lab-chrome-active:not(.app-titlebar-enabled) page-profile .free-ride-shell,
+body.app-android-legacy-webview.lab-chrome-active:not(.app-titlebar-enabled) page-speak .speak-shell {
+  padding-top: 4px !important;
+}
+
 body.lab-chrome-active page-speak .speak-shell {
   padding-top: 4px;
 }
@@ -7452,6 +7578,12 @@ body.app-platform-ios.app-ios-statusbar-auto-offset:not(.app-titlebar-enabled) i
   font-size: clamp(0.92rem, 3.4vw, 1.02rem);
   line-height: 1.45;
   font-weight: 600;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.free-ride-hero-bubble * {
+  pointer-events: auto;
 }
 
 .free-ride-hero-bubble.hero-playable-bubble {
@@ -7608,6 +7740,38 @@ page-profile.is-card-padded .free-ride-card {
   border-radius: 999px;
   background: linear-gradient(180deg, #cfd8e6 0%, #e6ebf2 100%);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.78);
+}
+
+.free-ride-card-handle.has-hint {
+  flex-direction: column;
+  gap: 4px;
+  padding-bottom: 6px;
+}
+.handle-hint {
+  pointer-events: none;
+  color: #6366F1;
+  font-size: 1.3rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  animation: handle-hint-bounce 1.1s ease-in-out infinite;
+  transition: opacity 0.35s ease;
+}
+.handle-hint-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.handle-hint-out {
+  animation: none !important;
+  opacity: 0;
+  pointer-events: none;
+}
+@keyframes handle-hint-bounce {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-5px); }
 }
 
 .free-ride-hero-debug-btn {
@@ -9631,7 +9795,7 @@ ion-select.training-pill.active::part(icon) {
 
 .training-row {
   display: grid;
-  grid-template-columns: auto 1fr auto auto;
+  grid-template-columns: auto 1fr auto;
   align-items: center;
   gap: 12px;
   padding: 10px 12px;
@@ -9653,11 +9817,20 @@ ion-select.training-pill.active::part(icon) {
   background: #4A7DFF;
 }
 
-.session-circle ion-icon {
-  font-size: 1.15rem;
-  color: rgba(255, 255, 255, 0.92);
-  --ionicon-stroke-width: 52px;
-  margin-left: 1px;
+.session-circle-text {
+  display: inline-block;
+  font-size: 0.98rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  color: rgba(255, 255, 255, 0.95);
+  text-transform: uppercase;
+  transform: translateY(0.02em);
+}
+
+.session-circle-text.is-two-letter {
+  font-size: 0.84rem;
+  letter-spacing: -0.06em;
 }
 
 .session-body {
@@ -9668,13 +9841,41 @@ ion-select.training-pill.active::part(icon) {
 }
 
 .session-title {
-  font-size: 0.88rem;
-  font-weight: 600;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+  line-height: 1.05;
+}
+
+.session-title-main {
+  font-size: 0.96rem;
+  font-weight: 700;
   color: #1F2937;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+.session-title .session-label {
+  padding-left: 2px;
+}
+
+.session-meta {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 2px;
+  margin-left: auto;
+  text-align: right;
+}
+
+.session-meta-good    { color: var(--training-module-good); }
+.session-meta-okay    { color: #F59E0B; }
+.session-meta-bad     { color: var(--training-module-bad); }
+.session-meta-neutral { color: #6B7280; }
 
 .session-label {
   font-size: 0.75rem;
@@ -9705,10 +9906,32 @@ ion-select.training-pill.active::part(icon) {
   flex-shrink: 0;
 }
 
-.session-percent-good    { color: var(--training-module-good); }
-.session-percent-okay    { color: #F59E0B; }
-.session-percent-bad     { color: var(--training-module-bad); }
-.session-percent-neutral { color: #6B7280; }
+.session-meta .session-percent {
+  font-size: 1rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.session-meta .session-label,
+.session-meta .session-label-secondary {
+  width: 100%;
+}
+
+.session-meta-good .session-percent,
+.session-meta-good .session-label,
+.session-meta-good .session-label-secondary { color: var(--training-module-good); }
+
+.session-meta-okay .session-percent,
+.session-meta-okay .session-label,
+.session-meta-okay .session-label-secondary { color: #F59E0B; }
+
+.session-meta-bad .session-percent,
+.session-meta-bad .session-label,
+.session-meta-bad .session-label-secondary { color: var(--training-module-bad); }
+
+.session-meta-neutral .session-percent,
+.session-meta-neutral .session-label,
+.session-meta-neutral .session-label-secondary { color: #6B7280; }
 
 .training-row-arrow {
   font-size: 1rem;
@@ -12152,6 +12375,7 @@ ion-select.training-pill.active::part(icon) {
   display: flex;
   align-items: center;
   gap: 10px;
+  width: 100%;
 }
 
 .module-circle {
@@ -13087,8 +13311,13 @@ page-speak .speak-content {
   line-height: 1.4;
   text-transform: none;
   cursor: pointer;
+  pointer-events: auto;
   position: relative;
   overflow: visible;
+}
+
+.speak-hero-bubble.hero-playable-bubble * {
+  pointer-events: auto;
 }
 
 .speak-hero-bubble.hero-playable-bubble::before {

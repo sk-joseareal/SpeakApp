@@ -7930,6 +7930,7 @@ class PageChat extends HTMLElement {
     };
 
     const handleDocumentVisibilityChange = () => {
+      if (document.body?.classList?.contains('app-android-legacy-webview')) return;
       if (typeof document === 'undefined') return;
       if (document.hidden) {
         sendCommunityPresence({

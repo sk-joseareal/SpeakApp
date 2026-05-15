@@ -6,6 +6,14 @@ import {
   getNotifications
 } from '../notifications-store.js';
 import { clearOnboardingDone, getAppLocale } from '../state.js';
+import { translationWorkerClient } from '../translation-worker-client.js';
+import {
+  TRANSLATION_CAPABILITIES_EVENT,
+  getTranslationCapabilities,
+  loadOpusTranslationCapability,
+  refreshTranslationCapabilities,
+  resolveChromeTranslatorApi
+} from '../translation-capabilities.js';
 import { setAppTitlebarEnabled } from '../components/app-header.js';
 import {
   ensureTrainingData,
@@ -23,6 +31,8 @@ class PageDiagnostics extends HTMLElement {
     const platform = window.r34lp0w3r?.platform || 'unknown';
     const uuid = window.uuid || localStorage.getItem('uuid') || 'n/a';
     const cacheKeys = Object.keys(localStorage || {}).length;
+    const osMajor = String(document.body?.dataset?.osMajor || '').trim() || 'n/a';
+    const isLegacyAndroidWebView = document.body?.classList?.contains('app-android-legacy-webview') === true;
     let plugins = [];
     try {
       plugins = collectPlugins();
@@ -50,7 +60,13 @@ class PageDiagnostics extends HTMLElement {
     const SPEAK_PRONUNCIATION_AVATAR_VISEMES_REAL = 'visemes-real';
     const SPEAK_PRONUNCIATION_AVATAR_VISEMES_V2 = 'visemes-v2';
     const SPEAK_PRONUNCIATION_AVATAR_VISEMES_V1 = 'visemes-v1';
+    const SPEAK_PRONUNCIATION_AVATAR_VIDEO = 'video';
     const SPEAK_PRONUNCIATION_AVATAR_OPTIONS = [
+      {
+        value: SPEAK_PRONUNCIATION_AVATAR_VIDEO,
+        label: 'Video',
+        description: 'Video: reproduce el vídeo de pronunciación de la sesión.'
+      },
       {
         value: SPEAK_PRONUNCIATION_AVATAR_SET2,
         label: 'Set 2',
@@ -296,7 +312,7 @@ class PageDiagnostics extends HTMLElement {
       if (SPEAK_PRONUNCIATION_AVATAR_OPTIONS.some((option) => option.value === normalized)) {
         return normalized;
       }
-      return SPEAK_PRONUNCIATION_AVATAR_SET2;
+      return SPEAK_PRONUNCIATION_AVATAR_VIDEO;
     };
     const buildSpeakPronunciationAvatarOptionsMarkup = (selectedValue) => {
       const selected = normalizeSpeakPronunciationAvatarMode(selectedValue);
@@ -548,13 +564,18 @@ class PageDiagnostics extends HTMLElement {
             <hr>
             <h3>Estado</h3>
             <p>Plataforma: <strong>${platform}</strong></p>
+            <p>Android osMajor detectado: <strong>${osMajor}</strong></p>
+            <p>Legacy WebView mode (SDK ≤ 31): <strong>${isLegacyAndroidWebView ? 'sí' : 'no'}</strong></p>
             <p>UUID: <strong>${uuid}</strong></p>
             <p>Entradas en localStorage: <strong>${cacheKeys}</strong></p>
 
             <h4 style="margin-top:12px;">Onboarding</h4>
             <div class="diag-actions">
               <ion-button size="small" fill="outline" id="diag-onboarding-repeat">Repetir onboarding</ion-button>
+              <ion-button size="small" fill="outline" id="diag-handle-hint-reset">Resetear hint handle</ion-button>
+              <ion-button size="small" fill="outline" color="danger" id="diag-app-reset">Reset completo</ion-button>
             </div>
+            <p class="diag-debug-sub">Reset completo borra todo el storage y reinicia la app como primera ejecución.</p>
 
             <h4 style="margin-top:16px;">Plugins activos</h4>
             <ul class="diag-list">
@@ -663,11 +684,6 @@ class PageDiagnostics extends HTMLElement {
               <ion-button size="small" fill="outline" id="var-goweblegal">Legal web</ion-button>
             </div>
 
-            <h4 style="margin-top:16px;">Reset app</h4>
-            <div class="diag-actions">
-              <ion-button size="small" fill="outline" color="danger" id="diag-app-reset">Reset completo</ion-button>
-            </div>
-            <p class="diag-debug-sub">Borra local/session storage y reinicia la app como primera ejecución.</p>
 
             <h4 style="margin-top:16px;">Training content</h4>
             <div class="diag-actions">
@@ -850,6 +866,19 @@ class PageDiagnostics extends HTMLElement {
                 <pre class="diag-json" id="diag-language-output"></pre>
               </div>
 
+              <h4 style="margin-top:16px;">Flags de traducción</h4>
+              <div class="diag-speak-block">
+                <div class="pill">Translation capability flags</div>
+                <div class="diag-debug-sub">
+                  Estado precalculado al arrancar la app. Es lo que usa Lab para decidir si intenta native, Chrome AI u opus-mt antes de mostrar el botón de backend.
+                </div>
+                <div class="diag-actions diag-tts-actions">
+                  <ion-button size="small" fill="outline" id="diag-translation-capabilities-refresh">Refrescar flags</ion-button>
+                </div>
+                <div class="diag-tts-status" id="diag-translation-capabilities-status">Pendiente.</div>
+                <pre class="diag-json" id="diag-translation-capabilities-output"></pre>
+              </div>
+
               <h4 style="margin-top:16px;">Traducción nativa</h4>
               <div class="diag-speak-block">
                 <div class="pill">Translation framework / ML Kit Translate</div>
@@ -887,6 +916,26 @@ class PageDiagnostics extends HTMLElement {
                 </div>
                 <div class="diag-tts-status" id="diag-chrome-translation-status-text">Pendiente.</div>
                 <pre class="diag-json" id="diag-chrome-translation-output"></pre>
+              </div>
+
+              <div class="diag-speak-block">
+                <div class="pill">opus-mt WASM (fallback local)</div>
+                <div class="diag-debug-sub">
+                  Traducción on-device con Transformers.js + modelo bundleado. No usa red ni plugins nativos.
+                </div>
+                <textarea
+                  id="diag-opusmt-translation-input"
+                  class="chat-text-input diag-tts-input"
+                  rows="3"
+                  placeholder="Texto en español para traducir con opus-mt"
+                >hola, quiero pedir un café</textarea>
+                <div class="diag-actions diag-tts-actions">
+                  <ion-button size="small" fill="outline" id="diag-opusmt-translation-status">Estado del modelo</ion-button>
+                  <ion-button size="small" fill="outline" id="diag-opusmt-translation-load">Cargar modelo</ion-button>
+                  <ion-button size="small" fill="outline" id="diag-opusmt-translation-run">Traducir</ion-button>
+                </div>
+                <div class="diag-tts-status" id="diag-opusmt-translation-status-text">Pendiente.</div>
+                <pre class="diag-json" id="diag-opusmt-translation-output"></pre>
               </div>
 
               <h4 style="margin-top:16px;">Moderación OpenAI</h4>
@@ -1773,6 +1822,9 @@ class PageDiagnostics extends HTMLElement {
     const languageDetectBtn = this.querySelector('#diag-language-detect');
     const languageStatusEl = this.querySelector('#diag-language-status');
     const languageOutputEl = this.querySelector('#diag-language-output');
+    const translationCapabilitiesRefreshBtn = this.querySelector('#diag-translation-capabilities-refresh');
+    const translationCapabilitiesStatusEl = this.querySelector('#diag-translation-capabilities-status');
+    const translationCapabilitiesOutputEl = this.querySelector('#diag-translation-capabilities-output');
     const nativeTranslationInputEl = this.querySelector('#diag-native-translation-input');
     const nativeTranslationStatusBtn = this.querySelector('#diag-native-translation-status');
     const nativeTranslationRunBtn = this.querySelector('#diag-native-translation-run');
@@ -2243,6 +2295,29 @@ class PageDiagnostics extends HTMLElement {
     const setLanguageOutput = (value) => {
       if (!languageOutputEl) return;
       languageOutputEl.textContent = value || '';
+    };
+
+    const renderTranslationCapabilities = () => {
+      const capabilities = getTranslationCapabilities();
+      if (translationCapabilitiesStatusEl) {
+        if (capabilities.loading) {
+          translationCapabilitiesStatusEl.textContent = 'Comprobando disponibilidad real de native / Chrome AI / opus-mt...';
+        } else if (capabilities.checkedAt > 0) {
+          const enabled = [
+            capabilities.nativeTranslateEnabled ? 'native' : '',
+            capabilities.chromeTranslatorEnabled ? 'chrome' : '',
+            capabilities.opusTranslatorEnabled ? 'opus' : ''
+          ].filter(Boolean);
+          translationCapabilitiesStatusEl.textContent = enabled.length
+            ? `Lab usará: ${enabled.join(' -> ')} -> backend manual.`
+            : 'No hay traducción local marcada como disponible. Lab mostraría el botón de backend.';
+        } else {
+          translationCapabilitiesStatusEl.textContent = 'Pendiente de comprobación.';
+        }
+      }
+      if (translationCapabilitiesOutputEl) {
+        translationCapabilitiesOutputEl.textContent = JSON.stringify(capabilities, null, 2);
+      }
     };
 
     const setNativeTranslationStatus = (text) => {
@@ -3747,6 +3822,13 @@ class PageDiagnostics extends HTMLElement {
       const modal = this.closest('ion-modal');
       if (modal) modal.dismiss();
     });
+    this.querySelector('#diag-handle-hint-reset')?.addEventListener('click', () => {
+      try { localStorage.removeItem('appv5:home-handle-hint-seen'); } catch (_) {}
+      window.dispatchEvent(new CustomEvent('app:handle-hint-reset'));
+      const btn = this.querySelector('#diag-handle-hint-reset');
+      if (btn) btn.textContent = '✓ Listo';
+      setTimeout(() => { if (btn) btn.textContent = 'Resetear hint handle'; }, 2000);
+    });
     this.querySelector('#diag-app-reset')?.addEventListener('click', () => {
       const confirmReset = window.confirm(
         'Esto borrará todos los datos locales de la app en este dispositivo y la reiniciará como primera ejecución. ¿Continuar?'
@@ -4335,6 +4417,25 @@ class PageDiagnostics extends HTMLElement {
       }
     }
 
+    renderTranslationCapabilities();
+    translationCapabilitiesRefreshBtn?.addEventListener('click', () => {
+      if (translationCapabilitiesRefreshBtn) translationCapabilitiesRefreshBtn.disabled = true;
+      refreshTranslationCapabilities({ force: true })
+        .catch(() => {})
+        .finally(() => {
+          renderTranslationCapabilities();
+          if (translationCapabilitiesRefreshBtn) translationCapabilitiesRefreshBtn.disabled = false;
+        });
+    });
+    this._translationCapabilitiesHandler = () => {
+      if (!this.isConnected) return;
+      renderTranslationCapabilities();
+    };
+    window.addEventListener(TRANSLATION_CAPABILITIES_EVENT, this._translationCapabilitiesHandler);
+    if (getTranslationCapabilities().checkedAt <= 0) {
+      refreshTranslationCapabilities().catch(() => {});
+    }
+
     {
       const nativePlugin = window.Capacitor?.Plugins?.P4w4Plugin;
       const canTranslate = nativePlugin && typeof nativePlugin.translateText === 'function';
@@ -4484,43 +4585,6 @@ class PageDiagnostics extends HTMLElement {
       };
       const w = typeof self !== 'undefined' ? self : (typeof window !== 'undefined' ? window : {});
 
-      // Resolve API + normalize to { canTranslate, createTranslator }
-      const resolveChromeTranslatorApi = () => {
-        // Old shape: self.translation.canTranslate / createTranslator
-        if (w.translation && typeof w.translation.canTranslate === 'function') {
-          return {
-            type: 'self.translation',
-            canTranslate: (o) => w.translation.canTranslate(o),
-            createTranslator: (o) => w.translation.createTranslator(o)
-          };
-        }
-        // New shape: window.Translator (class with static methods)
-        const Cls = w.Translator;
-        if (typeof Cls === 'function') {
-          const canTranslate = typeof Cls.canTranslate === 'function'
-            ? (o) => Cls.canTranslate(o)
-            : typeof Cls.availability === 'function'
-              ? async (o) => {
-                  const v = await Cls.availability(o);
-                  return v === 'available' ? 'readily' : v === 'unavailable' ? 'no' : 'after-download';
-                }
-              : () => Promise.resolve('readily');
-          const createTranslator = typeof Cls.create === 'function'
-            ? (o) => Cls.create(o)
-            : (o) => Promise.resolve(new Cls(o));
-          return { type: 'window.Translator', canTranslate, createTranslator };
-        }
-        // ai.translator shape
-        if (w.ai && typeof w.ai.translator?.canTranslate === 'function') {
-          return {
-            type: 'self.ai.translator',
-            canTranslate: (o) => w.ai.translator.canTranslate(o),
-            createTranslator: (o) => w.ai.translator.createTranslator(o)
-          };
-        }
-        return null;
-      };
-
       const chromeApi = resolveChromeTranslatorApi();
       const chromeAvailable = Boolean(chromeApi);
 
@@ -4604,6 +4668,74 @@ class PageDiagnostics extends HTMLElement {
 
       chromeTranslationStatusBtn?.addEventListener('click', runChromeTranslationStatus);
       chromeTranslationRunBtn?.addEventListener('click', runChromeTranslationTest);
+    }
+
+    {
+      const inputEl = this.querySelector('#diag-opusmt-translation-input');
+      const statusBtn = this.querySelector('#diag-opusmt-translation-status');
+      const loadBtn = this.querySelector('#diag-opusmt-translation-load');
+      const runBtn = this.querySelector('#diag-opusmt-translation-run');
+      const statusEl = this.querySelector('#diag-opusmt-translation-status-text');
+      const outputEl = this.querySelector('#diag-opusmt-translation-output');
+
+      statusBtn?.addEventListener('click', () => {
+        const s = translationWorkerClient.status;
+        if (statusEl) statusEl.textContent = `Estado del worker: ${s}`;
+      });
+
+      loadBtn?.addEventListener('click', async () => {
+        if (statusEl) statusEl.textContent = 'Cargando modelo opus-mt...';
+        if (loadBtn) loadBtn.disabled = true;
+        if (statusBtn) statusBtn.disabled = true;
+        if (runBtn) runBtn.disabled = true;
+        try {
+          await loadOpusTranslationCapability();
+          if (statusEl) statusEl.textContent = `Modelo cargado: ${translationWorkerClient.status}`;
+          if (outputEl) {
+            outputEl.textContent = JSON.stringify(
+              {
+                status: translationWorkerClient.status,
+                modelLoaded: translationWorkerClient.status === 'ready'
+              },
+              null,
+              2
+            );
+          }
+        } catch (err) {
+          if (statusEl) statusEl.textContent = `Error cargando modelo: ${err.message || String(err)}`;
+        } finally {
+          if (loadBtn) loadBtn.disabled = translationWorkerClient.status === 'ready';
+          if (statusBtn) statusBtn.disabled = false;
+          if (runBtn) runBtn.disabled = translationWorkerClient.status !== 'ready';
+        }
+      });
+
+      runBtn?.addEventListener('click', async () => {
+        const text = inputEl?.value?.trim();
+        if (!text) return;
+        if (statusEl) statusEl.textContent = 'Traduciendo...';
+        if (outputEl) outputEl.textContent = '';
+        if (runBtn) runBtn.disabled = true;
+        const t0 = Date.now();
+        try {
+          const translatedText = await translationWorkerClient.translate(text);
+          const ms = Date.now() - t0;
+          if (statusEl) statusEl.textContent = `OK en ${ms}ms`;
+          if (outputEl) outputEl.textContent = JSON.stringify({ translatedText, engine: 'opus-mt-wasm', ms }, null, 2);
+        } catch (err) {
+          if (statusEl) statusEl.textContent = `Error: ${err.message}`;
+          if (outputEl) outputEl.textContent = String(err);
+        } finally {
+          if (runBtn) runBtn.disabled = false;
+        }
+      });
+
+      if (loadBtn) {
+        loadBtn.disabled = translationWorkerClient.status === 'ready';
+      }
+      if (runBtn) {
+        runBtn.disabled = translationWorkerClient.status !== 'ready';
+      }
     }
 
     if (moderationRunBtn) {
@@ -4700,6 +4832,10 @@ class PageDiagnostics extends HTMLElement {
     if (this._notifyHandler) {
       window.removeEventListener('app:notifications-change', this._notifyHandler);
       this._notifyHandler = null;
+    }
+    if (this._translationCapabilitiesHandler) {
+      window.removeEventListener(TRANSLATION_CAPABILITIES_EVENT, this._translationCapabilitiesHandler);
+      this._translationCapabilitiesHandler = null;
     }
     if (this._diagStopBrowserTts) {
       this._diagStopBrowserTts();

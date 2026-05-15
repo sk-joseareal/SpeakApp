@@ -93,6 +93,13 @@ class PageOnboarding extends HTMLElement {
       this.applyOnboardingChrome();
     }
     this.updateSlide();
+    this._localeHandler = () => {
+      if (!this.isConnected) return;
+      this.render();
+      this.cacheElements();
+      this.updateSlide();
+    };
+    window.addEventListener('app:locale-change', this._localeHandler);
   }
 
   normalizeLocale(locale) {
@@ -143,16 +150,18 @@ class PageOnboarding extends HTMLElement {
       this.innerHTML = `
         <div class="onboarding-v5-shell">
           <div class="onboarding-v5-stage" data-field="stage"></div>
+          ${navHtml}
         </div>
-        ${navHtml}`;
+      `;
     } else {
       this.innerHTML = `
         <ion-content fullscreen>
           <div class="onboarding-v5-shell">
             <div class="onboarding-v5-stage" data-field="stage"></div>
+            ${navHtml}
           </div>
         </ion-content>
-        ${navHtml}`;
+      `;
     }
   }
 
@@ -163,6 +172,10 @@ class PageOnboarding extends HTMLElement {
   }
 
   bindEvents() {
+    const embedded = this.hasAttribute('embedded');
+    const legacyAndroidEmbedded =
+      embedded &&
+      Boolean(document.body && document.body.classList.contains('app-android-legacy-webview'));
     this.addEventListener('click', (event) => {
       const button = event.target.closest('[data-action]');
       if (!button) return;
@@ -178,10 +191,22 @@ class PageOnboarding extends HTMLElement {
     this.addEventListener('touchstart', (event) => this.handleTouchStart(event), { passive: true });
     this.addEventListener('touchend', (event) => this.handleTouchEnd(event), { passive: true });
     this.addEventListener('touchcancel', () => this.resetSwipeGesture(), { passive: true });
-    this._resizeHandler = () => this.scheduleHeroLayoutSync();
-    window.addEventListener('resize', this._resizeHandler);
-    this._deviceReadyHandler = () => this.applyOnboardingChrome();
-    document.addEventListener('deviceready', this._deviceReadyHandler);
+    if (!legacyAndroidEmbedded) {
+      this._resizeHandler = () => this.scheduleHeroLayoutSync();
+      window.addEventListener('resize', this._resizeHandler);
+    } else {
+      this._resizeHandler = null;
+    }
+    this._visibilityHandler = null;
+    this._resumeHandler = null;
+    this._appStateChangeListener = null;
+    this._deviceReadyHandler = null;
+    if (!legacyAndroidEmbedded) {
+      this._deviceReadyHandler = () => {
+        if (!embedded) this.applyOnboardingChrome();
+      };
+      document.addEventListener('deviceready', this._deviceReadyHandler);
+    }
   }
 
   updateSlide() {
@@ -336,7 +361,7 @@ class PageOnboarding extends HTMLElement {
       this.syncHeroLayout();
     });
     // Retries at increasing intervals — layout may settle later on first load
-    [120, 320, 700].forEach(delay => {
+    [120, 320, 700, 1200, 1800].forEach(delay => {
       this._layoutTimers.push(setTimeout(() => this.syncHeroLayout(), delay));
     });
   }
@@ -484,12 +509,26 @@ class PageOnboarding extends HTMLElement {
     if (!this._skipRestoreChromeOnDisconnect && !this.hasAttribute('embedded')) {
       this.restoreDefaultChrome();
     }
+    if (this._localeHandler) {
+      window.removeEventListener('app:locale-change', this._localeHandler);
+      this._localeHandler = null;
+    }
     if (this._deviceReadyHandler) {
       document.removeEventListener('deviceready', this._deviceReadyHandler);
     }
     if (this._resizeHandler) {
       window.removeEventListener('resize', this._resizeHandler);
     }
+    if (this._visibilityHandler) {
+      document.removeEventListener('visibilitychange', this._visibilityHandler);
+    }
+    if (this._resumeHandler) {
+      document.removeEventListener('resume', this._resumeHandler);
+    }
+    if (this._appStateChangeListener && typeof this._appStateChangeListener.remove === 'function') {
+      this._appStateChangeListener.remove();
+    }
+    this._appStateChangeListener = null;
     if (this._layoutRaf) {
       cancelAnimationFrame(this._layoutRaf);
       this._layoutRaf = 0;

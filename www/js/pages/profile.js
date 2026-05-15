@@ -55,6 +55,13 @@ const isFreeRideCardPadded = () => {
   }
 };
 
+const escHtml = (v) =>
+  String(v || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+
 class PageProfile extends HTMLElement {
   constructor() {
     super();
@@ -1017,6 +1024,15 @@ class PageProfile extends HTMLElement {
 
   scheduleProfileLayout(delayMs = 0) {
     if (!this.isConnected) return;
+    const legacyAndroid = document.body?.classList?.contains('app-android-legacy-webview');
+    if (legacyAndroid && Number(delayMs) > 0) return;
+    if (
+      document.body?.classList?.contains('app-android-legacy-webview') &&
+      window.r34lp0w3r &&
+      window.r34lp0w3r.legacyLayoutReady === false
+    ) {
+      return;
+    }
     const run = () => {
       if (this._profileLayoutRaf) cancelAnimationFrame(this._profileLayoutRaf);
       this._profileLayoutRaf = requestAnimationFrame(() => {
@@ -1041,8 +1057,7 @@ class PageProfile extends HTMLElement {
     // Don't hide the tab bar while the onboarding overlay is active — it covers
     // everything anyway, and hiding it would affect all other tabs too since
     // profile is mounted at app start (not just when the user visits the tab).
-    const onboardingActive = Boolean(this.querySelector('#profile-onboarding-overlay'));
-    const hideTabBar = !loggedIn && !onboardingActive;
+    const hideTabBar = !loggedIn;
     const tabsPage = document.querySelector('tabs-page');
     if (tabsPage && tabsPage.classList) {
       tabsPage.classList.toggle('profile-auth-tabs-hidden', hideTabBar);
@@ -1116,7 +1131,33 @@ class PageProfile extends HTMLElement {
       if (!loggedIn) return;
       this.render();
     };
-    this._localeHandler = () => this.render();
+    this._localeHandler = () => {
+      if (!this.isConnected) return;
+      if (!isCurrentProfileLoggedIn() && this.querySelector('#profile-auth-hero-section')) {
+        const rawLocale = resolveLocale(
+          getActiveLocale() || (window.varGlobal && window.varGlobal.locale) || 'es', 'es'
+        );
+        const copy = getProfileCopy(rawLocale);
+        const label = String(rawLocale || '').trim().toUpperCase() || 'EN';
+        this.querySelectorAll('.app-locale-label').forEach(el => { el.textContent = label; });
+        this.querySelectorAll('.app-locale-btn').forEach(el => { el.setAttribute('aria-label', label); });
+        const bubbleEl = this.querySelector('#profile-auth-hero-bubble');
+        if (bubbleEl) {
+          bubbleEl.setAttribute('aria-label', rawLocale === 'es' ? 'Reproducir mensaje' : 'Play message');
+          const textEl = bubbleEl.querySelector('.journey-plan-bubble-text');
+          if (textEl) textEl.innerHTML = `<span class="free-ride-hero-bubble-icon" aria-hidden="true"><ion-icon name="volume-high-outline"></ion-icon></span>${escHtml(copy.loginSubtitle || '')}`;
+        }
+        const titleEl = this.querySelector('.profile-login-title');
+        if (titleEl) titleEl.textContent = copy.loginTitle || 'Inicia sesión';
+        const contactBtn = this.querySelector('[data-action="contact"]');
+        if (contactBtn) contactBtn.textContent = copy.contact || 'Contact';
+        const legalBtn = this.querySelector('[data-action="legal"]');
+        if (legalBtn) legalBtn.textContent = copy.legal || 'Legal';
+      } else {
+        this.render();
+        this.scheduleProfileLayout(0);
+      }
+    };
     const isCurrentProfileLoggedIn = () => {
       const currentUser = window.user;
       return Boolean(currentUser && currentUser.id !== undefined && currentUser.id !== null);
@@ -1126,6 +1167,7 @@ class PageProfile extends HTMLElement {
       this.scheduleReviewCollapseRefresh();
     };
     this._visibilityHandler = () => {
+      if (document.body?.classList?.contains('app-android-legacy-webview')) return;
       if (!isCurrentProfileLoggedIn()) return;
       if (!document.hidden) {
         this.scheduleReviewCollapseRefresh(true);
@@ -1193,7 +1235,12 @@ class PageProfile extends HTMLElement {
       typeof ResizeObserver === 'function'
         ? new ResizeObserver(() => this.scheduleReviewCollapseRefresh())
         : null;
-    this._profileResizeHandler = () => this.scheduleProfileLayout(0);
+    this._profileResizeHandler = () => {
+      const legacyAndroid =
+        document.body && document.body.classList.contains('app-android-legacy-webview');
+      if (legacyAndroid) return;
+      this.scheduleProfileLayout(0);
+    };
     window.addEventListener('resize', this._profileResizeHandler);
     if (window.visualViewport && typeof window.visualViewport.addEventListener === 'function') {
       window.visualViewport.addEventListener('resize', this._profileResizeHandler);
@@ -1218,6 +1265,7 @@ class PageProfile extends HTMLElement {
     document.body.appendChild(cover);
 
     if (overlay) overlay.remove();
+    this.classList.remove('profile-onboarding-active');
 
     // Measure auth mascot using getBoundingClientRect directly — includes transform
     const authHeroSection = this.querySelector('#profile-auth-hero-section');
@@ -1389,6 +1437,8 @@ class PageProfile extends HTMLElement {
     const titlebarEnabled = isAppTitlebarEnabled();
     const bootUser = window.user;
     const bootLoggedIn = Boolean(bootUser && bootUser.id !== undefined && bootUser.id !== null);
+    const onboardingOverlayEnabled = !bootLoggedIn && !onboardingDone();
+    this.classList.toggle('profile-onboarding-active', onboardingOverlayEnabled);
 
     const routes = getRoutes();
     if (bootLoggedIn && !routes.length && !this._loadingData && !this._trainingDataLoadAttempted) {
@@ -2379,7 +2429,6 @@ class PageProfile extends HTMLElement {
       <ion-header translucent="true" class="app-header-shell">
         <ion-toolbar class="secret-title-area toolbar-title-default">
           <ion-title></ion-title>
-          <div slot="start" class="app-toolbar-title secret-title">${escapeHtml(tabsCopy.you || 'Profile')}</div>
           <div class="app-header-actions profile-auth-header-actions" slot="end">
             <button class="app-locale-btn" type="button" aria-label="${escapeHtml(localeLabel)}">
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -2444,7 +2493,7 @@ class PageProfile extends HTMLElement {
               </div>
             </div>
           </section>
-          ${!onboardingDone() ? '<div class="profile-onboarding-overlay" id="profile-onboarding-overlay"><page-onboarding embedded></page-onboarding></div>' : ''}`
+          ${onboardingOverlayEnabled ? '<div class="profile-onboarding-overlay" id="profile-onboarding-overlay"><page-onboarding embedded></page-onboarding></div>' : ''}`
       : '';
     const progressCardsMarkup = [
       {
@@ -2515,10 +2564,20 @@ class PageProfile extends HTMLElement {
       )
       .join('');
 
+    const loggedOutShellClass = loggedIn
+      ? ''
+      : [
+          'profile-shell--logged-out',
+          platform === 'android' ? 'profile-shell--logged-out-android' : '',
+          titlebarEnabled ? 'profile-shell--logged-out-titlebar' : ''
+        ]
+          .filter(Boolean)
+          .join(' ');
+
     this.innerHTML = `
       ${loggedIn ? renderAppHeader({ title: tabsCopy.you }) : loggedOutHeaderHtml}
       <ion-content fullscreen class="home-journey free-ride-content secret-content profile-content ${loggedIn ? '' : 'profile-content--logged-out'}">
-        <div class="speak-shell free-ride-shell profile-shell ${loggedIn ? '' : `profile-shell--logged-out ${platform === 'android' ? 'profile-shell--logged-out-android' : ''} ${titlebarEnabled ? 'profile-shell--logged-out-titlebar' : ''}`.trim()}">
+        <div class="speak-shell free-ride-shell profile-shell ${loggedOutShellClass}">
           ${authShellHtml}
           <section class="profile-hero-section" id="profile-hero-section" ${loggedIn ? '' : 'hidden'}>
             ${titlebarEnabled ? '' : `

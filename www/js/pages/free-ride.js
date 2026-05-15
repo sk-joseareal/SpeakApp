@@ -1,4 +1,11 @@
 import { getAppLocale, setAppLocale, getActiveLocale, setLocaleOverride } from '../state.js';
+import { translationWorkerClient } from '../translation-worker-client.js';
+import {
+  ensureTranslationCapabilitiesReady,
+  getTranslationCapabilities,
+  markTranslationCapabilityUnavailable,
+  resolveChromeTranslatorApi
+} from '../translation-capabilities.js';
 import { renderAppHeader } from '../components/app-header.js';
 import {
   getFreeRideCopy,
@@ -65,7 +72,6 @@ const FREE_RIDE_PLAYBACK_RATE_MIN = 0.5;
 const FREE_RIDE_PLAYBACK_RATE_MAX = 1.5;
 const FREE_RIDE_PLAYBACK_RATE_STEP = 0.05;
 const FREE_RIDE_WORD_TAP_AUDIO_ENABLED_KEY = 'appv5:free-ride-word-tap-audio-enabled';
-const FREE_RIDE_HERO_AUTONARRATION_PLAYED_KEY = 'appv5:free-ride-hero-auto-narration-played';
 const FREE_RIDE_SAVED_PHRASES_PREFIX = 'appv5:lab-saved-phrases:';
 const FREE_RIDE_SAVED_PHRASES_MAX_ITEMS = 120;
 const SPEAK_USER_STORAGE_KEY = 'appv5:user';
@@ -78,12 +84,12 @@ const FREE_RIDE_ADVANCED_ENABLED_KEY = 'appv5:free-ride-advanced-enabled';
 const FREE_RIDE_ADVANCED_AUDIO_SAMPLE_RATE = 16000;
 const FREE_RIDE_LANGUAGE_CHECK_DEBOUNCE_MS = 260;
 const FREE_RIDE_LOCAL_TRANSLATION_DEBOUNCE_MS = 260;
-const FREE_RIDE_LOCAL_TRANSLATION_UI_TIMEOUT_MS = 1000;
 const FREE_RIDE_LANGUAGE_CHECK_MIN_ALPHA_CHARS = 6;
 const FREE_RIDE_LANGUAGE_CHECK_MIXED_MIN_ALPHA_CHARS = 10;
 const FREE_RIDE_LANGUAGE_CHECK_ALT_CONFIDENCE = 0.2;
 const FREE_RIDE_LANGUAGE_CHECK_STRONG_CONFIDENCE = 0.8;
 const FREE_RIDE_HERO_DOUBLE_TAP_WINDOW_MS = 280;
+const FREE_RIDE_TAB_ALIASES = new Set(['freeride', 'lab']);
 const FREE_RIDE_FALLBACK_ENGLISH_MARKERS = new Set([
   'a', 'an', 'and', 'are', 'can', 'do', 'for', 'good', 'hello', 'how', 'i', 'is', 'it',
   'like', 'my', 'of', 'please', 'thanks', 'the', 'to', 'want', 'what', 'where', 'you', 'your'
@@ -208,6 +214,7 @@ class PageFreeRide extends HTMLElement {
       translationError: '',
       translationBackendError: '',
       translationLocalHint: '',
+      translationEngine: '',
       manualTranslateMode: false
     };
 
@@ -227,8 +234,6 @@ class PageFreeRide extends HTMLElement {
     this.narrationAudio = null;
     this.activePlayButton = null;
     this.narrationToken = 0;
-    this.narrationTimer = null;
-    this.initialHeroNarrationStarted = this.hasAutoHeroNarrationPlayed();
     this.heroMascotFrameIndex = HERO_MASCOT_REST_FRAME;
     this.heroMascotFrameTimer = null;
     this.heroMascotIsTalking = false;
@@ -291,8 +296,7 @@ class PageFreeRide extends HTMLElement {
       this.refreshPhraseForCurrentLocale();
       this.clearPracticeResult({
         skipRender: false,
-        clearRecording: true,
-        forceNarration: this.isTabActive('freeride')
+        clearRecording: true
       });
     };
     window.addEventListener('app:locale-change', this._localeHandler);
@@ -309,8 +313,7 @@ class PageFreeRide extends HTMLElement {
       this.refreshPhraseForCurrentLocale();
       this.clearPracticeResult({
         skipRender: false,
-        clearRecording: true,
-        forceNarration: this.isTabActive('freeride')
+        clearRecording: true
       });
     };
     window.addEventListener('app:profile-locale-toggle', this._profileLocaleToggleHandler);
@@ -369,8 +372,7 @@ class PageFreeRide extends HTMLElement {
       const tab = String(event && event.detail ? event.detail.tab || '' : '')
         .trim()
         .toLowerCase();
-      if (tab !== 'freeride') {
-        this.clearNarrationTimer();
+      if (!this.matchesFreeRideTabName(tab)) {
         this.narrationToken += 1;
         if (this.heroMascotIsTalking) {
           this.stopNarrationPlayback().catch(() => {});
@@ -393,6 +395,7 @@ class PageFreeRide extends HTMLElement {
     window.addEventListener('app:tab-change', this._appTabChangeHandler);
     this._layoutViewportHandler = () => {
       if (!this.isConnected) return;
+      if (document.body?.classList?.contains('app-android-legacy-webview')) return;
       this.scheduleLayoutSync(0);
     };
     window.addEventListener('resize', this._layoutViewportHandler);
@@ -413,7 +416,6 @@ class PageFreeRide extends HTMLElement {
     this.stopActiveCapture();
     this.stopPlayback();
     this.stopHeroMascotTalk({ settle: true });
-    this.clearNarrationTimer();
     this.clearPracticeTranslationTimer();
     this.stopNarration().catch(() => {});
     if (this.heroTapTimer) {
@@ -644,6 +646,7 @@ class PageFreeRide extends HTMLElement {
     this.state.translationError = '';
     this.state.translationBackendError = '';
     this.state.translationLocalHint = '';
+    this.state.translationEngine = '';
     this.state.manualTranslateMode = false;
     if (persist) this.persistPracticeText(inputText);
   }
@@ -1140,36 +1143,18 @@ class PageFreeRide extends HTMLElement {
   }
 
   resolveChromeTranslatorApi() {
-    if (this.isNativeRuntime()) return null;
-    const w = typeof self !== 'undefined' ? self : (typeof window !== 'undefined' ? window : {});
-    if (w.translation && typeof w.translation.canTranslate === 'function') {
-      return {
-        canTranslate: (o) => w.translation.canTranslate(o),
-        createTranslator: (o) => w.translation.createTranslator(o)
-      };
+    return resolveChromeTranslatorApi();
+  }
+
+  async translateFreeRideTextViaOpusMt(text) {
+    if (translationWorkerClient.status === 'error') return null;
+    try {
+      const translatedText = await translationWorkerClient.translate(text);
+      if (!translatedText) return null;
+      return { available: true, translatedText, engine: 'opus-mt-wasm', modelDownloaded: true };
+    } catch (_err) {
+      return null;
     }
-    const Cls = w.Translator;
-    if (typeof Cls === 'function') {
-      const canTranslate = typeof Cls.canTranslate === 'function'
-        ? (o) => Cls.canTranslate(o)
-        : typeof Cls.availability === 'function'
-          ? async (o) => {
-              const v = await Cls.availability(o);
-              return v === 'available' ? 'readily' : v === 'unavailable' ? 'no' : 'after-download';
-            }
-          : () => Promise.resolve('readily');
-      const createTranslator = typeof Cls.create === 'function'
-        ? (o) => Cls.create(o)
-        : (o) => Promise.resolve(new Cls(o));
-      return { canTranslate, createTranslator };
-    }
-    if (w.ai && typeof w.ai.translator?.canTranslate === 'function') {
-      return {
-        canTranslate: (o) => w.ai.translator.canTranslate(o),
-        createTranslator: (o) => w.ai.translator.createTranslator(o)
-      };
-    }
-    return null;
   }
 
   async translateFreeRideTextViaChrome(text, sourceLanguage, targetLanguage = 'en') {
@@ -1200,9 +1185,14 @@ class PageFreeRide extends HTMLElement {
     const normalizedText = String(text || '').trim();
     const sourceLanguage = this.normalizeDetectedLanguageCode(options.sourceLanguage || '');
     const targetLanguage = this.normalizeDetectedLanguageCode(options.targetLanguage || 'en') || 'en';
+    const allowLocal = options.local !== false;
     const allowNative = options.native !== false;
+    const allowBackend = options.backend !== false;
+    const capabilities = allowLocal
+      ? (options.capabilities || await ensureTranslationCapabilitiesReady())
+      : getTranslationCapabilities();
 
-    if (sourceLanguage && allowNative) {
+    if (allowLocal && sourceLanguage && allowNative && capabilities.nativeTranslateEnabled) {
       const nativeResult = await this.translateFreeRideTextViaNative(
         normalizedText,
         sourceLanguage,
@@ -1211,9 +1201,10 @@ class PageFreeRide extends HTMLElement {
       if (nativeResult && nativeResult.available && nativeResult.translatedText) {
         return nativeResult;
       }
+      markTranslationCapabilityUnavailable('native', (nativeResult && nativeResult.reason) || 'runtime_failed');
     }
 
-    if (sourceLanguage) {
+    if (allowLocal && sourceLanguage && capabilities.chromeTranslatorEnabled) {
       const chromeResult = await this.translateFreeRideTextViaChrome(
         normalizedText,
         sourceLanguage,
@@ -1222,6 +1213,19 @@ class PageFreeRide extends HTMLElement {
       if (chromeResult && chromeResult.available && chromeResult.translatedText) {
         return chromeResult;
       }
+      markTranslationCapabilityUnavailable('chrome', (chromeResult && chromeResult.reason) || 'runtime_failed');
+    }
+
+    if (allowLocal && sourceLanguage === 'es' && targetLanguage === 'en' && capabilities.opusTranslatorEnabled) {
+      const opusResult = await this.translateFreeRideTextViaOpusMt(normalizedText);
+      if (opusResult && opusResult.available && opusResult.translatedText) {
+        return opusResult;
+      }
+      markTranslationCapabilityUnavailable('opus', (opusResult && opusResult.reason) || 'runtime_failed');
+    }
+
+    if (!allowBackend) {
+      throw new Error('local_translation_unavailable');
     }
 
     const auth = resolveFreeRideTranslatorAuth();
@@ -1295,6 +1299,7 @@ class PageFreeRide extends HTMLElement {
     this.state.translationError = '';
     this.state.translationBackendError = '';
     this.state.translationLocalHint = '';
+    this.state.translationEngine = String(result && result.engine ? result.engine : '').trim();
     this.state.manualTranslateMode = false;
     this.persistPracticeText(this.state.expectedText, this.currentUiLocale);
     this.clearPracticeResult({ skipRender: true, clearRecording: true });
@@ -1320,6 +1325,7 @@ class PageFreeRide extends HTMLElement {
       'Could not translate right now.'
     );
     this.state.translationBackendError = '';
+    this.state.translationEngine = '';
     if (fromLocal) {
       this.state.manualTranslateMode = true;
       if (localModelMissing) {
@@ -1345,66 +1351,47 @@ class PageFreeRide extends HTMLElement {
       return;
     }
     const requestId = ++this.translationRequestId;
-    let slowFallbackTimer = null;
-    if (!this.getNativeTranslationPlugin()) {
-      this.state.translationLoading = true;
-      this.state.translationError = '';
-      this.state.expectedSourceText = normalizedText;
-      this.updatePhrasePreview(this.currentCopy);
-      try {
-        const result = await this.fetchFreeRideTranslation(normalizedText, {
-          sourceLanguage: 'es',
-          targetLanguage: 'en',
-          native: false
-        });
-        if (this.translationRequestId !== requestId) return;
-        this.applyTranslatedPracticeText(result, normalizedText, 'es');
-      } catch (_err) {
-        if (this.translationRequestId !== requestId) return;
-        this.setPracticeTranslationFallback(normalizedText, 'es', {
-          fromLocal: true,
-          localReason: (_err && _err.message) || ''
-        });
-      }
-      this.state.translationLoading = false;
-      this.updatePhrasePreview(this.currentCopy);
-      return;
-    }
     this.state.translationLoading = true;
     this.state.translationError = '';
     this.state.expectedSourceText = normalizedText;
     this.updatePhrasePreview(this.currentCopy);
-    slowFallbackTimer = setTimeout(() => {
-      if (this.translationRequestId !== requestId) return;
-      if (!this.state.translationLoading) return;
-      const liveInput = this.getInputTextTrimmed();
-      if (
-        this.normalizeSavedPhraseComparableText(liveInput) !==
-        this.normalizeSavedPhraseComparableText(normalizedText)
-      ) {
-        return;
-      }
-      this.setPracticeTranslationFallback(normalizedText, 'es', {
-        fromLocal: true,
-        localReason: 'translation_timeout'
-      });
-      this.state.translationLoading = false;
-      this.updatePhrasePreview(this.currentCopy);
-    }, FREE_RIDE_LOCAL_TRANSLATION_UI_TIMEOUT_MS);
     try {
-      let result = await this.translateFreeRideTextViaNative(normalizedText, 'es', 'en');
+      let capabilities = await ensureTranslationCapabilitiesReady();
       if (this.translationRequestId !== requestId) return;
-      if ((!result || !result.available || !result.translatedText) && this.shouldAttemptNativeTranslationPrepare(result)) {
-        this.nativeTranslationPrepareAttempted = true;
-        const prepareResult = await this.prepareNativeTranslationModel('es', 'en');
+
+      if (
+        capabilities.nativeTranslateEnabled &&
+        this.isNativeIOS() &&
+        !this.nativeTranslationPrepareAttempted &&
+        this.getNativeTranslationPlugin()
+      ) {
+        let nativeProbe = await this.translateFreeRideTextViaNative(normalizedText, 'es', 'en');
         if (this.translationRequestId !== requestId) return;
-        if (prepareResult && prepareResult.available === true) {
-          result = await this.translateFreeRideTextViaNative(normalizedText, 'es', 'en');
+        if ((!nativeProbe || !nativeProbe.available || !nativeProbe.translatedText) && this.shouldAttemptNativeTranslationPrepare(nativeProbe)) {
+          this.nativeTranslationPrepareAttempted = true;
+          const prepareResult = await this.prepareNativeTranslationModel('es', 'en');
+          if (this.translationRequestId !== requestId) return;
+          if (!prepareResult || prepareResult.available !== true) {
+            markTranslationCapabilityUnavailable('native', (prepareResult && prepareResult.reason) || 'prepare_failed');
+            capabilities = getTranslationCapabilities();
+          }
+        } else if (nativeProbe && nativeProbe.available && nativeProbe.translatedText) {
+          this.applyTranslatedPracticeText(nativeProbe, normalizedText, 'es');
+          return;
+        } else {
+          markTranslationCapabilityUnavailable('native', (nativeProbe && nativeProbe.reason) || 'runtime_failed');
+          capabilities = getTranslationCapabilities();
         }
       }
-      if (!result || !result.available || !result.translatedText) {
-        throw new Error(result && result.reason ? result.reason : 'native_translation_unavailable');
-      }
+
+      const result = await this.fetchFreeRideTranslation(normalizedText, {
+        sourceLanguage: 'es',
+        targetLanguage: 'en',
+        local: true,
+        backend: false,
+        capabilities
+      });
+      if (this.translationRequestId !== requestId) return;
       this.applyTranslatedPracticeText(result, normalizedText, 'es');
     } catch (err) {
       if (this.translationRequestId !== requestId) return;
@@ -1413,10 +1400,6 @@ class PageFreeRide extends HTMLElement {
         localReason: (err && err.message) || ''
       });
     } finally {
-      if (slowFallbackTimer) {
-        clearTimeout(slowFallbackTimer);
-        slowFallbackTimer = null;
-      }
       if (this.translationRequestId === requestId) {
         this.state.translationLoading = false;
         this.updatePhrasePreview(this.currentCopy);
@@ -1440,6 +1423,7 @@ class PageFreeRide extends HTMLElement {
       const result = await this.fetchFreeRideTranslation(text, {
         sourceLanguage: 'es',
         targetLanguage: 'en',
+        local: false,
         native: false
       });
       if (this.translationRequestId !== requestId) return;
@@ -1866,6 +1850,10 @@ class PageFreeRide extends HTMLElement {
     return this.closest('ion-tabs') || document.querySelector('tabs-page ion-tabs');
   }
 
+  matchesFreeRideTabName(value) {
+    return FREE_RIDE_TAB_ALIASES.has(String(value || '').trim().toLowerCase());
+  }
+
   isEventInHeaderZone(event) {
     if (!event) return false;
     const y = Number(event.clientY);
@@ -1880,12 +1868,21 @@ class PageFreeRide extends HTMLElement {
     const normalizedTabName = String(tabName || '')
       .trim()
       .toLowerCase();
+    const matchesExpectedTab = (value) => {
+      const normalizedValue = String(value || '').trim().toLowerCase();
+      if (!normalizedTabName) return true;
+      if (normalizedValue === normalizedTabName) return true;
+      if (this.matchesFreeRideTabName(normalizedTabName) && this.matchesFreeRideTabName(normalizedValue)) {
+        return true;
+      }
+      return false;
+    };
     const tabHost = this.closest('ion-tab');
     if (tabHost) {
       const hostTab = String(tabHost.getAttribute('tab') || '')
         .trim()
         .toLowerCase();
-      if (normalizedTabName && hostTab && hostTab !== normalizedTabName) return false;
+      if (normalizedTabName && hostTab && !matchesExpectedTab(hostTab)) return false;
       if (tabHost.getAttribute('aria-hidden') === 'true') return false;
       if (tabHost.classList.contains('tab-hidden')) return false;
       const styles = window.getComputedStyle ? window.getComputedStyle(tabHost) : null;
@@ -1899,12 +1896,12 @@ class PageFreeRide extends HTMLElement {
       const selectedFromProp =
         typeof tabsEl.selectedTab === 'string' ? String(tabsEl.selectedTab).trim().toLowerCase() : '';
       const selected = selectedFromAttr || selectedFromProp;
-      if (selected) return selected === normalizedTabName;
+      if (selected) return matchesExpectedTab(selected);
       try {
         const stored = String(localStorage.getItem('appv5:active-tab') || '')
           .trim()
           .toLowerCase();
-        if (stored) return stored === normalizedTabName;
+        if (stored) return matchesExpectedTab(stored);
       } catch (err) {
         // no-op
       }
@@ -2115,6 +2112,15 @@ class PageFreeRide extends HTMLElement {
 
   scheduleLayoutSync(delayMs = 0) {
     if (!this.isConnected) return;
+    const legacyAndroid = document.body?.classList?.contains('app-android-legacy-webview');
+    if (legacyAndroid && Number(delayMs) > 0) return;
+    if (
+      document.body?.classList?.contains('app-android-legacy-webview') &&
+      window.r34lp0w3r &&
+      window.r34lp0w3r.legacyLayoutReady === false
+    ) {
+      return;
+    }
     if (this.layoutSyncTimer) {
       clearTimeout(this.layoutSyncTimer);
       this.layoutSyncTimer = null;
@@ -2438,6 +2444,7 @@ class PageFreeRide extends HTMLElement {
     this.state.translationError = '';
     this.state.translationBackendError = '';
     this.state.translationLocalHint = '';
+    this.state.translationEngine = '';
     this.state.manualTranslateMode = false;
     this.persistPhrase(this.state.inputText, this.currentUiLocale);
     this.persistPracticeText(
@@ -2599,6 +2606,7 @@ class PageFreeRide extends HTMLElement {
     this.state.translationError = '';
     this.state.translationBackendError = '';
     this.state.translationLocalHint = '';
+    this.state.translationEngine = '';
     this.state.manualTranslateMode = false;
     this.practiceLanguageValidation = this.createEmptyPracticeLanguageValidation();
     this.clearPracticeTranslationTimer();
@@ -5269,11 +5277,6 @@ class PageFreeRide extends HTMLElement {
     const normalizedText = String(text || '').trim();
     this.clearPracticeTranslationTimer();
     if (!normalizedText) return;
-    if (!this.getNativeTranslationPlugin() && !this.resolveChromeTranslatorApi()) {
-      this.setPracticeTranslationFallback(normalizedText, 'es');
-      this.updatePhrasePreview(this.currentCopy);
-      return;
-    }
     const sourceComparable = this.normalizeSavedPhraseComparableText(normalizedText);
     this.practiceTranslationTimer = setTimeout(() => {
       this.practiceTranslationTimer = null;
@@ -5753,33 +5756,6 @@ class PageFreeRide extends HTMLElement {
     }
   }
 
-  hasAutoHeroNarrationPlayed() {
-    if (typeof window === 'undefined') return false;
-    const appState = window.r34lp0w3r;
-    if (appState && appState.freeRideHeroAutoNarrationPlayed) return true;
-    try {
-      const persisted = localStorage.getItem(FREE_RIDE_HERO_AUTONARRATION_PLAYED_KEY) === '1';
-      if (persisted) {
-        if (!window.r34lp0w3r) window.r34lp0w3r = {};
-        window.r34lp0w3r.freeRideHeroAutoNarrationPlayed = true;
-      }
-      return persisted;
-    } catch (err) {
-      return false;
-    }
-  }
-
-  markAutoHeroNarrationPlayed() {
-    if (typeof window === 'undefined') return;
-    if (!window.r34lp0w3r) window.r34lp0w3r = {};
-    window.r34lp0w3r.freeRideHeroAutoNarrationPlayed = true;
-    try {
-      localStorage.setItem(FREE_RIDE_HERO_AUTONARRATION_PLAYED_KEY, '1');
-    } catch (err) {
-      // no-op
-    }
-  }
-
   extractSpeechText(value) {
     const container = document.createElement('div');
     container.innerHTML = String(value || '');
@@ -5860,12 +5836,6 @@ class PageFreeRide extends HTMLElement {
     });
   }
 
-  clearNarrationTimer() {
-    if (!this.narrationTimer) return;
-    clearTimeout(this.narrationTimer);
-    this.narrationTimer = null;
-  }
-
   async stopNarrationPlayback() {
     if (this.narrationAudio) {
       try {
@@ -5898,40 +5868,13 @@ class PageFreeRide extends HTMLElement {
   }
 
   async stopNarration() {
-    this.clearNarrationTimer();
     this.narrationToken += 1;
     await this.stopNarrationPlayback();
   }
 
-  scheduleHeroNarration(delayMs = 90, forceNarration = false) {
-    this.clearNarrationTimer();
-    if (!forceNarration && this.initialHeroNarrationStarted) return;
-    if (!forceNarration && !this.isTabActive('freeride')) return;
-    const waitMs = Number.isFinite(delayMs) ? Math.max(0, delayMs) : 90;
-    if (waitMs === 0) {
-      if (!this.isConnected) return;
-      if (!forceNarration && !this.isTabActive('freeride')) return;
-      this.playHeroNarration(forceNarration);
-      return;
-    }
-    this.narrationTimer = setTimeout(() => {
-      this.narrationTimer = null;
-      if (!this.isConnected) return;
-      if (!forceNarration && !this.isTabActive('freeride')) return;
-      this.playHeroNarration(forceNarration);
-    }, waitMs);
-  }
-
   playHeroNarration(options = false) {
-    const forceNarration =
-      typeof options === 'object' && options !== null
-        ? Boolean(options.force)
-        : Boolean(options);
     const manualNarration =
       typeof options === 'object' && options !== null ? Boolean(options.manual) : false;
-    if (!forceNarration && !this.isTabActive('freeride')) {
-      return Promise.resolve(false);
-    }
     const lines = this.extractNarrationLines(this.currentCopy && this.currentCopy.subtitle);
     if (!lines.length) {
       this.stopNarration().catch(() => {});
@@ -5942,13 +5885,7 @@ class PageFreeRide extends HTMLElement {
       bubbleEl: this.getHeroBubbleEl(),
       allowWebFallback: manualNarration
     })
-      .then((started) => {
-        if (started && !this.initialHeroNarrationStarted) {
-          this.initialHeroNarrationStarted = true;
-          this.markAutoHeroNarrationPlayed();
-        }
-        return started;
-      })
+      .then((started) => started)
       .catch(() => false);
   }
 
@@ -6325,7 +6262,7 @@ class PageFreeRide extends HTMLElement {
   }
 
   clearPracticeResult(options = {}) {
-    const { skipRender = false, clearRecording = true, forceNarration = false } = options;
+    const { skipRender = false, clearRecording = true } = options;
     if (clearRecording) {
       this.clearRecordingUrl();
     }
@@ -6343,10 +6280,7 @@ class PageFreeRide extends HTMLElement {
       this.updatePhrasePreview(this.currentCopy);
       return;
     }
-    this.render({
-      forceNarration,
-      narrationDelayMs: forceNarration ? 80 : undefined
-    });
+    this.render();
   }
 
   stopActiveCapture() {
@@ -7024,6 +6958,7 @@ class PageFreeRide extends HTMLElement {
     this.state.translationBackendError = '';
     if (!nextInputText) {
       this.state.translationLocalHint = '';
+      this.state.translationEngine = '';
       this.state.manualTranslateMode = false;
     }
     this.persistPhrase(this.state.inputText, this.currentUiLocale);
@@ -7032,6 +6967,7 @@ class PageFreeRide extends HTMLElement {
       this.state.expectedSourceText = '';
       this.state.practiceTextOrigin = '';
       this.state.detectedInputLanguage = '';
+      this.state.translationEngine = '';
       this.persistPracticeText('', this.currentUiLocale);
     }
     this.schedulePracticeTextLanguageValidation({ text: this.state.inputText });
@@ -7513,11 +7449,20 @@ class PageFreeRide extends HTMLElement {
         hasInputText &&
         this.normalizeDetectedLanguageCode(this.state.detectedInputLanguage) === 'es';
       const statusLocale = this.getUiLocale();
+      const translationEngine = String(this.state.translationEngine || '').trim();
+      const showEngine =
+        this.isSpeakDebugEnabled() &&
+        this.state.practiceTextOrigin === 'translation' &&
+        Boolean(translationEngine);
       inputLanguageStatusEl.hidden = !showStatus;
       inputLanguageStatusEl.textContent = showStatus
         ? statusLocale === 'es'
-          ? '(Español)'
-          : '(Spanish)'
+          ? showEngine
+            ? `(Español · ${translationEngine})`
+            : '(Español)'
+          : showEngine
+            ? `(Spanish · ${translationEngine})`
+            : '(Spanish)'
         : '';
     }
     if (inputWordCountEl) {
@@ -7830,31 +7775,13 @@ class PageFreeRide extends HTMLElement {
     const heroCardEl = this.querySelector('.free-ride-hero-card');
     heroCardEl?.addEventListener('click', (event) => {
       if (this.isEventInHeaderZone(event)) return;
-      const target = event && event.target && typeof event.target.closest === 'function' ? event.target : null;
+      const target = event && event.target && typeof event.target.closest === 'function'
+        ? event.target
+        : null;
       if (!target) return;
       const inNarrationZone = target.closest('.onboarding-intro-bubble, .free-ride-hero-bubble, .journey-plan-bubble');
       if (!inNarrationZone) return;
-      const now = Date.now();
-      if (now - this.lastHeroTapTs <= FREE_RIDE_HERO_DOUBLE_TAP_WINDOW_MS) {
-        this.lastHeroTapTs = 0;
-        if (this.heroTapTimer) {
-          clearTimeout(this.heroTapTimer);
-          this.heroTapTimer = null;
-        }
-        this.debugPanelOpen = !this.debugPanelOpen;
-        this.persistDebugPanelOpen(this.debugPanelOpen);
-        this.render();
-        return;
-      }
-      this.lastHeroTapTs = now;
-      if (this.heroTapTimer) {
-        clearTimeout(this.heroTapTimer);
-      }
-      this.heroTapTimer = setTimeout(() => {
-        this.heroTapTimer = null;
-        this.lastHeroTapTs = 0;
-        this.playHeroNarration({ manual: true });
-      }, FREE_RIDE_HERO_DOUBLE_TAP_WINDOW_MS);
+      this.playHeroNarration({ manual: true }).catch(() => {});
     });
 
     debugToggleBtn?.addEventListener('click', () => {

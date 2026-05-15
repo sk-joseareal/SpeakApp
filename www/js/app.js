@@ -3,6 +3,7 @@ import { clearLoginTabsLock, getAppLocale, hasLoginTabsLock, onboardingDone, set
 import { generateDemoNotifications, getUnreadCount, markAllNotificationsRead } from './notifications-store.js';
 import { ensureLegacySpeakCopyGlobals } from './content/copy.js';
 import { isAppTitlebarEnabled } from './components/app-header.js';
+import { refreshTranslationCapabilities } from './translation-capabilities.js';
 import './pages/onboarding.js';
 import './pages/home.js';
 import './pages/reference.js';
@@ -15,13 +16,12 @@ import './pages/diagnostics.js';
 import './pages/login.js';
 import './pages/notifications.js';
 
-const ONBOARDING_STATUSBAR_COLOR = '#00000000';
-const ONBOARDING_THEME_COLOR = '#a9c7f5';
 const APP_STATUSBAR_COLOR = '#f4f6fb';
 const LAB_STATUSBAR_COLOR = '#00000000';
 const LAB_THEME_COLOR = '#a9c7f5';
 const APP_STATUSBAR_PRESET_KEY = 'appv5:statusbar-preset';
 const APP_FONT_SF_PRO_ENABLED_KEY = 'appv5:font-sf-pro-enabled';
+const DEBUG_DISABLE_FOREGROUND_CHROME_RESYNC = false;
 const TAB_STORAGE_KEY = 'appv5:active-tab';
 const LAB_TAB_IDS = new Set(['freeride', 'home', 'reference', 'chat', 'tu']);
 const PURCHASE_EXPIRES_STORAGE_KEY = '_purchase_expires';
@@ -35,9 +35,73 @@ let _titlebarCalibrationTimers = [];
 let _pendingChromeResyncRaf = 0;
 let _pendingChromeResyncPath = '';
 let _lastAppliedChromeKey = '';
+let _legacyViewportRelayoutTimer = 0;
+let _viewportHeightSyncRaf = 0;
+let _legacyLayoutUnlockTimer = 0;
+let _legacyLayoutUnlockTimer2 = 0;
+let _legacyLayoutReady = true;
+let _legacyLayoutInitDone = false;
+
+function applyInitialTitlebarClassEarly() {
+  const apply = () => {
+    if (!document.body) return;
+    document.body.classList.toggle('app-titlebar-enabled', isAppTitlebarEnabled());
+  };
+  apply();
+  if (!document.body) {
+    document.addEventListener('DOMContentLoaded', apply, { once: true });
+  }
+}
+
+applyInitialTitlebarClassEarly();
 
 function getCurrentAppPath() {
   return window.location.hash.replace('#', '') || '/';
+}
+
+function syncAppViewportHeightVar() {
+  const viewportHeight = Math.max(
+    0,
+    Math.round(
+      Number(
+        window.visualViewport && Number.isFinite(window.visualViewport.height)
+          ? window.visualViewport.height
+          : window.innerHeight || document.documentElement.clientHeight || 0
+      )
+    )
+  );
+  if (!viewportHeight) return;
+  document.documentElement.style.setProperty('--app-viewport-height', `${viewportHeight}px`);
+}
+
+function setLegacyLayoutReady(nextReady, reason = '') {
+  const ready = Boolean(nextReady);
+  if (_legacyLayoutReady === ready && _legacyLayoutInitDone) return;
+  _legacyLayoutReady = ready;
+  _legacyLayoutInitDone = true;
+  window.r34lp0w3r = window.r34lp0w3r || {};
+  window.r34lp0w3r.legacyLayoutReady = ready;
+  if (reason) {
+    console.log('[layout][legacy] ready=', ready, 'reason=', reason);
+  }
+  window.dispatchEvent(
+    new CustomEvent('app:legacy-layout-ready', {
+      detail: { ready, reason }
+    })
+  );
+}
+
+function scheduleLegacyLayoutUnlock() {
+  setLegacyLayoutReady(true, 'legacy-no-delayed-viewport-sync');
+}
+
+function scheduleViewportHeightSync() {
+  if (isLegacyAndroidStatusbarMode()) return;
+  if (_viewportHeightSyncRaf) return;
+  _viewportHeightSyncRaf = requestAnimationFrame(() => {
+    _viewportHeightSyncRaf = 0;
+    syncAppViewportHeightVar();
+  });
 }
 
 function getStatusBarStyle(lightIcons) {
@@ -55,8 +119,30 @@ function isAndroidPlatform() {
   );
 }
 
+function detectLegacyAndroidFromUserAgent() {
+  const ua = String((typeof navigator !== 'undefined' && navigator.userAgent) || '');
+  const match = ua.match(/Android\s+(\d+)/i);
+  const major = match ? Number(match[1]) : 0;
+  return Number.isFinite(major) && major > 0 && major <= 12;
+}
+
+function isLegacyAndroidStatusbarMode() {
+  if (document.body && document.body.classList.contains('app-android-legacy-webview')) return true;
+  const platform = String(lastNativeStatusBarInfo.platform || '').trim().toLowerCase();
+  const osMajor = parseMajorVersion(lastNativeStatusBarInfo.osVersion);
+  return platform === 'android' && osMajor > 0 && osMajor <= 31;
+}
+
+function shouldDeferAndroidNativeChrome() {
+  if (!isAndroidPlatform()) return false;
+  const osVersion = String(lastNativeStatusBarInfo.osVersion || '').trim();
+  return !osVersion;
+}
+
 function setNativeChrome(color, lightIcons, meta = {}) {
   try {
+    if (shouldDeferAndroidNativeChrome()) return;
+    if (isLegacyAndroidStatusbarMode()) return;
     const nativePlugin = window.Capacitor?.Plugins?.P4w4Plugin;
     if (!nativePlugin || typeof nativePlugin.setNativeChrome !== 'function') return;
     nativePlugin.setNativeChrome({
@@ -149,6 +235,13 @@ function syncNativeStatusBarCapabilityClasses(info = {}) {
   const needsManualOffset = platform === 'android' || (platform === 'ios' && osMajor >= 26);
   document.body.classList.toggle('app-statusbar-manual-offset', needsManualOffset);
   document.body.classList.toggle('app-ios-statusbar-auto-offset', platform === 'ios' && !needsManualOffset);
+  const isLegacyAndroidWebView = platform === 'android' && osMajor > 0 && osMajor <= 31;
+  document.body.classList.toggle('app-android-legacy-webview', isLegacyAndroidWebView);
+  if (isLegacyAndroidWebView) {
+    setLegacyLayoutReady(true, 'legacy-detected');
+  } else {
+    setLegacyLayoutReady(true, 'non-legacy');
+  }
   if (osMajor > 0) {
     document.body.dataset.osMajor = String(osMajor);
   }
@@ -160,6 +253,9 @@ function syncNativeStatusBarCssHeight() {
     if (!nativePlugin || typeof nativePlugin.getStatusBarHeight !== 'function') return;
     Promise.resolve(nativePlugin.getStatusBarHeight())
       .then((info) => {
+        const prevHeight = Number(lastNativeStatusBarInfo.height) || 0;
+        const prevPlatform = String(lastNativeStatusBarInfo.platform || '').trim().toLowerCase();
+        const prevOsVersion = String(lastNativeStatusBarInfo.osVersion || '').trim();
         syncNativeStatusBarCapabilityClasses(info || {});
         const rawHeight = Number(info && info.height);
         if (!Number.isFinite(rawHeight) || rawHeight <= 0) return;
@@ -167,6 +263,13 @@ function syncNativeStatusBarCssHeight() {
           ? rawHeight / Math.max(1, Number(window.devicePixelRatio) || 1)
           : rawHeight;
         setNativeStatusBarCssHeight(cssHeight);
+        const nextPlatform = String(lastNativeStatusBarInfo.platform || '').trim().toLowerCase();
+        const nextOsVersion = String(lastNativeStatusBarInfo.osVersion || '').trim();
+        const statusbarInfoChanged =
+          prevHeight !== rawHeight || prevPlatform !== nextPlatform || prevOsVersion !== nextOsVersion;
+        if (statusbarInfoChanged) {
+          _lastAppliedChromeKey = '';
+        }
       })
       .catch(() => {});
   } catch (_err) {
@@ -178,6 +281,13 @@ function syncPlatformChromeClasses() {
   const isAndroid = isAndroidPlatform();
   document.body.classList.toggle('app-platform-android', isAndroid);
   document.body.classList.toggle('app-platform-ios', !isAndroid);
+  if (!isAndroid) {
+    document.body.classList.remove('app-android-legacy-webview');
+  }
+  if (isAndroid && detectLegacyAndroidFromUserAgent()) {
+    document.body.classList.add('app-android-legacy-webview');
+    setNativeStatusBarCssHeight(0);
+  }
   if (isAndroid) {
     document.body.classList.add('app-statusbar-manual-offset');
     document.body.classList.remove('app-ios-statusbar-auto-offset');
@@ -316,11 +426,6 @@ function getCurrentTabsActiveTab() {
     currentTabsActiveTab ||
     getStoredActiveTab()
   );
-}
-
-function isOnboardingPath(path) {
-  const normalized = String(path || '').trim();
-  return normalized === '/' || normalized === '/onboarding';
 }
 
 function isLabChromePath(path) {
@@ -796,19 +901,16 @@ window.openIapSupportMail = (context = {}) => {
 };
 
 function applyAppChromeForPath(path) {
+  console.log('[chrome] apply start', path, Date.now());
   syncPlatformChromeClasses();
   syncNativeStatusBarCssHeight();
-  // If the user has completed onboarding, '/' is always a transient router state
-  // before redirecting to '/tabs' — never apply onboarding chrome in that case.
-  const onboarding = isOnboardingPath(path) && !onboardingDone();
+  const onboarding = false;
   const labChrome = !onboarding && isLabChromePath(path);
   const statusbarPreset = getStoredStatusbarPreset();
-  const color = onboarding
-    ? ONBOARDING_STATUSBAR_COLOR
-    : labChrome
+  const color = labChrome
     ? LAB_STATUSBAR_COLOR
     : APP_STATUSBAR_COLOR;
-  const themeColor = onboarding ? ONBOARDING_THEME_COLOR : labChrome ? LAB_THEME_COLOR : color;
+  const themeColor = labChrome ? LAB_THEME_COLOR : color;
   const lightIcons = statusbarPreset === 'clear';
   const style = getStatusBarStyle(lightIcons);
   const chromeKey = [
@@ -833,6 +935,14 @@ function applyAppChromeForPath(path) {
   setNativeChrome(color, lightIcons, { source: 'app.js:applyAppChromeForPath', path });
 
   try {
+    if (shouldDeferAndroidNativeChrome()) {
+      scheduleAppTitlebarCalibration();
+      return;
+    }
+    if (isLegacyAndroidStatusbarMode()) {
+      scheduleAppTitlebarCalibration();
+      return;
+    }
     const sb = window.Capacitor?.Plugins?.StatusBar;
     if (!sb) return;
     sb.setOverlaysWebView({ overlay: true });
@@ -847,14 +957,22 @@ function applyAppChromeForPath(path) {
 }
 
 let _chromeSyncTimers = [];
+function scheduleLegacyViewportRelayout() {
+  if (!document.body.classList.contains('app-android-legacy-webview')) return;
+}
+
 function scheduleAppChromeSync(path) {
   _chromeSyncTimers.forEach((id) => clearTimeout(id));
-  console.log('[chrome] scheduleAppChromeSync', JSON.stringify({ path, delays: [0] }));
-  _chromeSyncTimers = [
+  const delays = [0];
+  console.log('[chrome] scheduleAppChromeSync', JSON.stringify({ path, delays }));
+  _chromeSyncTimers = delays.map((delay) =>
     setTimeout(() => {
-      requestAnimationFrame(() => applyAppChromeForPath(path));
-    }, 0)
-  ];
+      requestAnimationFrame(() => {
+        applyAppChromeForPath(path);
+        scheduleLegacyViewportRelayout();
+      });
+    }, delay)
+  );
 }
 
 window.applyAppChromeForPath = applyAppChromeForPath;
@@ -894,6 +1012,8 @@ function installIonContentDimensionGuard() {
 installIonContentDimensionGuard();
 ensureLegacySpeakCopyGlobals();
 applyAppFontPreference();
+syncAppViewportHeightVar();
+refreshTranslationCapabilities().catch(() => {});
 
 const routerReady = customElements.whenDefined('ion-router').then(() => document.querySelector('ion-router'));
 
@@ -907,9 +1027,7 @@ routerReady.then((router) => {
 
   const hashPath = getCurrentAppPath();
   scheduleAppChromeSync(hashPath);
-  if (onboardingDone() && (hashPath === '/' || hashPath === '/onboarding')) {
-    goToHome('root');
-  }
+  if (hashPath === '/') goToHome('root');
 
   const isLoggedIn = () => {
     const user = window.user;
@@ -925,7 +1043,7 @@ routerReady.then((router) => {
   router.addEventListener('ionRouteWillChange', (event) => {
     const to = event.detail.to;
     if (!to) return;
-    if (onboardingDone() && (to === '/' || to === '/onboarding')) {
+    if (to === '/' || to === '/onboarding') {
       goToHome('root');
       return;
     }
@@ -967,11 +1085,14 @@ routerReady.then((router) => {
 });
 
 document.addEventListener('deviceready', () => {
-  // Use a small delay so ensureInitialHash() has settled the URL before syncing chrome.
-  setTimeout(() => scheduleAppChromeSync(getCurrentAppPath()), 200);
+  scheduleViewportHeightSync();
 });
 
 const resyncCurrentAppChrome = () => {
+  if (isLegacyAndroidStatusbarMode()) {
+    return;
+  }
+  scheduleViewportHeightSync();
   _pendingChromeResyncPath = getCurrentAppPath();
   if (_pendingChromeResyncRaf) return;
   _pendingChromeResyncRaf = requestAnimationFrame(() => {
@@ -982,12 +1103,14 @@ const resyncCurrentAppChrome = () => {
 
 window.addEventListener('app:tab-change', (event) => {
   currentTabsActiveTab = normalizeChromeTabId(event && event.detail ? event.detail.tab : '');
+  if (isLegacyAndroidStatusbarMode()) return;
   resyncCurrentAppChrome();
 });
 
 document.addEventListener('ionTabsDidChange', (event) => {
   const eventTab = normalizeChromeTabId(event && event.detail ? event.detail.tab : '');
   currentTabsActiveTab = eventTab || getCurrentTabsActiveTab();
+  if (isLegacyAndroidStatusbarMode()) return;
   resyncCurrentAppChrome();
 });
 
@@ -997,6 +1120,7 @@ window.addEventListener('app:statusbar-preset-change', (event) => {
     window.r34lp0w3r = window.r34lp0w3r || {};
     window.r34lp0w3r.appStatusbarPreset = normalizeStatusbarPreset(requestedPreset);
   }
+  if (isLegacyAndroidStatusbarMode()) return;
   resyncCurrentAppChrome();
 });
 
@@ -1004,20 +1128,24 @@ window.addEventListener('app:font-sf-pro-change', (event) => {
   applyAppFontPreference(event?.detail?.enabled);
 });
 
-document.addEventListener('resume', resyncCurrentAppChrome);
-document.addEventListener('visibilitychange', () => {
-  if (!document.hidden) {
-    resyncCurrentAppChrome();
-  }
-});
+const shouldHandleGlobalViewportEvents = () => !isLegacyAndroidStatusbarMode();
+const handleGlobalViewportEvent = () => {
+  if (!shouldHandleGlobalViewportEvents()) return;
+  scheduleViewportHeightSync();
+};
+window.addEventListener('resize', handleGlobalViewportEvent);
+if (window.visualViewport && typeof window.visualViewport.addEventListener === 'function') {
+  window.visualViewport.addEventListener('resize', handleGlobalViewportEvent);
+  window.visualViewport.addEventListener('scroll', handleGlobalViewportEvent);
+}
 
 try {
   const appPlugin = window.Capacitor?.Plugins?.App;
   if (appPlugin && typeof appPlugin.addListener === 'function') {
     appPlugin.addListener('appStateChange', ({ isActive }) => {
-      if (isActive) {
-        resyncCurrentAppChrome();
-      }
+      // Resume/foreground must not mutate visual layout/chrome.
+      // Keep listener only for potential non-visual hooks in the future.
+      void isActive;
     });
   }
 } catch (_err) {
@@ -1240,6 +1368,10 @@ function setupAppTitlebarToggle() {
 
   applyState();
   window.addEventListener('app:titlebar-enabled-change', () => {
+    if (isLegacyAndroidStatusbarMode()) {
+      applyState();
+      return;
+    }
     applyState();
     refreshMountedPages();
     applyState();
@@ -1305,7 +1437,10 @@ function setupNativeToastTopOffset() {
   });
 
   observer.observe(document.body, { childList: true, subtree: true });
-  window.addEventListener('app:titlebar-enabled-change', patchExistingToasts);
+  window.addEventListener('app:titlebar-enabled-change', () => {
+    if (isLegacyAndroidStatusbarMode()) return;
+    patchExistingToasts();
+  });
   patchExistingToasts();
 }
 

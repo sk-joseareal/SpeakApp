@@ -94,6 +94,42 @@ const REFERENCE_RIBBON_POPUP_IMAGE = `data:image/svg+xml;charset=UTF-8,${encodeU
 
 let markedParseFnPromise = null;
 
+const REF_CIRCLE_COLORS = [
+  '#4A7DFF', '#8B5CF6', '#F97316', '#10B981',
+  '#06B6D4', '#EC4899', '#F59E0B', '#6366F1'
+];
+const refHash = (text) => {
+  let hash = 2166136261;
+  const str = String(text || '');
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash ^ str.charCodeAt(i)) * 16777619) >>> 0;
+  }
+  return hash;
+};
+const refHashToColor = (text) => REF_CIRCLE_COLORS[refHash(text) % REF_CIRCLE_COLORS.length];
+const refBuildLessonColorMap = (lessons, unitSeed) => {
+  const palette = REF_CIRCLE_COLORS.slice();
+  let h = 2166136261 ^ refHash(String(unitSeed || ''));
+  for (let i = palette.length - 1; i > 0; i--) {
+    h = ((h ^ (h >>> 16)) * 0x45d9f3b) >>> 0;
+    const j = h % (i + 1);
+    [palette[i], palette[j]] = [palette[j], palette[i]];
+  }
+  const map = new Map();
+  const used = new Set();
+  lessons.forEach((lesson) => {
+    const preferred = refHash(`${unitSeed}:${lesson.code}`) % palette.length;
+    let color = palette[preferred];
+    for (let offset = 0; offset < palette.length; offset++) {
+      const candidate = palette[(preferred + offset) % palette.length];
+      if (!used.has(candidate)) { color = candidate; break; }
+    }
+    used.add(color);
+    map.set(String(lesson.code), color);
+  });
+  return map;
+};
+
 const getResolvedUserName = (user) => {
   if (!user || typeof user !== 'object') return '';
   const derived = [user.first_name, user.last_name].filter(Boolean).join(' ').trim();
@@ -296,6 +332,7 @@ class PageReference extends HTMLElement {
     window.addEventListener('app:free-ride-card-padded-change', this._cardPaddedHandler);
     this._resizeHandler = () => {
       if (!this.isConnected) return;
+      if (document.body?.classList?.contains('app-android-legacy-webview')) return;
       this.referenceSheetExpandedOffset = this.measureReferenceSheetExpandedOffset();
       this.applyReferenceSheetState({ animate: false, force: true });
       this.scheduleLayoutSync(0);
@@ -303,6 +340,7 @@ class PageReference extends HTMLElement {
     window.addEventListener('resize', this._resizeHandler);
     this._layoutViewportHandler = () => {
       if (!this.isConnected) return;
+      if (document.body?.classList?.contains('app-android-legacy-webview')) return;
       this.scheduleLayoutSync(0);
     };
     if (window.visualViewport && typeof window.visualViewport.addEventListener === 'function') {
@@ -1711,6 +1749,15 @@ class PageReference extends HTMLElement {
 
   scheduleLayoutSync(delayMs = 0) {
     if (!this.isConnected) return;
+    const legacyAndroid = document.body?.classList?.contains('app-android-legacy-webview');
+    if (legacyAndroid && Number(delayMs) > 0) return;
+    if (
+      document.body?.classList?.contains('app-android-legacy-webview') &&
+      window.r34lp0w3r &&
+      window.r34lp0w3r.legacyLayoutReady === false
+    ) {
+      return;
+    }
     if (this.layoutSyncTimer) {
       clearTimeout(this.layoutSyncTimer);
       this.layoutSyncTimer = null;
@@ -2716,12 +2763,13 @@ class PageReference extends HTMLElement {
     const articleRowHtml = (item, dataAttr, iconName, thumbnailUrl = null) => {
       const title    = this.getText(item, 'display', uiLocale) || '';
       const subtitle = this.getSecondaryDisplay(item, uiLocale);
+      const circleColor = refHashToColor(String(item.code || ''));
       const iconHtml = thumbnailUrl
         ? `<div class="training-row-icon articles-row-thumb">
              <img src="${this.escapeHtml(thumbnailUrl)}" alt="" loading="lazy">
            </div>`
-        : `<div class="training-row-icon">
-             <ion-icon name="${iconName}" aria-hidden="true"></ion-icon>
+        : `<div class="training-row-icon" style="background:${circleColor}">
+             <ion-icon name="${iconName}" style="color:rgba(255,255,255,0.92)" aria-hidden="true"></ion-icon>
            </div>`;
       return `
         <div class="training-row ${dataAttr.cls}" ${dataAttr.attr}="${item.code}">
@@ -5574,6 +5622,7 @@ class PageReference extends HTMLElement {
                 tone: 'neutral'
               };
             const lessons = Array.isArray(unit.lecciones) ? unit.lecciones : [];
+            const lessonColorMap = refBuildLessonColorMap(lessons, unitCode);
             const lessonsMarkup = isUnitOpen
               ? lessons.length
                 ? `<div class="module-sessions training-list">${lessons
@@ -5597,8 +5646,8 @@ class PageReference extends HTMLElement {
                           data-unit-code="${unitCode}"
                           data-lesson-code="${lessonCode}"
                         >
-                          <div class="training-row-icon">
-                            <ion-icon name="document-text-outline"></ion-icon>
+                          <div class="training-row-icon" style="background:${lessonColorMap.get(lessonCode)}">
+                            <ion-icon name="document-text-outline" style="color:rgba(255,255,255,0.92)"></ion-icon>
                           </div>
                           <div class="training-row-body">
                             <div class="training-row-title">${this.escapeHtml(lessonTitle)}</div>

@@ -76,6 +76,11 @@ public class P4w4PluginPlugin extends Plugin {
     private static String voskModelPath = null;
     private static Translator spanishToEnglishTranslator = null;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
+    private static final int LEGACY_ANDROID_MAX_SDK = 31;
+
+    private boolean isLegacyAndroidDevice() {
+        return Build.VERSION.SDK_INT <= LEGACY_ANDROID_MAX_SDK;
+    }
 
     private void applyStatusBarIcons(android.view.Window window, boolean lightIcons) {
         WindowInsetsControllerCompat controller =
@@ -171,6 +176,10 @@ public class P4w4PluginPlugin extends Plugin {
 
     @PluginMethod
     public void resizeWebView(PluginCall call) {
+        if (isLegacyAndroidDevice()) {
+            call.resolve();
+            return;
+        }
         Integer offset = call.getInt("offset");
         if (offset == null) {
             Log.i("P4w4Plugin", ">#P4w4Plugin#> resizeWebView: Falta el offset.");
@@ -218,6 +227,10 @@ public class P4w4PluginPlugin extends Plugin {
 
     @PluginMethod
     public void offsetTopWebView(PluginCall call) {
+        if (isLegacyAndroidDevice()) {
+            call.resolve();
+            return;
+        }
         Integer offset = call.getInt("offset");
         if (offset == null) {
             Log.i("P4w4Plugin", ">#P4w4Plugin#> offsetTopWebView: Falta el offset.");
@@ -296,6 +309,15 @@ public class P4w4PluginPlugin extends Plugin {
 
         getActivity().runOnUiThread(() -> {
             try {
+                if (isLegacyAndroidDevice()) {
+                    SharedPreferences prefs = getContext().getSharedPreferences(NATIVE_CHROME_PREFS, Context.MODE_PRIVATE);
+                    prefs.edit()
+                        .putString(PREF_BG, backgroundColor)
+                        .putBoolean(PREF_LIGHT_ICONS, lightIcons)
+                        .apply();
+                    call.resolve();
+                    return;
+                }
                 int color = Color.parseColor(backgroundColor);
                 boolean transparentChrome = Color.alpha(color) == 0;
                 int nativeBackdropColor = transparentChrome ? Color.parseColor("#a7c6f7") : color;

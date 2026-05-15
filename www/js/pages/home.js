@@ -36,6 +36,10 @@ const HOME_PLAN_AUTONARRATION_PLAYED_KEY = 'appv5:home-plan-auto-narration-playe
 const HOME_EXPANDED_ROUTE_KEY = 'appv5:home-expanded-route-id';
 const HOME_RETURN_SCROLL_KEY = 'appv5:home-return-scroll-top';
 const HOME_RETURN_REVEAL_KEY = 'appv5:home-return-reveal-target';
+const HOME_HANDLE_HINT_KEY = 'appv5:home-handle-hint-seen';
+const isHandleHintSeen = () => {
+  try { return Boolean(localStorage.getItem(HOME_HANDLE_HINT_KEY)); } catch (_) { return true; }
+};
 const FREE_RIDE_HEADER_COLOR_KEY = 'appv5:free-ride-header-color';
 const FREE_RIDE_CARD_PADDED_KEY = 'appv5:free-ride-card-padded';
 const FREE_RIDE_HEADER_COLOR_VALUES = ['white', 'dark', 'blue'];
@@ -50,6 +54,16 @@ const MODULE_AUDIO_ICON = `
     </svg>
   </span>
 `;
+const SESSION_CIRCLE_COLORS = [
+  '#4A7DFF',
+  '#8B5CF6',
+  '#F97316',
+  '#10B981',
+  '#06B6D4',
+  '#EC4899',
+  '#F59E0B',
+  '#6366F1'
+];
 
 const getResolvedUserName = (user) => {
   if (!user || typeof user !== 'object') return '';
@@ -75,6 +89,33 @@ const isFreeRideCardPadded = () => {
   } catch (_err) {
     return true;
   }
+};
+
+const hashTextToIndex = (text, modulo) => {
+  const value = String(text || '').trim();
+  if (!value || !modulo) return 0;
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return Math.abs(hash) % modulo;
+};
+
+const shufflePalette = (seed, palette) => {
+  const items = Array.isArray(palette) ? palette.slice() : [];
+  if (items.length < 2) return items;
+  let hash = 2166136261 ^ hashTextToIndex(seed, 0x7fffffff);
+  for (let index = items.length - 1; index > 0; index -= 1) {
+    hash ^= hash << 13;
+    hash ^= hash >>> 17;
+    hash ^= hash << 5;
+    const swapIndex = Math.abs(hash) % (index + 1);
+    const temp = items[index];
+    items[index] = items[swapIndex];
+    items[swapIndex] = temp;
+  }
+  return items;
 };
 
 class PageHome extends HTMLElement {
@@ -114,6 +155,7 @@ class PageHome extends HTMLElement {
     this.journeySheetExpandedOffset = 0;
     this.journeySheetTranslateY = 0;
     this.journeySheetDragging = false;
+    this._hintWasExpanded = false;
     this.journeySheetPointerId = null;
     this.journeySheetDragStartY = 0;
     this.journeySheetDragStartTranslateY = 0;
@@ -226,13 +268,32 @@ class PageHome extends HTMLElement {
     this._routerEl?.addEventListener('ionRouteDidChange', this._routeDidChangeHandler);
     this._resizeHandler = () => {
       if (!this.isConnected) return;
+      if (document.body?.classList?.contains('app-android-legacy-webview')) return;
       this.journeySheetExpandedOffset = this.measureJourneySheetExpandedOffset();
       this.applyJourneySheetState({ animate: false, force: true });
       this.scheduleLayoutSync(0);
     };
     window.addEventListener('resize', this._resizeHandler);
+    this._handleHintResetHandler = () => {
+      if (this._hintHideTimer) {
+        clearTimeout(this._hintHideTimer);
+        this._hintHideTimer = null;
+      }
+      this._hintWasExpanded = false;
+      const handleEl = this.getJourneySheetHandleEl();
+      const hintEl = handleEl?.querySelector('.handle-hint');
+      if (handleEl) handleEl.classList.add('has-hint');
+      if (hintEl) {
+        hintEl.classList.remove('handle-hint-out');
+        hintEl.style.display = '';
+        const icon = hintEl.querySelector('ion-icon');
+        if (icon) icon.setAttribute('name', 'chevron-up-outline');
+      }
+    };
+    window.addEventListener('app:handle-hint-reset', this._handleHintResetHandler);
     this._layoutViewportHandler = () => {
       if (!this.isConnected) return;
+      if (document.body?.classList?.contains('app-android-legacy-webview')) return;
       this.scheduleLayoutSync(0);
     };
     if (window.visualViewport && typeof window.visualViewport.addEventListener === 'function') {
@@ -247,6 +308,10 @@ class PageHome extends HTMLElement {
   }
 
   disconnectedCallback() {
+    if (this._hintHideTimer) {
+      clearTimeout(this._hintHideTimer);
+      this._hintHideTimer = null;
+    }
     if (this.handleSelectionChange) {
       window.removeEventListener('training:selection-change', this.handleSelectionChange);
     }
@@ -295,6 +360,10 @@ class PageHome extends HTMLElement {
     if (this._resizeHandler) {
       window.removeEventListener('resize', this._resizeHandler);
       this._resizeHandler = null;
+    }
+    if (this._handleHintResetHandler) {
+      window.removeEventListener('app:handle-hint-reset', this._handleHintResetHandler);
+      this._handleHintResetHandler = null;
     }
     if (this._layoutViewportHandler) {
       if (window.visualViewport && typeof window.visualViewport.removeEventListener === 'function') {
@@ -506,6 +575,37 @@ class PageHome extends HTMLElement {
         'aria-label',
         this.journeySheetExpanded ? 'Collapse training card' : 'Expand training card'
       );
+      const hintEl = handleEl.querySelector('.handle-hint');
+      if (hintEl) {
+        const seen = isHandleHintSeen();
+        handleEl.classList.toggle('has-hint', !seen);
+        if (seen) {
+          if (!hintEl.classList.contains('handle-hint-out')) hintEl.classList.add('handle-hint-out');
+          if (!hintEl.style.display) hintEl.style.display = 'none';
+        } else {
+          if (hintEl.classList.contains('handle-hint-out')) {
+            hintEl.classList.remove('handle-hint-out');
+            hintEl.style.display = '';
+          }
+          const icon = hintEl.querySelector('ion-icon');
+          if (this.journeySheetExpanded) {
+            if (icon) icon.setAttribute('name', 'chevron-down-outline');
+            this._hintWasExpanded = true;
+          } else {
+            if (icon) icon.setAttribute('name', 'chevron-up-outline');
+            if (this._hintWasExpanded) {
+              handleEl.classList.remove('has-hint');
+              hintEl.classList.add('handle-hint-out');
+              if (this._hintHideTimer) clearTimeout(this._hintHideTimer);
+              this._hintHideTimer = setTimeout(() => {
+                this._hintHideTimer = null;
+                hintEl.style.display = 'none';
+              }, 400);
+              try { localStorage.setItem(HOME_HANDLE_HINT_KEY, '1'); } catch (_) {}
+            }
+          }
+        }
+      }
     }
 
     if (!animate) {
@@ -635,6 +735,15 @@ class PageHome extends HTMLElement {
 
   scheduleLayoutSync(delayMs = 0) {
     if (!this.isConnected) return;
+    const legacyAndroid = document.body?.classList?.contains('app-android-legacy-webview');
+    if (legacyAndroid && Number(delayMs) > 0) return;
+    if (
+      document.body?.classList?.contains('app-android-legacy-webview') &&
+      window.r34lp0w3r &&
+      window.r34lp0w3r.legacyLayoutReady === false
+    ) {
+      return;
+    }
     if (this.layoutSyncTimer) {
       clearTimeout(this.layoutSyncTimer);
       this.layoutSyncTimer = null;
@@ -1049,6 +1158,65 @@ class PageHome extends HTMLElement {
     const getModuleTitle = (module) => readLocalizedField(module, 'title');
     const getModuleSubtitle = (module) => readLocalizedField(module, 'subtitle');
     const getSessionTitle = (session) => readLocalizedField(session, 'title');
+    const getSessionTitleParts = (session) => {
+      const title = String(getSessionTitle(session) || '').trim();
+      if (!title) return { primary: '', secondary: '' };
+      const match = title.match(/^(the\s+.+?\s+sound)\s+(?:in\s+)?(.+)$/i);
+      if (!match) return { primary: title, secondary: '' };
+      const primary = String(match[1] || '').trim();
+      const secondary = String(match[2] || '').trim();
+      if (!primary) return { primary: title, secondary: '' };
+      return secondary ? { primary, secondary: `in ${secondary}` } : { primary, secondary: '' };
+    };
+    const getSessionCircleLabel = (session) => {
+      const title = String(getSessionTitle(session) || '').trim();
+      if (!title) return '';
+      const stopWords = new Set([
+        'the', 'a', 'an', 'in', 'as', 'of', 'to', 'and', 'vs',
+        'sound', 'sounds', 'basic', 'short', 'long', 'voiced', 'voiceless',
+        'el', 'la', 'los', 'las', 'un', 'una', 'de', 'del', 'en', 'al',
+        'sonido', 'sonidos'
+      ]);
+      const tokens = title
+        .replace(/[()[\],.]/g, ' ')
+        .split(/\s+/)
+        .map((token) => String(token || '').replace(/^[^A-Za-zÀ-ÿ0-9]+|[^A-Za-zÀ-ÿ0-9]+$/g, ''))
+        .filter(Boolean);
+      for (const token of tokens) {
+        if (stopWords.has(token.toLowerCase())) continue;
+        const upper = token.toUpperCase();
+        if (/^[A-ZÀ-ÖØ-Þ0-9]{1,2}$/.test(upper)) {
+          return upper;
+        }
+      }
+      const meaningful = tokens.find((token) => !stopWords.has(token.toLowerCase())) || tokens[0] || title;
+      const letters = String(meaningful || '')
+        .replace(/[^A-Za-zÀ-ÿ0-9]/g, '')
+        .trim();
+      if (!letters) return '';
+      return letters.slice(0, 2).toUpperCase();
+    };
+    const getSessionCircleColorMap = (sessions, seed) => {
+      const palette = shufflePalette(seed, SESSION_CIRCLE_COLORS);
+      const assigned = new Map();
+      const usedColors = new Set();
+      (Array.isArray(sessions) ? sessions : []).forEach((session) => {
+        if (!session) return;
+        const titleForHash = String(session.title_en || session.id || '').trim();
+        const preferredIndex = hashTextToIndex(`${seed}:${titleForHash}`, palette.length);
+        let chosenColor = palette[preferredIndex] || palette[0] || SESSION_CIRCLE_COLORS[0];
+        for (let offset = 0; offset < palette.length; offset += 1) {
+          const candidate = palette[(preferredIndex + offset) % palette.length];
+          if (candidate && !usedColors.has(candidate)) {
+            chosenColor = candidate;
+            break;
+          }
+        }
+        usedColors.add(chosenColor);
+        assigned.set(session.id, chosenColor);
+      });
+      return assigned;
+    };
     if (!routes.length) {
       const loadingLabel = String(copy.loading || speakCopy.loading || 'Loading...').trim();
       this.innerHTML = `
@@ -1073,8 +1241,9 @@ class PageHome extends HTMLElement {
               </div>
             </section>
             <section class="free-ride-card journey-sheet">
-              <button class="free-ride-card-handle journey-sheet-handle" type="button" aria-label="Expand training card" aria-expanded="false">
+              <button class="free-ride-card-handle journey-sheet-handle${isHandleHintSeen() ? '' : ' has-hint'}" type="button" aria-label="Expand training card" aria-expanded="false">
                 <span class="free-ride-card-handle-pill journey-sheet-handle-pill" aria-hidden="true"></span>
+                <span class="handle-hint${isHandleHintSeen() ? ' handle-hint-out' : ''}" aria-hidden="true"><ion-icon name="chevron-up-outline"></ion-icon><span class="handle-hint-label">${uiLocale === 'es' ? 'pruébame' : 'try me'}</span></span>
               </button>
               <div class="free-ride-card-main journey-sheet-main">
                 <div class="journey-accordion">
@@ -1498,6 +1667,7 @@ class PageHome extends HTMLElement {
           .map((module) => {
             const isActive = route.id === activeRoute.id && module.id === activeModule.id;
             const isModuleOpen = isRouteOpen && module.id === this.expandedModuleId;
+            const sessionCircleColorById = getSessionCircleColorMap(module.sessions, `${route.id}:${module.id}`);
             const progress = getModulePercent(module);
             const lockedClass = routeUnlocked ? '' : 'module-item-locked';
             const toneCls = progress.started ? progress.tone : 'neutral';
@@ -1523,16 +1693,13 @@ class PageHome extends HTMLElement {
                       const tone = getScoreTone(sessionPercent);
                       const toneClass =
                         tone === 'good' ? 'good' : tone === 'okay' ? 'okay' : tone === 'bad' ? 'bad' : 'neutral';
-                      const sessionIcon = toneClass === 'good' ? 'checkmark' : 'play-outline';
+                      const sessionCircleLabel = getSessionCircleLabel(item);
+                      const sessionCircleColor = sessionCircleColorById.get(item.id) || SESSION_CIRCLE_COLORS[0];
+                      const sessionTitle = getSessionTitle(item);
                       const labelText = getScoreLabel(
                         sessionPercent,
                         `${route.id}:${module.id}:${item.id}`
                       );
-                      const secondaryLabelText =
-                        toneClass === 'good'
-                          ? speakCopy.practiceAgainAnytime || '(Practice again anytime)'
-                          : '';
-                      const scoreText = `${sessionPercent}%`;
                       const isCurrentSession =
                         route.id === activeRoute.id &&
                         module.id === activeModule.id &&
@@ -1545,15 +1712,15 @@ class PageHome extends HTMLElement {
                           data-module-id="${module.id}"
                           data-locked="${routeUnlocked ? '0' : '1'}"
                         >
-                          <div class="session-circle">
-                            <ion-icon name="${sessionIcon}"></ion-icon>
+                          <div class="session-circle" style="background:${sessionCircleColor};">
+                            <span class="session-circle-text${sessionCircleLabel.length > 1 ? ' is-two-letter' : ''}">${sessionCircleLabel}</span>
                           </div>
                           <div class="session-body">
-                            <div class="session-title">${getSessionTitle(item)}</div>
-                            ${labelText ? `<div class="session-label session-label-${toneClass}">${labelText}</div>` : ''}
-                            ${secondaryLabelText ? `<div class="session-label-secondary">${secondaryLabelText}</div>` : ''}
+                            <div class="session-title">
+                              <span class="session-title-main">${sessionTitle}</span>
+                              ${labelText ? `<span class="session-label session-label-${toneClass}">${labelText}</span>` : ''}
+                            </div>
                           </div>
-                          <div class="session-percent session-percent-${toneClass}">${scoreText}</div>
                           <ion-icon name="chevron-forward" class="training-row-arrow"></ion-icon>
                         </div>
                       `;
@@ -1790,8 +1957,9 @@ class PageHome extends HTMLElement {
           </section>
 
           <section class="free-ride-card journey-sheet">
-            <button class="free-ride-card-handle journey-sheet-handle" type="button" aria-label="Expand training card" aria-expanded="false">
+            <button class="free-ride-card-handle journey-sheet-handle${isHandleHintSeen() ? '' : ' has-hint'}" type="button" aria-label="Expand training card" aria-expanded="false">
               <span class="free-ride-card-handle-pill journey-sheet-handle-pill" aria-hidden="true"></span>
+              <span class="handle-hint${isHandleHintSeen() ? ' handle-hint-out' : ''}" aria-hidden="true"><ion-icon name="chevron-up-outline"></ion-icon><span class="handle-hint-label">${uiLocale === 'es' ? 'pruébame' : 'try me'}</span></span>
             </button>
             <div class="free-ride-card-main journey-sheet-main">
               <div class="journey-accordion">

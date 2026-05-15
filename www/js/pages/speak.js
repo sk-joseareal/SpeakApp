@@ -147,6 +147,7 @@ class PageSpeak extends HTMLElement {
     const MFA_VISEME_BASE = `${MFA_BASE}/visemes`;
     const MFA_WORDS_BASE = `${MFA_BASE}/words`;
     const MFA_SYLLABLES_BASE = `${MFA_BASE}/syllables`;
+    const VIDEO_BASE = 'assets/speak/videos';
     const AV_SYNC_DELAY = 0.06;
     const RECORDING_TIMESLICE = 500;
     const VOSK_SAMPLE_RATE_DEFAULT = 16000;
@@ -166,18 +167,21 @@ class PageSpeak extends HTMLElement {
     const SPEAK_PRONUNCIATION_AVATAR_VISEMES_REAL = 'visemes-real';
     const SPEAK_PRONUNCIATION_AVATAR_VISEMES_V2 = 'visemes-v2';
     const SPEAK_PRONUNCIATION_AVATAR_VISEMES_V1 = 'visemes-v1';
+    const SPEAK_PRONUNCIATION_AVATAR_VIDEO = 'video';
     const SPEAK_PRONUNCIATION_AVATAR_MODES = [
       SPEAK_PRONUNCIATION_AVATAR_OLD,
       SPEAK_PRONUNCIATION_AVATAR_NEW,
       SPEAK_PRONUNCIATION_AVATAR_SET2,
       SPEAK_PRONUNCIATION_AVATAR_VISEMES_REAL,
       SPEAK_PRONUNCIATION_AVATAR_VISEMES_V2,
-      SPEAK_PRONUNCIATION_AVATAR_VISEMES_V1
+      SPEAK_PRONUNCIATION_AVATAR_VISEMES_V1,
+      SPEAK_PRONUNCIATION_AVATAR_VIDEO
     ];
     const MODULE_TROPHY_REWARD_QTY = 1;
     const MODULE_TROPHY_REWARD_ICON = 'trophy';
     const MAX_ROUTE_BADGE_COUNT = 5;
     const MIN_RECORDING_BLOB_BYTES = 128;
+    const SPEAK_ALIGNED_CACHE_MAX_ITEMS = 36;
     const speakSheetSurface = this.querySelector('.speak-sheet');
     const swipeSurface = this.querySelector('.speak-swipe-stage');
 
@@ -262,6 +266,7 @@ class PageSpeak extends HTMLElement {
     let heroMascotIsTalking = false;
     let heroNarrationInProgress = false;
     let heroRemoteAudioEl = null;
+    const alignedTtsCache = new Map();
     let heroFirstRenderAt = 0;
     let hintLocaleOverride = '';
     let activeHintLocale = 'en';
@@ -270,6 +275,7 @@ class PageSpeak extends HTMLElement {
     let speakSheetExpandedOffset = 0;
     let speakSheetTranslateY = 0;
     let speakSheetDragging = false;
+
     let speakSheetPointerId = null;
     let speakSheetDragStartY = 0;
     let speakSheetDragStartTranslateY = 0;
@@ -288,7 +294,7 @@ class PageSpeak extends HTMLElement {
         .trim()
         .toLowerCase();
       if (SPEAK_PRONUNCIATION_AVATAR_MODES.includes(normalized)) return normalized;
-      return SPEAK_PRONUNCIATION_AVATAR_SET2;
+      return SPEAK_PRONUNCIATION_AVATAR_VIDEO;
     };
     const getStoredPronunciationAvatarMode = () => {
       const globalValue =
@@ -429,6 +435,13 @@ class PageSpeak extends HTMLElement {
           TH: `${AVATAR_BASE}/mouth-th.png`
         }
       };
+    };
+    const resolveSessionVideoPath = (session) => {
+      const titleMatch = (session?.title_en || '').match(/\bin\s+([A-Za-z]+)\s*$/i);
+      if (titleMatch) return `${VIDEO_BASE}/${titleMatch[1].toLowerCase()}.mp4`;
+      const expected = (session?.speak?.sound?.expected || '').trim().toLowerCase();
+      if (expected && /^[a-z]+$/.test(expected)) return `${VIDEO_BASE}/${expected}.mp4`;
+      return `${VIDEO_BASE}/baby.mp4`;
     };
     const getNativeTranscribePlugin = () =>
       window.Capacitor && window.Capacitor.Plugins ? window.Capacitor.Plugins.P4w4Plugin : null;
@@ -868,6 +881,79 @@ class PageSpeak extends HTMLElement {
       }
       heroRemoteAudioEl.src = '';
       heroRemoteAudioEl = null;
+    };
+
+    const resolveAlignedTtsEndpoint = () => {
+      const cfg = window.realtimeConfig || {};
+      const direct = cfg.ttsAlignedEndpoint || window.REALTIME_TTS_ALIGNED_ENDPOINT;
+      if (typeof direct === 'string' && direct.trim()) {
+        return direct.trim();
+      }
+      const emitEndpoint = cfg.emitEndpoint;
+      if (typeof emitEndpoint === 'string' && emitEndpoint.trim()) {
+        const trimmed = emitEndpoint.trim().replace(/\/+$/, '');
+        if (trimmed.endsWith('/emit')) {
+          return `${trimmed.slice(0, -5)}/tts/aligned`;
+        }
+      }
+      return 'https://realtime.curso-ingles.com/realtime/tts/aligned';
+    };
+
+    const buildAlignedTtsHeaders = () => {
+      const headers = { 'Content-Type': 'application/json' };
+      const cfg = window.realtimeConfig || {};
+      const token = typeof cfg.authToken === 'string' ? cfg.authToken.trim() : '';
+      if (token) headers['x-rt-token'] = token;
+      return headers;
+    };
+
+    const getAlignedTtsCacheKey = (text, lang) =>
+      `${String(lang || '').trim().toLowerCase()}::${String(text || '').trim()}`;
+
+    const getAlignedTtsFromCache = (text, lang) => {
+      const key = getAlignedTtsCacheKey(text, lang);
+      if (!key || !alignedTtsCache.has(key)) return null;
+      const cached = alignedTtsCache.get(key);
+      alignedTtsCache.delete(key);
+      alignedTtsCache.set(key, cached);
+      return cached;
+    };
+
+    const storeAlignedTtsInCache = (text, lang, payload) => {
+      const key = getAlignedTtsCacheKey(text, lang);
+      if (!key || !payload) return;
+      alignedTtsCache.set(key, payload);
+      while (alignedTtsCache.size > SPEAK_ALIGNED_CACHE_MAX_ITEMS) {
+        const oldest = alignedTtsCache.keys().next();
+        if (oldest && !oldest.done) alignedTtsCache.delete(oldest.value);
+        else break;
+      }
+    };
+
+    const fetchAlignedTts = async (text, lang) => {
+      const expected = String(text || '').trim();
+      const locale = String(lang || '').trim() || 'en-US';
+      if (!expected) return null;
+      const cached = getAlignedTtsFromCache(expected, locale);
+      if (cached) return cached;
+      const endpoint = resolveAlignedTtsEndpoint();
+      if (!endpoint) return null;
+      const body = { text: expected, locale };
+      const user = window.user;
+      if (user && user.id !== undefined && user.id !== null && String(user.id).trim()) {
+        body.user_id = String(user.id).trim();
+      }
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: buildAlignedTtsHeaders(),
+        body: JSON.stringify(body)
+      });
+      if (!response.ok) return null;
+      const payload = await response.json();
+      if (!payload || payload.ok !== true) return null;
+      if (typeof payload.audio_url !== 'string' || !payload.audio_url.trim()) return null;
+      storeAlignedTtsInCache(expected, locale, payload);
+      return payload;
     };
 
     const normalizeSpeechComparable = (value) =>
@@ -2162,6 +2248,159 @@ class PageSpeak extends HTMLElement {
       }, Math.max(0, Number(delayMs) || 0));
     };
 
+    const playHeroBubbleNarrationAligned = async (text, lang, token) => {
+      const message = String(text || '').trim();
+      if (!message || token !== heroNarrationToken) return false;
+      let payload = null;
+      try {
+        payload = await fetchAlignedTts(message, lang);
+      } catch (_err) {
+        payload = null;
+      }
+      if (!payload || token !== heroNarrationToken) return false;
+      const audioUrl = String(payload.audio_url || '').trim();
+      if (!audioUrl) return false;
+
+      const audio = new Audio(audioUrl);
+      audio.preload = 'auto';
+
+      return new Promise((resolve) => {
+        let started = false;
+        let settled = false;
+        let cancelTimer = null;
+        let startTimeout = null;
+
+        const notifyStart = () => {
+          if (started) return;
+          started = true;
+          if (startTimeout) {
+            clearTimeout(startTimeout);
+            startTimeout = null;
+          }
+          startHeroMascotTalk();
+        };
+
+        const cleanup = () => {
+          if (cancelTimer) {
+            clearInterval(cancelTimer);
+            cancelTimer = null;
+          }
+          if (startTimeout) {
+            clearTimeout(startTimeout);
+            startTimeout = null;
+          }
+          audio.onplaying = null;
+          audio.onended = null;
+          audio.onerror = null;
+          if (heroRemoteAudioEl === audio) {
+            heroRemoteAudioEl = null;
+          }
+        };
+
+        const settle = () => {
+          if (settled) return;
+          settled = true;
+          cleanup();
+          stopHeroMascotTalk({ settle: true });
+          resolve(started);
+        };
+
+        cancelTimer = setInterval(() => {
+          if (settled) return;
+          if (token !== heroNarrationToken) {
+            try {
+              audio.pause();
+              audio.currentTime = 0;
+            } catch (_err) {
+              // no-op
+            }
+            settle();
+          }
+        }, 80);
+
+        startTimeout = setTimeout(() => {
+          settle();
+        }, 1800);
+
+        audio.onplaying = () => {
+          notifyStart();
+        };
+        audio.onended = () => {
+          settle();
+        };
+        audio.onerror = () => {
+          settle();
+        };
+
+        heroRemoteAudioEl = audio;
+        audio
+          .play()
+          .then(() => {
+            if (token !== heroNarrationToken) {
+              try {
+                audio.pause();
+                audio.currentTime = 0;
+              } catch (_err) {
+                // no-op
+              }
+              settle();
+              return;
+            }
+            notifyStart();
+          })
+          .catch(() => {
+            settle();
+          });
+      });
+    };
+
+    const playHeroBubbleNarration = async (text, locale = getHintUiLocale()) => {
+      const bubbleText = String(text || '').trim();
+      if (!bubbleText || !heroHintDisplayEl) return false;
+      const normalizedLocale = normalizeHintLocale(locale) || 'en';
+      const bubbleLang = getHintSpeechLocale(normalizedLocale);
+      stopPlayback();
+      const requestToken = ++heroNarrationToken;
+
+      let started = await playHeroBubbleNarrationAligned(bubbleText, bubbleLang, requestToken);
+      if (!started && requestToken === heroNarrationToken) {
+        const plugin = getNativeTtsPlugin();
+        if (plugin && typeof plugin.speak === 'function') {
+          startHeroMascotTalk();
+          try {
+            await Promise.resolve(
+              plugin.speak({
+                text: bubbleText,
+                lang: bubbleLang,
+                rate: 1.0,
+                pitch: 1.0,
+                volume: 1.0,
+                category: 'ambient',
+                queueStrategy: 1
+              })
+            );
+            started = requestToken === heroNarrationToken;
+          } catch (_err) {
+            started = false;
+          } finally {
+            if (requestToken === heroNarrationToken) {
+              stopHeroMascotTalk({ settle: true });
+            }
+          }
+        }
+      }
+      if (!started && requestToken === heroNarrationToken) {
+        started = await speakHeroLineWebWithRetry(bubbleText, requestToken, normalizedLocale);
+      }
+      if (!started && requestToken === heroNarrationToken) {
+        await waitMs(450);
+        if (requestToken !== heroNarrationToken) return false;
+        stopPlayback();
+        await speakHeroLineWebWithRetry(bubbleText, requestToken, normalizedLocale);
+      }
+      return started;
+    };
+
     const pickFirstText = (...values) => {
       for (let idx = 0; idx < values.length; idx += 1) {
         const value = String(values[idx] || '').trim();
@@ -3172,16 +3411,27 @@ class PageSpeak extends HTMLElement {
       };
     };
 
-    const playTts = (text, triggerBtn) => {
+    const playTts = (text, triggerBtn, options = {}) => {
       if (!text || !canSpeak()) return;
       stopPlayback();
       setActivePlayButton(triggerBtn || null);
       const utter = new SpeechSynthesisUtterance(text);
-      utter.lang = 'en-US';
+      utter.lang = String(options.lang || 'en-US');
+      if (typeof options.onStart === 'function') {
+        utter.onstart = () => {
+          options.onStart();
+        };
+      }
       utter.onend = () => {
+        if (typeof options.onEnd === 'function') {
+          options.onEnd();
+        }
         clearActivePlayButton();
       };
       utter.onerror = () => {
+        if (typeof options.onError === 'function') {
+          options.onError();
+        }
         clearActivePlayButton();
       };
       const started =
@@ -3869,27 +4119,46 @@ class PageSpeak extends HTMLElement {
           </div>
           ${stepSubtitle ? `<p class="speak-step-subtitle">${stepSubtitle}</p>` : ''}
           <div class="speak-step-main">
-            <div class="speak-avatar-stage">
-              <div class="speak-avatar">
-                <div class="${avatarConfig.wrapperClass}" data-avatar-ratio="${avatarConfig.aspectRatio}">
-                  <img class="avatar-head" src="${avatarConfig.headSrc}" alt="Avatar">
-                  <div class="avatar-mouth-container">
-                    <img
-                      id="speak-mouth-a"
-                      class="${avatarConfig.mouthBaseClass} mouth-layer mouth-layer-active viseme-neutral"
-                      src="${avatarConfig.mouthMap.NEUTRAL}"
-                      alt="Mouth"
-                    />
-                    <img
-                      id="speak-mouth-b"
-                      class="${avatarConfig.mouthBaseClass} mouth-layer viseme-neutral"
-                      src="${avatarConfig.mouthMap.NEUTRAL}"
-                      alt="Mouth"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
+            ${getStoredPronunciationAvatarMode() === SPEAK_PRONUNCIATION_AVATAR_VIDEO
+              ? `<div class="speak-avatar-stage speak-avatar-stage-video">
+                   <div class="speak-video-wrap">
+                     <video
+                       id="speak-session-video"
+                       class="speak-session-video"
+                       src="${resolveSessionVideoPath(currentSessionData)}"
+                       poster="${resolveSessionVideoPath(currentSessionData).replace('.mp4', '.jpg')}"
+                       playsinline
+                     ></video>
+                     <button class="speak-video-play-btn" id="speak-video-play" type="button" aria-label="Play">
+                       <ion-icon name="play-circle-outline"></ion-icon>
+                     </button>
+                     <button class="speak-video-fullscreen-btn" id="speak-video-fullscreen" type="button" aria-label="Fullscreen">
+                       <ion-icon name="expand-outline"></ion-icon>
+                     </button>
+                   </div>
+                 </div>`
+              : `<div class="speak-avatar-stage">
+                   <div class="speak-avatar">
+                     <div class="${avatarConfig.wrapperClass}" data-avatar-ratio="${avatarConfig.aspectRatio}">
+                       <img class="avatar-head" src="${avatarConfig.headSrc}" alt="Avatar">
+                       <div class="avatar-mouth-container">
+                         <img
+                           id="speak-mouth-a"
+                           class="${avatarConfig.mouthBaseClass} mouth-layer mouth-layer-active viseme-neutral"
+                           src="${avatarConfig.mouthMap.NEUTRAL}"
+                           alt="Mouth"
+                         />
+                         <img
+                           id="speak-mouth-b"
+                           class="${avatarConfig.mouthBaseClass} mouth-layer viseme-neutral"
+                           src="${avatarConfig.mouthMap.NEUTRAL}"
+                           alt="Mouth"
+                         />
+                       </div>
+                     </div>
+                   </div>
+                 </div>`
+            }
           </div>
 
           ${renderBottomPanel('sound', {
@@ -4543,6 +4812,52 @@ class PageSpeak extends HTMLElement {
         inactiveMouth = mouthImgB;
       }
 
+      const sessionVideoEl = stepRoot.querySelector('#speak-session-video');
+      const sessionVideoPlayBtn = stepRoot.querySelector('#speak-video-play');
+      const sessionVideoFsBtn = stepRoot.querySelector('#speak-video-fullscreen');
+      if (sessionVideoEl) {
+        const resetVideo = () => {
+          sessionVideoEl.pause();
+          sessionVideoEl.currentTime = 0;
+          sessionVideoPlayBtn?.classList.remove('is-playing');
+        };
+        sessionVideoPlayBtn?.addEventListener('click', () => {
+          if (sessionVideoEl.paused) {
+            sessionVideoEl.play();
+            sessionVideoPlayBtn.classList.add('is-playing');
+          } else {
+            resetVideo();
+          }
+        });
+        sessionVideoEl.addEventListener('error', () => {
+          if (sessionVideoEl.src !== `${window.location.origin}/${VIDEO_BASE}/baby.mp4`) {
+            sessionVideoEl.src = `${VIDEO_BASE}/baby.mp4`;
+          }
+        });
+        sessionVideoFsBtn?.addEventListener('click', () => {
+          if (!document.fullscreenElement) {
+            sessionVideoEl.requestFullscreen?.();
+          } else {
+            document.exitFullscreen?.();
+          }
+        });
+        sessionVideoEl.addEventListener('fullscreenchange', () => {
+          const icon = sessionVideoFsBtn?.querySelector('ion-icon');
+          if (icon) {
+            icon.setAttribute('name', document.fullscreenElement ? 'contract-outline' : 'expand-outline');
+          }
+        });
+        sessionVideoEl.addEventListener('ended', resetVideo);
+        sessionVideoEl.addEventListener('timeupdate', () => {
+          if (
+            sessionVideoEl.duration &&
+            sessionVideoEl.currentTime >= sessionVideoEl.duration - 0.5
+          ) {
+            resetVideo();
+          }
+        });
+      }
+
       phoneticTextEl = stepRoot.querySelector('#speak-phonetic-text');
       sentenceTextEl = stepRoot.querySelector('#speak-sentence-text');
 
@@ -5025,21 +5340,25 @@ class PageSpeak extends HTMLElement {
       renderStep();
     };
 
+    const playHeroNarration = (options = {}) => {
+      const bubbleText = String(heroHintTextEl?.textContent || '').trim();
+      if (!bubbleText) return Promise.resolve(false);
+      const locale = getHintUiLocale(getBaseHintLocale());
+      return playHeroBubbleNarration(bubbleText, locale);
+    };
+
     const handleHeroCardReplayClick = (event) => {
       if (showSummary || !heroCardEl || heroCardEl.hidden) return;
       const target = event && event.target instanceof Element ? event.target : null;
       if (!target) return;
-      if (target.closest('button, a, input, textarea, select, label, [role="button"]')) {
-        return;
-      }
       const bubbleTarget = target.closest('.speak-hero-bubble, .hero-playable-bubble, .journey-plan-bubble');
       if (!bubbleTarget) return;
-      const source = getHeroSourceByStepKey(getStepKey());
-      const locale = activeHintLocale || getHintUiLocale();
-      if (!source) return;
-      if (heroNarrationInProgress) return;
-      if (Date.now() - heroFirstRenderAt < 1000) return;
-      speakHeroNarrationFromSource(source, { locale, manual: true }).catch(() => {});
+      if (event.type === 'keydown') {
+        const key = event && event.key ? event.key : '';
+        if (key !== 'Enter' && key !== ' ') return;
+      }
+      event.preventDefault();
+      playHeroNarration({ manual: true }).catch(() => {});
     };
 
     const prevStep = () => {
@@ -5183,6 +5502,7 @@ class PageSpeak extends HTMLElement {
 
     heroFlagBtn?.addEventListener('click', toggleHintLocaleFromFlag);
     heroCardEl?.addEventListener('click', handleHeroCardReplayClick);
+    heroCardEl?.addEventListener('keydown', handleHeroCardReplayClick);
     debugToggleBtn?.addEventListener('click', toggleDebugPanel);
 
     sheetHandleBtn?.addEventListener('pointerdown', (event) => {
@@ -5277,6 +5597,7 @@ class PageSpeak extends HTMLElement {
       localeBtnEl?.removeEventListener('click', handleLocaleBtn);
       if (heroCardEl) {
         heroCardEl.removeEventListener('click', handleHeroCardReplayClick);
+        heroCardEl.removeEventListener('keydown', handleHeroCardReplayClick);
       }
       if (swipeSurface) {
         swipeSurface.removeEventListener('touchstart', handleSwipeStart);

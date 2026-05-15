@@ -296,8 +296,11 @@ class TabsPage extends HTMLElement {
       if (!tabBarEl) return;
       const allowedTabs = getAllowedTabs();
       const currentTab = getCurrentSelectedTab();
-      const hideForProfileLogin =
-        hideProfileAuthTabBar || (currentTab === 'tu' && !isLoggedIn());
+      const legacyAndroid =
+        document.body && document.body.classList.contains('app-android-legacy-webview');
+      const hideForProfileLogin = legacyAndroid
+        ? (currentTab === 'tu' && !isLoggedIn())
+        : (hideProfileAuthTabBar || (currentTab === 'tu' && !isLoggedIn()));
       tabBarEl.hidden = allowedTabs.length < 2 || hideForProfileLogin;
     };
     wasLoggedIn = isLoggedIn();

@@ -61,3 +61,6 @@ ios/**/.DS_Store
 
 publicar.sh
 .build/
+
+
+www/assets/models/opus-mt-es-en/onnx/

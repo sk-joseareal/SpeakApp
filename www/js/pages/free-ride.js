@@ -22,6 +22,7 @@ import {
   getHeroMascotFramePath as getSharedHeroMascotFramePath,
   preloadHeroMascotFrames
 } from '../mascot-frames.js';
+import { createSheetController } from '../sheet-controller.js';
 
 const FREE_RIDE_TEXT_PREFIX = 'appv5:free-ride:text:';
 const FREE_RIDE_PRACTICE_TEXT_PREFIX = 'appv5:free-ride:practice-text:';
@@ -35,6 +36,8 @@ const TTS_LANG_BY_LOCALE = {
 const BROWSER_AUTONARRATION_EXTRA_DELAY_MS = 120;
 const FREE_RIDE_DEBUG_PANEL_OPEN_KEY = 'appv5:free-ride-debug-panel-open';
 const FREE_RIDE_CARD_PADDED_KEY = 'appv5:free-ride-card-padded';
+const FREE_RIDE_SHEET_EXPANDED_KEY = 'appv5:free-ride-sheet-expanded';
+const FREE_RIDE_SHEET_OFFSET_KEY = 'appv5:free-ride-sheet-expanded-offset';
 const FREE_RIDE_HEADER_COLOR_KEY = 'appv5:free-ride-header-color';
 const FREE_RIDE_HEADER_COLOR_VALUES = ['white', 'dark', 'blue'];
 
@@ -269,8 +272,19 @@ class PageFreeRide extends HTMLElement {
     this.nativeTranslationPrepareAttempted = false;
     this.heroTapTimer = null;
     this.lastHeroTapTs = 0;
-    this.freeRideSheetExpanded = false;
-    this.freeRideSheetExpandedOffset = 0;
+    this.freeRideSheetController = createSheetController({
+      expandedKey: FREE_RIDE_SHEET_EXPANDED_KEY,
+      offsetKey: FREE_RIDE_SHEET_OFFSET_KEY,
+      getSheetEl: () => this.getFreeRideCardEl(),
+      getHandleEl: () => this.getFreeRideSheetHandleEl(),
+      getShellEl: () => this.getShellEl(),
+      getTopInset: () => this.getFreeRideSheetTopInset(),
+      getExpandedLabel: () => 'Collapse practice card',
+      getCollapsedLabel: () => 'Expand practice card',
+      canInteract: () => !(this.state.isRecording || this.state.isTranscribing)
+    });
+    this.freeRideSheetExpanded = this.freeRideSheetController.state.expanded;
+    this.freeRideSheetExpandedOffset = this.freeRideSheetController.state.offset;
     this.freeRideSheetTranslateY = 0;
     this.freeRideSheetDragging = false;
     this.freeRideSheetPointerId = null;
@@ -383,6 +397,8 @@ class PageFreeRide extends HTMLElement {
         this.restoreIOSKeyboardResizeMode();
         return;
       }
+      this.freeRideSheetExpandedOffset = this.measureFreeRideSheetExpandedOffset();
+      this.applyFreeRideSheetState({ animate: false });
       this.applyIOSKeyboardOverlayMode();
       this.scheduleLayoutSync(0);
       this.scheduleLayoutSync(140);
@@ -393,6 +409,15 @@ class PageFreeRide extends HTMLElement {
       this._tabsDidChangeHandler(event);
     };
     window.addEventListener('app:tab-change', this._appTabChangeHandler);
+    this._routerEl = document.querySelector('ion-router');
+    this._routeDidChangeHandler = (event) => {
+      const to = event && event.detail ? String(event.detail.to || '') : '';
+      if (!to.startsWith('/freeride')) return;
+      if (!this.isConnected) return;
+      this.freeRideSheetExpandedOffset = this.measureFreeRideSheetExpandedOffset();
+      this.applyFreeRideSheetState({ animate: false });
+    };
+    this._routerEl?.addEventListener('ionRouteDidChange', this._routeDidChangeHandler);
     this._layoutViewportHandler = () => {
       if (!this.isConnected) return;
       if (document.body?.classList?.contains('app-android-legacy-webview')) return;
@@ -405,6 +430,8 @@ class PageFreeRide extends HTMLElement {
     }
 
     if (this.isTabActive('freeride')) {
+      this.freeRideSheetExpandedOffset = this.measureFreeRideSheetExpandedOffset();
+      this.applyFreeRideSheetState({ animate: false });
       this.applyIOSKeyboardOverlayMode();
       this.scheduleLayoutSync(0);
       this.scheduleLayoutSync(140);
@@ -490,6 +517,11 @@ class PageFreeRide extends HTMLElement {
     if (this._appTabChangeHandler) {
       window.removeEventListener('app:tab-change', this._appTabChangeHandler);
       this._appTabChangeHandler = null;
+    }
+    if (this._routeDidChangeHandler) {
+      this._routerEl?.removeEventListener('ionRouteDidChange', this._routeDidChangeHandler);
+      this._routeDidChangeHandler = null;
+      this._routerEl = null;
     }
     if (this._tabUserClickHandler) {
       window.removeEventListener('app:tab-user-click', this._tabUserClickHandler);
@@ -1939,63 +1971,32 @@ class PageFreeRide extends HTMLElement {
   }
 
   measureFreeRideSheetExpandedOffset() {
-    const shellEl = this.getShellEl();
-    const cardEl = this.getFreeRideCardEl();
-    if (!shellEl || !cardEl) return 0;
-    const shellRect = shellEl.getBoundingClientRect();
-    const cardRect = cardEl.getBoundingClientRect();
-    // cardRect.top reflects the current visual position with the transform already applied.
-    // To recover the natural (collapsed) offset we must subtract the active translateY,
-    // otherwise measuring while expanded returns ~0 and breaks toggle/drag in that state.
-    const currentTranslate = Number.isFinite(this.freeRideSheetTranslateY)
-      ? this.freeRideSheetTranslateY
-      : 0;
-    const targetTop = shellRect.top + this.getFreeRideSheetTopInset();
-    const offset = Math.max(0, Math.round(cardRect.top - currentTranslate - targetTop));
-    this.freeRideSheetExpandedOffset = offset;
+    const offset = this.freeRideSheetController.measureOffset();
+    this.freeRideSheetExpandedOffset = this.freeRideSheetController.state.offset;
+    this.freeRideSheetTranslateY = this.freeRideSheetController.state.translateY;
     return offset;
   }
 
   applyFreeRideSheetState(options = {}) {
-    const animate = options.animate !== false;
-    const cardEl = this.getFreeRideCardEl();
-    const handleEl = this.getFreeRideSheetHandleEl();
-    if (!cardEl) return;
-
-    const offset = this.freeRideSheetExpanded
-      ? (this.freeRideSheetExpandedOffset || this.measureFreeRideSheetExpandedOffset())
-      : 0;
-    this.freeRideSheetTranslateY = this.freeRideSheetExpanded ? -offset : 0;
-
-    cardEl.dataset.sheetState = this.freeRideSheetExpanded ? 'expanded' : 'collapsed';
-    cardEl.classList.toggle('is-sheet-dragging', this.freeRideSheetDragging);
-    cardEl.classList.toggle('is-sheet-instant', !animate);
-    const liftMagnitude = Math.max(0, -this.freeRideSheetTranslateY);
-    cardEl.style.setProperty('--sheet-lift', `${liftMagnitude}px`);
-    if (handleEl) {
-      handleEl.setAttribute('aria-expanded', this.freeRideSheetExpanded ? 'true' : 'false');
-      handleEl.setAttribute('aria-label', this.freeRideSheetExpanded ? 'Collapse practice card' : 'Expand practice card');
-    }
-
-    if (!animate) {
-      requestAnimationFrame(() => {
-        if (!cardEl.isConnected) return;
-        cardEl.classList.remove('is-sheet-instant');
-      });
-    }
+    this.freeRideSheetController.state.expanded = this.freeRideSheetExpanded;
+    this.freeRideSheetController.state.offset = this.freeRideSheetExpandedOffset;
+    this.freeRideSheetController.state.translateY = this.freeRideSheetTranslateY;
+    this.freeRideSheetController.state.dragging = this.freeRideSheetDragging;
+    this.freeRideSheetController.applyState(options);
+    this.freeRideSheetExpanded = this.freeRideSheetController.state.expanded;
+    this.freeRideSheetExpandedOffset = this.freeRideSheetController.state.offset;
+    this.freeRideSheetTranslateY = this.freeRideSheetController.state.translateY;
+    this.freeRideSheetDragging = this.freeRideSheetController.state.dragging;
   }
 
   setFreeRideSheetExpanded(nextExpanded, options = {}) {
-    const expanded = Boolean(nextExpanded);
-    if (this.freeRideSheetExpanded === expanded && !options.force) {
-      this.applyFreeRideSheetState(options);
-      return;
-    }
-    this.freeRideSheetExpanded = expanded;
-    if (expanded && (!Number.isFinite(this.freeRideSheetExpandedOffset) || this.freeRideSheetExpandedOffset <= 0)) {
-      this.freeRideSheetExpandedOffset = this.measureFreeRideSheetExpandedOffset();
-    }
-    this.applyFreeRideSheetState(options);
+    this.freeRideSheetController.state.expanded = this.freeRideSheetExpanded;
+    this.freeRideSheetController.state.offset = this.freeRideSheetExpandedOffset;
+    this.freeRideSheetController.setExpanded(nextExpanded, options);
+    this.freeRideSheetExpanded = this.freeRideSheetController.state.expanded;
+    this.freeRideSheetExpandedOffset = this.freeRideSheetController.state.offset;
+    this.freeRideSheetTranslateY = this.freeRideSheetController.state.translateY;
+    this.freeRideSheetDragging = this.freeRideSheetController.state.dragging;
   }
 
   toggleFreeRideSheet(options = {}) {
@@ -2003,99 +2004,36 @@ class PageFreeRide extends HTMLElement {
   }
 
   startFreeRideSheetDrag(event) {
-    const handleEl = event && event.currentTarget ? event.currentTarget : null;
-    const cardEl = this.getFreeRideCardEl();
-    if (!handleEl || !cardEl || typeof event.pointerId !== 'number') return;
-    if (event.button !== 0) return;
-    if (this.state.isRecording || this.state.isTranscribing) return;
-
-    this.freeRideSheetExpandedOffset = this.measureFreeRideSheetExpandedOffset();
-    this.freeRideSheetDragging = true;
-    this.freeRideSheetPointerId = event.pointerId;
-    this.freeRideSheetDragStartY = event.clientY;
-    this.freeRideSheetDragStartTranslateY = this.freeRideSheetExpanded
-      ? -this.freeRideSheetExpandedOffset
-      : 0;
-    this.freeRideSheetDragMoved = false;
-    cardEl.classList.add('is-sheet-dragging');
-    this.applyFreeRideSheetState({ animate: false });
-
-    try {
-      handleEl.setPointerCapture(event.pointerId);
-    } catch (_err) {
-      // no-op
-    }
-    event.preventDefault();
+    this.freeRideSheetController.state.expanded = this.freeRideSheetExpanded;
+    this.freeRideSheetController.state.offset = this.freeRideSheetExpandedOffset;
+    this.freeRideSheetController.startDrag(event);
+    this.freeRideSheetExpanded = this.freeRideSheetController.state.expanded;
+    this.freeRideSheetExpandedOffset = this.freeRideSheetController.state.offset;
+    this.freeRideSheetTranslateY = this.freeRideSheetController.state.translateY;
+    this.freeRideSheetDragging = this.freeRideSheetController.state.dragging;
   }
 
   moveFreeRideSheetDrag(event) {
-    if (!this.freeRideSheetDragging) return;
-    if (typeof event.pointerId === 'number' && event.pointerId !== this.freeRideSheetPointerId) {
-      return;
-    }
-    const cardEl = this.getFreeRideCardEl();
-    if (!cardEl) return;
-
-    const deltaY = Number(event.clientY) - this.freeRideSheetDragStartY;
-    const nextTranslate = this.freeRideSheetDragStartTranslateY + deltaY;
-    const minTranslate = -this.freeRideSheetExpandedOffset;
-    const maxTranslate = 0;
-    const clampedTranslate = Math.max(minTranslate, Math.min(maxTranslate, nextTranslate));
-
-    if (Math.abs(clampedTranslate - this.freeRideSheetDragStartTranslateY) > 4) {
-      this.freeRideSheetDragMoved = true;
-    }
-
-    this.freeRideSheetTranslateY = clampedTranslate;
-    const liftMagnitude = Math.max(0, -clampedTranslate);
-    cardEl.style.setProperty('--sheet-lift', `${liftMagnitude}px`);
-    event.preventDefault();
+    this.freeRideSheetController.moveDrag(event);
+    this.freeRideSheetTranslateY = this.freeRideSheetController.state.translateY;
+    this.freeRideSheetDragging = this.freeRideSheetController.state.dragging;
   }
 
   finishFreeRideSheetDrag(event) {
-    if (!this.freeRideSheetDragging) return;
-    if (typeof event.pointerId === 'number' && event.pointerId !== this.freeRideSheetPointerId) {
-      return;
-    }
-    const cardEl = this.getFreeRideCardEl();
-    const handleEl = this.getFreeRideSheetHandleEl();
-    const currentTranslate = Number.isFinite(this.freeRideSheetTranslateY)
-      ? this.freeRideSheetTranslateY
-      : 0;
-    const midpoint = -Math.max(0, this.freeRideSheetExpandedOffset) / 2;
-    const nextExpanded = this.freeRideSheetDragMoved
-      ? currentTranslate <= midpoint
-      : !this.freeRideSheetExpanded;
-
-    this.freeRideSheetDragging = false;
-    this.freeRideSheetPointerId = null;
-    this.freeRideSheetDragMoved = false;
-    this.freeRideSheetLastPointerUpTs = Date.now();
-    if (cardEl) {
-      cardEl.classList.remove('is-sheet-dragging');
-    }
-    if (handleEl) {
-      try {
-        if (typeof event.pointerId === 'number' && handleEl.hasPointerCapture(event.pointerId)) {
-          handleEl.releasePointerCapture(event.pointerId);
-        }
-      } catch (_err) {
-        // no-op
-      }
-    }
-    this.setFreeRideSheetExpanded(nextExpanded, { animate: true });
+    this.freeRideSheetController.finishDrag(event);
+    this.freeRideSheetExpanded = this.freeRideSheetController.state.expanded;
+    this.freeRideSheetExpandedOffset = this.freeRideSheetController.state.offset;
+    this.freeRideSheetTranslateY = this.freeRideSheetController.state.translateY;
+    this.freeRideSheetDragging = this.freeRideSheetController.state.dragging;
+    this.freeRideSheetLastPointerUpTs = this.freeRideSheetController.state.lastPointerUpTs;
   }
 
   cancelFreeRideSheetDrag() {
-    if (!this.freeRideSheetDragging) return;
-    this.freeRideSheetDragging = false;
-    this.freeRideSheetPointerId = null;
-    this.freeRideSheetDragMoved = false;
-    const cardEl = this.getFreeRideCardEl();
-    if (cardEl) {
-      cardEl.classList.remove('is-sheet-dragging');
-    }
-    this.setFreeRideSheetExpanded(this.freeRideSheetExpanded, { animate: true, force: true });
+    this.freeRideSheetController.cancelDrag();
+    this.freeRideSheetExpanded = this.freeRideSheetController.state.expanded;
+    this.freeRideSheetExpandedOffset = this.freeRideSheetController.state.offset;
+    this.freeRideSheetTranslateY = this.freeRideSheetController.state.translateY;
+    this.freeRideSheetDragging = this.freeRideSheetController.state.dragging;
   }
 
   clearLayoutSync() {
@@ -7758,12 +7696,7 @@ class PageFreeRide extends HTMLElement {
       this.cancelFreeRideSheetDrag();
     });
     sheetHandleBtn?.addEventListener('click', (event) => {
-      const lastPointerUpTs = Number(this.freeRideSheetLastPointerUpTs) || 0;
-      if (lastPointerUpTs && Date.now() - lastPointerUpTs < 350) {
-        event.preventDefault();
-        return;
-      }
-      this.toggleFreeRideSheet({ animate: true });
+      event.preventDefault();
     });
     sheetHandleBtn?.addEventListener('keydown', (event) => {
       const key = event && event.key ? event.key : '';

@@ -573,6 +573,7 @@ class PageDiagnostics extends HTMLElement {
             <div class="diag-actions">
               <ion-button size="small" fill="outline" id="diag-onboarding-repeat">Repetir onboarding</ion-button>
               <ion-button size="small" fill="outline" id="diag-handle-hint-reset">Resetear hint handle</ion-button>
+              <ion-button size="small" fill="outline" id="diag-sheet-debug-toggle">Debug sheet: OFF</ion-button>
               <ion-button size="small" fill="outline" color="danger" id="diag-app-reset">Reset completo</ion-button>
             </div>
             <p class="diag-debug-sub">Reset completo borra todo el storage y reinicia la app como primera ejecución.</p>
@@ -3829,6 +3830,20 @@ class PageDiagnostics extends HTMLElement {
       if (btn) btn.textContent = '✓ Listo';
       setTimeout(() => { if (btn) btn.textContent = 'Resetear hint handle'; }, 2000);
     });
+
+    const sheetDebugToggleBtn = this.querySelector('#diag-sheet-debug-toggle');
+    if (sheetDebugToggleBtn) {
+      const setLabel = () => {
+        const enabled = Boolean(window.r34lp0w3r && window.r34lp0w3r.debugSheetState === true);
+        sheetDebugToggleBtn.textContent = enabled ? 'Debug sheet: ON' : 'Debug sheet: OFF';
+      };
+      setLabel();
+      sheetDebugToggleBtn.addEventListener('click', () => {
+        window.r34lp0w3r = window.r34lp0w3r || {};
+        window.r34lp0w3r.debugSheetState = !(window.r34lp0w3r.debugSheetState === true);
+        setLabel();
+      });
+    }
     this.querySelector('#diag-app-reset')?.addEventListener('click', () => {
       const confirmReset = window.confirm(
         'Esto borrará todos los datos locales de la app en este dispositivo y la reiniciará como primera ejecución. ¿Continuar?'

@@ -16,6 +16,7 @@ import {
   normalizeLocale as normalizeCopyLocale
 } from '../content/copy.js';
 import { renderAppHeader } from '../components/app-header.js';
+import { createSheetController } from '../sheet-controller.js';
 import {
   HERO_MASCOT_FRAMES as PLAN_MASCOT_FRAMES,
   HERO_MASCOT_FRAME_INTERVAL_MS as PLAN_MASCOT_FRAME_INTERVAL_MS,
@@ -37,6 +38,8 @@ const HOME_EXPANDED_ROUTE_KEY = 'appv5:home-expanded-route-id';
 const HOME_RETURN_SCROLL_KEY = 'appv5:home-return-scroll-top';
 const HOME_RETURN_REVEAL_KEY = 'appv5:home-return-reveal-target';
 const HOME_HANDLE_HINT_KEY = 'appv5:home-handle-hint-seen';
+const HOME_SHEET_EXPANDED_KEY = 'appv5:home-sheet-expanded';
+const HOME_SHEET_OFFSET_KEY = 'appv5:home-sheet-expanded-offset';
 const isHandleHintSeen = () => {
   try { return Boolean(localStorage.getItem(HOME_HANDLE_HINT_KEY)); } catch (_) { return true; }
 };
@@ -151,8 +154,18 @@ class PageHome extends HTMLElement {
     this._pendingHomeReturnRevealScheduleToken = 0;
     this._renderRAFId = null;
     this._pendingRenderOptions = {};
-    this.journeySheetExpanded = false;
-    this.journeySheetExpandedOffset = 0;
+    this.journeySheetController = createSheetController({
+      expandedKey: HOME_SHEET_EXPANDED_KEY,
+      offsetKey: HOME_SHEET_OFFSET_KEY,
+      getSheetEl: () => this.getJourneySheetEl(),
+      getHandleEl: () => this.getJourneySheetHandleEl(),
+      getShellEl: () => this.getJourneyShellEl(),
+      getTopInset: () => this.getJourneySheetTopInset(),
+      getExpandedLabel: () => 'Collapse training card',
+      getCollapsedLabel: () => 'Expand training card'
+    });
+    this.journeySheetExpanded = this.journeySheetController.state.expanded;
+    this.journeySheetExpandedOffset = this.journeySheetController.state.offset;
     this.journeySheetTranslateY = 0;
     this.journeySheetDragging = false;
     this._hintWasExpanded = false;
@@ -264,6 +277,12 @@ class PageHome extends HTMLElement {
       if (to !== '/tabs') return;
       this.schedulePendingHomeReturnScrollRestore();
       this.schedulePendingHomeReturnReveal();
+      this.journeySheetExpandedOffset = this.measureJourneySheetExpandedOffset();
+      if (this.journeySheetExpandedOffset > 0 && this.journeySheetExpanded) {
+        this.journeySheetController.state.offset = this.journeySheetExpandedOffset;
+        this.journeySheetController.setExpanded(this.journeySheetExpanded, { animate: false });
+      }
+      this.applyJourneySheetState({ animate: false, force: true });
     };
     this._routerEl?.addEventListener('ionRouteDidChange', this._routeDidChangeHandler);
     this._resizeHandler = () => {
@@ -541,40 +560,26 @@ class PageHome extends HTMLElement {
   }
 
   measureJourneySheetExpandedOffset() {
-    const shellEl = this.getJourneyShellEl();
-    const sheetEl = this.getJourneySheetEl();
-    if (!shellEl || !sheetEl) return 0;
-    const shellRect = shellEl.getBoundingClientRect();
-    const sheetRect = sheetEl.getBoundingClientRect();
-    const currentTranslate = Number.isFinite(this.journeySheetTranslateY) ? this.journeySheetTranslateY : 0;
-    const targetTop = shellRect.top + this.getJourneySheetTopInset();
-    const offset = Math.max(0, Math.round(sheetRect.top - currentTranslate - targetTop));
-    this.journeySheetExpandedOffset = offset;
+    const offset = this.journeySheetController.measureOffset();
+    this.journeySheetExpandedOffset = this.journeySheetController.state.offset;
+    this.journeySheetTranslateY = this.journeySheetController.state.translateY;
     return offset;
   }
 
   applyJourneySheetState(options = {}) {
-    const animate = options.animate !== false;
     const sheetEl = this.getJourneySheetEl();
     const handleEl = this.getJourneySheetHandleEl();
     if (!sheetEl) return;
-
-    const offset = this.journeySheetExpanded
-      ? (this.journeySheetExpandedOffset || this.measureJourneySheetExpandedOffset())
-      : 0;
-    this.journeySheetTranslateY = this.journeySheetExpanded ? -offset : 0;
-
-    sheetEl.dataset.sheetState = this.journeySheetExpanded ? 'expanded' : 'collapsed';
-    sheetEl.classList.toggle('is-sheet-dragging', this.journeySheetDragging);
-    sheetEl.classList.toggle('is-sheet-instant', !animate);
-    const liftMagnitude = Math.max(0, -this.journeySheetTranslateY);
-    sheetEl.style.setProperty('--sheet-lift', `${liftMagnitude}px`);
+    this.journeySheetController.state.expanded = this.journeySheetExpanded;
+    this.journeySheetController.state.offset = this.journeySheetExpandedOffset;
+    this.journeySheetController.state.translateY = this.journeySheetTranslateY;
+    this.journeySheetController.state.dragging = this.journeySheetDragging;
+    this.journeySheetController.applyState(options);
+    this.journeySheetExpanded = this.journeySheetController.state.expanded;
+    this.journeySheetExpandedOffset = this.journeySheetController.state.offset;
+    this.journeySheetTranslateY = this.journeySheetController.state.translateY;
+    this.journeySheetDragging = this.journeySheetController.state.dragging;
     if (handleEl) {
-      handleEl.setAttribute('aria-expanded', this.journeySheetExpanded ? 'true' : 'false');
-      handleEl.setAttribute(
-        'aria-label',
-        this.journeySheetExpanded ? 'Collapse training card' : 'Expand training card'
-      );
       const hintEl = handleEl.querySelector('.handle-hint');
       if (hintEl) {
         const seen = isHandleHintSeen();
@@ -608,27 +613,16 @@ class PageHome extends HTMLElement {
       }
     }
 
-    if (!animate) {
-      requestAnimationFrame(() => {
-        if (!sheetEl.isConnected) return;
-        sheetEl.classList.remove('is-sheet-instant');
-      });
-    }
   }
 
   setJourneySheetExpanded(nextExpanded, options = {}) {
-    const expanded = Boolean(nextExpanded);
-    if (this.journeySheetExpanded === expanded && !options.force) {
-      this.applyJourneySheetState(options);
-      return;
-    }
-    this.journeySheetExpanded = expanded;
-    if (
-      expanded &&
-      (!Number.isFinite(this.journeySheetExpandedOffset) || this.journeySheetExpandedOffset <= 0)
-    ) {
-      this.journeySheetExpandedOffset = this.measureJourneySheetExpandedOffset();
-    }
+    this.journeySheetController.state.expanded = this.journeySheetExpanded;
+    this.journeySheetController.state.offset = this.journeySheetExpandedOffset;
+    this.journeySheetController.setExpanded(nextExpanded, options);
+    this.journeySheetExpanded = this.journeySheetController.state.expanded;
+    this.journeySheetExpandedOffset = this.journeySheetController.state.offset;
+    this.journeySheetTranslateY = this.journeySheetController.state.translateY;
+    this.journeySheetDragging = this.journeySheetController.state.dragging;
     this.applyJourneySheetState(options);
   }
 
@@ -637,88 +631,38 @@ class PageHome extends HTMLElement {
   }
 
   startJourneySheetDrag(event) {
-    const handleEl = event && event.currentTarget ? event.currentTarget : null;
-    const sheetEl = this.getJourneySheetEl();
-    if (!handleEl || !sheetEl || typeof event.pointerId !== 'number') return;
-    if (event.button !== 0) return;
-
-    this.journeySheetExpandedOffset = this.measureJourneySheetExpandedOffset();
-    this.journeySheetDragging = true;
-    this.journeySheetPointerId = event.pointerId;
-    this.journeySheetDragStartY = event.clientY;
-    this.journeySheetDragStartTranslateY = this.journeySheetExpanded ? -this.journeySheetExpandedOffset : 0;
-    this.journeySheetDragMoved = false;
-    sheetEl.classList.add('is-sheet-dragging');
-    this.applyJourneySheetState({ animate: false });
-
-    try {
-      handleEl.setPointerCapture(event.pointerId);
-    } catch (_err) {
-      // no-op
-    }
-    event.preventDefault();
+    this.journeySheetController.state.expanded = this.journeySheetExpanded;
+    this.journeySheetController.state.offset = this.journeySheetExpandedOffset;
+    this.journeySheetController.startDrag(event);
+    this.journeySheetExpanded = this.journeySheetController.state.expanded;
+    this.journeySheetExpandedOffset = this.journeySheetController.state.offset;
+    this.journeySheetTranslateY = this.journeySheetController.state.translateY;
+    this.journeySheetDragging = this.journeySheetController.state.dragging;
   }
 
   moveJourneySheetDrag(event) {
-    if (!this.journeySheetDragging) return;
-    if (typeof event.pointerId === 'number' && event.pointerId !== this.journeySheetPointerId) return;
-    const sheetEl = this.getJourneySheetEl();
-    if (!sheetEl) return;
-
-    const deltaY = Number(event.clientY) - this.journeySheetDragStartY;
-    const nextTranslate = this.journeySheetDragStartTranslateY + deltaY;
-    const minTranslate = -this.journeySheetExpandedOffset;
-    const maxTranslate = 0;
-    const clampedTranslate = Math.max(minTranslate, Math.min(maxTranslate, nextTranslate));
-
-    if (Math.abs(clampedTranslate - this.journeySheetDragStartTranslateY) > 4) {
-      this.journeySheetDragMoved = true;
-    }
-
-    this.journeySheetTranslateY = clampedTranslate;
-    const liftMagnitude = Math.max(0, -clampedTranslate);
-    sheetEl.style.setProperty('--sheet-lift', `${liftMagnitude}px`);
-    event.preventDefault();
+    this.journeySheetController.moveDrag(event);
+    this.journeySheetTranslateY = this.journeySheetController.state.translateY;
+    this.journeySheetDragging = this.journeySheetController.state.dragging;
   }
 
   finishJourneySheetDrag(event) {
-    if (!this.journeySheetDragging) return;
-    if (typeof event.pointerId === 'number' && event.pointerId !== this.journeySheetPointerId) return;
-    const sheetEl = this.getJourneySheetEl();
-    const handleEl = this.getJourneySheetHandleEl();
-    const currentTranslate = Number.isFinite(this.journeySheetTranslateY) ? this.journeySheetTranslateY : 0;
-    const midpoint = -Math.max(0, this.journeySheetExpandedOffset) / 2;
-    const nextExpanded = this.journeySheetDragMoved ? currentTranslate <= midpoint : !this.journeySheetExpanded;
-
-    this.journeySheetDragging = false;
-    this.journeySheetPointerId = null;
-    this.journeySheetDragMoved = false;
-    this.journeySheetLastPointerUpTs = Date.now();
-    if (sheetEl) {
-      sheetEl.classList.remove('is-sheet-dragging');
-    }
-    if (handleEl) {
-      try {
-        if (typeof event.pointerId === 'number' && handleEl.hasPointerCapture(event.pointerId)) {
-          handleEl.releasePointerCapture(event.pointerId);
-        }
-      } catch (_err) {
-        // no-op
-      }
-    }
-    this.setJourneySheetExpanded(nextExpanded, { animate: true });
+    this.journeySheetController.finishDrag(event);
+    this.journeySheetExpanded = this.journeySheetController.state.expanded;
+    this.journeySheetExpandedOffset = this.journeySheetController.state.offset;
+    this.journeySheetTranslateY = this.journeySheetController.state.translateY;
+    this.journeySheetDragging = this.journeySheetController.state.dragging;
+    this.journeySheetLastPointerUpTs = this.journeySheetController.state.lastPointerUpTs;
+    this.applyJourneySheetState({ animate: true });
   }
 
   cancelJourneySheetDrag() {
-    if (!this.journeySheetDragging) return;
-    this.journeySheetDragging = false;
-    this.journeySheetPointerId = null;
-    this.journeySheetDragMoved = false;
-    const sheetEl = this.getJourneySheetEl();
-    if (sheetEl) {
-      sheetEl.classList.remove('is-sheet-dragging');
-    }
-    this.setJourneySheetExpanded(this.journeySheetExpanded, { animate: true, force: true });
+    this.journeySheetController.cancelDrag();
+    this.journeySheetExpanded = this.journeySheetController.state.expanded;
+    this.journeySheetExpandedOffset = this.journeySheetController.state.offset;
+    this.journeySheetTranslateY = this.journeySheetController.state.translateY;
+    this.journeySheetDragging = this.journeySheetController.state.dragging;
+    this.applyJourneySheetState({ animate: true, force: true });
   }
 
   clearLayoutSync() {
@@ -1240,8 +1184,8 @@ class PageHome extends HTMLElement {
                 </div>
               </div>
             </section>
-            <section class="free-ride-card journey-sheet">
-              <button class="free-ride-card-handle journey-sheet-handle${isHandleHintSeen() ? '' : ' has-hint'}" type="button" aria-label="Expand training card" aria-expanded="false">
+            <section class="free-ride-card journey-sheet" data-sheet-state="${this.journeySheetExpanded ? 'expanded' : 'collapsed'}">
+              <button class="free-ride-card-handle journey-sheet-handle${isHandleHintSeen() ? '' : ' has-hint'}" type="button" aria-label="${this.journeySheetExpanded ? 'Collapse training card' : 'Expand training card'}" aria-expanded="${this.journeySheetExpanded ? 'true' : 'false'}">
                 <span class="free-ride-card-handle-pill journey-sheet-handle-pill" aria-hidden="true"></span>
                 <span class="handle-hint${isHandleHintSeen() ? ' handle-hint-out' : ''}" aria-hidden="true"><ion-icon name="chevron-up-outline"></ion-icon><span class="handle-hint-label">${uiLocale === 'es' ? 'pruébame' : 'try me'}</span></span>
               </button>
@@ -1273,12 +1217,7 @@ class PageHome extends HTMLElement {
         this.cancelJourneySheetDrag();
       });
       journeySheetHandleEl?.addEventListener('click', (event) => {
-        const lastPointerUpTs = Number(this.journeySheetLastPointerUpTs) || 0;
-        if (lastPointerUpTs && Date.now() - lastPointerUpTs < 350) {
-          event.preventDefault();
-          return;
-        }
-        this.toggleJourneySheet({ animate: true });
+        event.preventDefault();
       });
       journeySheetHandleEl?.addEventListener('keydown', (event) => {
         const key = event && event.key ? event.key : '';
@@ -1956,8 +1895,8 @@ class PageHome extends HTMLElement {
             </div>
           </section>
 
-          <section class="free-ride-card journey-sheet">
-            <button class="free-ride-card-handle journey-sheet-handle${isHandleHintSeen() ? '' : ' has-hint'}" type="button" aria-label="Expand training card" aria-expanded="false">
+          <section class="free-ride-card journey-sheet" data-sheet-state="${this.journeySheetExpanded ? 'expanded' : 'collapsed'}">
+            <button class="free-ride-card-handle journey-sheet-handle${isHandleHintSeen() ? '' : ' has-hint'}" type="button" aria-label="${this.journeySheetExpanded ? 'Collapse training card' : 'Expand training card'}" aria-expanded="${this.journeySheetExpanded ? 'true' : 'false'}">
               <span class="free-ride-card-handle-pill journey-sheet-handle-pill" aria-hidden="true"></span>
               <span class="handle-hint${isHandleHintSeen() ? ' handle-hint-out' : ''}" aria-hidden="true"><ion-icon name="chevron-up-outline"></ion-icon><span class="handle-hint-label">${uiLocale === 'es' ? 'pruébame' : 'try me'}</span></span>
             </button>
@@ -2001,12 +1940,7 @@ class PageHome extends HTMLElement {
         this.cancelJourneySheetDrag();
       });
       journeySheetHandleEl?.addEventListener('click', (event) => {
-        const lastPointerUpTs = Number(this.journeySheetLastPointerUpTs) || 0;
-        if (lastPointerUpTs && Date.now() - lastPointerUpTs < 350) {
-          event.preventDefault();
-          return;
-        }
-        this.toggleJourneySheet({ animate: true });
+        event.preventDefault();
       });
       journeySheetHandleEl?.addEventListener('keydown', (event) => {
         const key = event && event.key ? event.key : '';

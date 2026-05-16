@@ -5,6 +5,7 @@ import {
   HERO_MASCOT_FRAMES as JOURNEY_MASCOT_FRAMES,
   HERO_MASCOT_REST_FRAME as JOURNEY_MASCOT_REST_FRAME
 } from '../mascot-frames.js';
+import { createSheetController } from '../sheet-controller.js';
 
 const CHAT_JOURNEY_MASCOT_SRC = 'assets/mascot/nena/mascota_18.png';
 const TTS_LANG_BY_LOCALE = {
@@ -14,6 +15,8 @@ const TTS_LANG_BY_LOCALE = {
 const FREE_RIDE_HEADER_COLOR_KEY = 'appv5:free-ride-header-color';
 const FREE_RIDE_CARD_PADDED_KEY = 'appv5:free-ride-card-padded';
 const FREE_RIDE_HEADER_COLOR_VALUES = ['white', 'dark', 'blue'];
+const CHAT_SHEET_EXPANDED_KEY = 'appv5:chat-sheet-expanded';
+const CHAT_SHEET_OFFSET_KEY = 'appv5:chat-sheet-expanded-offset';
 
 const getStoredHeaderColor = () => {
   try {
@@ -47,6 +50,22 @@ class PageChat extends HTMLElement {
   connectedCallback() {
     const CHAT_ALWAYS_ON_FOR_TESTING = false;
     const CHAT_MODE_TOGGLE_ALWAYS_VISIBLE_FOR_TESTING = CHAT_ALWAYS_ON_FOR_TESTING;
+    const initialSheetController = createSheetController({
+      expandedKey: CHAT_SHEET_EXPANDED_KEY,
+      offsetKey: CHAT_SHEET_OFFSET_KEY,
+      getSheetEl: () => this.querySelector('.chat-content-card.free-ride-card'),
+      getHandleEl: () => this.querySelector('.chat-content-card .journey-sheet-handle'),
+      getShellEl: () => this.querySelector('.chat-shell.free-ride-shell'),
+      getTopInset: () => {
+        const shellEl = this.querySelector('.chat-shell.free-ride-shell');
+        if (document.body.classList.contains('app-titlebar-enabled') || !shellEl) return 0;
+        const paddingTop = Number.parseFloat(window.getComputedStyle(shellEl).paddingTop || '0');
+        return Number.isFinite(paddingTop) ? Math.max(0, Math.round(paddingTop)) : 0;
+      },
+      getExpandedLabel: () => 'Collapse chat card',
+      getCollapsedLabel: () => 'Expand chat card'
+    });
+    const initialChatSheetExpanded = initialSheetController.state.expanded;
     const getRuntimeLocale = () =>
       normalizeCopyLocale(getAppLocale() || (window.varGlobal && window.varGlobal.locale) || 'en') || 'en';
     let uiLocale = getRuntimeLocale();
@@ -91,8 +110,8 @@ class PageChat extends HTMLElement {
               </div>
             </div>
           </section>
-          <section class="free-ride-card journey-sheet chat-content-card">
-            <button class="free-ride-card-handle journey-sheet-handle" type="button" aria-label="Chat content handle">
+          <section class="free-ride-card journey-sheet chat-content-card" data-sheet-state="${initialChatSheetExpanded ? 'expanded' : 'collapsed'}">
+            <button class="free-ride-card-handle journey-sheet-handle" type="button" aria-label="${initialChatSheetExpanded ? 'Collapse chat card' : 'Expand chat card'}" aria-expanded="${initialChatSheetExpanded ? 'true' : 'false'}">
               <span class="free-ride-card-handle-pill journey-sheet-handle-pill" aria-hidden="true"></span>
             </button>
             <div class="free-ride-card-main journey-sheet-main">
@@ -269,11 +288,21 @@ class PageChat extends HTMLElement {
     const chatSheetEl = this.querySelector('.chat-content-card.free-ride-card');
     const chatSheetHandleEl = this.querySelector('.chat-content-card .journey-sheet-handle');
     let defaultHint = uiCopy.hintDefault;
-    let chatSheetExpanded = false;
-    let chatSheetExpandedOffset = 0;
-    let chatSheetTranslateY = 0;
-    let chatSheetDragging = false;
-    let chatSheetPointerId = null;
+    const chatSheetController = createSheetController({
+      expandedKey: CHAT_SHEET_EXPANDED_KEY,
+      offsetKey: CHAT_SHEET_OFFSET_KEY,
+      getSheetEl: () => chatSheetEl,
+      getHandleEl: () => chatSheetHandleEl,
+      getShellEl: () => chatShellEl,
+      getTopInset: () => {
+        if (document.body.classList.contains('app-titlebar-enabled')) return 0;
+        if (!chatShellEl) return 0;
+        const paddingTop = Number.parseFloat(window.getComputedStyle(chatShellEl).paddingTop || '0');
+        return Number.isFinite(paddingTop) ? Math.max(0, Math.round(paddingTop)) : 0;
+      },
+      getExpandedLabel: () => 'Collapse chat card',
+      getCollapsedLabel: () => 'Expand chat card'
+    });
     let chatSheetDragStartY = 0;
     let chatSheetDragStartTranslateY = 0;
     let chatSheetDragMoved = false;
@@ -288,133 +317,34 @@ class PageChat extends HTMLElement {
       chatCard.hidden = !hasVisibleAccess && !hasVisibleComposer;
     };
 
-    const getChatSheetTopInset = () => {
-      if (document.body.classList.contains('app-titlebar-enabled')) return 0;
-      if (!chatShellEl) return 0;
-      const paddingTop = Number.parseFloat(window.getComputedStyle(chatShellEl).paddingTop || '0');
-      return Number.isFinite(paddingTop) ? Math.max(0, Math.round(paddingTop)) : 0;
-    };
-
-    const measureChatSheetExpandedOffset = () => {
-      if (!chatShellEl || !chatSheetEl) return 0;
-      const shellRect = chatShellEl.getBoundingClientRect();
-      const sheetRect = chatSheetEl.getBoundingClientRect();
-      const targetTop = shellRect.top + getChatSheetTopInset();
-      const offset = Math.max(0, Math.round(sheetRect.top - chatSheetTranslateY - targetTop));
-      chatSheetExpandedOffset = offset;
-      return offset;
-    };
-
-    const applyChatSheetState = ({ animate = true, force = false } = {}) => {
-      if (!chatSheetEl) return;
-      if (chatSheetExpanded && (!chatSheetExpandedOffset || force)) {
-        measureChatSheetExpandedOffset();
-      }
-      const offset = chatSheetExpanded ? chatSheetExpandedOffset : 0;
-      chatSheetTranslateY = chatSheetExpanded ? -offset : 0;
-      chatSheetEl.dataset.sheetState = chatSheetExpanded ? 'expanded' : 'collapsed';
-      chatSheetEl.classList.toggle('is-sheet-instant', !animate);
-      chatSheetEl.style.setProperty('--sheet-lift', `${Math.max(0, -chatSheetTranslateY)}px`);
-      if (chatSheetHandleEl) {
-        chatSheetHandleEl.setAttribute('aria-expanded', chatSheetExpanded ? 'true' : 'false');
-      }
-      if (!animate) {
-        requestAnimationFrame(() => {
-          if (!chatSheetEl.isConnected) return;
-          chatSheetEl.classList.remove('is-sheet-instant');
+    const measureChatSheetExpandedOffset = () => chatSheetController.measureOffset();
+    const applyChatSheetState = ({ animate = true } = {}) => chatSheetController.applyState({ animate });
+    const toggleChatSheet = (animate = true) => chatSheetController.toggle({ animate });
+    const scheduleChatSheetLayout = (delayMs = 0) => {
+      if (!this.isConnected) return;
+      const run = () => {
+        if (chatSheetLayoutRaf) cancelAnimationFrame(chatSheetLayoutRaf);
+        chatSheetLayoutRaf = requestAnimationFrame(() => {
+          chatSheetLayoutRaf = null;
+          if (!this.isConnected) return;
+          measureChatSheetExpandedOffset();
+          applyChatSheetState({ animate: false });
         });
+      };
+      if (delayMs > 0) {
+        if (chatSheetLayoutTimer) clearTimeout(chatSheetLayoutTimer);
+        chatSheetLayoutTimer = setTimeout(() => { chatSheetLayoutTimer = null; run(); }, delayMs);
+      } else {
+        run();
       }
     };
-
-    const toggleChatSheet = (animate = true) => {
-      chatSheetExpanded = !chatSheetExpanded;
-      if (chatSheetExpanded && !chatSheetExpandedOffset) {
-        measureChatSheetExpandedOffset();
-      }
-      applyChatSheetState({ animate });
-    };
-
-    const startChatSheetDrag = (event) => {
-      const handleEl = event && event.currentTarget ? event.currentTarget : null;
-      if (!handleEl || !chatSheetEl || typeof event.pointerId !== 'number') return;
-      if (event.button !== 0) return;
-
-      chatSheetExpandedOffset = measureChatSheetExpandedOffset();
-      chatSheetDragging = true;
-      chatSheetPointerId = event.pointerId;
-      chatSheetDragStartY = event.clientY;
-      chatSheetDragStartTranslateY = chatSheetExpanded ? -chatSheetExpandedOffset : 0;
-      chatSheetDragMoved = false;
-      chatSheetEl.classList.add('is-sheet-dragging');
-      applyChatSheetState({ animate: false });
-
-      try {
-        handleEl.setPointerCapture(event.pointerId);
-      } catch (_err) {
-        // no-op
-      }
-      event.preventDefault();
-    };
-
-    const moveChatSheetDrag = (event) => {
-      if (!chatSheetDragging) return;
-      if (typeof event.pointerId === 'number' && event.pointerId !== chatSheetPointerId) return;
-      if (!chatSheetEl) return;
-
-      const deltaY = Number(event.clientY) - chatSheetDragStartY;
-      const nextTranslate = chatSheetDragStartTranslateY + deltaY;
-      const minTranslate = -chatSheetExpandedOffset;
-      const maxTranslate = 0;
-      const clampedTranslate = Math.max(minTranslate, Math.min(maxTranslate, nextTranslate));
-
-      if (Math.abs(clampedTranslate - chatSheetDragStartTranslateY) > 4) {
-        chatSheetDragMoved = true;
-      }
-
-      chatSheetTranslateY = clampedTranslate;
-      chatSheetEl.style.setProperty('--sheet-lift', `${Math.max(0, -clampedTranslate)}px`);
-      event.preventDefault();
-    };
-
+    const startChatSheetDrag = (event) => chatSheetController.startDrag(event);
+    const moveChatSheetDrag = (event) => chatSheetController.moveDrag(event);
     const finishChatSheetDrag = (event) => {
-      if (!chatSheetDragging) return;
-      if (typeof event.pointerId === 'number' && event.pointerId !== chatSheetPointerId) return;
-
-      const currentTranslate = Number.isFinite(chatSheetTranslateY) ? chatSheetTranslateY : 0;
-      const midpoint = -Math.max(0, chatSheetExpandedOffset) / 2;
-      const nextExpanded = chatSheetDragMoved ? currentTranslate <= midpoint : !chatSheetExpanded;
-
-      chatSheetDragging = false;
-      chatSheetPointerId = null;
-      chatSheetDragMoved = false;
-      chatSheetLastPointerUpTs = Date.now();
-
-      if (chatSheetEl) {
-        chatSheetEl.classList.remove('is-sheet-dragging');
-      }
-      if (chatSheetHandleEl) {
-        try {
-          if (typeof event.pointerId === 'number' && chatSheetHandleEl.hasPointerCapture(event.pointerId)) {
-            chatSheetHandleEl.releasePointerCapture(event.pointerId);
-          }
-        } catch (_err) {
-          // no-op
-        }
-      }
-      chatSheetExpanded = nextExpanded;
-      applyChatSheetState({ animate: true, force: true });
+      chatSheetController.finishDrag(event);
+      chatSheetLastPointerUpTs = chatSheetController.state.lastPointerUpTs;
     };
-
-    const cancelChatSheetDrag = () => {
-      if (!chatSheetDragging) return;
-      chatSheetDragging = false;
-      chatSheetPointerId = null;
-      chatSheetDragMoved = false;
-      if (chatSheetEl) {
-        chatSheetEl.classList.remove('is-sheet-dragging');
-      }
-      applyChatSheetState({ animate: true, force: true });
-    };
+    const cancelChatSheetDrag = () => chatSheetController.cancelDrag();
 
     chatSheetHandleEl?.addEventListener('pointerdown', (event) => {
       startChatSheetDrag(event);
@@ -432,13 +362,7 @@ class PageChat extends HTMLElement {
       cancelChatSheetDrag();
     });
     chatSheetHandleEl?.addEventListener('click', (event) => {
-      const lastPointerUpTs = Number(chatSheetLastPointerUpTs) || 0;
-      if (lastPointerUpTs && Date.now() - lastPointerUpTs < 350) {
-        event.preventDefault();
-        return;
-      }
       event.preventDefault();
-      toggleChatSheet(true);
     });
     chatSheetHandleEl?.addEventListener('keydown', (event) => {
       const key = event && event.key ? event.key : '';
@@ -490,6 +414,8 @@ class PageChat extends HTMLElement {
     let nativeSpeechListeners = [];
     let pendingAudioUrl = '';
     let finalizeTimer = null;
+    let chatSheetLayoutTimer = null;
+    let chatSheetLayoutRaf = null;
     let lastUserId = null;
     let lastChatEnabled = false;
     let accessLoading = true;
@@ -4529,9 +4455,9 @@ class PageChat extends HTMLElement {
       }
       applyThreadViewportClamp();
       scheduleScrollThreadToBottom('auto');
-      if (chatSheetExpanded) {
-        chatSheetExpandedOffset = measureChatSheetExpandedOffset();
-        applyChatSheetState({ animate: false, force: true });
+      if (chatSheetController.state.expanded) {
+        measureChatSheetExpandedOffset();
+        applyChatSheetState({ animate: false });
       }
       const openedByOffset = offset > KEYBOARD_OFFSET_EPSILON && previousOffset <= KEYBOARD_OFFSET_EPSILON;
       if ((keyboardOpen && !wasKeyboardOpen) || openedByOffset) {
@@ -8725,10 +8651,17 @@ class PageChat extends HTMLElement {
         refreshCommunityPresenceNow({ silent: true });
       }
       if (tab !== 'chat') return;
-      chatSheetExpandedOffset = measureChatSheetExpandedOffset();
-      applyChatSheetState({ animate: false, force: true });
+      measureChatSheetExpandedOffset();
+      applyChatSheetState({ animate: false });
       scrollChatTimelineToLatest('auto');
+      scheduleChatSheetLayout(0);
+      scheduleChatSheetLayout(140);
     };
+    this._tabsEl = document.querySelector('tabs-page');
+    this._ionTabsDidChangeHandler = (event) => {
+      this._tabChangeHandler(event);
+    };
+    this._tabsEl?.addEventListener('ionTabsDidChange', this._ionTabsDidChangeHandler);
     window.addEventListener('app:tab-change', this._tabChangeHandler);
 
     this._tabUserClickHandler = (event) => {
@@ -8739,11 +8672,22 @@ class PageChat extends HTMLElement {
         refreshCommunityPresenceNow({ silent: true });
       }
       if (tab !== 'chat') return;
-      chatSheetExpandedOffset = measureChatSheetExpandedOffset();
-      applyChatSheetState({ animate: false, force: true });
+      measureChatSheetExpandedOffset();
+      applyChatSheetState({ animate: false });
       scrollChatTimelineToLatest('auto');
+      scheduleChatSheetLayout(0);
+      scheduleChatSheetLayout(140);
     };
     window.addEventListener('app:tab-user-click', this._tabUserClickHandler);
+    this._chatIonRouter = document.querySelector('ion-router');
+    this._chatRouteDidChangeHandler = (event) => {
+      const to = event && event.detail ? String(event.detail.to || '') : '';
+      if (!to.startsWith('/chat')) return;
+      if (!this.isConnected) return;
+      measureChatSheetExpandedOffset();
+      applyChatSheetState({ animate: false });
+    };
+    this._chatIonRouter?.addEventListener('ionRouteDidChange', this._chatRouteDidChangeHandler);
     this._headerColorHandler = (event) => {
       if (!this.isConnected) return;
       const color = event && event.detail ? event.detail.color : '';
@@ -8754,8 +8698,8 @@ class PageChat extends HTMLElement {
       const detail = event && event.detail ? event.detail : {};
       const enabled = typeof detail.enabled === 'boolean' ? detail.enabled : isFreeRideCardPadded();
       this.classList.toggle('is-card-padded', enabled);
-      chatSheetExpandedOffset = measureChatSheetExpandedOffset();
-      applyChatSheetState({ animate: false, force: true });
+      measureChatSheetExpandedOffset();
+      applyChatSheetState({ animate: false });
     };
     window.addEventListener('app:free-ride-header-color-change', this._headerColorHandler);
     window.addEventListener('app:free-ride-card-padded-change', this._cardPaddedHandler);
@@ -8839,8 +8783,14 @@ class PageChat extends HTMLElement {
     if (this._tabChangeHandler) {
       window.removeEventListener('app:tab-change', this._tabChangeHandler);
     }
+    if (this._ionTabsDidChangeHandler) {
+      this._tabsEl?.removeEventListener('ionTabsDidChange', this._ionTabsDidChangeHandler);
+    }
     if (this._tabUserClickHandler) {
       window.removeEventListener('app:tab-user-click', this._tabUserClickHandler);
+    }
+    if (this._chatRouteDidChangeHandler) {
+      this._chatIonRouter?.removeEventListener('ionRouteDidChange', this._chatRouteDidChangeHandler);
     }
     if (this._headerColorHandler) {
       window.removeEventListener('app:free-ride-header-color-change', this._headerColorHandler);

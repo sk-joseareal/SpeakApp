@@ -27,6 +27,7 @@ import {
   getHeroMascotFramePath,
   preloadHeroMascotFrames
 } from '../mascot-frames.js';
+import { createSheetController } from '../sheet-controller.js';
 
 const FREE_RIDE_HEADER_COLOR_KEY = 'appv5:free-ride-header-color';
 const FREE_RIDE_HEADER_COLOR_VALUES = ['white', 'dark', 'blue'];
@@ -44,6 +45,27 @@ const getStoredHeaderColor = () => {
 
 class PageSpeak extends HTMLElement {
   connectedCallback() {
+    const SPEAK_SHEET_EXPANDED_KEY = 'speak:sheet-expanded';
+    const SPEAK_SHEET_OFFSET_KEY = 'speak:sheet-expanded-offset';
+    const initialSpeakSheetController = createSheetController({
+      expandedKey: SPEAK_SHEET_EXPANDED_KEY,
+      offsetKey: SPEAK_SHEET_OFFSET_KEY,
+      getSheetEl: () => this.querySelector('.speak-sheet'),
+      getHandleEl: () => this.querySelector('#speak-sheet-handle'),
+      getShellEl: () => this.querySelector('.speak-shell'),
+      getTopInset: () => {
+        if (document.body.classList.contains('app-titlebar-enabled')) return 0;
+        const shellEl = this.querySelector('.speak-shell');
+        if (!shellEl) return 0;
+        const paddingTop = Number.parseFloat(window.getComputedStyle(shellEl).paddingTop || '0');
+        return Number.isFinite(paddingTop) ? Math.max(0, Math.round(paddingTop)) : 0;
+      },
+      getExpandedLabel: () => 'Collapse practice card',
+      getCollapsedLabel: () => 'Expand practice card'
+    });
+    const initialSpeakSheetExpanded = initialSpeakSheetController.state.expanded;
+    const initialSpeakSheetOffset = initialSpeakSheetController.state.offset;
+
     this.classList.add('ion-page');
     const isSpeakCardPadded = () => {
       const cached = window.r34lp0w3r && window.r34lp0w3r.freeRideCardPadded;
@@ -99,18 +121,21 @@ class PageSpeak extends HTMLElement {
             </div>
             <p class="secret-title" id="speak-hero-hint" aria-hidden="true"></p>
           </section>
-          <section class="speak-sheet" data-sheet-state="collapsed">
+          <section class="speak-sheet" data-sheet-state="${initialSpeakSheetExpanded ? 'expanded' : 'collapsed'}">
             <button
               id="speak-sheet-handle"
               class="speak-sheet-handle"
               type="button"
-              aria-label="Expand practice card"
-              aria-expanded="false"
+              aria-label="${initialSpeakSheetExpanded ? 'Collapse practice card' : 'Expand practice card'}"
+              aria-expanded="${initialSpeakSheetExpanded ? 'true' : 'false'}"
             >
               <span class="speak-sheet-handle-pill" aria-hidden="true"></span>
             </button>
             <div class="speak-sheet-main">
-              <div class="speak-route-banner" id="speak-route-banner" aria-hidden="true"></div>
+              <div class="speak-top-row">
+                <div class="speak-route-banner" id="speak-route-banner" aria-hidden="true"></div>
+                <span class="speak-step-heading-compact" id="speak-step-heading-compact" aria-hidden="true"></span>
+              </div>
               <div class="speak-swipe-stage">
                 <div class="speak-swipe-ghost" id="speak-ghost" aria-hidden="true"></div>
                 <div id="speak-step" class="speak-swipe-active"></div>
@@ -130,6 +155,7 @@ class PageSpeak extends HTMLElement {
     const heroHintTextEl = this.querySelector('#speak-hero-hint-text');
     const heroCardEl = this.querySelector('#speak-hero-card');
     const routeBannerEl = this.querySelector('#speak-route-banner');
+    const compactHeadingEl = this.querySelector('#speak-step-heading-compact');
     const heroStepTitleEl = this.querySelector('#speak-hero-step-title');
     const heroHintEl = this.querySelector('#speak-hero-hint');
     const heroFlagBtn = this.querySelector('.speak-hero-flag-btn');
@@ -271,8 +297,8 @@ class PageSpeak extends HTMLElement {
     let hintLocaleOverride = '';
     let activeHintLocale = 'en';
     let avatarResizeObserver = null;
-    let speakSheetExpanded = false;
-    let speakSheetExpandedOffset = 0;
+    let speakSheetExpanded = initialSpeakSheetExpanded;
+    let speakSheetExpandedOffset = initialSpeakSheetOffset;
     let speakSheetTranslateY = 0;
     let speakSheetDragging = false;
 
@@ -4048,6 +4074,10 @@ class PageSpeak extends HTMLElement {
     const applySessionData = (nextSelection = getSelection()) => {
       const { session } = resolveSelection(nextSelection);
       if (!session || !session.speak) return;
+      speakSheetExpanded = speakSheetController.state.expanded;
+      if (speakSheetExpanded && speakSheetExpandedOffset <= 0) {
+        speakSheetExpandedOffset = speakSheetController.state.offset;
+      }
       heroFirstRenderAt = Date.now();
       currentSessionId = session.id;
       currentSessionData = session;
@@ -4111,6 +4141,7 @@ class PageSpeak extends HTMLElement {
       const stepSubtitle = resolveHeroHintText(soundStep, locale);
       return `
         <div class="speak-step speak-step-sound">
+          <div class="speak-step-scroll-body">
           <p class="speak-step-heading">${stepTitle}</p>
           <div class="speak-phonetic">
             <span class="speak-phonetic-text" id="speak-phonetic-text">
@@ -4129,13 +4160,13 @@ class PageSpeak extends HTMLElement {
                        poster="${resolveSessionVideoPath(currentSessionData).replace('.mp4', '.jpg')}"
                        playsinline
                      ></video>
-                     <button class="speak-video-play-btn" id="speak-video-play" type="button" aria-label="Play">
-                       <ion-icon name="play-circle-outline"></ion-icon>
-                     </button>
-                     <button class="speak-video-fullscreen-btn" id="speak-video-fullscreen" type="button" aria-label="Fullscreen">
-                       <ion-icon name="expand-outline"></ion-icon>
-                     </button>
                    </div>
+                   <button class="speak-video-play-btn" id="speak-video-play" type="button" aria-label="Play">
+                     <ion-icon name="play-circle-outline"></ion-icon>
+                   </button>
+                   <button class="speak-video-fullscreen-btn" id="speak-video-fullscreen" type="button" aria-label="Fullscreen">
+                     <ion-icon name="expand-outline"></ion-icon>
+                   </button>
                  </div>`
               : `<div class="speak-avatar-stage">
                    <div class="speak-avatar">
@@ -4159,6 +4190,7 @@ class PageSpeak extends HTMLElement {
                    </div>
                  </div>`
             }
+          </div>
           </div>
 
           ${renderBottomPanel('sound', {
@@ -4447,7 +4479,10 @@ class PageSpeak extends HTMLElement {
     const updateHeroCard = (stepKey) => {
       if (!heroCardEl || !heroStepTitleEl || !heroHintEl) return;
       if (showSummary) {
-        setSpeakSheetExpanded(false, { animate: false, force: true });
+        const restoreExpanded = speakSheetExpanded;
+        speakSheetExpanded = false;
+        applySpeakSheetState({ animate: false, force: true });
+        speakSheetExpanded = restoreExpanded;
         heroCardEl.hidden = true;
         if (routeBannerEl) routeBannerEl.hidden = true;
         speakSheetSurface?.classList.add('has-summary');
@@ -4529,49 +4564,42 @@ class PageSpeak extends HTMLElement {
       return Number.isFinite(paddingTop) ? Math.max(0, Math.round(paddingTop)) : 0;
     };
 
+    const speakSheetController = createSheetController({
+      expandedKey: SPEAK_SHEET_EXPANDED_KEY,
+      offsetKey: SPEAK_SHEET_OFFSET_KEY,
+      getSheetEl: () => getSpeakSheetEl(),
+      getHandleEl: () => getSpeakSheetHandleEl(),
+      getShellEl: () => getSpeakShellEl(),
+      getTopInset: () => getSpeakSheetTopInset(),
+      getExpandedLabel: () => 'Collapse practice card',
+      getCollapsedLabel: () => 'Expand practice card',
+      canInteract: () => !(showSummary || isRecording || isTranscribing)
+    });
+
+    const syncSpeakSheetVarsFromController = () => {
+      speakSheetExpanded = speakSheetController.state.expanded;
+      speakSheetExpandedOffset = speakSheetController.state.offset;
+      speakSheetTranslateY = speakSheetController.state.translateY;
+      speakSheetDragging = speakSheetController.state.dragging;
+      speakSheetLastPointerUpTs = speakSheetController.state.lastPointerUpTs;
+    };
+
     const measureSpeakSheetExpandedOffset = () => {
-      const shellEl = getSpeakShellEl();
-      const sheetEl = getSpeakSheetEl();
-      if (!shellEl || !sheetEl) return 0;
-      const shellRect = shellEl.getBoundingClientRect();
-      const sheetRect = sheetEl.getBoundingClientRect();
-      const currentTranslate = Number.isFinite(speakSheetTranslateY) ? speakSheetTranslateY : 0;
-      const targetTop = shellRect.top + getSpeakSheetTopInset();
-      const offset = Math.max(0, Math.round(sheetRect.top - currentTranslate - targetTop));
-      speakSheetExpandedOffset = offset;
+      speakSheetController.state.expanded = speakSheetExpanded;
+      speakSheetController.state.offset = speakSheetExpandedOffset;
+      speakSheetController.state.translateY = speakSheetTranslateY;
+      const offset = speakSheetController.measureOffset();
+      syncSpeakSheetVarsFromController();
       return offset;
     };
 
     const applySpeakSheetState = (options = {}) => {
-      const animate = options.animate !== false;
-      const sheetEl = getSpeakSheetEl();
-      const handleEl = getSpeakSheetHandleEl();
-      if (!sheetEl) return;
-
-      const offset = speakSheetExpanded
-        ? (speakSheetExpandedOffset || measureSpeakSheetExpandedOffset())
-        : 0;
-      speakSheetTranslateY = speakSheetExpanded ? -offset : 0;
-
-      sheetEl.dataset.sheetState = speakSheetExpanded ? 'expanded' : 'collapsed';
-      sheetEl.classList.toggle('is-sheet-dragging', speakSheetDragging);
-      sheetEl.classList.toggle('is-sheet-instant', !animate);
-      const liftMagnitude = Math.max(0, -speakSheetTranslateY);
-      sheetEl.style.setProperty('--sheet-lift', `${liftMagnitude}px`);
-      if (handleEl) {
-        handleEl.setAttribute('aria-expanded', speakSheetExpanded ? 'true' : 'false');
-        handleEl.setAttribute(
-          'aria-label',
-          speakSheetExpanded ? 'Collapse practice card' : 'Expand practice card'
-        );
-      }
-
-      if (!animate) {
-        requestAnimationFrame(() => {
-          if (!sheetEl.isConnected) return;
-          sheetEl.classList.remove('is-sheet-instant');
-        });
-      }
+      speakSheetController.state.expanded = speakSheetExpanded;
+      speakSheetController.state.offset = speakSheetExpandedOffset;
+      speakSheetController.state.translateY = speakSheetTranslateY;
+      speakSheetController.state.dragging = speakSheetDragging;
+      speakSheetController.applyState(options);
+      syncSpeakSheetVarsFromController();
     };
 
     const setSpeakSheetExpanded = (nextExpanded, options = {}) => {
@@ -4581,12 +4609,10 @@ class PageSpeak extends HTMLElement {
         return;
       }
       speakSheetExpanded = expanded;
-      if (
-        expanded &&
-        (!Number.isFinite(speakSheetExpandedOffset) || speakSheetExpandedOffset <= 0)
-      ) {
-        speakSheetExpandedOffset = measureSpeakSheetExpandedOffset();
-      }
+      speakSheetController.state.expanded = speakSheetExpanded;
+      speakSheetController.state.offset = speakSheetExpandedOffset;
+      speakSheetController.setExpanded(expanded, options);
+      syncSpeakSheetVarsFromController();
       applySpeakSheetState(options);
     };
 
@@ -4595,89 +4621,27 @@ class PageSpeak extends HTMLElement {
     };
 
     const startSpeakSheetDrag = (event) => {
-      const handleEl = event && event.currentTarget ? event.currentTarget : null;
-      const sheetEl = getSpeakSheetEl();
-      if (!handleEl || !sheetEl || typeof event.pointerId !== 'number') return;
-      if (event.button !== 0) return;
-      if (showSummary || isRecording || isTranscribing) return;
-
-      speakSheetExpandedOffset = measureSpeakSheetExpandedOffset();
-      speakSheetDragging = true;
-      speakSheetPointerId = event.pointerId;
-      speakSheetDragStartY = event.clientY;
-      speakSheetDragStartTranslateY = speakSheetExpanded ? -speakSheetExpandedOffset : 0;
-      speakSheetDragMoved = false;
-      sheetEl.classList.add('is-sheet-dragging');
-      applySpeakSheetState({ animate: false });
-
-      try {
-        handleEl.setPointerCapture(event.pointerId);
-      } catch (_err) {
-        // no-op
-      }
-      event.preventDefault();
+      speakSheetController.state.expanded = speakSheetExpanded;
+      speakSheetController.state.offset = speakSheetExpandedOffset;
+      speakSheetController.startDrag(event);
+      syncSpeakSheetVarsFromController();
     };
 
     const moveSpeakSheetDrag = (event) => {
-      if (!speakSheetDragging) return;
-      if (typeof event.pointerId === 'number' && event.pointerId !== speakSheetPointerId) return;
-      const sheetEl = getSpeakSheetEl();
-      if (!sheetEl) return;
-
-      const deltaY = Number(event.clientY) - speakSheetDragStartY;
-      const nextTranslate = speakSheetDragStartTranslateY + deltaY;
-      const minTranslate = -speakSheetExpandedOffset;
-      const maxTranslate = 0;
-      const clampedTranslate = Math.max(minTranslate, Math.min(maxTranslate, nextTranslate));
-
-      if (Math.abs(clampedTranslate - speakSheetDragStartTranslateY) > 4) {
-        speakSheetDragMoved = true;
-      }
-
-      speakSheetTranslateY = clampedTranslate;
-      const liftMagnitude = Math.max(0, -clampedTranslate);
-      sheetEl.style.setProperty('--sheet-lift', `${liftMagnitude}px`);
-      event.preventDefault();
+      speakSheetController.moveDrag(event);
+      syncSpeakSheetVarsFromController();
     };
 
     const finishSpeakSheetDrag = (event) => {
-      if (!speakSheetDragging) return;
-      if (typeof event.pointerId === 'number' && event.pointerId !== speakSheetPointerId) return;
-      const sheetEl = getSpeakSheetEl();
-      const handleEl = getSpeakSheetHandleEl();
-      const currentTranslate = Number.isFinite(speakSheetTranslateY) ? speakSheetTranslateY : 0;
-      const midpoint = -Math.max(0, speakSheetExpandedOffset) / 2;
-      const nextExpanded = speakSheetDragMoved ? currentTranslate <= midpoint : !speakSheetExpanded;
-
-      speakSheetDragging = false;
-      speakSheetPointerId = null;
-      speakSheetDragMoved = false;
-      speakSheetLastPointerUpTs = Date.now();
-      if (sheetEl) {
-        sheetEl.classList.remove('is-sheet-dragging');
-      }
-      if (handleEl) {
-        try {
-          if (typeof event.pointerId === 'number' && handleEl.hasPointerCapture(event.pointerId)) {
-            handleEl.releasePointerCapture(event.pointerId);
-          }
-        } catch (_err) {
-          // no-op
-        }
-      }
-      setSpeakSheetExpanded(nextExpanded, { animate: true });
+      speakSheetController.finishDrag(event);
+      syncSpeakSheetVarsFromController();
+      applySpeakSheetState({ animate: true });
     };
 
     const cancelSpeakSheetDrag = () => {
-      if (!speakSheetDragging) return;
-      speakSheetDragging = false;
-      speakSheetPointerId = null;
-      speakSheetDragMoved = false;
-      const sheetEl = getSpeakSheetEl();
-      if (sheetEl) {
-        sheetEl.classList.remove('is-sheet-dragging');
-      }
-      setSpeakSheetExpanded(speakSheetExpanded, { animate: true, force: true });
+      speakSheetController.cancelDrag();
+      syncSpeakSheetVarsFromController();
+      applySpeakSheetState({ animate: true, force: true });
     };
 
     const disconnectAvatarResizeObserver = () => {
@@ -4768,14 +4732,22 @@ class PageSpeak extends HTMLElement {
       if (!stepRoot) return;
       if (showSummary) {
         stepRoot.innerHTML = renderSummaryStep();
+        if (compactHeadingEl) compactHeadingEl.textContent = '';
       } else if (key === 'sound') {
         stepRoot.innerHTML = renderSoundStep();
+        if (compactHeadingEl) {
+          const h = stepRoot.querySelector('.speak-step-heading');
+          compactHeadingEl.textContent = h ? h.textContent : '';
+        }
       } else if (key === 'spelling') {
         stepRoot.innerHTML = renderSpellingStep();
+        if (compactHeadingEl) compactHeadingEl.textContent = '';
       } else if (key === 'sentence') {
         stepRoot.innerHTML = renderSentenceStep();
+        if (compactHeadingEl) compactHeadingEl.textContent = '';
       } else {
         stepRoot.innerHTML = renderSummaryStep();
+        if (compactHeadingEl) compactHeadingEl.textContent = '';
       }
       stepRoot.style.transform = '';
 
@@ -4982,7 +4954,11 @@ class PageSpeak extends HTMLElement {
           stopAvatarPlayback();
           selectedWord = word;
           syncSpellingStateFromStore(word);
+          const prevScrollEl = stepRoot.querySelector('.speak-step-main');
+          const prevScrollTop = prevScrollEl ? prevScrollEl.scrollTop : 0;
           renderStep();
+          const nextScrollEl = stepRoot.querySelector('.speak-step-main');
+          if (nextScrollEl) nextScrollEl.scrollTop = prevScrollTop;
           const nextPlayWordBtn = stepRoot.querySelector('#speak-play-word');
           playReferenceAudio({
             text: selectedWord,
@@ -5521,13 +5497,7 @@ class PageSpeak extends HTMLElement {
       cancelSpeakSheetDrag();
     });
     sheetHandleBtn?.addEventListener('click', (event) => {
-      if (showSummary) return;
-      const lastPointerUpTs = Number(speakSheetLastPointerUpTs) || 0;
-      if (lastPointerUpTs && Date.now() - lastPointerUpTs < 350) {
-        event.preventDefault();
-        return;
-      }
-      toggleSpeakSheet({ animate: true });
+      event.preventDefault();
     });
     sheetHandleBtn?.addEventListener('keydown', (event) => {
       if (showSummary) return;
@@ -5539,6 +5509,27 @@ class PageSpeak extends HTMLElement {
 
     applySpeakSheetState({ animate: false, force: true });
 
+    const ionRouter = document.querySelector('ion-router');
+    const handleSpeakRouteEnter = (event) => {
+      const to = event && event.detail ? event.detail.to : null;
+      if (!to || !String(to).startsWith('/speak')) return;
+      if (!this.isConnected) return;
+      speakSheetExpandedOffset = measureSpeakSheetExpandedOffset();
+      applySpeakSheetState({ animate: false });
+    };
+    ionRouter?.addEventListener('ionRouteDidChange', handleSpeakRouteEnter);
+    this._handleSpeakRouteEnter = handleSpeakRouteEnter;
+    this._speakIonRouter = ionRouter;
+    this._speakTabsEl = document.querySelector('tabs-page');
+    this._handleSpeakTabEnter = (event) => {
+      const tab = event && event.detail ? String(event.detail.tab || '') : '';
+      if (tab.trim().toLowerCase() !== 'speak') return;
+      if (!this.isConnected) return;
+      speakSheetExpandedOffset = measureSpeakSheetExpandedOffset();
+      applySpeakSheetState({ animate: false });
+    };
+    this._speakTabsEl?.addEventListener('ionTabsDidChange', this._handleSpeakTabEnter);
+    window.addEventListener('app:tab-change', this._handleSpeakTabEnter);
 
     const localeBtnEl = this.querySelector('.app-locale-btn');
     const handleLocaleBtn = () => {
@@ -5586,6 +5577,13 @@ class PageSpeak extends HTMLElement {
       }
       if (this._handleSpeakHeaderColor) {
         window.removeEventListener('app:free-ride-header-color-change', this._handleSpeakHeaderColor);
+      }
+      if (this._handleSpeakRouteEnter) {
+        this._speakIonRouter?.removeEventListener('ionRouteDidChange', this._handleSpeakRouteEnter);
+      }
+      if (this._handleSpeakTabEnter) {
+        this._speakTabsEl?.removeEventListener('ionTabsDidChange', this._handleSpeakTabEnter);
+        window.removeEventListener('app:tab-change', this._handleSpeakTabEnter);
       }
       disconnectAvatarResizeObserver();
       if (debugToggleBtn) {

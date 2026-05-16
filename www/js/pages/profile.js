@@ -16,11 +16,14 @@ import {
   HERO_MASCOT_TALK_FRAME_SEQUENCE as PROFILE_AUTH_MASCOT_TALK_FRAME_SEQUENCE,
   preloadHeroMascotFrames
 } from '../mascot-frames.js';
+import { createSheetController } from '../sheet-controller.js';
 
 const REFERENCE_TESTS_PROGRESS_STORAGE_PREFIX = 'appv5:reference-tests-progress';
 const FREE_RIDE_HEADER_COLOR_KEY = 'appv5:free-ride-header-color';
 const FREE_RIDE_CARD_PADDED_KEY = 'appv5:free-ride-card-padded';
 const FREE_RIDE_HEADER_COLOR_VALUES = ['white', 'dark', 'blue'];
+const PROFILE_SHEET_EXPANDED_KEY = 'appv5:profile-sheet-expanded';
+const PROFILE_SHEET_OFFSET_KEY = 'appv5:profile-sheet-expanded-offset';
 const PROFILE_AUTH_ALIGNED_CACHE_MAX_ITEMS = 12;
 const TTS_LANG_BY_LOCALE = {
   es: 'es-ES',
@@ -822,54 +825,32 @@ class PageProfile extends HTMLElement {
   }
 
   measureProfileSheetExpandedOffset() {
-    const shellEl = this.getProfileShellEl();
-    const sheetEl = this.getProfileSheetEl();
-    if (!shellEl || !sheetEl) return 0;
-    const shellRect = shellEl.getBoundingClientRect();
-    const sheetRect = sheetEl.getBoundingClientRect();
-    const currentTranslate = Number.isFinite(this.profileSheetTranslateY) ? this.profileSheetTranslateY : 0;
-    const targetTop = shellRect.top + this.getProfileSheetTopInset();
-    const offset = Math.max(0, Math.round(sheetRect.top - currentTranslate - targetTop));
-    this.profileSheetExpandedOffset = offset;
+    const offset = this.profileSheetController.measureOffset();
+    this.profileSheetExpandedOffset = this.profileSheetController.state.offset;
+    this.profileSheetTranslateY = this.profileSheetController.state.translateY;
     return offset;
   }
 
   applyProfileSheetState(options = {}) {
-    const animate = options.animate !== false;
-    const sheetEl = this.getProfileSheetEl();
-    const handleEl = this.getProfileSheetHandleEl();
-    if (!sheetEl) return;
-    const offset = this.profileSheetExpanded
-      ? (this.profileSheetExpandedOffset || this.measureProfileSheetExpandedOffset())
-      : 0;
-    this.profileSheetTranslateY = this.profileSheetExpanded ? -offset : 0;
-    sheetEl.dataset.sheetState = this.profileSheetExpanded ? 'expanded' : 'collapsed';
-    sheetEl.classList.toggle('is-sheet-instant', !animate);
-    const liftMagnitude = Math.max(0, -this.profileSheetTranslateY);
-    sheetEl.style.setProperty('--sheet-lift', `${liftMagnitude}px`);
-    if (handleEl) {
-      handleEl.setAttribute('aria-expanded', this.profileSheetExpanded ? 'true' : 'false');
-      handleEl.setAttribute('aria-label', this.profileSheetExpanded ? 'Collapse profile card' : 'Expand profile card');
-    }
-    if (!animate) {
-      requestAnimationFrame(() => {
-        if (!sheetEl.isConnected) return;
-        sheetEl.classList.remove('is-sheet-instant');
-      });
-    }
+    this.profileSheetController.state.expanded = this.profileSheetExpanded;
+    this.profileSheetController.state.offset = this.profileSheetExpandedOffset;
+    this.profileSheetController.state.translateY = this.profileSheetTranslateY;
+    this.profileSheetController.state.dragging = this.profileSheetDragging;
+    this.profileSheetController.applyState(options);
+    this.profileSheetExpanded = this.profileSheetController.state.expanded;
+    this.profileSheetExpandedOffset = this.profileSheetController.state.offset;
+    this.profileSheetTranslateY = this.profileSheetController.state.translateY;
+    this.profileSheetDragging = this.profileSheetController.state.dragging;
   }
 
   setProfileSheetExpanded(nextExpanded, options = {}) {
-    const expanded = Boolean(nextExpanded);
-    if (this.profileSheetExpanded === expanded && !options.force) {
-      this.applyProfileSheetState(options);
-      return;
-    }
-    this.profileSheetExpanded = expanded;
-    if (expanded && (!Number.isFinite(this.profileSheetExpandedOffset) || this.profileSheetExpandedOffset <= 0)) {
-      this.profileSheetExpandedOffset = this.measureProfileSheetExpandedOffset();
-    }
-    this.applyProfileSheetState(options);
+    this.profileSheetController.state.expanded = this.profileSheetExpanded;
+    this.profileSheetController.state.offset = this.profileSheetExpandedOffset;
+    this.profileSheetController.setExpanded(nextExpanded, options);
+    this.profileSheetExpanded = this.profileSheetController.state.expanded;
+    this.profileSheetExpandedOffset = this.profileSheetController.state.offset;
+    this.profileSheetTranslateY = this.profileSheetController.state.translateY;
+    this.profileSheetDragging = this.profileSheetController.state.dragging;
   }
 
   toggleProfileSheet(options = {}) {
@@ -877,88 +858,36 @@ class PageProfile extends HTMLElement {
   }
 
   startProfileSheetDrag(event) {
-    const handleEl = event && event.currentTarget ? event.currentTarget : null;
-    const sheetEl = this.getProfileSheetEl();
-    if (!handleEl || !sheetEl || typeof event.pointerId !== 'number') return;
-    if (event.button !== 0) return;
-
-    this.profileSheetExpandedOffset = this.measureProfileSheetExpandedOffset();
-    this.profileSheetDragging = true;
-    this.profileSheetPointerId = event.pointerId;
-    this.profileSheetDragStartY = event.clientY;
-    this.profileSheetDragStartTranslateY = this.profileSheetExpanded ? -this.profileSheetExpandedOffset : 0;
-    this.profileSheetDragMoved = false;
-    sheetEl.classList.add('is-sheet-dragging');
-    this.applyProfileSheetState({ animate: false });
-
-    try {
-      handleEl.setPointerCapture(event.pointerId);
-    } catch (_err) {
-      // no-op
-    }
-    event.preventDefault();
+    this.profileSheetController.state.expanded = this.profileSheetExpanded;
+    this.profileSheetController.state.offset = this.profileSheetExpandedOffset;
+    this.profileSheetController.startDrag(event);
+    this.profileSheetExpanded = this.profileSheetController.state.expanded;
+    this.profileSheetExpandedOffset = this.profileSheetController.state.offset;
+    this.profileSheetTranslateY = this.profileSheetController.state.translateY;
+    this.profileSheetDragging = this.profileSheetController.state.dragging;
   }
 
   moveProfileSheetDrag(event) {
-    if (!this.profileSheetDragging) return;
-    if (typeof event.pointerId === 'number' && event.pointerId !== this.profileSheetPointerId) return;
-    const sheetEl = this.getProfileSheetEl();
-    if (!sheetEl) return;
-
-    const deltaY = Number(event.clientY) - this.profileSheetDragStartY;
-    const nextTranslate = this.profileSheetDragStartTranslateY + deltaY;
-    const minTranslate = -this.profileSheetExpandedOffset;
-    const maxTranslate = 0;
-    const clampedTranslate = Math.max(minTranslate, Math.min(maxTranslate, nextTranslate));
-
-    if (Math.abs(clampedTranslate - this.profileSheetDragStartTranslateY) > 4) {
-      this.profileSheetDragMoved = true;
-    }
-
-    this.profileSheetTranslateY = clampedTranslate;
-    const liftMagnitude = Math.max(0, -clampedTranslate);
-    sheetEl.style.setProperty('--sheet-lift', `${liftMagnitude}px`);
-    event.preventDefault();
+    this.profileSheetController.moveDrag(event);
+    this.profileSheetTranslateY = this.profileSheetController.state.translateY;
+    this.profileSheetDragging = this.profileSheetController.state.dragging;
   }
 
   finishProfileSheetDrag(event) {
-    if (!this.profileSheetDragging) return;
-    if (typeof event.pointerId === 'number' && event.pointerId !== this.profileSheetPointerId) return;
-    const sheetEl = this.getProfileSheetEl();
-    const handleEl = this.getProfileSheetHandleEl();
-    const currentTranslate = Number.isFinite(this.profileSheetTranslateY) ? this.profileSheetTranslateY : 0;
-    const midpoint = -Math.max(0, this.profileSheetExpandedOffset) / 2;
-    const nextExpanded = this.profileSheetDragMoved ? currentTranslate <= midpoint : !this.profileSheetExpanded;
-
-    this.profileSheetDragging = false;
-    this.profileSheetPointerId = null;
-    this.profileSheetDragMoved = false;
-    this.profileSheetLastPointerUpTs = Date.now();
-    if (sheetEl) {
-      sheetEl.classList.remove('is-sheet-dragging');
-    }
-    if (handleEl) {
-      try {
-        if (typeof event.pointerId === 'number' && handleEl.hasPointerCapture(event.pointerId)) {
-          handleEl.releasePointerCapture(event.pointerId);
-        }
-      } catch (_err) {
-        // no-op
-      }
-    }
-    this.setProfileSheetExpanded(nextExpanded, { animate: true });
+    this.profileSheetController.finishDrag(event);
+    this.profileSheetExpanded = this.profileSheetController.state.expanded;
+    this.profileSheetExpandedOffset = this.profileSheetController.state.offset;
+    this.profileSheetTranslateY = this.profileSheetController.state.translateY;
+    this.profileSheetDragging = this.profileSheetController.state.dragging;
+    this.profileSheetLastPointerUpTs = this.profileSheetController.state.lastPointerUpTs;
   }
 
   cancelProfileSheetDrag() {
-    if (!this.profileSheetDragging) return;
-    this.profileSheetDragging = false;
-    this.profileSheetPointerId = null;
-    this.profileSheetDragMoved = false;
-    const sheetEl = this.getProfileSheetEl();
-    if (sheetEl) {
-      sheetEl.classList.remove('is-sheet-dragging');
-    }
-    this.setProfileSheetExpanded(this.profileSheetExpanded, { animate: true, force: true });
+    this.profileSheetController.cancelDrag();
+    this.profileSheetExpanded = this.profileSheetController.state.expanded;
+    this.profileSheetExpandedOffset = this.profileSheetController.state.offset;
+    this.profileSheetTranslateY = this.profileSheetController.state.translateY;
+    this.profileSheetDragging = this.profileSheetController.state.dragging;
   }
 
   bindProfileSheetInteractions() {
@@ -980,13 +909,7 @@ class PageProfile extends HTMLElement {
       this.cancelProfileSheetDrag();
     });
     handleEl.addEventListener('click', (e) => {
-      const lastPointerUpTs = Number(this.profileSheetLastPointerUpTs) || 0;
-      if (lastPointerUpTs && Date.now() - lastPointerUpTs < 350) {
-        e.preventDefault();
-        return;
-      }
       e.preventDefault();
-      this.toggleProfileSheet({ animate: true });
     });
     handleEl.addEventListener('keydown', (e) => {
       if (e.key !== 'Enter' && e.key !== ' ') return;
@@ -1076,8 +999,18 @@ class PageProfile extends HTMLElement {
     this.applyHeaderColor(getStoredHeaderColor());
     this.classList.toggle('is-card-padded', isFreeRideCardPadded());
     preloadHeroMascotFrames();
-    this.profileSheetExpanded = false;
-    this.profileSheetExpandedOffset = 0;
+    this.profileSheetController = createSheetController({
+      expandedKey: PROFILE_SHEET_EXPANDED_KEY,
+      offsetKey: PROFILE_SHEET_OFFSET_KEY,
+      getSheetEl: () => this.getProfileSheetEl(),
+      getHandleEl: () => this.getProfileSheetHandleEl(),
+      getShellEl: () => this.getProfileShellEl(),
+      getTopInset: () => this.getProfileSheetTopInset(),
+      getExpandedLabel: () => 'Collapse profile card',
+      getCollapsedLabel: () => 'Expand profile card'
+    });
+    this.profileSheetExpanded = this.profileSheetController.state.expanded;
+    this.profileSheetExpandedOffset = this.profileSheetController.state.offset;
     this.profileSheetTranslateY = 0;
     this.profileSheetDragging = false;
     this.profileSheetPointerId = null;
@@ -1180,6 +1113,8 @@ class PageProfile extends HTMLElement {
         if (isCurrentProfileLoggedIn()) {
           this.scheduleReviewCollapseRefresh(true);
         }
+        this.profileSheetExpandedOffset = this.measureProfileSheetExpandedOffset();
+        this.applyProfileSheetState({ animate: false, force: true });
         this.scheduleProfileLayout(0);
         if (isCurrentProfileLoggedIn()) {
           this.scheduleProfileLayout(140);
@@ -2602,8 +2537,8 @@ class PageProfile extends HTMLElement {
             <div class="profile-hero-name">${userDisplayName}</div>
             ${premiumBadgeMarkup}
           </section>
-          <section class="free-ride-card journey-sheet profile-content-card" id="profile-card-section" ${loggedIn ? '' : 'hidden'}>
-            <button class="free-ride-card-handle journey-sheet-handle" type="button" aria-label="Profile content handle" aria-expanded="false">
+          <section class="free-ride-card journey-sheet profile-content-card" id="profile-card-section" ${loggedIn ? '' : 'hidden'} data-sheet-state="${this.profileSheetExpanded ? 'expanded' : 'collapsed'}">
+            <button class="free-ride-card-handle journey-sheet-handle" type="button" aria-label="${this.profileSheetExpanded ? 'Collapse profile card' : 'Expand profile card'}" aria-expanded="${this.profileSheetExpanded ? 'true' : 'false'}">
               <span class="free-ride-card-handle-pill journey-sheet-handle-pill" aria-hidden="true"></span>
             </button>
             <div class="free-ride-card-main journey-sheet-main">

@@ -31,6 +31,7 @@ import {
   getHeroMascotFramePath,
   preloadHeroMascotFrames
 } from '../mascot-frames.js';
+import { createSheetController } from '../sheet-controller.js';
 
 const MARKED_CDN_URLS = [
   'https://cdn.jsdelivr.net/npm/marked/lib/marked.esm.js',
@@ -48,6 +49,8 @@ const FREE_RIDE_CARD_PADDED_KEY = 'appv5:free-ride-card-padded';
 const FREE_RIDE_HEADER_COLOR_KEY = 'appv5:free-ride-header-color';
 const FREE_RIDE_HEADER_COLOR_VALUES = ['white', 'dark', 'blue'];
 const REFERENCE_TESTS_PROGRESS_STORAGE_PREFIX = 'appv5:reference-tests-progress';
+const REFERENCE_SHEET_EXPANDED_KEY = 'appv5:reference-sheet-expanded';
+const REFERENCE_SHEET_OFFSET_KEY = 'appv5:reference-sheet-expanded-offset';
 const REFERENCE_PROGRESS_QUEUE_STORAGE_PREFIX = 'appv5:reference-progress-queue';
 const REFERENCE_TEST_REWARD_ENTRY_PREFIX = 'reference-test';
 const REFERENCE_TEST_TROPHY_REWARD_QTY = 1;
@@ -244,8 +247,18 @@ class PageReference extends HTMLElement {
     this.translatorLoading = false;
     this.translatorError = '';
     this.translatorRequestId = 0;
-    this.referenceSheetExpanded = false;
-    this.referenceSheetExpandedOffset = 0;
+    this.referenceSheetController = createSheetController({
+      expandedKey: REFERENCE_SHEET_EXPANDED_KEY,
+      offsetKey: REFERENCE_SHEET_OFFSET_KEY,
+      getSheetEl: () => this.getReferenceSheetEl(),
+      getHandleEl: () => this.getReferenceSheetHandleEl(),
+      getShellEl: () => this.getReferenceShellEl(),
+      getTopInset: () => this.getReferenceSheetTopInset(),
+      getExpandedLabel: () => 'Collapse reference card',
+      getCollapsedLabel: () => 'Expand reference card'
+    });
+    this.referenceSheetExpanded = this.referenceSheetController.state.expanded;
+    this.referenceSheetExpandedOffset = this.referenceSheetController.state.offset;
     this.referenceSheetTranslateY = 0;
     this.referenceSheetDragging = false;
     this.referenceSheetPointerId = null;
@@ -259,6 +272,8 @@ class PageReference extends HTMLElement {
   }
 
   connectedCallback() {
+    this.referenceSheetExpanded = this.referenceSheetController.state.expanded;
+    this.referenceSheetExpandedOffset = this.referenceSheetController.state.offset;
     this.classList.add('ion-page');
     this.applyHeaderColor(getStoredHeaderColor());
     this.classList.toggle('is-card-padded', isFreeRideCardPadded());
@@ -1550,63 +1565,32 @@ class PageReference extends HTMLElement {
   }
 
   measureReferenceSheetExpandedOffset() {
-    const shellEl = this.getReferenceShellEl();
-    const sheetEl = this.getReferenceSheetEl();
-    if (!shellEl || !sheetEl) return 0;
-    const shellRect = shellEl.getBoundingClientRect();
-    const sheetRect = sheetEl.getBoundingClientRect();
-    const currentTranslate = Number.isFinite(this.referenceSheetTranslateY) ? this.referenceSheetTranslateY : 0;
-    const targetTop = shellRect.top + this.getReferenceSheetTopInset();
-    const offset = Math.max(0, Math.round(sheetRect.top - currentTranslate - targetTop));
-    this.referenceSheetExpandedOffset = offset;
+    const offset = this.referenceSheetController.measureOffset();
+    this.referenceSheetExpandedOffset = this.referenceSheetController.state.offset;
+    this.referenceSheetTranslateY = this.referenceSheetController.state.translateY;
     return offset;
   }
 
   applyReferenceSheetState(options = {}) {
-    const animate = options.animate !== false;
-    const sheetEl = this.getReferenceSheetEl();
-    const handleEl = this.getReferenceSheetHandleEl();
-    if (!sheetEl) return;
-
-    const offset = this.referenceSheetExpanded
-      ? (this.referenceSheetExpandedOffset || this.measureReferenceSheetExpandedOffset())
-      : 0;
-    this.referenceSheetTranslateY = this.referenceSheetExpanded ? -offset : 0;
-
-    sheetEl.dataset.sheetState = this.referenceSheetExpanded ? 'expanded' : 'collapsed';
-    sheetEl.classList.toggle('is-sheet-instant', !animate);
-    const liftMagnitude = Math.max(0, -this.referenceSheetTranslateY);
-    sheetEl.style.setProperty('--sheet-lift', `${liftMagnitude}px`);
-    if (handleEl) {
-      handleEl.setAttribute('aria-expanded', this.referenceSheetExpanded ? 'true' : 'false');
-      handleEl.setAttribute(
-        'aria-label',
-        this.referenceSheetExpanded ? 'Collapse reference card' : 'Expand reference card'
-      );
-    }
-
-    if (!animate) {
-      requestAnimationFrame(() => {
-        if (!sheetEl.isConnected) return;
-        sheetEl.classList.remove('is-sheet-instant');
-      });
-    }
+    this.referenceSheetController.state.expanded = this.referenceSheetExpanded;
+    this.referenceSheetController.state.offset = this.referenceSheetExpandedOffset;
+    this.referenceSheetController.state.translateY = this.referenceSheetTranslateY;
+    this.referenceSheetController.state.dragging = this.referenceSheetDragging;
+    this.referenceSheetController.applyState(options);
+    this.referenceSheetExpanded = this.referenceSheetController.state.expanded;
+    this.referenceSheetExpandedOffset = this.referenceSheetController.state.offset;
+    this.referenceSheetTranslateY = this.referenceSheetController.state.translateY;
+    this.referenceSheetDragging = this.referenceSheetController.state.dragging;
   }
 
   setReferenceSheetExpanded(nextExpanded, options = {}) {
-    const expanded = Boolean(nextExpanded);
-    if (this.referenceSheetExpanded === expanded && !options.force) {
-      this.applyReferenceSheetState(options);
-      return;
-    }
-    this.referenceSheetExpanded = expanded;
-    if (
-      expanded &&
-      (!Number.isFinite(this.referenceSheetExpandedOffset) || this.referenceSheetExpandedOffset <= 0)
-    ) {
-      this.referenceSheetExpandedOffset = this.measureReferenceSheetExpandedOffset();
-    }
-    this.applyReferenceSheetState(options);
+    this.referenceSheetController.state.expanded = this.referenceSheetExpanded;
+    this.referenceSheetController.state.offset = this.referenceSheetExpandedOffset;
+    this.referenceSheetController.setExpanded(nextExpanded, options);
+    this.referenceSheetExpanded = this.referenceSheetController.state.expanded;
+    this.referenceSheetExpandedOffset = this.referenceSheetController.state.offset;
+    this.referenceSheetTranslateY = this.referenceSheetController.state.translateY;
+    this.referenceSheetDragging = this.referenceSheetController.state.dragging;
   }
 
   toggleReferenceSheet(options = {}) {
@@ -1614,88 +1598,36 @@ class PageReference extends HTMLElement {
   }
 
   startReferenceSheetDrag(event) {
-    const handleEl = event && event.currentTarget ? event.currentTarget : null;
-    const sheetEl = this.getReferenceSheetEl();
-    if (!handleEl || !sheetEl || typeof event.pointerId !== 'number') return;
-    if (event.button !== 0) return;
-
-    this.referenceSheetExpandedOffset = this.measureReferenceSheetExpandedOffset();
-    this.referenceSheetDragging = true;
-    this.referenceSheetPointerId = event.pointerId;
-    this.referenceSheetDragStartY = event.clientY;
-    this.referenceSheetDragStartTranslateY = this.referenceSheetExpanded ? -this.referenceSheetExpandedOffset : 0;
-    this.referenceSheetDragMoved = false;
-    sheetEl.classList.add('is-sheet-dragging');
-    this.applyReferenceSheetState({ animate: false });
-
-    try {
-      handleEl.setPointerCapture(event.pointerId);
-    } catch (_err) {
-      // no-op
-    }
-    event.preventDefault();
+    this.referenceSheetController.state.expanded = this.referenceSheetExpanded;
+    this.referenceSheetController.state.offset = this.referenceSheetExpandedOffset;
+    this.referenceSheetController.startDrag(event);
+    this.referenceSheetExpanded = this.referenceSheetController.state.expanded;
+    this.referenceSheetExpandedOffset = this.referenceSheetController.state.offset;
+    this.referenceSheetTranslateY = this.referenceSheetController.state.translateY;
+    this.referenceSheetDragging = this.referenceSheetController.state.dragging;
   }
 
   moveReferenceSheetDrag(event) {
-    if (!this.referenceSheetDragging) return;
-    if (typeof event.pointerId === 'number' && event.pointerId !== this.referenceSheetPointerId) return;
-    const sheetEl = this.getReferenceSheetEl();
-    if (!sheetEl) return;
-
-    const deltaY = Number(event.clientY) - this.referenceSheetDragStartY;
-    const nextTranslate = this.referenceSheetDragStartTranslateY + deltaY;
-    const minTranslate = -this.referenceSheetExpandedOffset;
-    const maxTranslate = 0;
-    const clampedTranslate = Math.max(minTranslate, Math.min(maxTranslate, nextTranslate));
-
-    if (Math.abs(clampedTranslate - this.referenceSheetDragStartTranslateY) > 4) {
-      this.referenceSheetDragMoved = true;
-    }
-
-    this.referenceSheetTranslateY = clampedTranslate;
-    const liftMagnitude = Math.max(0, -clampedTranslate);
-    sheetEl.style.setProperty('--sheet-lift', `${liftMagnitude}px`);
-    event.preventDefault();
+    this.referenceSheetController.moveDrag(event);
+    this.referenceSheetTranslateY = this.referenceSheetController.state.translateY;
+    this.referenceSheetDragging = this.referenceSheetController.state.dragging;
   }
 
   finishReferenceSheetDrag(event) {
-    if (!this.referenceSheetDragging) return;
-    if (typeof event.pointerId === 'number' && event.pointerId !== this.referenceSheetPointerId) return;
-    const sheetEl = this.getReferenceSheetEl();
-    const handleEl = this.getReferenceSheetHandleEl();
-    const currentTranslate = Number.isFinite(this.referenceSheetTranslateY) ? this.referenceSheetTranslateY : 0;
-    const midpoint = -Math.max(0, this.referenceSheetExpandedOffset) / 2;
-    const nextExpanded = this.referenceSheetDragMoved ? currentTranslate <= midpoint : !this.referenceSheetExpanded;
-
-    this.referenceSheetDragging = false;
-    this.referenceSheetPointerId = null;
-    this.referenceSheetDragMoved = false;
-    this.referenceSheetLastPointerUpTs = Date.now();
-    if (sheetEl) {
-      sheetEl.classList.remove('is-sheet-dragging');
-    }
-    if (handleEl) {
-      try {
-        if (typeof event.pointerId === 'number' && handleEl.hasPointerCapture(event.pointerId)) {
-          handleEl.releasePointerCapture(event.pointerId);
-        }
-      } catch (_err) {
-        // no-op
-      }
-    }
-    this.setReferenceSheetExpanded(nextExpanded, { animate: true });
+    this.referenceSheetController.finishDrag(event);
+    this.referenceSheetExpanded = this.referenceSheetController.state.expanded;
+    this.referenceSheetExpandedOffset = this.referenceSheetController.state.offset;
+    this.referenceSheetTranslateY = this.referenceSheetController.state.translateY;
+    this.referenceSheetDragging = this.referenceSheetController.state.dragging;
+    this.referenceSheetLastPointerUpTs = this.referenceSheetController.state.lastPointerUpTs;
   }
 
   cancelReferenceSheetDrag() {
-    if (!this.referenceSheetDragging) return;
-    this.referenceSheetDragging = false;
-    this.referenceSheetPointerId = null;
-    this.referenceSheetDragMoved = false;
-    const sheetEl = this.getReferenceSheetEl();
-    if (sheetEl) {
-      sheetEl.classList.remove('is-sheet-dragging');
-    }
-    this.setReferenceSheetExpanded(this.referenceSheetExpanded, { animate: true, force: true });
+    this.referenceSheetController.cancelDrag();
+    this.referenceSheetExpanded = this.referenceSheetController.state.expanded;
+    this.referenceSheetExpandedOffset = this.referenceSheetController.state.offset;
+    this.referenceSheetTranslateY = this.referenceSheetController.state.translateY;
+    this.referenceSheetDragging = this.referenceSheetController.state.dragging;
   }
 
   bindReferenceSheetInteractions() {
@@ -1717,13 +1649,7 @@ class PageReference extends HTMLElement {
       this.cancelReferenceSheetDrag();
     });
     handleEl.addEventListener('click', (event) => {
-      const lastPointerUpTs = Number(this.referenceSheetLastPointerUpTs) || 0;
-      if (lastPointerUpTs && Date.now() - lastPointerUpTs < 350) {
-        event.preventDefault();
-        return;
-      }
       event.preventDefault();
-      this.toggleReferenceSheet({ animate: true });
     });
     handleEl.addEventListener('keydown', (event) => {
       const key = event && event.key ? event.key : '';
@@ -1731,7 +1657,6 @@ class PageReference extends HTMLElement {
       event.preventDefault();
       this.toggleReferenceSheet({ animate: true });
     });
-    this.referenceSheetExpandedOffset = this.measureReferenceSheetExpandedOffset();
     this.applyReferenceSheetState({ animate: false, force: true });
   }
 
@@ -5025,8 +4950,8 @@ class PageReference extends HTMLElement {
                 </div>
               </div>
             </section>
-            <section class="free-ride-card journey-sheet reference-content-card">
-              <button class="free-ride-card-handle journey-sheet-handle" type="button" aria-label="Reference content handle" aria-expanded="false">
+            <section class="free-ride-card journey-sheet reference-content-card" data-sheet-state="${this.referenceSheetExpanded ? 'expanded' : 'collapsed'}">
+              <button class="free-ride-card-handle journey-sheet-handle" type="button" aria-label="${this.referenceSheetExpanded ? 'Collapse reference card' : 'Expand reference card'}" aria-expanded="${this.referenceSheetExpanded ? 'true' : 'false'}">
                 <span class="free-ride-card-handle-pill journey-sheet-handle-pill" aria-hidden="true"></span>
               </button>
               <div class="free-ride-card-main journey-sheet-main">
@@ -5086,8 +5011,8 @@ class PageReference extends HTMLElement {
           <ion-content fullscreen class="home-journey free-ride-content secret-content">
             <div class="speak-shell free-ride-shell journey-shell reference-shell">
               ${this.renderReferenceHeroHtml(copy.toolsSubtitle, true)}
-              <section class="free-ride-card journey-sheet reference-content-card">
-                <button class="free-ride-card-handle journey-sheet-handle" type="button" aria-label="Reference content handle" aria-expanded="false">
+              <section class="free-ride-card journey-sheet reference-content-card" data-sheet-state="${this.referenceSheetExpanded ? 'expanded' : 'collapsed'}">
+                <button class="free-ride-card-handle journey-sheet-handle" type="button" aria-label="${this.referenceSheetExpanded ? 'Collapse reference card' : 'Expand reference card'}" aria-expanded="${this.referenceSheetExpanded ? 'true' : 'false'}">
                   <span class="free-ride-card-handle-pill journey-sheet-handle-pill" aria-hidden="true"></span>
                 </button>
                 <div class="free-ride-card-main journey-sheet-main reference-sublevel-main">
@@ -5194,8 +5119,8 @@ class PageReference extends HTMLElement {
           <ion-content fullscreen class="home-journey free-ride-content secret-content">
             <div class="speak-shell free-ride-shell journey-shell reference-shell">
               ${this.renderReferenceHeroHtml(copy.toolsSubtitle, true)}
-              <section class="free-ride-card journey-sheet reference-content-card">
-                <button class="free-ride-card-handle journey-sheet-handle" type="button" aria-label="Reference content handle" aria-expanded="false">
+              <section class="free-ride-card journey-sheet reference-content-card" data-sheet-state="${this.referenceSheetExpanded ? 'expanded' : 'collapsed'}">
+                <button class="free-ride-card-handle journey-sheet-handle" type="button" aria-label="${this.referenceSheetExpanded ? 'Collapse reference card' : 'Expand reference card'}" aria-expanded="${this.referenceSheetExpanded ? 'true' : 'false'}">
                   <span class="free-ride-card-handle-pill journey-sheet-handle-pill" aria-hidden="true"></span>
                 </button>
                 <div class="free-ride-card-main journey-sheet-main reference-sublevel-main">
@@ -5254,8 +5179,8 @@ class PageReference extends HTMLElement {
           <ion-content fullscreen class="home-journey free-ride-content secret-content">
             <div class="speak-shell free-ride-shell journey-shell reference-shell">
               ${this.renderReferenceHeroHtml(copy.toolsSubtitle, true)}
-              <section class="free-ride-card journey-sheet reference-content-card">
-                <button class="free-ride-card-handle journey-sheet-handle" type="button" aria-label="Reference content handle" aria-expanded="false">
+              <section class="free-ride-card journey-sheet reference-content-card" data-sheet-state="${this.referenceSheetExpanded ? 'expanded' : 'collapsed'}">
+                <button class="free-ride-card-handle journey-sheet-handle" type="button" aria-label="${this.referenceSheetExpanded ? 'Collapse reference card' : 'Expand reference card'}" aria-expanded="${this.referenceSheetExpanded ? 'true' : 'false'}">
                   <span class="free-ride-card-handle-pill journey-sheet-handle-pill" aria-hidden="true"></span>
                 </button>
                 <div class="free-ride-card-main journey-sheet-main reference-sublevel-main">
@@ -5341,8 +5266,8 @@ class PageReference extends HTMLElement {
         <ion-content fullscreen class="home-journey free-ride-content secret-content">
           <div class="speak-shell free-ride-shell journey-shell reference-shell">
             ${this.renderReferenceHeroHtml(copy.toolsSubtitle, true)}
-            <section class="free-ride-card journey-sheet reference-content-card">
-              <button class="free-ride-card-handle journey-sheet-handle" type="button" aria-label="Reference content handle" aria-expanded="false">
+            <section class="free-ride-card journey-sheet reference-content-card" data-sheet-state="${this.referenceSheetExpanded ? 'expanded' : 'collapsed'}">
+              <button class="free-ride-card-handle journey-sheet-handle" type="button" aria-label="${this.referenceSheetExpanded ? 'Collapse reference card' : 'Expand reference card'}" aria-expanded="${this.referenceSheetExpanded ? 'true' : 'false'}">
                 <span class="free-ride-card-handle-pill journey-sheet-handle-pill" aria-hidden="true"></span>
               </button>
               <div class="free-ride-card-main journey-sheet-main reference-sublevel-main">
@@ -5759,8 +5684,8 @@ class PageReference extends HTMLElement {
         <ion-content fullscreen class="home-journey free-ride-content secret-content">
           <div class="speak-shell free-ride-shell journey-shell reference-shell">
             ${this.renderReferenceHeroHtml(copy.subtitle, true)}
-            <section class="free-ride-card journey-sheet reference-content-card">
-              <button class="free-ride-card-handle journey-sheet-handle" type="button" aria-label="Reference content handle" aria-expanded="false">
+            <section class="free-ride-card journey-sheet reference-content-card" data-sheet-state="${this.referenceSheetExpanded ? 'expanded' : 'collapsed'}">
+              <button class="free-ride-card-handle journey-sheet-handle" type="button" aria-label="${this.referenceSheetExpanded ? 'Collapse reference card' : 'Expand reference card'}" aria-expanded="${this.referenceSheetExpanded ? 'true' : 'false'}">
                 <span class="free-ride-card-handle-pill journey-sheet-handle-pill" aria-hidden="true"></span>
               </button>
               <div class="free-ride-card-main journey-sheet-main reference-sublevel-main">
@@ -5906,8 +5831,8 @@ class PageReference extends HTMLElement {
               </div>
             </section>
 
-            <section class="free-ride-card journey-sheet reference-content-card">
-              <button class="free-ride-card-handle journey-sheet-handle" type="button" aria-label="Reference content handle" aria-expanded="false">
+            <section class="free-ride-card journey-sheet reference-content-card" data-sheet-state="${this.referenceSheetExpanded ? 'expanded' : 'collapsed'}">
+              <button class="free-ride-card-handle journey-sheet-handle" type="button" aria-label="${this.referenceSheetExpanded ? 'Collapse reference card' : 'Expand reference card'}" aria-expanded="${this.referenceSheetExpanded ? 'true' : 'false'}">
                 <span class="free-ride-card-handle-pill journey-sheet-handle-pill" aria-hidden="true"></span>
               </button>
               <div class="free-ride-card-main journey-sheet-main">

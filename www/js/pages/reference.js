@@ -1,6 +1,5 @@
 import { getAppLocale, getActiveLocale, setLocaleOverride } from '../state.js';
 import { renderAppHeader } from '../components/app-header.js';
-import { addNotification } from '../notifications-store.js';
 import {
   ensureReferenceData,
   getLocalizedMapField,
@@ -325,7 +324,6 @@ class PageReference extends HTMLElement {
       this.referenceSheetExpandedOffset = this.measureReferenceSheetExpandedOffset();
       this.applyReferenceSheetState({ animate: false, force: true });
       this.scheduleLayoutSync(0);
-      this.scheduleLayoutSync(140);
     };
     document.addEventListener('ionTabsDidChange', this._tabChangeHandler);
     this._appTabChangeHandler = (event) => {
@@ -365,7 +363,6 @@ class PageReference extends HTMLElement {
     this.flushReferenceProgressQueue({ reason: 'connect' }).catch(() => {});
     if (this.isTabActive('reference')) {
       this.scheduleLayoutSync(0);
-      this.scheduleLayoutSync(140);
     }
     this.render();
   }
@@ -974,26 +971,7 @@ class PageReference extends HTMLElement {
 
   notifyReferenceBadgeUnlocked(entryId, entry) {
     if (!entryId || !entry) return;
-    try {
-      addNotification({
-        type: 'reward',
-        tone: 'good',
-        icon: 'ribbon-outline',
-        image: entry.image || '',
-        title: 'Nuevo badge desbloqueado',
-        text: entry.routeTitle || 'Curso completado',
-        action: {
-          label: 'Ver badge',
-          tab: 'tu',
-          profileTab: 'prefs',
-          callback: 'openSpeakBadgeFromNotification',
-          badgeId: entryId,
-          complete: true
-        }
-      });
-    } catch (_err) {
-      // no-op
-    }
+    // Badge unlocks remain internal progress state; no notification is emitted.
   }
 
   syncReferenceRewardsNow(reason = '') {
@@ -1674,15 +1652,7 @@ class PageReference extends HTMLElement {
 
   scheduleLayoutSync(delayMs = 0) {
     if (!this.isConnected) return;
-    const legacyAndroid = document.body?.classList?.contains('app-android-legacy-webview');
-    if (legacyAndroid && Number(delayMs) > 0) return;
-    if (
-      document.body?.classList?.contains('app-android-legacy-webview') &&
-      window.r34lp0w3r &&
-      window.r34lp0w3r.legacyLayoutReady === false
-    ) {
-      return;
-    }
+    if (document.body?.classList?.contains('app-android-legacy-webview')) return;
     if (this.layoutSyncTimer) {
       clearTimeout(this.layoutSyncTimer);
       this.layoutSyncTimer = null;
@@ -4963,7 +4933,6 @@ class PageReference extends HTMLElement {
       `;
       this.bindReferenceSheetInteractions();
       this.scheduleLayoutSync(0);
-      this.scheduleLayoutSync(140);
 
       this.querySelector('.app-locale-btn')?.addEventListener('click', () => {
         const nextLocale = getNextLocaleCode(getActiveLocale() || 'en');
@@ -5024,7 +4993,6 @@ class PageReference extends HTMLElement {
         `;
         this.bindReferenceSheetInteractions();
         this.scheduleLayoutSync(0);
-        this.scheduleLayoutSync(140);
         this.currentHeroMessage = copy.toolsSubtitle;
         this.currentHeroLocale = uiLocale;
         this.querySelector('.reference-hero-card')?.addEventListener('click', (event) => {
@@ -5132,7 +5100,6 @@ class PageReference extends HTMLElement {
         `;
         this.bindReferenceSheetInteractions();
         this.scheduleLayoutSync(0);
-        this.scheduleLayoutSync(140);
         this.currentHeroMessage = copy.toolsSubtitle;
         this.currentHeroLocale = uiLocale;
         this.querySelector('.reference-hero-card')?.addEventListener('click', (event) => {
@@ -5200,7 +5167,6 @@ class PageReference extends HTMLElement {
         `;
         this.bindReferenceSheetInteractions();
         this.scheduleLayoutSync(0);
-        this.scheduleLayoutSync(140);
         this.currentHeroMessage = copy.toolsSubtitle;
         this.currentHeroLocale = uiLocale;
         this.querySelector('.reference-hero-card')?.addEventListener('click', (event) => {
@@ -5279,7 +5245,6 @@ class PageReference extends HTMLElement {
       `;
       this.bindReferenceSheetInteractions();
       this.scheduleLayoutSync(0);
-      this.scheduleLayoutSync(140);
       this.currentHeroMessage = copy.toolsSubtitle;
       this.currentHeroLocale = uiLocale;
       this.querySelector('.reference-hero-card')?.addEventListener('click', (event) => {
@@ -5778,7 +5743,6 @@ class PageReference extends HTMLElement {
       `;
       this.bindReferenceSheetInteractions();
       this.scheduleLayoutSync(0);
-      this.scheduleLayoutSync(140);
     } else {
       const toolsEnabled = this.isReferenceToolsEnabled();
       const activeMainTab = toolsEnabled ? this.referenceMainTab : 'courses';
@@ -5845,7 +5809,6 @@ class PageReference extends HTMLElement {
       `;
       this.bindReferenceSheetInteractions();
       this.scheduleLayoutSync(0);
-      this.scheduleLayoutSync(140);
     }
 
     this.querySelector('.app-locale-btn')?.addEventListener('click', () => {

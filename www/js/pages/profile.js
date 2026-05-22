@@ -1,5 +1,9 @@
 import { getAppLocale, setAppLocale, getActiveLocale, getLocaleOverride, setLocaleOverride, clearLocaleOverride, onboardingDone, setLoginTabsLock } from '../state.js';
-import { isAppTitlebarEnabled, renderAppHeader } from '../components/app-header.js';
+import {
+  isAppNotificationsEnabled,
+  isAppTitlebarEnabled,
+  renderAppHeader
+} from '../components/app-header.js';
 import { ensureTrainingData, getRoutes, setSelection } from '../data/training-data.js';
 import { ensureReferenceData, getLocalizedMapField, getReferenceCourses } from '../data/reference-data.js';
 import {
@@ -947,15 +951,7 @@ class PageProfile extends HTMLElement {
 
   scheduleProfileLayout(delayMs = 0) {
     if (!this.isConnected) return;
-    const legacyAndroid = document.body?.classList?.contains('app-android-legacy-webview');
-    if (legacyAndroid && Number(delayMs) > 0) return;
-    if (
-      document.body?.classList?.contains('app-android-legacy-webview') &&
-      window.r34lp0w3r &&
-      window.r34lp0w3r.legacyLayoutReady === false
-    ) {
-      return;
-    }
+    if (document.body?.classList?.contains('app-android-legacy-webview')) return;
     const run = () => {
       if (this._profileLayoutRaf) cancelAnimationFrame(this._profileLayoutRaf);
       this._profileLayoutRaf = requestAnimationFrame(() => {
@@ -1038,6 +1034,18 @@ class PageProfile extends HTMLElement {
     }
     this.render();
     this.notifyChromeState();
+    this._localeButtonClickHandler = (event) => {
+      const target = event.target instanceof Element ? event.target : null;
+      const buttonEl = target ? target.closest('.app-locale-btn') : null;
+      if (!buttonEl || !this.contains(buttonEl)) return;
+      const nextLocale = getNextLocaleCode(getActiveLocale() || 'en');
+      setLocaleOverride(nextLocale);
+      if (window.varGlobal && typeof window.varGlobal === 'object') {
+        window.varGlobal.locale = nextLocale;
+      }
+      window.dispatchEvent(new CustomEvent('app:locale-change', { detail: { locale: nextLocale } }));
+    };
+    this.addEventListener('click', this._localeButtonClickHandler);
     this._userHandler = (e) => {
       const u = e && e.detail && typeof e.detail === 'object' ? e.detail : null;
       const sourceUser = u || (window.user && typeof window.user === 'object' ? window.user : null);
@@ -1095,42 +1103,25 @@ class PageProfile extends HTMLElement {
       const currentUser = window.user;
       return Boolean(currentUser && currentUser.id !== undefined && currentUser.id !== null);
     };
-    this._focusHandler = () => {
-      if (!isCurrentProfileLoggedIn()) return;
-      this.scheduleReviewCollapseRefresh();
-    };
-    this._visibilityHandler = () => {
-      if (document.body?.classList?.contains('app-android-legacy-webview')) return;
-      if (!isCurrentProfileLoggedIn()) return;
-      if (!document.hidden) {
-        this.scheduleReviewCollapseRefresh(true);
-      }
-    };
+    this._focusHandler = () => {};
+    this._visibilityHandler = () => {};
     this._tabsEl = document.querySelector('ion-tabs');
     this._tabsDidChangeHandler = (event) => {
       const tab = String(event && event.detail ? event.detail.tab || '' : '').trim().toLowerCase();
       if (tab === 'tu') {
-        if (isCurrentProfileLoggedIn()) {
-          this.scheduleReviewCollapseRefresh(true);
-        }
         this.profileSheetExpandedOffset = this.measureProfileSheetExpandedOffset();
         this.applyProfileSheetState({ animate: false, force: true });
         this.scheduleProfileLayout(0);
-        if (isCurrentProfileLoggedIn()) {
-          this.scheduleProfileLayout(140);
-        }
       }
     };
     this._tabsEl?.addEventListener('ionTabsDidChange', this._tabsDidChangeHandler);
     this._routerEl = document.querySelector('ion-router');
     this._routeDidChangeHandler = (event) => {
       const to = String(event && event.detail ? event.detail.to || '' : '').trim();
-      if (to === '/tabs' && isCurrentProfileLoggedIn()) {
-        this.scheduleReviewCollapseRefresh(true);
-      }
+      if (to === '/tabs') return;
     };
     this._routerEl?.addEventListener('ionRouteDidChange', this._routeDidChangeHandler);
-    this._reviewReturnHandler = () => this.scheduleReviewCollapseRefresh(true);
+    this._reviewReturnHandler = () => {};
     this._headerColorHandler = (event) => {
       if (!this.isConnected) return;
       const color = event && event.detail ? event.detail.color : '';
@@ -1140,9 +1131,6 @@ class PageProfile extends HTMLElement {
       if (!this.isConnected) return;
       this.render();
       this.scheduleProfileLayout(0);
-      if (isCurrentProfileLoggedIn()) {
-        this.scheduleProfileLayout(140);
-      }
     };
     this._cardPaddedHandler = (event) => {
       if (!this.isConnected) return;
@@ -1259,6 +1247,9 @@ class PageProfile extends HTMLElement {
   }
 
   disconnectedCallback() {
+    if (this._localeButtonClickHandler) {
+      this.removeEventListener('click', this._localeButtonClickHandler);
+    }
     if (this._onboardingFinishHandler) {
       window.removeEventListener('app:onboarding-finish', this._onboardingFinishHandler);
     }
@@ -2517,9 +2508,11 @@ class PageProfile extends HTMLElement {
           <section class="profile-hero-section" id="profile-hero-section" ${loggedIn ? '' : 'hidden'}>
             ${titlebarEnabled ? '' : `
             <div class="profile-hero-actions-left">
+              ${isAppNotificationsEnabled() ? `
               <ion-button fill="clear" size="small" class="app-notify-btn">
                 <ion-icon slot="icon-only" name="notifications-outline"></ion-icon>
               </ion-button>
+              ` : ''}
               <button class="app-locale-btn">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
                 <span class="app-locale-label">${String(rawLocaleSetting || '').trim().toUpperCase()}</span>
@@ -2736,7 +2729,6 @@ class PageProfile extends HTMLElement {
     if (loggedIn) {
       this.bindProfileSheetInteractions();
       this.scheduleProfileLayout(0);
-      this.scheduleProfileLayout(140);
     } else {
       const authHeroEl = this.querySelector('#profile-auth-hero-section');
       const handleAuthHeroActivate = (event) => {
@@ -2930,17 +2922,6 @@ class PageProfile extends HTMLElement {
         ? values.confirmationValue
         : '';
     };
-
-
-    this.querySelector('.app-locale-btn')?.addEventListener('click', () => {
-      const nextLocale = getNextLocaleCode(getActiveLocale() || 'en');
-      setLocaleOverride(nextLocale);
-      if (window.varGlobal && typeof window.varGlobal === 'object') {
-        window.varGlobal.locale = nextLocale;
-      }
-      window.dispatchEvent(new CustomEvent('app:locale-change', { detail: { locale: nextLocale } }));
-    });
-
     profileEarnedBadgesEl?.addEventListener('click', (event) => {
       const target = event.target instanceof Element ? event.target : null;
       const button = target ? target.closest('[data-badge-id]') : null;

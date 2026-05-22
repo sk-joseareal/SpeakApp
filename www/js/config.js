@@ -39,6 +39,9 @@
   if (window.realtimeConfig.wssPort === undefined) {
     window.realtimeConfig.wssPort = window.REALTIME_WSS_PORT || 443;
   }
+  if (window.realtimeConfig.wsPort === undefined) {
+    window.realtimeConfig.wsPort = window.REALTIME_WS_PORT || 80;
+  }
   if (window.realtimeConfig.forceTLS === undefined) {
     const forceTLS = window.REALTIME_FORCE_TLS;
     if (forceTLS === undefined || forceTLS === null || forceTLS === '') {
@@ -181,7 +184,7 @@
     window.realtimeConfig.monitorToken = window.REALTIME_MONITOR_TOKEN || '';
   }
   if (window.realtimeConfig.enabledTransports === undefined) {
-    window.realtimeConfig.enabledTransports = ['ws'];
+    window.realtimeConfig.enabledTransports = ['ws', 'wss'];
   }
   if (window.realtimeConfig.channelType === undefined) {
     window.realtimeConfig.channelType = 'private';
@@ -189,6 +192,54 @@
   if (window.realtimeConfig.channelPrefix === undefined) {
     window.realtimeConfig.channelPrefix = 'coach';
   }
+
+  const resolveRealtimeClientConfigEndpoint = () => {
+    const direct =
+      window.realtimeConfig.clientConfigEndpoint ||
+      window.REALTIME_CLIENT_CONFIG_ENDPOINT ||
+      '';
+    if (typeof direct === 'string' && direct.trim()) {
+      return direct.trim();
+    }
+    const authEndpoint = window.realtimeConfig.authEndpoint;
+    if (typeof authEndpoint === 'string' && authEndpoint.trim()) {
+      const trimmed = authEndpoint.trim().replace(/\/+$/, '');
+      if (trimmed.endsWith('/auth')) {
+        return `${trimmed.slice(0, -5)}/client-config`;
+      }
+    }
+    return 'https://realtime.curso-ingles.com/realtime/client-config';
+  };
+
+  const fetchRealtimeClientConfig = async () => {
+    const endpoint = resolveRealtimeClientConfigEndpoint();
+    if (!endpoint) return window.realtimeConfig;
+    const controller = typeof AbortController === 'function' ? new AbortController() : null;
+    const timeoutId = controller ? setTimeout(() => controller.abort(), 4000) : 0;
+    try {
+      const response = await fetch(endpoint, {
+        method: 'GET',
+        cache: 'no-store',
+        signal: controller ? controller.signal : undefined
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      const payload = await response.json();
+      if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+        throw new Error('Invalid realtime client config payload');
+      }
+      window.realtimeConfig = { ...(window.realtimeConfig || {}), ...payload };
+      return window.realtimeConfig;
+    } catch (err) {
+      console.warn('[config] realtime client config fetch failed:', err);
+      return window.realtimeConfig;
+    } finally {
+      if (timeoutId) clearTimeout(timeoutId);
+    }
+  };
+
+  window.refreshRealtimeClientConfig = fetchRealtimeClientConfig;
 
   window.trainingStateConfig = window.trainingStateConfig || {};
   if (window.trainingStateConfig.syncEndpoint === undefined) {
@@ -253,7 +304,7 @@
     ];
   }
 
-  // Keep realtime bootstrap synchronous and deterministic.
-  // The chat layer relies on these values being stable from first render.
-  window.realtimeConfigReady = Promise.resolve(window.realtimeConfig);
+  // Seed safe defaults synchronously, then hydrate transport details from the realtime gateway.
+  // The chat layer awaits this promise before opening the websocket connection.
+  window.realtimeConfigReady = fetchRealtimeClientConfig();
 })();

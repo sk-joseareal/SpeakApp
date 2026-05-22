@@ -261,9 +261,6 @@ class PageHome extends HTMLElement {
       this.journeySheetExpandedOffset = this.measureJourneySheetExpandedOffset();
       this.applyJourneySheetState({ animate: false, force: true });
       this.scheduleLayoutSync(0);
-      this.scheduleLayoutSync(140);
-      this.schedulePendingHomeReturnScrollRestore();
-      this.schedulePendingHomeReturnReveal();
     };
     this._tabsEl = this.getTabsEl();
     this._tabsEl?.addEventListener('ionTabsDidChange', this._tabsDidChangeHandler);
@@ -275,8 +272,6 @@ class PageHome extends HTMLElement {
     this._routeDidChangeHandler = (event) => {
       const to = String(event && event.detail ? event.detail.to || '' : '').trim();
       if (to !== '/tabs') return;
-      this.schedulePendingHomeReturnScrollRestore();
-      this.schedulePendingHomeReturnReveal();
       this.journeySheetExpandedOffset = this.measureJourneySheetExpandedOffset();
       if (this.journeySheetExpandedOffset > 0 && this.journeySheetExpanded) {
         this.journeySheetController.state.offset = this.journeySheetExpandedOffset;
@@ -321,7 +316,6 @@ class PageHome extends HTMLElement {
     }
     if (this.isTabActive('home')) {
       this.scheduleLayoutSync(0);
-      this.scheduleLayoutSync(140);
     }
     this.render();
   }
@@ -679,15 +673,7 @@ class PageHome extends HTMLElement {
 
   scheduleLayoutSync(delayMs = 0) {
     if (!this.isConnected) return;
-    const legacyAndroid = document.body?.classList?.contains('app-android-legacy-webview');
-    if (legacyAndroid && Number(delayMs) > 0) return;
-    if (
-      document.body?.classList?.contains('app-android-legacy-webview') &&
-      window.r34lp0w3r &&
-      window.r34lp0w3r.legacyLayoutReady === false
-    ) {
-      return;
-    }
+    if (document.body?.classList?.contains('app-android-legacy-webview')) return;
     if (this.layoutSyncTimer) {
       clearTimeout(this.layoutSyncTimer);
       this.layoutSyncTimer = null;
@@ -935,18 +921,17 @@ class PageHome extends HTMLElement {
   }
 
   schedulePendingHomeReturnScrollRestore() {
+    if (document.body?.classList?.contains('app-android-legacy-webview')) return;
     const pendingTop = this.getPendingHomeReturnScroll();
     if (!Number.isFinite(pendingTop) || pendingTop <= 0) return;
     this.clearPendingHomeReturnScrollRestoreTimers();
-    [0, 120].forEach((delayMs) => {
-      const timerId = setTimeout(() => {
-        if (!this.isConnected || !this.isTabActive('home')) return;
-        this.restoreHomeScrollPosition(pendingTop).catch(() => {});
-        this.clearPendingHomeReturnScrollRestoreTimers();
-        this.clearPendingHomeReturnScroll();
-      }, delayMs);
-      this._pendingHomeReturnRestoreTimers.push(timerId);
-    });
+    const timerId = setTimeout(() => {
+      if (!this.isConnected || !this.isTabActive('home')) return;
+      this.restoreHomeScrollPosition(pendingTop).catch(() => {});
+      this.clearPendingHomeReturnScrollRestoreTimers();
+      this.clearPendingHomeReturnScroll();
+    }, 0);
+    this._pendingHomeReturnRestoreTimers.push(timerId);
   }
 
   async isRoutesTargetVisible(targetEl, padding = 20) {
@@ -994,6 +979,7 @@ class PageHome extends HTMLElement {
   }
 
   schedulePendingHomeReturnReveal() {
+    if (document.body?.classList?.contains('app-android-legacy-webview')) return;
     this.clearPendingHomeReturnRevealTimers();
     this._pendingHomeReturnRevealScheduleToken += 1;
     this.clearPendingHomeReturnRevealTarget();
@@ -1115,24 +1101,23 @@ class PageHome extends HTMLElement {
     const getSessionCircleLabel = (session) => {
       const title = String(getSessionTitle(session) || '').trim();
       if (!title) return '';
-      const stopWords = new Set([
-        'the', 'a', 'an', 'in', 'as', 'of', 'to', 'and', 'vs',
-        'sound', 'sounds', 'basic', 'short', 'long', 'voiced', 'voiceless',
-        'el', 'la', 'los', 'las', 'un', 'una', 'de', 'del', 'en', 'al',
-        'sonido', 'sonidos'
-      ]);
       const tokens = title
         .replace(/[()[\],.]/g, ' ')
         .split(/\s+/)
         .map((token) => String(token || '').replace(/^[^A-Za-zÀ-ÿ0-9]+|[^A-Za-zÀ-ÿ0-9]+$/g, ''))
         .filter(Boolean);
       for (const token of tokens) {
-        if (stopWords.has(token.toLowerCase())) continue;
         const upper = token.toUpperCase();
         if (/^[A-ZÀ-ÖØ-Þ0-9]{1,2}$/.test(upper)) {
           return upper;
         }
       }
+      const stopWords = new Set([
+        'the', 'a', 'an', 'in', 'as', 'of', 'to', 'and', 'vs',
+        'sound', 'sounds', 'basic', 'short', 'long', 'voiced', 'voiceless',
+        'el', 'la', 'los', 'las', 'un', 'una', 'de', 'del', 'en', 'al',
+        'sonido', 'sonidos'
+      ]);
       const meaningful = tokens.find((token) => !stopWords.has(token.toLowerCase())) || tokens[0] || title;
       const letters = String(meaningful || '')
         .replace(/[^A-Za-zÀ-ÿ0-9]/g, '')
@@ -1228,7 +1213,6 @@ class PageHome extends HTMLElement {
       this.journeySheetExpandedOffset = this.measureJourneySheetExpandedOffset();
       this.applyJourneySheetState({ animate: false, force: true });
       this.scheduleLayoutSync(0);
-      this.scheduleLayoutSync(140);
       if (!this._loadingTrainingData && !this._trainingDataLoadAttempted) {
         this._loadingTrainingData = true;
         this._trainingDataLoadAttempted = true;
@@ -1966,10 +1950,7 @@ class PageHome extends HTMLElement {
     if (restoreScrollTop !== null) {
       this.restoreHomeScrollPosition(restoreScrollTop).catch(() => {});
     }
-    this.schedulePendingHomeReturnScrollRestore();
-    this.schedulePendingHomeReturnReveal();
     this.scheduleLayoutSync(0);
-    this.scheduleLayoutSync(140);
   }
 
   bindPlanHeroEvents(options = {}) {

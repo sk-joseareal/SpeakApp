@@ -78,6 +78,19 @@ body.onboarding-chrome-active ion-router-outlet {
   background: var(--free-ride-view-bg);
 }
 
+body.onboarding-chrome-active page-onboarding {
+  background: var(--free-ride-view-bg) !important;
+}
+
+page-onboarding ion-content {
+  --background: var(--free-ride-view-bg) !important;
+  background: transparent !important;
+}
+
+page-onboarding ion-content::part(background) {
+  background: transparent !important;
+}
+
 body.lab-chrome-active,
 body.lab-chrome-active ion-app,
 body.lab-chrome-active ion-router-outlet,
@@ -988,6 +1001,7 @@ ion-content.profile-content.profile-content--logged-out {
   min-height: 0;
   padding: 4px 0 0;
   gap: 0;
+  position: relative;
 }
 
 .profile-shell--logged-out.profile-shell--logged-out-titlebar {
@@ -1049,9 +1063,9 @@ body.lab-chrome-active:not(.app-titlebar-enabled) page-profile .profile-shell--l
 }
 
 .profile-onboarding-overlay {
-  position: fixed;
+  position: absolute;
   inset: 0;
-  z-index: 100;
+  z-index: 10000;
   overflow: hidden;
   background: var(--free-ride-view-bg, #a9c7f5);
 }
@@ -1060,6 +1074,10 @@ body.lab-chrome-active:not(.app-titlebar-enabled) page-profile .profile-shell--l
   display: block;
   position: absolute;
   inset: 0;
+}
+
+body.app-titlebar-enabled page-profile.profile-onboarding-active .profile-onboarding-overlay page-onboarding .onboarding-v5-shell {
+  padding-top: calc(56px + var(--app-native-statusbar-height, env(safe-area-inset-top, 0px)));
 }
 
 .profile-auth-actions-left {
@@ -3114,22 +3132,12 @@ body.app-android-legacy-webview .app-tab-bar {
 .onboarding-v5-shell {
   height: var(--app-viewport-height, 100vh);
   min-height: var(--app-viewport-height, 100vh);
-  display: grid;
-  grid-template-rows: 1fr auto;
-  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  overflow: visible;
   padding: 0;
   box-sizing: border-box;
-}
-
-.onboarding-v5-titlebar {
-  min-height: 56px;
-  display: flex;
-  align-items: center;
-  padding: 0 16px;
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: #1a2b47;
-  background: #f4f7fd;
+  background: transparent;
 }
 
 .onboarding-v5-stage {
@@ -3138,66 +3146,61 @@ body.app-android-legacy-webview .app-tab-bar {
   align-items: stretch;
   justify-content: center;
   min-height: 0;
+  overflow-y: auto;
+  overflow-x: visible;
 }
 
 .onboarding-v5-card {
-  --onboarding-hero-min-height: 62vh;
-  --onboarding-mascot-top: clamp(52px, 7.5vh, 84px);
-  --onboarding-mascot-width: clamp(319px, 55vw, 429px);
-  --onboarding-wave-top: 35vh;
-  --onboarding-wave-height: calc(var(--onboarding-hero-min-height) - var(--onboarding-wave-top));
-  --onboarding-body-overlap: 27vh;
-  --onboarding-body-offset: 56px;
+  --onboarding-hero-min-height: 0px;
+  --onboarding-mascot-width: clamp(150px, 30vh, 280px);
+  --onboarding-body-offset: 20px;
   width: 100%;
   min-height: 100%;
-  background: #ffffff;
-  display: flex;
-  flex-direction: column;
+  height: 100%;
+  background: transparent;
+  display: grid;
+  grid-template-rows: minmax(180px, 1fr) auto;
   overflow: hidden;
 }
 
 .onboarding-v5-hero {
   position: relative;
   min-height: var(--onboarding-hero-min-height);
-  background: var(--free-ride-view-bg);
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: 0;
   overflow: hidden;
-}
-
-.onboarding-v5-hero::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.16), transparent 18%),
-    radial-gradient(circle at 82% 80%, rgba(255, 255, 255, 0.1), transparent 22%);
+  z-index: 120;
 }
 
 .onboarding-v5-mascot-wrap {
-  position: absolute;
-  left: 50%;
-  top: var(--onboarding-mascot-top);
-  transform: translateX(-50%);
-  width: var(--onboarding-mascot-width);
-  z-index: 2;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  margin-bottom: 0;
+  z-index: 130;
+}
+
+/* Embedded onboarding should use the same viewport box model as the rest of tabs.
+   Do not add extra top inset here; the host page already accounts for titlebar space. */
+body.app-titlebar-enabled page-onboarding[embedded] .onboarding-v5-shell {
+  padding-top: 0;
+  height: 100%;
+  min-height: 100%;
 }
 
 .onboarding-v5-mascot {
   display: block;
-  width: 100%;
+  width: auto;
+  max-width: 92vw;
+  max-height: 100%;
   height: auto;
-  filter: drop-shadow(0 12px 24px rgba(12, 74, 176, 0.2));
-}
-
-.onboarding-v5-wave {
-  position: absolute;
-  left: -12%;
-  right: -12%;
-  top: var(--onboarding-wave-top);
-  height: var(--onboarding-wave-height);
-  background: linear-gradient(180deg, #ffffff 0%, #fbfcff 100%);
-  border-radius: 50% 50% 0 0 / 58% 58% 0 0;
-  transform: none;
-  z-index: 1;
+  filter: drop-shadow(0 8px 14px rgba(12, 74, 176, 0.16));
 }
 
 .onboarding-v5-body {
@@ -3205,16 +3208,90 @@ body.app-android-legacy-webview .app-tab-bar {
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  padding: var(--onboarding-body-offset) 32px calc(80px + env(safe-area-inset-bottom, 0px));
+  justify-content: flex-start;
+  padding: var(--onboarding-body-offset) 22px calc(44px + env(safe-area-inset-bottom, 0px));
   text-align: center;
   max-width: 460px;
   width: 100%;
   margin: 0 auto;
-  position: relative;
-  top: calc(-1 * var(--onboarding-body-overlap));
   box-sizing: border-box;
   background: transparent;
   z-index: 2;
+}
+
+.onboarding-v5-test-block {
+  width: min(100%, 560px);
+  height: calc(100% - 8px);
+  border-radius: 12px;
+  margin: 0 auto;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.onboarding-v5-test-block-image {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+  display: block;
+}
+
+.onboarding-v5-spark {
+  position: absolute;
+  z-index: 1;
+  opacity: 0.42;
+  pointer-events: none;
+}
+
+.onboarding-v5-spark--dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.onboarding-v5-spark--star {
+  width: 24px;
+  height: 24px;
+  background: rgba(255, 255, 255, 0.92);
+  clip-path: polygon(50% 0%, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0% 50%, 38% 38%);
+}
+
+.onboarding-v5-spark--s1 {
+  top: 12%;
+  left: 14%;
+}
+
+.onboarding-v5-spark--s2 {
+  top: 18%;
+  right: 16%;
+  transform: scale(0.72);
+}
+
+.onboarding-v5-spark--s3 {
+  bottom: 20%;
+  right: 14%;
+  transform: scale(0.82);
+}
+
+.onboarding-v5-spark--d1 {
+  top: 24%;
+  left: 14%;
+}
+
+.onboarding-v5-spark--d2 {
+  bottom: 22%;
+  left: 18%;
+}
+
+.onboarding-v5-spark--d3 {
+  bottom: 12%;
+  right: 26%;
 }
 
 .onboarding-v5-title {
@@ -3226,6 +3303,24 @@ body.app-android-legacy-webview .app-tab-bar {
   font-weight: 800;
 }
 
+.onboarding-v5-title--stacked {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  letter-spacing: -0.03em;
+  line-height: 0.98;
+}
+
+.onboarding-v5-title-line {
+  display: block;
+  color: #18244a;
+}
+
+.onboarding-v5-title-line.is-accent {
+  color: #3f45e8;
+}
+
 .onboarding-v5-subtitle {
   margin: 18px 0 0;
   color: #34405f;
@@ -3233,6 +3328,13 @@ body.app-android-legacy-webview .app-tab-bar {
   line-height: 1.35;
   letter-spacing: -0.02em;
   font-weight: 500;
+}
+
+.onboarding-v5-subtitle--center {
+  max-width: 520px;
+  margin: 22px auto 0;
+  color: #5a647d;
+  text-align: center;
 }
 
 .onboarding-v5-points {
@@ -3275,8 +3377,100 @@ body.app-android-legacy-webview .app-tab-bar {
   min-height: 42px;
 }
 
+.onboarding-v5-steps {
+  --onboarding-step-badge-size: clamp(76px, 20vw, 102px);
+  --onboarding-step-arrow-size: 36px;
+  margin: 24px auto 0;
+  width: 100%;
+  max-width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 28px minmax(0, 1fr) 28px minmax(0, 1fr);
+  align-items: center;
+  column-gap: 0;
+}
+
+.onboarding-v5-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.onboarding-v5-step-badge {
+  width: var(--onboarding-step-badge-size);
+  height: var(--onboarding-step-badge-size);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.onboarding-v5-step-badge ion-icon {
+  font-size: clamp(36px, 9vw, 52px);
+}
+
+.onboarding-v5-step-badge--violet {
+  background: rgba(125, 92, 247, 0.16);
+  color: #6845e8;
+}
+
+.onboarding-v5-step-badge--blue {
+  background: rgba(84, 152, 249, 0.16);
+  color: #2d7bf3;
+}
+
+.onboarding-v5-step-badge--mint {
+  background: rgba(97, 218, 176, 0.2);
+  color: #12b981;
+}
+
+.onboarding-v5-step-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: clamp(0.92rem, 2.7vw, 1.25rem);
+  font-weight: 700;
+  color: #15223f;
+  white-space: nowrap;
+}
+
+.onboarding-v5-step-num {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 1.2rem;
+}
+
+.onboarding-v5-step-num--violet {
+  background: #6449e6;
+}
+
+.onboarding-v5-step-num--blue {
+  background: #2f7ef4;
+}
+
+.onboarding-v5-step-num--mint {
+  background: #18c68d;
+}
+
+.onboarding-v5-step-arrow {
+  font-size: var(--onboarding-step-arrow-size);
+  line-height: 1;
+  color: rgba(148, 162, 236, 0.72);
+  font-weight: 500;
+  text-align: center;
+  justify-self: center;
+  align-self: start;
+  margin-top: calc((var(--onboarding-step-badge-size) - var(--onboarding-step-arrow-size)) / 2);
+}
+
 .onboarding-v5-cta {
-  margin-top: 36px;
+  margin-top: 26px;
   border: 0;
   border-radius: 20px;
   min-height: 56px;
@@ -3289,66 +3483,55 @@ body.app-android-legacy-webview .app-tab-bar {
   box-shadow: 0 14px 28px rgba(47, 109, 240, 0.28);
 }
 
-.onboarding-v5-footer {
-  position: relative;
-  display: flex;
-  justify-content: center;
-  padding: 6px 24px calc(22px + env(safe-area-inset-bottom));
-  background: #f4f7fd;
-}
-
-body.app-android-legacy-webview.app-titlebar-enabled page-profile.profile-onboarding-active .profile-onboarding-overlay {
-  top: calc(56px + max(var(--app-native-statusbar-height, 0px), env(safe-area-inset-top, 0px))) !important;
-  bottom: 0 !important;
-}
-
-body.app-android-legacy-webview.app-titlebar-enabled page-profile.profile-onboarding-active #profile-auth-hero-section,
-body.app-android-legacy-webview.app-titlebar-enabled page-profile.profile-onboarding-active #profile-auth-card-section {
-  display: none !important;
-}
-
-body.app-android-legacy-webview.app-titlebar-enabled page-profile.profile-onboarding-active .onboarding-v5-shell {
-  min-height: 100%;
-}
-
-body.app-android-legacy-webview.app-titlebar-enabled page-profile.profile-onboarding-active .onboarding-v5-footer {
-  position: sticky;
-  bottom: 0;
-}
-
-.onboarding-v5-nav {
-  max-width: 320px;
-  padding: 0;
-}
-
-.onboarding-v5-dots {
-  gap: 8px;
-}
-
-.onboarding-v5-dots .speak-step-dot {
-  background: #d0d7e6;
-}
-
-.onboarding-v5-dots .speak-step-dot.is-active {
-  background: #86a6f9;
-}
-
 @media (max-width: 380px) {
   .onboarding-v5-card {
-    --onboarding-hero-min-height: 56vh;
-    --onboarding-mascot-top: clamp(46px, 7vh, 66px);
-    --onboarding-mascot-width: min(90vw, 374px);
-    --onboarding-body-overlap: 58px;
-    --onboarding-body-offset: 26px;
+    --onboarding-hero-min-height: clamp(190px, 30vh, 240px);
+    --onboarding-mascot-width: min(78vw, 250px);
+    --onboarding-body-offset: 14px;
     min-height: var(--app-viewport-height, 100vh);
   }
 
   .onboarding-v5-body {
-    padding: 0 24px 12px;
+    padding: 0 16px 12px;
   }
 
   .onboarding-v5-title {
     font-size: clamp(2.1rem, 11vw, 3rem);
+  }
+
+  .onboarding-v5-subtitle--center {
+    margin-top: 18px;
+  }
+
+  .onboarding-v5-steps {
+    --onboarding-step-badge-size: clamp(64px, 19vw, 76px);
+    --onboarding-step-arrow-size: 24px;
+    margin-top: 18px;
+    grid-template-columns: minmax(0, 1fr) 20px minmax(0, 1fr) 20px minmax(0, 1fr);
+  }
+
+  .onboarding-v5-step-badge {
+    width: var(--onboarding-step-badge-size);
+    height: var(--onboarding-step-badge-size);
+  }
+
+  .onboarding-v5-step-badge ion-icon {
+    font-size: clamp(28px, 8vw, 38px);
+  }
+
+  .onboarding-v5-step-meta {
+    font-size: 0.74rem;
+    gap: 5px;
+  }
+
+  .onboarding-v5-step-num {
+    width: 26px;
+    height: 26px;
+    font-size: 0.9rem;
+  }
+
+  .onboarding-v5-step-arrow {
+    color: rgba(148, 162, 236, 0.62);
   }
 
   .onboarding-v5-subtitle {
@@ -3361,6 +3544,82 @@ body.app-android-legacy-webview.app-titlebar-enabled page-profile.profile-onboar
 
   .onboarding-v5-cta {
     margin-top: 32px;
+  }
+}
+
+@media (max-height: 820px) {
+  .onboarding-v5-card {
+    --onboarding-mascot-width: clamp(132px, 26vh, 220px);
+    --onboarding-body-offset: 12px;
+    grid-template-rows: minmax(150px, 1fr) auto;
+  }
+
+  .onboarding-v5-title {
+    font-size: clamp(2rem, 7.2vw, 2.65rem);
+  }
+
+  .onboarding-v5-subtitle--center {
+    margin-top: 14px;
+    font-size: clamp(0.98rem, 3.9vw, 1.2rem);
+  }
+
+  .onboarding-v5-steps {
+    margin-top: 16px;
+  }
+
+  .onboarding-v5-cta {
+    margin-top: 18px;
+    min-height: 52px;
+    padding: 14px 18px;
+  }
+}
+
+@media (max-height: 740px) {
+  .onboarding-v5-card {
+    --onboarding-mascot-width: clamp(118px, 23vh, 188px);
+    --onboarding-body-offset: 8px;
+    grid-template-rows: minmax(128px, 1fr) auto;
+  }
+
+  .onboarding-v5-body {
+    padding-bottom: calc(26px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .onboarding-v5-title {
+    font-size: clamp(1.82rem, 6.8vw, 2.4rem);
+  }
+
+  .onboarding-v5-subtitle--center {
+    margin-top: 10px;
+    font-size: clamp(0.92rem, 3.5vw, 1.08rem);
+  }
+
+  .onboarding-v5-steps {
+    --onboarding-step-badge-size: clamp(58px, 16vw, 72px);
+    --onboarding-step-arrow-size: 22px;
+    margin-top: 12px;
+    grid-template-columns: minmax(0, 1fr) 16px minmax(0, 1fr) 16px minmax(0, 1fr);
+  }
+
+  .onboarding-v5-step-badge ion-icon {
+    font-size: clamp(24px, 7vw, 34px);
+  }
+
+  .onboarding-v5-step-meta {
+    font-size: 0.72rem;
+    gap: 5px;
+  }
+
+  .onboarding-v5-step-num {
+    width: 24px;
+    height: 24px;
+    font-size: 0.82rem;
+  }
+
+  .onboarding-v5-cta {
+    margin-top: 14px;
+    min-height: 48px;
+    font-size: 1.02rem;
   }
 }
 
@@ -6705,6 +6964,7 @@ page-speak .speak-content::part(scroll) {
   display: flex;
   align-items: center;
   justify-content: center;
+  line-height: 0;
 }
 .speak-session-video {
   width: 100%;
@@ -6712,7 +6972,7 @@ page-speak .speak-content::part(scroll) {
   border-radius: 12px;
   display: block;
   object-fit: contain;
-  background: #000;
+  background: transparent;
 }
 .speak-video-play-btn {
   position: absolute;
@@ -7461,6 +7721,28 @@ body.app-android-legacy-webview page-chat,
 body.app-android-legacy-webview page-profile,
 body.app-android-legacy-webview page-speak {
   padding-top: 0 !important;
+}
+
+/* Legacy Android: on resume, window.resize triggers Ionic's ion-content.onResize() after
+   a 100 ms debounce, which calls readDimensions() and sets --offset-top = header height
+   as an inline style on the ion-content HOST element, shifting all scroll content down.
+   In Stencil polyfill mode (old Android WebView) there is no shadow DOM, so ::part()
+   selectors are ignored. Freeze --offset-top to 0 on the HOST element instead — author
+   !important beats a plain inline style per the CSS cascade. */
+/* Legacy Android fix: root elements must not exceed the actual visible viewport.
+   --app-viewport-height is kept in sync by JS (visualViewport.height) so it
+   reflects the real drawable area, excluding system nav bar / status bar. */
+body.app-android-legacy-webview ion-app,
+body.app-android-legacy-webview ion-router-outlet,
+body.app-android-legacy-webview tabs-page,
+body.app-android-legacy-webview ion-tabs {
+  max-height: var(--app-viewport-height, 100vh) !important;
+}
+
+/* Legacy Android: freeze the ion-content top offset itself. Ionic can rewrite
+   --offset-top on resume/resize; if that wins, the whole screen shifts down. */
+body.app-android-legacy-webview ion-content {
+  --offset-top: 0px !important;
 }
 
 body.app-android-legacy-webview.lab-chrome-active:not(.app-titlebar-enabled) page-free-ride .free-ride-shell,

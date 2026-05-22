@@ -17,7 +17,6 @@ import {
 } from '../content/copy.js';
 import { renderAppHeader } from '../components/app-header.js';
 import { getAppLocale, setAppLocale, getActiveLocale, setLocaleOverride } from '../state.js';
-import { addNotification } from '../notifications-store.js';
 import { goToHome } from '../nav.js';
 import {
   HERO_MASCOT_FRAME_COUNT,
@@ -463,11 +462,19 @@ class PageSpeak extends HTMLElement {
       };
     };
     const resolveSessionVideoPath = (session) => {
+      const sessionId = String(session?.id || '').trim();
+      if (sessionId) return `${VIDEO_BASE}/${sessionId}.mp4`;
       const titleMatch = (session?.title_en || '').match(/\bin\s+([A-Za-z]+)\s*$/i);
       if (titleMatch) return `${VIDEO_BASE}/${titleMatch[1].toLowerCase()}.mp4`;
       const expected = (session?.speak?.sound?.expected || '').trim().toLowerCase();
       if (expected && /^[a-z]+$/.test(expected)) return `${VIDEO_BASE}/${expected}.mp4`;
       return `${VIDEO_BASE}/baby.mp4`;
+    };
+    const resolveSessionPosterPath = (session) => {
+      const sessionId = String(session?.id || '').trim();
+      if (sessionId) return `${VIDEO_BASE}/${sessionId}.jpg`;
+      const videoPath = resolveSessionVideoPath(session);
+      return videoPath.replace(/\.mp4$/i, '.jpg');
     };
     const getNativeTranscribePlugin = () =>
       window.Capacitor && window.Capacitor.Plugins ? window.Capacitor.Plugins.P4w4Plugin : null;
@@ -2514,26 +2521,7 @@ class PageSpeak extends HTMLElement {
 
     const addBadgeNotification = (badgeEntry) => {
       if (!badgeEntry || !badgeEntry.id) return;
-      try {
-        addNotification({
-          type: 'reward',
-          tone: 'good',
-          icon: 'ribbon-outline',
-          image: badgeEntry.image || '',
-          title: 'Nuevo badge desbloqueado',
-          text: badgeEntry.routeTitle || 'Ruta completada',
-          action: {
-            label: 'Ver badge',
-            tab: 'tu',
-            profileTab: 'prefs',
-            callback: 'openSpeakBadgeFromNotification',
-            badgeId: badgeEntry.id,
-            complete: true
-          }
-        });
-      } catch (err) {
-        // no-op
-      }
+      // Badge unlocks remain internal progress state; no notification is emitted.
     };
 
     const syncSpeakAwardsNow = (reason) => {
@@ -4157,7 +4145,7 @@ class PageSpeak extends HTMLElement {
                        id="speak-session-video"
                        class="speak-session-video"
                        src="${resolveSessionVideoPath(currentSessionData)}"
-                       poster="${resolveSessionVideoPath(currentSessionData).replace('.mp4', '.jpg')}"
+                       poster="${resolveSessionPosterPath(currentSessionData)}"
                        playsinline
                      ></video>
                    </div>

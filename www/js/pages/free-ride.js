@@ -401,7 +401,6 @@ class PageFreeRide extends HTMLElement {
       this.applyFreeRideSheetState({ animate: false });
       this.applyIOSKeyboardOverlayMode();
       this.scheduleLayoutSync(0);
-      this.scheduleLayoutSync(140);
     };
     this._tabsEl = this.getTabsEl();
     this._tabsEl?.addEventListener('ionTabsDidChange', this._tabsDidChangeHandler);
@@ -434,7 +433,6 @@ class PageFreeRide extends HTMLElement {
       this.applyFreeRideSheetState({ animate: false });
       this.applyIOSKeyboardOverlayMode();
       this.scheduleLayoutSync(0);
-      this.scheduleLayoutSync(140);
     }
 
   }
@@ -2050,15 +2048,7 @@ class PageFreeRide extends HTMLElement {
 
   scheduleLayoutSync(delayMs = 0) {
     if (!this.isConnected) return;
-    const legacyAndroid = document.body?.classList?.contains('app-android-legacy-webview');
-    if (legacyAndroid && Number(delayMs) > 0) return;
-    if (
-      document.body?.classList?.contains('app-android-legacy-webview') &&
-      window.r34lp0w3r &&
-      window.r34lp0w3r.legacyLayoutReady === false
-    ) {
-      return;
-    }
+    if (document.body?.classList?.contains('app-android-legacy-webview')) return;
     if (this.layoutSyncTimer) {
       clearTimeout(this.layoutSyncTimer);
       this.layoutSyncTimer = null;
@@ -7646,11 +7636,9 @@ class PageFreeRide extends HTMLElement {
       });
       inputEl.addEventListener('focus', () => {
         this.scheduleLayoutSync(0);
-        this.scheduleLayoutSync(140);
       });
       inputEl.addEventListener('blur', () => {
         this.scheduleLayoutSync(0);
-        this.scheduleLayoutSync(140);
       });
     }
 
@@ -7959,7 +7947,6 @@ class PageFreeRide extends HTMLElement {
     this.applyFreeRideSheetState({ animate: false });
     this._updateCardWedgePath();
     this.scheduleLayoutSync(0);
-    this.scheduleLayoutSync(140);
 
   }
 }

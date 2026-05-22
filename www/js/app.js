@@ -1,6 +1,6 @@
 import { ensureInitialHash, setRouter, goToHome } from './nav.js';
 import { clearLoginTabsLock, getAppLocale, hasLoginTabsLock, onboardingDone, setOnboardingDone, setLoginTabsLock } from './state.js';
-import { generateDemoNotifications, getUnreadCount, markAllNotificationsRead } from './notifications-store.js';
+import { getUnreadCount, markAllNotificationsRead } from './notifications-store.js';
 import { ensureLegacySpeakCopyGlobals } from './content/copy.js';
 import { isAppTitlebarEnabled } from './components/app-header.js';
 import { refreshTranslationCapabilities } from './translation-capabilities.js';
@@ -16,11 +16,12 @@ import './pages/diagnostics.js';
 import './pages/login.js';
 import './pages/notifications.js';
 
-const APP_STATUSBAR_COLOR = '#f4f6fb';
+const APP_STATUSBAR_COLOR = '#00000000';
 const LAB_STATUSBAR_COLOR = '#00000000';
-const LAB_THEME_COLOR = '#a9c7f5';
+const LAB_THEME_COLOR = '#00000000';
 const APP_STATUSBAR_PRESET_KEY = 'appv5:statusbar-preset';
 const APP_FONT_SF_PRO_ENABLED_KEY = 'appv5:font-sf-pro-enabled';
+const LEGACY_LAYOUT_TRACE_STORAGE_KEY = 'appv5:legacy-layout-trace';
 const DEBUG_DISABLE_FOREGROUND_CHROME_RESYNC = false;
 const TAB_STORAGE_KEY = 'appv5:active-tab';
 const LAB_TAB_IDS = new Set(['freeride', 'home', 'reference', 'chat', 'tu']);
@@ -41,11 +42,252 @@ let _legacyLayoutUnlockTimer = 0;
 let _legacyLayoutUnlockTimer2 = 0;
 let _legacyLayoutReady = true;
 let _legacyLayoutInitDone = false;
+let _legacyViewportEventsFrozen = false;
+
+function freezeLegacyViewportEvents() {
+  _legacyViewportEventsFrozen = true;
+}
+
+function shouldBlockLegacyViewportEvent() {
+  return isLegacyAndroidStatusbarMode() && _legacyViewportEventsFrozen;
+}
+
+function blockLegacyViewportEvent(event) {
+  if (!shouldBlockLegacyViewportEvent()) return;
+  if (event && typeof event.stopImmediatePropagation === 'function') {
+    event.stopImmediatePropagation();
+  }
+  if (event && typeof event.stopPropagation === 'function') {
+    event.stopPropagation();
+  }
+}
+
+function getLegacyLayoutTraceEnabled() {
+  try {
+    const queryValue = new URLSearchParams(window.location.search).get('legacy-layout-trace');
+    if (queryValue !== null) {
+      return ['1', 'true', 'yes', 'on'].includes(String(queryValue).trim().toLowerCase());
+    }
+    const stored = localStorage.getItem(LEGACY_LAYOUT_TRACE_STORAGE_KEY);
+    if (stored !== null) {
+      return ['1', 'true', 'yes', 'on'].includes(String(stored).trim().toLowerCase());
+    }
+  } catch (_err) {
+    // no-op
+  }
+  return Boolean(window.r34lp0w3r && window.r34lp0w3r.legacyLayoutTrace);
+}
+
+function describeLegacyLayoutNode(node) {
+  if (!node) return 'unknown-node';
+  if (node === document.documentElement) return 'html';
+  if (node === document.body) return 'body';
+  if (node.nodeType !== 1) return String(node.nodeName || 'node').toLowerCase();
+  const tag = String(node.tagName || node.nodeName || 'node').toLowerCase();
+  const id = node.id ? `#${node.id}` : '';
+  const className =
+    typeof node.className === 'string' && node.className.trim()
+      ? `.${node.className.trim().split(/\s+/).slice(0, 3).join('.')}`
+      : '';
+  return `${tag}${id}${className}`;
+}
+
+function installLegacyLayoutMutationTracer() {
+  if (!isLegacyAndroidStatusbarMode() || !getLegacyLayoutTraceEnabled()) return;
+  window.r34lp0w3r = window.r34lp0w3r || {};
+  window.r34lp0w3r.legacyLayoutTrace = true;
+
+  const interestingProps = new Set([
+    'top',
+    'height',
+    'min-height',
+    'padding-top',
+    'transform',
+    '--offset-top',
+    '--offset-bottom',
+    '--app-native-statusbar-height',
+    '--app-viewport-height',
+    '--app-titlebar-y-correction',
+    '--ion-safe-area-top'
+  ]);
+
+  const styleProto = window.CSSStyleDeclaration && window.CSSStyleDeclaration.prototype;
+  if (styleProto && !styleProto.__speakLegacyLayoutTracePatched) {
+    const originalSetProperty = styleProto.setProperty;
+    const cssTextDescriptor = Object.getOwnPropertyDescriptor(styleProto, 'cssText');
+    styleProto.setProperty = function tracedSetProperty(property, value, priority) {
+      if (interestingProps.has(String(property))) {
+        try {
+          console.groupCollapsed(
+            '[legacy-layout-trace] setProperty',
+            String(property),
+            '=',
+            String(value),
+            priority ? `!${priority}` : ''
+          );
+          console.trace();
+          console.groupEnd();
+        } catch (_err) {
+          // no-op
+        }
+      }
+      return originalSetProperty.apply(this, arguments);
+    };
+    if (cssTextDescriptor && typeof cssTextDescriptor.set === 'function' && typeof cssTextDescriptor.get === 'function') {
+      Object.defineProperty(styleProto, 'cssText', {
+        configurable: true,
+        enumerable: cssTextDescriptor.enumerable,
+        get() {
+          return cssTextDescriptor.get.call(this);
+        },
+        set(value) {
+          try {
+            console.groupCollapsed('[legacy-layout-trace] cssText =', String(value));
+            console.trace();
+            console.groupEnd();
+          } catch (_err) {
+            // no-op
+          }
+          return cssTextDescriptor.set.call(this, value);
+        }
+      });
+    }
+    styleProto.__speakLegacyLayoutTracePatched = true;
+  }
+
+  const elementProto = window.Element && window.Element.prototype;
+  if (elementProto && !elementProto.__speakLegacyLayoutTracePatched) {
+    const originalSetAttribute = elementProto.setAttribute;
+    const originalRemoveAttribute = elementProto.removeAttribute;
+    elementProto.setAttribute = function tracedSetAttribute(name, value) {
+      if (
+        name === 'style' ||
+        name === 'class' ||
+        (name === 'hidden' && this === document.body) ||
+        this === document.documentElement ||
+        this === document.body ||
+        String(this.tagName || '').toLowerCase() === 'ion-content'
+      ) {
+        try {
+          console.log('[legacy-layout-trace] setAttribute', describeLegacyLayoutNode(this), name, value);
+          console.trace();
+        } catch (_err) {
+          // no-op
+        }
+      }
+      return originalSetAttribute.apply(this, arguments);
+    };
+    elementProto.removeAttribute = function tracedRemoveAttribute(name) {
+      if (name === 'style' || name === 'class' || this === document.documentElement || this === document.body) {
+        try {
+          console.log('[legacy-layout-trace] removeAttribute', describeLegacyLayoutNode(this), name);
+          console.trace();
+        } catch (_err) {
+          // no-op
+        }
+      }
+      return originalRemoveAttribute.apply(this, arguments);
+    };
+    elementProto.__speakLegacyLayoutTracePatched = true;
+  }
+
+  const attachShadowProto = window.Element && window.Element.prototype && window.Element.prototype.attachShadow;
+  if (typeof attachShadowProto === 'function' && !window.Element.prototype.__speakLegacyShadowTracePatched) {
+    const originalAttachShadow = attachShadowProto;
+    const observeShadowRoot = (shadowRoot, host) => {
+      if (!shadowRoot || shadowRoot.__speakLegacyShadowObserver) return;
+      const shadowObserver = new MutationObserver((records) => {
+        for (const record of records) {
+          const target = record.target;
+          if (!target || target.nodeType !== 1) continue;
+          if (record.type !== 'attributes') continue;
+          const attrName = record.attributeName || '';
+          if (!['style', 'class', 'hidden'].includes(attrName)) continue;
+          console.log(
+            '[legacy-layout-trace][shadow]',
+            describeLegacyLayoutNode(host),
+            '=>',
+            describeLegacyLayoutNode(target),
+            attrName,
+            target.getAttribute(attrName)
+          );
+          console.trace();
+        }
+      });
+      shadowObserver.observe(shadowRoot, {
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['style', 'class', 'hidden']
+      });
+      shadowRoot.__speakLegacyShadowObserver = shadowObserver;
+    };
+
+    window.Element.prototype.attachShadow = function tracedAttachShadow(init) {
+      const shadowRoot = originalAttachShadow.call(this, init);
+      try {
+        observeShadowRoot(shadowRoot, this);
+      } catch (_err) {
+        // no-op
+      }
+      return shadowRoot;
+    };
+
+    window.Element.prototype.__speakLegacyShadowTracePatched = true;
+
+    const existingShadowHosts = Array.from(
+      document.querySelectorAll('ion-app, ion-content, ion-header, ion-toolbar, ion-title, ion-tab-bar, ion-modal, ion-toast')
+    );
+    existingShadowHosts.forEach((host) => {
+      if (host && host.shadowRoot) {
+        try {
+          observeShadowRoot(host.shadowRoot, host);
+        } catch (_err) {
+          // no-op
+        }
+      }
+    });
+  }
+
+  const observer = new MutationObserver((records) => {
+    for (const record of records) {
+      const target = record.target;
+      if (!target || target.nodeType !== 1) continue;
+      const tag = String(target.tagName || '').toLowerCase();
+      if (tag !== 'body' && tag !== 'html' && tag !== 'ion-content' && tag !== 'ion-header' && tag !== 'ion-toolbar') {
+        continue;
+      }
+      if (record.type === 'attributes') {
+        const attrName = record.attributeName || '';
+        if (!['style', 'class', 'hidden'].includes(attrName)) continue;
+        console.log(
+          '[legacy-layout-trace] mutation',
+          describeLegacyLayoutNode(target),
+          attrName,
+          target.getAttribute(attrName)
+        );
+      }
+    }
+  });
+  observer.observe(document.documentElement, {
+    subtree: true,
+    attributes: true,
+    attributeFilter: ['style', 'class', 'hidden']
+  });
+
+  window.r34lp0w3r.legacyLayoutTraceObserver = observer;
+  console.log('[legacy-layout-trace] enabled');
+}
 
 function applyInitialTitlebarClassEarly() {
   const apply = () => {
     if (!document.body) return;
     document.body.classList.toggle('app-titlebar-enabled', isAppTitlebarEnabled());
+    // Apply legacy Android class synchronously so CSS overrides (which need
+    // app-android-legacy-webview on body) are active from the very first render,
+    // before the async applyAppChromeForPath call adds the class later.
+    if (detectLegacyAndroidFromUserAgent()) {
+      document.body.classList.add('app-android-legacy-webview');
+    }
   };
   apply();
   if (!document.body) {
@@ -54,6 +296,15 @@ function applyInitialTitlebarClassEarly() {
 }
 
 applyInitialTitlebarClassEarly();
+installLegacyLayoutMutationTracer();
+
+if (typeof window !== 'undefined' && 'scrollRestoration' in window.history) {
+  try {
+    window.history.scrollRestoration = 'manual';
+  } catch (_err) {
+    // no-op
+  }
+}
 
 function getCurrentAppPath() {
   return window.location.hash.replace('#', '') || '/';
@@ -214,6 +465,10 @@ function applyAppFontPreference(enabled = getStoredAppFontSfProEnabled()) {
 }
 
 function setNativeStatusBarCssHeight(height) {
+  if (isLegacyAndroidStatusbarMode()) {
+    document.documentElement.style.setProperty('--app-native-statusbar-height', '0px');
+    return;
+  }
   const numeric = Number(height);
   const cssHeight = Number.isFinite(numeric) ? Math.max(0, numeric) : 0;
   document.documentElement.style.setProperty('--app-native-statusbar-height', `${cssHeight}px`);
@@ -311,88 +566,13 @@ function getCurrentNativeStatusBarCssHeight() {
 }
 
 function calibrateAppTitlebarStatusbarOffset() {
-  const isLabTitlebar =
-    document.body.classList.contains('lab-chrome-active') &&
-    document.body.classList.contains('app-titlebar-enabled');
-  if (!isLabTitlebar) {
-    resetAppTitlebarCalibration();
-    return;
-  }
-
-  const platform = String(lastNativeStatusBarInfo.platform || '').trim().toLowerCase();
-  if (platform && platform !== 'ios') {
-    resetAppTitlebarCalibration();
-    return;
-  }
-
-  const candidatePages = ['page-free-ride', 'page-home', 'page-reference', 'page-chat', 'page-speak', 'page-profile']
-    .map((selector) => document.querySelector(selector))
-    .filter(Boolean);
-  const pageEl =
-    candidatePages.find((el) => {
-      const tabHost = el && typeof el.closest === 'function' ? el.closest('ion-tab') : null;
-      return !tabHost || tabHost.getAttribute('aria-hidden') !== 'true';
-    }) || candidatePages[0] || null;
-  const headerEl = pageEl?.querySelector('ion-header.app-header-shell');
-  const toolbarEl = headerEl?.querySelector('ion-toolbar');
-  if (!pageEl || !headerEl || !toolbarEl || headerEl.hidden) {
-    resetAppTitlebarCalibration();
-    return;
-  }
-
-  const statusbarHeight = getCurrentNativeStatusBarCssHeight();
-  if (!statusbarHeight) {
-    resetAppTitlebarCalibration();
-    return;
-  }
-
-  const contentRects = [
-    toolbarEl.querySelector('.app-toolbar-title')?.getBoundingClientRect(),
-    toolbarEl.querySelector('.app-header-actions')?.getBoundingClientRect()
-  ].filter((rect) => rect && rect.width > 0 && rect.height > 0);
-  if (!contentRects.length) {
-    resetAppTitlebarCalibration();
-    return;
-  }
-
-  const contentTop = Math.min(...contentRects.map((rect) => rect.top));
-  const contentHeight = Math.max(...contentRects.map((rect) => rect.height));
-  const toolbarContentHeight = 56;
-  const desiredContentTop = statusbarHeight + Math.max(0, (toolbarContentHeight - contentHeight) / 2);
-  const currentCorrection = Number.parseFloat(
-    window.getComputedStyle(document.documentElement)
-      .getPropertyValue('--app-titlebar-y-correction')
-      .trim()
-  ) || 0;
-  const uncorrectedContentTop = contentTop - currentCorrection;
-  const extraGap = Math.round(uncorrectedContentTop - desiredContentTop);
-  const correction = extraGap > 6 ? -Math.min(44, extraGap) : 0;
-
-  document.documentElement.style.setProperty('--app-titlebar-y-correction', `${correction}px`);
-  document.body.classList.toggle('app-titlebar-y-corrected', correction !== 0);
-  console.log(
-    '[chrome] titlebar calibration',
-    JSON.stringify({
-      platform: platform || 'unknown',
-      osVersion: lastNativeStatusBarInfo.osVersion || '',
-      statusbarHeight,
-      contentTop: Math.round(contentTop),
-      uncorrectedContentTop: Math.round(uncorrectedContentTop),
-      contentHeight: Math.round(contentHeight),
-      desiredContentTop: Math.round(desiredContentTop),
-      extraGap,
-      correction
-    })
-  );
+  resetAppTitlebarCalibration();
 }
 
 function scheduleAppTitlebarCalibration() {
   _titlebarCalibrationTimers.forEach((id) => clearTimeout(id));
-  _titlebarCalibrationTimers = [0, 80, 240, 600].map((delay) =>
-    setTimeout(() => {
-      requestAnimationFrame(calibrateAppTitlebarStatusbarOffset);
-    }, delay)
-  );
+  _titlebarCalibrationTimers = [];
+  resetAppTitlebarCalibration();
 }
 
 function normalizeChromeTabId(tab) {
@@ -903,7 +1083,6 @@ window.openIapSupportMail = (context = {}) => {
 function applyAppChromeForPath(path) {
   console.log('[chrome] apply start', path, Date.now());
   syncPlatformChromeClasses();
-  syncNativeStatusBarCssHeight();
   const onboarding = false;
   const labChrome = !onboarding && isLabChromePath(path);
   const statusbarPreset = getStoredStatusbarPreset();
@@ -963,55 +1142,82 @@ function scheduleLegacyViewportRelayout() {
 
 function scheduleAppChromeSync(path) {
   _chromeSyncTimers.forEach((id) => clearTimeout(id));
-  const delays = [0];
-  console.log('[chrome] scheduleAppChromeSync', JSON.stringify({ path, delays }));
-  _chromeSyncTimers = delays.map((delay) =>
-    setTimeout(() => {
-      requestAnimationFrame(() => {
-        applyAppChromeForPath(path);
-        scheduleLegacyViewportRelayout();
-      });
-    }, delay)
-  );
+  _chromeSyncTimers = [];
+  applyAppChromeForPath(path);
+  scheduleLegacyViewportRelayout();
 }
 
 window.applyAppChromeForPath = applyAppChromeForPath;
 window.scheduleAppChromeSync = scheduleAppChromeSync;
 
 function installIonContentDimensionGuard() {
+  // Note: on old Android WebView, Stencil uses polyfill mode which registers a proxy wrapper
+  // class. customElements.get('ion-content') returns that proxy, so patching its prototype
+  // does NOT reach the real readDimensions on the actual component class. This guard blocks
+  // resize-time recomputation on legacy Android so Ionic cannot rewrite --offset-top after
+  // the screen has already painted correctly.
+  const patchIonContentPrototype = (proto) => {
+    if (!proto || proto.__speakDimensionGuard) return;
+    const isLegacyAndroidNow = () => isLegacyAndroidStatusbarMode();
+    const originalOnResize = typeof proto.onResize === 'function' ? proto.onResize : null;
+    const originalResize = typeof proto.resize === 'function' ? proto.resize : null;
+    const originalReadDimensions = typeof proto.readDimensions === 'function' ? proto.readDimensions : null;
+    if (typeof proto.onResize === 'function') {
+      proto.onResize = function guardedOnResize(...args) {
+        if (isLegacyAndroidNow()) return;
+        return originalOnResize ? originalOnResize.apply(this, args) : undefined;
+      };
+    }
+    if (typeof proto.resize === 'function') {
+      proto.resize = function guardedResize(...args) {
+        if (isLegacyAndroidNow()) return;
+        return originalResize ? originalResize.apply(this, args) : undefined;
+      };
+    }
+    if (typeof originalReadDimensions === 'function') {
+      proto.readDimensions = function guardedReadDimensions(...args) {
+        if (isLegacyAndroidNow()) return;
+        const el = this && this.el;
+        const fallbackParent =
+          el && el.parentElement
+            ? el.parentElement
+            : el && el.parentNode && el.parentNode.host
+            ? el.parentNode.host
+            : null;
+        const container =
+          el &&
+          (el.closest('ion-tabs') ||
+            el.closest('ion-app, ion-page, .ion-page, page-inner, .popover-content') ||
+            fallbackParent);
+        if (!container) return;
+        try {
+          return originalReadDimensions.apply(this, args);
+        } catch (err) {
+          if (err instanceof TypeError && String(err.message || '').includes('offsetHeight')) return;
+          throw err;
+        }
+      };
+    }
+    proto.__speakDimensionGuard = true;
+  };
+
   customElements.whenDefined('ion-content').then(() => {
     const IonContent = customElements.get('ion-content');
-    const proto = IonContent && IonContent.prototype;
-    if (!proto || typeof proto.readDimensions !== 'function' || proto.__speakDimensionGuard) return;
-    const readDimensions = proto.readDimensions;
-    proto.readDimensions = function guardedReadDimensions(...args) {
-      const el = this && this.el;
-      const fallbackParent =
-        el && el.parentElement
-          ? el.parentElement
-          : el && el.parentNode && el.parentNode.host
-          ? el.parentNode.host
-          : null;
-      const container =
-        el &&
-        (el.closest('ion-tabs') ||
-          el.closest('ion-app, ion-page, .ion-page, page-inner, .popover-content') ||
-          fallbackParent);
-      if (!container) return;
-      try {
-        return readDimensions.apply(this, args);
-      } catch (err) {
-        if (err instanceof TypeError && String(err.message || '').includes('offsetHeight')) return;
-        throw err;
-      }
-    };
-    proto.__speakDimensionGuard = true;
+    patchIonContentPrototype(IonContent && IonContent.prototype);
+    import('../vendor/ionic/p-aedf995b.entry.js')
+      .then((mod) => {
+        if (mod && mod.ion_content && mod.ion_content.prototype) {
+          patchIonContentPrototype(mod.ion_content.prototype);
+        }
+      })
+      .catch(() => {});
   });
 }
 
 installIonContentDimensionGuard();
 ensureLegacySpeakCopyGlobals();
 applyAppFontPreference();
+syncNativeStatusBarCssHeight();
 syncAppViewportHeightVar();
 refreshTranslationCapabilities().catch(() => {});
 
@@ -1089,29 +1295,22 @@ document.addEventListener('deviceready', () => {
 });
 
 const resyncCurrentAppChrome = () => {
-  if (isLegacyAndroidStatusbarMode()) {
-    return;
-  }
-  scheduleViewportHeightSync();
   _pendingChromeResyncPath = getCurrentAppPath();
   if (_pendingChromeResyncRaf) return;
   _pendingChromeResyncRaf = requestAnimationFrame(() => {
     _pendingChromeResyncRaf = 0;
-    scheduleAppChromeSync(_pendingChromeResyncPath || getCurrentAppPath());
+    restoreAppChromeAfterForeground();
+    _pendingChromeResyncPath = '';
   });
 };
 
 window.addEventListener('app:tab-change', (event) => {
   currentTabsActiveTab = normalizeChromeTabId(event && event.detail ? event.detail.tab : '');
-  if (isLegacyAndroidStatusbarMode()) return;
-  resyncCurrentAppChrome();
 });
 
 document.addEventListener('ionTabsDidChange', (event) => {
   const eventTab = normalizeChromeTabId(event && event.detail ? event.detail.tab : '');
   currentTabsActiveTab = eventTab || getCurrentTabsActiveTab();
-  if (isLegacyAndroidStatusbarMode()) return;
-  resyncCurrentAppChrome();
 });
 
 window.addEventListener('app:statusbar-preset-change', (event) => {
@@ -1120,7 +1319,6 @@ window.addEventListener('app:statusbar-preset-change', (event) => {
     window.r34lp0w3r = window.r34lp0w3r || {};
     window.r34lp0w3r.appStatusbarPreset = normalizeStatusbarPreset(requestedPreset);
   }
-  if (isLegacyAndroidStatusbarMode()) return;
   resyncCurrentAppChrome();
 });
 
@@ -1128,24 +1326,41 @@ window.addEventListener('app:font-sf-pro-change', (event) => {
   applyAppFontPreference(event?.detail?.enabled);
 });
 
-const shouldHandleGlobalViewportEvents = () => !isLegacyAndroidStatusbarMode();
 const handleGlobalViewportEvent = () => {
-  if (!shouldHandleGlobalViewportEvents()) return;
   scheduleViewportHeightSync();
 };
+window.addEventListener('resize', blockLegacyViewportEvent, true);
 window.addEventListener('resize', handleGlobalViewportEvent);
 if (window.visualViewport && typeof window.visualViewport.addEventListener === 'function') {
+  window.visualViewport.addEventListener('resize', blockLegacyViewportEvent, true);
+  window.visualViewport.addEventListener('scroll', blockLegacyViewportEvent, true);
   window.visualViewport.addEventListener('resize', handleGlobalViewportEvent);
   window.visualViewport.addEventListener('scroll', handleGlobalViewportEvent);
 }
+
+function restoreAppChromeAfterForeground() {
+  if (isLegacyAndroidStatusbarMode()) return;
+  if (typeof window.scheduleAppChromeSync === 'function') {
+    window.scheduleAppChromeSync(getCurrentAppPath());
+  } else {
+    applyAppChromeForPath(getCurrentAppPath());
+  }
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) {
+    freezeLegacyViewportEvents();
+    restoreAppChromeAfterForeground();
+  }
+});
 
 try {
   const appPlugin = window.Capacitor?.Plugins?.App;
   if (appPlugin && typeof appPlugin.addListener === 'function') {
     appPlugin.addListener('appStateChange', ({ isActive }) => {
-      // Resume/foreground must not mutate visual layout/chrome.
-      // Keep listener only for potential non-visual hooks in the future.
-      void isActive;
+      if (!isActive) return;
+      freezeLegacyViewportEvents();
+      restoreAppChromeAfterForeground();
     });
   }
 } catch (_err) {
@@ -1381,6 +1596,9 @@ function setupAppTitlebarToggle() {
       applyAppChromeForPath(getCurrentAppPath());
     }
   });
+  window.addEventListener('app:notifications-enabled-change', () => {
+    refreshMountedPages();
+  });
 }
 
 function setupNativeToastTopOffset() {
@@ -1585,7 +1803,6 @@ function setupLoginNotificationsSeed() {
     lastUserId = nextId;
     if (isLogin) {
       resetProfileTabOnLogin();
-      generateDemoNotifications();
     }
   });
 }

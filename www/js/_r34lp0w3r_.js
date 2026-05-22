@@ -830,22 +830,9 @@ function logFullObject(label, obj, depth = 2, prefix = '') {
 
 function queuePushInboxNotification(raw, source) {
   try {
-    const payload = {
-      source: source || 'push',
-      raw: raw || null,
-      received_at: Date.now()
-    };
-    if (typeof window.addPushNotification === 'function') {
-      window.addPushNotification(payload);
-      return;
-    }
-    if (!Array.isArray(window.__pendingPushInbox)) {
-      window.__pendingPushInbox = [];
-    }
-    window.__pendingPushInbox.push(payload);
-    if (typeof window.requestBadgeReset === 'function') {
-      window.requestBadgeReset(`push:${payload.source}`);
-    }
+    // Push payloads are still observed by the app, but no notification is created here.
+    void raw;
+    void source;
   } catch (err) {
     console.error('>#C04#> queuePushInboxNotification error:', err);
   }
@@ -964,6 +951,86 @@ function playPushForegroundBell() {
 window.playPushForegroundBell = playPushForegroundBell;
 window.playPushForegroundBellWeb = playPushForegroundBellWeb;
 
+const getPushForegroundToastCloseLabel = () => {
+  try {
+    const locale = String(window.varGlobal?.locale || '').trim().toLowerCase();
+    return locale.startsWith('en') ? 'Dismiss' : 'Cerrar';
+  } catch (_err) {
+    return 'Dismiss';
+  }
+};
+
+const readPushForegroundText = (value) => {
+  if (!value || typeof value !== 'object') return { title: '', text: '' };
+  const raw = value;
+  const data =
+    raw.data && typeof raw.data === 'object'
+      ? raw.data
+      : raw.notification && typeof raw.notification === 'object'
+        ? raw.notification.data && typeof raw.notification.data === 'object'
+          ? raw.notification.data
+          : raw.notification
+        : {};
+  const title = String(
+    raw.title || raw.notification?.title || data.title || data.alert_title || ''
+  ).trim();
+  const text = String(
+    raw.body ||
+      raw.text ||
+      raw.subtitle ||
+      raw.notification?.body ||
+      raw.notification?.text ||
+      data.body ||
+      data.text ||
+      data.message ||
+      data.alert_body ||
+      ''
+  ).trim();
+  return { title, text };
+};
+
+const formatPushForegroundToastMessage = (notification) => {
+  const payload = readPushForegroundText(notification);
+  const title = String(payload && payload.title ? payload.title : '').trim();
+  const text = String(payload && payload.text ? payload.text : '').trim();
+  if (title && text) return `${title}\n${text}`;
+  if (title) return title;
+  if (text) return text;
+  return 'New notification';
+};
+
+function showPushForegroundToast(notification) {
+  try {
+    const message = formatPushForegroundToastMessage(notification);
+    const closeText = getPushForegroundToastCloseLabel();
+    if (typeof window.presentAppToast === 'function') {
+      window.presentAppToast(message, {
+        autoDismiss: false,
+        closeText
+      });
+      return;
+    }
+    if (typeof document !== 'undefined' && document.body && typeof customElements !== 'undefined' && customElements.get('ion-toast')) {
+      const toast = document.createElement('ion-toast');
+      toast.message = message;
+      toast.duration = 0;
+      toast.position = 'top';
+      toast.buttons = [{ text: closeText, role: 'cancel' }];
+      document.body.appendChild(toast);
+      toast.present().catch(() => {});
+      toast.addEventListener(
+        'didDismiss',
+        () => {
+          toast.remove();
+        },
+        { once: true }
+      );
+    }
+  } catch (err) {
+    console.error('>#C04#> showPushForegroundToast error:', err);
+  }
+}
+
 
 
 async function PushNotificationsInit()
@@ -1022,8 +1089,7 @@ async function PushNotificationsInit()
     logFullObject(">#C04#> PushNotifications: pushNotificationReceived. notification:",notification)
     Rlog()
     Rlog(">#C04#> pushNotificationReceived: notification:" + JSON.stringify(notification))
-    playPushForegroundBell()
-    queuePushInboxNotification(notification, 'pushNotificationReceived')
+    showPushForegroundToast(notification)
   });
 
   Push.addListener('pushNotificationActionPerformed', function(action) {
@@ -4066,11 +4132,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         if (typeof window.refreshCurrentUserPremiumState === 'function') {
           window.refreshCurrentUserPremiumState();
         }
-        // Implementado en index.js
-        if (window._trigger_resume) {
-          console.log("|||||||||||||||| window._trigger_resume ||||||||||||||||")
-          window._trigger_resume();
-        }        
       } else {
         console.log('--- Capacitor.Plugins.App.appStateChange: App paused ---');
         // Implementado en index.js

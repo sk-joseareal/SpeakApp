@@ -8,6 +8,7 @@
 import { getActiveLocale } from '../state.js';
 
 const APP_TITLEBAR_ENABLED_KEY = 'appv5:app-titlebar-enabled';
+const APP_NOTIFICATIONS_ENABLED_KEY = 'appv5:notifications-enabled';
 
 const REWARD_BADGE_ORDER = [
   { icon: 'trophy', label: 'trophy', interactive: true },
@@ -92,6 +93,44 @@ const renderNotifyButton = () => `
   </ion-button>
 `;
 
+export function isAppNotificationsEnabled() {
+  const globalValue =
+    window.r34lp0w3r &&
+    Object.prototype.hasOwnProperty.call(window.r34lp0w3r, 'appNotificationsEnabled')
+      ? window.r34lp0w3r.appNotificationsEnabled
+      : undefined;
+  if (typeof globalValue === 'boolean') return globalValue;
+  try {
+    const raw = localStorage.getItem(APP_NOTIFICATIONS_ENABLED_KEY);
+    if (raw === null || raw === '') return false;
+    const normalized = String(raw).trim().toLowerCase();
+    return ['1', 'true', 'on', 'yes'].includes(normalized);
+  } catch (_err) {
+    return false;
+  }
+}
+
+export function setAppNotificationsEnabled(enabled) {
+  const nextEnabled = Boolean(enabled);
+  window.r34lp0w3r = window.r34lp0w3r || {};
+  window.r34lp0w3r.appNotificationsEnabled = nextEnabled;
+  try {
+    if (nextEnabled) {
+      localStorage.setItem(APP_NOTIFICATIONS_ENABLED_KEY, '1');
+    } else {
+      localStorage.removeItem(APP_NOTIFICATIONS_ENABLED_KEY);
+    }
+  } catch (_err) {
+    // no-op
+  }
+  document.body.classList.toggle('app-notifications-enabled', nextEnabled);
+  window.dispatchEvent(
+    new CustomEvent('app:notifications-enabled-change', {
+      detail: { enabled: nextEnabled }
+    })
+  );
+}
+
 export function isAppTitlebarEnabled() {
   const globalValue =
     window.r34lp0w3r && Object.prototype.hasOwnProperty.call(window.r34lp0w3r, 'appTitlebarEnabled')
@@ -132,6 +171,7 @@ export function renderAppHeader(_options = {}) {
   const showTitleSlot = Boolean(options.showTitleSlot);
   const locale = options.locale;
   const rewardBadgesId = String(options.rewardBadgesId || '').trim();
+  const showNotifications = isAppNotificationsEnabled();
   return `
     <ion-header translucent="true" class="app-header-shell">
       <ion-toolbar class="secret-title-area toolbar-title-default">
@@ -139,7 +179,7 @@ export function renderAppHeader(_options = {}) {
         ${(title || showTitleSlot) ? `<div slot="start" class="app-toolbar-title secret-title">${escapeHtml(title)}</div>` : ''}
         <div class="app-header-actions" slot="end">
           ${renderRewardBadges(rewardBadgesId)}
-          ${renderNotifyButton()}
+          ${showNotifications ? renderNotifyButton() : ''}
           ${renderLocaleButton(locale)}
         </div>
       </ion-toolbar>

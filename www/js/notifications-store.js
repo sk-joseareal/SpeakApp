@@ -250,28 +250,8 @@ export const addNotification = (entry) => {
 };
 
 export const addPushNotification = (rawEntry) => {
-  const push = extractPushPayload(rawEntry);
-  if (!push) return null;
-
-  const items = readNotifications();
-  const candidate = {
-    id: push.id,
-    type: push.type || 'push',
-    title: push.title || getStoreCopy().pushDefaultTitle,
-    text: push.text || '',
-    status: 'unread',
-    created_at: push.created_at || Date.now(),
-    action: push.action || null,
-    icon: push.icon || 'notifications-outline',
-    image: push.image || '',
-    tone: push.tone || ''
-  };
-
-  if (isDuplicatePush(items, candidate)) return null;
-  candidate.id = candidate.id || generateId();
-  items.unshift(normalizeNotification(candidate));
-  persistNotifications(items);
-  return candidate;
+  void rawEntry;
+  return null;
 };
 
 export const removeNotification = (id) => {
@@ -413,5 +393,4 @@ if (typeof window !== 'undefined') {
   window.clearAppNotifications = clearNotifications;
   window.removeAppNotification = removeNotification;
   window.generateDemoNotifications = generateDemoNotifications;
-  flushPendingPushNotifications();
 }

@@ -28,9 +28,19 @@ import androidx.core.view.WindowInsetsControllerCompat;
 
 public class MainActivity extends BridgeActivity {
     private static final int LEGACY_ANDROID_MAX_SDK = 31;
+    private static final String TRANSPARENT_STATUSBAR = "#00000000";
 
     private boolean isLegacyAndroidDevice() {
         return android.os.Build.VERSION.SDK_INT <= LEGACY_ANDROID_MAX_SDK;
+    }
+
+    private void applyTransparentStatusBarChrome(String reason) {
+        Window window = getWindow();
+        window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
+        window.setStatusBarColor(Color.parseColor(TRANSPARENT_STATUSBAR));
+        window.getDecorView().setBackgroundColor(Color.parseColor(TRANSPARENT_STATUSBAR));
+        applyStatusBarIcons(window, true);
+        Log.i(">#N00#> MainActivity", "applyTransparentStatusBarChrome reason=" + reason);
     }
 
     private void applyStatusBarIcons(Window window, boolean lightIcons) {
@@ -56,16 +66,11 @@ public class MainActivity extends BridgeActivity {
         super.onCreate(savedInstanceState);
 
         if (isLegacyAndroidDevice()) {
-            Log.i(">#N00#> MainActivity", "onCreate: skip visual chrome/webview mutations on legacy");
+            applyTransparentStatusBarChrome("onCreate-legacy");
             return;
         }
 
-        Window window = getWindow();
-        window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
-        window.setStatusBarColor(Color.parseColor("#2d6df0"));
-        window.getDecorView().setBackgroundColor(Color.parseColor("#2d6df0"));
-        applyStatusBarIcons(window, true);
-        Log.i(">#N00#> MainActivity", "set startup chrome bg=#2d6df0 lightIcons=true");
+        applyTransparentStatusBarChrome("onCreate");
 
 
 
@@ -117,7 +122,6 @@ public class MainActivity extends BridgeActivity {
     public void onResume() {
         super.onResume();
         if (isLegacyAndroidDevice()) {
-            Log.i(">#N00#> MainActivity", "onResume: skip chrome reapply on legacy");
             return;
         }
         getWindow().getDecorView().post(() -> reapplyStoredChrome("onResume"));

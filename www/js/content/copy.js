@@ -26,22 +26,13 @@ const APP_COPY = {
       you: 'Profile',
       chat: 'Chat'
     },
-    appHeader: {
-      completedModulesOne: 'Completaste {n} módulo!',
-      completedModulesOther: 'Completaste {n} módulos!',
-      completedUnitsOne: 'Completaste {n} unidad!',
-      completedUnitsOther: 'Completaste {n} unidades!'
-    },
     reference: {
       title: 'Referencia',
       subtitle: 'Explora cursos, unidades y lecciones para consultar contenido.',
       selectedLesson: 'Lección seleccionada',
       noContent: 'No hay contenido para esta lección.',
-      noData: 'No hay contenido de referencia disponible.',
       loading: 'Cargando referencia...',
-      toggleLanguage: 'Cambiar idioma a {lang}',
       lessonListEmpty: 'Esta unidad no tiene lecciones.',
-      chooseLesson: 'Selecciona una lección para ver su contenido.',
       backToList: 'Volver',
       lessonTabContent: 'Contenido',
       lessonTabTests: 'Tests',
@@ -52,7 +43,6 @@ const APP_COPY = {
       testsLoading: 'Cargando tests...',
       testsLoadError: 'No se pudieron cargar los tests de referencia.',
       testsEmpty: 'No hay tests disponibles para esta lección o unidad.',
-      testsDisabled: 'Activa los tests de referencia en Diagnósticos para verlos aquí.',
       testsQuestions: '{n} preguntas',
       testsQuestionLabel: 'Pregunta {n}',
       testsWordBank: 'Banco de palabras',
@@ -103,8 +93,6 @@ const APP_COPY = {
       translatorAlternatives: 'Posibles traducciones',
       translatorSyntax: 'Análisis sintáctico',
       translatorWords: 'Palabras clave',
-      translatorDefinitions: 'Definiciones',
-      translatorExamples: 'Ejemplos',
       translatorDetected: 'Idioma detectado',
       translatorNoSyntax: 'No hay análisis sintáctico disponible.',
       translatorNoWords: 'No hay detalles léxicos disponibles para este texto.',
@@ -154,12 +142,7 @@ const APP_COPY = {
       socialFacebook: 'Login',
       socialApple: 'Login',
       continueWithEmail: 'Continuar con email',
-      createWithEmail: 'Crear cuenta con tu email',
-      userLabel: 'Usuario',
-      userPlaceholder: 'tu usuario',
-      passLabel: 'Contraseña',
       passPlaceholder: '********',
-      enter: 'Acceder con cuenta existente',
       forgotPassword: 'Recuperar contraseña',
       registerTitle: 'Crear cuenta',
       registerSubtitle: 'Completa los datos para registrarte.',
@@ -180,9 +163,6 @@ const APP_COPY = {
       recoverEmailPlaceholder: 'tu email',
       recoverSubmit: 'Enviar instrucciones',
       recoverBack: 'Volver',
-      magicLoginLink: 'Probar gratis sin registro',
-      magicTitle: 'Acceso rápido',
-      magicSubtitle: 'Te enviamos un enlace a tu correo. Un clic y ya estás dentro.',
       magicEmailLabel: 'Tu email',
       magicEmailPlaceholder: 'tu@email.com',
       magicSubmit: 'Enviar enlace de acceso',
@@ -194,13 +174,10 @@ const APP_COPY = {
       magicSentMessage: 'Revisa tu bandeja de entrada. El enlace expira en 15 minutos.',
       magicResend: 'Reenviar enlace',
       magicOtpLabel: 'O introduce el código del email:',
-      magicOtpPlaceholder: '123456',
-      magicOtpSubmit: 'Entrar con código',
       alertHeader: 'Atencion',
       alertOk: 'Ok',
       errors: {
         loginGeneric: 'Error de login',
-        loginInvalidUser: 'El usuario no es válido',
         loginInvalidPassword: 'La contraseña no es válida',
         loginNoUserData: 'Login correcto, pero sin datos de usuario',
         socialAppleUnavailable: 'Login con Apple no disponible.',
@@ -232,32 +209,20 @@ const APP_COPY = {
       }
     },
     onboarding: {
-      brand: 'SPEAK English',
-      skip: 'Saltar',
       cta: 'Continuar',
       slides: {
-        confidence: {
-          title: 'Habla inglés con confianza',
-          subtitle: 'Mejora tu pronunciación en minutos al día',
-          cta: 'Empezar'
-        },
-        feedback: {
-          title: 'Feedback en tiempo real',
-          subtitle: 'Corrige tu pronunciación al instante y mejora cada intento',
-          points: [
-            'Escucha',
-            'Repite',
-            'Mejora'
-          ],
-          cta: 'Continuar'
-        },
         natural: {
-          title: 'Suena más natural',
           subtitle: 'Entrena con sesiones cortas y efectivas',
-          points: [
-            'Solo 5-10 min al día',
-            'Resultados progresivos',
-            'Sin presión'
+          titleLines: [
+            { text: 'Mejora tu', accent: false },
+            { text: 'pronunciación', accent: true },
+            { text: 'del inglés', accent: false },
+            { text: 'sonido por sonido', accent: true }
+          ],
+          steps: [
+            { num: '1', label: 'Escucha', icon: 'ear-outline', tone: 'violet' },
+            { num: '2', label: 'Repite', icon: 'mic-outline', tone: 'blue' },
+            { num: '3', label: 'Mejora', icon: 'trending-up-outline', tone: 'mint' }
           ],
           cta: 'Empezar gratis'
         }
@@ -267,35 +232,31 @@ const APP_COPY = {
       planTitle: 'Tu plan',
       planMessage:
         'Este es tu plan para sonar como nativo.<br>Toca esta tarjeta para escucharlo otra vez.',
-      toggleLanguage: 'Cambiar idioma a {lang}',
       go: 'Continuar',
       routeProgress: 'progreso',
       unlockAfter: 'Desbloquea después de',
       sessionsCompleted: 'sesiones completadas'
     },
     freeRide: {
-      tabLabel: 'Free ride',
       title: 'Lab',
       subtitle: 'Escribe tu frase o texto y practica pronunciacion libre.',
       inputLabel: 'Tu frase',
       inputPlaceholder: 'Puedes escribir en español o en inglés. Ejemplo: Quiero pedir un café.',
       emptyPhrase: 'Escribe una frase para practicar.',
-      toggleLanguage: 'Cambiar idioma a {lang}',
       playPhrase: 'Escuchar frase',
       sayLabel: 'Habla',
       endLabel: 'Fin',
       yourVoiceLabel: 'Tu voz',
       feedbackHint: 'Practica la frase',
-      englishOnlyChecking: 'checking input',
-      englishOnlyAdvice: 'Para practicar mejor, escribe un texto 100% en ingles.',
-      englishOnlyMixed: 'Se detecta mezcla de idiomas. Usa un texto 100% en ingles para practicar.',
-      englishOnlyDetected: 'Detectado: {language}.',
       translationLocalNotInstalled: 'Traductor local disponible, pero modelo no instalado.',
       translationBackendError: 'No se pudo traducir con el servidor. Inténtalo de nuevo.',
-      feedbackNative: 'Suena como un nativo',
-      feedbackGood: 'Bien. Sigue practicando',
-      feedbackAlmost: 'Casi correcto',
-      feedbackKeep: 'Sigue practicando',
+      translationError: 'No se pudo traducir ahora mismo.',
+      translationPending: 'Traducción pendiente',
+      translateAction: 'Traducir',
+      resultExcellent: 'Excelente',
+      resultRegular: 'Regular',
+      resultIncorrect: 'Incorrecto',
+      resultMatchLabel: 'match',
       transcribing: 'Transcribiendo...'
     },
     speak: {
@@ -483,17 +444,13 @@ const APP_COPY = {
       ]
     },
     profile: {
-      accessPill: 'Acceso',
       loginTitle: 'Inicia sesión',
       loginSubtitle: 'Debes iniciar sesión para ver tu perfil.',
-      loginCta: 'Iniciar sesion',
       contact: 'Contacto',
       subscriptionSupportMail: 'Enviar mail soporte subscripción',
       legal: 'Avisos legales',
+      close: 'Cerrar',
       progressLabel: 'Progreso',
-      awardsTitle: 'Premios',
-      toggleLanguageAria: 'Cambiar idioma a {lang}',
-      badgesTitle: 'Badges',
       badgesEmpty: 'Aún no has desbloqueado badges.',
       tabPrefs: 'Perfil',
       tabReview: 'Review',
@@ -530,20 +487,17 @@ const APP_COPY = {
       reviewWordsTitle: 'Palabras a revisar',
       reviewPhrasesTitle: 'Frases a revisar',
       reviewTestsTitle: 'Tests a revisar',
-      reviewRed: 'Rojo',
-      reviewYellow: 'Amarillo',
       reviewToneRedLabel: 'rojo',
       reviewToneYellowLabel: 'amarillo',
       reviewWordsEmpty: 'Aún no hay palabras en {tone}.',
       reviewPhrasesEmpty: 'No hay frases en {tone}.',
       reviewTestsEmpty: 'No hay tests en {tone}.',
-      reviewMore: 'Más',
       reviewLess: 'Menos',
       reviewLessonTestLabel: 'Test de lección',
       reviewUnitTestLabel: 'Test de unidad',
+      trainingTrophies: 'Copas training',
+      referenceMedals: 'Medallas reference',
       userFallbackName: 'Usuario',
-      avatarAltDefault: 'Avatar',
-      avatarAltWithName: 'Avatar {name}',
       profileAvatarAlt: 'Avatar perfil',
       appMetaNA: 'v n/d',
       expiryNA: 'n/a',
@@ -569,22 +523,13 @@ const APP_COPY = {
       you: 'Profile',
       chat: 'Chat'
     },
-    appHeader: {
-      completedModulesOne: 'You completed {n} module!',
-      completedModulesOther: 'You completed {n} modules!',
-      completedUnitsOne: 'You completed {n} unit!',
-      completedUnitsOther: 'You completed {n} units!'
-    },
     reference: {
       title: 'Reference',
       subtitle: 'Browse courses, units, and lessons to review content.',
       selectedLesson: 'Selected lesson',
       noContent: 'No content available for this lesson.',
-      noData: 'No reference content available.',
       loading: 'Loading reference...',
-      toggleLanguage: 'Switch language to {lang}',
       lessonListEmpty: 'This unit has no lessons.',
-      chooseLesson: 'Select a lesson to view its content.',
       backToList: 'Back',
       lessonTabContent: 'Content',
       lessonTabTests: 'Tests',
@@ -595,7 +540,6 @@ const APP_COPY = {
       testsLoading: 'Loading tests...',
       testsLoadError: 'Reference tests could not be loaded.',
       testsEmpty: 'No tests are available for this lesson or unit.',
-      testsDisabled: 'Enable reference tests in Diagnostics to show them here.',
       testsQuestions: '{n} questions',
       testsQuestionLabel: 'Question {n}',
       testsWordBank: 'Word bank',
@@ -646,8 +590,6 @@ const APP_COPY = {
       translatorAlternatives: 'Possible translations',
       translatorSyntax: 'Syntax analysis',
       translatorWords: 'Key words',
-      translatorDefinitions: 'Definitions',
-      translatorExamples: 'Examples',
       translatorDetected: 'Detected language',
       translatorNoSyntax: 'No syntax analysis is available.',
       translatorNoWords: 'No lexical details are available for this text.',
@@ -697,12 +639,7 @@ const APP_COPY = {
       socialFacebook: 'Login',
       socialApple: 'Login',
       continueWithEmail: 'Continue with email',
-      createWithEmail: 'Create account with email',
-      userLabel: 'User',
-      userPlaceholder: 'your user',
-      passLabel: 'Password',
       passPlaceholder: '********',
-      enter: 'Login with existing account',
       forgotPassword: 'Recover password',
       registerTitle: 'Create account',
       registerSubtitle: 'Complete your details to register.',
@@ -723,9 +660,6 @@ const APP_COPY = {
       recoverEmailPlaceholder: 'your email',
       recoverSubmit: 'Send instructions',
       recoverBack: 'Back to login',
-      magicLoginLink: 'Continue without signing up',
-      magicTitle: 'Quick access',
-      magicSubtitle: 'We send a link to your email. One click and you are in.',
       magicEmailLabel: 'Your email',
       magicEmailPlaceholder: 'you@email.com',
       magicSubmit: 'Send access link',
@@ -737,13 +671,10 @@ const APP_COPY = {
       magicSentMessage: 'Check your inbox. The link expires in 15 minutes.',
       magicResend: 'Resend link',
       magicOtpLabel: 'Or enter the code from the email:',
-      magicOtpPlaceholder: '123456',
-      magicOtpSubmit: 'Sign in with code',
       alertHeader: 'Notice',
       alertOk: 'Ok',
       errors: {
         loginGeneric: 'Login error',
-        loginInvalidUser: 'User is not valid',
         loginInvalidPassword: 'Password is not valid',
         loginNoUserData: 'Login ok, but without user data',
         socialAppleUnavailable: 'Apple login is not available.',
@@ -775,32 +706,20 @@ const APP_COPY = {
       }
     },
     onboarding: {
-      brand: 'SPEAK English',
-      skip: 'Skip',
       cta: 'Continue',
       slides: {
-        confidence: {
-          title: 'Speak English with confidence',
-          subtitle: 'Improve your pronunciation in minutes a day',
-          cta: 'Start'
-        },
-        feedback: {
-          title: 'Real-time feedback',
-          subtitle: 'Correct your pronunciation instantly and improve every attempt',
-          points: [
-            'Listen',
-            'Repeat',
-            'Improve'
-          ],
-          cta: 'Continue'
-        },
         natural: {
-          title: 'Sound more natural',
           subtitle: 'Train with short and effective sessions',
-          points: [
-            'Only 5-10 min a day',
-            'Progressive results',
-            'No pressure'
+          titleLines: [
+            { text: 'Improve your', accent: false },
+            { text: 'English pronunciation', accent: true },
+            { text: 'sound by', accent: false },
+            { text: 'sound', accent: true }
+          ],
+          steps: [
+            { num: '1', label: 'Listen', icon: 'ear-outline', tone: 'violet' },
+            { num: '2', label: 'Repeat', icon: 'mic-outline', tone: 'blue' },
+            { num: '3', label: 'Improve', icon: 'trending-up-outline', tone: 'mint' }
           ],
           cta: 'Start free'
         }
@@ -810,35 +729,31 @@ const APP_COPY = {
       planTitle: 'Your plan',
       planMessage:
         'This is your plan to sound like a native.<br>Tap this card to hear it again.',
-      toggleLanguage: 'Switch language to {lang}',
       go: 'Continue',
       routeProgress: 'progress',
       unlockAfter: 'Unlock after',
       sessionsCompleted: 'sessions completed'
     },
     freeRide: {
-      tabLabel: 'Free ride',
       title: 'Lab',
       subtitle: 'Write your own phrase or longer text and practice freely.',
       inputLabel: 'Your phrase',
       inputPlaceholder: 'You can write in Spanish or English. Example: Quiero pedir un café.',
       emptyPhrase: 'Write a phrase to practice.',
-      toggleLanguage: 'Switch language to {lang}',
       playPhrase: 'Play phrase',
       sayLabel: 'Say',
       endLabel: 'End',
       yourVoiceLabel: 'Your voice',
       feedbackHint: 'Practice the phrase',
-      englishOnlyChecking: 'checking input',
-      englishOnlyAdvice: 'To practice better, write a 100% English text.',
-      englishOnlyMixed: 'Mixed languages detected. Use a 100% English text to practice.',
-      englishOnlyDetected: 'Detected: {language}.',
       translationLocalNotInstalled: 'Local translator available, but language model is not installed.',
       translationBackendError: 'Could not translate with the server. Please try again.',
-      feedbackNative: 'You sound like a native',
-      feedbackGood: 'Good! Continue practicing',
-      feedbackAlmost: 'Almost Correct!',
-      feedbackKeep: 'Keep practicing',
+      translationError: 'Could not translate right now.',
+      translationPending: 'Translation pending',
+      translateAction: 'Translate',
+      resultExcellent: 'Excellent',
+      resultRegular: 'Fair',
+      resultIncorrect: 'Incorrect',
+      resultMatchLabel: 'match',
       transcribing: 'Transcribing...'
     },
     speak: {
@@ -1026,17 +941,13 @@ const APP_COPY = {
       ]
     },
     profile: {
-      accessPill: 'Access',
       loginTitle: 'Sign in',
       loginSubtitle: 'You need to sign in to view your profile.',
-      loginCta: 'Sign in',
       contact: 'Contact',
       subscriptionSupportMail: 'Send subscription support email',
       legal: 'Legal',
+      close: 'Close',
       progressLabel: 'Progress',
-      awardsTitle: 'Awards',
-      toggleLanguageAria: 'Switch language to {lang}',
-      badgesTitle: 'Badges',
       badgesEmpty: 'You have not unlocked badges yet.',
       tabPrefs: 'Profile',
       tabReview: 'Review',
@@ -1073,20 +984,17 @@ const APP_COPY = {
       reviewWordsTitle: 'Words to review',
       reviewPhrasesTitle: 'Phrases to review',
       reviewTestsTitle: 'Tests to review',
-      reviewRed: 'Red',
-      reviewYellow: 'Yellow',
       reviewToneRedLabel: 'red',
       reviewToneYellowLabel: 'yellow',
       reviewWordsEmpty: 'There are no words in {tone} yet.',
       reviewPhrasesEmpty: 'There are no phrases in {tone}.',
       reviewTestsEmpty: 'There are no tests in {tone}.',
-      reviewMore: 'More',
       reviewLess: 'Less',
       reviewLessonTestLabel: 'Lesson test',
       reviewUnitTestLabel: 'Unit test',
+      trainingTrophies: 'Training trophies',
+      referenceMedals: 'Reference medals',
       userFallbackName: 'User',
-      avatarAltDefault: 'Avatar',
-      avatarAltWithName: 'Avatar {name}',
       profileAvatarAlt: 'Profile avatar',
       appMetaNA: 'v n/a',
       expiryNA: 'n/a',
@@ -1341,8 +1249,6 @@ export const getChatCopy = (locale) => withComputedChatCopy(getCopyBundle(locale
 export const getProfileCopy = (locale) => getCopyBundle(locale).profile;
 
 export const getTabsCopy = (locale) => getCopyBundle(locale).tabs;
-
-export const getAppHeaderCopy = (locale) => getCopyBundle(locale).appHeader;
 
 export const getNotificationsCopy = (locale) => getCopyBundle(locale).notifications;
 

@@ -14,7 +14,11 @@ import {
   refreshTranslationCapabilities,
   resolveChromeTranslatorApi
 } from '../translation-capabilities.js';
-import { setAppTitlebarEnabled } from '../components/app-header.js';
+import {
+  setAppNotificationsEnabled,
+  setAppTitlebarEnabled,
+  isAppNotificationsEnabled
+} from '../components/app-header.js';
 import {
   ensureTrainingData,
   getLocalizedContentField,
@@ -271,6 +275,7 @@ class PageDiagnostics extends HTMLElement {
         return true;
       }
     };
+    const getStoredAppNotificationsEnabled = () => isAppNotificationsEnabled();
     const normalizeAppFontSfProEnabled = (value) => {
       if (typeof value === 'boolean') return value;
       const normalized = String(value || '')
@@ -487,6 +492,13 @@ class PageDiagnostics extends HTMLElement {
                 <div class="diag-debug-sub" id="diag-titlebar-sub"></div>
               </div>
               <ion-toggle id="diag-titlebar-toggle" aria-label="Titlebar" ${getStoredAppTitlebarEnabled() ? 'checked' : ''}></ion-toggle>
+            </div>
+            <div class="diag-debug-toggle" style="margin-top: 10px;">
+              <div class="diag-debug-text">
+                <div class="diag-debug-title">Notificaciones</div>
+                <div class="diag-debug-sub" id="diag-notifications-sub"></div>
+              </div>
+              <ion-toggle id="diag-notifications-toggle" aria-label="Notificaciones" ${getStoredAppNotificationsEnabled() ? 'checked' : ''}></ion-toggle>
             </div>
             <div class="diag-debug-toggle" style="margin-top: 10px;">
               <div class="diag-debug-text">
@@ -1031,6 +1043,8 @@ class PageDiagnostics extends HTMLElement {
 
     const titlebarToggle = this.querySelector('#diag-titlebar-toggle');
     const titlebarSub = this.querySelector('#diag-titlebar-sub');
+    const notificationsToggle = this.querySelector('#diag-notifications-toggle');
+    const notificationsSub = this.querySelector('#diag-notifications-sub');
     const fontSfProToggle = this.querySelector('#diag-font-sf-pro-toggle');
     const fontSfProSub = this.querySelector('#diag-font-sf-pro-sub');
     if (titlebarToggle) {
@@ -1053,6 +1067,31 @@ class PageDiagnostics extends HTMLElement {
           titlebarSub.textContent = checked
             ? 'Activa la titlebar compartida en las vistas que la usen.'
             : 'Oculta la titlebar compartida en todas las vistas.';
+        }
+      });
+    }
+
+    if (notificationsToggle) {
+      const applyNotifications = (enabled) => {
+        window.r34lp0w3r = window.r34lp0w3r || {};
+        window.r34lp0w3r.appNotificationsEnabled = !!enabled;
+        setAppNotificationsEnabled(enabled);
+      };
+
+      notificationsToggle.checked = getStoredAppNotificationsEnabled();
+      if (notificationsSub) {
+        notificationsSub.textContent = notificationsToggle.checked
+          ? 'Activas: muestra el icono de notificaciones donde corresponda.'
+          : 'Desactivadas: oculta el icono de notificaciones.';
+      }
+      notificationsToggle.addEventListener('ionChange', (event) => {
+        const checked =
+          event && event.detail ? event.detail.checked : notificationsToggle.checked;
+        applyNotifications(checked);
+        if (notificationsSub) {
+          notificationsSub.textContent = checked
+            ? 'Activas: muestra el icono de notificaciones donde corresponda.'
+            : 'Desactivadas: oculta el icono de notificaciones.';
         }
       });
     }

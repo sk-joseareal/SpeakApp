@@ -322,6 +322,7 @@ class PageChat extends HTMLElement {
     const toggleChatSheet = (animate = true) => chatSheetController.toggle({ animate });
     const scheduleChatSheetLayout = (delayMs = 0) => {
       if (!this.isConnected) return;
+      if (document.body?.classList?.contains('app-android-legacy-webview')) return;
       const run = () => {
         if (chatSheetLayoutRaf) cancelAnimationFrame(chatSheetLayoutRaf);
         chatSheetLayoutRaf = requestAnimationFrame(() => {
@@ -429,6 +430,8 @@ class PageChat extends HTMLElement {
     let realtimeReconnectTimer = null;
     let realtimeReconnectAttempts = 0;
     let realtimeHealthTimer = null;
+    let realtimeConfigRefreshCheckedThisForeground = false;
+    let realtimeConfigRefreshInFlight = null;
     let realtimePublicSubscribed = false;
     let realtimeInboxSubscribed = false;
     let realtimeMainSubscribed = false;
@@ -948,6 +951,7 @@ class PageChat extends HTMLElement {
         key: config.key || '',
         cluster: config.cluster || '',
         wsHost: config.wsHost || '',
+        wsPort: Number(config.wsPort || 80),
         wssPort: config.wssPort || 443,
         forceTLS: config.forceTLS !== undefined ? config.forceTLS : true,
         authEndpoint: config.authEndpoint || '',
@@ -6916,6 +6920,59 @@ class PageChat extends HTMLElement {
       realtimeHealthTimer = null;
     };
 
+    const getRealtimeConfigRefreshSignature = (config) => {
+      const source = config && typeof config === 'object' ? config : {};
+      return JSON.stringify({
+        provider: pickFirstText(source.provider).toLowerCase(),
+        key: pickFirstText(source.key),
+        cluster: pickFirstText(source.cluster),
+        wsHost: pickFirstText(source.wsHost),
+        wsPort: Number(source.wsPort || 0),
+        wssPort: Number(source.wssPort || 0),
+        forceTLS: source.forceTLS !== undefined ? Boolean(source.forceTLS) : true,
+        enabledTransports: Array.isArray(source.enabledTransports) ? source.enabledTransports.slice() : [],
+        authEndpoint: pickFirstText(source.authEndpoint)
+      });
+    };
+
+    const resetRealtimeConfigRefreshAllowance = () => {
+      realtimeConfigRefreshCheckedThisForeground = false;
+    };
+
+    const maybeRefreshRealtimeConfigAfterFailure = async () => {
+      if (realtimeConfigRefreshCheckedThisForeground) return false;
+      if (realtimeConfigRefreshInFlight) return realtimeConfigRefreshInFlight;
+      const refreshFn =
+        typeof window.refreshRealtimeClientConfig === 'function'
+          ? window.refreshRealtimeClientConfig
+          : null;
+      if (!refreshFn) {
+        realtimeConfigRefreshCheckedThisForeground = true;
+        return false;
+      }
+      realtimeConfigRefreshCheckedThisForeground = true;
+      const beforeSignature = getRealtimeConfigRefreshSignature(window.realtimeConfig || {});
+      realtimeConfigRefreshInFlight = (async () => {
+        try {
+          const nextConfig = await refreshFn();
+          const afterSignature = getRealtimeConfigRefreshSignature(nextConfig || window.realtimeConfig || {});
+          if (beforeSignature === afterSignature) return false;
+          clearRealtimeReconnect();
+          disconnectRealtime();
+          if (lastChatEnabled && window.user) {
+            connectRealtime(window.user, { silent: true });
+          }
+          return true;
+        } catch (err) {
+          console.warn('[chat] realtime config refresh after failure failed', err);
+          return false;
+        } finally {
+          realtimeConfigRefreshInFlight = null;
+        }
+      })();
+      return realtimeConfigRefreshInFlight;
+    };
+
     const hasHealthyCommunitySubscriptions = () => {
       if (!pusherClient || !realtimePublicSubscribed) return false;
       const userId = pickFirstText(lastUserId);
@@ -6967,7 +7024,14 @@ class PageChat extends HTMLElement {
       return realtimeMainSubscribed;
     };
 
-    const connectRealtime = (user, { silent = false } = {}) => {
+    const connectRealtime = async (user, { silent = false } = {}) => {
+      try {
+        if (window.realtimeConfigReady && typeof window.realtimeConfigReady.then === 'function') {
+          await window.realtimeConfigReady;
+        }
+      } catch (err) {
+        console.warn('[chat] realtime config bootstrap failed', err);
+      }
       const config = getRealtimeConfig();
       if (!config.key) {
         console.warn('[chat] realtime key missing');
@@ -7007,7 +7071,11 @@ class PageChat extends HTMLElement {
 
       const wsOptions = config.cluster
         ? { cluster: config.cluster }
-        : { wsHost: config.wsHost };
+        : {
+            wsHost: config.wsHost,
+            wsPort: config.wsPort,
+            wssPort: config.wssPort
+          };
       const options = {
         ...wsOptions,
         forceTLS: config.forceTLS,
@@ -7019,6 +7087,7 @@ class PageChat extends HTMLElement {
       }
 
       if (connectedMode === 'community' || channelName.startsWith('private-') || channelName.startsWith('presence-')) {
+        const realtimeStateToken = getRealtimeStateToken();
         const userInfo = {
           id: user.id,
           name: getUserDisplayName(user),
@@ -7031,9 +7100,9 @@ class PageChat extends HTMLElement {
           params: {
             user_id: user.id,
             user_info: JSON.stringify(userInfo),
-            token: user.token || ''
-          },
-          headers: buildRealtimeStateHeaders()
+            token: user.token || '',
+            rt_token: realtimeStateToken
+          }
         };
       }
 
@@ -7061,6 +7130,7 @@ class PageChat extends HTMLElement {
       });
       pusherClient.connection.bind('disconnected', () => {
         realtimeConnected = false;
+        void maybeRefreshRealtimeConfigAfterFailure();
         if (connectedMode === 'chatbot') {
           handleChatbotRealtimeDisconnected();
         } else if (connectedMode === 'community') {
@@ -7071,6 +7141,7 @@ class PageChat extends HTMLElement {
       pusherClient.connection.bind('error', (err) => {
         console.warn('[chat] pusher error', err);
         realtimeConnected = false;
+        void maybeRefreshRealtimeConfigAfterFailure();
         if (connectedMode === 'chatbot') {
           handleChatbotRealtimeDisconnected();
         } else if (connectedMode === 'community') {
@@ -7090,6 +7161,7 @@ class PageChat extends HTMLElement {
           currentState === 'failed'
         ) {
           realtimeConnected = false;
+          void maybeRefreshRealtimeConfigAfterFailure();
           scheduleRealtimeReconnect();
         }
       });
@@ -7821,6 +7893,7 @@ class PageChat extends HTMLElement {
     };
 
     const handleViewportChange = () => {
+      if (document.body?.classList?.contains('app-android-legacy-webview')) return;
       scheduleChatKeyboardSync();
     };
 
@@ -7867,18 +7940,11 @@ class PageChat extends HTMLElement {
         });
         return;
       }
+      resetRealtimeConfigRefreshAllowance();
       syncCommunityStateAfterResume();
     };
 
-    const previousTriggerResume = typeof window._trigger_resume === 'function' ? window._trigger_resume : null;
     const previousTriggerPause = typeof window._trigger_pause === 'function' ? window._trigger_pause : null;
-
-    window._trigger_resume = () => {
-      if (typeof previousTriggerResume === 'function') {
-        previousTriggerResume();
-      }
-      syncCommunityStateAfterResume();
-    };
 
     window._trigger_pause = () => {
       if (typeof previousTriggerPause === 'function') {
@@ -8655,7 +8721,6 @@ class PageChat extends HTMLElement {
       applyChatSheetState({ animate: false });
       scrollChatTimelineToLatest('auto');
       scheduleChatSheetLayout(0);
-      scheduleChatSheetLayout(140);
     };
     this._tabsEl = document.querySelector('tabs-page');
     this._ionTabsDidChangeHandler = (event) => {
@@ -8676,7 +8741,6 @@ class PageChat extends HTMLElement {
       applyChatSheetState({ animate: false });
       scrollChatTimelineToLatest('auto');
       scheduleChatSheetLayout(0);
-      scheduleChatSheetLayout(140);
     };
     window.addEventListener('app:tab-user-click', this._tabUserClickHandler);
     this._chatIonRouter = document.querySelector('ion-router');
@@ -8750,7 +8814,6 @@ class PageChat extends HTMLElement {
       window.removeEventListener('pagehide', handleWindowPageHide);
       document.removeEventListener('visibilitychange', handleDocumentVisibilityChange);
       threadEl?.removeEventListener('scroll', updateChatAutoScroll);
-      window._trigger_resume = previousTriggerResume || null;
       window._trigger_pause = previousTriggerPause || null;
     };
   }

@@ -10,10 +10,10 @@ import { getOnboardingCopy, normalizeLocale as normalizeCopyLocale } from '../co
 
 const SWIPE_MIN_DISTANCE = 52;
 const SWIPE_MAX_OFF_AXIS = 44;
-const ONBOARDING_MASCOT_SRC = 'assets/mascot/nena/mascota_18.png';
+const ONBOARDING_MASCOT_SRC = 'assets/mascot/nena_trimmed.png';
 const ONBOARDING_STATUSBAR_COLOR = '#00000000';
-const ONBOARDING_THEME_COLOR = '#a9c7f5';
-const APP_STATUSBAR_COLOR = '#f4f6fb';
+const ONBOARDING_THEME_COLOR = '#00000000';
+const APP_STATUSBAR_COLOR = '#00000000';
 const APP_STATUSBAR_PRESET_KEY = 'appv5:statusbar-preset';
 
 function getStatusBarStyle(lightIcons) {
@@ -60,11 +60,7 @@ function setNativeChrome(color, lightIcons, meta = {}) {
   }
 }
 
-const onboardingSlides = [
-  { id: 'confidence', copyKey: 'confidence' },
-  { id: 'feedback', copyKey: 'feedback' },
-  { id: 'natural', copyKey: 'natural' }
-];
+const onboardingSlides = [{ id: 'natural', copyKey: 'natural' }];
 
 class PageOnboarding extends HTMLElement {
   constructor() {
@@ -133,24 +129,55 @@ class PageOnboarding extends HTMLElement {
     return slides[key] || {};
   }
 
+  getNaturalCenterContent(slideCopy, locale) {
+    const fallback =
+      locale === 'es'
+        ? {
+            titleLines: [
+              { text: 'Mejora tu', accent: false },
+              { text: 'pronunciacion', accent: true },
+              { text: 'del ingles', accent: false },
+              { text: 'sonido por sonido', accent: true }
+            ],
+            subtitle: 'Sesiones donde podras corregir al instante y sonar natural',
+            steps: [
+              { num: '1', label: 'Escucha', icon: 'ear-outline', tone: 'violet' },
+              { num: '2', label: 'Repite', icon: 'mic-outline', tone: 'blue' },
+              { num: '3', label: 'Mejora', icon: 'trending-up-outline', tone: 'mint' }
+            ]
+          }
+        : {
+            titleLines: [
+              { text: 'Improve your', accent: false },
+              { text: 'English pronunciation', accent: true },
+              { text: 'sound by', accent: false },
+              { text: 'sound', accent: true }
+            ],
+            subtitle: 'Sessions where you can correct yourself instantly and sound natural',
+            steps: [
+              { num: '1', label: 'Listen', icon: 'ear-outline', tone: 'violet' },
+              { num: '2', label: 'Repeat', icon: 'mic-outline', tone: 'blue' },
+              { num: '3', label: 'Improve', icon: 'trending-up-outline', tone: 'mint' }
+            ]
+          };
+    const titleLines = Array.isArray(slideCopy?.titleLines) && slideCopy.titleLines.length
+      ? slideCopy.titleLines
+      : fallback.titleLines;
+    const steps = Array.isArray(slideCopy?.steps) && slideCopy.steps.length
+      ? slideCopy.steps
+      : fallback.steps;
+    return {
+      titleLines,
+      subtitle: String(slideCopy?.subtitle || '').trim() || fallback.subtitle,
+      steps
+    };
+  }
+
   render() {
-    const navHtml = `
-      <div class="onboarding-v5-footer" data-field="footer">
-        <div class="speak-voice-nav onboarding-v5-nav">
-          <button class="speak-step-arrow-btn" data-action="prev" type="button" aria-label="Previous step" disabled>
-            <ion-icon name="chevron-back"></ion-icon>
-          </button>
-          <div class="speak-step-dots onboarding-v5-dots" data-field="dots"></div>
-          <button class="speak-step-arrow-btn" data-action="next" type="button" aria-label="Next step">
-            <ion-icon name="chevron-forward"></ion-icon>
-          </button>
-        </div>
-      </div>`;
     if (this.hasAttribute('embedded')) {
       this.innerHTML = `
         <div class="onboarding-v5-shell">
           <div class="onboarding-v5-stage" data-field="stage"></div>
-          ${navHtml}
         </div>
       `;
     } else {
@@ -158,7 +185,6 @@ class PageOnboarding extends HTMLElement {
         <ion-content fullscreen>
           <div class="onboarding-v5-shell">
             <div class="onboarding-v5-stage" data-field="stage"></div>
-            ${navHtml}
           </div>
         </ion-content>
       `;
@@ -173,9 +199,6 @@ class PageOnboarding extends HTMLElement {
 
   bindEvents() {
     const embedded = this.hasAttribute('embedded');
-    const legacyAndroidEmbedded =
-      embedded &&
-      Boolean(document.body && document.body.classList.contains('app-android-legacy-webview'));
     this.addEventListener('click', (event) => {
       const button = event.target.closest('[data-action]');
       if (!button) return;
@@ -191,78 +214,105 @@ class PageOnboarding extends HTMLElement {
     this.addEventListener('touchstart', (event) => this.handleTouchStart(event), { passive: true });
     this.addEventListener('touchend', (event) => this.handleTouchEnd(event), { passive: true });
     this.addEventListener('touchcancel', () => this.resetSwipeGesture(), { passive: true });
-    if (!legacyAndroidEmbedded) {
-      this._resizeHandler = () => this.scheduleHeroLayoutSync();
-      window.addEventListener('resize', this._resizeHandler);
-    } else {
-      this._resizeHandler = null;
-    }
+    this._resizeHandler = () => this.scheduleHeroLayoutSync();
+    window.addEventListener('resize', this._resizeHandler);
     this._visibilityHandler = null;
     this._resumeHandler = null;
     this._appStateChangeListener = null;
     this._deviceReadyHandler = null;
-    if (!legacyAndroidEmbedded) {
-      this._deviceReadyHandler = () => {
-        if (!embedded) this.applyOnboardingChrome();
-      };
-      document.addEventListener('deviceready', this._deviceReadyHandler);
-    }
+    this._deviceReadyHandler = () => {
+      if (!embedded) this.applyOnboardingChrome();
+    };
+    document.addEventListener('deviceready', this._deviceReadyHandler);
   }
 
   updateSlide() {
     const copy = this.getCopy();
+    const uiLocale = this.getUiLocale();
     const step = onboardingSlides[this.currentStep];
     const slideCopy = this.getSlideCopy(step, copy);
     const points = Array.isArray(slideCopy.points) ? slideCopy.points : [];
     const title = String(slideCopy.title || '').trim();
     const subtitle = String(slideCopy.subtitle || '').trim();
     const cta = String(slideCopy.cta || copy.cta || '').trim();
-    const dotsMarkup = onboardingSlides
-      .map(
-        (_item, index) =>
-          `<span class="speak-step-dot${index === this.currentStep ? ' is-active' : ''}"></span>`
-      )
-      .join('');
+    const naturalCenter = this.getNaturalCenterContent(slideCopy, uiLocale);
 
     this.stageEl.innerHTML = `
       <article class="onboarding-v5-card" data-step="${step.id}">
         <div class="onboarding-v5-hero">
-          <div class="onboarding-v5-mascot-wrap" aria-hidden="true">
-            <img class="onboarding-v5-mascot" src="${ONBOARDING_MASCOT_SRC}" alt="">
+          <div class="onboarding-v5-test-block" aria-hidden="true">
+            <span class="onboarding-v5-spark onboarding-v5-spark--star onboarding-v5-spark--s1"></span>
+            <span class="onboarding-v5-spark onboarding-v5-spark--star onboarding-v5-spark--s2"></span>
+            <span class="onboarding-v5-spark onboarding-v5-spark--star onboarding-v5-spark--s3"></span>
+            <span class="onboarding-v5-spark onboarding-v5-spark--dot onboarding-v5-spark--d1"></span>
+            <span class="onboarding-v5-spark onboarding-v5-spark--dot onboarding-v5-spark--d2"></span>
+            <span class="onboarding-v5-spark onboarding-v5-spark--dot onboarding-v5-spark--d3"></span>
+            <img class="onboarding-v5-test-block-image" src="${ONBOARDING_MASCOT_SRC}" alt="" />
           </div>
-          <div class="onboarding-v5-wave"></div>
         </div>
         <div class="onboarding-v5-body">
-          <h1 class="onboarding-v5-title">${this.escapeHtml(title)}</h1>
-          ${subtitle ? `<p class="onboarding-v5-subtitle">${this.escapeHtml(subtitle)}</p>` : ''}
           ${
-            points.length
-              ? `<ul class="onboarding-v5-points">
-                  ${points
-                    .map(
-                      (point) => `
-                        <li class="onboarding-v5-point">
-                          <span class="onboarding-v5-point-icon" aria-hidden="true">
-                            <ion-icon name="checkmark"></ion-icon>
-                          </span>
-                          <span>${this.escapeHtml(point)}</span>
-                        </li>
-                      `
-                    )
-                    .join('')}
-                </ul>`
-              : '<div class="onboarding-v5-body-spacer"></div>'
+            step.id === 'natural'
+              ? `
+            <h1 class="onboarding-v5-title onboarding-v5-title--stacked">
+              ${naturalCenter.titleLines
+                .map(
+                  (line) =>
+                    `<span class="onboarding-v5-title-line${line.accent ? ' is-accent' : ''}">${this.escapeHtml(line.text)}</span>`
+                )
+                .join('')}
+            </h1>
+            <p class="onboarding-v5-subtitle onboarding-v5-subtitle--center">${this.escapeHtml(naturalCenter.subtitle)}</p>
+            <div class="onboarding-v5-steps" role="list">
+              ${naturalCenter.steps
+                .map(
+                  (item, index) => `
+                    <div class="onboarding-v5-step" role="listitem">
+                      <div class="onboarding-v5-step-badge onboarding-v5-step-badge--${this.escapeHtml(item.tone)}" aria-hidden="true">
+                        <ion-icon name="${this.escapeHtml(item.icon)}"></ion-icon>
+                      </div>
+                      <div class="onboarding-v5-step-meta">
+                        <span class="onboarding-v5-step-num onboarding-v5-step-num--${this.escapeHtml(item.tone)}">${this.escapeHtml(item.num)}</span>
+                        <span class="onboarding-v5-step-label">${this.escapeHtml(item.label)}</span>
+                      </div>
+                    </div>
+                    ${index < naturalCenter.steps.length - 1 ? '<span class="onboarding-v5-step-arrow" aria-hidden="true">→</span>' : ''}
+                  `
+                )
+                .join('')}
+            </div>
+          `
+              : `
+            <h1 class="onboarding-v5-title">${this.escapeHtml(title)}</h1>
+            ${subtitle ? `<p class="onboarding-v5-subtitle">${this.escapeHtml(subtitle)}</p>` : ''}
+            ${
+              points.length
+                ? `<ul class="onboarding-v5-points">
+                    ${points
+                      .map(
+                        (point) => `
+                          <li class="onboarding-v5-point">
+                            <span class="onboarding-v5-point-icon" aria-hidden="true">
+                              <ion-icon name="checkmark"></ion-icon>
+                            </span>
+                            <span>${this.escapeHtml(point)}</span>
+                          </li>
+                        `
+                      )
+                      .join('')}
+                  </ul>`
+                : '<div class="onboarding-v5-body-spacer"></div>'
+            }
+          `
           }
-          ${this.currentStep === onboardingSlides.length - 1 ? `<button class="onboarding-v5-cta" data-action="next" type="button">${this.escapeHtml(cta)}</button>` : ''}
+          ${
+            this.currentStep === onboardingSlides.length - 1
+              ? `<button class="onboarding-v5-cta" data-action="next" type="button">${this.escapeHtml(cta)}</button>`
+              : ''
+          }
         </div>
       </article>
     `;
-    // Update persistent footer state
-    if (this.dotsEl) this.dotsEl.innerHTML = dotsMarkup;
-    const prevBtn = this.footerEl?.querySelector('[data-action="prev"]');
-    if (prevBtn) prevBtn.disabled = this.currentStep === 0;
-    const nextBtn = this.footerEl?.querySelector('[data-action="next"]');
-    if (nextBtn) nextBtn.disabled = this.currentStep === onboardingSlides.length - 1;
     this.scheduleHeroLayoutSync();
   }
 

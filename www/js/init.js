@@ -188,7 +188,8 @@ const stopAllUiSfxPlayback = () => {
 
 const playUiSfxNatively = async (src, options = {}) => {
   try {
-    const plugin = window.Capacitor?.Plugins?.P4w4Plugin;
+    const plugin =
+      window.Capacitor && window.Capacitor.Plugins ? window.Capacitor.Plugins.P4w4Plugin : null;
     const platform =
       window.Capacitor && typeof window.Capacitor.getPlatform === 'function'
         ? window.Capacitor.getPlatform()
@@ -329,7 +330,7 @@ document.addEventListener('pause', () => {
 });
 
 try {
-  const appPlugin = window.Capacitor?.Plugins?.App;
+  const appPlugin = window.Capacitor && window.Capacitor.Plugins ? window.Capacitor.Plugins.App : null;
   if (appPlugin && typeof appPlugin.addListener === 'function') {
     appPlugin.addListener('appStateChange', ({ isActive }) => {
       if (!isActive) {
@@ -857,7 +858,7 @@ let badgePopupChimeLastAt = 0;
 let badgePopupAudioEl = null;
 
 const escapeBadgeHtml = (value) =>
-  String(value ?? '')
+  String(value === null || value === undefined ? '' : value)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
@@ -1005,7 +1006,8 @@ const playBadgePopupChime = () => {
   playBadgePopupAudioFile().then((played) => {
     if (played) return;
     try {
-      const plugin = window.Capacitor?.Plugins?.P4w4Plugin;
+      const plugin =
+        window.Capacitor && window.Capacitor.Plugins ? window.Capacitor.Plugins.P4w4Plugin : null;
       if (plugin && typeof plugin.playNotificationBell === 'function') {
         plugin
           .playNotificationBell({ durationMs: 320, vibrate: false })
@@ -1647,12 +1649,14 @@ window.syncSpeakProgress = async (opts = {}) => {
     const data = await res.json();
     if (data && data.error && /\(002\)/.test(data.error)) {
       speakSyncInFlight = false;
-      window.requestSessionInvalidation?.('syncSpeakProgress', {
-        endpoint,
-        status: res.status,
-        error: data.error,
-        code: '002'
-      });
+      if (typeof window.requestSessionInvalidation === 'function') {
+        window.requestSessionInvalidation('syncSpeakProgress', {
+          endpoint,
+          status: res.status,
+          error: data.error,
+          code: '002'
+        });
+      }
       return { ok: false, forced_logout: true };
     }
     const acked = Array.isArray(data.acked_ids) ? new Set(data.acked_ids) : null;
@@ -1838,12 +1842,14 @@ const pingSessionValidity = async () => {
     if (!res.ok) return; // error de servidor o red — no tocar sesión
     const data = await res.json();
     if (data && typeof data.error === 'string' && data.error.includes('(002)')) {
-      window.requestSessionInvalidation?.('pingSessionValidity', {
-        endpoint: summaryEndpoint,
-        status: res.status,
-        error: data.error,
-        code: '002'
-      });
+      if (typeof window.requestSessionInvalidation === 'function') {
+        window.requestSessionInvalidation('pingSessionValidity', {
+          endpoint: summaryEndpoint,
+          status: res.status,
+          error: data.error,
+          code: '002'
+        });
+      }
     }
   } catch (err) {
     // error de red — no hacer nada

@@ -10283,6 +10283,26 @@ ion-select.training-pill.active::part(icon) {
   color: #D1D5DB;
 }
 
+.training-row-next-pill {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: #4A7DFF;
+  border: 2px solid #4A7DFF;
+}
+
+.training-row-next-pill ion-icon {
+  font-size: 0.9rem;
+  color: #4A7DFF;
+  --ionicon-stroke-width: 56px;
+  transform: translateX(0.5px);
+}
+
 .home-journey {
   background: transparent;
 }

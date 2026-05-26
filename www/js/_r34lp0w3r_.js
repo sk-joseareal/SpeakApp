@@ -8,7 +8,7 @@ console.log(">#C00#> 006.001 _r34lp0w3r_.js >>>");
 (function ensureStatusBarOverlayEarly() {
   try {
     const c = window.Capacitor;
-    const sb = c?.Plugins?.StatusBar;
+    const sb = c && c.Plugins ? c.Plugins.StatusBar : null;
     if (c && typeof c.getPlatform === 'function' && c.getPlatform() === 'android' && sb) {
       sb.setOverlaysWebView({ overlay: true });
       try {
@@ -382,7 +382,12 @@ const isExpectedLoginCallbackUrl = (infoUrl) => {
 
 const closeSocialLoginBrowser = async () => {
   try {
-    if (window.Capacitor?.Plugins?.Browser?.close) {
+    if (
+      window.Capacitor &&
+      window.Capacitor.Plugins &&
+      window.Capacitor.Plugins.Browser &&
+      typeof window.Capacitor.Plugins.Browser.close === 'function'
+    ) {
       await window.Capacitor.Plugins.Browser.close();
     }
   } catch (err) {
@@ -953,7 +958,9 @@ window.playPushForegroundBellWeb = playPushForegroundBellWeb;
 
 const getPushForegroundToastCloseLabel = () => {
   try {
-    const locale = String(window.varGlobal?.locale || '').trim().toLowerCase();
+    const locale = String(window.varGlobal && window.varGlobal.locale ? window.varGlobal.locale : '')
+      .trim()
+      .toLowerCase();
     return locale.startsWith('en') ? 'Dismiss' : 'Cerrar';
   } catch (_err) {
     return 'Dismiss';
@@ -972,14 +979,14 @@ const readPushForegroundText = (value) => {
           : raw.notification
         : {};
   const title = String(
-    raw.title || raw.notification?.title || data.title || data.alert_title || ''
+    raw.title || (raw.notification && raw.notification.title) || data.title || data.alert_title || ''
   ).trim();
   const text = String(
     raw.body ||
       raw.text ||
       raw.subtitle ||
-      raw.notification?.body ||
-      raw.notification?.text ||
+      (raw.notification && raw.notification.body) ||
+      (raw.notification && raw.notification.text) ||
       data.body ||
       data.text ||
       data.message ||
@@ -1810,8 +1817,8 @@ const ANDROID_IAP_VALIDATION_CACHE_TTL_MS = 5 * 60 * 1000;
 
 const getAndroidIapValidationKey = (item) => {
   const nativePurchase = item && item.nativePurchase ? item.nativePurchase : {};
-  const token = nativePurchase.purchaseToken || item?.purchaseId || '';
-  const transactionId = item?.transactionId || nativePurchase.orderId || '';
+  const token = nativePurchase.purchaseToken || (item && item.purchaseId) || '';
+  const transactionId = (item && item.transactionId) || nativePurchase.orderId || '';
   const userId = getCurrentIapUserId() || '';
   const productId =
     item && Array.isArray(item.products) && item.products[0] && item.products[0].id
@@ -2972,7 +2979,7 @@ document.addEventListener('deviceready', function () {
       if (legacyAndroid) {
         return;
       }
-      const sb = window.Capacitor.Plugins?.StatusBar;
+      const sb = window.Capacitor && window.Capacitor.Plugins ? window.Capacitor.Plugins.StatusBar : null;
       if (sb) {
         sb.setOverlaysWebView({ overlay: true });
         sb.getInfo()
@@ -3735,7 +3742,8 @@ const isStillSameCurrentUser = (expectedSignature) => {
 };
 
 const refreshUserAvatarLocal = async (user, options = {}) => {
-  const fs = window.Capacitor?.Plugins?.Filesystem;
+  const fs =
+    window.Capacitor && window.Capacitor.Plugins ? window.Capacitor.Plugins.Filesystem : null;
   if (!fs || !user) return;
 
   const force = !!options.force;
@@ -3864,7 +3872,8 @@ window.loadUser();
 
 async function download(url, path, directory = 'DATA', options = {}) {
   console.log('>#[FS] download:', url, '->', directory + '/' + path);
-  const fs = window.Capacitor?.Plugins?.Filesystem;
+  const fs =
+    window.Capacitor && window.Capacitor.Plugins ? window.Capacitor.Plugins.Filesystem : null;
   if (!fs) throw new Error('Filesystem plugin no disponible');
 
   const fetchOptions = options && options.noCache ? { cache: 'no-store' } : undefined;
@@ -3889,7 +3898,7 @@ async function sendMail() {
 
   console.log(">#C02#> sendMail.");
 
-  const platform = window.r34lp0w3r?.platform || 'unknown';
+  const platform = (window.r34lp0w3r && window.r34lp0w3r.platform) || 'unknown';
   const uuid = window.uuid || localStorage.getItem('uuid') || 'n/a';  
   const meta = window.appMeta || {};
   const version =
@@ -4009,12 +4018,14 @@ async function doPost( endpoint, userInfo, data ) {
         console.log(">#C02#> doPost. error in data:", JSON.stringify(result.data.error));
         result.ok = false;
         if (typeof result.data.error === 'string' && result.data.error.includes('(002)')) {
-          window.requestSessionInvalidation?.('doPost', {
-            endpoint,
-            status: response.status,
-            error: result.data.error,
-            code: '002'
-          });
+          if (typeof window.requestSessionInvalidation === 'function') {
+            window.requestSessionInvalidation('doPost', {
+              endpoint,
+              status: response.status,
+              error: result.data.error,
+              code: '002'
+            });
+          }
         }
       } else {
         console.log(">#C02#> doPost. success:", JSON.stringify(result));
@@ -4197,7 +4208,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     if (cap && typeof cap.getPlatform === 'function') {
       return cap.getPlatform();
     }
-    return window.r34lp0w3r?.platform || 'unknown';
+    return (window.r34lp0w3r && window.r34lp0w3r.platform) || 'unknown';
   };
   const isLegacyAndroid = () =>
     Boolean(document.body && document.body.classList.contains('app-android-legacy-webview'));
@@ -4218,7 +4229,8 @@ document.addEventListener('DOMContentLoaded', async function() {
       const keyboardHeightPx = Math.round(rawHeight * window.devicePixelRatio);
       console.log(`>#C00.04#> Redimensionando WebView ${keyboardHeightPx} px (${rawHeight} dp).`);
 
-      const plugin = window.Capacitor?.Plugins?.P4w4Plugin;
+      const plugin =
+        window.Capacitor && window.Capacitor.Plugins ? window.Capacitor.Plugins.P4w4Plugin : null;
       if (plugin && typeof plugin.resizeWebView === 'function') {
         await plugin.resizeWebView({ offset: keyboardHeightPx });
       }
@@ -4233,7 +4245,8 @@ document.addEventListener('DOMContentLoaded', async function() {
 
       const offset = typeof window.__keyboardHeight === 'number' ? -window.__keyboardHeight : 0;
       console.log(`>#C00.04#> Restaurando WebView ${offset} px.`);
-      const plugin = window.Capacitor?.Plugins?.P4w4Plugin;
+      const plugin =
+        window.Capacitor && window.Capacitor.Plugins ? window.Capacitor.Plugins.P4w4Plugin : null;
       if (plugin && typeof plugin.resizeWebView === 'function') {
         await plugin.resizeWebView({ offset });
       }

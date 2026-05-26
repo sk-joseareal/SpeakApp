@@ -393,7 +393,8 @@ function shouldDeferAndroidNativeChrome() {
 function setNativeChrome(color, lightIcons, meta = {}) {
   try {
     if (shouldDeferAndroidNativeChrome()) return;
-    const nativePlugin = window.Capacitor?.Plugins?.P4w4Plugin;
+    const nativePlugin =
+      window.Capacitor && window.Capacitor.Plugins ? window.Capacitor.Plugins.P4w4Plugin : null;
     if (!nativePlugin || typeof nativePlugin.setNativeChrome !== 'function') return;
     nativePlugin.setNativeChrome({
       backgroundColor: color,
@@ -503,7 +504,8 @@ function syncNativeStatusBarCapabilityClasses(info = {}) {
 
 function syncNativeStatusBarCssHeight() {
   try {
-    const nativePlugin = window.Capacitor?.Plugins?.P4w4Plugin;
+    const nativePlugin =
+      window.Capacitor && window.Capacitor.Plugins ? window.Capacitor.Plugins.P4w4Plugin : null;
     if (!nativePlugin || typeof nativePlugin.getStatusBarHeight !== 'function') return;
     Promise.resolve(nativePlugin.getStatusBarHeight())
       .then((info) => {
@@ -591,10 +593,14 @@ function getCurrentTabsActiveTab() {
   const selectedFromProperty = normalizeChromeTabId(tabsEl && tabsEl.selectedTab);
   const selectedFromAttribute = normalizeChromeTabId(tabsEl && tabsEl.getAttribute('selected-tab'));
   const selectedButton = normalizeChromeTabId(
-    document.querySelector('tabs-page ion-tab-button.tab-selected')?.getAttribute('tab')
+    (document.querySelector('tabs-page ion-tab-button.tab-selected') || {}).getAttribute
+      ? document.querySelector('tabs-page ion-tab-button.tab-selected').getAttribute('tab')
+      : ''
   );
   const selectedVisiblePane = normalizeChromeTabId(
-    document.querySelector('tabs-page ion-tab[tab][aria-hidden="false"]')?.getAttribute('tab')
+    (document.querySelector('tabs-page ion-tab[tab][aria-hidden="false"]') || {}).getAttribute
+      ? document.querySelector('tabs-page ion-tab[tab][aria-hidden="false"]').getAttribute('tab')
+      : ''
   );
 
   return (
@@ -1121,7 +1127,7 @@ function applyAppChromeForPath(path) {
       scheduleAppTitlebarCalibration();
       return;
     }
-    const sb = window.Capacitor?.Plugins?.StatusBar;
+    const sb = window.Capacitor && window.Capacitor.Plugins ? window.Capacitor.Plugins.StatusBar : null;
     if (!sb) return;
     sb.setOverlaysWebView({ overlay: true });
     if (!isAndroidPlatform()) {
@@ -1313,7 +1319,7 @@ document.addEventListener('ionTabsDidChange', (event) => {
 });
 
 window.addEventListener('app:statusbar-preset-change', (event) => {
-  const requestedPreset = event?.detail?.preset;
+  const requestedPreset = event && event.detail ? event.detail.preset : undefined;
   if (requestedPreset !== undefined) {
     window.r34lp0w3r = window.r34lp0w3r || {};
     window.r34lp0w3r.appStatusbarPreset = normalizeStatusbarPreset(requestedPreset);
@@ -1322,7 +1328,7 @@ window.addEventListener('app:statusbar-preset-change', (event) => {
 });
 
 window.addEventListener('app:font-sf-pro-change', (event) => {
-  applyAppFontPreference(event?.detail?.enabled);
+  applyAppFontPreference(event && event.detail ? event.detail.enabled : undefined);
 });
 
 const handleGlobalViewportEvent = () => {
@@ -1353,7 +1359,7 @@ document.addEventListener('visibilitychange', () => {
 });
 
 try {
-  const appPlugin = window.Capacitor?.Plugins?.App;
+  const appPlugin = window.Capacitor && window.Capacitor.Plugins ? window.Capacitor.Plugins.App : null;
   if (appPlugin && typeof appPlugin.addListener === 'function') {
     appPlugin.addListener('appStateChange', ({ isActive }) => {
       if (!isActive) return;
@@ -1406,7 +1412,9 @@ function setupSecretDiagnostics(router) {
   const resetDiagnosticsOpening = () => {
     diagnosticsOpening = false;
   };
-  router?.addEventListener('ionRouteDidChange', resetDiagnosticsOpening);
+  if (router && typeof router.addEventListener === 'function') {
+    router.addEventListener('ionRouteDidChange', resetDiagnosticsOpening);
+  }
 
   const onTitleTap = (event) => {
     const now = Date.now();
@@ -1803,4 +1811,13 @@ function setupLoginNotificationsSeed() {
       resetProfileTabOnLogin();
     }
   });
+}
+
+try {
+  if (typeof window.__hideCompatGuard === 'function') {
+    window.__hideCompatGuard();
+  }
+  window.dispatchEvent(new CustomEvent('app:ui-ready'));
+} catch (_err) {
+  // no-op
 }

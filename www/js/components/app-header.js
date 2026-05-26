@@ -17,7 +17,7 @@ const REWARD_BADGE_ORDER = [
 ];
 
 const escapeHtml = (value) =>
-  String(value ?? '')
+  String(value === null || value === undefined ? '' : value)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
@@ -26,7 +26,7 @@ const escapeHtml = (value) =>
 
 const normalizeLocaleLabel = (locale) => {
   const normalized = String(locale || '').trim().toLowerCase();
-  const fallback = String(getActiveLocale() || window.varGlobal?.locale || 'en')
+  const fallback = String(getActiveLocale() || (window.varGlobal && window.varGlobal.locale) || 'en')
     .trim()
     .toLowerCase();
   const resolved = normalized || fallback || 'en';
@@ -200,7 +200,9 @@ export function updateAppHeaderRewards(root, rewardBadgesId = '') {
   const previousBadgesEl = actionsEl.querySelector('.reward-badges');
   const nextBadgesHtml = renderRewardBadges(String(rewardBadgesId || '').trim());
   if (!nextBadgesHtml) {
-    previousBadgesEl?.remove();
+    if (previousBadgesEl && typeof previousBadgesEl.remove === 'function') {
+      previousBadgesEl.remove();
+    }
     return;
   }
   const tpl = document.createElement('template');

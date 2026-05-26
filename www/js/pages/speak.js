@@ -461,15 +461,15 @@ class PageSpeak extends HTMLElement {
         }
       };
     };
-    const resolveSessionVideoPath = (session) => {
-      const sessionId = String(session?.id || '').trim();
-      if (sessionId) return `${VIDEO_BASE}/${sessionId}.mp4`;
-      const titleMatch = (session?.title_en || '').match(/\bin\s+([A-Za-z]+)\s*$/i);
-      if (titleMatch) return `${VIDEO_BASE}/${titleMatch[1].toLowerCase()}.mp4`;
-      const expected = (session?.speak?.sound?.expected || '').trim().toLowerCase();
-      if (expected && /^[a-z]+$/.test(expected)) return `${VIDEO_BASE}/${expected}.mp4`;
-      return `${VIDEO_BASE}/baby.mp4`;
-    };
+	    const resolveSessionVideoPath = (session) => {
+	      const sessionId = String(session?.id || '').trim();
+	      if (sessionId) return `${VIDEO_BASE}/${sessionId}.mp4`;
+	      const titleMatch = (session?.title_en || '').match(/\bin\s+([A-Za-z]+)\s*$/i);
+	      if (titleMatch) return `${VIDEO_BASE}/${titleMatch[1].toLowerCase()}.mp4`;
+	      const expected = (session?.speak?.sound?.expected || '').trim().toLowerCase();
+	      if (expected && /^[a-z]+$/.test(expected)) return `${VIDEO_BASE}/${expected}.mp4`;
+	      return '';
+	    };
     const resolveSessionPosterPath = (session) => {
       const sessionId = String(session?.id || '').trim();
       if (sessionId) return `${VIDEO_BASE}/${sessionId}.jpg`;
@@ -4772,15 +4772,16 @@ class PageSpeak extends HTMLElement {
         inactiveMouth = mouthImgB;
       }
 
-      const sessionVideoEl = stepRoot.querySelector('#speak-session-video');
-      const sessionVideoPlayBtn = stepRoot.querySelector('#speak-video-play');
-      const sessionVideoFsBtn = stepRoot.querySelector('#speak-video-fullscreen');
-      if (sessionVideoEl) {
-        const resetVideo = () => {
-          sessionVideoEl.pause();
-          sessionVideoEl.currentTime = 0;
-          sessionVideoPlayBtn?.classList.remove('is-playing');
-        };
+	      const sessionVideoEl = stepRoot.querySelector('#speak-session-video');
+	      const sessionVideoPlayBtn = stepRoot.querySelector('#speak-video-play');
+	      const sessionVideoFsBtn = stepRoot.querySelector('#speak-video-fullscreen');
+	      if (sessionVideoEl) {
+	        const originalVideoSrc = sessionVideoEl.getAttribute('src') || '';
+	        const resetVideo = () => {
+	          sessionVideoEl.pause();
+	          sessionVideoEl.currentTime = 0;
+	          sessionVideoPlayBtn?.classList.remove('is-playing');
+	        };
         sessionVideoPlayBtn?.addEventListener('click', () => {
           if (sessionVideoEl.paused) {
             sessionVideoEl.play();
@@ -4789,11 +4790,22 @@ class PageSpeak extends HTMLElement {
             resetVideo();
           }
         });
-        sessionVideoEl.addEventListener('error', () => {
-          if (sessionVideoEl.src !== `${window.location.origin}/${VIDEO_BASE}/baby.mp4`) {
-            sessionVideoEl.src = `${VIDEO_BASE}/baby.mp4`;
-          }
-        });
+	        sessionVideoEl.addEventListener('error', () => {
+	          resetVideo();
+	          sessionVideoEl.dataset.loadError = '1';
+	          if (sessionVideoPlayBtn) {
+	            sessionVideoPlayBtn.classList.remove('is-playing');
+	            sessionVideoPlayBtn.setAttribute('aria-label', 'Video unavailable');
+	            sessionVideoPlayBtn.disabled = true;
+	          }
+	          if (sessionVideoFsBtn) {
+	            sessionVideoFsBtn.disabled = true;
+	          }
+	          console.warn('[speak] session video failed to load or decode', {
+	            src: originalVideoSrc || sessionVideoEl.currentSrc || sessionVideoEl.src || '',
+	            sessionId: currentSessionData && currentSessionData.id ? currentSessionData.id : ''
+	          });
+	        });
         sessionVideoFsBtn?.addEventListener('click', () => {
           if (!document.fullscreenElement) {
             sessionVideoEl.requestFullscreen?.();

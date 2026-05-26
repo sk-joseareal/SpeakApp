@@ -246,28 +246,28 @@
     },
     "freeRide": {
       "title": "Lab",
-      "subtitle": "Escribe en español o en inglés. Ejemplo: “I want a coffee.”",
+      "subtitle": "Escribe tu frase o texto y practica pronunciacion libre.",
       "inputLabel": "Tu frase",
       "inputPlaceholder": "Puedes escribir en español o en inglés. Ejemplo: Quiero pedir un café.",
-      "emptyPhrase": "Practica tu pronunciación",
+      "emptyPhrase": "Escribe una frase para practicar.",
       "playPhrase": "Escuchar frase",
       "sayLabel": "Habla",
       "endLabel": "Fin",
       "yourVoiceLabel": "Tu voz",
-      "feedbackHint": "Di tu frase",
+      "feedbackHint": "Practica la frase",
       "translationLocalNotInstalled": "Traductor local disponible, pero modelo no instalado.",
       "translationBackendError": "No se pudo traducir con el servidor. Inténtalo de nuevo.",
       "translationError": "No se pudo traducir ahora mismo.",
       "translationPending": "Traducción pendiente",
       "translateAction": "Traducir",
       "resultExcellent": "Excelente",
-      "resultRegular": "Buen comienzo",
+      "resultRegular": "Regular",
       "resultIncorrect": "Incorrecto",
       "resultMatchLabel": "match",
       "transcribing": "Transcribiendo..."
     },
     "speak": {
-      "practiceSound": "Di el sonido →",
+      "practiceSound": "Ahora inténtalo →",
       "practiceWords": "Di la palabra →",
       "practicePhrase": "Di la frase →",
       "resultBanner": "Resultado",
@@ -276,22 +276,22 @@
       "summaryHeadlineOkay": "¡Buen trabajo!",
       "summaryHeadlineBad": "Sigue practicando",
       "summarySublineGood": "Has completado {{session}}.",
-      "summarySublineOkay": "Sigue practicando.",
-      "summarySublineBad": "Vuelve a intentarlo.",
+      "summarySublineOkay": "Sigue practicando {{session}}.",
+      "summarySublineBad": "Vuelve a intentarlo con {{session}}.",
       "summaryPillGood": "¡Muy bien!",
       "summaryPillOkay": "Vas bien",
-      "summaryPillBad": "Sigue practicando",
-      "summaryHintGood": "Gran progreso en tu pronunciación.",
-      "summaryHintOkay": "Sigue practicando y mejorarás rápidamente.",
+      "summaryPillBad": "A mejorar",
+      "summaryHintGood": "Sigue practicando y mejorarás aún más.",
+      "summaryHintOkay": "Sigue practicando y lo clavarás pronto.",
       "summaryHintBad": "Sigue practicando: cada intento cuenta.",
-      "summaryPhaseWords": "Practica con palabras",
-      "summaryPhasePhrase": "Practica con una frase",
+      "summaryPhaseWords": "Fase de palabras",
+      "summaryPhasePhrase": "Fase de frase",
       "heroNarration": "¡Vamos a seguir practicando!",
       "soundStepSubtitle": "Escucha el audio y repite el sonido",
       "transcribing": "Transcribiendo...",
       "feedbackNative": "Suena como un nativo",
-      "feedbackGood": "¡Bien! Sigue practicando",
-      "feedbackAlmost": "Buen progreso",
+      "feedbackGood": "Bien. Sigue practicando",
+      "feedbackAlmost": "Casi correcto",
       "feedbackKeep": "Sigue practicando",
       "summaryTitleTemplates": {
         "good": [
@@ -299,12 +299,11 @@
           "Excelente! completaste {{session}}"
         ],
         "okay": [
-          "¡Buen trabajo! sigue practicando {{session}}",
+          "Buen trabajo! sigue practicando {{session}}",
           "Vas bien! repasa {{session}}"
         ],
         "bad": [
-          "No pasa nada",
-          "Sigue practicando {{session}}",
+          "No pasa nada, practica {{session}}",
           "Sigue intentandolo con {{session}}"
         ]
       },
@@ -319,7 +318,7 @@
           "Necesita práctica"
         ],
         "neutral": [
-          "Listo para practicar"
+          "Aún no iniciada"
         ]
       },
       "summaryLabelPrefix": "GANAS",
@@ -350,7 +349,7 @@
       "coachPrivateTitle": "Chats privados",
       "coachPrivateSubtitle": "Habla en privado con otros usuarios conectados.",
       "loadingUser": "Cargando estado de usuario...",
-      "loginRequired": "Inicia sesión para continuar.",
+      "loginRequired": "Debes iniciar sesion para usar el coach de chat.",
       "loginCta": "Iniciar sesion",
       "planLocked": "Chat no disponible para este usuario.",
       "planUpgrade": "Actualiza tu plan para desbloquear esta funcionalidad.",
@@ -452,8 +451,7 @@
       "introCommunity": "Bienvenido al canal publico.",
       "introCommunityDm": "Selecciona un chat privado para empezar.",
       "sampleTranscripts": [
-        "I would like to order a coffee",
-        "please.",
+        "I would like to order a coffee, please.",
         "Can you help me find the train station?",
         "I am practicing my pronunciation today.",
         "Could you repeat that a little slower?",
@@ -464,13 +462,13 @@
         "Bien. Intenta marcar las palabras clave: \"{text}\"",
         "Buen trabajo. Ahora dilo un poco mas despacio: \"{text}\"",
         "Buen inicio. Enlaza mejor las palabras: \"{text}\"",
-        "Prueba esta version con una \"t\" más suave: \"{text}\"",
-        "Repitamos con vocales más claras: \"{text}\""
+        "Prueba esta version con una \"t\" mas suave: \"{text}\"",
+        "Repitamos con vocales mas claras: \"{text}\""
       ]
     },
     "profile": {
       "loginTitle": "Inicia sesión",
-      "loginSubtitle": "Inicia sesión para continuar.",
+      "loginSubtitle": "Debes iniciar sesión para ver tu perfil.",
       "contact": "Contacto",
       "subscriptionSupportMail": "Enviar mail soporte subscripción",
       "legal": "Avisos legales",
@@ -535,7 +533,7 @@
       "avatarUpdated": "Avatar actualizado.",
       "avatarDeleteFailed": "No se pudo eliminar el avatar.",
       "avatarDeleted": "Avatar eliminado.",
-      "genericActionError": "No se pudo completar la acción."
+      "genericActionError": "No se pudo completar la accion."
     }
   },
   "en": {
@@ -785,28 +783,28 @@
     },
     "freeRide": {
       "title": "Lab",
-      "subtitle": "Write in Spanish or English. Example: “I want a coffee.”",
+      "subtitle": "Write your own phrase or longer text and practice freely.",
       "inputLabel": "Your phrase",
       "inputPlaceholder": "You can write in Spanish or English. Example: Quiero pedir un café.",
-      "emptyPhrase": "Practice your pronunciation",
+      "emptyPhrase": "Write a phrase to practice.",
       "playPhrase": "Play phrase",
       "sayLabel": "Say",
       "endLabel": "End",
       "yourVoiceLabel": "Your voice",
-      "feedbackHint": "Say your sentence",
+      "feedbackHint": "Practice the phrase",
       "translationLocalNotInstalled": "Local translator available, but language model is not installed.",
       "translationBackendError": "Could not translate with the server. Please try again.",
       "translationError": "Could not translate right now.",
       "translationPending": "Translation pending",
       "translateAction": "Translate",
       "resultExcellent": "Excellent",
-      "resultRegular": "Good start",
+      "resultRegular": "Fair",
       "resultIncorrect": "Incorrect",
       "resultMatchLabel": "match",
       "transcribing": "Transcribing..."
     },
     "speak": {
-      "practiceSound": "Say the sound →",
+      "practiceSound": "Now try it →",
       "practiceWords": "Say the word →",
       "practicePhrase": "Say the phrase →",
       "resultBanner": "Result",
@@ -815,35 +813,34 @@
       "summaryHeadlineOkay": "Good work!",
       "summaryHeadlineBad": "Keep practicing",
       "summarySublineGood": "You completed {{session}}.",
-      "summarySublineOkay": "Continue practicing.",
-      "summarySublineBad": "Try again.",
-      "summaryPillGood": "Excellent!",
-      "summaryPillOkay": "You're doing well",
-      "summaryPillBad": "Keep practicing",
-      "summaryHintGood": "Great pronunciation progress.",
-      "summaryHintOkay": "Keep practicing and you will improve quickly.",
-      "summaryHintBad": "Keep practicing. Every attempt counts.",
-      "summaryPhaseWords": "Practice with words",
-      "summaryPhasePhrase": "Practice with a sentence",
+      "summarySublineOkay": "Keep practicing {{session}}.",
+      "summarySublineBad": "Try again with {{session}}.",
+      "summaryPillGood": "Great!",
+      "summaryPillOkay": "Good",
+      "summaryPillBad": "Needs work",
+      "summaryHintGood": "Keep practicing and you will improve even more.",
+      "summaryHintOkay": "Keep practicing and you will nail it soon.",
+      "summaryHintBad": "Keep practicing, every try helps.",
+      "summaryPhaseWords": "Words phase",
+      "summaryPhasePhrase": "Phrase phase",
       "heroNarration": "Let's keep practicing!",
       "soundStepSubtitle": "Listen to the audio and repeat the sound",
       "transcribing": "Transcribing...",
       "feedbackNative": "You sound like a native",
-      "feedbackGood": "Good! Keep practicing ",
-      "feedbackAlmost": "Good progress",
+      "feedbackGood": "Good! Continue practicing",
+      "feedbackAlmost": "Almost Correct!",
       "feedbackKeep": "Keep practicing",
       "summaryTitleTemplates": {
         "good": [
           "Great! You learned {{session}}",
-          "Excellent! You mastered {{session}}"
+          "Excellent! You completed {{session}}"
         ],
         "okay": [
           "Good work! Keep practicing {{session}}",
           "You are doing well! Review {{session}}"
         ],
         "bad": [
-          "No worries",
-          "keep practicing {{session}}",
+          "No worries, keep practicing {{session}}",
           "Keep trying with {{session}}"
         ]
       },
@@ -858,7 +855,7 @@
           "Needs practice"
         ],
         "neutral": [
-          "Ready to practice"
+          "Not started yet"
         ]
       },
       "summaryLabelPrefix": "YOU WIN",
@@ -889,7 +886,7 @@
       "coachPrivateTitle": "Private chats",
       "coachPrivateSubtitle": "Talk privately with other users.",
       "loadingUser": "Loading user state...",
-      "loginRequired": "Please sign in to continue.",
+      "loginRequired": "You need to sign in to use the chat coach.",
       "loginCta": "Sign in",
       "planLocked": "Chat unavailable for this user.",
       "planUpgrade": "Upgrade your plan to unlock this feature.",
@@ -991,8 +988,7 @@
       "introCommunity": "Welcome to the public room.",
       "introCommunityDm": "Select a direct chat to get started.",
       "sampleTranscripts": [
-        "I would like to order a coffee",
-        "please.",
+        "I would like to order a coffee, please.",
         "Can you help me find the train station?",
         "I am practicing my pronunciation today.",
         "Could you repeat that a little slower?",
@@ -1009,7 +1005,7 @@
     },
     "profile": {
       "loginTitle": "Sign in",
-      "loginSubtitle": "Please sign in to continue.",
+      "loginSubtitle": "You need to sign in to view your profile.",
       "contact": "Contact",
       "subscriptionSupportMail": "Send subscription support email",
       "legal": "Legal",

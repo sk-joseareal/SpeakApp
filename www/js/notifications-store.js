@@ -10,7 +10,7 @@ const resolveCopyLocale = () => {
   const fromState = normalizeCopyLocale(getAppLocale());
   if (fromState) return fromState;
   const fromGlobal =
-    typeof window !== 'undefined' ? normalizeCopyLocale(window.varGlobal?.locale) : '';
+    typeof window !== 'undefined' ? normalizeCopyLocale(window.varGlobal && window.varGlobal.locale) : '';
   return fromGlobal || 'en';
 };
 
@@ -79,7 +79,11 @@ const parsePushAction = (data) => {
     source.actionBadgeId
   );
   const completeValue = parseBool(
-    source.complete ?? source.action_complete ?? source.actionComplete
+    source.complete !== undefined && source.complete !== null
+      ? source.complete
+      : source.action_complete !== undefined && source.action_complete !== null
+        ? source.action_complete
+        : source.actionComplete
   );
 
   if (!label && !tab && !profileTab && !hash && !callback && !badgeId) return null;

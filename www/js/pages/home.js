@@ -1447,6 +1447,22 @@ class PageHome extends HTMLElement {
       return { started: true, percent, tone: getScoreTone(percent) };
     };
 
+    const getModuleResumeSessionId = (module) => {
+      const sessions = module && Array.isArray(module.sessions) ? module.sessions : [];
+      let lastTriedIndex = -1;
+      sessions.forEach((session, index) => {
+        if (!session) return;
+        if (hasSessionAttempts(session)) {
+          lastTriedIndex = index;
+        }
+      });
+      const nextSession = sessions[lastTriedIndex + 1];
+      if (nextSession && nextSession.id !== undefined && nextSession.id !== null) {
+        return String(nextSession.id);
+      }
+      return '';
+    };
+
     const getRoutePercent = (route) => {
       const modules = route && Array.isArray(route.modules) ? route.modules : [];
       if (!modules.length) return { started: false, percent: null, tone: 'neutral' };
@@ -1584,7 +1600,7 @@ class PageHome extends HTMLElement {
         const routeProgress = routeProgressList[routeIndex];
         const routePercentMarkup =
           routeProgress && routeProgress.started
-            ? `<span class="route-progress ${routeProgress.tone}"><ion-icon name="star"></ion-icon>${routeProgress.percent}% ${copy.routeProgress}</span>`
+            ? `<span class="route-progress ${routeProgress.tone}"><ion-icon name="star"></ion-icon>${routeProgress.percent}%</span>`
             : '';
         const modulesMarkup = route.modules
           .map((module) => {
@@ -1592,6 +1608,7 @@ class PageHome extends HTMLElement {
             const isModuleOpen = isRouteOpen && module.id === this.expandedModuleId;
             const sessionCircleColorById = getSessionCircleColorMap(module.sessions, `${route.id}:${module.id}`);
             const progress = getModulePercent(module);
+            const resumeSessionId = getModuleResumeSessionId(module);
             const lockedClass = routeUnlocked ? '' : 'module-item-locked';
             const toneCls = progress.started ? progress.tone : 'neutral';
             const isMastered = progress.started && progress.tone === 'good';
@@ -1627,9 +1644,10 @@ class PageHome extends HTMLElement {
                         route.id === activeRoute.id &&
                         module.id === activeModule.id &&
                         item.id === activeSession.id;
+                      const isResumeSession = resumeSessionId && item.id === resumeSessionId;
                       return `
                         <div
-                          class="training-row ${isCurrentSession ? 'is-active' : ''}"
+                          class="training-row ${isCurrentSession ? 'is-active' : ''} ${isResumeSession ? 'is-next-to-do' : ''}"
                           data-session-id="${item.id}"
                           data-route-id="${route.id}"
                           data-module-id="${module.id}"
@@ -1644,7 +1662,9 @@ class PageHome extends HTMLElement {
                               ${labelText ? `<span class="session-label session-label-${toneClass}">${labelText}</span>` : ''}
                             </div>
                           </div>
-                          <ion-icon name="chevron-forward" class="training-row-arrow"></ion-icon>
+                          ${isResumeSession
+                            ? `<div class="training-row-next-pill" aria-hidden="true"><ion-icon name="play"></ion-icon></div>`
+                            : '<ion-icon name="chevron-forward" class="training-row-arrow"></ion-icon>'}
                         </div>
                       `;
                     })

@@ -1581,6 +1581,7 @@ class PageProfile extends HTMLElement {
     const phraseScoresStore =
       window.r34lp0w3r && window.r34lp0w3r.speakPhraseScores ? window.r34lp0w3r.speakPhraseScores : {};
     const user = window.user;
+    const showReferenceProgress = isPremiumUser(user);
     const rawLocaleSetting = resolveLocale(
       getActiveLocale() || (window.varGlobal && window.varGlobal.locale) || 'es',
       'es'
@@ -2043,29 +2044,52 @@ class PageProfile extends HTMLElement {
     const referenceGlobalTone = hasAnyReferenceProgress ? getScoreTone(referenceGlobalPercent) : 'neutral';
 
     const reviewTestEntries = [];
-    (Array.isArray(referenceTestCourses) ? referenceTestCourses : []).forEach((course) => {
-      const courseCode = String(course && course.code ? course.code : '').trim();
-      const courseTitle =
-        getLocalizedReferenceTitle(course, 'display', course && course.title ? String(course.title) : '') ||
-        `Course ${courseCode}`;
-      (Array.isArray(course && course.unidades) ? course.unidades : []).forEach((unit) => {
-        const unitCode = String(unit && unit.code ? unit.code : '').trim();
-        const unitTitle =
-          getLocalizedReferenceTitle(unit, 'display', unit && unit.title ? String(unit.title) : '') ||
-          `Unit ${unitCode}`;
-        const lessons = Array.isArray(unit && unit.lecciones) ? unit.lecciones : [];
-        const firstLessonCode =
-          lessons[0] && lessons[0].code !== undefined && lessons[0].code !== null
-            ? String(lessons[0].code).trim()
-            : '';
+    if (showReferenceProgress) {
+      (Array.isArray(referenceTestCourses) ? referenceTestCourses : []).forEach((course) => {
+        const courseCode = String(course && course.code ? course.code : '').trim();
+        const courseTitle =
+          getLocalizedReferenceTitle(course, 'display', course && course.title ? String(course.title) : '') ||
+          `Course ${courseCode}`;
+        (Array.isArray(course && course.unidades) ? course.unidades : []).forEach((unit) => {
+          const unitCode = String(unit && unit.code ? unit.code : '').trim();
+          const unitTitle =
+            getLocalizedReferenceTitle(unit, 'display', unit && unit.title ? String(unit.title) : '') ||
+            `Unit ${unitCode}`;
+          const lessons = Array.isArray(unit && unit.lecciones) ? unit.lecciones : [];
+          const firstLessonCode =
+            lessons[0] && lessons[0].code !== undefined && lessons[0].code !== null
+              ? String(lessons[0].code).trim()
+              : '';
 
-        lessons.forEach((lesson) => {
-          const lessonCode = String(lesson && lesson.code ? lesson.code : '').trim();
-          const lessonTitle =
-            getLocalizedReferenceTitle(lesson, 'display', lesson && lesson.title ? String(lesson.title) : '') ||
-            `Lesson ${lessonCode}`;
-          (Array.isArray(lesson && lesson.tests) ? lesson.tests : []).forEach((test) => {
-            const testKey = getReferenceTestKey('lesson', test);
+          lessons.forEach((lesson) => {
+            const lessonCode = String(lesson && lesson.code ? lesson.code : '').trim();
+            const lessonTitle =
+              getLocalizedReferenceTitle(lesson, 'display', lesson && lesson.title ? String(lesson.title) : '') ||
+              `Lesson ${lessonCode}`;
+            (Array.isArray(lesson && lesson.tests) ? lesson.tests : []).forEach((test) => {
+              const testKey = getReferenceTestKey('lesson', test);
+              const reviewState = getReferenceTestReviewState(test, testKey);
+              if (!reviewState) return;
+              if (!isReviewableTone(reviewState.tone)) return;
+              reviewTestEntries.push({
+                type: 'reference-test',
+                tone: reviewState.tone,
+                courseCode,
+                unitCode,
+                lessonCode,
+                testKey,
+                title:
+                  getLocalizedReferenceTestValue(test && test.display ? test.display : '', rawLocaleSetting) ||
+                  `Test ${String(test && test.code ? test.code : '').trim()}`,
+                eyebrow: profileCopy.reviewLessonTestLabel || 'Lesson test',
+                meta: `${courseTitle} · ${unitTitle} · ${lessonTitle}`
+              });
+            });
+          });
+
+          (Array.isArray(unit && unit.tests_unidad) ? unit.tests_unidad : []).forEach((test) => {
+            if (!firstLessonCode) return;
+            const testKey = getReferenceTestKey('unit', test);
             const reviewState = getReferenceTestReviewState(test, testKey);
             if (!reviewState) return;
             if (!isReviewableTone(reviewState.tone)) return;
@@ -2074,39 +2098,18 @@ class PageProfile extends HTMLElement {
               tone: reviewState.tone,
               courseCode,
               unitCode,
-              lessonCode,
+              lessonCode: firstLessonCode,
               testKey,
               title:
                 getLocalizedReferenceTestValue(test && test.display ? test.display : '', rawLocaleSetting) ||
                 `Test ${String(test && test.code ? test.code : '').trim()}`,
-              eyebrow: profileCopy.reviewLessonTestLabel || 'Lesson test',
-              meta: `${courseTitle} · ${unitTitle} · ${lessonTitle}`
+              eyebrow: profileCopy.reviewUnitTestLabel || 'Unit test',
+              meta: `${courseTitle} · ${unitTitle}`
             });
           });
         });
-
-        (Array.isArray(unit && unit.tests_unidad) ? unit.tests_unidad : []).forEach((test) => {
-          if (!firstLessonCode) return;
-          const testKey = getReferenceTestKey('unit', test);
-          const reviewState = getReferenceTestReviewState(test, testKey);
-          if (!reviewState) return;
-          if (!isReviewableTone(reviewState.tone)) return;
-          reviewTestEntries.push({
-            type: 'reference-test',
-            tone: reviewState.tone,
-            courseCode,
-            unitCode,
-            lessonCode: firstLessonCode,
-            testKey,
-            title:
-              getLocalizedReferenceTestValue(test && test.display ? test.display : '', rawLocaleSetting) ||
-              `Test ${String(test && test.code ? test.code : '').trim()}`,
-            eyebrow: profileCopy.reviewUnitTestLabel || 'Unit test',
-            meta: `${courseTitle} · ${unitTitle}`
-          });
-        });
       });
-    });
+    }
 
     const validReviewWordsBySession = new Map();
     sessionLookup.forEach((sessionInfo, sessionId) => {
@@ -2457,9 +2460,7 @@ class PageProfile extends HTMLElement {
     const userDisplayName = escapeHtml(
       getUserDisplayName(user) || profileCopy.userFallbackName || 'Usuario'
     );
-    const premiumBadgeMarkup = isPremiumUser(user)
-      ? '<div class="profile-hero-premium">Premium</div>'
-      : '';
+    const premiumBadgeMarkup = showReferenceProgress ? '<div class="profile-hero-premium">Premium</div>' : '';
     const authMascotSrc = this.getAuthMascotFramePath(this.authMascotFrameIndex);
     const authBubbleText = escapeHtml(
       profileCopy.loginSubtitle || 'Debes iniciar sesión para ver tu perfil.'
@@ -2544,13 +2545,17 @@ class PageProfile extends HTMLElement {
         iconSrc: 'assets/profile/training.png',
         iconAlt: tabsCopy.training || 'Training'
       },
-      {
-        label: tabsCopy.reference || 'Reference',
-        value: `${referenceGlobalPercent}%`,
-        tone: referenceGlobalTone,
-        iconSrc: 'assets/profile/reference.png',
-        iconAlt: tabsCopy.reference || 'Reference'
-      }
+      ...(showReferenceProgress
+        ? [
+            {
+              label: tabsCopy.reference || 'Reference',
+              value: `${referenceGlobalPercent}%`,
+              tone: referenceGlobalTone,
+              iconSrc: 'assets/profile/reference.png',
+              iconAlt: tabsCopy.reference || 'Reference'
+            }
+          ]
+        : [])
     ]
       .map(
         (item) => `
@@ -2578,13 +2583,17 @@ class PageProfile extends HTMLElement {
         iconSrc: 'assets/profile/copa.png',
         iconAlt: profileCopy.trainingTrophies || 'Copas training'
       },
-      {
-        label: profileCopy.referenceMedals || 'Medallas reference',
-        value: String(referenceMedalQty),
-        tone: 'neutral',
-        iconSrc: 'assets/profile/medalla.png',
-        iconAlt: profileCopy.referenceMedals || 'Medallas reference'
-      }
+      ...(showReferenceProgress
+        ? [
+            {
+              label: profileCopy.referenceMedals || 'Medallas reference',
+              value: String(referenceMedalQty),
+              tone: 'neutral',
+              iconSrc: 'assets/profile/medalla.png',
+              iconAlt: profileCopy.referenceMedals || 'Medallas reference'
+            }
+          ]
+        : [])
     ]
       .map(
         (item) => `
@@ -2661,11 +2670,7 @@ class PageProfile extends HTMLElement {
             <div class="profile-tab-panel" ${progressActive ? '' : 'hidden'}>
               <div class="profile-stats-grid">
                 ${progressCardsMarkup}
-              </div>
-              <div class="profile-progress-section">
-                <div class="profile-stats-grid">
-                  ${rewardCardsMarkup}
-                </div>
+                ${rewardCardsMarkup}
               </div>
               <div class="profile-earned-badges-section">
                 <div class="profile-earned-badges" id="profile-earned-badges">
@@ -2698,6 +2703,8 @@ class PageProfile extends HTMLElement {
                   <button class="profile-review-more" type="button">+</button>
                 </div>
               </div>
+              ${showReferenceProgress
+                ? `
               <div class="profile-review-section">
                 <div class="card card--plain profile-review-block">
                   <h3 class="profile-section-title profile-section-title--with-icon">
@@ -2709,7 +2716,8 @@ class PageProfile extends HTMLElement {
                   </div>
                   <button class="profile-review-more" type="button">+</button>
                 </div>
-              </div>
+              </div>`
+                : ''}
             </div>
             </div>
           </section>

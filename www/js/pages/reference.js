@@ -279,6 +279,11 @@ class PageReference extends HTMLElement {
     preloadHeroMascotFrames();
     this._selectionHandler = () => this.render();
     window.addEventListener('reference:selection-change', this._selectionHandler);
+    this._rewardsHandler = () => {
+      if (!this.isConnected) return;
+      this.render();
+    };
+    window.addEventListener('app:speak-stores-change', this._rewardsHandler);
     this._localeHandler = () => {
       if (!this.isConnected) return;
       if (this.normalizeLocale(this.state.localeOverride)) return;
@@ -371,6 +376,9 @@ class PageReference extends HTMLElement {
     this.disconnectFloatingHintsObserver();
     if (this._selectionHandler) {
       window.removeEventListener('reference:selection-change', this._selectionHandler);
+    }
+    if (this._rewardsHandler) {
+      window.removeEventListener('app:speak-stores-change', this._rewardsHandler);
     }
     if (this._localeHandler) {
       window.removeEventListener('app:locale-change', this._localeHandler);
@@ -893,7 +901,7 @@ class PageReference extends HTMLElement {
   renderHeaderHtml() {
     const currentLocale = getActiveLocale() || getAppLocale() || 'en';
     const tabTitle = getReferenceCopy(currentLocale).title;
-    return renderAppHeader({ title: tabTitle, locale: currentLocale });
+    return renderAppHeader({ title: tabTitle, locale: currentLocale, rewardBadgesId: 'reference-reward-badges' });
   }
 
   getReferenceRewardStore() {

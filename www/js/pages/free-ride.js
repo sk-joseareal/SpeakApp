@@ -1,12 +1,11 @@
 import { getAppLocale, setAppLocale, getActiveLocale, setLocaleOverride } from '../state.js';
-import { translationWorkerClient } from '../translation-worker-client.js';
 import {
   ensureTranslationCapabilitiesReady,
   getTranslationCapabilities,
   markTranslationCapabilityUnavailable,
   resolveChromeTranslatorApi
 } from '../translation-capabilities.js';
-import { renderAppHeader } from '../components/app-header.js';
+import { renderAppHeader, updateAppHeaderRewards } from '../components/app-header.js';
 import {
   getFreeRideCopy,
   getLocaleMeta,
@@ -342,6 +341,11 @@ class PageFreeRide extends HTMLElement {
       this.updatePhrasePreview(this.currentCopy);
     };
     window.addEventListener('app:user-change', this._userHandler);
+    this._rewardsHandler = () => {
+      if (!this.isConnected) return;
+      updateAppHeaderRewards(this, 'free-ride-reward-badges');
+    };
+    window.addEventListener('app:speak-stores-change', this._rewardsHandler);
 
     this._debugHandler = () => {
       if (!this.isConnected) return;
@@ -478,6 +482,10 @@ class PageFreeRide extends HTMLElement {
     if (this._userHandler) {
       window.removeEventListener('app:user-change', this._userHandler);
       this._userHandler = null;
+    }
+    if (this._rewardsHandler) {
+      window.removeEventListener('app:speak-stores-change', this._rewardsHandler);
+      this._rewardsHandler = null;
     }
 
     if (this._debugHandler) {
@@ -1176,17 +1184,6 @@ class PageFreeRide extends HTMLElement {
     return resolveChromeTranslatorApi();
   }
 
-  async translateFreeRideTextViaOpusMt(text) {
-    if (translationWorkerClient.status === 'error') return null;
-    try {
-      const translatedText = await translationWorkerClient.translate(text);
-      if (!translatedText) return null;
-      return { available: true, translatedText, engine: 'opus-mt-wasm', modelDownloaded: true };
-    } catch (_err) {
-      return null;
-    }
-  }
-
   async translateFreeRideTextViaChrome(text, sourceLanguage, targetLanguage = 'en') {
     const api = this.resolveChromeTranslatorApi();
     if (!api) return null;
@@ -1244,14 +1241,6 @@ class PageFreeRide extends HTMLElement {
         return chromeResult;
       }
       markTranslationCapabilityUnavailable('chrome', (chromeResult && chromeResult.reason) || 'runtime_failed');
-    }
-
-    if (allowLocal && sourceLanguage === 'es' && targetLanguage === 'en' && capabilities.opusTranslatorEnabled) {
-      const opusResult = await this.translateFreeRideTextViaOpusMt(normalizedText);
-      if (opusResult && opusResult.available && opusResult.translatedText) {
-        return opusResult;
-      }
-      markTranslationCapabilityUnavailable('opus', (opusResult && opusResult.reason) || 'runtime_failed');
     }
 
     if (!allowBackend) {
@@ -7854,7 +7843,7 @@ class PageFreeRide extends HTMLElement {
     const savePhraseDisabled = !hasExpectedText || libraryActionsDisabled;
 
     this.innerHTML = `
-      ${renderAppHeader({ title: copy.title })}
+      ${renderAppHeader({ title: copy.title, rewardBadgesId: 'free-ride-reward-badges' })}
       <ion-content fullscreen class="home-journey free-ride-content secret-content">
         <div class="speak-shell free-ride-shell">
           <section class="free-ride-hero-card onboarding-intro-card ${debugEnabled ? 'has-hero-debug' : ''}">

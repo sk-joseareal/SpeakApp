@@ -1,31 +1,44 @@
 // @type module — must be loaded as Worker(..., { type: 'module' })
-import { pipeline, env } from '../../vendor/transformers/transformers.min.js';
-
-// Resolve paths relative to this worker file
-const VENDOR_URL = new URL('../../vendor/transformers/', import.meta.url).href;
-const MODELS_URL = new URL('../../assets/models/', import.meta.url).href;
-
-env.allowRemoteModels = false;
-env.allowLocalModels = true;
-env.localModelPath = MODELS_URL;
-env.useBrowserCache = false;
-env.useFSCache = false;
-env.useCustomCache = false;
-env.backends.onnx.wasm.wasmPaths = VENDOR_URL;
-env.backends.onnx.wasm.proxy = false;  // already in a worker
-env.backends.onnx.wasm.numThreads = 1; // safer in WebView
+const TRANSFORMERS_VERSION = '3.5.1';
+const TRANSFORMERS_BASE_URL =
+  `https://cdn.jsdelivr.net/npm/@huggingface/transformers@${TRANSFORMERS_VERSION}/dist/`;
+const TRANSFORMERS_JS_URL = `${TRANSFORMERS_BASE_URL}transformers.min.js`;
+const OPUS_MODEL_ID = 'Xenova/opus-mt-es-en';
 
 let translator = null;
 let loadError = null;
 let loading = false;
+let transformersModulePromise = null;
+
+async function loadTransformersModule() {
+  if (transformersModulePromise) return transformersModulePromise;
+  transformersModulePromise = import(/* webpackIgnore: true */ TRANSFORMERS_JS_URL)
+    .then((module) => {
+      const { env } = module;
+      env.allowRemoteModels = true;
+      env.allowLocalModels = false;
+      env.useBrowserCache = true;
+      env.useFSCache = false;
+      env.useCustomCache = false;
+      env.backends.onnx.wasm.wasmPaths = TRANSFORMERS_BASE_URL;
+      env.backends.onnx.wasm.proxy = false;  // already in a worker
+      env.backends.onnx.wasm.numThreads = 1; // safer in WebView
+      return module;
+    })
+    .catch((err) => {
+      transformersModulePromise = null;
+      throw err;
+    });
+  return transformersModulePromise;
+}
 
 async function loadModel() {
   if (loading || translator) return;
   loading = true;
   try {
-    translator = await pipeline('translation', 'opus-mt-es-en', {
+    const { pipeline } = await loadTransformersModule();
+    translator = await pipeline('translation', OPUS_MODEL_ID, {
       dtype: { encoder_model: 'q8', decoder_model_merged: 'q8' },
-      local_files_only: true,
     });
     loading = false;
     self.postMessage({ type: 'ready' });

@@ -393,7 +393,6 @@ function shouldDeferAndroidNativeChrome() {
 function setNativeChrome(color, lightIcons, meta = {}) {
   try {
     if (shouldDeferAndroidNativeChrome()) return;
-    if (isLegacyAndroidStatusbarMode()) return;
     const nativePlugin = window.Capacitor?.Plugins?.P4w4Plugin;
     if (!nativePlugin || typeof nativePlugin.setNativeChrome !== 'function') return;
     nativePlugin.setNativeChrome({
@@ -1339,7 +1338,6 @@ if (window.visualViewport && typeof window.visualViewport.addEventListener === '
 }
 
 function restoreAppChromeAfterForeground() {
-  if (isLegacyAndroidStatusbarMode()) return;
   if (typeof window.scheduleAppChromeSync === 'function') {
     window.scheduleAppChromeSync(getCurrentAppPath());
   } else {

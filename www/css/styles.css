@@ -1008,6 +1008,10 @@ ion-content.profile-content.profile-content--logged-out {
   padding-top: calc(56px + var(--app-native-statusbar-height, env(safe-area-inset-top, 0px)));
 }
 
+.app-android-legacy-webview page-profile .profile-shell--logged-out.profile-shell--logged-out-titlebar {
+  padding-top: 0;
+}
+
 .profile-shell--logged-out-android {
   padding-top: 4px;
 }
@@ -1063,9 +1067,9 @@ body.lab-chrome-active:not(.app-titlebar-enabled) page-profile .profile-shell--l
 }
 
 .profile-onboarding-overlay {
-  position: absolute;
+  position: fixed;
   inset: 0;
-  z-index: 10000;
+  z-index: 100;
   overflow: hidden;
   background: var(--free-ride-view-bg, #a9c7f5);
 }
@@ -3296,11 +3300,13 @@ body.app-titlebar-enabled page-onboarding[embedded] .onboarding-v5-shell {
 
 .onboarding-v5-title {
   margin: 0;
+  font-family: var(--ion-font-family);
+  font-synthesis: none;
   color: #232a4a;
   font-size: clamp(2rem, 9vw, 3rem);
-  line-height: 0.98;
-  letter-spacing: -0.045em;
-  font-weight: 800;
+  line-height: 0.96;
+  letter-spacing: -0.032em;
+  font-weight: 700;
 }
 
 .onboarding-v5-title--stacked {
@@ -3308,8 +3314,8 @@ body.app-titlebar-enabled page-onboarding[embedded] .onboarding-v5-shell {
   flex-direction: column;
   align-items: center;
   gap: 2px;
-  letter-spacing: -0.03em;
-  line-height: 0.98;
+  letter-spacing: -0.022em;
+  line-height: 0.96;
 }
 
 .onboarding-v5-title-line {
@@ -3319,6 +3325,7 @@ body.app-titlebar-enabled page-onboarding[embedded] .onboarding-v5-shell {
 
 .onboarding-v5-title-line.is-accent {
   color: #3f45e8;
+  font-weight: 800;
 }
 
 .onboarding-v5-subtitle {

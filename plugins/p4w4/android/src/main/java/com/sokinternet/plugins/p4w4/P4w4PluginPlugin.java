@@ -10,6 +10,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.util.Log;
 import android.graphics.Color;
+import android.graphics.drawable.GradientDrawable;
 
 import android.content.Context;
 import android.media.AudioManager;
@@ -66,6 +67,7 @@ public class P4w4PluginPlugin extends Plugin {
     public static final String NATIVE_CHROME_PREFS = "p4w4_native_chrome";
     public static final String PREF_BG = "backgroundColor";
     public static final String PREF_LIGHT_ICONS = "lightIcons";
+    private static final String LEGACY_NAVBAR_COLOR = "#EEF3FF";
 
     private P4w4Plugin implementation = new P4w4Plugin();
     private static final String DEFAULT_VOSK_MODEL = "vosk-model-small-en-us-0.15";
@@ -122,6 +124,18 @@ public class P4w4PluginPlugin extends Plugin {
             result = getContext().getResources().getDimensionPixelSize(resourceId);
         }
         return result;
+    }
+
+    private GradientDrawable createLegacyWindowBackgroundDrawable() {
+        GradientDrawable drawable = new GradientDrawable(
+            GradientDrawable.Orientation.TOP_BOTTOM,
+            new int[] {
+                Color.parseColor("#A7C6F7"),
+                Color.parseColor("#B6CFF8"),
+                Color.parseColor("#EEF3FF")
+            }
+        );
+        return drawable;
     }
 
     private void applyWebViewStatusBarLayout(View webView, boolean edgeToEdge) {
@@ -310,11 +324,27 @@ public class P4w4PluginPlugin extends Plugin {
         getActivity().runOnUiThread(() -> {
             try {
                 if (isLegacyAndroidDevice()) {
+                    int color = Color.parseColor(backgroundColor);
+                    boolean transparentChrome = Color.alpha(color) == 0;
                     SharedPreferences prefs = getContext().getSharedPreferences(NATIVE_CHROME_PREFS, Context.MODE_PRIVATE);
                     prefs.edit()
                         .putString(PREF_BG, backgroundColor)
                         .putBoolean(PREF_LIGHT_ICONS, lightIcons)
                         .apply();
+                    android.view.Window window = getActivity().getWindow();
+                    if (transparentChrome) {
+                        window.setStatusBarColor(Color.TRANSPARENT);
+                        window.setNavigationBarColor(Color.TRANSPARENT);
+                        GradientDrawable legacyBackground = createLegacyWindowBackgroundDrawable();
+                        window.setBackgroundDrawable(legacyBackground);
+                        window.getDecorView().setBackgroundDrawable(createLegacyWindowBackgroundDrawable());
+                    } else {
+                        window.setStatusBarColor(color);
+                        window.setNavigationBarColor(color);
+                        window.getDecorView().setBackgroundColor(color);
+                    }
+                    applyStatusBarIconsWithRetries(window, lightIcons, source + "|" + path);
+                    Log.i("P4w4Plugin", ">#P4w4Plugin#> setNativeChrome(legacy): bg=" + backgroundColor + " transparentChrome=" + transparentChrome + " lightIcons=" + lightIcons + " source=" + source + " path=" + path);
                     call.resolve();
                     return;
                 }

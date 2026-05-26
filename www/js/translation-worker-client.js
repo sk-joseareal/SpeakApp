@@ -12,6 +12,7 @@ class TranslationWorkerClient {
 
   get status() { return this._status; }
   get ready() { return this._status === 'ready'; }
+  get error() { return this._error; }
 
   // Preload the worker + model. Safe to call multiple times.
   preload() {

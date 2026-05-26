@@ -1175,10 +1175,11 @@ class PageProfile extends HTMLElement {
     setLoginTabsLock();
 
     const DURATION = 900;
+    const isIos = document.body?.classList?.contains('app-platform-ios') === true;
 
     // Measure onboarding mascot BEFORE removing overlay
     const overlay = this.querySelector('#profile-onboarding-overlay');
-    const srcMascot = overlay?.querySelector('.onboarding-v5-mascot');
+    const srcMascot = overlay?.querySelector('.onboarding-v5-test-block-image, .onboarding-v5-mascot');
     const srcRect = srcMascot ? srcMascot.getBoundingClientRect() : null;
 
     // Cover at body level — immune to profile re-renders
@@ -1194,13 +1195,26 @@ class PageProfile extends HTMLElement {
     const authHeroSection = this.querySelector('#profile-auth-hero-section');
     const authMascot = authHeroSection?.querySelector('#profile-auth-hero-mascot');
     const dstRect = authMascot ? authMascot.getBoundingClientRect() : null;
+    const authMascotPrevOpacity = authMascot?.style?.opacity || '';
+    if (authMascot && dstRect && dstRect.height > 0) {
+      authMascot.style.opacity = '0';
+    }
 
     // Fade cover out — auth content (incl. mascot) revealed naturally beneath it
-    cover.animate(
-      [{ opacity: 1 }, { opacity: 0 }],
+    const coverAnimation = cover.animate(
+      [
+        { opacity: 1, offset: 0 },
+        { opacity: 1, offset: isIos ? 0.18 : 0.1 },
+        { opacity: 0, offset: 1 }
+      ],
       { duration: DURATION, easing: 'ease-in', fill: 'forwards' }
-    ).finished.then(() => {
+    );
+    coverAnimation.finished.then(() => {
       cover.remove();
+      if (authMascot) {
+        authMascot.style.opacity = authMascotPrevOpacity;
+        authMascot.style.transition = '';
+      }
       this.notifyChromeState(); // overlay is gone — now hide tab bar for login view
     });
 
@@ -1216,10 +1230,57 @@ class PageProfile extends HTMLElement {
       const scale = dstRect.height > 0 ? srcRect.height / dstRect.height : 1;
       const tx = srcCx - dstCx;
       const ty = srcCy - dstCy;
+      const rectAspect = dstRect.width > 0 && dstRect.height > 0 ? dstRect.width / dstRect.height : 1;
+      const srcNaturalWidth = Number(srcMascot?.naturalWidth) || srcRect.width || 1;
+      const srcNaturalHeight = Number(srcMascot?.naturalHeight) || srcRect.height || 1;
+      const dstNaturalWidth = Number(authMascot?.naturalWidth) || dstRect.width || 1;
+      const dstNaturalHeight = Number(authMascot?.naturalHeight) || dstRect.height || 1;
+      const getContainedSize = (naturalWidth, naturalHeight, rectWidth, rectHeight, rectRatio) => {
+        const safeWidth = Math.max(1, Number(naturalWidth) || 1);
+        const safeHeight = Math.max(1, Number(naturalHeight) || 1);
+        const imageRatio = safeWidth / safeHeight;
+        if (imageRatio > rectRatio) {
+          return {
+            width: rectWidth,
+            height: rectWidth / imageRatio
+          };
+        }
+        return {
+          width: rectHeight * imageRatio,
+          height: rectHeight
+        };
+      };
+      const srcContained = getContainedSize(
+        srcNaturalWidth,
+        srcNaturalHeight,
+        dstRect.width,
+        dstRect.height,
+        rectAspect
+      );
+      const dstContained = getContainedSize(
+        dstNaturalWidth,
+        dstNaturalHeight,
+        dstRect.width,
+        dstRect.height,
+        rectAspect
+      );
+      const visibleScaleAdjustment = Math.max(
+        0.58,
+        Math.min(
+          1,
+          Math.min(
+            dstContained.width / Math.max(1, srcContained.width),
+            dstContained.height / Math.max(1, srcContained.height)
+          )
+        )
+      );
 
       const clone = document.createElement('img');
       clone.src = srcMascot.src;
       clone.setAttribute('aria-hidden', 'true');
+      const dstClone = document.createElement('img');
+      dstClone.src = authMascot?.src || srcMascot.src;
+      dstClone.setAttribute('aria-hidden', 'true');
       Object.assign(clone.style, {
         position: 'fixed',
         left: `${dstRect.left}px`,
@@ -1231,17 +1292,71 @@ class PageProfile extends HTMLElement {
         objectFit: 'contain',
         objectPosition: 'center',
         pointerEvents: 'none',
+        willChange: 'transform, opacity',
+        backfaceVisibility: 'hidden',
+        WebkitBackfaceVisibility: 'hidden',
+        transform: `translate3d(${tx}px, ${ty}px, 0) scale(${scale})`,
+      });
+      Object.assign(dstClone.style, {
+        position: 'fixed',
+        left: `${dstRect.left}px`,
+        top: `${dstRect.top}px`,
+        width: `${dstRect.width}px`,
+        height: `${dstRect.height}px`,
+        transformOrigin: 'center center',
+        zIndex: '10001',
+        objectFit: 'contain',
+        objectPosition: 'center',
+        pointerEvents: 'none',
+        willChange: 'opacity',
+        backfaceVisibility: 'hidden',
+        WebkitBackfaceVisibility: 'hidden',
+        opacity: '0',
       });
       document.body.appendChild(clone);
+      document.body.appendChild(dstClone);
 
-      clone.animate(
+      if (authMascot) {
+        authMascot.style.transition = 'opacity 180ms ease-out';
+      }
+
+      const cloneAnimation = clone.animate(
         [
-          { transform: `translate(${tx}px, ${ty}px) scale(${scale})`, opacity: 1 },
-          { transform: 'none', opacity: 0, offset: 0.82 },
-          { transform: 'none', opacity: 0 }
+          { transform: `translate3d(${tx}px, ${ty}px, 0) scale(${scale})`, opacity: 1, offset: 0 },
+          { transform: 'translate3d(0, 0, 0) scale(1)', opacity: 1, offset: isIos ? 0.66 : 0.64 },
+          {
+            transform: `translate3d(0, 0, 0) scale(${visibleScaleAdjustment})`,
+            opacity: 0.3,
+            offset: isIos ? 0.9 : 0.88
+          },
+          {
+            transform: `translate3d(0, 0, 0) scale(${visibleScaleAdjustment})`,
+            opacity: 0,
+            offset: 1
+          }
         ],
         { duration: DURATION, easing: 'cubic-bezier(0,0,0.2,1)', fill: 'forwards' }
-      ).finished.then(() => clone.remove());
+      );
+      const dstCloneAnimation = dstClone.animate(
+        [
+          { opacity: 0, offset: 0 },
+          { opacity: 0, offset: isIos ? 0.7 : 0.68 },
+          { opacity: 1, offset: isIos ? 0.92 : 0.9 },
+          { opacity: 1, offset: 1 }
+        ],
+        { duration: DURATION, easing: 'ease-out', fill: 'forwards' }
+      );
+
+      window.setTimeout(() => {
+        if (authMascot) authMascot.style.opacity = authMascotPrevOpacity || '1';
+      }, Math.round(DURATION * (isIos ? 0.9 : 0.88)));
+
+      Promise.allSettled([cloneAnimation.finished, dstCloneAnimation.finished]).then(() => {
+        clone.remove();
+        dstClone.remove();
+      });
+    } else if (authMascot) {
+      authMascot.style.opacity = authMascotPrevOpacity;
     }
 
   }
@@ -2501,7 +2616,7 @@ class PageProfile extends HTMLElement {
           .join(' ');
 
     this.innerHTML = `
-      ${loggedIn ? renderAppHeader({ title: tabsCopy.you }) : loggedOutHeaderHtml}
+      ${loggedIn ? renderAppHeader({ title: tabsCopy.you, rewardBadgesId: 'profile-reward-badges' }) : loggedOutHeaderHtml}
       <ion-content fullscreen class="home-journey free-ride-content secret-content profile-content ${loggedIn ? '' : 'profile-content--logged-out'}">
         <div class="speak-shell free-ride-shell profile-shell ${loggedOutShellClass}">
           ${authShellHtml}

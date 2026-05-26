@@ -291,9 +291,11 @@ class PageDiagnostics extends HTMLElement {
           : undefined;
       if (globalValue !== undefined) return normalizeAppFontSfProEnabled(globalValue);
       try {
-        return normalizeAppFontSfProEnabled(localStorage.getItem(APP_FONT_SF_PRO_ENABLED_KEY));
+        const stored = localStorage.getItem(APP_FONT_SF_PRO_ENABLED_KEY);
+        if (stored === null) return true;
+        return normalizeAppFontSfProEnabled(stored);
       } catch (err) {
-        return false;
+        return true;
       }
     };
     const normalizeStatusbarPreset = (preset) =>
@@ -479,12 +481,15 @@ class PageDiagnostics extends HTMLElement {
                 <ion-segment-button value="clear"><ion-label>Clear</ion-label></ion-segment-button>
               </ion-segment>
             </div>
-            <div class="diag-debug-toggle" style="margin-top: 10px;">
-              <div class="diag-debug-text">
-                <div class="diag-debug-title">SF Pro Display</div>
+            <div class="diag-speak-block">
+              <div class="diag-debug-title">Tipografía global</div>
+              <div class="diag-audio-mode-wrap">
+                <select id="diag-font-family-select" class="diag-select">
+                  <option value="sf" ${getStoredAppFontSfProEnabled() ? 'selected' : ''}>SF Pro</option>
+                  <option value="space" ${getStoredAppFontSfProEnabled() ? '' : 'selected'}>Space Grotesk</option>
+                </select>
                 <div class="diag-debug-sub" id="diag-font-sf-pro-sub"></div>
               </div>
-              <ion-toggle id="diag-font-sf-pro-toggle" aria-label="SF Pro Display" ${getStoredAppFontSfProEnabled() ? 'checked' : ''}></ion-toggle>
             </div>
             <div class="diag-debug-toggle" style="margin-top: 10px;">
               <div class="diag-debug-text">
@@ -934,7 +939,7 @@ class PageDiagnostics extends HTMLElement {
               <div class="diag-speak-block">
                 <div class="pill">opus-mt WASM (fallback local)</div>
                 <div class="diag-debug-sub">
-                  Traducción on-device con Transformers.js + modelo bundleado. No usa red ni plugins nativos.
+                  Traducción on-device con Transformers.js + caché local. Runtime y modelo se descargan solo desde esta pantalla y no forman parte del flujo normal de usuario.
                 </div>
                 <textarea
                   id="diag-opusmt-translation-input"
@@ -944,7 +949,7 @@ class PageDiagnostics extends HTMLElement {
                 >hola, quiero pedir un café</textarea>
                 <div class="diag-actions diag-tts-actions">
                   <ion-button size="small" fill="outline" id="diag-opusmt-translation-status">Estado del modelo</ion-button>
-                  <ion-button size="small" fill="outline" id="diag-opusmt-translation-load">Cargar modelo</ion-button>
+                  <ion-button size="small" fill="outline" id="diag-opusmt-translation-load">Descargar modelo</ion-button>
                   <ion-button size="small" fill="outline" id="diag-opusmt-translation-run">Traducir</ion-button>
                 </div>
                 <div class="diag-tts-status" id="diag-opusmt-translation-status-text">Pendiente.</div>
@@ -1045,7 +1050,7 @@ class PageDiagnostics extends HTMLElement {
     const titlebarSub = this.querySelector('#diag-titlebar-sub');
     const notificationsToggle = this.querySelector('#diag-notifications-toggle');
     const notificationsSub = this.querySelector('#diag-notifications-sub');
-    const fontSfProToggle = this.querySelector('#diag-font-sf-pro-toggle');
+    const fontFamilySelect = this.querySelector('#diag-font-family-select');
     const fontSfProSub = this.querySelector('#diag-font-sf-pro-sub');
     if (titlebarToggle) {
       const applyTitlebar = (enabled) => {
@@ -1096,14 +1101,14 @@ class PageDiagnostics extends HTMLElement {
       });
     }
 
-    if (fontSfProToggle) {
+    if (fontFamilySelect) {
       const updateFontSfProUi = (enabled) => {
         const normalized = normalizeAppFontSfProEnabled(enabled);
-        fontSfProToggle.checked = normalized;
+        fontFamilySelect.value = normalized ? 'sf' : 'space';
         if (fontSfProSub) {
           fontSfProSub.textContent = normalized
-            ? 'Activado: usa la pila SF Pro del sistema para revisar el impacto visual.'
-            : 'Desactivado: vuelve a la tipografía base actual de la app.';
+            ? 'SF Pro: aplica la pila tipográfica del sistema a toda la app.'
+            : 'Space Grotesk: vuelve a la tipografía base actual en toda la app.';
         }
         return normalized;
       };
@@ -1126,10 +1131,10 @@ class PageDiagnostics extends HTMLElement {
       };
 
       updateFontSfProUi(getStoredAppFontSfProEnabled());
-      fontSfProToggle.addEventListener('ionChange', (event) => {
-        const checked = event && event.detail ? event.detail.checked : fontSfProToggle.checked;
-        applyFontSfPro(checked);
-        updateFontSfProUi(checked);
+      fontFamilySelect.addEventListener('change', () => {
+        const useSfPro = fontFamilySelect.value !== 'space';
+        applyFontSfPro(useSfPro);
+        updateFontSfProUi(useSfPro);
       });
     }
 
@@ -4731,36 +4736,67 @@ class PageDiagnostics extends HTMLElement {
       const runBtn = this.querySelector('#diag-opusmt-translation-run');
       const statusEl = this.querySelector('#diag-opusmt-translation-status-text');
       const outputEl = this.querySelector('#diag-opusmt-translation-output');
+      const isOnline = () => navigator.onLine !== false;
+      const getWorkerStateSummary = () => {
+        const status = translationWorkerClient.status;
+        if (status === 'ready') {
+          return isOnline()
+            ? 'Cacheado y listo. Ya puedes traducir.'
+            : 'Cacheado y listo sin conexion. Ya puedes traducir.';
+        }
+        if (status === 'loading') {
+          return isOnline()
+            ? 'Descargando runtime + modelo...'
+            : 'La descarga sigue marcada como loading pero ahora no hay conexion.';
+        }
+        if (status === 'error') {
+          const errorText = String(translationWorkerClient.error || '').trim();
+          if (!isOnline()) {
+            return 'Error y sin conexion. Si nunca se descargo antes, reconecta y vuelve a intentar.';
+          }
+          return errorText
+            ? `Error previo: ${errorText}`
+            : 'Error previo cargando runtime o modelo. Pulsa descargar para reintentar.';
+        }
+        return isOnline()
+          ? 'Sin descargar. Pulsa "Descargar modelo" para bajar runtime + modelo.'
+          : 'Sin descargar y sin conexion. Necesitas internet para la primera descarga.';
+      };
+      const buildWorkerStatePayload = () => ({
+        status: translationWorkerClient.status,
+        ready: translationWorkerClient.status === 'ready',
+        online: isOnline(),
+        modelLoaded: translationWorkerClient.status === 'ready',
+        modelSource: 'remote-cache',
+        runtimeSource: 'cdn-cache',
+        lastError: translationWorkerClient.error || ''
+      });
+      const syncWorkerUi = () => {
+        if (statusEl) statusEl.textContent = getWorkerStateSummary();
+        if (outputEl) outputEl.textContent = JSON.stringify(buildWorkerStatePayload(), null, 2);
+        if (loadBtn) loadBtn.disabled = translationWorkerClient.status === 'loading' || translationWorkerClient.status === 'ready';
+        if (statusBtn) statusBtn.disabled = false;
+        if (runBtn) runBtn.disabled = translationWorkerClient.status !== 'ready';
+      };
 
       statusBtn?.addEventListener('click', () => {
-        const s = translationWorkerClient.status;
-        if (statusEl) statusEl.textContent = `Estado del worker: ${s}`;
+        syncWorkerUi();
       });
 
       loadBtn?.addEventListener('click', async () => {
-        if (statusEl) statusEl.textContent = 'Cargando modelo opus-mt...';
+        if (statusEl) statusEl.textContent = 'Descargando runtime + modelo opus-mt...';
         if (loadBtn) loadBtn.disabled = true;
         if (statusBtn) statusBtn.disabled = true;
         if (runBtn) runBtn.disabled = true;
+        if (outputEl) outputEl.textContent = JSON.stringify(buildWorkerStatePayload(), null, 2);
         try {
           await loadOpusTranslationCapability();
-          if (statusEl) statusEl.textContent = `Modelo cargado: ${translationWorkerClient.status}`;
-          if (outputEl) {
-            outputEl.textContent = JSON.stringify(
-              {
-                status: translationWorkerClient.status,
-                modelLoaded: translationWorkerClient.status === 'ready'
-              },
-              null,
-              2
-            );
-          }
+          syncWorkerUi();
         } catch (err) {
           if (statusEl) statusEl.textContent = `Error cargando modelo: ${err.message || String(err)}`;
+          if (outputEl) outputEl.textContent = JSON.stringify(buildWorkerStatePayload(), null, 2);
         } finally {
-          if (loadBtn) loadBtn.disabled = translationWorkerClient.status === 'ready';
-          if (statusBtn) statusBtn.disabled = false;
-          if (runBtn) runBtn.disabled = translationWorkerClient.status !== 'ready';
+          syncWorkerUi();
         }
       });
 
@@ -4784,12 +4820,9 @@ class PageDiagnostics extends HTMLElement {
         }
       });
 
-      if (loadBtn) {
-        loadBtn.disabled = translationWorkerClient.status === 'ready';
-      }
-      if (runBtn) {
-        runBtn.disabled = translationWorkerClient.status !== 'ready';
-      }
+      window.addEventListener('online', syncWorkerUi);
+      window.addEventListener('offline', syncWorkerUi);
+      syncWorkerUi();
     }
 
     if (moderationRunBtn) {

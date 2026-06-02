@@ -3,6 +3,8 @@ package com.sokinternet.cursoingles;
 import com.getcapacitor.BridgeActivity;
 
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.graphics.Color;
 import android.graphics.Rect;
 import android.view.Window;
@@ -12,7 +14,9 @@ import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
+import android.net.Uri;
 
 import com.getcapacitor.BridgeActivity;
 import com.getcapacitor.Plugin;
@@ -23,6 +27,8 @@ import androidx.core.view.WindowCompat;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
+
+import org.json.JSONObject;
 
 
 //import androidx.core.view.WindowCompat;
@@ -36,16 +42,70 @@ public class MainActivity extends BridgeActivity {
     private static final String TRANSPARENT_NAVBAR = "#00000000";
     private static final String LEGACY_STATUSBAR_COLOR = "#A7C6F7";
     private static final String LEGACY_NAVBAR_COLOR = "#EEF3FF";
+    private static final String LEGACY_TEST_WINDOW_COLOR = "#00ffff";
+    private static final String LEGACY_TEST_STATUSBAR_COLOR = "#ffff00";
+    private static final String LEGACY_TEST_NAVBAR_COLOR = "#ff8800";
     private boolean legacyWebViewLayoutWatcherInstalled = false;
-    private boolean legacyWebViewInsetsPaddingInstalled = false;
-    private boolean legacyContentPaddingCaptured = false;
-    private int legacyContentBasePaddingLeft = 0;
-    private int legacyContentBasePaddingTop = 0;
-    private int legacyContentBasePaddingRight = 0;
-    private int legacyContentBasePaddingBottom = 0;
 
     private boolean isLegacyAndroidDevice() {
         return android.os.Build.VERSION.SDK_INT <= LEGACY_ANDROID_MAX_SDK;
+    }
+
+    private boolean isCallbackIntent(Intent intent) {
+        if (intent == null || intent.getData() == null) {
+            return false;
+        }
+        Uri data = intent.getData();
+        return Intent.ACTION_VIEW.equals(intent.getAction())
+            && "app".equals(data.getScheme())
+            && "callback".equals(data.getHost());
+    }
+
+    private String jsonStringLiteral(String value) {
+        return JSONObject.quote(value != null ? value : "");
+    }
+
+    private void dispatchOpenUrlToWebView(Intent intent, String reason) {
+        if (!isCallbackIntent(intent)) {
+            return;
+        }
+        String url = intent.getDataString();
+        Log.i(">#C02#> MainActivity", "openURL recibido (" + reason + "): " + url);
+        String urlLiteral = jsonStringLiteral(url);
+        String reasonLiteral = jsonStringLiteral(reason);
+        String js =
+            "(() => {"
+                + "try {"
+                + "const payload = { url: " + urlLiteral + ", reason: " + reasonLiteral + " };"
+                + "if (typeof window.__handleNativeOpenUrlFallback === 'function') {"
+                + "window.__handleNativeOpenUrlFallback(payload.url, payload.reason);"
+                + "} else {"
+                + "window.__pendingNativeOpenUrls = window.__pendingNativeOpenUrls || [];"
+                + "window.__pendingNativeOpenUrls.push(payload);"
+                + "window.dispatchEvent(new CustomEvent('app:native-open-url', { detail: payload }));"
+                + "}"
+                + "console.log('>#C02#> native Android openURL fallback dispatched', payload.url);"
+                + "return true;"
+                + "} catch (err) {"
+                + "return String(err && err.message ? err.message : err);"
+                + "}"
+                + "})();";
+        Handler handler = new Handler(Looper.getMainLooper());
+        int[] delaysMs = new int[] { 50, 500, 1500 };
+        for (int delayMs : delaysMs) {
+            handler.postDelayed(() -> {
+                if (this.bridge == null || this.bridge.getWebView() == null) {
+                    Log.i(">#C02#> MainActivity", "openURL fallback: webView no disponible (" + reason + ")");
+                    return;
+                }
+                this.bridge.getWebView().evaluateJavascript(js, result -> {
+                    Log.i(
+                        ">#C02#> MainActivity",
+                        "openURL fallback injected (" + reason + "): " + result
+                    );
+                });
+            }, delayMs);
+        }
     }
 
     private void logLegacyWindowState(String reason) {
@@ -198,105 +258,22 @@ public class MainActivity extends BridgeActivity {
         }
     }
 
-    private void applyLegacyWebViewInsetsMargins(String reason) {
+    private void installLegacyWebViewInsetsMargins() {
         if (!isLegacyAndroidDevice()) {
             return;
         }
         try {
             View contentRoot = findViewById(android.R.id.content);
-            if (contentRoot == null) {
-                return;
+            if (contentRoot != null) {
+                contentRoot.setPadding(
+                    contentRoot.getPaddingLeft(),
+                    contentRoot.getPaddingTop(),
+                    contentRoot.getPaddingRight(),
+                    contentRoot.getPaddingBottom()
+                );
+                contentRoot.requestLayout();
             }
-
-            WindowInsetsCompat insets = ViewCompat.getRootWindowInsets(contentRoot);
-            Insets systemBars = insets != null ? insets.getInsets(WindowInsetsCompat.Type.systemBars()) : Insets.NONE;
-            int left = Math.max(0, systemBars.left);
-            int top = Math.max(0, systemBars.top);
-            int right = Math.max(0, systemBars.right);
-            int bottom = Math.max(0, systemBars.bottom);
-            if (!legacyContentPaddingCaptured) {
-                legacyContentPaddingCaptured = true;
-                legacyContentBasePaddingLeft = contentRoot.getPaddingLeft();
-                legacyContentBasePaddingTop = contentRoot.getPaddingTop();
-                legacyContentBasePaddingRight = contentRoot.getPaddingRight();
-                legacyContentBasePaddingBottom = contentRoot.getPaddingBottom();
-            }
-            contentRoot.setPadding(
-                legacyContentBasePaddingLeft + left,
-                legacyContentBasePaddingTop + top,
-                legacyContentBasePaddingRight + right,
-                legacyContentBasePaddingBottom + bottom
-            );
-            contentRoot.requestLayout();
-
-            Log.i(
-                ">#N00#> MainActivity",
-                "[legacy-layout-trace] applyLegacyWebViewInsetsMargins reason="
-                    + reason
-                    + " contentPadding="
-                    + left
-                    + ","
-                    + top
-                    + ","
-                    + right
-                    + ","
-                    + bottom
-            );
-        } catch (Exception error) {
-            Log.e(">#N00#> MainActivity", "[legacy-layout-trace] applyLegacyWebViewInsetsMargins error=" + error.getMessage());
-        }
-    }
-
-    private void installLegacyWebViewInsetsMargins() {
-        if (!isLegacyAndroidDevice() || legacyWebViewInsetsPaddingInstalled) {
-            return;
-        }
-        try {
-            View contentRoot = findViewById(android.R.id.content);
-            if (contentRoot == null) {
-                getWindow().getDecorView().postDelayed(this::installLegacyWebViewInsetsMargins, 50);
-                return;
-            }
-            legacyWebViewInsetsPaddingInstalled = true;
-            applyLegacyWebViewInsetsMargins("installLegacyWebViewInsetsMargins");
-            ViewCompat.setOnApplyWindowInsetsListener(contentRoot, (view, insets) -> {
-                try {
-                    Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-                    int left = Math.max(0, systemBars.left);
-                    int top = Math.max(0, systemBars.top);
-                    int right = Math.max(0, systemBars.right);
-                    int bottom = Math.max(0, systemBars.bottom);
-                    if (!legacyContentPaddingCaptured) {
-                        legacyContentPaddingCaptured = true;
-                        legacyContentBasePaddingLeft = view.getPaddingLeft();
-                        legacyContentBasePaddingTop = view.getPaddingTop();
-                        legacyContentBasePaddingRight = view.getPaddingRight();
-                        legacyContentBasePaddingBottom = view.getPaddingBottom();
-                    }
-                    view.setPadding(
-                        legacyContentBasePaddingLeft + left,
-                        legacyContentBasePaddingTop + top,
-                        legacyContentBasePaddingRight + right,
-                        legacyContentBasePaddingBottom + bottom
-                    );
-                    view.requestLayout();
-                    Log.i(
-                        ">#N00#> MainActivity",
-                        "[legacy-layout-trace] onApplyWindowInsets(contentRoot) padding="
-                            + left
-                            + ","
-                            + top
-                            + ","
-                            + right
-                            + ","
-                            + bottom
-                    );
-                } catch (Exception error) {
-                    Log.e(">#N00#> MainActivity", "[legacy-layout-trace] onApplyWindowInsets(contentRoot) error=" + error.getMessage());
-                }
-                return insets;
-            });
-            contentRoot.requestApplyInsets();
+            Log.i(">#N00#> MainActivity", "[legacy-layout-trace] installLegacyWebViewInsetsMargins disabled");
         } catch (Exception error) {
             Log.e(">#N00#> MainActivity", "[legacy-layout-trace] installLegacyWebViewInsetsMargins error=" + error.getMessage());
         }
@@ -310,8 +287,8 @@ public class MainActivity extends BridgeActivity {
         WindowCompat.setDecorFitsSystemWindows(window, false);
         window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
         if (isLegacyAndroidDevice()) {
-            window.setStatusBarColor(Color.parseColor(LEGACY_STATUSBAR_COLOR));
-            window.setNavigationBarColor(Color.parseColor(LEGACY_NAVBAR_COLOR));
+            window.setStatusBarColor(Color.parseColor(LEGACY_TEST_STATUSBAR_COLOR));
+            window.setNavigationBarColor(Color.parseColor(LEGACY_TEST_NAVBAR_COLOR));
         } else {
             window.setStatusBarColor(Color.parseColor(TRANSPARENT_STATUSBAR));
             window.setNavigationBarColor(Color.parseColor(TRANSPARENT_NAVBAR));
@@ -321,7 +298,11 @@ public class MainActivity extends BridgeActivity {
             window.setNavigationBarContrastEnforced(false);
         }
         window.setBackgroundDrawableResource(R.drawable.legacy_window_background);
-        window.getDecorView().setBackgroundResource(R.drawable.legacy_window_background);
+        if (isLegacyAndroidDevice()) {
+            window.getDecorView().setBackgroundColor(Color.parseColor(LEGACY_TEST_WINDOW_COLOR));
+        } else {
+            window.getDecorView().setBackgroundResource(R.drawable.legacy_window_background);
+        }
         applyStatusBarIcons(window, true);
         Log.i(">#N00#> MainActivity", "applyTransparentStatusBarChrome reason=" + reason);
     }
@@ -347,6 +328,7 @@ public class MainActivity extends BridgeActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        dispatchOpenUrlToWebView(getIntent(), "onCreate");
 
         if (isLegacyAndroidDevice()) {
             // Keep legacy Android pinned to edge-to-edge from the first frame.
@@ -360,32 +342,13 @@ public class MainActivity extends BridgeActivity {
         }
 
         applyTransparentStatusBarChrome("onCreate");
+    }
 
-
-
-        // Esperamos un poco a que el WebView esté montado
-        getWindow().getDecorView().postDelayed(() -> {
-            View webView = this.bridge.getWebView();
-
-            if (webView != null) {
-                int offsetPx = getStatusBarHeight();
-                ViewGroup.LayoutParams params = webView.getLayoutParams();
-
-                if (params != null) {
-                    int newHeight = webView.getHeight() - offsetPx;
-                    webView.setTranslationY(offsetPx);
-                    params.height = newHeight;
-                    webView.setLayoutParams(params);
-                    webView.requestLayout();
-
-                    Log.i(">#N00#> MainActivity", "✅ WebView desplazado " + offsetPx + "px hacia abajo en onCreate()");
-                } else {
-                    Log.e(">#N00#> MainActivity", "❌ No se pudo acceder a LayoutParams del WebView");
-                }
-            } else {
-                Log.e(">#N00#> MainActivity", "❌ WebView es null");
-            }
-        }, 50); // Delay leve para que el WebView esté creado
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        dispatchOpenUrlToWebView(intent, "onNewIntent");
     }
 
     private void reapplyStoredChrome(String reason) {
@@ -398,10 +361,29 @@ public class MainActivity extends BridgeActivity {
                 return;
             }
             Window window = getWindow();
-            window.setStatusBarColor(Color.parseColor(backgroundColor));
-            window.getDecorView().setBackgroundColor(Color.parseColor(backgroundColor));
+            WindowCompat.setDecorFitsSystemWindows(window, false);
+            int color = Color.parseColor(backgroundColor);
+            boolean transparentChrome = Color.alpha(color) == 0;
+            if (transparentChrome && isLegacyAndroidDevice()) {
+                window.setStatusBarColor(Color.parseColor(LEGACY_TEST_STATUSBAR_COLOR));
+                window.setNavigationBarColor(Color.parseColor(LEGACY_TEST_NAVBAR_COLOR));
+                window.setBackgroundDrawableResource(R.drawable.legacy_window_background);
+                window.getDecorView().setBackgroundColor(Color.parseColor(LEGACY_TEST_WINDOW_COLOR));
+            } else {
+                window.setStatusBarColor(color);
+                window.setNavigationBarColor(color);
+                if (transparentChrome) {
+                    window.getDecorView().setBackgroundResource(R.drawable.legacy_window_background);
+                } else {
+                    window.getDecorView().setBackgroundColor(color);
+                }
+            }
+            View webView = this.bridge != null ? this.bridge.getWebView() : null;
+            if (webView != null && isLegacyAndroidDevice()) {
+                webView.setBackgroundColor(Color.parseColor("#00ff00"));
+            }
             applyStatusBarIcons(window, lightIcons);
-            Log.i(">#N00#> MainActivity", "reapplyStoredChrome reason=" + reason + " bg=" + backgroundColor + " lightIcons=" + lightIcons);
+            Log.i(">#N00#> MainActivity", "reapplyStoredChrome reason=" + reason + " bg=" + backgroundColor + " transparentChrome=" + transparentChrome + " lightIcons=" + lightIcons);
         } catch (Exception error) {
             Log.e(">#N00#> MainActivity", "reapplyStoredChrome error reason=" + reason + " " + error.getMessage());
         }
@@ -415,10 +397,9 @@ public class MainActivity extends BridgeActivity {
             // otherwise shrink the visible frame and recut the bottom of the page.
             WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
             installLegacyWebViewLayoutWatcher();
-            View contentRoot = findViewById(android.R.id.content);
-            if (contentRoot != null) {
-                contentRoot.requestApplyInsets();
-            }
+            getWindow().getDecorView().post(() -> reapplyStoredChrome("onResume-legacy"));
+            getWindow().getDecorView().postDelayed(() -> reapplyStoredChrome("onResume-legacy+250"), 250);
+            getWindow().getDecorView().postDelayed(() -> reapplyStoredChrome("onResume-legacy+900"), 900);
             logLegacyWindowState("onResume-legacy");
             return;
         }
@@ -434,9 +415,8 @@ public class MainActivity extends BridgeActivity {
             // Same reassertion on focus regain: do not allow a second insets pass.
             WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
             installLegacyWebViewLayoutWatcher();
-            View contentRoot = findViewById(android.R.id.content);
-            if (contentRoot != null) {
-                contentRoot.requestApplyInsets();
+            if (hasFocus) {
+                getWindow().getDecorView().post(() -> reapplyStoredChrome("onWindowFocusChanged-legacy"));
             }
             if (hasFocus) {
                 logLegacyWindowState("onWindowFocusChanged-legacy");
@@ -448,13 +428,4 @@ public class MainActivity extends BridgeActivity {
         }
     }
 
-    private int getStatusBarHeight() {
-        int result = 0;
-        int resourceId = getResources().getIdentifier("status_bar_height", "dimen", "android");
-        if (resourceId > 0) {
-            result = getResources().getDimensionPixelSize(resourceId);
-        }
-        return result;
-    }
-    
 }

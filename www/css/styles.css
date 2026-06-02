@@ -24,6 +24,9 @@
 
 :root {
   --app-viewport-height: 100vh;
+  --app-native-bottom-inset: 0px;
+  --app-system-bottom-inset: max(var(--app-native-bottom-inset, 0px), env(safe-area-inset-bottom, 0px));
+  --app-system-bottom-inset-debug-color: rgba(255, 0, 0, 0.92);
   --app-font-family-default: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --app-font-family-sf: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Segoe UI', sans-serif;
   --ion-font-family: var(--app-font-family-default);
@@ -70,6 +73,18 @@ ion-app {
 
 body.app-font-sf-pro {
   --ion-font-family: var(--app-font-family-sf);
+}
+
+body.app-system-bottom-inset-debug::after {
+  content: '';
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: var(--app-system-bottom-inset, 0px);
+  background: var(--app-system-bottom-inset-debug-color);
+  pointer-events: none;
+  z-index: 2147483000;
 }
 
 body.onboarding-chrome-active,
@@ -168,6 +183,12 @@ page-diagnostics {
   display: block;
   height: 100%;
 }
+tabs-page.tabs-page-hydrating {
+  visibility: hidden;
+}
+page-home.home-initial-loading {
+  visibility: hidden;
+}
 page-onboarding {
   display: block;
   height: 100%;
@@ -235,14 +256,18 @@ ion-content {
 }
 
 ion-toolbar {
-  --background: rgba(255, 255, 255, 0.92);
+  --background: transparent;
   --color: var(--app-text);
-  backdrop-filter: blur(12px);
-  border-color: var(--app-border);
+  --box-shadow: none;
+  background: transparent;
+  box-shadow: none;
+  border-color: transparent;
+  backdrop-filter: none;
 }
 
 ion-header {
-  backdrop-filter: blur(12px);
+  background: transparent;
+  backdrop-filter: none;
 }
 
 a {
@@ -697,6 +722,36 @@ page-login .login-social-icon-apple {
   background: var(--app-surface);
 }
 
+.diag-unlock-banner {
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(75, 93, 255, 0.1), rgba(75, 93, 255, 0.05));
+  border: 1px solid rgba(75, 93, 255, 0.16);
+  color: #2740b7;
+  font-size: 0.92rem;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.diag-unlock-banner[data-tone='good'] {
+  background: linear-gradient(135deg, rgba(58, 195, 122, 0.12), rgba(58, 195, 122, 0.05));
+  border-color: rgba(58, 195, 122, 0.18);
+  color: #18704d;
+}
+
+.diag-unlock-banner[data-tone='bad'] {
+  background: linear-gradient(135deg, rgba(232, 93, 117, 0.12), rgba(232, 93, 117, 0.05));
+  border-color: rgba(232, 93, 117, 0.18);
+  color: #a63d52;
+}
+
+.diag-unlock-banner[data-tone='neutral'] {
+  background: linear-gradient(135deg, rgba(91, 112, 255, 0.08), rgba(91, 112, 255, 0.03));
+  border-color: rgba(91, 112, 255, 0.12);
+  color: #4a5685;
+}
+
 .placeholder-card p {
   margin-top: 10px;
 }
@@ -988,7 +1043,6 @@ page-login[embedded][flat] .login-input-toggle {
 }
 
 .profile-content--logged-out {
-  --padding-top: 0;
   --background: var(--free-ride-view-bg);
 }
 
@@ -999,13 +1053,13 @@ ion-content.profile-content.profile-content--logged-out {
 .profile-shell--logged-out {
   height: auto;
   min-height: 0;
-  padding: 4px 0 0;
+  padding: 0;
   gap: 0;
   position: relative;
 }
 
-.profile-shell--logged-out.profile-shell--logged-out-titlebar {
-  padding-top: calc(56px + var(--app-native-statusbar-height, env(safe-area-inset-top, 0px)));
+page-profile .profile-shell--logged-out {
+  padding-bottom: var(--app-system-bottom-inset, 0px);
 }
 
 .app-android-legacy-webview page-profile .profile-shell--logged-out.profile-shell--logged-out-titlebar {
@@ -1013,7 +1067,7 @@ ion-content.profile-content.profile-content--logged-out {
 }
 
 .profile-shell--logged-out-android {
-  padding-top: 4px;
+  padding-top: 0;
 }
 
 body.lab-chrome-active:not(.app-titlebar-enabled) page-profile .profile-shell--logged-out {
@@ -1021,7 +1075,7 @@ body.lab-chrome-active:not(.app-titlebar-enabled) page-profile .profile-shell--l
 }
 
 .profile-login-hero {
-  padding-top: 6px;
+  padding-top: 0;
   padding-bottom: 24px;
 }
 
@@ -1059,11 +1113,11 @@ body.lab-chrome-active:not(.app-titlebar-enabled) page-profile .profile-shell--l
 }
 
 .profile-auth-card .free-ride-card-main {
-  padding-bottom: max(14px, env(safe-area-inset-bottom, 0px));
+  padding-bottom: 16px;
 }
 
 .profile-auth-hero {
-  padding-top: 12px;
+  padding-top: 0;
 }
 
 .profile-onboarding-overlay {
@@ -1080,8 +1134,8 @@ body.lab-chrome-active:not(.app-titlebar-enabled) page-profile .profile-shell--l
   inset: 0;
 }
 
-body.app-titlebar-enabled page-profile.profile-onboarding-active .profile-onboarding-overlay page-onboarding .onboarding-v5-shell {
-  padding-top: calc(56px + var(--app-native-statusbar-height, env(safe-area-inset-top, 0px)));
+body.app-titlebar-enabled page-profile.profile-onboarding-active .profile-onboarding-overlay page-onboarding[embedded] .onboarding-v5-shell {
+  padding-top: var(--app-titlebar-reserved-height, 56px);
 }
 
 .profile-auth-actions-left {
@@ -1641,7 +1695,7 @@ ion-modal.login-modal page-login .page-shell {
 }
 
 .profile-content-card .free-ride-card-main {
-  padding-bottom: 16px;
+  padding-bottom: calc(16px + var(--app-system-bottom-inset, 0px));
 }
 
 .profile-settings-overlay {
@@ -3021,8 +3075,10 @@ body.app-platform-android.lab-chrome-active ion-modal.diagnostics-modal ion-head
   --background: rgba(255, 255, 255, 0.94);
   --color: var(--app-muted);
   --color-selected: var(--ion-color-primary);
+  --padding-bottom: var(--app-system-bottom-inset, 0px);
   border-top: 1px solid var(--app-border);
   backdrop-filter: blur(12px);
+  padding-bottom: var(--app-system-bottom-inset, 0px);
 }
 
 /* Legacy Android WebView (SDK <= 31): avoid compositor clipping in bottom tabbar. */
@@ -3134,7 +3190,7 @@ body.app-android-legacy-webview .app-tab-bar {
 }
 
 .onboarding-v5-shell {
-  height: var(--app-viewport-height, 100vh);
+  height: auto;
   min-height: var(--app-viewport-height, 100vh);
   display: flex;
   flex-direction: column;
@@ -3154,17 +3210,27 @@ body.app-android-legacy-webview .app-tab-bar {
   overflow-x: visible;
 }
 
+page-onboarding[embedded] .onboarding-v5-stage {
+  overflow: hidden;
+}
+
 .onboarding-v5-card {
   --onboarding-hero-min-height: 0px;
   --onboarding-mascot-width: clamp(150px, 30vh, 280px);
   --onboarding-body-offset: 20px;
   width: 100%;
   min-height: 100%;
-  height: 100%;
+  height: auto;
   background: transparent;
   display: grid;
   grid-template-rows: minmax(180px, 1fr) auto;
-  overflow: hidden;
+  overflow: visible;
+}
+
+page-onboarding[embedded] .onboarding-v5-card {
+  height: 100%;
+  min-height: 0;
+  grid-template-rows: minmax(0, 1fr) auto;
 }
 
 .onboarding-v5-hero {
@@ -3196,6 +3262,15 @@ body.app-titlebar-enabled page-onboarding[embedded] .onboarding-v5-shell {
   padding-top: 0;
   height: 100%;
   min-height: 100%;
+}
+
+page-onboarding[embedded] .onboarding-v5-body {
+  --onboarding-embedded-bottom-design-space: 28px;
+  --onboarding-embedded-system-bottom-inset: var(--app-system-bottom-inset, 0px);
+  padding-bottom: calc(
+    var(--onboarding-embedded-bottom-design-space) +
+    var(--onboarding-embedded-system-bottom-inset)
+  );
 }
 
 .onboarding-v5-mascot {
@@ -4151,42 +4226,6 @@ page-chat ion-content::part(scroll) {
   padding-right: 16px;
 }
 
-ion-header.app-header-shell ion-toolbar {
-  --padding-start: 0;
-  --padding-end: 0;
-  --padding-top: 0;
-  --padding-bottom: 0;
-  --min-height: 56px;
-  --background: transparent;
-  --color: #1a2b47;
-  --border-color: transparent;
-  --box-shadow: none;
-  --ion-color-base: transparent;
-  background: transparent;
-  box-shadow: none;
-}
-
-body.app-platform-android.app-titlebar-enabled ion-header.app-header-shell ion-toolbar {
-  --padding-top: max(var(--app-native-statusbar-height, 0px), env(safe-area-inset-top, 0px)) !important;
-  --min-height: calc(56px + max(var(--app-native-statusbar-height, 0px), env(safe-area-inset-top, 0px))) !important;
-}
-
-ion-header.app-header-shell ion-toolbar::part(background) {
-  background: transparent !important;
-}
-
-ion-header.app-header-shell {
-  --background: transparent;
-  --color: #1a2b47;
-  --border-color: transparent;
-  background: transparent;
-  box-shadow: none;
-}
-
-ion-header.app-header-shell::after {
-  display: none;
-}
-
 .reward-badges {
   display: inline-flex;
   align-items: center;
@@ -4297,6 +4336,20 @@ page-speak.header-color-white { --free-ride-header-color: #ffffff; }
 page-speak.header-color-dark  { --free-ride-header-color: #1a2b47; }
 page-speak.header-color-blue  { --free-ride-header-color: #4d7df4; }
 
+body.app-titlebar-enabled {
+  --app-titlebar-content-height: 56px;
+  --app-titlebar-top-inset: max(var(--app-native-statusbar-height, 0px), env(safe-area-inset-top, 0px));
+  --app-titlebar-reserved-height: calc(var(--app-titlebar-content-height) + var(--app-titlebar-top-inset));
+}
+
+page-free-ride .app-header-shell,
+page-home .app-header-shell,
+page-reference .app-header-shell,
+page-profile .app-header-shell,
+page-chat .app-header-shell,
+page-speak .app-header-shell {
+  --color: var(--free-ride-header-color, #ffffff);
+}
 page-free-ride ion-header.app-header-shell ion-toolbar {
   --color: var(--free-ride-header-color, #ffffff);
 }
@@ -4338,6 +4391,50 @@ body.app-platform-android.lab-chrome-active.app-titlebar-enabled page-chat ion-h
 body.app-platform-android.app-titlebar-enabled page-speak ion-header.app-header-shell ion-toolbar {
   --padding-top: var(--app-native-statusbar-height, env(safe-area-inset-top, 0px));
   --min-height: calc(56px + var(--app-native-statusbar-height, env(safe-area-inset-top, 0px)));
+}
+ion-header.app-header-shell ion-toolbar::part(background) {
+  background: transparent !important;
+  opacity: 0 !important;
+}
+ion-header.app-header-shell ion-toolbar::part(container) {
+  background: transparent !important;
+}
+ion-header.app-header-shell ion-toolbar {
+  --padding-start: 0;
+  --padding-end: 0;
+  --padding-top: 0;
+  --padding-bottom: 0;
+  --min-height: 56px;
+  --background: transparent;
+  --border-color: transparent;
+  --border-width: 0;
+  --box-shadow: none;
+  --opacity: 0;
+  --opacity-scale: 0;
+  background: transparent;
+  box-shadow: none;
+  border-color: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+ion-header.app-header-shell {
+  --background: transparent;
+  --color: #1a2b47;
+  --border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+ion-header.app-header-shell .header-background {
+  display: none !important;
+  opacity: 0 !important;
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+ion-header.app-header-shell::after {
+  display: none;
 }
 body.lab-chrome-active.app-titlebar-enabled page-free-ride ion-header.app-header-shell .app-toolbar-title,
 body.lab-chrome-active.app-titlebar-enabled page-free-ride ion-header.app-header-shell .app-header-actions {
@@ -7750,6 +7847,28 @@ body.app-android-legacy-webview ion-tabs {
    --offset-top on resume/resize; if that wins, the whole screen shifts down. */
 body.app-android-legacy-webview ion-content {
   --offset-top: 0px !important;
+}
+
+body.app-android-legacy-webview,
+body.app-android-legacy-webview ion-app,
+body.app-android-legacy-webview ion-router-outlet,
+body.app-android-legacy-webview tabs-page,
+body.app-android-legacy-webview page-home,
+body.app-android-legacy-webview page-reference,
+body.app-android-legacy-webview page-free-ride,
+body.app-android-legacy-webview page-chat,
+body.app-android-legacy-webview page-profile,
+body.app-android-legacy-webview page-speak,
+body.app-android-legacy-webview page-onboarding {
+  background: #ff00ff !important;
+}
+
+body.app-android-legacy-webview ion-content,
+body.app-android-legacy-webview ion-content::part(background),
+body.app-android-legacy-webview page-onboarding ion-content,
+body.app-android-legacy-webview page-onboarding ion-content::part(background) {
+  --background: #ff00ff !important;
+  background: #ff00ff !important;
 }
 
 body.app-android-legacy-webview.lab-chrome-active:not(.app-titlebar-enabled) page-free-ride .free-ride-shell,

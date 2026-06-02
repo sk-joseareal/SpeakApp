@@ -242,8 +242,7 @@
       "go": "Continuar",
       "routeProgress": "progreso",
       "unlockAfter": "Desbloquea después de",
-      "sessionsCompleted": "sesiones completadas",
-      "comingSoon": "Contenido disponible próximamente"
+      "sessionsCompleted": "sesiones completadas"
     },
     "freeRide": {
       "title": "Lab",
@@ -782,8 +781,7 @@
       "go": "Continue",
       "routeProgress": "progress",
       "unlockAfter": "Unlock after",
-      "sessionsCompleted": "sessions completed",
-      "comingSoon": "Content coming soon"
+      "sessionsCompleted": "sessions completed"
     },
     "freeRide": {
       "title": "Lab",

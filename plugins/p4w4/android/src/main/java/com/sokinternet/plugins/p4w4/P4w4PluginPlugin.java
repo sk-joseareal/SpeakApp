@@ -29,7 +29,10 @@ import android.webkit.WebView;
 import android.content.SharedPreferences;
 
 import com.getcapacitor.Bridge;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
 
 import android.os.Handler;
@@ -67,7 +70,9 @@ public class P4w4PluginPlugin extends Plugin {
     public static final String NATIVE_CHROME_PREFS = "p4w4_native_chrome";
     public static final String PREF_BG = "backgroundColor";
     public static final String PREF_LIGHT_ICONS = "lightIcons";
-    private static final String LEGACY_NAVBAR_COLOR = "#EEF3FF";
+    private static final String LEGACY_TEST_WINDOW_COLOR = "#00ffff";
+    private static final String LEGACY_TEST_STATUSBAR_COLOR = "#ffff00";
+    private static final String LEGACY_TEST_NAVBAR_COLOR = "#ff8800";
 
     private P4w4Plugin implementation = new P4w4Plugin();
     private static final String DEFAULT_VOSK_MODEL = "vosk-model-small-en-us-0.15";
@@ -311,6 +316,36 @@ public class P4w4PluginPlugin extends Plugin {
     }
 
     @PluginMethod
+    public void getSystemInsets(PluginCall call) {
+        JSObject ret = new JSObject();
+        ret.put("top", 0);
+        ret.put("right", 0);
+        ret.put("bottom", 0);
+        ret.put("left", 0);
+        ret.put("platform", "android");
+        ret.put("osVersion", String.valueOf(Build.VERSION.SDK_INT));
+
+        try {
+            View decorView = getActivity() != null ? getActivity().getWindow().getDecorView() : null;
+            WindowInsetsCompat compatInsets = decorView != null ? ViewCompat.getRootWindowInsets(decorView) : null;
+            if (compatInsets != null) {
+                Insets systemBars = compatInsets.getInsets(WindowInsetsCompat.Type.systemBars());
+                ret.put("top", systemBars.top);
+                ret.put("right", systemBars.right);
+                ret.put("bottom", systemBars.bottom);
+                ret.put("left", systemBars.left);
+                Log.i("P4w4Plugin", ">#P4w4Plugin#> getSystemInsets: systemBars=" + systemBars + " osVersion=" + Build.VERSION.SDK_INT);
+            } else {
+                Log.i("P4w4Plugin", ">#P4w4Plugin#> getSystemInsets: insets=null osVersion=" + Build.VERSION.SDK_INT);
+            }
+        } catch (Exception error) {
+            Log.e("P4w4Plugin", ">#P4w4Plugin#> getSystemInsets error: " + error.getMessage());
+        }
+
+        call.resolve(ret);
+    }
+
+    @PluginMethod
     public void setNativeChrome(PluginCall call) {
         String backgroundColor = call.getString("backgroundColor");
         boolean lightIcons = call.getBoolean("lightIcons", false);
@@ -333,15 +368,19 @@ public class P4w4PluginPlugin extends Plugin {
                         .apply();
                     android.view.Window window = getActivity().getWindow();
                     if (transparentChrome) {
-                        window.setStatusBarColor(Color.TRANSPARENT);
-                        window.setNavigationBarColor(Color.TRANSPARENT);
+                        window.setStatusBarColor(Color.parseColor(LEGACY_TEST_STATUSBAR_COLOR));
+                        window.setNavigationBarColor(Color.parseColor(LEGACY_TEST_NAVBAR_COLOR));
                         GradientDrawable legacyBackground = createLegacyWindowBackgroundDrawable();
                         window.setBackgroundDrawable(legacyBackground);
-                        window.getDecorView().setBackgroundDrawable(createLegacyWindowBackgroundDrawable());
+                        window.getDecorView().setBackgroundColor(Color.parseColor(LEGACY_TEST_WINDOW_COLOR));
                     } else {
                         window.setStatusBarColor(color);
                         window.setNavigationBarColor(color);
                         window.getDecorView().setBackgroundColor(color);
+                    }
+                    View webView = bridge.getWebView();
+                    if (webView != null) {
+                        webView.setBackgroundColor(Color.parseColor("#00ff00"));
                     }
                     applyStatusBarIconsWithRetries(window, lightIcons, source + "|" + path);
                     Log.i("P4w4Plugin", ">#P4w4Plugin#> setNativeChrome(legacy): bg=" + backgroundColor + " transparentChrome=" + transparentChrome + " lightIcons=" + lightIcons + " source=" + source + " path=" + path);
@@ -353,7 +392,7 @@ public class P4w4PluginPlugin extends Plugin {
                 int nativeBackdropColor = transparentChrome ? Color.parseColor("#a7c6f7") : color;
                 android.view.Window window = getActivity().getWindow();
                 WindowCompat.setDecorFitsSystemWindows(window, !transparentChrome);
-                window.setStatusBarColor(color);
+                window.setStatusBarColor(transparentChrome ? Color.TRANSPARENT : color);
                 window.getDecorView().setBackgroundColor(nativeBackdropColor);
 
                 View webView = bridge.getWebView();

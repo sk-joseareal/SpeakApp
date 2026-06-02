@@ -48,6 +48,12 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         UIApplication.shared.endReceivingRemoteControlEvents()
     }
 
+    private func clearApplicationBadge(reason: String) {
+        UIApplication.shared.applicationIconBadgeNumber = 0
+        UNUserNotificationCenter.current().removeAllDeliveredNotifications()
+        print(">#N00#> Badge icon cleared (\(reason))")
+    }
+
     private func stopWebViewMediaPlayback(reason: String) {
         let js = """
         (() => {
@@ -92,6 +98,54 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     private func suspendWebAudioSideEffects(reason: String) {
         stopWebViewMediaPlayback(reason: reason)
         clearNowPlayingState()
+    }
+
+    private func jsonStringLiteral(_ value: String) -> String {
+        guard let data = try? JSONSerialization.data(withJSONObject: [value], options: []),
+              let json = String(data: data, encoding: .utf8),
+              json.count >= 2 else {
+            return "\"\""
+        }
+        return String(json.dropFirst().dropLast())
+    }
+
+    private func dispatchOpenUrlToWebView(_ url: URL, reason: String) {
+        let urlLiteral = jsonStringLiteral(url.absoluteString)
+        let reasonLiteral = jsonStringLiteral(reason)
+        let js = """
+        (() => {
+          try {
+            const payload = { url: \(urlLiteral), reason: \(reasonLiteral) };
+            if (typeof window.__handleNativeOpenUrlFallback === 'function') {
+              window.__handleNativeOpenUrlFallback(payload.url, payload.reason);
+            } else {
+              window.__pendingNativeOpenUrls = window.__pendingNativeOpenUrls || [];
+              window.__pendingNativeOpenUrls.push(payload);
+              window.dispatchEvent(new CustomEvent('app:native-open-url', { detail: payload }));
+            }
+            console.log('>#C02#> native openURL fallback dispatched', payload.url);
+            return true;
+          } catch (err) {
+            return String(err && err.message ? err.message : err);
+          }
+        })();
+        """
+        let delays: [TimeInterval] = [0.05, 0.5, 1.5]
+        for delay in delays {
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                guard let webView = (self.window?.rootViewController as? CAPBridgeViewController)?.webView else {
+                    print(">#C02#> AppDelegate openURL fallback: webView no disponible (\(reason)).")
+                    return
+                }
+                webView.evaluateJavaScript(js) { result, error in
+                    if let error = error {
+                        print(">#C02#> AppDelegate openURL fallback error (\(reason)): \(error)")
+                    } else {
+                        print(">#C02#> AppDelegate openURL fallback injected (\(reason)): \(String(describing: result))")
+                    }
+                }
+            }
+        }
     }
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
@@ -147,6 +201,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     func applicationDidBecomeActive(_ application: UIApplication) {
         // Restart any tasks that were paused (or not yet started) while the application was inactive. If the application was previously in the background, optionally refresh the user interface.
         configureAmbientAudioSession(active: true)
+        clearApplicationBadge(reason: "didBecomeActive")
         clearNowPlayingState()
     }
 
@@ -157,13 +212,20 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
         // Called when the app was launched with a url. Feel free to add additional processing here,
         // but if you want the App API to support tracking app url opens, make sure to keep this call
-        return ApplicationDelegateProxy.shared.application(app, open: url, options: options)
+        print(">#C02#> AppDelegate openURL recibido: \(url.absoluteString)")
+        let handled = ApplicationDelegateProxy.shared.application(app, open: url, options: options)
+        dispatchOpenUrlToWebView(url, reason: "openURL")
+        return handled
     }
 
     func application(_ application: UIApplication, continue userActivity: NSUserActivity, restorationHandler: @escaping ([UIUserActivityRestoring]?) -> Void) -> Bool {
         // Called when the app was launched with an activity, including Universal Links.
         // Feel free to add additional processing here, but if you want the App API to support
         // tracking app url opens, make sure to keep this call
+        if let url = userActivity.webpageURL {
+            print(">#C02#> AppDelegate universalLink recibido: \(url.absoluteString)")
+            dispatchOpenUrlToWebView(url, reason: "universalLink")
+        }
         return ApplicationDelegateProxy.shared.application(application, continue: userActivity, restorationHandler: restorationHandler)
     }
     

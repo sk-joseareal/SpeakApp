@@ -21,6 +21,7 @@ const LAB_STATUSBAR_COLOR = '#00000000';
 const LAB_THEME_COLOR = '#00000000';
 const APP_STATUSBAR_PRESET_KEY = 'appv5:statusbar-preset';
 const APP_FONT_SF_PRO_ENABLED_KEY = 'appv5:font-sf-pro-enabled';
+const SYSTEM_BOTTOM_INSET_DEBUG_KEY = 'appv5:system-bottom-inset-debug';
 const LEGACY_LAYOUT_TRACE_STORAGE_KEY = 'appv5:legacy-layout-trace';
 const DEBUG_DISABLE_FOREGROUND_CHROME_RESYNC = false;
 const TAB_STORAGE_KEY = 'appv5:active-tab';
@@ -32,12 +33,15 @@ const LAST_IAP_RESULT_STORAGE_KEY = 'appv5:last-got-premium-result';
 
 let currentTabsActiveTab = '';
 let lastNativeStatusBarInfo = { height: 0, platform: '', osVersion: '' };
+let lastNativeSystemInsetsInfo = { top: 0, right: 0, bottom: 0, left: 0, platform: '', osVersion: '' };
 let _titlebarCalibrationTimers = [];
 let _pendingChromeResyncRaf = 0;
 let _pendingChromeResyncPath = '';
 let _lastAppliedChromeKey = '';
 let _legacyViewportRelayoutTimer = 0;
 let _viewportHeightSyncRaf = 0;
+let _nativeSystemInsetsSyncRaf = 0;
+let _nativeSystemInsetsRetryTimers = [];
 let _legacyLayoutUnlockTimer = 0;
 let _legacyLayoutUnlockTimer2 = 0;
 let _legacyLayoutReady = true;
@@ -106,6 +110,8 @@ function installLegacyLayoutMutationTracer() {
     '--offset-top',
     '--offset-bottom',
     '--app-native-statusbar-height',
+    '--app-native-bottom-inset',
+    '--app-system-bottom-inset',
     '--app-viewport-height',
     '--app-titlebar-y-correction',
     '--ion-safe-area-top'
@@ -310,6 +316,32 @@ function getCurrentAppPath() {
   return window.location.hash.replace('#', '') || '/';
 }
 
+function logViewportGeometry(reason) {
+  if (!getLegacyLayoutTraceEnabled()) return;
+  try {
+    const vv = window.visualViewport || null;
+    const rootStyle = window.getComputedStyle(document.documentElement);
+    const body = document.body;
+    console.log('[layout][viewport]', reason, {
+      innerHeight: window.innerHeight,
+      clientHeight: document.documentElement.clientHeight,
+      visualViewportHeight: vv ? Math.round(vv.height) : null,
+      visualViewportOffsetTop: vv ? Math.round(vv.offsetTop) : null,
+      visualViewportPageTop: vv ? Math.round(vv.pageTop) : null,
+      appViewportHeight: rootStyle.getPropertyValue('--app-viewport-height').trim(),
+      nativeStatusBarHeight: rootStyle.getPropertyValue('--app-native-statusbar-height').trim(),
+      nativeBottomInset: rootStyle.getPropertyValue('--app-native-bottom-inset').trim(),
+      systemBottomInset: rootStyle.getPropertyValue('--app-system-bottom-inset').trim(),
+      bodyClientHeight: body ? body.clientHeight : null,
+      bodyScrollHeight: body ? body.scrollHeight : null,
+      docScrollHeight: document.documentElement.scrollHeight,
+      docClientHeight: document.documentElement.clientHeight
+    });
+  } catch (_err) {
+    // no-op
+  }
+}
+
 function syncAppViewportHeightVar() {
   const viewportHeight = Math.max(
     0,
@@ -323,6 +355,7 @@ function syncAppViewportHeightVar() {
   );
   if (!viewportHeight) return;
   document.documentElement.style.setProperty('--app-viewport-height', `${viewportHeight}px`);
+  logViewportGeometry('syncAppViewportHeightVar');
 }
 
 function setLegacyLayoutReady(nextReady, reason = '') {
@@ -464,6 +497,36 @@ function applyAppFontPreference(enabled = getStoredAppFontSfProEnabled()) {
   return normalized;
 }
 
+function normalizeSystemBottomInsetDebugEnabled(value) {
+  if (typeof value === 'boolean') return value;
+  const normalized = String(value || '')
+    .trim()
+    .toLowerCase();
+  if (!normalized) return false;
+  return ['1', 'true', 'on', 'yes'].includes(normalized);
+}
+
+function getStoredSystemBottomInsetDebugEnabled() {
+  const globalValue =
+    window.r34lp0w3r && Object.prototype.hasOwnProperty.call(window.r34lp0w3r, 'systemBottomInsetDebug')
+      ? window.r34lp0w3r.systemBottomInsetDebug
+      : undefined;
+  if (globalValue !== undefined) return normalizeSystemBottomInsetDebugEnabled(globalValue);
+  try {
+    return normalizeSystemBottomInsetDebugEnabled(localStorage.getItem(SYSTEM_BOTTOM_INSET_DEBUG_KEY));
+  } catch (_err) {
+    return false;
+  }
+}
+
+function applySystemBottomInsetDebugPreference(enabled = getStoredSystemBottomInsetDebugEnabled()) {
+  const normalized = normalizeSystemBottomInsetDebugEnabled(enabled);
+  window.r34lp0w3r = window.r34lp0w3r || {};
+  window.r34lp0w3r.systemBottomInsetDebug = normalized;
+  document.body.classList.toggle('app-system-bottom-inset-debug', normalized);
+  return normalized;
+}
+
 function setNativeStatusBarCssHeight(height) {
   if (isLegacyAndroidStatusbarMode()) {
     document.documentElement.style.setProperty('--app-native-statusbar-height', '0px');
@@ -472,6 +535,37 @@ function setNativeStatusBarCssHeight(height) {
   const numeric = Number(height);
   const cssHeight = Number.isFinite(numeric) ? Math.max(0, numeric) : 0;
   document.documentElement.style.setProperty('--app-native-statusbar-height', `${cssHeight}px`);
+}
+
+function nativeInsetToCssPx(value, platform = '') {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric) || numeric <= 0) return 0;
+  const normalizedPlatform = String(platform || '').trim().toLowerCase();
+  if (normalizedPlatform === 'android') {
+    return numeric / Math.max(1, Number(window.devicePixelRatio) || 1);
+  }
+  return numeric;
+}
+
+function applyNativeSystemInsetsCssVars(info = {}) {
+  const platform = String(info.platform || lastNativeStatusBarInfo.platform || '').trim().toLowerCase();
+  const osVersion = String(info.osVersion || lastNativeStatusBarInfo.osVersion || '').trim();
+  const nextInfo = {
+    top: nativeInsetToCssPx(info.top, platform),
+    right: nativeInsetToCssPx(info.right, platform),
+    bottom: nativeInsetToCssPx(info.bottom, platform),
+    left: nativeInsetToCssPx(info.left, platform),
+    platform,
+    osVersion
+  };
+  lastNativeSystemInsetsInfo = nextInfo;
+  document.documentElement.style.setProperty('--app-native-bottom-inset', `${nextInfo.bottom}px`);
+  document.documentElement.style.setProperty('--app-native-left-inset', `${nextInfo.left}px`);
+  document.documentElement.style.setProperty('--app-native-right-inset', `${nextInfo.right}px`);
+  window.r34lp0w3r = window.r34lp0w3r || {};
+  window.r34lp0w3r.nativeSystemInsets = nextInfo;
+  window.dispatchEvent(new CustomEvent('app:system-insets-change', { detail: nextInfo }));
+  logViewportGeometry('applyNativeSystemInsetsCssVars');
 }
 
 function parseMajorVersion(value) {
@@ -525,6 +619,7 @@ function syncNativeStatusBarCssHeight() {
           prevHeight !== rawHeight || prevPlatform !== nextPlatform || prevOsVersion !== nextOsVersion;
         if (statusbarInfoChanged) {
           _lastAppliedChromeKey = '';
+          logViewportGeometry('syncNativeStatusBarCssHeight');
         }
       })
       .catch(() => {});
@@ -533,16 +628,58 @@ function syncNativeStatusBarCssHeight() {
   }
 }
 
+function syncNativeSystemInsetsCssVars() {
+  try {
+    const nativePlugin =
+      window.Capacitor && window.Capacitor.Plugins ? window.Capacitor.Plugins.P4w4Plugin : null;
+    if (!nativePlugin || typeof nativePlugin.getSystemInsets !== 'function') {
+      applyNativeSystemInsetsCssVars({ top: 0, right: 0, bottom: 0, left: 0, platform: '', osVersion: '' });
+      return;
+    }
+    Promise.resolve(nativePlugin.getSystemInsets())
+      .then((info) => {
+        applyNativeSystemInsetsCssVars(info || {});
+      })
+      .catch(() => {});
+  } catch (_err) {
+    // no-op
+  }
+}
+
+function scheduleNativeSystemInsetsSync() {
+  if (_nativeSystemInsetsSyncRaf) return;
+  _nativeSystemInsetsSyncRaf = requestAnimationFrame(() => {
+    _nativeSystemInsetsSyncRaf = 0;
+    syncNativeSystemInsetsCssVars();
+  });
+}
+
+function syncNativeSystemInsetsCssVarsWithRetries() {
+  _nativeSystemInsetsRetryTimers.forEach((timerId) => clearTimeout(timerId));
+  _nativeSystemInsetsRetryTimers = [];
+  syncNativeSystemInsetsCssVars();
+  [120, 320, 800, 1500].forEach((delay) => {
+    _nativeSystemInsetsRetryTimers.push(setTimeout(() => syncNativeSystemInsetsCssVars(), delay));
+  });
+}
+
 function syncPlatformChromeClasses() {
   const isAndroid = isAndroidPlatform();
+  const nativeOsMajor = parseMajorVersion(lastNativeStatusBarInfo.osVersion);
+  const nativeLegacyKnown = String(lastNativeStatusBarInfo.platform || '').trim().toLowerCase() === 'android' && nativeOsMajor > 0;
+  const isLegacyAndroidWebView =
+    nativeLegacyKnown
+      ? nativeOsMajor <= 31
+      : detectLegacyAndroidFromUserAgent();
   document.body.classList.toggle('app-platform-android', isAndroid);
   document.body.classList.toggle('app-platform-ios', !isAndroid);
   if (!isAndroid) {
     document.body.classList.remove('app-android-legacy-webview');
-  }
-  if (isAndroid && detectLegacyAndroidFromUserAgent()) {
+  } else if (isLegacyAndroidWebView) {
     document.body.classList.add('app-android-legacy-webview');
     setNativeStatusBarCssHeight(0);
+  } else {
+    document.body.classList.remove('app-android-legacy-webview');
   }
   if (isAndroid) {
     document.body.classList.add('app-statusbar-manual-offset');
@@ -1222,7 +1359,9 @@ function installIonContentDimensionGuard() {
 installIonContentDimensionGuard();
 ensureLegacySpeakCopyGlobals();
 applyAppFontPreference();
+applySystemBottomInsetDebugPreference();
 syncNativeStatusBarCssHeight();
+syncNativeSystemInsetsCssVarsWithRetries();
 syncAppViewportHeightVar();
 refreshTranslationCapabilities().catch(() => {});
 
@@ -1230,6 +1369,20 @@ const routerReady = customElements.whenDefined('ion-router').then(() => document
 
 if (new URLSearchParams(window.location.search).get('autologin') === '1') {
   setOnboardingDone();
+}
+
+const isLoggedInAtBoot = () => {
+  const user = window.user;
+  return Boolean(user && user.id !== undefined && user.id !== null);
+};
+
+const isLoggedInNow = () => {
+  const user = window.user;
+  return Boolean(user && user.id !== undefined && user.id !== null);
+};
+
+if (!onboardingDone() && !isLoggedInAtBoot()) {
+  setLoginTabsLock();
 }
 
 routerReady.then((router) => {
@@ -1240,14 +1393,9 @@ routerReady.then((router) => {
   scheduleAppChromeSync(hashPath);
   if (hashPath === '/') goToHome('root');
 
-  const isLoggedIn = () => {
-    const user = window.user;
-    return Boolean(user && user.id !== undefined && user.id !== null);
-  };
-
   // On first launch (onboarding not done, not logged in), lock tabs before
   // tabs-page mounts so it initialises with 'tu' as active tab and tab bar hidden.
-  if (!onboardingDone() && !isLoggedIn()) {
+  if (!onboardingDone() && !isLoggedInAtBoot()) {
     setLoginTabsLock();
   }
 
@@ -1258,7 +1406,7 @@ routerReady.then((router) => {
       goToHome('root');
       return;
     }
-    if (hasLoginTabsLock() && !isLoggedIn() && to === '/speak') {
+    if (hasLoginTabsLock() && !isLoggedInNow() && to === '/speak') {
       goToHome('root');
       return;
     }
@@ -1297,6 +1445,7 @@ routerReady.then((router) => {
 
 document.addEventListener('deviceready', () => {
   scheduleViewportHeightSync();
+  syncNativeSystemInsetsCssVarsWithRetries();
 });
 
 const resyncCurrentAppChrome = () => {
@@ -1331,8 +1480,13 @@ window.addEventListener('app:font-sf-pro-change', (event) => {
   applyAppFontPreference(event && event.detail ? event.detail.enabled : undefined);
 });
 
+window.addEventListener('app:system-bottom-inset-debug-change', (event) => {
+  applySystemBottomInsetDebugPreference(event && event.detail ? event.detail.enabled : undefined);
+});
+
 const handleGlobalViewportEvent = () => {
   scheduleViewportHeightSync();
+  scheduleNativeSystemInsetsSync();
 };
 window.addEventListener('resize', blockLegacyViewportEvent, true);
 window.addEventListener('resize', handleGlobalViewportEvent);
@@ -1344,6 +1498,7 @@ if (window.visualViewport && typeof window.visualViewport.addEventListener === '
 }
 
 function restoreAppChromeAfterForeground() {
+  syncNativeSystemInsetsCssVars();
   if (typeof window.scheduleAppChromeSync === 'function') {
     window.scheduleAppChromeSync(getCurrentAppPath());
   } else {
@@ -1372,21 +1527,216 @@ try {
 }
 
 function setupSecretDiagnostics(router) {
-  const DIAG_UNLOCK_KEY = 'appv5:diag-unlocked';
+  const DIAG_UNLOCK_STATE_KEY = 'appv5:diag-unlock-state';
+  const DIAG_UNLOCK_CODE_KEY = 'appv5:diag-unlock-code';
+  const DIAG_UNLOCK_LEGACY_KEY = 'appv5:diag-unlocked';
   let lastTitleTapAt = 0;
+  let lastVersionTapAt = 0;
+  let versionTapCount = 0;
   let diagnosticsOpening = false;
-  const readUnlocked = () => {
+  let unlockPromptOpen = false;
+  let unlockValidationInFlight = false;
+  const readUnlockState = () => {
     try {
-      return localStorage.getItem(DIAG_UNLOCK_KEY) === 'yes';
+      const raw = localStorage.getItem(DIAG_UNLOCK_STATE_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== 'object') return null;
+      const code = String(parsed.code || localStorage.getItem(DIAG_UNLOCK_CODE_KEY) || '').trim();
+      const expiresAtMs = Number(
+        parsed.expiresAtMs || parsed.expires_at_ms || parsed.expiresAt || parsed.expires_at || 0
+      );
+      const expiresAtIso = String(parsed.expiresAtIso || parsed.expires_at_iso || parsed.expires_at || '').trim();
+      const lastValidatedAtMs = Number(parsed.lastValidatedAtMs || parsed.last_validated_at_ms || 0);
+      return {
+        code,
+        expiresAtMs: Number.isFinite(expiresAtMs) ? expiresAtMs : 0,
+        expiresAtIso,
+        lastValidatedAtMs: Number.isFinite(lastValidatedAtMs) ? lastValidatedAtMs : 0
+      };
     } catch (err) {
+      return null;
+    }
+  };
+  const getUnlockCode = () => {
+    const state = readUnlockState();
+    if (state && state.code) return state.code;
+    try {
+      return String(localStorage.getItem(DIAG_UNLOCK_CODE_KEY) || '').trim();
+    } catch (err) {
+      return '';
+    }
+  };
+  const getUnlockExpiryMs = () => {
+    const state = readUnlockState();
+    if (state && Number.isFinite(state.expiresAtMs)) return state.expiresAtMs;
+    return 0;
+  };
+  const writeUnlockState = ({ code, expiresAtMs, expiresAtIso }) => {
+    const normalizedCode = String(code || '').trim();
+    const normalizedExpiresAtMs = Number(expiresAtMs);
+    const normalizedExpiresAtIso = String(expiresAtIso || '').trim();
+    if (!normalizedCode || !Number.isFinite(normalizedExpiresAtMs) || normalizedExpiresAtMs <= 0) return false;
+    const payload = {
+      code: normalizedCode,
+      expiresAtMs: normalizedExpiresAtMs,
+      expiresAtIso: normalizedExpiresAtIso || new Date(normalizedExpiresAtMs).toISOString(),
+      lastValidatedAtMs: Date.now()
+    };
+    try {
+      localStorage.setItem(DIAG_UNLOCK_STATE_KEY, JSON.stringify(payload));
+      localStorage.setItem(DIAG_UNLOCK_CODE_KEY, normalizedCode);
+      localStorage.removeItem(DIAG_UNLOCK_LEGACY_KEY);
+      return true;
+    } catch (err) {
+      console.warn('[diagnostics] no se pudo guardar el desbloqueo', err);
       return false;
     }
   };
-  const writeUnlocked = () => {
+  const clearUnlockState = () => {
     try {
-      localStorage.setItem(DIAG_UNLOCK_KEY, 'yes');
+      localStorage.removeItem(DIAG_UNLOCK_STATE_KEY);
+      localStorage.removeItem(DIAG_UNLOCK_CODE_KEY);
+      localStorage.removeItem(DIAG_UNLOCK_LEGACY_KEY);
     } catch (err) {
       // no-op
+    }
+  };
+  const getApiBase = () =>
+    (window.env === 'PRO' ? window.apiPRO : window.apiDEV) || window.apiDEV || window.apiPRO || '';
+  const presentDiagnosticsMessage = (message) => {
+    const text = String(message || '').trim();
+    if (!text) return;
+    if (typeof window.presentAppToast === 'function') {
+      window.presentAppToast(text, { duration: 2400 });
+      return;
+    }
+    console.info('[diagnostics]', text);
+  };
+  const fetchDiagnosticsUnlock = async (code, source = 'unknown', mode = 'issue') => {
+    const normalizedCode = String(code || '').trim();
+    const normalizedMode = String(mode || 'issue').trim().toLowerCase() === 'revalidate' ? 'revalidate' : 'issue';
+    if (!normalizedCode) {
+      throw new Error('missing_code');
+    }
+    const baseUrl = getApiBase();
+    if (!baseUrl) {
+      throw new Error('api_base_missing');
+    }
+    const response = await fetch(`${baseUrl}/diagnostics/unlock`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        code: normalizedCode,
+        source,
+        mode: normalizedMode
+      })
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data || data.ok !== true) {
+      throw new Error(data && data.error ? data.error : `http_${response.status}`);
+    }
+    const expiresAtMs = Number(data.expires_at_ms || Date.parse(data.expires_at || '') || 0);
+    if (normalizedMode === 'issue') {
+      if (!Number.isFinite(expiresAtMs) || expiresAtMs <= Date.now()) {
+        throw new Error('expired_unlock');
+      }
+      writeUnlockState({
+        code: normalizedCode,
+        expiresAtMs,
+        expiresAtIso: String(data.expires_at || '').trim()
+      });
+      return {
+        expiresAtMs,
+        expiresAtIso: String(data.expires_at || '').trim(),
+        revalidated: false
+      };
+    }
+    const currentState = readUnlockState();
+    const currentExpiryMs = currentState && Number.isFinite(currentState.expiresAtMs) ? currentState.expiresAtMs : 0;
+    if (!currentExpiryMs || currentExpiryMs <= Date.now()) {
+      throw new Error('expired_unlock');
+    }
+    return {
+      expiresAtMs: currentExpiryMs,
+      expiresAtIso: currentState && currentState.expiresAtIso ? currentState.expiresAtIso : '',
+      revalidated: true
+    };
+  };
+  const promptDiagnosticsUnlock = async ({ source = 'profile-version-taps' } = {}) => {
+    if (unlockPromptOpen) return false;
+    unlockPromptOpen = true;
+    try {
+      const currentCode = getUnlockCode();
+      const currentExpiryMs = getUnlockExpiryMs();
+      const expiresText =
+        currentExpiryMs && currentExpiryMs > Date.now()
+          ? new Date(currentExpiryMs).toLocaleString()
+          : '';
+      const hasIonAlert =
+        window.customElements &&
+        typeof window.customElements.get === 'function' &&
+        Boolean(window.customElements.get('ion-alert'));
+      const askCode = async () => {
+        if (!hasIonAlert) {
+          return window.prompt(
+            expiresText
+              ? `Desbloqueo de diagnósticos\n\nActivo hasta: ${expiresText}\n\nIntroduce el código`
+              : 'Desbloqueo de diagnósticos\n\nIntroduce el código',
+            currentCode || ''
+          );
+        }
+        const alert = document.createElement('ion-alert');
+        alert.header = 'Desbloquear diagnósticos';
+        alert.message = expiresText
+          ? `Activo hasta: ${expiresText}`
+          : 'Introduce el código de desbloqueo.';
+        alert.inputs = [
+          {
+            name: 'code',
+            type: 'text',
+            placeholder: 'Código',
+            value: currentCode || '',
+            attributes: {
+              autocapitalize: 'off',
+              autocorrect: 'off',
+              spellcheck: 'false'
+            }
+          }
+        ];
+        alert.buttons = [
+          { text: 'Cancelar', role: 'cancel' },
+          { text: 'Validar', role: 'confirm' }
+        ];
+        document.body.appendChild(alert);
+        await alert.present();
+        const result = await alert.onDidDismiss();
+        alert.remove();
+        if (!result || result.role !== 'confirm') return null;
+        const values = result.data && result.data.values ? result.data.values : {};
+        return String(values.code || '').trim();
+      };
+      const code = String(await askCode() || '').trim();
+      if (!code) return false;
+      await fetchDiagnosticsUnlock(code, source, 'issue');
+      const state = readUnlockState();
+      const expiresForMessage =
+        state && state.expiresAtMs && state.expiresAtMs > Date.now()
+          ? new Date(state.expiresAtMs).toLocaleString()
+          : '';
+      presentDiagnosticsMessage(
+        expiresForMessage ? `Diagnósticos desbloqueados hasta ${expiresForMessage}` : 'Diagnósticos desbloqueados'
+      );
+      return true;
+    } catch (err) {
+      clearUnlockState();
+      const reason = err && err.message ? String(err.message) : 'unknown';
+      if (reason !== 'cancel') {
+        presentDiagnosticsMessage('Código inválido o expirado');
+      }
+      return false;
+    } finally {
+      unlockPromptOpen = false;
     }
   };
   const openDiagnostics = () => {
@@ -1409,6 +1759,26 @@ function setupSecretDiagnostics(router) {
     ensureInitialHash();
     window.location.hash = '#/diagnostics';
   };
+  const attemptOpenDiagnostics = async (source = 'double-tap') => {
+    if (unlockValidationInFlight) return false;
+    const code = getUnlockCode();
+    if (!code) {
+      return false;
+    }
+    unlockValidationInFlight = true;
+    try {
+      await fetchDiagnosticsUnlock(code, source, 'revalidate');
+      openDiagnostics();
+      return true;
+    } catch (err) {
+      clearUnlockState();
+      // No hints here: if the unlock expired, fail silently.
+      console.info('[diagnostics] unlock revalidation failed', err && err.message ? err.message : err);
+      return false;
+    } finally {
+      unlockValidationInFlight = false;
+    }
+  };
   const resetDiagnosticsOpening = () => {
     diagnosticsOpening = false;
   };
@@ -1427,11 +1797,7 @@ function setupSecretDiagnostics(router) {
       if (typeof event.stopPropagation === 'function') event.stopPropagation();
       if (typeof event.stopImmediatePropagation === 'function') event.stopImmediatePropagation();
     }
-    const alreadyUnlocked = readUnlocked();
-    if (!alreadyUnlocked) {
-      writeUnlocked();
-    }
-    openDiagnostics();
+    attemptOpenDiagnostics('secret-content-double-tap');
   };
 
   // Selectors whose tap should NOT open diagnostics (they have their own behavior).
@@ -1446,7 +1812,15 @@ function setupSecretDiagnostics(router) {
     '.free-ride-card',
     '.chat-chat-card',
     '.profile-hero-card',
-    '.profile-panel'
+    '.profile-panel',
+    '[data-diagnostics-unlock-version]',
+    '.profile-app-meta',
+    '#compat-version'
+  ].join(',');
+  const DIAG_VERSION_TRIGGER_SELECTOR = [
+    '[data-diagnostics-unlock-version]',
+    '.profile-app-meta',
+    '#compat-version'
   ].join(',');
 
   const handler = (event) => {
@@ -1480,11 +1854,41 @@ function setupSecretDiagnostics(router) {
     onTitleTap(event);
   };
 
+  const versionTapHandler = (event) => {
+    const path = event.composedPath ? event.composedPath() : [event.target];
+    const hasProfileVersion = path.some(
+      (el) =>
+        el &&
+        typeof el.matches === 'function' &&
+        el.matches(DIAG_VERSION_TRIGGER_SELECTOR)
+    );
+    if (!hasProfileVersion) return;
+    const now = Date.now();
+    if (now - lastVersionTapAt > 1200) {
+      versionTapCount = 0;
+    }
+    lastVersionTapAt = now;
+    versionTapCount += 1;
+    if (versionTapCount < 7) return;
+    versionTapCount = 0;
+    lastVersionTapAt = 0;
+    if (event) {
+      if (typeof event.preventDefault === 'function') event.preventDefault();
+      if (typeof event.stopPropagation === 'function') event.stopPropagation();
+      if (typeof event.stopImmediatePropagation === 'function') event.stopImmediatePropagation();
+    }
+    promptDiagnosticsUnlock({ source: 'profile-seven-taps' });
+  };
+
   if (typeof window !== 'undefined' && 'PointerEvent' in window) {
     document.addEventListener('pointerup', handler, true);
+    document.addEventListener('pointerup', versionTapHandler, true);
   } else {
     document.addEventListener('click', handler, true);
+    document.addEventListener('click', versionTapHandler, true);
   }
+
+  window.requestDiagnosticsUnlockPrompt = promptDiagnosticsUnlock;
 }
 
 function setupDiagnosticsModal() {
@@ -1506,6 +1910,7 @@ function setupDiagnosticsModal() {
       document.activeElement.blur();
     }
     syncNativeStatusBarCssHeight();
+    syncNativeSystemInsetsCssVarsWithRetries();
     await modal.present();
   };
 
@@ -1670,11 +2075,6 @@ function setupNativeToastTopOffset() {
 
 function setupLoginModal() {
   let modal = null;
-  const isLoggedIn = () => {
-    const user = window.user;
-    return Boolean(user && user.id !== undefined && user.id !== null);
-  };
-
   const applyLoginModalLock = (locked) => {
     if (!modal) return;
     modal.dataset.locked = locked ? 'true' : 'false';
@@ -1704,7 +2104,7 @@ function setupLoginModal() {
       options && Object.prototype.hasOwnProperty.call(options, 'locked');
     const locked = hasExplicitLockedOption
       ? Boolean(options.locked)
-      : hasLoginTabsLock() && !isLoggedIn();
+      : hasLoginTabsLock() && !isLoggedInNow();
     applyLoginModalLock(locked);
 
     if (modal.presented || modal.isOpen) {

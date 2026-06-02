@@ -5,6 +5,7 @@ import { getTabsCopy, normalizeLocale as normalizeCopyLocale } from '../content/
 class TabsPage extends HTMLElement {
   connectedCallback() {
     this.classList.add('ion-page');
+    this.classList.add('tabs-page-hydrating');
 
     const TAB_STORAGE_KEY = 'appv5:active-tab';
     const REFERENCE_TAB_ENABLED_KEY = 'appv5:reference-tab-enabled';
@@ -82,6 +83,13 @@ class TabsPage extends HTMLElement {
     const initialLocked = hasLoginTabsLock() && !initialLoggedIn;
     const initialSelectedTab = (initialLocked || !onboardingDone()) ? 'tu' : 'home';
     const initialHideTabBar = initialLocked;
+    let tabsHydrationComplete = false;
+    const finishTabsHydration = () => {
+      if (tabsHydrationComplete) return;
+      tabsHydrationComplete = true;
+      this.classList.remove('tabs-page-hydrating');
+      this.removeAttribute('aria-busy');
+    };
 
     this.innerHTML = `
       <ion-tabs no-router selected-tab="${initialSelectedTab}">
@@ -225,7 +233,7 @@ class TabsPage extends HTMLElement {
       const normalizedTab = normalizeTab(tab);
       if (!normalizedTab || !isAllowedTab(normalizedTab)) return;
       forcingTab = true;
-      tabsEl
+      return tabsEl
         .select(normalizedTab)
         .then(() => {
           applyTabBarVisibility();
@@ -456,17 +464,22 @@ class TabsPage extends HTMLElement {
 
     if (isTabsLocked()) {
       enforceLoginTabsLock(false);
+      forceTab(getLoginTargetTab())?.finally(() => {
+        requestAnimationFrame(finishTabsHydration);
+      });
       return;
     }
 
     const storedTab = normalizeTab(readStoredTab());
-    if (storedTab && isAllowedTab(storedTab)) {
-      setTimeout(() => {
-        forceTab(storedTab);
-      }, 0);
-    } else if (storedTab && !isAllowedTab(storedTab)) {
+    const preferredTab = storedTab && isAllowedTab(storedTab)
+      ? storedTab
+      : initialSelectedTab;
+    if (storedTab && !isAllowedTab(storedTab)) {
       writeStoredTab(getAllowedTabs()[0] || 'home');
     }
+    forceTab(preferredTab)?.finally(() => {
+      requestAnimationFrame(finishTabsHydration);
+    });
   }
 
   disconnectedCallback() {

@@ -1,4 +1,6 @@
 const SUPPORTED_LOCALES = new Set(['es', 'en']);
+const APP_COPY_URL = new URL('../../data/app-copy.json', import.meta.url).href;
+const EMPTY_APP_COPY = { es: {}, en: {} };
 
 export const LOCALE_META = {
   es: {
@@ -17,1002 +19,37 @@ export const LOCALE_META = {
   }
 };
 
-const APP_COPY = {
-  es: {
-    tabs: {
-      training: 'Training',
-      lab: 'Lab',
-      reference: 'Referencia',
-      you: 'Profile',
-      chat: 'Chat'
-    },
-    reference: {
-      title: 'Referencia',
-      subtitle: 'Explora cursos, unidades y lecciones para consultar contenido.',
-      selectedLesson: 'Lección seleccionada',
-      noContent: 'No hay contenido para esta lección.',
-      loading: 'Cargando referencia...',
-      lessonListEmpty: 'Esta unidad no tiene lecciones.',
-      backToList: 'Volver',
-      lessonTabContent: 'Contenido',
-      lessonTabTests: 'Tests',
-      prev: 'Anterior',
-      next: 'Siguiente',
-      lessonTests: 'Tests de la lección',
-      unitTests: 'Tests de la unidad',
-      testsLoading: 'Cargando tests...',
-      testsLoadError: 'No se pudieron cargar los tests de referencia.',
-      testsEmpty: 'No hay tests disponibles para esta lección o unidad.',
-      testsQuestions: '{n} preguntas',
-      testsQuestionLabel: 'Pregunta {n}',
-      testsWordBank: 'Banco de palabras',
-      testsTapWords: 'Toca las palabras en orden para formar la respuesta.',
-      testsAnswerPlaceholder: 'Respuesta',
-      testsCheck: 'Corregir',
-      testsReset: 'Reset',
-      testsCorrect: 'Correcto',
-      testsIncorrect: 'Incorrecto',
-      testsResult: 'Resultado',
-      testsYourAnswer: 'Tu respuesta',
-      testsCorrectAnswer: 'Respuesta correcta',
-      testsExplanation: 'Explicación',
-      testsNoAnswer: 'Sin respuesta',
-      testsSelectedTest: 'Test seleccionado',
-      testsPickOne: 'Selecciona un test para empezar.',
-      ribbonLabelOne: 'ribbon',
-      ribbonLabelOther: 'ribbons',
-      unitRewardPopupTitle: 'Unidad completada',
-      unitRewardPopupStatus: 'Has completado esta unidad.',
-      unitRewardPopupReward: 'Has ganado 1 ribbon.',
-      toolFilterAll: 'Todas',
-      toolFilterFeatured: 'Destacadas',
-      verbPresent: 'Presente',
-      verbPastSimple: 'Pasado simple',
-      verbPastParticiple: 'Participio',
-      verbGerund: 'Gerundio',
-      tabCourses: 'Cursos',
-      tabTools: 'Herramientas',
-      toolsSubtitle: 'Explora vocabulario, expresiones, verbos y más.',
-      toolTranslator: 'Traductor',
-      toolVocabulary: 'Vocabulario',
-      toolExpressions: 'Expresiones',
-      toolProverbs: 'Refranes',
-      toolQuotes: 'Citas',
-      toolRegVerbs: 'Verbos regulares',
-      toolIrregVerbs: 'Verbos irregulares',
-      toolPhrasalVerbs: 'Phrasal verbs',
-      toolArticles: 'Artículos',
-      toolCheatSheets: 'Chuletas',
-      translatorPlaceholder: 'Escribe una palabra, frase o texto breve',
-      translatorTranslate: 'Traducir',
-      translatorWorking: 'Traduciendo...',
-      translatorEmpty: 'Escribe algo para traducir.',
-      translatorError: 'No se pudo completar la traducción.',
-      translatorSource: 'Texto original',
-      translatorResult: 'Traducción',
-      translatorAlternatives: 'Posibles traducciones',
-      translatorSyntax: 'Análisis sintáctico',
-      translatorWords: 'Palabras clave',
-      translatorDetected: 'Idioma detectado',
-      translatorNoSyntax: 'No hay análisis sintáctico disponible.',
-      translatorNoWords: 'No hay detalles léxicos disponibles para este texto.',
-      conjugate: 'Conjugar',
-      conjMoodAffirmative: 'Afirmativa',
-      conjMoodInterrogative: 'Interrogativa',
-      conjMoodNegative: 'Negativa'
-    },
-    notifications: {
-      title: 'Notificaciones',
-      recentActivity: 'Actividad reciente',
-      empty: 'No hay notificaciones todavia.',
-      statusNew: 'Nueva',
-      statusRead: 'Leida',
-      deleteAction: 'Eliminar',
-      openAction: 'Abrir',
-      elapsedNow: 'Hace un momento',
-      elapsedMinutes: 'Hace {n} min',
-      elapsedHours: 'Hace {n} h',
-      elapsedDays: 'Hace {n} d',
-      pushDefaultTitle: 'Nueva notificacion',
-      defaultTitle: 'Notificacion',
-      demo: {
-        weakWordsTitle: 'Tienes {n} palabras flojas',
-        weakWordsText: 'Ve a Review y mejora tu pronunciacion.',
-        weakWordsAction: 'Revisar',
-        badgeTitle: 'Nuevo badge desbloqueado',
-        badgeText: 'Racha de 3 dias completada.',
-        badgeAction: 'Ver perfil',
-        practiceTitle: 'Mini practica lista',
-        practiceText: 'Solo 2 minutos para hoy.',
-        practiceAction: 'Practicar',
-        coachTitle: 'Coach listo para ti',
-        coachText: 'Pregunta algo al coach.',
-        coachAction: 'Abrir coach',
-        reminderTitle: 'Recordatorio',
-        reminderText: 'Practica 5 minutos hoy.',
-        reminderAction: 'Ir a Home',
-        infoTitle: 'Novedad',
-        infoText: 'Hay nuevos ejercicios disponibles.'
-      }
-    },
-    login: {
-      title: 'Login',
-      close: 'Cerrar',
-      socialGoogle: 'Login',
-      socialFacebook: 'Login',
-      socialApple: 'Login',
-      continueWithEmail: 'Continuar con email',
-      passPlaceholder: '********',
-      forgotPassword: 'Recuperar contraseña',
-      registerTitle: 'Crear cuenta',
-      registerSubtitle: 'Completa los datos para registrarte.',
-      registerUserLabel: 'Nombre de usuario',
-      registerUserPlaceholder: 'tu nombre',
-      registerEmailLabel: 'Email',
-      registerEmailPlaceholder: 'tu email',
-      registerPassLabel: 'Contraseña',
-      registerPassPlaceholder: '********',
-      registerPassConfirmLabel: 'Confirmar contraseña',
-      registerPassConfirmPlaceholder: '********',
-      registerTerms: 'Acepto las condiciones de uso',
-      registerSubmit: 'Crear cuenta',
-      registerBack: 'Volver a iniciar sesion',
-      recoverTitle: 'Recuperar contraseña',
-      recoverSubtitle: 'Te enviaremos un correo para restablecerla.',
-      recoverEmailLabel: 'Email',
-      recoverEmailPlaceholder: 'tu email',
-      recoverSubmit: 'Enviar instrucciones',
-      recoverBack: 'Volver',
-      magicEmailLabel: 'Tu email',
-      magicEmailPlaceholder: 'tu@email.com',
-      magicSubmit: 'Enviar enlace de acceso',
-      passwordOptionDivider: 'o entra con contraseña',
-      passwordOptionalLabel: 'Contraseña si ya la tienes',
-      loginCreateSubmit: 'Continuar con contraseña',
-      magicBack: 'Volver',
-      magicSentTitle: '¡Enlace enviado!',
-      magicSentMessage: 'Revisa tu bandeja de entrada. El enlace expira en 15 minutos.',
-      magicResend: 'Reenviar enlace',
-      magicOtpLabel: 'O introduce el código del email:',
-      alertHeader: 'Atencion',
-      alertOk: 'Ok',
-      errors: {
-        loginGeneric: 'Error de login',
-        loginInvalidPassword: 'La contraseña no es válida',
-        loginNoUserData: 'Login correcto, pero sin datos de usuario',
-        socialAppleUnavailable: 'Login con Apple no disponible.',
-        socialAppleOnlyApp: 'Login con Apple solo disponible en la app.',
-        socialAppleOpenFailed: 'No se pudo abrir Apple.',
-        socialGoogleUnavailable: 'Login con Google no disponible.',
-        socialGoogleOnlyApp: 'Login con Google solo disponible en la app.',
-        socialGoogleOpenFailed: 'No se pudo abrir Google.',
-        socialFacebookUnavailable: 'Login con Fb no disponible.',
-        socialFacebookOnlyApp: 'Login con Fb solo disponible en la app.',
-        socialFacebookOpenFailed: 'No se pudo abrir Facebook.',
-        registerMissingFields: 'Introduce los datos, por favor.',
-        registerPasswordMismatch: 'La confirmacion no coincide con la contraseña.',
-        registerTermsRequired: 'Debes aceptar las condiciones de uso.',
-        registerFailed: 'Error creando la cuenta',
-        recoverEmailRequired: 'Debes introducir tu email.',
-        recoverFailed: 'No se pudo enviar el email',
-        magicEmailRequired: 'Debes introducir tu email.',
-        magicEmailInvalid: 'El email no tiene un formato válido.',
-        emailStatusFailed: 'No se pudo verificar el email. Inténtalo de nuevo.',
-        loginCreateUseAccessLink: 'Esta cuenta debe acceder con enlace de acceso.',
-        magicFailed: 'No se pudo enviar el enlace. Inténtalo de nuevo.',
-        magicOtpRequired: 'Introduce el código de 6 dígitos.',
-        magicOtpFailed: 'Código incorrecto o expirado.'
-      },
-      info: {
-        registerSuccess: 'Gracias. Revisa tu email para activar tu cuenta.',
-        recoverSuccess: 'Te hemos enviado un correo con instrucciones para restablecer tu contraseña.'
-      }
-    },
-    onboarding: {
-      cta: 'Continuar',
-      slides: {
-        natural: {
-          subtitle: 'Entrena con sesiones cortas y efectivas',
-          titleLines: [
-            { text: 'Mejora tu', accent: false },
-            { text: 'pronunciación', accent: true },
-            { text: 'del inglés', accent: false },
-            { text: 'sonido por sonido', accent: true }
-          ],
-          steps: [
-            { num: '1', label: 'Escucha', icon: 'ear-outline', tone: 'violet' },
-            { num: '2', label: 'Repite', icon: 'mic-outline', tone: 'blue' },
-            { num: '3', label: 'Mejora', icon: 'trending-up-outline', tone: 'mint' }
-          ],
-          cta: 'Empezar gratis'
-        }
-      }
-    },
-    home: {
-      planTitle: 'Tu plan',
-      planMessage:
-        'Este es tu plan para sonar como nativo.<br>Toca esta tarjeta para escucharlo otra vez.',
-      go: 'Continuar',
-      routeProgress: 'progreso',
-      unlockAfter: 'Desbloquea después de',
-      sessionsCompleted: 'sesiones completadas'
-    },
-    freeRide: {
-      title: 'Lab',
-      subtitle: 'Escribe tu frase o texto y practica pronunciacion libre.',
-      inputLabel: 'Tu frase',
-      inputPlaceholder: 'Puedes escribir en español o en inglés. Ejemplo: Quiero pedir un café.',
-      emptyPhrase: 'Escribe una frase para practicar.',
-      playPhrase: 'Escuchar frase',
-      sayLabel: 'Habla',
-      endLabel: 'Fin',
-      yourVoiceLabel: 'Tu voz',
-      feedbackHint: 'Practica la frase',
-      translationLocalNotInstalled: 'Traductor local disponible, pero modelo no instalado.',
-      translationBackendError: 'No se pudo traducir con el servidor. Inténtalo de nuevo.',
-      translationError: 'No se pudo traducir ahora mismo.',
-      translationPending: 'Traducción pendiente',
-      translateAction: 'Traducir',
-      resultExcellent: 'Excelente',
-      resultRegular: 'Regular',
-      resultIncorrect: 'Incorrecto',
-      resultMatchLabel: 'match',
-      transcribing: 'Transcribiendo...'
-    },
-    speak: {
-      practiceSound: 'Ahora inténtalo →',
-      practiceWords: 'Di la palabra →',
-      practicePhrase: 'Di la frase →',
-      resultBanner: 'Resultado',
-      summaryScoreLabel: 'Puntuación final',
-      summaryHeadlineGood: '¡Excelente!',
-      summaryHeadlineOkay: '¡Buen trabajo!',
-      summaryHeadlineBad: 'Sigue practicando',
-      summarySublineGood: 'Has completado {{session}}.',
-      summarySublineOkay: 'Sigue practicando {{session}}.',
-      summarySublineBad: 'Vuelve a intentarlo con {{session}}.',
-      summaryPillGood: '¡Muy bien!',
-      summaryPillOkay: 'Vas bien',
-      summaryPillBad: 'A mejorar',
-      summaryHintGood: 'Sigue practicando y mejorarás aún más.',
-      summaryHintOkay: 'Sigue practicando y lo clavarás pronto.',
-      summaryHintBad: 'Sigue practicando: cada intento cuenta.',
-      summaryPhaseWords: 'Fase de palabras',
-      summaryPhasePhrase: 'Fase de frase',
-      heroNarration: '¡Vamos a seguir practicando!',
-      soundStepSubtitle: 'Escucha el audio y repite el sonido',
-      transcribing: 'Transcribiendo...',
-      feedbackNative: 'Suena como un nativo',
-      feedbackGood: 'Bien. Sigue practicando',
-      feedbackAlmost: 'Casi correcto',
-      feedbackKeep: 'Sigue practicando',
-      summaryTitleTemplates: {
-        good: ['Muy bien! aprendiste {{session}}', 'Excelente! completaste {{session}}'],
-        okay: ['Buen trabajo! sigue practicando {{session}}', 'Vas bien! repasa {{session}}'],
-        bad: ['No pasa nada, practica {{session}}', 'Sigue intentandolo con {{session}}']
-      },
-      summaryPhrases: {
-        good: ['Excelente. Suenas natural'],
-        okay: ['Buen progreso'],
-        bad: ['Necesita práctica'],
-        neutral: ['Aún no iniciada']
-      },
-      summaryLabelPrefix: 'GANAS',
-      summaryBadgeUnlocked: 'Badge desbloqueado: {route}',
-      summaryContinue: 'Continuar',
-      practiceAgainAnytime: '(Practica de nuevo cuando quieras)',
-      stepBanner: 'Paso {step} de {total}',
-      listen: 'Escuchar',
-      stepTitleSound: 'Escucha con atención y repite',
-      stepTitleSpelling: 'Di el sonido en palabras',
-      stepTitleSentence: 'Di una frase completa'
-    },
-    chat: {
-      modeCatbot: 'Catbot',
-      modePublic: 'Publico',
-      modePrivate: 'Privado',
-      modeCoach: 'Coach',
-      modeChatbot: 'Chatbot',
-      modeCommunity: 'Comunidad',
-      communityTabPublic: 'Publico',
-      communityTabChats: 'Chats',
-      coachCatbotTitle: 'Coach de pronunciacion',
-      coachCatbotSubtitle: 'Comprueba tu pronunciación practicando.',
-      coachChatbotTitle: 'Coach de IA',
-      coachChatbotSubtitle: 'Interactua libremente con el tutor de Ingles.',
-      coachCommunityTitle: 'Comunidad',
-      coachCommunitySubtitle: 'Habla con otros estudiantes.',
-      coachPrivateTitle: 'Chats privados',
-      coachPrivateSubtitle: 'Habla en privado con otros usuarios conectados.',
-      loadingUser: 'Cargando estado de usuario...',
-      loginRequired: 'Debes iniciar sesion para usar el coach de chat.',
-      loginCta: 'Iniciar sesion',
-      planLocked: 'Chat no disponible para este usuario.',
-      planUpgrade: 'Actualiza tu plan para desbloquear esta funcionalidad.',
-      inputPlaceholder: 'Escribe tu mensaje...',
-      inputPlaceholderCommunity: 'Escribe al canal publico...',
-      inputPlaceholderCommunityDm: 'Escribe un mensaje directo...',
-      record: 'Grabar',
-      stop: 'Detener',
-      cancel: 'Cancelar',
-      play: 'Reproducir',
-      listen: 'Escuchar',
-      repeat: 'Repetir',
-      retrySend: 'Reintentar',
-      messageSending: 'Enviando',
-      messageSent: 'Enviado',
-      send: 'Enviar',
-      hintDefault: 'Pulsa [record] y luego [stop] para crear tu frase.',
-      hintDailyLimitWithCount: 'Limite diario alcanzado: {used} / {limit} tokens. Vuelve manana.',
-      hintDailyLimit: 'Limite diario del chatbot alcanzado. Vuelve manana.',
-      hintListening: 'Escuchando: "{preview}"',
-      hintNoAudio: 'No se detecto audio. Pulsa "Grabar" para intentarlo de nuevo.',
-      hintRecordingTranscribing: 'Grabando... habla en ingles y pulsa "Detener".',
-      hintRecordingSimulated: 'Grabando... pulsa "Detener" (transcripcion simulada).',
-      hintRecordingGeneric: 'Grabando... pulsa "Detener" cuando termines.',
-      hintTranscribing: 'Transcribiendo...',
-      hintProcessing: 'Procesando audio...',
-      hintRecordAgain: 'Puedes grabar otra frase cuando quieras.',
-      serverUnavailable: 'El servidor no esta disponible ahora. Prueba mas tarde.',
-      realtimeDisconnected: 'Conexion en tiempo real no disponible. Reintentando...',
-      realtimeDisconnectedToast: 'Chat desconectado. Espera unos segundos y prueba de nuevo.',
-      communityRealtimeDisconnected: 'Chat publico desconectado. Reintentando...',
-      communityHistoryLoading: 'Cargando mensajes del canal publico...',
-      communityHistoryEmpty: 'Aun no hay mensajes en el canal publico.',
-      communityHistoryError: 'No se pudo cargar el canal publico.',
-      communitySendError: 'No se pudo enviar el mensaje al canal publico.',
-      communityRoomsLoading: 'Cargando chats privados...',
-      communityRoomsError: 'No se pudieron cargar los chats privados.',
-      communityDmSendError: 'No se pudo enviar el mensaje privado.',
-      communityDmOpenError: 'No se pudo abrir el chat privado.',
-      communityPresenceTemplate: '{n} online',
-      communityYou: 'Tu',
-      communityRequestsTitle: 'Solicitudes',
-      communityRequestsLoading: 'Cargando solicitudes...',
-      communityNoRequests: 'No tienes solicitudes pendientes.',
-      communityRequestPromptTitle: 'Nuevo chat privado',
-      communityRequestPromptMessage: 'Escribe el primer mensaje para {name}.',
-      communityRequestPlaceholder: 'Escribe un mensaje...',
-      communityRequestSend: 'Enviar solicitud',
-      communityRequestSent: 'Solicitud enviada.',
-      communityRequestSendError: 'No se pudo enviar la solicitud.',
-      communityRequestAccepted: 'Solicitud aceptada.',
-      communityRequestDeclined: 'Solicitud rechazada.',
-      communityRequestBlocked: 'Usuario bloqueado.',
-      communityRequestResolveError: 'No se pudo procesar la solicitud.',
-      communityRequestAccept: 'Aceptar',
-      communityRequestDecline: 'Rechazar',
-      communityRequestBlock: 'Bloquear',
-      communityRequestBlockedNotice: 'No se puede abrir un chat privado con este usuario.',
-      communityRequestDeclinedNotice: 'La solicitud no fue aceptada.',
-      communityBlockedBadge: 'Bloqueado',
-      communityBlockUser: 'Bloquear usuario',
-      communityUnblockUser: 'Desbloquear usuario',
-      communityUserUnblocked: 'Usuario desbloqueado.',
-      communityBlockActionError: 'No se pudo actualizar el bloqueo.',
-      communityRequestIncomingLabel: '{name} quiere hablar contigo.',
-      communityRequestPendingOutgoing: 'Solicitud pendiente',
-      communityRequestAlreadyPending: 'Ya tienes una solicitud pendiente con este usuario.',
-      communityChatsTitle: 'Tus chats',
-      communityOnlineUsersTitle: 'Usuarios online',
-      communityNoChats: 'Todavia no tienes chats privados.',
-      communityNoOnlineUsers: 'No hay otros usuarios online ahora.',
-      communitySelectChat: 'Selecciona un chat o inicia uno desde la lista.',
-      communityStartChat: 'Abrir chat',
-      communityBackToChats: 'Volver a chats',
-      communityManage: 'Gestionar',
-      communityDone: 'Listo',
-      communityShowArchived: 'Ver archivados',
-      communityArchiveChat: 'Archivar chat',
-      communityRestoreChat: 'Restaurar chat',
-      communityDeleteChatLocal: 'Borrar local',
-      communityArchivedBadge: 'Archivado',
-      communityNoVisibleChats: 'No hay chats visibles.',
-      communityNoArchivedChats: 'No hay chats archivados.',
-      communityDeleteLocalConfirm:
-        'Este chat se ocultara solo en este dispositivo. Volvera a aparecer si recibe mensajes nuevos. ¿Continuar?',
-      communityOnlineNow: 'Online ahora',
-      communityYesterday: 'Ayer',
-      communityPublicBadge: 'Sala publica',
-      communityDmBadge: 'Mensaje directo',
-      communityNoPeerName: 'Usuario',
-      transcriptReady: 'Transcripcion lista',
-      transcriptSimulated: 'Transcripcion simulada',
-      transcriptionUnavailable: 'Transcripcion real no disponible.',
-      transcriptionFailed: 'No se pudo transcribir.',
-      microphoneUnavailable: 'Microfono no disponible.',
-      microphoneAccessFailed: 'No se pudo acceder al microfono.',
-      typingAria: 'Escribiendo...',
-      introChatbot: 'Hi!, i am your English teacher, how can i help you?',
-      introCatbot: 'Hi! Record a phrase in English and I will answer with a suggestion.',
-      introCommunity: 'Bienvenido al canal publico.',
-      introCommunityDm: 'Selecciona un chat privado para empezar.',
-      sampleTranscripts: [
-        'I would like to order a coffee, please.',
-        'Can you help me find the train station?',
-        'I am practicing my pronunciation today.',
-        'Could you repeat that a little slower?',
-        'I have a meeting at three o clock.',
-        'What do you recommend for dinner?'
-      ],
-      botTemplates: [
-        'Bien. Intenta marcar las palabras clave: "{text}"',
-        'Buen trabajo. Ahora dilo un poco mas despacio: "{text}"',
-        'Buen inicio. Enlaza mejor las palabras: "{text}"',
-        'Prueba esta version con una "t" mas suave: "{text}"',
-        'Repitamos con vocales mas claras: "{text}"'
-      ]
-    },
-    profile: {
-      loginTitle: 'Inicia sesión',
-      loginSubtitle: 'Debes iniciar sesión para ver tu perfil.',
-      contact: 'Contacto',
-      subscriptionSupportMail: 'Enviar mail soporte subscripción',
-      legal: 'Avisos legales',
-      close: 'Cerrar',
-      progressLabel: 'Progreso',
-      badgesEmpty: 'Aún no has desbloqueado badges.',
-      tabPrefs: 'Perfil',
-      tabReview: 'Review',
-      changePhoto: 'Cambiar foto',
-      deletePhoto: 'Reiniciar',
-      interfaceLanguage: 'Lenguaje interfaz',
-      firstName: 'Nombre',
-      lastName: 'Apellidos',
-      password: 'Contraseña',
-      passwordNewPlaceholder: 'Nueva contraseña',
-      passwordRepeat: 'Repetir contraseña',
-      passwordRepeatPlaceholder: 'Repite la contraseña',
-      email: 'Email',
-      subscriptionUntil: 'Suscripción hasta',
-      saveChanges: 'Guardar cambios',
-      logout: 'Cerrar sesión',
-      restorePurchases: 'Recuperar compras',
-      deleteAccount: 'Eliminar cuenta',
-      deleteAccountHint:
-        'Se eliminará tu cuenta y se cerrará la sesión. La suscripción de App Store o Google Play no se cancela automaticamente.',
-      deleteAccountConfirmTitle: 'Eliminar cuenta',
-      deleteAccountConfirmMessage:
-        'Esta acción es permanente. Tu suscripción de App Store o Google Play no se cancela automaticamente.',
-      deleteAccountConfirmEmailLabel: 'Escribe este email para confirmar: {value}',
-      deleteAccountConfirmKeywordLabel: 'Escribe DELETE para confirmar.',
-      deleteAccountConfirmPlaceholderEmail: 'tu@email.com',
-      deleteAccountConfirmPlaceholderKeyword: 'DELETE',
-      deleteAccountConfirmCancel: 'Cancelar',
-      deleteAccountConfirmAccept: 'Eliminar',
-      deleteAccountConfirmMismatch: 'La confirmación no coincide.',
-      deleteAccountFailed: 'No se pudo eliminar la cuenta.',
-      deleteAccountDeletedTitle: 'Cuenta eliminada',
-      deleteAccountDeletedMessage: 'Tu cuenta se ha eliminado y la sesión se ha cerrado.',
-      reviewWordsTitle: 'Palabras a revisar',
-      reviewPhrasesTitle: 'Frases a revisar',
-      reviewTestsTitle: 'Tests a revisar',
-      reviewToneRedLabel: 'rojo',
-      reviewToneYellowLabel: 'amarillo',
-      reviewWordsEmpty: 'Aún no hay palabras en {tone}.',
-      reviewPhrasesEmpty: 'No hay frases en {tone}.',
-      reviewTestsEmpty: 'No hay tests en {tone}.',
-      reviewLess: 'Menos',
-      reviewLessonTestLabel: 'Test de lección',
-      reviewUnitTestLabel: 'Test de unidad',
-      trainingTrophies: 'Copas training',
-      referenceMedals: 'Medallas reference',
-      userFallbackName: 'Usuario',
-      profileAvatarAlt: 'Avatar perfil',
-      appMetaNA: 'v n/d',
-      expiryNA: 'n/a',
-      passwordBothRequired: 'Completa las dos contraseñas.',
-      passwordMismatch: 'Las contraseñas no coinciden.',
-      fileReadError: 'No se pudo leer el archivo.',
-      fileFormatError: 'Formato no permitido. Usa JPG, PNG o GIF.',
-      fileTooLarge: 'Archivo demasiado grande. Max 500 KB.',
-      profileUpdateFailed: 'No se pudo actualizar el perfil.',
-      profileUpdated: 'Perfil actualizado.',
-      avatarUploadFailed: 'No se pudo subir el avatar.',
-      avatarUpdated: 'Avatar actualizado.',
-      avatarDeleteFailed: 'No se pudo eliminar el avatar.',
-      avatarDeleted: 'Avatar eliminado.',
-      genericActionError: 'No se pudo completar la accion.'
+const isPlainObject = (value) => Boolean(value && typeof value === 'object' && !Array.isArray(value));
+
+const loadAppCopyPayload = () => {
+  if (typeof window === 'undefined' || typeof XMLHttpRequest === 'undefined') {
+    return EMPTY_APP_COPY;
+  }
+
+  try {
+    const xhr = new XMLHttpRequest();
+    const cacheBustedUrl = `${APP_COPY_URL}${APP_COPY_URL.includes('?') ? '&' : '?'}_ts=${Date.now()}`;
+    xhr.open('GET', cacheBustedUrl, false);
+    xhr.setRequestHeader('Cache-Control', 'no-cache');
+    xhr.setRequestHeader('Pragma', 'no-cache');
+    xhr.send(null);
+
+    if (xhr.status && xhr.status !== 0 && (xhr.status < 200 || xhr.status >= 300)) {
+      throw new Error(`HTTP ${xhr.status}`);
     }
-  },
-  en: {
-    tabs: {
-      training: 'Training',
-      lab: 'Lab',
-      reference: 'Reference',
-      you: 'Profile',
-      chat: 'Chat'
-    },
-    reference: {
-      title: 'Reference',
-      subtitle: 'Browse courses, units, and lessons to review content.',
-      selectedLesson: 'Selected lesson',
-      noContent: 'No content available for this lesson.',
-      loading: 'Loading reference...',
-      lessonListEmpty: 'This unit has no lessons.',
-      backToList: 'Back',
-      lessonTabContent: 'Content',
-      lessonTabTests: 'Tests',
-      prev: 'Previous',
-      next: 'Next',
-      lessonTests: 'Lesson tests',
-      unitTests: 'Unit tests',
-      testsLoading: 'Loading tests...',
-      testsLoadError: 'Reference tests could not be loaded.',
-      testsEmpty: 'No tests are available for this lesson or unit.',
-      testsQuestions: '{n} questions',
-      testsQuestionLabel: 'Question {n}',
-      testsWordBank: 'Word bank',
-      testsTapWords: 'Tap the words in order to build the answer.',
-      testsAnswerPlaceholder: 'Answer',
-      testsCheck: 'Check answers',
-      testsReset: 'Reset',
-      testsCorrect: 'Correct',
-      testsIncorrect: 'Incorrect',
-      testsResult: 'Result',
-      testsYourAnswer: 'Your answer',
-      testsCorrectAnswer: 'Correct answer',
-      testsExplanation: 'Explanation',
-      testsNoAnswer: 'No answer',
-      testsSelectedTest: 'Selected test',
-      testsPickOne: 'Select a test to get started.',
-      ribbonLabelOne: 'ribbon',
-      ribbonLabelOther: 'ribbons',
-      unitRewardPopupTitle: 'Unit completed',
-      unitRewardPopupStatus: 'You completed this unit.',
-      unitRewardPopupReward: 'You earned 1 ribbon.',
-      toolFilterAll: 'All',
-      toolFilterFeatured: 'Featured',
-      verbPresent: 'Present',
-      verbPastSimple: 'Past simple',
-      verbPastParticiple: 'Past participle',
-      verbGerund: 'Gerund',
-      tabCourses: 'Courses',
-      tabTools: 'Tools',
-      toolsSubtitle: 'Explore vocabulary, expressions, verbs and more.',
-      toolTranslator: 'Translator',
-      toolVocabulary: 'Vocabulary',
-      toolExpressions: 'Expressions',
-      toolProverbs: 'Proverbs',
-      toolQuotes: 'Quotes',
-      toolRegVerbs: 'Regular verbs',
-      toolIrregVerbs: 'Irregular verbs',
-      toolPhrasalVerbs: 'Phrasal verbs',
-      toolArticles: 'Articles',
-      toolCheatSheets: 'Cheat sheets',
-      translatorPlaceholder: 'Type a word, phrase or short text',
-      translatorTranslate: 'Translate',
-      translatorWorking: 'Translating...',
-      translatorEmpty: 'Type something to translate.',
-      translatorError: 'The translation could not be completed.',
-      translatorSource: 'Original text',
-      translatorResult: 'Translation',
-      translatorAlternatives: 'Possible translations',
-      translatorSyntax: 'Syntax analysis',
-      translatorWords: 'Key words',
-      translatorDetected: 'Detected language',
-      translatorNoSyntax: 'No syntax analysis is available.',
-      translatorNoWords: 'No lexical details are available for this text.',
-      conjugate: 'Conjugate',
-      conjMoodAffirmative: 'Affirmative',
-      conjMoodInterrogative: 'Interrogative',
-      conjMoodNegative: 'Negative'
-    },
-    notifications: {
-      title: 'Notifications',
-      recentActivity: 'Recent activity',
-      empty: 'No notifications yet.',
-      statusNew: 'New',
-      statusRead: 'Read',
-      deleteAction: 'Delete',
-      openAction: 'Open',
-      elapsedNow: 'Just now',
-      elapsedMinutes: '{n} min ago',
-      elapsedHours: '{n} h ago',
-      elapsedDays: '{n} d ago',
-      pushDefaultTitle: 'New notification',
-      defaultTitle: 'Notification',
-      demo: {
-        weakWordsTitle: 'You have {n} weak words',
-        weakWordsText: 'Go to Review and improve pronunciation.',
-        weakWordsAction: 'Review',
-        badgeTitle: 'New badge unlocked',
-        badgeText: '3-day streak completed.',
-        badgeAction: 'View profile',
-        practiceTitle: 'Mini practice ready',
-        practiceText: 'Just 2 minutes for today.',
-        practiceAction: 'Practice',
-        coachTitle: 'Coach is ready',
-        coachText: 'Ask the coach something.',
-        coachAction: 'Open coach',
-        reminderTitle: 'Reminder',
-        reminderText: 'Practice 5 minutes today.',
-        reminderAction: 'Go to Home',
-        infoTitle: 'Update',
-        infoText: 'New exercises are available.'
-      }
-    },
-    login: {
-      title: 'Login',
-      close: 'Close',
-      socialGoogle: 'Login',
-      socialFacebook: 'Login',
-      socialApple: 'Login',
-      continueWithEmail: 'Continue with email',
-      passPlaceholder: '********',
-      forgotPassword: 'Recover password',
-      registerTitle: 'Create account',
-      registerSubtitle: 'Complete your details to register.',
-      registerUserLabel: 'Username',
-      registerUserPlaceholder: 'your name',
-      registerEmailLabel: 'Email',
-      registerEmailPlaceholder: 'your email',
-      registerPassLabel: 'Password',
-      registerPassPlaceholder: '********',
-      registerPassConfirmLabel: 'Confirm password',
-      registerPassConfirmPlaceholder: '********',
-      registerTerms: 'I accept the terms of use',
-      registerSubmit: 'Create account',
-      registerBack: 'Back to login',
-      recoverTitle: 'Recover password',
-      recoverSubtitle: 'We will send you an email to reset it.',
-      recoverEmailLabel: 'Email',
-      recoverEmailPlaceholder: 'your email',
-      recoverSubmit: 'Send instructions',
-      recoverBack: 'Back to login',
-      magicEmailLabel: 'Your email',
-      magicEmailPlaceholder: 'you@email.com',
-      magicSubmit: 'Send access link',
-      passwordOptionDivider: 'or sign in with password',
-      passwordOptionalLabel: 'Password if you already have one',
-      loginCreateSubmit: 'Continue with password',
-      magicBack: 'Back',
-      magicSentTitle: 'Link sent!',
-      magicSentMessage: 'Check your inbox. The link expires in 15 minutes.',
-      magicResend: 'Resend link',
-      magicOtpLabel: 'Or enter the code from the email:',
-      alertHeader: 'Notice',
-      alertOk: 'Ok',
-      errors: {
-        loginGeneric: 'Login error',
-        loginInvalidPassword: 'Password is not valid',
-        loginNoUserData: 'Login ok, but without user data',
-        socialAppleUnavailable: 'Apple login is not available.',
-        socialAppleOnlyApp: 'Apple login is only available in the app.',
-        socialAppleOpenFailed: 'Could not open Apple.',
-        socialGoogleUnavailable: 'Google login is not available.',
-        socialGoogleOnlyApp: 'Google login is only available in the app.',
-        socialGoogleOpenFailed: 'Could not open Google.',
-        socialFacebookUnavailable: 'Facebook login is not available.',
-        socialFacebookOnlyApp: 'Facebook login is only available in the app.',
-        socialFacebookOpenFailed: 'Could not open Facebook.',
-        registerMissingFields: 'Please complete all fields.',
-        registerPasswordMismatch: 'Confirmation does not match password.',
-        registerTermsRequired: 'You must accept the terms of use.',
-        registerFailed: 'Error creating account',
-        recoverEmailRequired: 'You must enter your email.',
-        recoverFailed: 'Could not send email',
-        magicEmailRequired: 'Please enter your email.',
-        magicEmailInvalid: 'Please enter a valid email address.',
-        emailStatusFailed: 'Could not verify the email. Please try again.',
-        loginCreateUseAccessLink: 'This account must use the access link.',
-        magicFailed: 'Could not send the link. Please try again.',
-        magicOtpRequired: 'Enter the 6-digit code.',
-        magicOtpFailed: 'Incorrect or expired code.'
-      },
-      info: {
-        registerSuccess: 'Thanks. Check your email to activate your account.',
-        recoverSuccess: 'We sent you an email with reset instructions.'
-      }
-    },
-    onboarding: {
-      cta: 'Continue',
-      slides: {
-        natural: {
-          subtitle: 'Train with short and effective sessions',
-          titleLines: [
-            { text: 'Improve your', accent: false },
-            { text: 'English pronunciation', accent: true },
-            { text: 'sound by', accent: false },
-            { text: 'sound', accent: true }
-          ],
-          steps: [
-            { num: '1', label: 'Listen', icon: 'ear-outline', tone: 'violet' },
-            { num: '2', label: 'Repeat', icon: 'mic-outline', tone: 'blue' },
-            { num: '3', label: 'Improve', icon: 'trending-up-outline', tone: 'mint' }
-          ],
-          cta: 'Start free'
-        }
-      }
-    },
-    home: {
-      planTitle: 'Your plan',
-      planMessage:
-        'This is your plan to sound like a native.<br>Tap this card to hear it again.',
-      go: 'Continue',
-      routeProgress: 'progress',
-      unlockAfter: 'Unlock after',
-      sessionsCompleted: 'sessions completed'
-    },
-    freeRide: {
-      title: 'Lab',
-      subtitle: 'Write your own phrase or longer text and practice freely.',
-      inputLabel: 'Your phrase',
-      inputPlaceholder: 'You can write in Spanish or English. Example: Quiero pedir un café.',
-      emptyPhrase: 'Write a phrase to practice.',
-      playPhrase: 'Play phrase',
-      sayLabel: 'Say',
-      endLabel: 'End',
-      yourVoiceLabel: 'Your voice',
-      feedbackHint: 'Practice the phrase',
-      translationLocalNotInstalled: 'Local translator available, but language model is not installed.',
-      translationBackendError: 'Could not translate with the server. Please try again.',
-      translationError: 'Could not translate right now.',
-      translationPending: 'Translation pending',
-      translateAction: 'Translate',
-      resultExcellent: 'Excellent',
-      resultRegular: 'Fair',
-      resultIncorrect: 'Incorrect',
-      resultMatchLabel: 'match',
-      transcribing: 'Transcribing...'
-    },
-    speak: {
-      practiceSound: 'Now try it →',
-      practiceWords: 'Say the word →',
-      practicePhrase: 'Say the phrase →',
-      resultBanner: 'Result',
-      summaryScoreLabel: 'Final score',
-      summaryHeadlineGood: 'Excellent!',
-      summaryHeadlineOkay: 'Good work!',
-      summaryHeadlineBad: 'Keep practicing',
-      summarySublineGood: 'You completed {{session}}.',
-      summarySublineOkay: 'Keep practicing {{session}}.',
-      summarySublineBad: 'Try again with {{session}}.',
-      summaryPillGood: 'Great!',
-      summaryPillOkay: 'Good',
-      summaryPillBad: 'Needs work',
-      summaryHintGood: 'Keep practicing and you will improve even more.',
-      summaryHintOkay: 'Keep practicing and you will nail it soon.',
-      summaryHintBad: 'Keep practicing, every try helps.',
-      summaryPhaseWords: 'Words phase',
-      summaryPhasePhrase: 'Phrase phase',
-      heroNarration: "Let's keep practicing!",
-      soundStepSubtitle: 'Listen to the audio and repeat the sound',
-      transcribing: 'Transcribing...',
-      feedbackNative: 'You sound like a native',
-      feedbackGood: 'Good! Continue practicing',
-      feedbackAlmost: 'Almost Correct!',
-      feedbackKeep: 'Keep practicing',
-      summaryTitleTemplates: {
-        good: ['Great! You learned {{session}}', 'Excellent! You completed {{session}}'],
-        okay: ['Good work! Keep practicing {{session}}', 'You are doing well! Review {{session}}'],
-        bad: ['No worries, keep practicing {{session}}', 'Keep trying with {{session}}']
-      },
-      summaryPhrases: {
-        good: ['Excellent. You sound natural'],
-        okay: ['Almost correct'],
-        bad: ['Needs practice'],
-        neutral: ['Not started yet']
-      },
-      summaryLabelPrefix: 'YOU WIN',
-      summaryBadgeUnlocked: 'Badge unlocked: {route}',
-      summaryContinue: 'Continue',
-      practiceAgainAnytime: '(Practice again anytime)',
-      stepBanner: 'Step {step} of {total}',
-      listen: 'Listen',
-      stepTitleSound: 'Listen carefully and Say',
-      stepTitleSpelling: 'Say the sound in words',
-      stepTitleSentence: 'Say a whole sentence'
-    },
-    chat: {
-      modeCatbot: 'Catbot',
-      modePublic: 'Public',
-      modePrivate: 'Private',
-      modeCoach: 'Coach',
-      modeChatbot: 'Chatbot',
-      modeCommunity: 'Community',
-      communityTabPublic: 'Public',
-      communityTabChats: 'Chats',
-      coachCatbotTitle: 'Pronunciation coach',
-      coachCatbotSubtitle: 'Test your pronunciation.',
-      coachChatbotTitle: 'AI coach',
-      coachChatbotSubtitle: 'Chat freely with your English tutor.',
-      coachCommunityTitle: 'Community',
-      coachCommunitySubtitle: 'Talk with other learners.',
-      coachPrivateTitle: 'Private chats',
-      coachPrivateSubtitle: 'Talk privately with other users.',
-      loadingUser: 'Loading user state...',
-      loginRequired: 'You need to sign in to use the chat coach.',
-      loginCta: 'Sign in',
-      planLocked: 'Chat unavailable for this user.',
-      planUpgrade: 'Upgrade your plan to unlock this feature.',
-      inputPlaceholder: 'Type your message...',
-      inputPlaceholderCommunity: 'Write to the public room...',
-      inputPlaceholderCommunityDm: 'Write a direct message...',
-      record: 'Record',
-      stop: 'Stop',
-      cancel: 'Cancel',
-      play: 'Play',
-      listen: 'Listen',
-      repeat: 'Repeat',
-      retrySend: 'Retry',
-      messageSending: 'Sending',
-      messageSent: 'Sent',
-      send: 'Send',
-      hintDefault: 'Tap [record] and then [stop] to create your phrase.',
-      hintDailyLimitWithCount: 'Daily limit reached: {used} / {limit} tokens. Come back tomorrow.',
-      hintDailyLimit: 'Chatbot daily limit reached. Come back tomorrow.',
-      hintListening: 'Listening: "{preview}"',
-      hintNoAudio: 'No audio detected. Tap "Record" to try again.',
-      hintRecordingTranscribing: 'Recording... speak in English and tap "Stop".',
-      hintRecordingSimulated: 'Recording... tap "Stop" (simulated transcript).',
-      hintRecordingGeneric: 'Recording... tap "Stop" when you finish.',
-      hintTranscribing: 'Transcribing...',
-      hintProcessing: 'Processing audio...',
-      hintRecordAgain: 'You can record another phrase whenever you want.',
-      serverUnavailable: 'The server is not available right now. Please try again later.',
-      realtimeDisconnected: 'Realtime connection unavailable. Reconnecting...',
-      realtimeDisconnectedToast: 'Chat disconnected. Wait a few seconds and try again.',
-      communityRealtimeDisconnected: 'Public chat disconnected. Reconnecting...',
-      communityHistoryLoading: 'Loading public room messages...',
-      communityHistoryEmpty: 'There are no messages in the public room yet.',
-      communityHistoryError: 'Could not load the public room.',
-      communitySendError: 'Could not send the message to the public room.',
-      communityRoomsLoading: 'Loading direct chats...',
-      communityRoomsError: 'Could not load direct chats.',
-      communityDmSendError: 'Could not send the direct message.',
-      communityDmOpenError: 'Could not open the direct chat.',
-      communityPresenceTemplate: '{n} online',
-      communityYou: 'You',
-      communityRequestsTitle: 'Requests',
-      communityRequestsLoading: 'Loading requests...',
-      communityNoRequests: 'You do not have pending requests.',
-      communityRequestPromptTitle: 'New private chat',
-      communityRequestPromptMessage: 'Write the first message for {name}.',
-      communityRequestPlaceholder: 'Write a message...',
-      communityRequestSend: 'Send request',
-      communityRequestSent: 'Request sent.',
-      communityRequestSendError: 'Could not send the request.',
-      communityRequestAccepted: 'Request accepted.',
-      communityRequestDeclined: 'Request declined.',
-      communityRequestBlocked: 'User blocked.',
-      communityRequestResolveError: 'Could not process the request.',
-      communityRequestAccept: 'Accept',
-      communityRequestDecline: 'Decline',
-      communityRequestBlock: 'Block',
-      communityRequestBlockedNotice: 'A private chat cannot be opened with this user.',
-      communityRequestDeclinedNotice: 'The request was not accepted.',
-      communityBlockedBadge: 'Blocked',
-      communityBlockUser: 'Block user',
-      communityUnblockUser: 'Unblock user',
-      communityUserUnblocked: 'User unblocked.',
-      communityBlockActionError: 'Could not update the block.',
-      communityRequestIncomingLabel: '{name} wants to talk to you.',
-      communityRequestPendingOutgoing: 'Pending request',
-      communityRequestAlreadyPending: 'You already have a pending request with this user.',
-      communityChatsTitle: 'Your chats',
-      communityOnlineUsersTitle: 'Online users',
-      communityNoChats: 'You do not have any direct chats yet.',
-      communityNoOnlineUsers: 'There are no other users online right now.',
-      communitySelectChat: 'Select a chat or start one from the list.',
-      communityStartChat: 'Open chat',
-      communityBackToChats: 'Back to chats',
-      communityManage: 'Manage',
-      communityDone: 'Done',
-      communityShowArchived: 'Show archived',
-      communityArchiveChat: 'Archive chat',
-      communityRestoreChat: 'Restore chat',
-      communityDeleteChatLocal: 'Delete local',
-      communityArchivedBadge: 'Archived',
-      communityNoVisibleChats: 'There are no visible chats.',
-      communityNoArchivedChats: 'There are no archived chats.',
-      communityDeleteLocalConfirm:
-        'This chat will be hidden only on this device. It will reappear if new messages arrive. Continue?',
-      communityOnlineNow: 'Online now',
-      communityYesterday: 'Yesterday',
-      communityPublicBadge: 'Public room',
-      communityDmBadge: 'Direct message',
-      communityNoPeerName: 'User',
-      transcriptReady: 'Transcript ready',
-      transcriptSimulated: 'Simulated transcript',
-      transcriptionUnavailable: 'Real transcription is not available.',
-      transcriptionFailed: 'Could not transcribe.',
-      microphoneUnavailable: 'Microphone is not available.',
-      microphoneAccessFailed: 'Could not access the microphone.',
-      typingAria: 'Typing...',
-      introChatbot: 'Hi!, i am your English teacher, how can i help you?',
-      introCatbot: 'Hi! Record a phrase in English and I will answer with a suggestion.',
-      introCommunity: 'Welcome to the public room.',
-      introCommunityDm: 'Select a direct chat to get started.',
-      sampleTranscripts: [
-        'I would like to order a coffee, please.',
-        'Can you help me find the train station?',
-        'I am practicing my pronunciation today.',
-        'Could you repeat that a little slower?',
-        'I have a meeting at three o clock.',
-        'What do you recommend for dinner?'
-      ],
-      botTemplates: [
-        'Nice! Try stressing the key words: "{text}"',
-        'Good job. Now say it a bit slower: "{text}"',
-        'Great start. Focus on linking the words: "{text}"',
-        'Try this version with a softer "t": "{text}"',
-        'Let\'s repeat with clear vowel sounds: "{text}"'
-      ]
-    },
-    profile: {
-      loginTitle: 'Sign in',
-      loginSubtitle: 'You need to sign in to view your profile.',
-      contact: 'Contact',
-      subscriptionSupportMail: 'Send subscription support email',
-      legal: 'Legal',
-      close: 'Close',
-      progressLabel: 'Progress',
-      badgesEmpty: 'You have not unlocked badges yet.',
-      tabPrefs: 'Profile',
-      tabReview: 'Review',
-      changePhoto: 'Change photo',
-      deletePhoto: 'Reset',
-      interfaceLanguage: 'Interface language',
-      firstName: 'First name',
-      lastName: 'Last name',
-      password: 'Password',
-      passwordNewPlaceholder: 'New password',
-      passwordRepeat: 'Repeat password',
-      passwordRepeatPlaceholder: 'Repeat password',
-      email: 'Email',
-      subscriptionUntil: 'Subscription until',
-      saveChanges: 'Save changes',
-      logout: 'Log out',
-      restorePurchases: 'Restore purchases',
-      deleteAccount: 'Delete account',
-      deleteAccountHint:
-        'Your account will be removed and you will be signed out. App Store or Google Play subscriptions are not cancelled automatically.',
-      deleteAccountConfirmTitle: 'Delete account',
-      deleteAccountConfirmMessage:
-        'This action is permanent. Your App Store or Google Play subscription is not cancelled automatically.',
-      deleteAccountConfirmEmailLabel: 'Type this email to confirm: {value}',
-      deleteAccountConfirmKeywordLabel: 'Type DELETE to confirm.',
-      deleteAccountConfirmPlaceholderEmail: 'you@email.com',
-      deleteAccountConfirmPlaceholderKeyword: 'DELETE',
-      deleteAccountConfirmCancel: 'Cancel',
-      deleteAccountConfirmAccept: 'Delete',
-      deleteAccountConfirmMismatch: 'The confirmation does not match.',
-      deleteAccountFailed: 'Could not delete the account.',
-      deleteAccountDeletedTitle: 'Account deleted',
-      deleteAccountDeletedMessage: 'Your account has been deleted and you have been signed out.',
-      reviewWordsTitle: 'Words to review',
-      reviewPhrasesTitle: 'Phrases to review',
-      reviewTestsTitle: 'Tests to review',
-      reviewToneRedLabel: 'red',
-      reviewToneYellowLabel: 'yellow',
-      reviewWordsEmpty: 'There are no words in {tone} yet.',
-      reviewPhrasesEmpty: 'There are no phrases in {tone}.',
-      reviewTestsEmpty: 'There are no tests in {tone}.',
-      reviewLess: 'Less',
-      reviewLessonTestLabel: 'Lesson test',
-      reviewUnitTestLabel: 'Unit test',
-      trainingTrophies: 'Training trophies',
-      referenceMedals: 'Reference medals',
-      userFallbackName: 'User',
-      profileAvatarAlt: 'Profile avatar',
-      appMetaNA: 'v n/a',
-      expiryNA: 'n/a',
-      passwordBothRequired: 'Please complete both password fields.',
-      passwordMismatch: 'Passwords do not match.',
-      fileReadError: 'Could not read the file.',
-      fileFormatError: 'Unsupported format. Use JPG, PNG or GIF.',
-      fileTooLarge: 'File too large. Max 500 KB.',
-      profileUpdateFailed: 'Could not update profile.',
-      profileUpdated: 'Profile updated.',
-      avatarUploadFailed: 'Could not upload avatar.',
-      avatarUpdated: 'Avatar updated.',
-      avatarDeleteFailed: 'Could not delete avatar.',
-      avatarDeleted: 'Avatar deleted.',
-      genericActionError: 'Could not complete the action.'
+
+    const payload = JSON.parse(xhr.responseText || '{}');
+    if (!isPlainObject(payload) || !isPlainObject(payload.es) || !isPlainObject(payload.en)) {
+      throw new Error('payload must contain root locales "es" and "en"');
     }
+    return payload;
+  } catch (error) {
+    console.error('[copy] unable to load app copy payload from data/app-copy.json', error);
+    return EMPTY_APP_COPY;
   }
 };
+
+const APP_COPY = loadAppCopyPayload();
 
 export const normalizeLocale = (locale) => {
   const normalized = String(locale || '').trim().toLowerCase();
@@ -1038,15 +75,12 @@ export const getNextLocaleCode = (locale) => {
 
 export const getCopyBundle = (locale) => {
   const resolved = resolveLocale(locale);
-  return APP_COPY[resolved] || APP_COPY.en;
+  return APP_COPY[resolved] || APP_COPY.en || EMPTY_APP_COPY.en;
 };
 
 export const getOnboardingCopy = (locale) => getCopyBundle(locale).onboarding;
-
 export const getHomeCopy = (locale) => getCopyBundle(locale).home;
-
 export const getFreeRideCopy = (locale) => getCopyBundle(locale).freeRide;
-
 export const getSpeakCopy = (locale) => getCopyBundle(locale).speak;
 
 const normalizeCopyList = (value) =>
@@ -1063,11 +97,9 @@ const cloneToneMap = (source, tones = ['good', 'okay', 'bad', 'neutral']) => {
 
 export const getSpeakFeedbackPhrases = (locale) => {
   const resolved = resolveLocale(locale);
-  const speakCopy = getSpeakCopy(resolved);
+  const speakCopy = getSpeakCopy(resolved) || {};
   const summaryPhrases =
-    speakCopy && speakCopy.summaryPhrases && typeof speakCopy.summaryPhrases === 'object'
-      ? speakCopy.summaryPhrases
-      : {};
+    speakCopy.summaryPhrases && typeof speakCopy.summaryPhrases === 'object' ? speakCopy.summaryPhrases : {};
   const fallbackGood = [
     speakCopy.feedbackNative || (resolved === 'es' ? 'Suena como un nativo' : 'You sound like a native'),
     resolved === 'es' ? 'Gran trabajo' : 'Great job!'
@@ -1078,7 +110,7 @@ export const getSpeakFeedbackPhrases = (locale) => {
   ];
   const fallbackBad = [
     speakCopy.feedbackKeep || (resolved === 'es' ? 'Sigue practicando' : 'Keep practicing'),
-    resolved === 'es' ? 'Intentalo de nuevo' : 'Try again'
+    resolved === 'es' ? 'Inténtalo de nuevo' : 'Try again'
   ];
   const fallbackNeutral = [resolved === 'es' ? 'Aún no iniciada' : 'Not started yet'];
   return {
@@ -1093,7 +125,7 @@ export const getSpeakFeedbackPhrases = (locale) => {
 
 export const getSpeakFeedbackLabelScale = (locale) => {
   const resolved = resolveLocale(locale);
-  const speakCopy = getSpeakCopy(resolved);
+  const speakCopy = getSpeakCopy(resolved) || {};
   return [
     {
       min: 85,
@@ -1118,9 +150,9 @@ export const getSpeakFeedbackLabelScale = (locale) => {
 
 export const getSpeakSummaryTitleTemplates = (locale) => {
   const resolved = resolveLocale(locale);
-  const speakCopy = getSpeakCopy(resolved);
+  const speakCopy = getSpeakCopy(resolved) || {};
   const source =
-    speakCopy && speakCopy.summaryTitleTemplates && typeof speakCopy.summaryTitleTemplates === 'object'
+    speakCopy.summaryTitleTemplates && typeof speakCopy.summaryTitleTemplates === 'object'
       ? speakCopy.summaryTitleTemplates
       : {};
   const defaults =
@@ -1144,7 +176,7 @@ export const getSpeakSummaryTitleTemplates = (locale) => {
 
 export const getSpeakSummaryLabelPrefix = (locale) => {
   const resolved = resolveLocale(locale);
-  const speakCopy = getSpeakCopy(resolved);
+  const speakCopy = getSpeakCopy(resolved) || {};
   const value = String(speakCopy.summaryLabelPrefix || '').trim();
   if (value) return value;
   return resolved === 'es' ? 'GANAS' : 'YOU WIN';
@@ -1184,19 +216,13 @@ export const ensureLegacySpeakCopyGlobals = () => {
   if (!Array.isArray(window.r34lp0w3r.speakFeedback.labelScale)) {
     window.r34lp0w3r.speakFeedback.labelScale = labelScaleByLocale.en.map((item) => ({ ...item }));
   }
-  if (
-    !window.r34lp0w3r.speakSummaryTitles ||
-    typeof window.r34lp0w3r.speakSummaryTitles !== 'object'
-  ) {
+  if (!window.r34lp0w3r.speakSummaryTitles || typeof window.r34lp0w3r.speakSummaryTitles !== 'object') {
     window.r34lp0w3r.speakSummaryTitles = summaryTitlesByLocale;
   }
   if (!window.speakSummaryConfig.phrases || typeof window.speakSummaryConfig.phrases !== 'object') {
     window.speakSummaryConfig.phrases = tonePhrasesByLocale;
   }
-  if (
-    !window.speakSummaryConfig.labelPrefix ||
-    typeof window.speakSummaryConfig.labelPrefix !== 'object'
-  ) {
+  if (!window.speakSummaryConfig.labelPrefix || typeof window.speakSummaryConfig.labelPrefix !== 'object') {
     window.speakSummaryConfig.labelPrefix = { ...labelPrefixByLocale };
   }
 
@@ -1245,13 +271,8 @@ const withComputedChatCopy = (chatCopy) => {
 };
 
 export const getChatCopy = (locale) => withComputedChatCopy(getCopyBundle(locale).chat);
-
 export const getProfileCopy = (locale) => getCopyBundle(locale).profile;
-
 export const getTabsCopy = (locale) => getCopyBundle(locale).tabs;
-
 export const getNotificationsCopy = (locale) => getCopyBundle(locale).notifications;
-
 export const getLoginCopy = (locale) => getCopyBundle(locale).login;
-
 export const getReferenceCopy = (locale) => getCopyBundle(locale).reference;

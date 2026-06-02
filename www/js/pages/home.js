@@ -36,7 +36,9 @@ const HOME_ALIGNED_CACHE_MAX_ITEMS = 24;
 const HOME_PLAN_AUTONARRATION_PLAYED_KEY = 'appv5:home-plan-auto-narration-played';
 const HOME_EXPANDED_ROUTE_KEY = 'appv5:home-expanded-route-id';
 const HOME_RETURN_SCROLL_KEY = 'appv5:home-return-scroll-top';
+const HOME_RETURN_VIEW_KEY = 'appv5:home-return-view-state';
 const HOME_RETURN_REVEAL_KEY = 'appv5:home-return-reveal-target';
+const HOME_RETURN_RESTORE_DELAYS_MS = [0, 60, 140, 280, 520, 900];
 const HOME_HANDLE_HINT_KEY = 'appv5:home-handle-hint-seen';
 const HOME_SHEET_EXPANDED_KEY = 'appv5:home-sheet-expanded';
 const HOME_SHEET_OFFSET_KEY = 'appv5:home-sheet-expanded-offset';
@@ -67,6 +69,14 @@ const SESSION_CIRCLE_COLORS = [
   '#F59E0B',
   '#6366F1'
 ];
+
+const escapeHtml = (value) =>
+  String(value === undefined || value === null ? '' : value)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
 
 const getResolvedUserName = (user) => {
   if (!user || typeof user !== 'object') return '';
@@ -150,10 +160,12 @@ class PageHome extends HTMLElement {
     this._homeScrollHandler = null;
     this._homeScrollBindToken = 0;
     this._pendingHomeReturnRestoreTimers = [];
+    this._activeHomeReturnRestoreTop = null;
     this._pendingHomeReturnRevealTimers = [];
     this._pendingHomeReturnRevealScheduleToken = 0;
     this._renderRAFId = null;
     this._pendingRenderOptions = {};
+    this._suppressNextHomeSelectionRender = false;
     this.journeySheetController = createSheetController({
       expandedKey: HOME_SHEET_EXPANDED_KEY,
       offsetKey: HOME_SHEET_OFFSET_KEY,
@@ -185,6 +197,15 @@ class PageHome extends HTMLElement {
     this.classList.toggle('is-card-padded', isFreeRideCardPadded());
     preloadHeroMascotFrames();
     this.handleSelectionChange = () => {
+      if (this._suppressNextHomeSelectionRender) {
+        this._suppressNextHomeSelectionRender = false;
+        return;
+      }
+      const pendingViewState = this.applyPendingHomeReturnViewState();
+      if (pendingViewState) {
+        this.render({ restoreScrollTop: pendingViewState.scrollTop });
+        return;
+      }
       const restoreScrollTop = this.homeScrollTop;
       const { route, module } = resolveSelection(getSelection());
       if (route) {
@@ -198,7 +219,11 @@ class PageHome extends HTMLElement {
       this.render({ restoreScrollTop });
     };
     window.addEventListener('training:selection-change', this.handleSelectionChange);
-    this._rewardsHandler = () => this.render();
+    this._rewardsHandler = () => {
+      const pendingViewState = this.applyPendingHomeReturnViewState();
+      const savedTop = pendingViewState ? pendingViewState.scrollTop : this.getPendingHomeReturnScroll();
+      this.render({ restoreScrollTop: savedTop !== null ? savedTop : this.homeScrollTop });
+    };
     window.addEventListener('app:speak-stores-change', this._rewardsHandler);
     this._debugHandler = () => this.render();
     window.addEventListener('app:speak-debug', this._debugHandler);
@@ -230,6 +255,7 @@ class PageHome extends HTMLElement {
       const detail = event && event.detail ? event.detail : {};
       const enabled = typeof detail.enabled === 'boolean' ? detail.enabled : isFreeRideCardPadded();
       this.classList.toggle('is-card-padded', enabled);
+      this.syncJourneyShellHeightToViewport();
       this.journeySheetExpandedOffset = this.measureJourneySheetExpandedOffset();
       this.applyJourneySheetState({ animate: false, force: true });
       this.scheduleLayoutSync(0);
@@ -258,9 +284,11 @@ class PageHome extends HTMLElement {
         }
         return;
       }
+      this.syncJourneyShellHeightToViewport();
       this.journeySheetExpandedOffset = this.measureJourneySheetExpandedOffset();
       this.applyJourneySheetState({ animate: false, force: true });
       this.scheduleLayoutSync(0);
+      this.schedulePendingHomeReturnScrollRestore();
     };
     this._tabsEl = this.getTabsEl();
     this._tabsEl?.addEventListener('ionTabsDidChange', this._tabsDidChangeHandler);
@@ -272,17 +300,20 @@ class PageHome extends HTMLElement {
     this._routeDidChangeHandler = (event) => {
       const to = String(event && event.detail ? event.detail.to || '' : '').trim();
       if (to !== '/tabs') return;
+      this.syncJourneyShellHeightToViewport();
       this.journeySheetExpandedOffset = this.measureJourneySheetExpandedOffset();
       if (this.journeySheetExpandedOffset > 0 && this.journeySheetExpanded) {
         this.journeySheetController.state.offset = this.journeySheetExpandedOffset;
         this.journeySheetController.setExpanded(this.journeySheetExpanded, { animate: false });
       }
       this.applyJourneySheetState({ animate: false, force: true });
+      this.schedulePendingHomeReturnScrollRestore();
     };
     this._routerEl?.addEventListener('ionRouteDidChange', this._routeDidChangeHandler);
     this._resizeHandler = () => {
       if (!this.isConnected) return;
       if (document.body?.classList?.contains('app-android-legacy-webview')) return;
+      this.syncJourneyShellHeightToViewport();
       this.journeySheetExpandedOffset = this.measureJourneySheetExpandedOffset();
       this.applyJourneySheetState({ animate: false, force: true });
       this.scheduleLayoutSync(0);
@@ -392,6 +423,7 @@ class PageHome extends HTMLElement {
     this.clearRoutesCenterScrollTimers();
     this.detachHomeScrollTracking();
     this.clearPendingHomeReturnScrollRestoreTimers();
+    this._activeHomeReturnRestoreTop = null;
     this.clearPendingHomeReturnRevealTimers();
     this.cancelJourneySheetDrag();
     this.clearLayoutSync();
@@ -701,7 +733,7 @@ class PageHome extends HTMLElement {
     runSync();
   }
 
-  async syncLayoutToViewport() {
+  syncJourneyShellHeightToViewport() {
     if (!this.isConnected) return;
     const shellEl = this.getJourneyShellEl();
     if (!shellEl) return;
@@ -718,8 +750,15 @@ class PageHome extends HTMLElement {
       : layoutViewportBottom;
 
     const tabBarEl = document.querySelector('tabs-page ion-tab-bar');
-    const tabBarTop = tabBarEl ? tabBarEl.getBoundingClientRect().top : layoutViewportBottom;
-    const bottomLimit = Math.min(visualViewportBottom, tabBarTop);
+    const tabBarRect = tabBarEl ? tabBarEl.getBoundingClientRect() : null;
+    const tabBarTop = tabBarRect ? tabBarRect.top : layoutViewportBottom;
+    const tabBarHeight = tabBarRect && Number.isFinite(tabBarRect.height)
+      ? Math.max(0, tabBarRect.height)
+      : 0;
+    const stableTabBarTop = tabBarEl
+      ? Math.min(tabBarTop, visualViewportBottom - tabBarHeight)
+      : layoutViewportBottom;
+    const bottomLimit = Math.min(visualViewportBottom, stableTabBarTop);
     const usableHeight = bottomLimit - shellRect.top - 8;
 
     if (!Number.isFinite(usableHeight) || usableHeight <= 40) {
@@ -731,9 +770,17 @@ class PageHome extends HTMLElement {
     const nextHeight = Math.max(160, Math.floor(usableHeight));
     shellEl.style.setProperty('--free-ride-shell-height', `${nextHeight}px`);
     shellEl.style.setProperty('--journey-shell-height', `${nextHeight}px`);
+    return true;
+  }
+
+  async syncLayoutToViewport() {
+    if (!this.syncJourneyShellHeightToViewport()) return;
     this.journeySheetExpandedOffset = this.measureJourneySheetExpandedOffset();
     this.applyJourneySheetState({ animate: false, force: true });
     this.updateJourneyCardWedgePath();
+    if (Number.isFinite(this._activeHomeReturnRestoreTop) && this._activeHomeReturnRestoreTop > 0) {
+      this.restoreHomeScrollPosition(this._activeHomeReturnRestoreTop).catch(() => {});
+    }
   }
 
   async getHomeScrollHost() {
@@ -815,6 +862,13 @@ class PageHome extends HTMLElement {
     this.homeScrollTop = Math.max(0, Number(scrollEl.scrollTop) || 0);
   }
 
+  captureHomeScrollTop() {
+    if (this._homeScrollEl) {
+      this.homeScrollTop = Math.max(0, Number(this._homeScrollEl.scrollTop) || 0);
+    }
+    return this.homeScrollTop;
+  }
+
   waitForNextFrame() {
     return new Promise((resolve) => {
       requestAnimationFrame(() => resolve());
@@ -847,6 +901,61 @@ class PageHome extends HTMLElement {
     } catch (err) {
       // no-op
     }
+  }
+
+  setPendingHomeReturnViewState(overrides = {}) {
+    const scrollTop = Number.isFinite(Number(overrides.scrollTop))
+      ? Number(overrides.scrollTop)
+      : this.captureHomeScrollTop();
+    const state = {
+      scrollTop: Math.max(0, Math.round(scrollTop)),
+      expandedRouteId: String(
+        overrides.expandedRouteId !== undefined ? overrides.expandedRouteId : this.expandedRouteId || ''
+      ),
+      expandedModuleId: String(
+        overrides.expandedModuleId !== undefined ? overrides.expandedModuleId : this.expandedModuleId || ''
+      )
+    };
+    try {
+      sessionStorage.setItem(HOME_RETURN_VIEW_KEY, JSON.stringify(state));
+    } catch (err) {
+      // no-op
+    }
+    this.setPendingHomeReturnScroll(state.scrollTop);
+  }
+
+  getPendingHomeReturnViewState() {
+    try {
+      const raw = sessionStorage.getItem(HOME_RETURN_VIEW_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== 'object') return null;
+      const scrollTop = Number(parsed.scrollTop);
+      return {
+        scrollTop: Number.isFinite(scrollTop) && scrollTop >= 0 ? Math.round(scrollTop) : 0,
+        expandedRouteId: String(parsed.expandedRouteId || ''),
+        expandedModuleId: String(parsed.expandedModuleId || '')
+      };
+    } catch (err) {
+      return null;
+    }
+  }
+
+  clearPendingHomeReturnViewState() {
+    try {
+      sessionStorage.removeItem(HOME_RETURN_VIEW_KEY);
+    } catch (err) {
+      // no-op
+    }
+  }
+
+  applyPendingHomeReturnViewState() {
+    const state = this.getPendingHomeReturnViewState();
+    if (!state) return null;
+    this.expandedRouteId = state.expandedRouteId;
+    this.expandedModuleId = state.expandedModuleId;
+    this.homeScrollTop = state.scrollTop;
+    return state;
   }
 
   clearPendingHomeReturnScrollRestoreTimers() {
@@ -921,17 +1030,42 @@ class PageHome extends HTMLElement {
   }
 
   schedulePendingHomeReturnScrollRestore() {
-    if (document.body?.classList?.contains('app-android-legacy-webview')) return;
-    const pendingTop = this.getPendingHomeReturnScroll();
-    if (!Number.isFinite(pendingTop) || pendingTop <= 0) return;
+    const pendingViewState = this.applyPendingHomeReturnViewState();
+    const pendingTop = pendingViewState ? pendingViewState.scrollTop : this.getPendingHomeReturnScroll();
+    if (!pendingViewState && (!Number.isFinite(pendingTop) || pendingTop <= 0)) return;
     this.clearPendingHomeReturnScrollRestoreTimers();
-    const timerId = setTimeout(() => {
-      if (!this.isConnected || !this.isTabActive('home')) return;
-      this.restoreHomeScrollPosition(pendingTop).catch(() => {});
-      this.clearPendingHomeReturnScrollRestoreTimers();
-      this.clearPendingHomeReturnScroll();
-    }, 0);
-    this._pendingHomeReturnRestoreTimers.push(timerId);
+    const desiredTop = Math.max(0, Math.round(Number(pendingTop) || 0));
+    const restoreState = pendingViewState
+      ? {
+          expandedRouteId: pendingViewState.expandedRouteId,
+          expandedModuleId: pendingViewState.expandedModuleId,
+          scrollTop: desiredTop
+        }
+      : null;
+    this._activeHomeReturnRestoreTop = desiredTop > 0 ? desiredTop : null;
+
+    HOME_RETURN_RESTORE_DELAYS_MS.forEach((delayMs, index) => {
+      const timerId = setTimeout(() => {
+        if (!this.isConnected) return;
+        if (restoreState) {
+          this.expandedRouteId = restoreState.expandedRouteId;
+          this.expandedModuleId = restoreState.expandedModuleId;
+          this.homeScrollTop = restoreState.scrollTop;
+        } else if (desiredTop > 0) {
+          this.homeScrollTop = desiredTop;
+        }
+        if (desiredTop > 0) {
+          this.restoreHomeScrollPosition(desiredTop).catch(() => {});
+        }
+        if (index === HOME_RETURN_RESTORE_DELAYS_MS.length - 1) {
+          this.clearPendingHomeReturnScroll();
+          this.clearPendingHomeReturnViewState();
+          this._activeHomeReturnRestoreTop = null;
+          this.clearPendingHomeReturnScrollRestoreTimers();
+        }
+      }, delayMs);
+      this._pendingHomeReturnRestoreTimers.push(timerId);
+    });
   }
 
   async isRoutesTargetVisible(targetEl, padding = 20) {
@@ -1063,6 +1197,7 @@ class PageHome extends HTMLElement {
 
   _renderSync(options = {}) {
     this.clearRoutesCenterScrollTimers();
+    this.applyPendingHomeReturnViewState();
     const baseLocale = this.getBaseLocale();
     const uiLocale = this.getUiLocale(baseLocale);
     const copy = getHomeCopy(uiLocale);
@@ -1080,6 +1215,8 @@ class PageHome extends HTMLElement {
     const planMascotSrc = this.getPlanMascotFramePath(this.planMascotFrameIndex);
 
     const routes = getRoutes();
+    const isInitialTrainingLoad = !routes.length && this._loadingTrainingData;
+    this.classList.toggle('home-initial-loading', isInitialTrainingLoad);
     const readLocalizedField = (entry, fieldName) => {
       return getLocalizedContentField(entry, fieldName, uiLocale) || '';
     };
@@ -1210,6 +1347,7 @@ class PageHome extends HTMLElement {
         event.preventDefault();
         this.toggleJourneySheet({ animate: true });
       });
+      this.syncJourneyShellHeightToViewport();
       this.journeySheetExpandedOffset = this.measureJourneySheetExpandedOffset();
       this.applyJourneySheetState({ animate: false, force: true });
       this.scheduleLayoutSync(0);
@@ -1382,13 +1520,96 @@ class PageHome extends HTMLElement {
     const phraseScoresStore =
       window.r34lp0w3r && window.r34lp0w3r.speakPhraseScores ? window.r34lp0w3r.speakPhraseScores : {};
 
+    const normalizeAttemptWord = (value) => String(value || '').trim().toUpperCase();
+
+    const getSessionValidWordSet = (session) => {
+      const words =
+        session &&
+        session.speak &&
+        session.speak.spelling &&
+        Array.isArray(session.speak.spelling.words)
+          ? session.speak.spelling.words
+          : [];
+      return new Set(words.map(normalizeAttemptWord).filter(Boolean));
+    };
+
+    const pruneStaleSessionAttemptStores = () => {
+      if (!window.r34lp0w3r) window.r34lp0w3r = {};
+      if (window.r34lp0w3r.homeAttemptStoreCleanupDone) return;
+      window.r34lp0w3r.homeAttemptStoreCleanupDone = true;
+
+      const sessionMeta = new Map();
+      routes.forEach((route) => {
+        const modules = route && Array.isArray(route.modules) ? route.modules : [];
+        modules.forEach((module) => {
+          const sessions = module && Array.isArray(module.sessions) ? module.sessions : [];
+          sessions.forEach((session) => {
+            if (!session || !session.id) return;
+            const words = session && session.speak && session.speak.spelling && Array.isArray(session.speak.spelling.words)
+              ? session.speak.spelling.words.map(normalizeAttemptWord).filter(Boolean)
+              : [];
+            const hasSentence =
+              Boolean(
+                session &&
+                  session.speak &&
+                  session.speak.sentence &&
+                  String(session.speak.sentence.expected || session.speak.sentence.sentence || '').trim()
+              );
+            sessionMeta.set(String(session.id), {
+              words: new Set(words),
+              hasSentence
+            });
+          });
+        });
+      });
+
+      let changed = false;
+      Object.entries(wordScoresStore).forEach(([sessionId, sessionScores]) => {
+        const meta = sessionMeta.get(String(sessionId));
+        if (!meta || !sessionScores || typeof sessionScores !== 'object') {
+          delete wordScoresStore[sessionId];
+          changed = true;
+          return;
+        }
+        Object.keys(sessionScores).forEach((word) => {
+          if (!meta.words.has(normalizeAttemptWord(word))) {
+            delete sessionScores[word];
+            changed = true;
+          }
+        });
+        if (!Object.keys(sessionScores).length) {
+          delete wordScoresStore[sessionId];
+          changed = true;
+        }
+      });
+
+      Object.keys(phraseScoresStore).forEach((sessionId) => {
+        const meta = sessionMeta.get(String(sessionId));
+        if (!meta || !meta.hasSentence) {
+          delete phraseScoresStore[sessionId];
+          changed = true;
+        }
+      });
+
+      if (changed && typeof window.persistSpeakStores === 'function') {
+        window.persistSpeakStores();
+      }
+    };
+
+    pruneStaleSessionAttemptStores();
+
     const hasSessionAttempts = (session) => {
+      const words = getSessionValidWordSet(session);
       const wordScores = wordScoresStore[session.id] || {};
-      const hasWord = Object.values(wordScores).some(
-        (entry) => entry && typeof entry.percent === 'number'
+      const hasWord = Object.entries(wordScores).some(
+        ([word, entry]) =>
+          entry &&
+          typeof entry.percent === 'number' &&
+          entry.percent > 0 &&
+          words.has(normalizeAttemptWord(word))
       );
       const phrase = phraseScoresStore[session.id];
-      const hasPhrase = phrase && typeof phrase.percent === 'number';
+      const hasPhrase = phrase && typeof phrase.percent === 'number' && phrase.percent > 0;
       return hasWord || hasPhrase;
     };
 
@@ -1447,21 +1668,32 @@ class PageHome extends HTMLElement {
       return { started: true, percent, tone: getScoreTone(percent) };
     };
 
-    const getModuleResumeSessionId = (module) => {
-      const sessions = module && Array.isArray(module.sessions) ? module.sessions : [];
-      let lastTriedIndex = -1;
-      sessions.forEach((session, index) => {
-        if (!session) return;
-        if (hasSessionAttempts(session)) {
-          lastTriedIndex = index;
-        }
+    function getLastResumeTarget() {
+      const linearSessions = [];
+      routes.forEach((route) => {
+        const modules = route && Array.isArray(route.modules) ? route.modules : [];
+        modules.forEach((module) => {
+          const sessions = module && Array.isArray(module.sessions) ? module.sessions : [];
+          sessions.forEach((session) => {
+            if (!session || session.id === undefined || session.id === null) return;
+            linearSessions.push({
+              routeId: String(route && route.id !== undefined && route.id !== null ? route.id : ''),
+              moduleId: String(module && module.id !== undefined && module.id !== null ? module.id : ''),
+              sessionId: String(session.id),
+              session
+            });
+          });
+        });
       });
-      const nextSession = sessions[lastTriedIndex + 1];
-      if (nextSession && nextSession.id !== undefined && nextSession.id !== null) {
-        return String(nextSession.id);
-      }
-      return '';
-    };
+
+      const firstReady = linearSessions.find((entry) => !hasSessionAttempts(entry.session));
+      if (!firstReady) return null;
+      return {
+        routeId: firstReady.routeId,
+        moduleId: firstReady.moduleId,
+        sessionId: firstReady.sessionId
+      };
+    }
 
     const getRoutePercent = (route) => {
       const modules = route && Array.isArray(route.modules) ? route.modules : [];
@@ -1531,12 +1763,14 @@ class PageHome extends HTMLElement {
 
     const routeProgressList = routes.map((route) => getRoutePercent(route));
     const isDebug = Boolean(window.r34lp0w3r && window.r34lp0w3r.speakDebug);
-    const routeUnlockList = routes.map((_, idx) => {
+    const routeUnlockList = routes.map((route, idx) => {
       if (isDebug) return true;
+      if (route.disponible === false) return false;
       if (idx === 0) return true;
       const prev = routeProgressList[idx - 1];
       return prev && prev.tone === 'good';
     });
+    const resumeTarget = getLastResumeTarget();
 
     const activeRouteIndex = routes.findIndex((item) => item.id === activeRoute.id);
     const activeRouteUnlocked = activeRouteIndex === 0 || routeUnlockList[activeRouteIndex] === true;
@@ -1577,6 +1811,18 @@ class PageHome extends HTMLElement {
     }
 
     const showLockedRouteToast = (routeIndex) => {
+      const route = routes[routeIndex];
+      if (route && route.disponible === false) {
+        const message = copy.comingSoon || (uiLocale === 'es' ? 'Contenido disponible próximamente' : 'Content coming soon');
+        const toast = document.createElement('ion-toast');
+        toast.message = message;
+        toast.duration = 2200;
+        toast.position = 'top';
+        document.body.appendChild(toast);
+        toast.present().catch(() => {});
+        toast.addEventListener('didDismiss', () => { toast.remove(); });
+        return;
+      }
       const prevRoute = routeIndex > 0 ? routes[routeIndex - 1] : null;
       const message = prevRoute
         ? `Aún no puedes acceder a este modulo. Completa primero la ruta anterior: ${getRouteTitle(prevRoute)}.`
@@ -1603,12 +1849,11 @@ class PageHome extends HTMLElement {
             ? `<span class="route-progress ${routeProgress.tone}"><ion-icon name="star"></ion-icon>${routeProgress.percent}%</span>`
             : '';
         const modulesMarkup = route.modules
-          .map((module) => {
+          .map((module, moduleIndex) => {
             const isActive = route.id === activeRoute.id && module.id === activeModule.id;
             const isModuleOpen = isRouteOpen && module.id === this.expandedModuleId;
             const sessionCircleColorById = getSessionCircleColorMap(module.sessions, `${route.id}:${module.id}`);
             const progress = getModulePercent(module);
-            const resumeSessionId = getModuleResumeSessionId(module);
             const lockedClass = routeUnlocked ? '' : 'module-item-locked';
             const toneCls = progress.started ? progress.tone : 'neutral';
             const isMastered = progress.started && progress.tone === 'good';
@@ -1644,7 +1889,11 @@ class PageHome extends HTMLElement {
                         route.id === activeRoute.id &&
                         module.id === activeModule.id &&
                         item.id === activeSession.id;
-                      const isResumeSession = resumeSessionId && item.id === resumeSessionId;
+                      const isResumeSession =
+                        resumeTarget &&
+                        route.id === resumeTarget.routeId &&
+                        module.id === resumeTarget.moduleId &&
+                        item.id === resumeTarget.sessionId;
                       return `
                         <div
                           class="training-row ${isCurrentSession ? 'is-active' : ''} ${isResumeSession ? 'is-next-to-do' : ''}"
@@ -1850,12 +2099,14 @@ class PageHome extends HTMLElement {
           const moduleId = row.dataset.moduleId;
           const sessionId = row.dataset.sessionId;
           if (!routeId || !moduleId || !sessionId) return;
+          const returnScrollTop = this.captureHomeScrollTop();
+          this.setPendingHomeReturnViewState({ scrollTop: returnScrollTop });
+          this._suppressNextHomeSelectionRender = true;
           setSelection({
             routeId,
             moduleId,
             sessionId
           });
-          this.setPendingHomeReturnScroll(this.homeScrollTop);
           this.cancelRoutesCentering().catch(() => {});
           goToSpeak('forward');
         });
@@ -1869,6 +2120,7 @@ class PageHome extends HTMLElement {
         accordionEl.innerHTML = state.accordionMarkup;
       }
       bindAccordionInteractions();
+      this.syncJourneyShellHeightToViewport();
       this.journeySheetExpandedOffset = this.measureJourneySheetExpandedOffset();
       this.applyJourneySheetState({ animate: false, force: true });
       this.scheduleLayoutSync(0);
@@ -1953,6 +2205,7 @@ class PageHome extends HTMLElement {
         this.toggleJourneySheet({ animate: true });
       });
     }
+    this.syncJourneyShellHeightToViewport();
     this.journeySheetExpandedOffset = this.measureJourneySheetExpandedOffset();
     this.applyJourneySheetState({ animate: false, force: true });
 
@@ -1982,17 +2235,18 @@ class PageHome extends HTMLElement {
       }
       window.dispatchEvent(new CustomEvent('app:locale-change', { detail: { locale: nextLocale } }));
     });
-    const planCardEl = this.querySelector('.journey-plan-card');
-    planCardEl?.addEventListener('click', (event) => {
-      if (this.isEventInHeaderZone(event)) return;
-      const target = event && event.target && typeof event.target.closest === 'function'
-        ? event.target
-        : null;
-      if (!target) return;
-      const inNarrationZone = target.closest('.onboarding-intro-bubble, .free-ride-hero-bubble, .journey-plan-bubble');
-      if (!inNarrationZone) return;
-      this.playPlanNarration({ manual: true });
-    });
+    const planBubbleEl = this.getPlanBubbleEl();
+    if (planBubbleEl) {
+      const tapPlanBubble = (event) => {
+        if (this.isEventInHeaderZone(event)) return;
+        if (event && typeof event.preventDefault === 'function') event.preventDefault();
+        if (event && typeof event.stopPropagation === 'function') event.stopPropagation();
+        this.playPlanNarration({ manual: true });
+      };
+      planBubbleEl.addEventListener('pointerup', tapPlanBubble);
+      planBubbleEl.addEventListener('touchend', tapPlanBubble, { passive: false });
+      planBubbleEl.addEventListener('click', tapPlanBubble);
+    }
   }
 
   normalizeLocale(locale) {
@@ -2616,6 +2870,10 @@ class PageHome extends HTMLElement {
       const notifyStart = () => {
         if (started) return;
         started = true;
+        if (startTimeout) {
+          clearTimeout(startTimeout);
+          startTimeout = null;
+        }
         if (onPlaybackStart) onPlaybackStart();
       };
 
@@ -2917,7 +3175,7 @@ class PageHome extends HTMLElement {
         startedAny = startedAny || started;
 
         if (index < lines.length - 1 && token === this.narrationToken) {
-          await waitMs(130);
+          await waitMs(220);
         }
       }
       return startedAny;

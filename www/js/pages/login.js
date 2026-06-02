@@ -21,7 +21,9 @@ class PageLogin extends HTMLElement {
     const renderActionButton = (id, label, tone = 'secondary', tabSkip = false) =>
       flat
         ? `<button class="login-${tone}-btn" type="button" id="${id}"${tabSkip ? ' tabindex="-1"' : ''}>${label}</button>`
-        : `<ion-button expand="block" shape="round" id="${id}"${tabSkip ? ' tabindex="-1"' : ''}>${label}</ion-button>`;
+        : tone === 'secondary'
+          ? `<ion-button expand="block" shape="round" fill="outline" class="login-secondary-btn" id="${id}"${tabSkip ? ' tabindex="-1"' : ''}>${label}</ion-button>`
+          : `<ion-button expand="block" shape="round" class="login-primary-btn" id="${id}"${tabSkip ? ' tabindex="-1"' : ''}>${label}</ion-button>`;
     const renderSocialButton = (id, iconClass, iconSrc, label) =>
       flat
         ? `
@@ -250,7 +252,10 @@ class PageLogin extends HTMLElement {
                 </div>
               </div>
               <div id="magic-sent" hidden>
-                <h3>${copy.magicSentTitle}</h3>
+                <div class="login-panel-header">
+                  <h3>${copy.magicSentTitle}</h3>
+                  <button class="login-back-top" type="button" id="magic-back-from-sent">${copy.magicBack}</button>
+                </div>
                 <p class="muted">${copy.magicSentMessage}<br><strong id="magic-sent-email"></strong></p>
                 <div style="margin-top:14px">
                   <span class="login-label">${copy.magicOtpLabel}</span>
@@ -264,9 +269,8 @@ class PageLogin extends HTMLElement {
                   </div>
                 </div>
                 <p id="magic-otp-error" style="display:none; margin:8px 0 0; color: var(--ion-color-danger, #eb445a); font-size:0.9rem; text-align:center;"></p>
-                <div class="login-links" style="margin-top:8px">
-                  <button class="login-link-btn" type="button" id="magic-resend">${copy.magicResend}</button>
-                  <button class="login-link-btn" type="button" id="magic-back-from-sent">${copy.magicBack}</button>
+                <div class="login-email-actions" style="margin-top:8px">
+                  ${renderActionButton('magic-resend', copy.magicResend, 'secondary')}
                 </div>
               </div>
             </div>
@@ -690,8 +694,15 @@ class PageLogin extends HTMLElement {
 
       const emailEl = getAccessEmailInput();
       const passEl = getAccessPassInput();
-      const email = emailEl && emailEl.value ? String(emailEl.value).trim().toLowerCase() : '';
-      const pass = passEl && passEl.value ? String(passEl.value) : '';
+      let email = emailEl && emailEl.value ? String(emailEl.value).trim().toLowerCase() : '';
+      let pass = passEl && passEl.value ? String(passEl.value) : '';
+
+      if (!email && !pass && window.r34lp0w3r && window.r34lp0w3r.speakDebug) {
+        email = 'testuser@sokinternet.com';
+        pass = 'T3stus3r!';
+        if (emailEl) emailEl.value = email;
+        if (passEl) passEl.value = pass;
+      }
 
       if (emailEl) emailEl.value = email;
 

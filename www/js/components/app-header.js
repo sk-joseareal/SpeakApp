@@ -173,7 +173,7 @@ export function renderAppHeader(_options = {}) {
   const rewardBadgesId = String(options.rewardBadgesId || '').trim();
   const showNotifications = isAppNotificationsEnabled();
   return `
-    <ion-header translucent="true" class="app-header-shell">
+    <ion-header class="app-header-shell">
       <ion-toolbar class="secret-title-area toolbar-title-default">
         <ion-title></ion-title>
         ${(title || showTitleSlot) ? `<div slot="start" class="app-toolbar-title secret-title">${escapeHtml(title)}</div>` : ''}

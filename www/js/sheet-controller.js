@@ -52,6 +52,20 @@ export const createSheetController = (options) => {
     return sinceInteraction >= 0 && sinceInteraction < AUTO_MEASURE_COOLDOWN_MS;
   };
 
+  const readAppliedTranslateY = (sheetEl) => {
+    const parseLift = (value) => {
+      const lift = Number.parseFloat(String(value || '').trim());
+      return Number.isFinite(lift) ? Math.max(0, lift) : null;
+    };
+    const inlineLift = parseLift(sheetEl?.style?.getPropertyValue('--sheet-lift'));
+    if (inlineLift !== null) return -inlineLift;
+    if (typeof window !== 'undefined' && typeof window.getComputedStyle === 'function') {
+      const computedLift = parseLift(window.getComputedStyle(sheetEl).getPropertyValue('--sheet-lift'));
+      if (computedLift !== null) return -computedLift;
+    }
+    return 0;
+  };
+
   const measureOffset = (opts = {}) => {
     const shellEl = getShellEl();
     const sheetEl = getSheetEl();
@@ -61,7 +75,7 @@ export const createSheetController = (options) => {
     }
     const shellRect = shellEl.getBoundingClientRect();
     const sheetRect = sheetEl.getBoundingClientRect();
-    const currentTranslate = Number.isFinite(state.translateY) ? state.translateY : 0;
+    const currentTranslate = readAppliedTranslateY(sheetEl);
     const targetTop = shellRect.top + Math.max(0, Number(getTopInset()) || 0);
     const offset = Math.max(0, Math.round(sheetRect.top - currentTranslate - targetTop));
     state.offset = offset;
@@ -74,7 +88,9 @@ export const createSheetController = (options) => {
     const handleEl = getHandleEl();
     if (!sheetEl) return;
 
-    const offset = state.expanded ? (state.offset || measureOffset()) : 0;
+    const offset = state.expanded
+      ? (opts.force ? measureOffset({ force: true }) : (state.offset || measureOffset()))
+      : 0;
     state.translateY = state.expanded ? -offset : 0;
 
     sheetEl.dataset.sheetState = state.expanded ? 'expanded' : 'collapsed';
@@ -88,6 +104,7 @@ export const createSheetController = (options) => {
     }
 
     if (!animate) {
+      sheetEl.getBoundingClientRect();
       requestAnimationFrame(() => {
         if (!sheetEl.isConnected) return;
         sheetEl.classList.remove('is-sheet-instant');

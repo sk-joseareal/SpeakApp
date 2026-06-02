@@ -43,7 +43,7 @@
       right: 0;
       bottom: 0;
       z-index: 99999;
-      padding: 28px 20px 40px;
+      padding: 16px 20px 40px;
       display: block;
       background: #f4f6fb;
       color: #0f1b2d;
@@ -58,7 +58,7 @@
     .compat-guard-card {
       width: 100%;
       max-width: 560px;
-      margin: 10vh auto 0;
+      margin: 0 auto;
       border-radius: 24px;
       padding: 24px 20px;
       background: rgba(255, 255, 255, 0.96);
@@ -189,6 +189,10 @@
         supportEmail: 'contact@sokinternet.com'
       };
 
+      if (!supported && document.documentElement && document.documentElement.classList) {
+        document.documentElement.classList.add('hydrated');
+      }
+
       window.__openCompatExternal = function(url) {
         try {
           if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Browser && typeof window.Capacitor.Plugins.Browser.open === 'function') {
@@ -253,7 +257,7 @@
   </script>
 </head>
 <body>
-  <div id="compat-guard" class="compat-guard" aria-live="polite">
+  <div id="compat-guard" class="compat-guard is-hidden" aria-live="polite">
     <div class="compat-guard-card">
       <h1 class="compat-guard-title">Actualiza WebView o Chrome</h1>
       <p class="compat-guard-copy">
@@ -262,7 +266,7 @@
       </p>
       <ul class="compat-guard-list">
         <li id="compat-env">Entorno detectado: comprobando...</li>
-        <li id="compat-version">Versión detectada: comprobando...</li>
+        <li id="compat-version" data-diagnostics-unlock-version="true">Versión detectada: comprobando...</li>
         <li id="compat-minimum">Versión mínima recomendada: Chrome/WebView 80 o superior.</li>
       </ul>
       <div class="compat-guard-actions">
@@ -296,6 +300,9 @@
       var guard = document.getElementById('compat-guard');
 
       if (compat.supported) {
+        if (guard) {
+          guard.classList.add('is-hidden');
+        }
         if (typeof window.__loadSpeakAppScripts === 'function') {
           window.__loadSpeakAppScripts();
         }
@@ -303,6 +310,9 @@
       }
 
       if (appRoot) appRoot.style.display = 'none';
+      if (guard) {
+        guard.classList.remove('is-hidden');
+      }
 
       var envEl = document.getElementById('compat-env');
       var versionEl = document.getElementById('compat-version');

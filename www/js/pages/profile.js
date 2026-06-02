@@ -2468,7 +2468,7 @@ class PageProfile extends HTMLElement {
     const localeLabel = String(rawLocaleSetting || '').trim().toUpperCase() || 'EN';
     const loggedOutHeaderHtml = titlebarEnabled
       ? `
-      <ion-header translucent="true" class="app-header-shell">
+      <ion-header class="app-header-shell">
         <ion-toolbar class="secret-title-area toolbar-title-default">
           <ion-title></ion-title>
           <div class="app-header-actions profile-auth-header-actions" slot="end">

@@ -459,6 +459,102 @@ const notifyLoginSuccess = (user) => {
   });
 };
 
+const normalizeNativeOpenUrlForDedupe = (url) => {
+  try {
+    return new URL(url).toString();
+  } catch (_err) {
+    return String(url || '');
+  }
+};
+
+const handleMagicLinkUrl = async (url) => {
+  try {
+    const parsed = new URL(url);
+    const token = parsed.searchParams.get('magic_token');
+    const uid = parsed.searchParams.get('magic_uid');
+    if (!token || !uid) return false;
+    console.log('>#magic#> handleMagicLinkUrl: magic_token detectado');
+    if (typeof window.doPost !== 'function') return false;
+    const result = await window.doPost('/auth/magic/exchange', null, { token, uid });
+    if (!result || !result.ok) {
+      console.warn('>#magic#> intercambio fallido:', result && result.data && result.data.error);
+      return true; // consumido, aunque fallara
+    }
+    const user = result.data && result.data.user ? { ...result.data.user } : null;
+    if (!user) {
+      console.warn('>#magic#> sesión sin usuario');
+      return true;
+    }
+    if (typeof window.setUser === 'function') {
+      window.setUser(user);
+    } else {
+      window.user = user;
+      try {
+        localStorage.setItem('appv5:user', JSON.stringify(user));
+      } catch (_) {}
+      window.dispatchEvent(new CustomEvent('app:user-change', { detail: user }));
+    }
+    notifyLoginSuccess(user);
+    clearCurrentLoginProvider();
+    return true;
+  } catch (err) {
+    console.warn('>#magic#> handleMagicLinkUrl error:', err);
+    return false;
+  }
+};
+
+window.__pendingNativeOpenUrls = Array.isArray(window.__pendingNativeOpenUrls)
+  ? window.__pendingNativeOpenUrls
+  : [];
+
+window.__handleNativeOpenUrlFallback = async function(infoUrl, source = 'native-open-url') {
+  const normalizedUrl = normalizeNativeOpenUrlForDedupe(infoUrl);
+  if (!normalizedUrl) return false;
+  const now = Date.now();
+  if (
+    window.__lastNativeOpenUrlFallback === normalizedUrl &&
+    now - (window.__lastNativeOpenUrlFallbackAt || 0) < 4000
+  ) {
+    console.log('>#C02#> loginSocial: openURL duplicado ignorado', source, normalizedUrl);
+    return true;
+  }
+  window.__lastNativeOpenUrlFallback = normalizedUrl;
+  window.__lastNativeOpenUrlFallbackAt = now;
+  console.log('>#C02#> loginSocial: procesando openURL', source, normalizedUrl);
+  if (await handleMagicLinkUrl(normalizedUrl)) {
+    await closeSocialLoginBrowser();
+    return true;
+  }
+  return handleSocialLoginCallbackUrl(normalizedUrl, {
+    closeBrowser: true,
+    source
+  });
+};
+
+window.__drainPendingNativeOpenUrlsFallback = function() {
+  const pending = Array.isArray(window.__pendingNativeOpenUrls)
+    ? window.__pendingNativeOpenUrls.splice(0)
+    : [];
+  pending.forEach((payload) => {
+    const url = payload && payload.url ? payload.url : payload;
+    const source = payload && payload.reason ? `pending:${payload.reason}` : 'pending-native-open-url';
+    const handled = window.__handleNativeOpenUrlFallback(url, source);
+    if (handled && typeof handled.catch === 'function') {
+      handled.catch((err) => console.log('>#C02#> loginSocial: error procesando openURL pendiente', err));
+    }
+  });
+};
+
+window.addEventListener('app:native-open-url', (event) => {
+  const detail = event && event.detail ? event.detail : {};
+  const handled = window.__handleNativeOpenUrlFallback(detail.url, detail.reason || 'native-open-url');
+  if (handled && typeof handled.catch === 'function') {
+    handled.catch((err) => console.log('>#C02#> loginSocial: error procesando openURL nativo', err));
+  }
+});
+
+window.__drainPendingNativeOpenUrlsFallback();
+
 function procesarLoginDesdeCallback(url) {
   try {
     restoreCurrentLoginProvider();
@@ -1006,32 +1102,86 @@ const formatPushForegroundToastMessage = (notification) => {
   return 'New notification';
 };
 
+const presentPlainForegroundToast = (message, closeText) => {
+  try {
+    if (typeof document === 'undefined' || !document.body) return false;
+    const existing = document.getElementById('push-foreground-toast-fallback');
+    if (existing && existing.parentNode) {
+      existing.parentNode.removeChild(existing);
+    }
+    const toast = document.createElement('div');
+    toast.id = 'push-foreground-toast-fallback';
+    toast.style.cssText = [
+      'position:fixed',
+      'left:16px',
+      'right:16px',
+      'top:16px',
+      'z-index:2147483647',
+      'display:flex',
+      'align-items:flex-start',
+      'justify-content:space-between',
+      'gap:12px',
+      'padding:14px 16px',
+      'border-radius:16px',
+      'background:rgba(18,28,54,0.96)',
+      'color:#fff',
+      'box-shadow:0 16px 40px rgba(0,0,0,0.22)',
+      'font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif',
+      'font-size:15px',
+      'line-height:1.35',
+      'white-space:pre-wrap'
+    ].join(';');
+
+    const textEl = document.createElement('div');
+    textEl.style.cssText = 'flex:1 1 auto; min-width:0;';
+    textEl.textContent = String(message || '').trim() || 'New notification';
+
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.textContent = closeText || 'Cerrar';
+    button.style.cssText = [
+      'flex:0 0 auto',
+      'border:0',
+      'border-radius:999px',
+      'padding:8px 12px',
+      'background:#5f73ff',
+      'color:#fff',
+      'font-weight:700',
+      'font-size:13px',
+      'line-height:1',
+      'cursor:pointer'
+    ].join(';');
+
+    const dismiss = () => {
+      if (toast && toast.parentNode) {
+        toast.parentNode.removeChild(toast);
+      }
+    };
+
+    button.addEventListener('click', dismiss);
+    toast.appendChild(textEl);
+    toast.appendChild(button);
+    document.body.appendChild(toast);
+    return true;
+  } catch (err) {
+    console.error('>#C04#> presentPlainForegroundToast error:', err);
+    return false;
+  }
+};
+
 function showPushForegroundToast(notification) {
   try {
     const message = formatPushForegroundToastMessage(notification);
     const closeText = getPushForegroundToastCloseLabel();
-    if (typeof window.presentAppToast === 'function') {
+    if (typeof window.presentAppToast === 'function' && typeof customElements !== 'undefined' && customElements.get('ion-toast')) {
       window.presentAppToast(message, {
         autoDismiss: false,
         closeText
       });
       return;
     }
-    if (typeof document !== 'undefined' && document.body && typeof customElements !== 'undefined' && customElements.get('ion-toast')) {
-      const toast = document.createElement('ion-toast');
-      toast.message = message;
-      toast.duration = 0;
-      toast.position = 'top';
-      toast.buttons = [{ text: closeText, role: 'cancel' }];
-      document.body.appendChild(toast);
-      toast.present().catch(() => {});
-      toast.addEventListener(
-        'didDismiss',
-        () => {
-          toast.remove();
-        },
-        { once: true }
-      );
+    if (!presentPlainForegroundToast(message, closeText) && typeof window.alert === 'function') {
+      window.alert(message);
     }
   } catch (err) {
     console.error('>#C04#> showPushForegroundToast error:', err);
@@ -1047,111 +1197,197 @@ async function PushNotificationsInit()
   const Push = Capacitor.Plugins.PushNotifications;
   setupPushForegroundBellUnlock();
 
-  // Permiso (obligatorio en Android 13+)
-  console.log(">#C04#> PushNotificationsInit: requestPermissions().");
-  Push.requestPermissions().then(function(result) {
-    if (result.receive === 'granted') {
-      console.log('>#C04#> PushNotifications: requestPermissions(): Permiso concedido.');
-      Push.register();
-    } else {
-      console.log('>#C04#> PushNotifications: requestPermissions(): Permiso denegado.');
-    }
-  });
-
   // Nos aseguramos de no registrar varias veces
   if (window.__pushListenersRegistered) {
     console.log(">#C04#> PushNotificationsInit: Los listeners ya estaban registrados.");
-    return;
-  }
-  window.__pushListenersRegistered = true;  
+  } else {
+    window.__pushListenersRegistered = true;
 
-  Push.addListener('registration', function(token) {
-    logFullObject(">#C04#> PushNotifications: registration. token:",token);
-    window.__fcmToken = token.value;
-    Rlog(">#C04#> PushNotifications: registration. token:" + JSON.stringify(token));
-
-    // Registrarlo en el backend
-    if (window.pushTokenReceived) {
-      console.log("|||||||||||||||| window.pushTokenReceived(token.value) ||||||||||||||||");
+    Push.addListener('registration', function(token) {
+      logFullObject(">#C04#> PushNotifications: registration. token:",token);
       const platform =
         window.Capacitor && typeof window.Capacitor.getPlatform === 'function'
           ? window.Capacitor.getPlatform()
           : 'unknown';
-      window.pushTokenReceived({
-        token: token.value,
-        source: 'registration',
-        type: platform === 'android' ? 'fcm' : platform === 'ios' ? 'apns' : '',
+      const guessedType = platform === 'android'
+        ? 'fcm'
+        : isLikelyApnsToken(token && token.value)
+          ? 'apns'
+          : isLikelyFcmToken(token && token.value)
+            ? 'fcm'
+            : 'registration';
+      syncRuntimePushTokenState({
+        token: token && token.value,
+        token_type: guessedType,
         platform,
-        apns_environment: platform === 'ios' ? pickFirstString(window.__APNsEnvironment, window.__apnsEnvironment) : ''
+        source: 'registration'
       });
-    }
+      Rlog(">#C04#> PushNotifications: registration. token:" + JSON.stringify(token));
 
-  });
+      // Registrarlo en el backend
+      if (window.pushTokenReceived) {
+        console.log("|||||||||||||||| window.pushTokenReceived(token.value) ||||||||||||||||");
+        window.pushTokenReceived({
+          token: token.value,
+          source: 'registration',
+          type: guessedType,
+          platform,
+          apns_environment: platform === 'ios' && guessedType === 'apns'
+            ? pickFirstString(window.__APNsEnvironment, window.__apnsEnvironment)
+            : ''
+        });
+      }
 
-  Push.addListener('registrationError', function(err) {
-    logFullObject(">#C04#> PushNotifications: registrationError. err:",err)
-  });
+    });
 
-  Push.addListener('pushNotificationReceived', function(notification) {
-    logFullObject(">#C04#> PushNotifications: pushNotificationReceived. notification:",notification)
-    Rlog()
-    Rlog(">#C04#> pushNotificationReceived: notification:" + JSON.stringify(notification))
-    showPushForegroundToast(notification)
-  });
+    Push.addListener('registrationError', function(err) {
+      logFullObject(">#C04#> PushNotifications: registrationError. err:",err)
+    });
 
-  Push.addListener('pushNotificationActionPerformed', function(action) {
-    logFullObject(">#C04#> PushNotifications: pushNotificationActionPerformed. action:",action)
-    Rlog()
-    Rlog(">#C04#> pushNotificationActionPerformed: action:" + JSON.stringify(action))
-    queuePushInboxNotification(action && action.notification ? action.notification : action, 'pushNotificationActionPerformed')
-  });
+    Push.addListener('pushNotificationReceived', function(notification) {
+      logFullObject(">#C04#> PushNotifications: pushNotificationReceived. notification:",notification)
+      Rlog()
+      Rlog(">#C04#> pushNotificationReceived: notification:" + JSON.stringify(notification))
+      showPushForegroundToast(notification)
+    });
 
-  console.log(">#C04#> PushNotificationsInit: Listeners de PushNotifications registrados correctamente.");
+    Push.addListener('pushNotificationActionPerformed', function(action) {
+      logFullObject(">#C04#> PushNotifications: pushNotificationActionPerformed. action:",action)
+      Rlog()
+      Rlog(">#C04#> pushNotificationActionPerformed: action:" + JSON.stringify(action))
+      queuePushInboxNotification(action && action.notification ? action.notification : action, 'pushNotificationActionPerformed')
+    });
 
-  // Implementados en AppDelegate.swift
+    console.log(">#C04#> PushNotificationsInit: Listeners de PushNotifications registrados correctamente.");
 
-  window.addEventListener('apnsToken', function(e) {
-    console.log('>#C04#> apnsToken: 📲 Token APNs obtenido desde nativo:', e.detail.token);
-    window.__APNsToken = e.detail.token;
-    window.__APNsEnvironment = pickFirstString(e && e.detail && e.detail.environment, e && e.detail && e.detail.apnsEnvironment);
-    // Registrarlo en el backend
-    if (window.pushTokenReceived) {
-      console.log("|||||||||||||||| window.pushTokenReceived(e.detail.token) ||||||||||||||||");
-      window.pushTokenReceived({
-        token: e.detail.token,
-        source: 'apns',
-        type: 'apns',
+    // Implementados en AppDelegate.swift
+
+    window.addEventListener('apnsToken', function(e) {
+      console.log('>#C04#> apnsToken: 📲 Token APNs obtenido desde nativo:', e.detail.token);
+      window.__APNsEnvironment = pickFirstString(e && e.detail && e.detail.environment, e && e.detail && e.detail.apnsEnvironment);
+      syncRuntimePushTokenState({
+        token: e && e.detail && e.detail.token,
+        token_type: 'apns',
         platform: 'ios',
+        source: 'apns',
         apns_environment: pickFirstString(window.__APNsEnvironment)
       });
-    }
-  });
+      // Registrarlo en el backend
+      if (window.pushTokenReceived) {
+        console.log("|||||||||||||||| window.pushTokenReceived(e.detail.token) ||||||||||||||||");
+        window.pushTokenReceived({
+          token: e.detail.token,
+          source: 'apns',
+          type: 'apns',
+          platform: 'ios',
+          apns_environment: pickFirstString(window.__APNsEnvironment)
+        });
+      }
+    });
 
-  window.addEventListener('fcmToken', function(e) {
-    console.log('>#C04#> fcmToken: 📲 Token fcm obtenido desde nativo:', e.detail.token);
-    window.__fcmToken = e.detail.token;
-    if (window.pushTokenReceived) {
-      window.pushTokenReceived({
-        token: e.detail.token,
-        source: 'fcm',
-        type: 'fcm',
+    window.addEventListener('fcmToken', function(e) {
+      console.log('>#C04#> fcmToken: 📲 Token fcm obtenido desde nativo:', e.detail.token);
+      syncRuntimePushTokenState({
+        token: e && e.detail && e.detail.token,
+        token_type: 'fcm',
         platform:
           window.Capacitor && typeof window.Capacitor.getPlatform === 'function'
             ? window.Capacitor.getPlatform()
             : 'unknown',
+        source: 'fcm',
         apns_environment: pickFirstString(window.__APNsEnvironment, e && e.detail && e.detail.apnsEnvironment)
       });
-    }
-  });
+      if (window.pushTokenReceived) {
+        window.pushTokenReceived({
+          token: e.detail.token,
+          source: 'fcm',
+          type: 'fcm',
+          platform:
+            window.Capacitor && typeof window.Capacitor.getPlatform === 'function'
+              ? window.Capacitor.getPlatform()
+              : 'unknown',
+          apns_environment: pickFirstString(window.__APNsEnvironment, e && e.detail && e.detail.apnsEnvironment)
+        });
+      }
+    });
 
-  window.addEventListener('pushNotificationTap', function(e) {
-    console.log('>#C04#> pushNotificationTap: 📥 Notificación recibida al abrir (nativo):', JSON.stringify(e.detail));
-    queuePushInboxNotification(e && e.detail ? e.detail : null, 'pushNotificationTap')
-  });
+    window.addEventListener('pushNotificationTap', function(e) {
+      console.log('>#C04#> pushNotificationTap: 📥 Notificación recibida al abrir (nativo):', JSON.stringify(e.detail));
+      queuePushInboxNotification(e && e.detail ? e.detail : null, 'pushNotificationTap')
+    });
 
-  console.log(">#C04#> PushNotificationsInit: Listeners apnsToken, fcmToken y pushNotificationTap registrados correctamente.");
-
+    console.log(">#C04#> PushNotificationsInit: Listeners apnsToken, fcmToken y pushNotificationTap registrados correctamente.");
+  }
+  // Permiso (obligatorio en Android 13+)
+  if (Push && typeof Push.requestPermissions === 'function') {
+    console.log(">#C04#> PushNotificationsInit: requestPermissions().");
+    Promise.resolve()
+      .then(() => Push.requestPermissions())
+      .then(function(result) {
+        if (result && result.receive === 'granted') {
+          console.log('>#C04#> PushNotifications: requestPermissions(): Permiso concedido.');
+          if (typeof Push.register === 'function') {
+            Push.register();
+          }
+        } else {
+          console.log('>#C04#> PushNotifications: requestPermissions(): Permiso denegado.');
+        }
+      })
+      .catch(function(err) {
+        console.log('>#C04#> PushNotifications: requestPermissions() error:', err);
+      });
+  } else {
+    console.log('>#C04#> PushNotificationsInit: requestPermissions() no disponible.');
+  }
 }
+
+function ensurePushNotificationsInit(retryCount = 0) {
+  try {
+    const pushPlugin =
+      window.Capacitor &&
+      window.Capacitor.Plugins &&
+      window.Capacitor.Plugins.PushNotifications
+        ? window.Capacitor.Plugins.PushNotifications
+        : null;
+    if (pushPlugin) {
+      PushNotificationsInit();
+      return;
+    }
+    if (retryCount < 8) {
+      setTimeout(() => ensurePushNotificationsInit(retryCount + 1), 250);
+    } else {
+      console.log('>#C04#> ensurePushNotificationsInit: PushNotifications no disponible tras reintentos.');
+    }
+  } catch (err) {
+    console.warn('>#C04#> ensurePushNotificationsInit error:', err);
+  }
+}
+
+function bootstrapPushNotifications() {
+  try {
+    const pushPlugin =
+      window.Capacitor &&
+      window.Capacitor.Plugins &&
+      window.Capacitor.Plugins.PushNotifications
+        ? window.Capacitor.Plugins.PushNotifications
+        : null;
+    if (!pushPlugin) {
+      console.log('>#C04#> PushNotifications bootstrap: plugin no disponible.');
+      return;
+    }
+    ensurePushNotificationsInit();
+  } catch (err) {
+    console.warn('>#C04#> bootstrapPushNotifications error:', err);
+  }
+}
+
+if (document && document.readyState && document.readyState !== 'loading') {
+  bootstrapPushNotifications();
+} else {
+  document.addEventListener('DOMContentLoaded', bootstrapPushNotifications, { once: true });
+}
+
+document.addEventListener('deviceready', bootstrapPushNotifications);
 
 window.requestBadgeReset = function(reason) {
   try {
@@ -1176,8 +1412,22 @@ window.requestBadgeReset = function(reason) {
 async function enviarPush(type,delay = 0) {
   console.log(">#C04#> enviarPush.")
   const destination = 'cursoingles';
-  const token = ( type == "apns" ? window.__APNsToken : window.__fcmToken ) 
+  const runtimePushTokens =
+    window.r34lp0w3r && window.r34lp0w3r.pushTokens && typeof window.r34lp0w3r.pushTokens === 'object'
+      ? window.r34lp0w3r.pushTokens
+      : window.r34lp0w3r && window.r34lp0w3r.pushTokens && typeof window.r34lp0w3r.pushTokens === 'object'
+        ? window.r34lp0w3r.pushTokens
+        : {};
+  const token = (
+    type == "apns"
+      ? (window.__APNsToken || runtimePushTokens.apns)
+      : (window.__fcmToken || runtimePushTokens.fcm)
+  );
   console.log(">#C04#> enviarPush. type: " + type + " token: " + token + " delay: " + delay + " destination: " + destination);
+  if (!token) {
+    console.warn('>#C04#> enviarPush: no hay token disponible para', type);
+    return;
+  }
   try {
     const response = await fetch('https://api.curso-ingles.com/send_push', {
       method: 'POST',
@@ -3031,6 +3281,71 @@ const SESSION_INVALIDATION_LOG_KEY = 'appv5:session-invalidation-log';
 const SESSION_INVALIDATION_CONFIRM_WINDOW_MS = 45000;
 window.user = window.user || null;
 
+const getRuntimePushTokenState = () => {
+  window.r34lp0w3r = window.r34lp0w3r || {};
+  if (!window.r34lp0w3r.pushTokens || typeof window.r34lp0w3r.pushTokens !== 'object') {
+    window.r34lp0w3r.pushTokens = {
+      apns: '',
+      fcm: '',
+      lastSource: '',
+      lastPlatform: '',
+      lastToken: '',
+      lastType: '',
+      updatedAt: ''
+    };
+  }
+  return window.r34lp0w3r.pushTokens;
+};
+
+const emitPushTokenStateChange = (detail) => {
+  try {
+    window.dispatchEvent(new CustomEvent('app:push-token-change', { detail }));
+  } catch (_err) {
+    // no-op
+  }
+};
+
+const isLikelyApnsToken = (value) => {
+  const token = String(value || '').trim();
+  if (!token) return false;
+  if (token.includes(':')) return false;
+  return /^[0-9a-f]{32,}$/i.test(token);
+};
+
+const isLikelyFcmToken = (value) => {
+  const token = String(value || '').trim();
+  if (!token) return false;
+  return token.includes(':') || token.includes('APA91');
+};
+
+const syncRuntimePushTokenState = (record) => {
+  const safeRecord = record && typeof record === 'object' ? record : {};
+  const next = { ...getRuntimePushTokenState() };
+  const token = pickFirstString(safeRecord.token, safeRecord.value);
+  const tokenType = pickFirstString(safeRecord.token_type, safeRecord.type).toLowerCase();
+  const platform = pickFirstString(safeRecord.platform).toLowerCase();
+  const tokenLooksApns = isLikelyApnsToken(token);
+  const tokenLooksFcm = isLikelyFcmToken(token);
+  if (token) {
+    if (tokenType === 'apns' || (platform === 'ios' && tokenLooksApns)) {
+      next.apns = token;
+      window.__APNsToken = token;
+    }
+    if (tokenType === 'fcm' || platform === 'android' || tokenType === 'registration' || (platform === 'ios' && tokenLooksFcm)) {
+      next.fcm = token;
+      window.__fcmToken = token;
+    }
+    next.lastToken = token;
+    next.lastType = tokenType;
+    next.lastPlatform = platform;
+    next.lastSource = pickFirstString(safeRecord.source);
+    next.updatedAt = pickFirstString(safeRecord.updated_at, new Date().toISOString());
+  }
+  window.r34lp0w3r.pushTokens = next;
+  emitPushTokenStateChange({ ...next });
+  return next;
+};
+
 const readUserFromStorage = (storage, key) => {
   try {
     if (!storage || typeof storage.getItem !== 'function') return null;
@@ -3494,11 +3809,58 @@ const flushStoredPushTokens = async () => {
 window.pushTokenReceived = (input) => {
   const record = normalizePushTokenInput(input);
   if (!record) return;
+  syncRuntimePushTokenState(record);
   upsertStoredPushToken(record);
   flushStoredPushTokens();
 };
 
 window.flushPushTokenRegistrations = flushStoredPushTokens;
+
+const hydrateRuntimePushTokensFromStorage = () => {
+  try {
+    const records = readStoredPushTokens();
+    if (!records.length) return;
+    const sorted = records
+      .filter((entry) => entry && entry.token)
+      .slice()
+      .sort((a, b) => {
+        const aTime = Date.parse(pickFirstString(a.updated_at, a.synced_at, ''));
+        const bTime = Date.parse(pickFirstString(b.updated_at, b.synced_at, ''));
+        return (Number.isFinite(bTime) ? bTime : 0) - (Number.isFinite(aTime) ? aTime : 0);
+      });
+    let merged = null;
+    for (const entry of sorted.reverse()) {
+      if (!entry || !entry.token) continue;
+      const normalized = { ...entry };
+      if (normalized.token_type === 'apns' && !isLikelyApnsToken(normalized.token)) {
+        normalized.token_type = isLikelyFcmToken(normalized.token) ? 'fcm' : '';
+      }
+      if (merged) {
+        syncRuntimePushTokenState({
+          token: normalized.token,
+          token_type: normalized.token_type,
+          type: normalized.token_type,
+          platform: normalized.platform,
+          source: normalized.source,
+          updated_at: normalized.updated_at || normalized.synced_at || ''
+        });
+      } else {
+        merged = normalized;
+        syncRuntimePushTokenState({
+          token: normalized.token,
+          token_type: normalized.token_type,
+          type: normalized.token_type,
+          platform: normalized.platform,
+          source: normalized.source,
+          updated_at: normalized.updated_at || normalized.synced_at || ''
+        });
+      }
+    }
+  } catch (err) {
+    console.error('[push] error hidratando estado de tokens', err);
+  }
+};
+hydrateRuntimePushTokensFromStorage();
 
 window.addEventListener('app:user-change', () => {
   flushStoredPushTokens();
@@ -4064,42 +4426,17 @@ document.addEventListener('DOMContentLoaded', async function() {
   //
   ///// PushNotifications
   if (plugins.PushNotifications)
-    PushNotificationsInit()
+    ensurePushNotificationsInit()
   else
     console.log('>#C04#> PushNotifications no disponible.');
   /////
   //
 
   //
-  ///// Magic link handler (Universal Links desde cliente de correo nativo)
-  const handleMagicLinkUrl = async (url) => {
-    try {
-      const parsed = new URL(url);
-      const token = parsed.searchParams.get('magic_token');
-      const uid   = parsed.searchParams.get('magic_uid');
-      if (!token || !uid) return false;
-      console.log('>#magic#> handleMagicLinkUrl: magic_token detectado');
-      if (typeof window.doPost !== 'function') return false;
-      const result = await window.doPost('/auth/magic/exchange', null, { token, uid });
-      if (!result || !result.ok) {
-        console.warn('>#magic#> intercambio fallido:', result && result.data && result.data.error);
-        return true; // consumido, aunque fallara
-      }
-      const user = result.data && result.data.user ? { ...result.data.user } : null;
-      if (!user) { console.warn('>#magic#> sesión sin usuario'); return true; }
-      if (typeof window.setUser === 'function') {
-        window.setUser(user);
-      } else {
-        window.user = user;
-        try { localStorage.setItem('appv5:user', JSON.stringify(user)); } catch (_) {}
-        window.dispatchEvent(new CustomEvent('app:user-change', { detail: user }));
-      }
-      return true;
-    } catch (err) {
-      console.warn('>#magic#> handleMagicLinkUrl error:', err);
-      return false;
-    }
-  };
+  ///// Magic links y callbacks nativos se registran a nivel global antes de DOMContentLoaded.
+  if (typeof window.__drainPendingNativeOpenUrlsFallback === 'function') {
+    window.__drainPendingNativeOpenUrlsFallback();
+  }
 
   ///// Registrar los listeners de Capacitor.App
   if (plugins.App && typeof plugins.App.addListener === 'function') {
@@ -4108,11 +4445,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     // Registrar el listener para appUrlOpen para manejar URLs con esquema app://
     plugins.App.addListener('appUrlOpen', async function(info) {
       console.log(">#C02#> Plugin App (loginSocial): 📥 appUrlOpen ACTIVADO con URL:", info.url);
-      if (await handleMagicLinkUrl(info.url)) return;
-      await handleSocialLoginCallbackUrl(info.url, {
-        closeBrowser: true,
-        source: 'appUrlOpen'
-      });
+      await window.__handleNativeOpenUrlFallback(info.url, 'appUrlOpen');
     });
 
     if (typeof plugins.App.getLaunchUrl === 'function') {
@@ -4120,12 +4453,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         const launchData = await plugins.App.getLaunchUrl();
         if (launchData && launchData.url) {
           console.log('>#C02#> Plugin App (loginSocial): getLaunchUrl detectó URL:', launchData.url);
-          if (!(await handleMagicLinkUrl(launchData.url))) {
-            await handleSocialLoginCallbackUrl(launchData.url, {
-              closeBrowser: true,
-              source: 'getLaunchUrl'
-            });
-          }
+          await window.__handleNativeOpenUrlFallback(launchData.url, 'getLaunchUrl');
         }
       } catch (err) {
         console.log('>#C02#> Plugin App (loginSocial): Error en getLaunchUrl:', err);
@@ -4301,13 +4629,11 @@ document.addEventListener('DOMContentLoaded', async function() {
   // Eliminar el número badge (notificaciones push) en iOS
   /////
   window.resetBadgeCount = function() {
-    if (r34lp0w3r.platform === "ios") {
-      if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.P4w4Plugin ) {
-        console.log(">#C00.05#> window.Capacitor.Plugins.P4w4Plugin.resetBadgeCount().");
-        window.Capacitor.Plugins.P4w4Plugin.resetBadgeCount();
-      } else {
-        console.log(">#C00.05#> No existe window.Capacitor.Plugins.P4w4Plugin.resetBadgeCount().");
-      }
+    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.P4w4Plugin ) {
+      console.log(">#C00.05#> window.Capacitor.Plugins.P4w4Plugin.resetBadgeCount().");
+      window.Capacitor.Plugins.P4w4Plugin.resetBadgeCount();
+    } else {
+      console.log(">#C00.05#> No existe window.Capacitor.Plugins.P4w4Plugin.resetBadgeCount().");
     }
   }
   if (typeof window.requestBadgeReset === 'function') {
@@ -4322,4 +4648,13 @@ document.addEventListener('DOMContentLoaded', async function() {
   console.log(">#C00#> DOMContentLoaded <<<");
 
 })
+
+document.addEventListener('deviceready', function() {
+  try {
+    console.log('>#C04#> deviceready: reintentando init de PushNotifications.');
+    ensurePushNotificationsInit();
+  } catch (err) {
+    console.warn('>#C04#> deviceready push init error:', err);
+  }
+});
 console.log(">#C00#> 006.001 _r34lp0w3r_.js <<<")

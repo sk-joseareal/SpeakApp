@@ -29,7 +29,10 @@ import { ensureReferenceData, getLocalizedMapField, getReferenceCourses } from '
 
 class PageDiagnostics extends HTMLElement {
   connectedCallback() {
-    
+    if (this._diagUnlockTimer) {
+      clearInterval(this._diagUnlockTimer);
+      this._diagUnlockTimer = null;
+    }
     this.classList.add('ion-page');
 
     const platform = window.r34lp0w3r?.platform || 'unknown';
@@ -57,6 +60,7 @@ class PageDiagnostics extends HTMLElement {
     const APP_TITLEBAR_ENABLED_KEY = 'appv5:app-titlebar-enabled';
     const APP_STATUSBAR_PRESET_KEY = 'appv5:statusbar-preset';
     const APP_FONT_SF_PRO_ENABLED_KEY = 'appv5:font-sf-pro-enabled';
+    const SYSTEM_BOTTOM_INSET_DEBUG_KEY = 'appv5:system-bottom-inset-debug';
     const SPEAK_PRONUNCIATION_AVATAR_MODE_KEY = 'appv5:speak-pronunciation-avatar-mode';
     const SPEAK_PRONUNCIATION_AVATAR_OLD = 'old';
     const SPEAK_PRONUNCIATION_AVATAR_NEW = 'new';
@@ -65,6 +69,7 @@ class PageDiagnostics extends HTMLElement {
     const SPEAK_PRONUNCIATION_AVATAR_VISEMES_V2 = 'visemes-v2';
     const SPEAK_PRONUNCIATION_AVATAR_VISEMES_V1 = 'visemes-v1';
     const SPEAK_PRONUNCIATION_AVATAR_VIDEO = 'video';
+    const DIAG_UNLOCK_STATE_KEY = 'appv5:diag-unlock-state';
     const SPEAK_PRONUNCIATION_AVATAR_OPTIONS = [
       {
         value: SPEAK_PRONUNCIATION_AVATAR_VIDEO,
@@ -298,6 +303,26 @@ class PageDiagnostics extends HTMLElement {
         return true;
       }
     };
+    const normalizeSystemBottomInsetDebugEnabled = (value) => {
+      if (typeof value === 'boolean') return value;
+      const normalized = String(value || '')
+        .trim()
+        .toLowerCase();
+      if (!normalized) return false;
+      return ['1', 'true', 'on', 'yes'].includes(normalized);
+    };
+    const getStoredSystemBottomInsetDebugEnabled = () => {
+      const globalValue =
+        window.r34lp0w3r && Object.prototype.hasOwnProperty.call(window.r34lp0w3r, 'systemBottomInsetDebug')
+          ? window.r34lp0w3r.systemBottomInsetDebug
+          : undefined;
+      if (globalValue !== undefined) return normalizeSystemBottomInsetDebugEnabled(globalValue);
+      try {
+        return normalizeSystemBottomInsetDebugEnabled(localStorage.getItem(SYSTEM_BOTTOM_INSET_DEBUG_KEY));
+      } catch (_err) {
+        return false;
+      }
+    };
     const normalizeStatusbarPreset = (preset) =>
       String(preset || '').trim().toLowerCase() === 'clear' ? 'clear' : 'dark';
     const getStoredStatusbarPreset = () => {
@@ -446,6 +471,61 @@ class PageDiagnostics extends HTMLElement {
         return false;
       }
     };
+    const readDiagnosticsUnlockState = () => {
+      try {
+        const raw = localStorage.getItem(DIAG_UNLOCK_STATE_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        if (!parsed || typeof parsed !== 'object') return null;
+        const expiresAtMs = Number(
+          parsed.expiresAtMs || parsed.expires_at_ms || parsed.expiresAt || parsed.expires_at || 0
+        );
+        const expiresAtIso = String(parsed.expiresAtIso || parsed.expires_at_iso || parsed.expires_at || '').trim();
+        const code = String(parsed.code || '').trim();
+        return {
+          code,
+          expiresAtMs: Number.isFinite(expiresAtMs) ? expiresAtMs : 0,
+          expiresAtIso
+        };
+      } catch (_err) {
+        return null;
+      }
+    };
+    const formatDiagnosticsUnlockStatus = (state) => {
+      const expiresAtMs = state && Number.isFinite(state.expiresAtMs) ? state.expiresAtMs : 0;
+      if (!expiresAtMs) {
+        return {
+          text: 'Desbloqueo de diagnósticos no disponible.',
+          tone: 'neutral'
+        };
+      }
+      const remainingMs = expiresAtMs - Date.now();
+      if (remainingMs <= 0) {
+        return {
+          text: 'Desbloqueo de diagnósticos caducado.',
+          tone: 'bad'
+        };
+      }
+      const totalSeconds = Math.max(0, Math.ceil(remainingMs / 1000));
+      const minutes = Math.floor(totalSeconds / 60);
+      const seconds = totalSeconds % 60;
+      const remainingText = minutes > 0 ? `${minutes}m ${String(seconds).padStart(2, '0')}s` : `${seconds}s`;
+      let expiryText = '';
+      try {
+        expiryText = new Date(expiresAtMs).toLocaleTimeString([], {
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+      } catch (_err) {
+        expiryText = '';
+      }
+      return {
+        text: expiryText
+          ? `Desbloqueo activo. Quedan ${remainingText}. Caduca a las ${expiryText}.`
+          : `Desbloqueo activo. Quedan ${remainingText}.`,
+        tone: 'good'
+      };
+    };
 
     this.innerHTML = `
       <ion-header translucent="true">
@@ -461,6 +541,7 @@ class PageDiagnostics extends HTMLElement {
       <ion-content fullscreen>
         <div class="page-shell">
           <div class="card placeholder-card">
+            <div class="diag-unlock-banner" id="diag-unlock-banner" aria-live="polite"></div>
             <div class="diag-debug-toggle">
               <div class="diag-debug-text">
                 <div class="diag-debug-title">Modo debug</div>
@@ -480,6 +561,13 @@ class PageDiagnostics extends HTMLElement {
                 <ion-segment-button value="dark"><ion-label>Dark</ion-label></ion-segment-button>
                 <ion-segment-button value="clear"><ion-label>Clear</ion-label></ion-segment-button>
               </ion-segment>
+            </div>
+            <div class="diag-debug-toggle" style="margin-top: 10px;">
+              <div class="diag-debug-text">
+                <div class="diag-debug-title">Zona inferior sistema</div>
+                <div class="diag-debug-sub" id="diag-system-bottom-inset-debug-sub"></div>
+              </div>
+              <ion-toggle id="diag-system-bottom-inset-debug-toggle" aria-label="Zona inferior sistema" ${getStoredSystemBottomInsetDebugEnabled() ? 'checked' : ''}></ion-toggle>
             </div>
             <div class="diag-speak-block">
               <div class="diag-debug-title">Tipografía global</div>
@@ -605,8 +693,9 @@ class PageDiagnostics extends HTMLElement {
                 .join('')}
             </ul>
             <h4 style="margin-top:16px;">Notificaciones Push</h4>
-            <p>Token fcm: <strong>${window.__fcmToken ? window.__fcmToken : 'n/a'}</strong></p>
-            <p>Token APNs: <strong>${window.__APNsToken ? window.__APNsToken : 'n/a' }</strong></p>
+            <p>Token fcm: <strong id="diag-push-fcm-token">${String(window.__fcmToken || '').trim() || 'n/a'}</strong></p>
+            <p>Token APNs: <strong id="diag-push-apns-token">${String(window.__APNsToken || '').trim() || 'n/a' }</strong></p>
+            <p class="diag-debug-sub" id="diag-push-state"></p>
             <div class="diag-actions">
               <ion-button size="small" fill="outline" id="pn-bell">Probar campana</ion-button>
               <ion-button size="small" fill="outline" id="pn-10s">Recibir en 10 segundos</ion-button>
@@ -1052,6 +1141,47 @@ class PageDiagnostics extends HTMLElement {
     const notificationsSub = this.querySelector('#diag-notifications-sub');
     const fontFamilySelect = this.querySelector('#diag-font-family-select');
     const fontSfProSub = this.querySelector('#diag-font-sf-pro-sub');
+    const unlockBannerEl = this.querySelector('#diag-unlock-banner');
+    const pushFcmEl = this.querySelector('#diag-push-fcm-token');
+    const pushApnsEl = this.querySelector('#diag-push-apns-token');
+    const pushStateEl = this.querySelector('#diag-push-state');
+    const readPushState = () => {
+      const runtime =
+        window.r34lp0w3r && window.r34lp0w3r.pushTokens && typeof window.r34lp0w3r.pushTokens === 'object'
+          ? window.r34lp0w3r.pushTokens
+          : {};
+      return {
+        fcm: String(runtime.fcm || window.__fcmToken || '').trim(),
+        apns: String(runtime.apns || window.__APNsToken || '').trim(),
+        lastSource: String(runtime.lastSource || '').trim(),
+        lastPlatform: String(runtime.lastPlatform || '').trim(),
+        lastType: String(runtime.lastType || '').trim(),
+        updatedAt: String(runtime.updatedAt || '').trim()
+      };
+    };
+    const syncPushState = () => {
+      const state = readPushState();
+      if (pushFcmEl) pushFcmEl.textContent = state.fcm || 'n/a';
+      if (pushApnsEl) pushApnsEl.textContent = state.apns || 'n/a';
+      if (pushStateEl) {
+        const meta = [state.lastType, state.lastPlatform, state.lastSource].filter(Boolean).join(' · ');
+        pushStateEl.textContent = meta
+          ? `Último token: ${meta}${state.updatedAt ? ` · ${state.updatedAt}` : ''}`
+          : 'Esperando token...';
+      }
+    };
+    const syncUnlockBanner = () => {
+      if (!unlockBannerEl) return;
+      const state = readDiagnosticsUnlockState();
+      const status = formatDiagnosticsUnlockStatus(state);
+      unlockBannerEl.textContent = status.text;
+      unlockBannerEl.dataset.tone = status.tone;
+    };
+    this._pushTokenHandler = () => syncPushState();
+    window.addEventListener('app:push-token-change', this._pushTokenHandler);
+    syncPushState();
+    syncUnlockBanner();
+    this._diagUnlockTimer = setInterval(syncUnlockBanner, 1000);
     if (titlebarToggle) {
       const applyTitlebar = (enabled) => {
         window.r34lp0w3r = window.r34lp0w3r || {};
@@ -1892,6 +2022,8 @@ class PageDiagnostics extends HTMLElement {
     const sfxStatusEl = this.querySelector('#diag-sfx-status');
     const statusbarPresetEl = this.querySelector('#diag-statusbar-preset');
     const statusbarPresetSubEl = this.querySelector('#diag-statusbar-preset-sub');
+    const systemBottomInsetDebugToggleEl = this.querySelector('#diag-system-bottom-inset-debug-toggle');
+    const systemBottomInsetDebugSubEl = this.querySelector('#diag-system-bottom-inset-debug-sub');
     const freeRideAudioModeEl = this.querySelector('#diag-free-ride-audio-mode');
     const freeRideAudioSubEl = this.querySelector('#diag-free-ride-audio-sub');
     const freeRideAdvancedToggleEl = this.querySelector('#diag-free-ride-advanced-toggle');
@@ -1964,6 +2096,75 @@ class PageDiagnostics extends HTMLElement {
         })
       );
       updateStatusbarPresetUi(normalized);
+      return normalized;
+    };
+
+    const measureCssHeight = (heightExpression) => {
+      if (typeof document === 'undefined' || !document.body) return 0;
+      const probe = document.createElement('div');
+      probe.style.position = 'fixed';
+      probe.style.left = '0';
+      probe.style.bottom = '0';
+      probe.style.width = '1px';
+      probe.style.height = heightExpression;
+      probe.style.visibility = 'hidden';
+      probe.style.pointerEvents = 'none';
+      document.body.appendChild(probe);
+      const height = probe.getBoundingClientRect().height;
+      probe.remove();
+      return Number.isFinite(height) ? Math.max(0, height) : 0;
+    };
+
+    const formatInsetMetric = (value) => {
+      const numeric = Number(value);
+      return Number.isFinite(numeric) ? `${Math.round(numeric * 100) / 100}px` : 'n/a';
+    };
+
+    const readSystemBottomInsetMetrics = () => {
+      const nativeInfo =
+        window.r34lp0w3r && window.r34lp0w3r.nativeSystemInsets && typeof window.r34lp0w3r.nativeSystemInsets === 'object'
+          ? window.r34lp0w3r.nativeSystemInsets
+          : {};
+      return {
+        nativeBottom: measureCssHeight('var(--app-native-bottom-inset, 0px)'),
+        envBottom: measureCssHeight('env(safe-area-inset-bottom, 0px)'),
+        systemBottom: measureCssHeight('var(--app-system-bottom-inset, 0px)'),
+        platform: String(nativeInfo.platform || window.Capacitor?.getPlatform?.() || 'web').trim() || 'web',
+        dpr: Number(window.devicePixelRatio) || 1,
+        viewport: `${window.innerWidth || 0}x${window.innerHeight || 0}`
+      };
+    };
+
+    const setSystemBottomInsetDebugEnabled = (enabled) => {
+      const normalized = normalizeSystemBottomInsetDebugEnabled(enabled);
+      window.r34lp0w3r = window.r34lp0w3r || {};
+      window.r34lp0w3r.systemBottomInsetDebug = normalized;
+      try {
+        localStorage.setItem(SYSTEM_BOTTOM_INSET_DEBUG_KEY, normalized ? '1' : '0');
+      } catch (_err) {
+        // no-op
+      }
+      window.dispatchEvent(
+        new CustomEvent('app:system-bottom-inset-debug-change', {
+          detail: { enabled: normalized }
+        })
+      );
+      return normalized;
+    };
+
+    const updateSystemBottomInsetDebugUi = (enabled = getStoredSystemBottomInsetDebugEnabled()) => {
+      const normalized = normalizeSystemBottomInsetDebugEnabled(enabled);
+      if (systemBottomInsetDebugToggleEl) {
+        systemBottomInsetDebugToggleEl.checked = normalized;
+      }
+      if (systemBottomInsetDebugSubEl) {
+        const metrics = readSystemBottomInsetMetrics();
+        systemBottomInsetDebugSubEl.textContent = `${
+          normalized ? 'Activado' : 'Desactivado'
+        }: pinta globalmente en rojo la reserva inferior. System ${formatInsetMetric(metrics.systemBottom)}; native ${
+          formatInsetMetric(metrics.nativeBottom)
+        }; env ${formatInsetMetric(metrics.envBottom)}; ${metrics.platform}; DPR ${Math.round(metrics.dpr * 100) / 100}; viewport ${metrics.viewport}.`;
+      }
       return normalized;
     };
 
@@ -3802,6 +4003,17 @@ class PageDiagnostics extends HTMLElement {
     const initialChatChatbotEnabled = getStoredChatChatbotEnabled();
     updateChatChatbotUi(initialChatChatbotEnabled);
     updateStatusbarPresetUi(getStoredStatusbarPreset());
+    updateSystemBottomInsetDebugUi(getStoredSystemBottomInsetDebugEnabled());
+
+    this._systemBottomInsetDebugMetricsHandler = () => {
+      updateSystemBottomInsetDebugUi(getStoredSystemBottomInsetDebugEnabled());
+    };
+    window.addEventListener('resize', this._systemBottomInsetDebugMetricsHandler);
+    window.addEventListener('app:system-insets-change', this._systemBottomInsetDebugMetricsHandler);
+    if (window.visualViewport && typeof window.visualViewport.addEventListener === 'function') {
+      window.visualViewport.addEventListener('resize', this._systemBottomInsetDebugMetricsHandler);
+      window.visualViewport.addEventListener('scroll', this._systemBottomInsetDebugMetricsHandler);
+    }
 
     this.querySelector('#diag-back')?.addEventListener('click', () => {
       const modal = this.closest('ion-modal');
@@ -3954,6 +4166,11 @@ class PageDiagnostics extends HTMLElement {
       button.addEventListener('click', () => {
         setStatusbarPresetFromControl(button.value || button.getAttribute('value'));
       });
+    });
+    systemBottomInsetDebugToggleEl?.addEventListener('ionChange', (event) => {
+      const checked =
+        event && event.detail ? event.detail.checked : systemBottomInsetDebugToggleEl.checked;
+      updateSystemBottomInsetDebugUi(setSystemBottomInsetDebugEnabled(checked));
     });
 
     badgesPickerEl?.addEventListener('click', (event) => {
@@ -4900,6 +5117,10 @@ class PageDiagnostics extends HTMLElement {
   }
 
   disconnectedCallback() {
+    if (this._diagUnlockTimer) {
+      clearInterval(this._diagUnlockTimer);
+      this._diagUnlockTimer = null;
+    }
     if (this._userHandler) {
       window.removeEventListener('app:user-change', this._userHandler);
       this._userHandler = null;
@@ -4923,6 +5144,19 @@ class PageDiagnostics extends HTMLElement {
     if (this._translationCapabilitiesHandler) {
       window.removeEventListener(TRANSLATION_CAPABILITIES_EVENT, this._translationCapabilitiesHandler);
       this._translationCapabilitiesHandler = null;
+    }
+    if (this._pushTokenHandler) {
+      window.removeEventListener('app:push-token-change', this._pushTokenHandler);
+      this._pushTokenHandler = null;
+    }
+    if (this._systemBottomInsetDebugMetricsHandler) {
+      window.removeEventListener('resize', this._systemBottomInsetDebugMetricsHandler);
+      window.removeEventListener('app:system-insets-change', this._systemBottomInsetDebugMetricsHandler);
+      if (window.visualViewport && typeof window.visualViewport.removeEventListener === 'function') {
+        window.visualViewport.removeEventListener('resize', this._systemBottomInsetDebugMetricsHandler);
+        window.visualViewport.removeEventListener('scroll', this._systemBottomInsetDebugMetricsHandler);
+      }
+      this._systemBottomInsetDebugMetricsHandler = null;
     }
     if (this._diagStopBrowserTts) {
       this._diagStopBrowserTts();

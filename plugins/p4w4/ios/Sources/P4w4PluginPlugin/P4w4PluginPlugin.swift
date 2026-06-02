@@ -1,6 +1,7 @@
 import Foundation
 import Capacitor
 import UIKit
+import UserNotifications
 import Speech
 import AudioToolbox
 import AVFoundation
@@ -25,6 +26,7 @@ public class P4w4PluginPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "resizeWebView", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "offsetTopWebView", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "getStatusBarHeight", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "getSystemInsets", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "setNativeChrome", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "detectLanguage", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "getTranslationStatus", returnType: CAPPluginReturnPromise),
@@ -139,6 +141,44 @@ public class P4w4PluginPlugin: CAPPlugin, CAPBridgedPlugin {
 
         call.resolve([
             "height": height,
+            "platform": "ios",
+            "osVersion": osVersion
+        ])
+    }
+
+    @objc func getSystemInsets(_ call: CAPPluginCall) {
+        var candidates: [UIEdgeInsets] = []
+        if let bridgeView = self.bridge?.viewController?.view {
+            candidates.append(bridgeView.safeAreaInsets)
+            if let window = bridgeView.window {
+                candidates.append(window.safeAreaInsets)
+            }
+        }
+        if let appWindow = UIApplication.shared.windows.first(where: { $0.isKeyWindow }) ?? UIApplication.shared.windows.first {
+            candidates.append(appWindow.safeAreaInsets)
+        }
+        if #available(iOS 13.0, *) {
+            UIApplication.shared.connectedScenes
+                .compactMap { $0 as? UIWindowScene }
+                .flatMap { $0.windows }
+                .forEach { candidates.append($0.safeAreaInsets) }
+        }
+
+        let insets = UIEdgeInsets(
+            top: candidates.map { $0.top }.max() ?? 0,
+            left: candidates.map { $0.left }.max() ?? 0,
+            bottom: candidates.map { $0.bottom }.max() ?? 0,
+            right: candidates.map { $0.right }.max() ?? 0
+        )
+        let osVersion = UIDevice.current.systemVersion
+
+        print(">#P4w4Plugin#> getSystemInsets: top=\(insets.top) right=\(insets.right) bottom=\(insets.bottom) left=\(insets.left) candidates=\(candidates.count) osVersion=\(osVersion)")
+
+        call.resolve([
+            "top": insets.top,
+            "right": insets.right,
+            "bottom": insets.bottom,
+            "left": insets.left,
             "platform": "ios",
             "osVersion": osVersion
         ])
@@ -1052,6 +1092,7 @@ public class P4w4PluginPlugin: CAPPlugin, CAPBridgedPlugin {
     @objc func resetBadgeCount(_ call: CAPPluginCall) {
         DispatchQueue.main.async {
             UIApplication.shared.applicationIconBadgeNumber = 0
+            UNUserNotificationCenter.current().removeAllDeliveredNotifications()
             print(">#P4w4Plugin#> resetBadgeCount: Badge de icono puesto a 0");
             call.resolve()
         }

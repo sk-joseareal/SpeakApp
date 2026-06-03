@@ -61,7 +61,31 @@ export class P4w4PluginWeb extends WebPlugin implements P4w4PluginPlugin {
     };
   }
 
-  async setNativeChrome(_options: { backgroundColor: string; lightIcons?: boolean; source?: string; path?: string }): Promise<void> {
+  async setNativeChrome(_options: { backgroundColor: string; lightIcons?: boolean; source?: string; path?: string; legacyChromeDebug?: boolean }): Promise<void> {
+    return;
+  }
+
+  async setLegacyChromeDebug(options: { enabled: boolean }): Promise<{ enabled?: boolean; platform?: string; osVersion?: string } | void> {
+    return { enabled: Boolean(options && options.enabled), platform: 'web', osVersion: '' };
+  }
+
+  async resizeWebView(_options: { offset: number }): Promise<void> {
+    return;
+  }
+
+  async offsetTopWebView(_options: { offset: number }): Promise<void> {
+    return;
+  }
+
+  async getStatusBarHeight(): Promise<{ height: number }> {
+    return { height: 0 };
+  }
+
+  async setStartupHtml(_options: { file: string }): Promise<void> {
+    return;
+  }
+
+  async resetBadgeCount(): Promise<void> {
     return;
   }
 

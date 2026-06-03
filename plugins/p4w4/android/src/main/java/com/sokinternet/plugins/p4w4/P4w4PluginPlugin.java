@@ -70,6 +70,9 @@ public class P4w4PluginPlugin extends Plugin {
     public static final String NATIVE_CHROME_PREFS = "p4w4_native_chrome";
     public static final String PREF_BG = "backgroundColor";
     public static final String PREF_LIGHT_ICONS = "lightIcons";
+    public static final String PREF_LEGACY_CHROME_DEBUG = "legacyChromeDebug";
+    private static final String LEGACY_STATUSBAR_COLOR = "#A7C6F7";
+    private static final String LEGACY_NAVBAR_COLOR = "#EEF3FF";
     private static final String LEGACY_TEST_WINDOW_COLOR = "#00ffff";
     private static final String LEGACY_TEST_STATUSBAR_COLOR = "#ffff00";
     private static final String LEGACY_TEST_NAVBAR_COLOR = "#ff8800";
@@ -89,11 +92,21 @@ public class P4w4PluginPlugin extends Plugin {
         return Build.VERSION.SDK_INT <= LEGACY_ANDROID_MAX_SDK;
     }
 
+    private boolean isLegacyChromeDebugEnabled() {
+        try {
+            SharedPreferences prefs = getContext().getSharedPreferences(NATIVE_CHROME_PREFS, Context.MODE_PRIVATE);
+            return prefs.getBoolean(PREF_LEGACY_CHROME_DEBUG, false);
+        } catch (Exception error) {
+            return false;
+        }
+    }
+
     private void applyStatusBarIcons(android.view.Window window, boolean lightIcons) {
         WindowInsetsControllerCompat controller =
             WindowCompat.getInsetsController(window, window.getDecorView());
         if (controller != null) {
             controller.setAppearanceLightStatusBars(!lightIcons);
+            controller.setAppearanceLightNavigationBars(!lightIcons);
         }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -102,6 +115,13 @@ public class P4w4PluginPlugin extends Plugin {
                 flags &= ~View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
             } else {
                 flags |= View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                if (lightIcons) {
+                    flags &= ~View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
+                } else {
+                    flags |= View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
+                }
             }
             window.getDecorView().setSystemUiVisibility(flags);
         }
@@ -141,6 +161,33 @@ public class P4w4PluginPlugin extends Plugin {
             }
         );
         return drawable;
+    }
+
+    private void applyLegacyNativeChrome(android.view.Window window, View webView, int requestedColor, boolean transparentChrome, boolean debugEnabled) {
+        if (debugEnabled) {
+            window.setStatusBarColor(Color.parseColor(LEGACY_TEST_STATUSBAR_COLOR));
+            window.setNavigationBarColor(Color.parseColor(LEGACY_TEST_NAVBAR_COLOR));
+            window.getDecorView().setBackgroundColor(Color.parseColor(LEGACY_TEST_WINDOW_COLOR));
+            if (webView != null) {
+                webView.setBackgroundColor(Color.TRANSPARENT);
+            }
+            return;
+        }
+
+        if (transparentChrome) {
+            window.setStatusBarColor(Color.parseColor(LEGACY_STATUSBAR_COLOR));
+            window.setNavigationBarColor(Color.parseColor(LEGACY_NAVBAR_COLOR));
+            window.setBackgroundDrawable(createLegacyWindowBackgroundDrawable());
+            window.getDecorView().setBackground(createLegacyWindowBackgroundDrawable());
+        } else {
+            window.setStatusBarColor(requestedColor);
+            window.setNavigationBarColor(requestedColor);
+            window.getDecorView().setBackgroundColor(requestedColor);
+        }
+
+        if (webView != null) {
+            webView.setBackgroundColor(Color.TRANSPARENT);
+        }
     }
 
     private void applyWebViewStatusBarLayout(View webView, boolean edgeToEdge) {
@@ -349,6 +396,7 @@ public class P4w4PluginPlugin extends Plugin {
     public void setNativeChrome(PluginCall call) {
         String backgroundColor = call.getString("backgroundColor");
         boolean lightIcons = call.getBoolean("lightIcons", false);
+        boolean legacyChromeDebug = call.getBoolean("legacyChromeDebug", isLegacyChromeDebugEnabled());
         String source = call.getString("source", "");
         String path = call.getString("path", "");
         if (backgroundColor == null || backgroundColor.trim().isEmpty()) {
@@ -365,25 +413,13 @@ public class P4w4PluginPlugin extends Plugin {
                     prefs.edit()
                         .putString(PREF_BG, backgroundColor)
                         .putBoolean(PREF_LIGHT_ICONS, lightIcons)
+                        .putBoolean(PREF_LEGACY_CHROME_DEBUG, legacyChromeDebug)
                         .apply();
                     android.view.Window window = getActivity().getWindow();
-                    if (transparentChrome) {
-                        window.setStatusBarColor(Color.parseColor(LEGACY_TEST_STATUSBAR_COLOR));
-                        window.setNavigationBarColor(Color.parseColor(LEGACY_TEST_NAVBAR_COLOR));
-                        GradientDrawable legacyBackground = createLegacyWindowBackgroundDrawable();
-                        window.setBackgroundDrawable(legacyBackground);
-                        window.getDecorView().setBackgroundColor(Color.parseColor(LEGACY_TEST_WINDOW_COLOR));
-                    } else {
-                        window.setStatusBarColor(color);
-                        window.setNavigationBarColor(color);
-                        window.getDecorView().setBackgroundColor(color);
-                    }
                     View webView = bridge.getWebView();
-                    if (webView != null) {
-                        webView.setBackgroundColor(Color.parseColor("#00ff00"));
-                    }
+                    applyLegacyNativeChrome(window, webView, color, transparentChrome, legacyChromeDebug);
                     applyStatusBarIconsWithRetries(window, lightIcons, source + "|" + path);
-                    Log.i("P4w4Plugin", ">#P4w4Plugin#> setNativeChrome(legacy): bg=" + backgroundColor + " transparentChrome=" + transparentChrome + " lightIcons=" + lightIcons + " source=" + source + " path=" + path);
+                    Log.i("P4w4Plugin", ">#P4w4Plugin#> setNativeChrome(legacy): bg=" + backgroundColor + " transparentChrome=" + transparentChrome + " lightIcons=" + lightIcons + " legacyChromeDebug=" + legacyChromeDebug + " source=" + source + " path=" + path);
                     call.resolve();
                     return;
                 }
@@ -411,6 +447,36 @@ public class P4w4PluginPlugin extends Plugin {
                 call.resolve();
             } catch (IllegalArgumentException error) {
                 call.reject("Color de fondo invalido.", error);
+            }
+        });
+    }
+
+    @PluginMethod
+    public void setLegacyChromeDebug(PluginCall call) {
+        boolean enabled = call.getBoolean("enabled", false);
+        getActivity().runOnUiThread(() -> {
+            try {
+                SharedPreferences prefs = getContext().getSharedPreferences(NATIVE_CHROME_PREFS, Context.MODE_PRIVATE);
+                prefs.edit().putBoolean(PREF_LEGACY_CHROME_DEBUG, enabled).apply();
+
+                if (isLegacyAndroidDevice()) {
+                    String backgroundColor = prefs.getString(PREF_BG, "#00000000");
+                    boolean lightIcons = prefs.getBoolean(PREF_LIGHT_ICONS, true);
+                    int color = Color.parseColor(backgroundColor);
+                    boolean transparentChrome = Color.alpha(color) == 0;
+                    android.view.Window window = getActivity().getWindow();
+                    View webView = bridge != null ? bridge.getWebView() : null;
+                    applyLegacyNativeChrome(window, webView, color, transparentChrome, enabled);
+                    applyStatusBarIconsWithRetries(window, lightIcons, "setLegacyChromeDebug");
+                }
+
+                JSObject ret = new JSObject();
+                ret.put("enabled", enabled);
+                ret.put("platform", "android");
+                ret.put("osVersion", String.valueOf(Build.VERSION.SDK_INT));
+                call.resolve(ret);
+            } catch (Exception error) {
+                call.reject("Error aplicando debug chrome legacy.", error);
             }
         });
     }

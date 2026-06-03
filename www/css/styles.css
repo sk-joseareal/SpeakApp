@@ -24,9 +24,12 @@
 
 :root {
   --app-viewport-height: 100vh;
+  --app-native-top-inset: 0px;
   --app-native-bottom-inset: 0px;
+  --app-system-top-inset: max(var(--app-native-statusbar-height, 0px), var(--app-native-top-inset, 0px), env(safe-area-inset-top, 0px));
   --app-system-bottom-inset: max(var(--app-native-bottom-inset, 0px), env(safe-area-inset-bottom, 0px));
-  --app-system-bottom-inset-debug-color: rgba(255, 0, 0, 0.92);
+  --app-system-inset-debug-color: rgba(255, 0, 0, 0.92);
+  --app-system-bottom-inset-debug-color: var(--app-system-inset-debug-color);
   --app-font-family-default: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --app-font-family-sf: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Segoe UI', sans-serif;
   --ion-font-family: var(--app-font-family-default);
@@ -75,16 +78,25 @@ body.app-font-sf-pro {
   --ion-font-family: var(--app-font-family-sf);
 }
 
+body.app-system-bottom-inset-debug::before,
 body.app-system-bottom-inset-debug::after {
   content: '';
   position: fixed;
   left: 0;
   right: 0;
-  bottom: 0;
-  height: var(--app-system-bottom-inset, 0px);
-  background: var(--app-system-bottom-inset-debug-color);
+  background: var(--app-system-inset-debug-color);
   pointer-events: none;
   z-index: 2147483000;
+}
+
+body.app-system-bottom-inset-debug::before {
+  top: 0;
+  height: var(--app-system-top-inset, 0px);
+}
+
+body.app-system-bottom-inset-debug::after {
+  bottom: 0;
+  height: var(--app-system-bottom-inset, 0px);
 }
 
 body.onboarding-chrome-active,
@@ -4338,7 +4350,7 @@ page-speak.header-color-blue  { --free-ride-header-color: #4d7df4; }
 
 body.app-titlebar-enabled {
   --app-titlebar-content-height: 56px;
-  --app-titlebar-top-inset: max(var(--app-native-statusbar-height, 0px), env(safe-area-inset-top, 0px));
+  --app-titlebar-top-inset: var(--app-system-top-inset, max(var(--app-native-statusbar-height, 0px), env(safe-area-inset-top, 0px)));
   --app-titlebar-reserved-height: calc(var(--app-titlebar-content-height) + var(--app-titlebar-top-inset));
 }
 
@@ -4369,28 +4381,28 @@ page-speak ion-header.app-header-shell ion-toolbar {
   --color: var(--free-ride-header-color, #ffffff);
 }
 body.app-platform-android.lab-chrome-active.app-titlebar-enabled page-free-ride ion-header.app-header-shell ion-toolbar {
-  --padding-top: var(--app-native-statusbar-height, env(safe-area-inset-top, 0px));
-  --min-height: calc(56px + var(--app-native-statusbar-height, env(safe-area-inset-top, 0px)));
+  --padding-top: var(--app-titlebar-top-inset, var(--app-native-statusbar-height, env(safe-area-inset-top, 0px)));
+  --min-height: calc(56px + var(--app-titlebar-top-inset, var(--app-native-statusbar-height, env(safe-area-inset-top, 0px))));
 }
 body.app-platform-android.lab-chrome-active.app-titlebar-enabled page-home ion-header.app-header-shell ion-toolbar {
-  --padding-top: var(--app-native-statusbar-height, env(safe-area-inset-top, 0px));
-  --min-height: calc(56px + var(--app-native-statusbar-height, env(safe-area-inset-top, 0px)));
+  --padding-top: var(--app-titlebar-top-inset, var(--app-native-statusbar-height, env(safe-area-inset-top, 0px)));
+  --min-height: calc(56px + var(--app-titlebar-top-inset, var(--app-native-statusbar-height, env(safe-area-inset-top, 0px))));
 }
 body.app-platform-android.lab-chrome-active.app-titlebar-enabled page-reference ion-header.app-header-shell ion-toolbar {
-  --padding-top: var(--app-native-statusbar-height, env(safe-area-inset-top, 0px));
-  --min-height: calc(56px + var(--app-native-statusbar-height, env(safe-area-inset-top, 0px)));
+  --padding-top: var(--app-titlebar-top-inset, var(--app-native-statusbar-height, env(safe-area-inset-top, 0px)));
+  --min-height: calc(56px + var(--app-titlebar-top-inset, var(--app-native-statusbar-height, env(safe-area-inset-top, 0px))));
 }
 body.app-platform-android.lab-chrome-active.app-titlebar-enabled page-profile ion-header.app-header-shell ion-toolbar {
-  --padding-top: var(--app-native-statusbar-height, env(safe-area-inset-top, 0px));
-  --min-height: calc(56px + var(--app-native-statusbar-height, env(safe-area-inset-top, 0px)));
+  --padding-top: var(--app-titlebar-top-inset, var(--app-native-statusbar-height, env(safe-area-inset-top, 0px)));
+  --min-height: calc(56px + var(--app-titlebar-top-inset, var(--app-native-statusbar-height, env(safe-area-inset-top, 0px))));
 }
 body.app-platform-android.lab-chrome-active.app-titlebar-enabled page-chat ion-header.app-header-shell ion-toolbar {
-  --padding-top: var(--app-native-statusbar-height, env(safe-area-inset-top, 0px));
-  --min-height: calc(56px + var(--app-native-statusbar-height, env(safe-area-inset-top, 0px)));
+  --padding-top: var(--app-titlebar-top-inset, var(--app-native-statusbar-height, env(safe-area-inset-top, 0px)));
+  --min-height: calc(56px + var(--app-titlebar-top-inset, var(--app-native-statusbar-height, env(safe-area-inset-top, 0px))));
 }
 body.app-platform-android.app-titlebar-enabled page-speak ion-header.app-header-shell ion-toolbar {
-  --padding-top: var(--app-native-statusbar-height, env(safe-area-inset-top, 0px));
-  --min-height: calc(56px + var(--app-native-statusbar-height, env(safe-area-inset-top, 0px)));
+  --padding-top: var(--app-titlebar-top-inset, var(--app-native-statusbar-height, env(safe-area-inset-top, 0px)));
+  --min-height: calc(56px + var(--app-titlebar-top-inset, var(--app-native-statusbar-height, env(safe-area-inset-top, 0px))));
 }
 ion-header.app-header-shell ion-toolbar::part(background) {
   background: transparent !important;
@@ -7847,28 +7859,6 @@ body.app-android-legacy-webview ion-tabs {
    --offset-top on resume/resize; if that wins, the whole screen shifts down. */
 body.app-android-legacy-webview ion-content {
   --offset-top: 0px !important;
-}
-
-body.app-android-legacy-webview,
-body.app-android-legacy-webview ion-app,
-body.app-android-legacy-webview ion-router-outlet,
-body.app-android-legacy-webview tabs-page,
-body.app-android-legacy-webview page-home,
-body.app-android-legacy-webview page-reference,
-body.app-android-legacy-webview page-free-ride,
-body.app-android-legacy-webview page-chat,
-body.app-android-legacy-webview page-profile,
-body.app-android-legacy-webview page-speak,
-body.app-android-legacy-webview page-onboarding {
-  background: #ff00ff !important;
-}
-
-body.app-android-legacy-webview ion-content,
-body.app-android-legacy-webview ion-content::part(background),
-body.app-android-legacy-webview page-onboarding ion-content,
-body.app-android-legacy-webview page-onboarding ion-content::part(background) {
-  --background: #ff00ff !important;
-  background: #ff00ff !important;
 }
 
 body.app-android-legacy-webview.lab-chrome-active:not(.app-titlebar-enabled) page-free-ride .free-ride-shell,

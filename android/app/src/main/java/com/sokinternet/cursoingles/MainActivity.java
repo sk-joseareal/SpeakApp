@@ -51,6 +51,42 @@ public class MainActivity extends BridgeActivity {
         return android.os.Build.VERSION.SDK_INT <= LEGACY_ANDROID_MAX_SDK;
     }
 
+    private boolean isLegacyChromeDebugEnabled() {
+        try {
+            SharedPreferences prefs = getSharedPreferences(P4w4PluginPlugin.NATIVE_CHROME_PREFS, Context.MODE_PRIVATE);
+            return prefs.getBoolean(P4w4PluginPlugin.PREF_LEGACY_CHROME_DEBUG, false);
+        } catch (Exception error) {
+            return false;
+        }
+    }
+
+    private void applyLegacyNativeChrome(Window window, View webView, int requestedColor, boolean transparentChrome, boolean debugEnabled) {
+        if (debugEnabled) {
+            window.setStatusBarColor(Color.parseColor(LEGACY_TEST_STATUSBAR_COLOR));
+            window.setNavigationBarColor(Color.parseColor(LEGACY_TEST_NAVBAR_COLOR));
+            window.getDecorView().setBackgroundColor(Color.parseColor(LEGACY_TEST_WINDOW_COLOR));
+            if (webView != null) {
+                webView.setBackgroundColor(Color.TRANSPARENT);
+            }
+            return;
+        }
+
+        if (transparentChrome) {
+            window.setStatusBarColor(Color.parseColor(LEGACY_STATUSBAR_COLOR));
+            window.setNavigationBarColor(Color.parseColor(LEGACY_NAVBAR_COLOR));
+            window.setBackgroundDrawableResource(R.drawable.legacy_window_background);
+            window.getDecorView().setBackgroundResource(R.drawable.legacy_window_background);
+        } else {
+            window.setStatusBarColor(requestedColor);
+            window.setNavigationBarColor(requestedColor);
+            window.getDecorView().setBackgroundColor(requestedColor);
+        }
+
+        if (webView != null) {
+            webView.setBackgroundColor(Color.TRANSPARENT);
+        }
+    }
+
     private boolean isCallbackIntent(Intent intent) {
         if (intent == null || intent.getData() == null) {
             return false;
@@ -287,8 +323,14 @@ public class MainActivity extends BridgeActivity {
         WindowCompat.setDecorFitsSystemWindows(window, false);
         window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
         if (isLegacyAndroidDevice()) {
-            window.setStatusBarColor(Color.parseColor(LEGACY_TEST_STATUSBAR_COLOR));
-            window.setNavigationBarColor(Color.parseColor(LEGACY_TEST_NAVBAR_COLOR));
+            View webView = this.bridge != null ? this.bridge.getWebView() : null;
+            applyLegacyNativeChrome(
+                window,
+                webView,
+                Color.TRANSPARENT,
+                true,
+                isLegacyChromeDebugEnabled()
+            );
         } else {
             window.setStatusBarColor(Color.parseColor(TRANSPARENT_STATUSBAR));
             window.setNavigationBarColor(Color.parseColor(TRANSPARENT_NAVBAR));
@@ -297,10 +339,8 @@ public class MainActivity extends BridgeActivity {
             window.setStatusBarContrastEnforced(false);
             window.setNavigationBarContrastEnforced(false);
         }
-        window.setBackgroundDrawableResource(R.drawable.legacy_window_background);
-        if (isLegacyAndroidDevice()) {
-            window.getDecorView().setBackgroundColor(Color.parseColor(LEGACY_TEST_WINDOW_COLOR));
-        } else {
+        if (!isLegacyAndroidDevice()) {
+            window.setBackgroundDrawableResource(R.drawable.legacy_window_background);
             window.getDecorView().setBackgroundResource(R.drawable.legacy_window_background);
         }
         applyStatusBarIcons(window, true);
@@ -312,6 +352,7 @@ public class MainActivity extends BridgeActivity {
             WindowCompat.getInsetsController(window, window.getDecorView());
         if (controller != null) {
             controller.setAppearanceLightStatusBars(!lightIcons);
+            controller.setAppearanceLightNavigationBars(!lightIcons);
         }
 
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
@@ -320,6 +361,13 @@ public class MainActivity extends BridgeActivity {
                 flags &= ~View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
             } else {
                 flags |= View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
+            }
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                if (lightIcons) {
+                    flags &= ~View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
+                } else {
+                    flags |= View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
+                }
             }
             window.getDecorView().setSystemUiVisibility(flags);
         }
@@ -365,10 +413,8 @@ public class MainActivity extends BridgeActivity {
             int color = Color.parseColor(backgroundColor);
             boolean transparentChrome = Color.alpha(color) == 0;
             if (transparentChrome && isLegacyAndroidDevice()) {
-                window.setStatusBarColor(Color.parseColor(LEGACY_TEST_STATUSBAR_COLOR));
-                window.setNavigationBarColor(Color.parseColor(LEGACY_TEST_NAVBAR_COLOR));
-                window.setBackgroundDrawableResource(R.drawable.legacy_window_background);
-                window.getDecorView().setBackgroundColor(Color.parseColor(LEGACY_TEST_WINDOW_COLOR));
+                View webView = this.bridge != null ? this.bridge.getWebView() : null;
+                applyLegacyNativeChrome(window, webView, color, transparentChrome, isLegacyChromeDebugEnabled());
             } else {
                 window.setStatusBarColor(color);
                 window.setNavigationBarColor(color);
@@ -380,10 +426,10 @@ public class MainActivity extends BridgeActivity {
             }
             View webView = this.bridge != null ? this.bridge.getWebView() : null;
             if (webView != null && isLegacyAndroidDevice()) {
-                webView.setBackgroundColor(Color.parseColor("#00ff00"));
+                applyLegacyNativeChrome(window, webView, color, transparentChrome, isLegacyChromeDebugEnabled());
             }
             applyStatusBarIcons(window, lightIcons);
-            Log.i(">#N00#> MainActivity", "reapplyStoredChrome reason=" + reason + " bg=" + backgroundColor + " transparentChrome=" + transparentChrome + " lightIcons=" + lightIcons);
+            Log.i(">#N00#> MainActivity", "reapplyStoredChrome reason=" + reason + " bg=" + backgroundColor + " transparentChrome=" + transparentChrome + " lightIcons=" + lightIcons + " legacyChromeDebug=" + isLegacyChromeDebugEnabled());
         } catch (Exception error) {
             Log.e(">#N00#> MainActivity", "reapplyStoredChrome error reason=" + reason + " " + error.getMessage());
         }

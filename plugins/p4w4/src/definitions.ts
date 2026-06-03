@@ -41,7 +41,8 @@ export interface P4w4PluginPlugin {
   offsetTopWebView(options: { offset: number }): Promise<void>;
   getStatusBarHeight(): Promise<{ height: number }>;
   getSystemInsets(): Promise<{ top: number; right: number; bottom: number; left: number; platform?: string; osVersion?: string }>;
-  setNativeChrome(options: { backgroundColor: string; lightIcons?: boolean; source?: string; path?: string }): Promise<void>;
+  setNativeChrome(options: { backgroundColor: string; lightIcons?: boolean; source?: string; path?: string; legacyChromeDebug?: boolean }): Promise<void>;
+  setLegacyChromeDebug(options: { enabled: boolean }): Promise<{ enabled?: boolean; platform?: string; osVersion?: string } | void>;
   detectLanguage(options: { text: string }): Promise<P4w4LanguageDetectionResult>;
   getTranslationStatus(options?: { sourceLanguage?: string; targetLanguage?: string }): Promise<P4w4TranslationStatusResult>;
   translateText(options: { text: string; sourceLanguage?: string; targetLanguage?: string }): Promise<P4w4TranslationResult>;

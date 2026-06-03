@@ -552,7 +552,7 @@ class PageDiagnostics extends HTMLElement {
             </div>
             <div class="diag-debug-toggle" style="margin-top: 10px;">
               <div class="diag-debug-text">
-                <div class="diag-debug-title">Statusbar</div>
+                <div class="diag-debug-title">Barras del sistema</div>
                 <div class="diag-debug-sub" id="diag-statusbar-preset-sub"></div>
               </div>
             </div>
@@ -564,10 +564,10 @@ class PageDiagnostics extends HTMLElement {
             </div>
             <div class="diag-debug-toggle" style="margin-top: 10px;">
               <div class="diag-debug-text">
-                <div class="diag-debug-title">Zona inferior sistema</div>
+                <div class="diag-debug-title">Zonas del sistema</div>
                 <div class="diag-debug-sub" id="diag-system-bottom-inset-debug-sub"></div>
               </div>
-              <ion-toggle id="diag-system-bottom-inset-debug-toggle" aria-label="Zona inferior sistema" ${getStoredSystemBottomInsetDebugEnabled() ? 'checked' : ''}></ion-toggle>
+              <ion-toggle id="diag-system-bottom-inset-debug-toggle" aria-label="Zonas del sistema" ${getStoredSystemBottomInsetDebugEnabled() ? 'checked' : ''}></ion-toggle>
             </div>
             <div class="diag-speak-block">
               <div class="diag-debug-title">Tipografía global</div>
@@ -2074,8 +2074,8 @@ class PageDiagnostics extends HTMLElement {
           message ||
           (getStatusBarPlugin()
             ? normalized === 'dark'
-              ? 'Dark: elementos oscuros en el statusbar. No cambia el fondo.'
-              : 'Clear: elementos claros en el statusbar. No cambia el fondo.'
+              ? 'Dark: elementos oscuros en statusbar y navbar Android. No cambia el fondo.'
+              : 'Clear: elementos claros en statusbar y navbar Android. No cambia el fondo.'
             : 'StatusBar plugin no disponible en este entorno.');
       }
       return normalized;
@@ -2126,10 +2126,15 @@ class PageDiagnostics extends HTMLElement {
           ? window.r34lp0w3r.nativeSystemInsets
           : {};
       return {
+        nativeTop: measureCssHeight('var(--app-native-top-inset, 0px)'),
+        statusbarTop: measureCssHeight('var(--app-native-statusbar-height, 0px)'),
+        systemTop: measureCssHeight('var(--app-system-top-inset, 0px)'),
         nativeBottom: measureCssHeight('var(--app-native-bottom-inset, 0px)'),
+        envTop: measureCssHeight('env(safe-area-inset-top, 0px)'),
         envBottom: measureCssHeight('env(safe-area-inset-bottom, 0px)'),
         systemBottom: measureCssHeight('var(--app-system-bottom-inset, 0px)'),
         platform: String(nativeInfo.platform || window.Capacitor?.getPlatform?.() || 'web').trim() || 'web',
+        legacy: document.body?.classList?.contains('app-android-legacy-webview') === true,
         dpr: Number(window.devicePixelRatio) || 1,
         viewport: `${window.innerWidth || 0}x${window.innerHeight || 0}`
       };
@@ -2161,9 +2166,17 @@ class PageDiagnostics extends HTMLElement {
         const metrics = readSystemBottomInsetMetrics();
         systemBottomInsetDebugSubEl.textContent = `${
           normalized ? 'Activado' : 'Desactivado'
-        }: pinta globalmente en rojo la reserva inferior. System ${formatInsetMetric(metrics.systemBottom)}; native ${
+        }: rojo en reservas HTML superior/inferior${
+          metrics.legacy ? '; legacy nativo amarillo/naranja' : ''
+        }. Top ${formatInsetMetric(metrics.systemTop)} (status ${
+          formatInsetMetric(metrics.statusbarTop)
+        }, native ${formatInsetMetric(metrics.nativeTop)}, env ${
+          formatInsetMetric(metrics.envTop)
+        }); bottom ${formatInsetMetric(metrics.systemBottom)} (native ${
           formatInsetMetric(metrics.nativeBottom)
-        }; env ${formatInsetMetric(metrics.envBottom)}; ${metrics.platform}; DPR ${Math.round(metrics.dpr * 100) / 100}; viewport ${metrics.viewport}.`;
+        }, env ${formatInsetMetric(metrics.envBottom)}); ${metrics.platform}; DPR ${Math.round(
+          metrics.dpr * 100
+        ) / 100}; viewport ${metrics.viewport}.`;
       }
       return normalized;
     };
@@ -4172,7 +4185,6 @@ class PageDiagnostics extends HTMLElement {
         event && event.detail ? event.detail.checked : systemBottomInsetDebugToggleEl.checked;
       updateSystemBottomInsetDebugUi(setSystemBottomInsetDebugEnabled(checked));
     });
-
     badgesPickerEl?.addEventListener('click', (event) => {
       const target = event.target instanceof Element ? event.target : null;
       const button = target ? target.closest('[data-badge-id]') : null;

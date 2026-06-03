@@ -433,7 +433,8 @@ function setNativeChrome(color, lightIcons, meta = {}) {
       backgroundColor: color,
       lightIcons,
       source: meta && meta.source ? meta.source : '',
-      path: meta && meta.path ? meta.path : ''
+      path: meta && meta.path ? meta.path : '',
+      legacyChromeDebug: getStoredLegacyChromeDebugEnabled()
     });
   } catch (_err) {
     // no-op
@@ -524,14 +525,37 @@ function applySystemBottomInsetDebugPreference(enabled = getStoredSystemBottomIn
   window.r34lp0w3r = window.r34lp0w3r || {};
   window.r34lp0w3r.systemBottomInsetDebug = normalized;
   document.body.classList.toggle('app-system-bottom-inset-debug', normalized);
+  applyLegacyChromeDebugPreference(normalized);
+  return normalized;
+}
+
+function normalizeLegacyChromeDebugEnabled(value) {
+  if (value === true || value === '1' || value === 1 || value === 'true') return true;
+  return false;
+}
+
+function getStoredLegacyChromeDebugEnabled() {
+  return getStoredSystemBottomInsetDebugEnabled();
+}
+
+function applyLegacyChromeDebugPreference(enabled = getStoredLegacyChromeDebugEnabled()) {
+  const normalized = normalizeLegacyChromeDebugEnabled(enabled);
+  window.r34lp0w3r = window.r34lp0w3r || {};
+  window.r34lp0w3r.legacyChromeDebug = normalized;
+  document.body.classList.toggle('app-android-legacy-chrome-debug', normalized);
+  try {
+    const nativePlugin =
+      window.Capacitor && window.Capacitor.Plugins ? window.Capacitor.Plugins.P4w4Plugin : null;
+    if (nativePlugin && typeof nativePlugin.setLegacyChromeDebug === 'function') {
+      nativePlugin.setLegacyChromeDebug({ enabled: normalized }).catch(() => {});
+    }
+  } catch (_err) {
+    // no-op
+  }
   return normalized;
 }
 
 function setNativeStatusBarCssHeight(height) {
-  if (isLegacyAndroidStatusbarMode()) {
-    document.documentElement.style.setProperty('--app-native-statusbar-height', '0px');
-    return;
-  }
   const numeric = Number(height);
   const cssHeight = Number.isFinite(numeric) ? Math.max(0, numeric) : 0;
   document.documentElement.style.setProperty('--app-native-statusbar-height', `${cssHeight}px`);
@@ -559,6 +583,7 @@ function applyNativeSystemInsetsCssVars(info = {}) {
     osVersion
   };
   lastNativeSystemInsetsInfo = nextInfo;
+  document.documentElement.style.setProperty('--app-native-top-inset', `${nextInfo.top}px`);
   document.documentElement.style.setProperty('--app-native-bottom-inset', `${nextInfo.bottom}px`);
   document.documentElement.style.setProperty('--app-native-left-inset', `${nextInfo.left}px`);
   document.documentElement.style.setProperty('--app-native-right-inset', `${nextInfo.right}px`);
@@ -677,7 +702,6 @@ function syncPlatformChromeClasses() {
     document.body.classList.remove('app-android-legacy-webview');
   } else if (isLegacyAndroidWebView) {
     document.body.classList.add('app-android-legacy-webview');
-    setNativeStatusBarCssHeight(0);
   } else {
     document.body.classList.remove('app-android-legacy-webview');
   }
@@ -1240,7 +1264,8 @@ function applyAppChromeForPath(path) {
     labChrome ? 'lab' : 'plain',
     statusbarPreset,
     color,
-    lightIcons ? 'clear' : 'dark'
+    lightIcons ? 'clear' : 'dark',
+    getStoredLegacyChromeDebugEnabled() ? 'legacy-debug' : 'legacy-normal'
   ].join('|');
   if (_lastAppliedChromeKey === chromeKey) return;
   _lastAppliedChromeKey = chromeKey;
@@ -1482,6 +1507,14 @@ window.addEventListener('app:font-sf-pro-change', (event) => {
 
 window.addEventListener('app:system-bottom-inset-debug-change', (event) => {
   applySystemBottomInsetDebugPreference(event && event.detail ? event.detail.enabled : undefined);
+  _lastAppliedChromeKey = '';
+  scheduleAppChromeSync(getCurrentAppPath());
+});
+
+window.addEventListener('app:legacy-chrome-debug-change', (event) => {
+  applyLegacyChromeDebugPreference(event && event.detail ? event.detail.enabled : undefined);
+  _lastAppliedChromeKey = '';
+  scheduleAppChromeSync(getCurrentAppPath());
 });
 
 const handleGlobalViewportEvent = () => {

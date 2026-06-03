@@ -1,0 +1,13 @@
+diff --git a/node_modules/@capacitor/splash-screen/android/src/main/java/com/capacitorjs/plugins/splashscreen/SplashScreen.java b/node_modules/@capacitor/splash-screen/android/src/main/java/com/capacitorjs/plugins/splashscreen/SplashScreen.java
+index 0c64b64..2f39679 100644
+--- a/node_modules/@capacitor/splash-screen/android/src/main/java/com/capacitorjs/plugins/splashscreen/SplashScreen.java
++++ b/node_modules/@capacitor/splash-screen/android/src/main/java/com/capacitorjs/plugins/splashscreen/SplashScreen.java
+@@ -100,7 +100,7 @@ public class SplashScreen {
+                 androidx.core.splashscreen.SplashScreen windowSplashScreen = androidx.core.splashscreen.SplashScreen.installSplashScreen(
+                     activity
+                 );
+-                windowSplashScreen.setKeepOnScreenCondition(() -> isVisible || isHiding);
++                windowSplashScreen.setKeepOnScreenCondition(() -> isVisible);
+ 
+                 if (config.getLaunchFadeOutDuration() > 0) {
+                     // Set Fade Out Animation

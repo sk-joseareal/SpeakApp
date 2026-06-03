@@ -46,7 +46,7 @@ export const createSheetController = (options) => {
   };
 
   const shouldSkipAutoMeasure = (opts = {}) => {
-    if (opts.force) return false;
+    if (opts.ignoreInteractionCooldown) return false;
     if (state.dragging) return true;
     const sinceInteraction = Date.now() - (state.lastInteractionTs || 0);
     return sinceInteraction >= 0 && sinceInteraction < AUTO_MEASURE_COOLDOWN_MS;
@@ -126,13 +126,16 @@ export const createSheetController = (options) => {
       applyState(opts);
       return;
     }
+    const measuredOffset = expanded
+      ? measureOffset({ force: true, ignoreInteractionCooldown: true })
+      : state.offset;
     markInteraction();
     state.expanded = expanded;
+    if (expanded) {
+      state.offset = measuredOffset;
+    }
     if (!opts.skipPersist) {
       persistSheetState(expandedKey, offsetKey, state.expanded, state.offset);
-    }
-    if (expanded && (!Number.isFinite(state.offset) || state.offset <= 0)) {
-      state.offset = measureOffset({ force: true });
     }
     applyState(opts);
     log('setExpanded', {
@@ -151,8 +154,8 @@ export const createSheetController = (options) => {
     if (!handleEl || !sheetEl || typeof event.pointerId !== 'number') return;
     if (event.button !== 0 || !canInteract()) return;
 
+    state.offset = measureOffset({ force: true, ignoreInteractionCooldown: true });
     markInteraction();
-    state.offset = measureOffset();
     state.dragging = true;
     state.pointerId = event.pointerId;
     state.dragStartY = event.clientY;

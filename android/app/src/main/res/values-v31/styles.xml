@@ -3,7 +3,6 @@
   <!-- SDK 31+: native SplashScreen API renders the adaptive icon in a circle,
        which is the intended design for modern Android. -->
   <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
-    <item name="android:windowBackground">@drawable/legacy_window_background</item>
     <item name="android:windowDrawsSystemBarBackgrounds">true</item>
     <item name="windowSplashScreenBackground">#b6cff8</item>
     <!--

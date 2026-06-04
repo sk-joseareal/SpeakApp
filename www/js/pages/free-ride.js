@@ -209,6 +209,7 @@ class PageFreeRide extends HTMLElement {
       recentReward: null,
       recordingUrl: '',
       isRecording: false,
+      recordingStopPending: false,
       isTranscribing: false,
       advancedAssessment: null,
       advancedAssessmentPending: false,
@@ -6205,6 +6206,7 @@ class PageFreeRide extends HTMLElement {
     this.stopSpeechRecognition();
     this.clearNativeSpeechListeners();
     this.nativeSpeechActive = false;
+    this.state.recordingStopPending = false;
 
     if (this.mediaRecorder) {
       try {
@@ -6353,6 +6355,7 @@ class PageFreeRide extends HTMLElement {
     if (!recordWaveEl) return;
     const isReactive =
       this.state.isRecording &&
+      !this.state.recordingStopPending &&
       this.getFreeRideRecordingFeedbackMode() === FREE_RIDE_RECORDING_FEEDBACK_MODE_REACTIVE;
     recordWaveEl.classList.toggle('is-reactive', isReactive);
     const bars = Array.from(recordWaveEl.querySelectorAll('span'));
@@ -6763,6 +6766,7 @@ class PageFreeRide extends HTMLElement {
 
     this.mediaRecorder.onstop = () => {
       this.stopRecordingWaveMonitor();
+      this.state.recordingStopPending = false;
       this.state.isRecording = false;
 
       const blob = new Blob(this.recordedChunks, {
@@ -6816,12 +6820,40 @@ class PageFreeRide extends HTMLElement {
     };
 
     this.mediaRecorder.start(RECORDING_TIMESLICE);
+    this.state.recordingStopPending = false;
     this.state.isRecording = true;
     this.render();
     this.startRecordingWaveMonitor(this.recordingStream);
   }
 
+  _cancelPendingRecordingStop() {
+    if (this._pendingRecordingStopTimer) {
+      clearTimeout(this._pendingRecordingStopTimer);
+      this._pendingRecordingStopTimer = null;
+    }
+  }
+
+  _triggerStopRecordingWithDelay() {
+    const delayMs = typeof window.getRecordingStopDelayMs === 'function' ? window.getRecordingStopDelayMs() : 0;
+    if (delayMs > 0) {
+      this._cancelPendingRecordingStop();
+      this.state.recordingStopPending = true;
+      if (this.recordingWaveFrame) { cancelAnimationFrame(this.recordingWaveFrame); this.recordingWaveFrame = null; }
+      this.recordingWaveValues = new Array(5).fill(0);
+      this.applyRecordingWaveValues();
+      this.render();
+      this._pendingRecordingStopTimer = setTimeout(() => {
+        this._pendingRecordingStopTimer = null;
+        this.stopRecording();
+      }, delayMs);
+    } else {
+      this.stopRecording();
+    }
+  }
+
   stopRecording() {
+    this._cancelPendingRecordingStop();
+    this.state.recordingStopPending = false;
     if (!this.mediaRecorder) {
       this.state.isRecording = false;
       this.render();
@@ -6856,6 +6888,7 @@ class PageFreeRide extends HTMLElement {
     this.recordedBlob = recordedBlob instanceof Blob ? recordedBlob : null;
     this.state.transcript = transcript;
     this.state.isTranscribing = false;
+    this.state.recordingStopPending = false;
     this.state.isRecording = false;
     this.applyPracticeScore(percent, { skipRender: true });
     this.render();
@@ -7112,7 +7145,7 @@ class PageFreeRide extends HTMLElement {
           </div>
           <div class="free-ride-voice-action free-ride-voice-action--record">
             <button
-              class="speak-circle-btn speak-record-btn free-ride-record-btn"
+              class="speak-circle-btn speak-record-btn free-ride-record-btn ${this.state.isRecording && !this.state.recordingStopPending ? 'is-recording' : ''}"
               id="free-ride-record"
               type="button"
               aria-pressed="false"
@@ -7310,10 +7343,14 @@ class PageFreeRide extends HTMLElement {
     }
     if (recordBtn) {
       recordBtn.disabled = !hasText || this.state.isTranscribing;
-      recordBtn.classList.toggle('is-recording', this.state.isRecording);
+      recordBtn.classList.toggle(
+        'is-recording',
+        this.state.isRecording && !this.state.recordingStopPending
+      );
       recordBtn.classList.toggle(
         'is-reactive-feedback',
         this.state.isRecording &&
+          !this.state.recordingStopPending &&
           this.getFreeRideRecordingFeedbackMode() === FREE_RIDE_RECORDING_FEEDBACK_MODE_REACTIVE
       );
       recordBtn.setAttribute('aria-pressed', this.state.isRecording ? 'true' : 'false');
@@ -7332,7 +7369,10 @@ class PageFreeRide extends HTMLElement {
     }
     if (debugRecordBtn) {
       debugRecordBtn.disabled = !hasText || this.state.isTranscribing;
-      debugRecordBtn.classList.toggle('is-recording', this.state.isRecording);
+      debugRecordBtn.classList.toggle(
+        'is-recording',
+        this.state.isRecording && !this.state.recordingStopPending
+      );
       debugRecordBtn.setAttribute('aria-pressed', this.state.isRecording ? 'true' : 'false');
     }
     if (debugRecordLabelEl) {
@@ -7764,16 +7804,18 @@ class PageFreeRide extends HTMLElement {
 
     recordBtn?.addEventListener('click', () => {
       if (this.state.isRecording) {
-        this.stopRecording();
+        this._triggerStopRecordingWithDelay();
       } else {
+        this._cancelPendingRecordingStop();
         this.startRecording().catch(() => {});
       }
     });
 
     debugRecordBtn?.addEventListener('click', () => {
       if (this.state.isRecording) {
-        this.stopRecording();
+        this._triggerStopRecordingWithDelay();
       } else {
+        this._cancelPendingRecordingStop();
         this.startRecording().catch(() => {});
       }
     });

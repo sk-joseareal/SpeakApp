@@ -62,6 +62,7 @@ class PageDiagnostics extends HTMLElement {
     const APP_FONT_SF_PRO_ENABLED_KEY = 'appv5:font-sf-pro-enabled';
     const SYSTEM_BOTTOM_INSET_DEBUG_KEY = 'appv5:system-bottom-inset-debug';
     const SPEAK_PRONUNCIATION_AVATAR_MODE_KEY = 'appv5:speak-pronunciation-avatar-mode';
+    const RECORDING_STOP_DELAY_KEY = 'appv5:recording-stop-delay-ms';
     const SPEAK_PRONUNCIATION_AVATAR_OLD = 'old';
     const SPEAK_PRONUNCIATION_AVATAR_NEW = 'new';
     const SPEAK_PRONUNCIATION_AVATAR_SET2 = 'set2';
@@ -260,6 +261,25 @@ class PageDiagnostics extends HTMLElement {
         return true;
       }
     };
+    const normalizeRecordingStopDelayMs = (value) => {
+      const n = Math.round(Number(value));
+      if (!Number.isFinite(n) || n < 0) return 0;
+      return Math.min(5000, Math.max(0, n));
+    };
+    const getStoredRecordingStopDelayMs = () => {
+      const globalValue =
+        window.r34lp0w3r && Object.prototype.hasOwnProperty.call(window.r34lp0w3r, 'recordingStopDelayMs')
+          ? window.r34lp0w3r.recordingStopDelayMs
+          : undefined;
+      if (globalValue !== undefined) return normalizeRecordingStopDelayMs(globalValue);
+      try {
+        return normalizeRecordingStopDelayMs(localStorage.getItem(RECORDING_STOP_DELAY_KEY));
+      } catch (err) {
+        return 0;
+      }
+    };
+    window.getRecordingStopDelayMs = () => getStoredRecordingStopDelayMs();
+
     const normalizeAppTitlebarEnabled = (value) => {
       if (typeof value === 'boolean') return value;
       const normalized = String(value || '')
@@ -619,6 +639,15 @@ class PageDiagnostics extends HTMLElement {
                 <div class="diag-debug-sub" id="diag-speak-session-percentages-sub"></div>
               </div>
               <ion-toggle id="diag-speak-session-percentages-toggle" aria-label="Porcentajes en sesión (Training)" ${getStoredSpeakSessionPercentagesVisible() ? 'checked' : ''}></ion-toggle>
+            </div>
+            <div class="diag-speak-block" style="margin-top:10px;">
+              <div class="diag-debug-title">Delay stop grabación (ms)</div>
+              <div style="display:flex;align-items:center;gap:10px;margin-top:6px;">
+                <input type="range" id="diag-recording-stop-delay" min="0" max="5000" step="100"
+                  value="${getStoredRecordingStopDelayMs()}" style="flex:1;">
+                <span id="diag-recording-stop-delay-label" style="min-width:48px;text-align:right;font-variant-numeric:tabular-nums;">${getStoredRecordingStopDelayMs()}ms</span>
+              </div>
+              <div class="diag-debug-sub" id="diag-recording-stop-delay-sub">Tiempo extra de grabación tras pulsar stop. 0 = sin delay (por defecto).</div>
             </div>
             <div class="diag-speak-block">
               <div class="diag-debug-title">Avatar pronunciación</div>
@@ -2040,6 +2069,8 @@ class PageDiagnostics extends HTMLElement {
     const speakSessionPercentagesSubEl = this.querySelector('#diag-speak-session-percentages-sub');
     const speakPronunciationAvatarModeEl = this.querySelector('#diag-speak-pronunciation-avatar-mode');
     const speakPronunciationAvatarSubEl = this.querySelector('#diag-speak-pronunciation-avatar-sub');
+    const recordingStopDelayEl = this.querySelector('#diag-recording-stop-delay');
+    const recordingStopDelayLabelEl = this.querySelector('#diag-recording-stop-delay-label');
     const tabVisibilityToggleEls = Object.fromEntries(
       TAB_VISIBILITY_ORDER.map((tab) => [tab, this.querySelector(`#diag-tab-${tab}-toggle`)])
     );
@@ -2387,6 +2418,26 @@ class PageDiagnostics extends HTMLElement {
       }
       return normalized;
     };
+
+    const setRecordingStopDelayMs = (value) => {
+      const normalized = normalizeRecordingStopDelayMs(value);
+      window.r34lp0w3r = window.r34lp0w3r || {};
+      window.r34lp0w3r.recordingStopDelayMs = normalized;
+      try {
+        localStorage.setItem(RECORDING_STOP_DELAY_KEY, String(normalized));
+      } catch (err) {
+        // no-op
+      }
+      if (recordingStopDelayEl) recordingStopDelayEl.value = String(normalized);
+      if (recordingStopDelayLabelEl) recordingStopDelayLabelEl.textContent = `${normalized}ms`;
+      return normalized;
+    };
+
+    if (recordingStopDelayEl) {
+      recordingStopDelayEl.addEventListener('input', () => {
+        setRecordingStopDelayMs(recordingStopDelayEl.value);
+      });
+    }
 
     const setSpeakPronunciationAvatarMode = (mode) => {
       const normalized = normalizeSpeakPronunciationAvatarMode(mode);

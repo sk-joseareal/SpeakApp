@@ -235,7 +235,9 @@ class PageSpeak extends HTMLElement {
     let mediaRecorder = null;
     let recordingStepKey = null;
     let recordingStream = null;
+    let pendingRecordingStopTimer = null;
     let recordedChunks = [];
+    let recordingStopPending = false;
     let recordingWaveContext = null;
     let recordingWaveAnalyser = null;
     let recordingWaveSource = null;
@@ -2800,7 +2802,7 @@ class PageSpeak extends HTMLElement {
               <span class="speak-practice-voice-action-label">${listenLabel}</span>
             </div>
             <div class="speak-practice-voice-action speak-practice-voice-action--record">
-              <button class="speak-circle-btn speak-record-btn speak-practice-record-btn ${isRecording ? 'is-recording' : ''}" id="speak-record" type="button" aria-pressed="${isRecording}">
+      <button class="speak-circle-btn speak-record-btn speak-practice-record-btn ${isRecording && !recordingStopPending ? 'is-recording' : ''}" id="speak-record" type="button" aria-pressed="${isRecording}">
                 <span class="record-visual" aria-hidden="true">
                   <ion-icon class="record-mic-icon" name="mic"></ion-icon>
                   <span class="record-live-wave" id="speak-record-wave">
@@ -2953,8 +2955,9 @@ class PageSpeak extends HTMLElement {
       if (!stepRoot) return;
       const recordBtn = stepRoot.querySelector('#speak-record');
       if (!recordBtn) return;
-      recordBtn.classList.toggle('is-recording', isRecording);
-      recordBtn.classList.toggle('is-reactive-feedback', isRecording);
+      const recordingVisualActive = isRecording && !recordingStopPending;
+      recordBtn.classList.toggle('is-recording', recordingVisualActive);
+      recordBtn.classList.toggle('is-reactive-feedback', recordingVisualActive);
       recordBtn.setAttribute('aria-pressed', isRecording ? 'true' : 'false');
       const label = recordBtn.querySelector('.record-label');
       if (label) label.textContent = isRecording ? 'End' : 'Say';
@@ -3042,7 +3045,7 @@ class PageSpeak extends HTMLElement {
       if (!stepRoot) return;
       const recordWaveEl = stepRoot.querySelector('#speak-record-wave');
       if (!recordWaveEl) return;
-      recordWaveEl.classList.toggle('is-reactive', isRecording);
+      recordWaveEl.classList.toggle('is-reactive', isRecording && !recordingStopPending);
       const bars = Array.from(recordWaveEl.querySelectorAll('span'));
       bars.forEach((bar, index) => {
         const value = Number.isFinite(recordingWaveValues[index]) ? recordingWaveValues[index] : 0;
@@ -3308,6 +3311,7 @@ class PageSpeak extends HTMLElement {
           }
         };
         mediaRecorder.start(RECORDING_TIMESLICE);
+        recordingStopPending = false;
         setRecordingState(true);
         startRecordingWaveMonitor(recordingStream);
         startSpeechRecognition();
@@ -3319,6 +3323,11 @@ class PageSpeak extends HTMLElement {
     };
 
     const stopRecording = () => {
+      if (pendingRecordingStopTimer) {
+        clearTimeout(pendingRecordingStopTimer);
+        pendingRecordingStopTimer = null;
+      }
+      recordingStopPending = false;
       if (!mediaRecorder) {
         recordingStepKey = null;
         stopRecordingWaveMonitor();
@@ -4916,9 +4925,24 @@ class PageSpeak extends HTMLElement {
 
       recordBtn?.addEventListener('click', () => {
         if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-          stopRecording();
+          const delayMs = typeof window.getRecordingStopDelayMs === 'function' ? window.getRecordingStopDelayMs() : 0;
+          if (delayMs > 0) {
+            if (pendingRecordingStopTimer) { clearTimeout(pendingRecordingStopTimer); }
+            recordingStopPending = true;
+            if (recordingWaveFrame) { cancelAnimationFrame(recordingWaveFrame); recordingWaveFrame = null; }
+            recordingWaveValues = new Array(5).fill(0);
+            applyRecordingWaveValues();
+            updateRecordUi();
+            pendingRecordingStopTimer = setTimeout(() => {
+              pendingRecordingStopTimer = null;
+              stopRecording();
+            }, delayMs);
+          } else {
+            stopRecording();
+          }
           return;
         }
+        if (pendingRecordingStopTimer) { clearTimeout(pendingRecordingStopTimer); pendingRecordingStopTimer = null; }
         startRecording();
       });
 

@@ -475,7 +475,16 @@ const handleMagicLinkUrl = async (url) => {
     if (!token || !uid) return false;
     console.log('>#magic#> handleMagicLinkUrl: magic_token detectado');
     if (typeof window.doPost !== 'function') return false;
-    const result = await window.doPost('/auth/magic/exchange', null, { token, uid });
+    const deviceContext =
+      typeof window.buildAppDeviceContext === 'function'
+        ? window.buildAppDeviceContext({ source: 'magic-link-login' })
+        : {};
+    const result = await window.doPost('/auth/magic/exchange', null, {
+      token,
+      uid,
+      uuid: deviceContext.uuid || window.uuid || localStorage.getItem('uuid') || 'n/a',
+      device_context: deviceContext
+    });
     if (!result || !result.ok) {
       console.warn('>#magic#> intercambio fallido:', result && result.data && result.data.error);
       return true; // consumido, aunque fallara
@@ -617,6 +626,9 @@ function procesarLoginDesdeCallback(url) {
 
     if (typeof refreshUserAvatarLocal === 'function') {
       refreshUserAvatarLocal(user, { force: true });
+    }
+    if (typeof window.syncDeviceSeen === 'function') {
+      window.syncDeviceSeen('login', user);
     }
     notifyLoginSuccess(user);
     clearCurrentLoginProvider();
@@ -3632,6 +3644,59 @@ const pickFirstString = (...values) => {
   return '';
 };
 
+const normalizeAppDeviceUuid = (value) => {
+  const text = pickFirstString(value);
+  if (!text) return '';
+  const lowered = text.toLowerCase();
+  if (lowered === 'undefined' || lowered === 'null' || lowered === 'n/a') return '';
+  return text;
+};
+
+const buildAppDeviceContext = (extra = {}) => {
+  const meta = window.appMeta && typeof window.appMeta === 'object' ? window.appMeta : {};
+  const platform =
+    window.Capacitor && typeof window.Capacitor.getPlatform === 'function'
+      ? window.Capacitor.getPlatform()
+      : 'browser';
+  const nativeInsets =
+    (window.r34lp0w3r && window.r34lp0w3r.nativeSystemInsets) ||
+    (window.r34lp0w3r && window.r34lp0w3r.nativeStatusBar) ||
+    window.__lastNativeSystemInsetsInfo ||
+    window.__lastNativeStatusBarInfo ||
+    {};
+  const appVersion = pickFirstString(
+    meta.version,
+    meta.appVersion,
+    meta.versionName,
+    meta.versionString,
+    extra.app_version,
+    extra.appVersion
+  );
+  const appBuild = pickFirstString(
+    meta.build,
+    meta.appBuild,
+    meta.buildNumber,
+    meta.versionCode,
+    extra.app_build,
+    extra.appBuild
+  );
+  return {
+    uuid: normalizeAppDeviceUuid(extra.uuid || window.uuid || window.localStorage.getItem('uuid')),
+    platform: pickFirstString(extra.platform, platform),
+    os_name: pickFirstString(extra.os_name, extra.osName, nativeInsets.platform, platform),
+    os_version: pickFirstString(extra.os_version, extra.osVersion, nativeInsets.osVersion),
+    app_version: appVersion,
+    app_build: appBuild,
+    user_agent: pickFirstString(
+      extra.user_agent,
+      typeof navigator !== 'undefined' ? navigator.userAgent : ''
+    ),
+    source: pickFirstString(extra.source)
+  };
+};
+
+window.buildAppDeviceContext = buildAppDeviceContext;
+
 const normalizePushTokenType = (value, platformHint = '', sourceHint = '') => {
   const safePlatform = String(platformHint || '').trim().toLowerCase();
   const safeValue = String(value || sourceHint || '').trim().toLowerCase();
@@ -4302,7 +4367,15 @@ async function goWebLegal() {
 }
 
 function deviceId() {
-  return "XXXX-XXXX-XXXX-XXXX";
+  const context = buildAppDeviceContext();
+  const pieces = [
+    context.platform || 'unknown',
+    context.os_version ? `os/${context.os_version}` : '',
+    context.app_version ? `app/${context.app_version}` : '',
+    context.app_build ? `build/${context.app_build}` : '',
+    context.uuid || ''
+  ].filter(Boolean);
+  return pieces.join(' ');
 }
 
 async function doPost( endpoint, userInfo, data ) {
@@ -4407,6 +4480,44 @@ async function doPost( endpoint, userInfo, data ) {
   }
 
 }
+
+async function syncDeviceSeen(source = 'startup', userInfo = null) {
+  try {
+    const context = buildAppDeviceContext({ source });
+    if (!context.uuid) return { ok: false, skipped: 'missing_uuid' };
+    const data = {
+      uuid: context.uuid,
+      device_context: context,
+      device_event: source,
+      timestamp: Math.round(+new Date() / 1000)
+    };
+    if (userInfo && userInfo.id !== undefined && userInfo.id !== null && userInfo.token) {
+      data.user_id = userInfo.id;
+      data.token = userInfo.token;
+    }
+    const response = await fetch(varGlobal.apiURL + '/v5/device/seen', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+        'X-Platform': deviceId()
+      },
+      body: JSON.stringify(data)
+    });
+    const text = await response.text();
+    const payload = text ? JSON.parse(text) : {};
+    const result = { ok: response.ok && !(payload && payload.error), status: response.status, data: payload };
+    if (!result.ok || (payload && payload.device_error)) {
+      console.warn('[device] syncDeviceSeen response:', result);
+    }
+    return result;
+  } catch (err) {
+    console.warn('[device] syncDeviceSeen failed:', err);
+    return { ok: false, error: err && err.message ? err.message : String(err) };
+  }
+}
+
+window.syncDeviceSeen = syncDeviceSeen;
 
 
 document.addEventListener('DOMContentLoaded', async function() {

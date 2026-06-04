@@ -513,11 +513,16 @@ class PageLogin extends HTMLElement {
       } 
 
       const endpoint = "/v3/usr/login";
+      const deviceContext =
+        typeof window.buildAppDeviceContext === 'function'
+          ? window.buildAppDeviceContext({ source: 'password-login' })
+          : {};
       const usrData = {
         email: email,
         pass: pass,
         locale: resolveUiLocale(),
-        uuid: window.uuid || localStorage.getItem('uuid') || 'n/a'
+        uuid: deviceContext.uuid || window.uuid || localStorage.getItem('uuid') || 'n/a',
+        device_context: deviceContext
       };
 
       const result = await doPost(endpoint, null, usrData);
@@ -870,7 +875,16 @@ class PageLogin extends HTMLElement {
       otpPending = true;
       setMagicOtpError('');
 
-      const result = await doPost('/auth/magic/otp-exchange', null, { otp, uid: magicLastUid });
+      const deviceContext =
+        typeof window.buildAppDeviceContext === 'function'
+          ? window.buildAppDeviceContext({ source: 'magic-otp-login' })
+          : {};
+      const result = await doPost('/auth/magic/otp-exchange', null, {
+        otp,
+        uid: magicLastUid,
+        uuid: deviceContext.uuid || window.uuid || localStorage.getItem('uuid') || 'n/a',
+        device_context: deviceContext
+      });
 
       otpPending = false;
 

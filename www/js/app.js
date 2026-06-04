@@ -606,6 +606,8 @@ function syncNativeStatusBarCapabilityClasses(info = {}) {
     platform,
     osVersion: String(info.osVersion || '').trim()
   };
+  window.r34lp0w3r = window.r34lp0w3r || {};
+  window.r34lp0w3r.nativeStatusBar = lastNativeStatusBarInfo;
   const needsManualOffset = platform === 'android' || (platform === 'ios' && osMajor >= 26);
   document.body.classList.toggle('app-statusbar-manual-offset', needsManualOffset);
   document.body.classList.toggle('app-ios-statusbar-auto-offset', platform === 'ios' && !needsManualOffset);

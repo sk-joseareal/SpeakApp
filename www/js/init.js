@@ -1808,6 +1808,54 @@ const ensureUUID = () => {
   window.uuid = uuid;
 };
 
+const refreshAppMetaFromNative = async () => {
+  try {
+    const appPlugin = window.Capacitor && window.Capacitor.Plugins ? window.Capacitor.Plugins.App : null;
+    if (!appPlugin || typeof appPlugin.getInfo !== 'function') return null;
+    const info = await appPlugin.getInfo();
+    if (info && typeof info === 'object') {
+      if (typeof window.setAppMeta === 'function') {
+        window.setAppMeta(info);
+      } else {
+        window.appMeta = { ...(window.appMeta || {}), ...info };
+      }
+    }
+    return info;
+  } catch (err) {
+    console.warn('[device] error leyendo app metadata nativa', err);
+    return null;
+  }
+};
+
+const readStoredDeviceUserForSeen = () => {
+  const direct = window.user && typeof window.user === 'object' ? window.user : null;
+  if (direct && direct.id !== undefined && direct.id !== null && direct.token) {
+    return { id: direct.id, token: direct.token };
+  }
+  try {
+    const raw = localStorage.getItem(SPEAK_USER_STORAGE_KEY);
+    if (!raw) return null;
+    const stored = JSON.parse(raw);
+    if (stored && stored.id !== undefined && stored.id !== null && stored.token) {
+      return { id: stored.id, token: stored.token };
+    }
+  } catch (_err) {
+    // no-op
+  }
+  return null;
+};
+
+const syncStartupDeviceSeen = async () => {
+  try {
+    await refreshAppMetaFromNative();
+    if (typeof window.syncDeviceSeen === 'function') {
+      window.syncDeviceSeen('startup', readStoredDeviceUserForSeen());
+    }
+  } catch (err) {
+    console.warn('[device] error registrando device startup', err);
+  }
+};
+
 const loadVoices = () => {
   console.log("# 005 # js/init.js: loadVoices() #");
   if (!('speechSynthesis' in window)) return;
@@ -1865,6 +1913,7 @@ const onReady = () => {
   ensurePlatform();
   ensureUUID();
   initVoicesIfBrowser();
+  syncStartupDeviceSeen();
 };
 
 // Compatibilidad con deviceready (cordova/capacitor bridge) y fallback a DOMContentLoaded

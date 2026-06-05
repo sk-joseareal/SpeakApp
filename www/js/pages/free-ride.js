@@ -3037,14 +3037,14 @@ class PageFreeRide extends HTMLElement {
     if (normalizedTone === 'okay') {
       return {
         text: copy.resultRegular || 'Fair',
-        fallbackEs: 'Regular',
-        fallbackEn: 'Fair'
+        fallbackEs: 'Bien',
+        fallbackEn: 'Good'
       };
     }
     return {
       text: copy.resultIncorrect || 'Incorrect',
-      fallbackEs: 'Incorrecto',
-      fallbackEn: 'Incorrect'
+      fallbackEs: 'Repite',
+      fallbackEn: 'Try again'
     };
   }
 

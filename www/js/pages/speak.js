@@ -2869,18 +2869,18 @@ class PageSpeak extends HTMLElement {
       if (normalizedTone === 'good') {
         return {
           key: 'resultExcellent',
-          fallback: 'Excellent'
+          fallback: locale === 'es' ? 'Excelente' : 'Excellent'
         };
       }
       if (normalizedTone === 'okay') {
         return {
           key: 'resultRegular',
-          fallback: 'Fair'
+          fallback: locale === 'es' ? 'Bien' : 'Good'
         };
       }
       return {
         key: 'resultIncorrect',
-        fallback: 'Incorrect'
+        fallback: locale === 'es' ? 'Repite' : 'Try again'
       };
     };
 

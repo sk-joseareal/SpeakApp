@@ -1,10 +1,10 @@
 {
   "es": {
     "tabs": {
-      "training": "Entrenar",
+      "training": "Training",
       "lab": "Lab",
       "reference": "Referencia",
-      "you": "Perfil",
+      "you": "Profile",
       "chat": "Chat"
     },
     "reference": {
@@ -98,7 +98,7 @@
       "defaultTitle": "Notificacion",
       "demo": {
         "weakWordsTitle": "Tienes {n} palabras flojas",
-        "weakWordsText": "Ve a Revisar y mejora tu pronunciacion.",
+        "weakWordsText": "Ve a Review y mejora tu pronunciacion.",
         "weakWordsAction": "Revisar",
         "badgeTitle": "Nuevo badge desbloqueado",
         "badgeText": "Racha de 3 dias completada.",
@@ -242,15 +242,16 @@
       "go": "Continuar",
       "routeProgress": "progreso",
       "unlockAfter": "Desbloquea después de",
-      "sessionsCompleted": "sesiones completadas"
+      "sessionsCompleted": "sesiones completadas",
+      "comingSoon": "Contenido disponible próximamente"
     },
     "freeRide": {
       "title": "Lab",
-      "subtitle": "Traduce, escucha y practica la pronunciación de tus frases.",
+      "subtitle": "Escribe en español o en inglés. Ejemplo: “I want a coffee.”",
       "inputLabel": "Tu frase",
-      "inputPlaceholder": "Escribe una frase aquí…",
+      "inputPlaceholder": "Puedes escribir en español o en inglés. Ejemplo: Quiero pedir un café.",
       "emptyPhrase": "Practica tu pronunciación",
-      "playPhrase": "Escuchar",
+      "playPhrase": "Escuchar frase",
       "sayLabel": "Habla",
       "endLabel": "Fin",
       "yourVoiceLabel": "Tu voz",
@@ -261,31 +262,31 @@
       "translationPending": "Traducción pendiente",
       "translateAction": "Traducir",
       "resultExcellent": "Excelente",
-      "resultRegular": "Buen comienzo",
-      "resultIncorrect": "Sigue mejorando",
-      "resultMatchLabel": "de acierto",
+      "resultRegular": "Bien",
+      "resultIncorrect": "Repite",
+      "resultMatchLabel": "match",
       "transcribing": "Transcribiendo..."
     },
     "speak": {
-      "practiceSound": "Di el sonido",
-      "practiceWords": "Di la palabra",
-      "practicePhrase": "Di la frase",
+      "practiceSound": "Di el sonido →",
+      "practiceWords": "Di la palabra →",
+      "practicePhrase": "Di la frase →",
       "resultBanner": "Resultado",
       "summaryScoreLabel": "Puntuación final",
       "summaryHeadlineGood": "¡Excelente!",
-      "summaryHeadlineOkay": "¡Buen progreso!!",
+      "summaryHeadlineOkay": "¡Buen trabajo!",
       "summaryHeadlineBad": "Sigue practicando",
       "summarySublineGood": "Has completado {{session}}.",
-      "summarySublineOkay": "Vas por buen camino.",
+      "summarySublineOkay": "Sigue practicando.",
       "summarySublineBad": "Vuelve a intentarlo.",
-      "summaryPillGood": "¡Excelente!",
-      "summaryPillOkay": "Buen progreso",
+      "summaryPillGood": "¡Muy bien!",
+      "summaryPillOkay": "Vas bien",
       "summaryPillBad": "Sigue practicando",
-      "summaryHintGood": "Tu pronunciación va muy bien.",
+      "summaryHintGood": "Gran progreso en tu pronunciación.",
       "summaryHintOkay": "Sigue practicando y mejorarás rápidamente.",
       "summaryHintBad": "Sigue practicando: cada intento cuenta.",
-      "summaryPhaseWords": "Práctica con palabras",
-      "summaryPhasePhrase": "Práctica con una frase",
+      "summaryPhaseWords": "Practica con palabras",
+      "summaryPhasePhrase": "Practica con una frase",
       "heroNarration": "¡Cada sonido te ayudará a hablar mejor en inglés!",
       "soundStepSubtitle": "Escucha el audio y repite el sonido",
       "transcribing": "Transcribiendo...",
@@ -295,17 +296,17 @@
       "feedbackKeep": "Sigue practicando",
       "summaryTitleTemplates": {
         "good": [
-          "¡Muy bien! Has aprendido {{session}}.",
-          "Excelente! Aprendiste muy bien {{session}}"
+          "Muy bien! aprendiste {{session}}",
+          "Excelente! completaste {{session}}"
         ],
         "okay": [
           "¡Buen trabajo! sigue practicando {{session}}",
-          "Vas por buen camino. Repasa {{session}}."
+          "Vas bien! repasa {{session}}"
         ],
         "bad": [
-          "Sigue practicando",
+          "No pasa nada",
           "Sigue practicando {{session}}",
-          "Sigue intentándolo con {{session}}"
+          "Sigue intentandolo con {{session}}"
         ]
       },
       "summaryPhrases": {
@@ -481,7 +482,7 @@
       "tabReview": "Review",
       "changePhoto": "Cambiar foto",
       "deletePhoto": "Reiniciar",
-      "interfaceLanguage": "Idioma de la interfaz",
+      "interfaceLanguage": "Lenguaje interfaz",
       "firstName": "Nombre",
       "lastName": "Apellidos",
       "password": "Contraseña",
@@ -496,7 +497,7 @@
       "deleteAccount": "Eliminar cuenta",
       "deleteAccountHint": "Se eliminará tu cuenta y se cerrará la sesión. La suscripción de App Store o Google Play no se cancela automaticamente.",
       "deleteAccountConfirmTitle": "Eliminar cuenta",
-      "deleteAccountConfirmMessage": "Esta acción es permanente. Tu suscripción de App Store o Google Play no se cancela automáticamente.",
+      "deleteAccountConfirmMessage": "Esta acción es permanente. Tu suscripción de App Store o Google Play no se cancela automaticamente.",
       "deleteAccountConfirmEmailLabel": "Escribe este email para confirmar: {value}",
       "deleteAccountConfirmKeywordLabel": "Escribe DELETE para confirmar.",
       "deleteAccountConfirmPlaceholderEmail": "tu@email.com",
@@ -518,7 +519,7 @@
       "reviewLess": "Menos",
       "reviewLessonTestLabel": "Test de lección",
       "reviewUnitTestLabel": "Test de unidad",
-      "trainingTrophies": "Copas entrenamiento",
+      "trainingTrophies": "Copas training",
       "referenceMedals": "Medallas reference",
       "userFallbackName": "Usuario",
       "profileAvatarAlt": "Avatar perfil",
@@ -781,50 +782,51 @@
       "go": "Continue",
       "routeProgress": "progress",
       "unlockAfter": "Unlock after",
-      "sessionsCompleted": "sessions completed"
+      "sessionsCompleted": "sessions completed",
+      "comingSoon": "Content coming soon"
     },
     "freeRide": {
       "title": "Lab",
-      "subtitle": "Translate, listen, and practice pronouncing your phrases.",
+      "subtitle": "Write in Spanish or English. Example: “I want a coffee.”",
       "inputLabel": "Your phrase",
-      "inputPlaceholder": "Write a phrase here…",
+      "inputPlaceholder": "You can write in Spanish or English. Example: Quiero pedir un café.",
       "emptyPhrase": "Practice your pronunciation",
-      "playPhrase": "Listen",
+      "playPhrase": "Play phrase",
       "sayLabel": "Say",
       "endLabel": "End",
       "yourVoiceLabel": "Your voice",
-      "feedbackHint": "Say it",
+      "feedbackHint": "Say your sentence",
       "translationLocalNotInstalled": "Local translator available, but language model is not installed.",
       "translationBackendError": "Could not translate with the server. Please try again.",
       "translationError": "Could not translate right now.",
       "translationPending": "Translation pending",
       "translateAction": "Translate",
       "resultExcellent": "Excellent",
-      "resultRegular": "Good start",
-      "resultIncorrect": "Keep improving",
+      "resultRegular": "Good",
+      "resultIncorrect": "Try again",
       "resultMatchLabel": "match",
       "transcribing": "Transcribing..."
     },
     "speak": {
-      "practiceSound": "Say it",
-      "practiceWords": "Say the word",
-      "practicePhrase": "Say the phrase",
+      "practiceSound": "Say the sound →",
+      "practiceWords": "Say the word →",
+      "practicePhrase": "Say the phrase →",
       "resultBanner": "Result",
       "summaryScoreLabel": "Final score",
       "summaryHeadlineGood": "Excellent!",
-      "summaryHeadlineOkay": "Good progress!",
+      "summaryHeadlineOkay": "Good work!",
       "summaryHeadlineBad": "Keep practicing",
       "summarySublineGood": "You completed {{session}}.",
-      "summarySublineOkay": "You're on the right track.",
+      "summarySublineOkay": "Continue practicing.",
       "summarySublineBad": "Try again.",
       "summaryPillGood": "Excellent!",
-      "summaryPillOkay": "Good progress",
+      "summaryPillOkay": "You're doing well",
       "summaryPillBad": "Keep practicing",
-      "summaryHintGood": "Your pronunciation is very good.",
+      "summaryHintGood": "Great pronunciation progress.",
       "summaryHintOkay": "Keep practicing and you will improve quickly.",
       "summaryHintBad": "Keep practicing. Every attempt counts.",
-      "summaryPhaseWords": " Word practice",
-      "summaryPhasePhrase": "Sentence practice",
+      "summaryPhaseWords": "Practice with words",
+      "summaryPhasePhrase": "Practice with a sentence",
       "heroNarration": "Every sound will help you speak English better!",
       "soundStepSubtitle": "Listen to the audio and repeat the sound",
       "transcribing": "Transcribing...",
@@ -834,15 +836,15 @@
       "feedbackKeep": "Keep practicing",
       "summaryTitleTemplates": {
         "good": [
-          "Great! You learned {{session}}.",
+          "Great! You learned {{session}}",
           "Excellent! You mastered {{session}}"
         ],
         "okay": [
           "Good work! Keep practicing {{session}}",
-          "You're on the right track. Review {{session}}."
+          "You are doing well! Review {{session}}"
         ],
         "bad": [
-          "keep practicing ",
+          "No worries",
           "keep practicing {{session}}",
           "Keep trying with {{session}}"
         ]

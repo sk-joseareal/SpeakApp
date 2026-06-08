@@ -1,0 +1,28 @@
+{
+  "ok": true,
+  "provider": "aws-polly",
+  "cached": false,
+  "hash": "7d3469c2571bd2b6f7afbf82cccfeafe9dd79031",
+  "text": "yesterday",
+  "locale": "en-US",
+  "voice": "Danielle",
+  "engine": "neural",
+  "rate": "",
+  "pitch": "",
+  "voice_profile": "default",
+  "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/7d3469c2571bd2b6f7afbf82cccfeafe9dd79031.mp3",
+  "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/7d3469c2571bd2b6f7afbf82cccfeafe9dd79031.words.json",
+  "duration_ms": 745,
+  "words": [
+    {
+      "index": 0,
+      "text": "yesterday",
+      "start_ms": 25,
+      "end_ms": 745,
+      "start_char": 0,
+      "end_char": 9
+    }
+  ],
+  "limit_status": null,
+  "audio_kind": "polly"
+}

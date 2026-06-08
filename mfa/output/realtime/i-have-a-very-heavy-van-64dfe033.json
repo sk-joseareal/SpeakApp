@@ -1,0 +1,68 @@
+{
+  "ok": true,
+  "provider": "aws-polly",
+  "cached": false,
+  "hash": "ace7a6891d5e4c1f99e648aeab878dd3d1851a22",
+  "text": "I have a very heavy van.",
+  "locale": "en-US",
+  "voice": "Danielle",
+  "engine": "neural",
+  "rate": "",
+  "pitch": "",
+  "voice_profile": "default",
+  "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/ace7a6891d5e4c1f99e648aeab878dd3d1851a22.mp3",
+  "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/ace7a6891d5e4c1f99e648aeab878dd3d1851a22.words.json",
+  "duration_ms": 1227,
+  "words": [
+    {
+      "index": 0,
+      "text": "I",
+      "start_ms": 25,
+      "end_ms": 137,
+      "start_char": 0,
+      "end_char": 1
+    },
+    {
+      "index": 1,
+      "text": "have",
+      "start_ms": 137,
+      "end_ms": 362,
+      "start_char": 2,
+      "end_char": 6
+    },
+    {
+      "index": 2,
+      "text": "a",
+      "start_ms": 362,
+      "end_ms": 422,
+      "start_char": 7,
+      "end_char": 8
+    },
+    {
+      "index": 3,
+      "text": "very",
+      "start_ms": 412,
+      "end_ms": 725,
+      "start_char": 9,
+      "end_char": 13
+    },
+    {
+      "index": 4,
+      "text": "heavy",
+      "start_ms": 725,
+      "end_ms": 987,
+      "start_char": 14,
+      "end_char": 19
+    },
+    {
+      "index": 5,
+      "text": "van",
+      "start_ms": 987,
+      "end_ms": 1227,
+      "start_char": 20,
+      "end_char": 23
+    }
+  ],
+  "limit_status": null,
+  "audio_kind": "polly"
+}

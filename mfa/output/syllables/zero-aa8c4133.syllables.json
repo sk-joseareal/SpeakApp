@@ -1,0 +1,21 @@
+[
+  {
+    "word": "zero",
+    "start": 0.06,
+    "end": 0.59,
+    "syllables": [
+      {
+        "text": "ze",
+        "start": 0.06,
+        "end": 0.325,
+        "index": 0
+      },
+      {
+        "text": "ro",
+        "start": 0.325,
+        "end": 0.59,
+        "index": 1
+      }
+    ]
+  }
+]

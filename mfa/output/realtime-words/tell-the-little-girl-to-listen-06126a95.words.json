@@ -1,0 +1,63 @@
+{
+  "schema": 1,
+  "generated_at": "2026-06-08T14:47:53.685Z",
+  "hash": "2225ac9b1ecfd97cf45467506669c33192c57a7f",
+  "text": "Tell the little girl to listen.",
+  "locale": "en-US",
+  "voice": "Danielle",
+  "engine": "neural",
+  "rate": "",
+  "pitch": "",
+  "voice_profile": "default",
+  "duration_ms": 1517,
+  "words": [
+    {
+      "index": 0,
+      "text": "Tell",
+      "start_ms": 25,
+      "end_ms": 262,
+      "start_char": 0,
+      "end_char": 4
+    },
+    {
+      "index": 1,
+      "text": "the",
+      "start_ms": 262,
+      "end_ms": 362,
+      "start_char": 5,
+      "end_char": 8
+    },
+    {
+      "index": 2,
+      "text": "little",
+      "start_ms": 362,
+      "end_ms": 587,
+      "start_char": 9,
+      "end_char": 15
+    },
+    {
+      "index": 3,
+      "text": "girl",
+      "start_ms": 587,
+      "end_ms": 887,
+      "start_char": 16,
+      "end_char": 20
+    },
+    {
+      "index": 4,
+      "text": "to",
+      "start_ms": 887,
+      "end_ms": 1037,
+      "start_char": 21,
+      "end_char": 23
+    },
+    {
+      "index": 5,
+      "text": "listen",
+      "start_ms": 1037,
+      "end_ms": 1517,
+      "start_char": 24,
+      "end_char": 30
+    }
+  ]
+}

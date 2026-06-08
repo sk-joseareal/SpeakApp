@@ -1,0 +1,68 @@
+{
+  "ok": true,
+  "provider": "aws-polly",
+  "cached": false,
+  "hash": "a17d4e71a4c490c8ee0afa0684873325d455f118",
+  "text": "The expert explains the exam example.",
+  "locale": "en-US",
+  "voice": "Danielle",
+  "engine": "neural",
+  "rate": "",
+  "pitch": "",
+  "voice_profile": "default",
+  "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/a17d4e71a4c490c8ee0afa0684873325d455f118.mp3",
+  "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/a17d4e71a4c490c8ee0afa0684873325d455f118.words.json",
+  "duration_ms": 2172,
+  "words": [
+    {
+      "index": 0,
+      "text": "The",
+      "start_ms": 25,
+      "end_ms": 137,
+      "start_char": 0,
+      "end_char": 3
+    },
+    {
+      "index": 1,
+      "text": "expert",
+      "start_ms": 137,
+      "end_ms": 575,
+      "start_char": 4,
+      "end_char": 10
+    },
+    {
+      "index": 2,
+      "text": "explains",
+      "start_ms": 575,
+      "end_ms": 1137,
+      "start_char": 11,
+      "end_char": 19
+    },
+    {
+      "index": 3,
+      "text": "the",
+      "start_ms": 1137,
+      "end_ms": 1250,
+      "start_char": 20,
+      "end_char": 23
+    },
+    {
+      "index": 4,
+      "text": "exam",
+      "start_ms": 1250,
+      "end_ms": 1612,
+      "start_char": 24,
+      "end_char": 28
+    },
+    {
+      "index": 5,
+      "text": "example",
+      "start_ms": 1612,
+      "end_ms": 2172,
+      "start_char": 29,
+      "end_char": 36
+    }
+  ],
+  "limit_status": null,
+  "audio_kind": "polly"
+}

@@ -1,0 +1,28 @@
+{
+  "ok": true,
+  "provider": "aws-polly",
+  "cached": false,
+  "hash": "e92a04bd5374d591246bcc6c7f24c677624bdb9a",
+  "text": "sky",
+  "locale": "en-US",
+  "voice": "Danielle",
+  "engine": "neural",
+  "rate": "",
+  "pitch": "",
+  "voice_profile": "default",
+  "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/e92a04bd5374d591246bcc6c7f24c677624bdb9a.mp3",
+  "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/e92a04bd5374d591246bcc6c7f24c677624bdb9a.words.json",
+  "duration_ms": 265,
+  "words": [
+    {
+      "index": 0,
+      "text": "sky",
+      "start_ms": 25,
+      "end_ms": 265,
+      "start_char": 0,
+      "end_char": 3
+    }
+  ],
+  "limit_status": null,
+  "audio_kind": "polly"
+}

@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "generated_at": "2026-06-08T14:48:15.011Z",
+  "hash": "46cb8fd139f43d74019d6c00e8debcab36849b46",
+  "text": "violin",
+  "locale": "en-US",
+  "voice": "Danielle",
+  "engine": "neural",
+  "rate": "",
+  "pitch": "",
+  "voice_profile": "default",
+  "duration_ms": 505,
+  "words": [
+    {
+      "index": 0,
+      "text": "violin",
+      "start_ms": 25,
+      "end_ms": 505,
+      "start_char": 0,
+      "end_char": 6
+    }
+  ]
+}

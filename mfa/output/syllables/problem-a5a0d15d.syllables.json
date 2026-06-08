@@ -1,0 +1,21 @@
+[
+  {
+    "word": "problem",
+    "start": 0.05,
+    "end": 0.55,
+    "syllables": [
+      {
+        "text": "prob",
+        "start": 0.05,
+        "end": 0.336,
+        "index": 0
+      },
+      {
+        "text": "lem",
+        "start": 0.336,
+        "end": 0.55,
+        "index": 1
+      }
+    ]
+  }
+]

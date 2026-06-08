@@ -1,0 +1,42 @@
+[
+  {
+    "start": 0.06,
+    "end": 0.16,
+    "word": "i"
+  },
+  {
+    "start": 0.16,
+    "end": 0.42,
+    "word": "think"
+  },
+  {
+    "start": 0.42,
+    "end": 0.51,
+    "word": "we"
+  },
+  {
+    "start": 0.51,
+    "end": 0.75,
+    "word": "should"
+  },
+  {
+    "start": 0.75,
+    "end": 0.96,
+    "word": "thank"
+  },
+  {
+    "start": 0.96,
+    "end": 1.05,
+    "word": "the"
+  },
+  {
+    "start": 1.05,
+    "end": 1.31,
+    "word": "three"
+  },
+  {
+    "start": 1.31,
+    "end": 1.9,
+    "word": "boys"
+  }
+]

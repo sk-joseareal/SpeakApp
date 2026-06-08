@@ -1,19 +1,19 @@
 [
   {
     "word": "happy",
-    "start": 0.03,
-    "end": 0.47,
+    "start": 0.05,
+    "end": 0.58,
     "syllables": [
       {
         "text": "hap",
-        "start": 0.03,
-        "end": 0.294,
+        "start": 0.05,
+        "end": 0.368,
         "index": 0
       },
       {
         "text": "py",
-        "start": 0.294,
-        "end": 0.47,
+        "start": 0.368,
+        "end": 0.58,
         "index": 1
       }
     ]

@@ -1,0 +1,393 @@
+2026-06-08 16:48:34,765 - mfa - DEBUG - Beginning run for corpus
+2026-06-08 16:48:34,765 - mfa - DEBUG - Using "global" profile
+2026-06-08 16:48:34,765 - mfa - DEBUG - Using multiprocessing with 3
+2026-06-08 16:48:34,765 - mfa - DEBUG - Set up logger for MFA version: 3.3.8
+2026-06-08 16:48:34,937 - mfa - DEBUG - There were some differences in the current run compared to the last one. This may cause issues, run with --clean, if you hit an error.
+2026-06-08 16:48:46,233 - mfa - DEBUG - Loaded dictionary in 11.249 seconds
+2026-06-08 16:48:46,234 - mfa - INFO - Setting up corpus information...
+2026-06-08 16:48:46,235 - mfa - DEBUG - Could not load from temp
+2026-06-08 16:48:46,235 - mfa - INFO - Loading corpus from source files...
+2026-06-08 16:48:48,292 - mfa - DEBUG - Processing queue: 0.074465
+2026-06-08 16:48:48,331 - mfa - DEBUG - Parsed corpus directory with 3 jobs in 0.10971399999999853 seconds
+2026-06-08 16:48:48,337 - mfa - INFO - Found 1 speaker across 244 files, average number of utterances per speaker: 244.0
+2026-06-08 16:48:48,338 - mfa - DEBUG - Loaded corpus in 2.104 seconds
+2026-06-08 16:48:48,339 - mfa - INFO - Initializing multiprocessing jobs...
+2026-06-08 16:48:48,339 - mfa - WARNING - Number of jobs was specified as 3, but due to only having 1 speakers, MFA will only use 1 jobs. Use the --single_speaker flag if you would like to split utterances across jobs regardless of their speaker.
+2026-06-08 16:48:48,348 - mfa - DEBUG - Initialized jobs in 0.010 seconds
+2026-06-08 16:48:48,801 - mfa - INFO - Normalizing text...
+2026-06-08 16:49:06,173 - mfa - DEBUG - Wrote lexicon information in 8.313 seconds
+2026-06-08 16:49:06,175 - mfa - INFO - Generating MFCCs...
+2026-06-08 16:49:09,202 - mfa - DEBUG - Generating MFCCs took 3.026 seconds
+2026-06-08 16:49:09,203 - mfa - INFO - Calculating CMVN...
+2026-06-08 16:49:09,220 - mfa - INFO - Generating final features...
+2026-06-08 16:49:10,272 - mfa - DEBUG - Generating final features took 1.052 seconds
+2026-06-08 16:49:10,279 - mfa - INFO - Creating corpus split...
+2026-06-08 16:49:11,299 - mfa - DEBUG - Generated features in 5.126 seconds
+2026-06-08 16:49:11,299 - mfa - DEBUG - Setting up corpus took 36.315 seconds
+2026-06-08 16:49:11,299 - mfa - DEBUG - 
+2026-06-08 16:49:11,299 - mfa - DEBUG - ====ACOUSTIC MODEL INFO====
+2026-06-08 16:49:11,299 - mfa - DEBUG - Acoustic model root directory: /Users/r34lp0w3r/Documents/MFA/extracted_models/acoustic
+2026-06-08 16:49:11,299 - mfa - DEBUG - Acoustic model directory: /Users/r34lp0w3r/Documents/MFA/extracted_models/acoustic/english_us_arpa_acoustic
+2026-06-08 16:49:11,300 - mfa - DEBUG - Acoustic model meta path: /Users/r34lp0w3r/Documents/MFA/extracted_models/acoustic/english_us_arpa_acoustic/meta.json
+2026-06-08 16:49:11,300 - mfa - DEBUG - Acoustic model meta information:
+2026-06-08 16:49:11,311 - mfa - DEBUG - architecture: gmm-hmm
+dictionaries:
+  bracketed_word: '[bracketed]'
+  clitic_marker: ''''
+  default: english_us_arpa
+  laughter_word: '[laughter]'
+  names:
+  - english_us_arpa
+  oov_word: <unk>
+  position_dependent_phones: false
+  silence_word: <eps>
+  use_g2p: false
+features:
+  cepstral_lifter: 22
+  delta_pitch: 0.005
+  dither: 1
+  energy_floor: 0
+  feature_type: mfcc
+  frame_length: 25
+  frame_shift: 10
+  high_frequency: 7800
+  low_frequency: 20
+  max_f0: 800
+  min_f0: 50
+  num_coefficients: 13
+  num_mel_bins: 23
+  penalty_factor: 0.1
+  preemphasis_coefficient: 0.97
+  sample_frequency: 16000
+  silence_weight: 0.0
+  snip_edges: false
+  splice_left_context: 3
+  splice_right_context: 3
+  use_energy: false
+  use_pitch: false
+  use_voicing: false
+  uses_cmvn: true
+  uses_deltas: false
+  uses_speaker_adaptation: true
+  uses_splices: true
+  uses_voiced: false
+final_non_silence_correction: 0.01
+final_silence_correction: 0.99
+initial_silence_probability: 0.18
+language: unknown
+oov_phone: spn
+optional_silence_phone: sil
+phone_groups:
+  AA0:
+  - AA0
+  AA1:
+  - AA1
+  AA2:
+  - AA2
+  AE0:
+  - AE0
+  AE1:
+  - AE1
+  AE2:
+  - AE2
+  AH0:
+  - AH0
+  AH1:
+  - AH1
+  AH2:
+  - AH2
+  AO0:
+  - AO0
+  AO1:
+  - AO1
+  AO2:
+  - AO2
+  AW0:
+  - AW0
+  AW1:
+  - AW1
+  AW2:
+  - AW2
+  AY0:
+  - AY0
+  AY1:
+  - AY1
+  AY2:
+  - AY2
+  B:
+  - B
+  CH:
+  - CH
+  D:
+  - D
+  DH:
+  - DH
+  EH0:
+  - EH0
+  EH1:
+  - EH1
+  EH2:
+  - EH2
+  ER0:
+  - ER0
+  ER1:
+  - ER1
+  ER2:
+  - ER2
+  EY0:
+  - EY0
+  EY1:
+  - EY1
+  EY2:
+  - EY2
+  F:
+  - F
+  G:
+  - G
+  HH:
+  - HH
+  IH0:
+  - IH0
+  IH1:
+  - IH1
+  IH2:
+  - IH2
+  IY0:
+  - IY0
+  IY1:
+  - IY1
+  IY2:
+  - IY2
+  JH:
+  - JH
+  K:
+  - K
+  L:
+  - L
+  M:
+  - M
+  N:
+  - N
+  NG:
+  - NG
+  OW0:
+  - OW0
+  OW1:
+  - OW1
+  OW2:
+  - OW2
+  OY0:
+  - OY0
+  OY1:
+  - OY1
+  OY2:
+  - OY2
+  P:
+  - P
+  R:
+  - R
+  S:
+  - S
+  SH:
+  - SH
+  T:
+  - T
+  TH:
+  - TH
+  UH0:
+  - UH0
+  UH1:
+  - UH1
+  UH2:
+  - UH2
+  UW0:
+  - UW0
+  UW1:
+  - UW1
+  UW2:
+  - UW2
+  V:
+  - V
+  W:
+  - W
+  Y:
+  - Y
+  Z:
+  - Z
+  ZH:
+  - ZH
+phone_mapping:
+  <eps>: 0
+  AA0: 3
+  AA1: 4
+  AA2: 5
+  AE0: 6
+  AE1: 7
+  AE2: 8
+  AH0: 9
+  AH1: 10
+  AH2: 11
+  AO0: 12
+  AO1: 13
+  AO2: 14
+  AW0: 15
+  AW1: 16
+  AW2: 17
+  AY0: 18
+  AY1: 19
+  AY2: 20
+  B: 21
+  CH: 22
+  D: 23
+  DH: 24
+  EH0: 25
+  EH1: 26
+  EH2: 27
+  ER0: 28
+  ER1: 29
+  ER2: 30
+  EY0: 31
+  EY1: 32
+  EY2: 33
+  F: 34
+  G: 35
+  HH: 36
+  IH0: 37
+  IH1: 38
+  IH2: 39
+  IY0: 40
+  IY1: 41
+  IY2: 42
+  JH: 43
+  K: 44
+  L: 45
+  M: 46
+  N: 47
+  NG: 48
+  OW0: 49
+  OW1: 50
+  OW2: 51
+  OY0: 52
+  OY1: 53
+  OY2: 54
+  P: 55
+  R: 56
+  S: 57
+  SH: 58
+  T: 59
+  TH: 60
+  UH0: 61
+  UH1: 62
+  UH2: 63
+  UW0: 64
+  UW1: 65
+  UW2: 66
+  V: 67
+  W: 68
+  Y: 69
+  Z: 70
+  ZH: 71
+  sil: 1
+  spn: 2
+phone_set_type: UNKNOWN
+phone_type: triphone
+phones: !!set
+  AA0: null
+  AA1: null
+  AA2: null
+  AE0: null
+  AE1: null
+  AE2: null
+  AH0: null
+  AH1: null
+  AH2: null
+  AO0: null
+  AO1: null
+  AO2: null
+  AW0: null
+  AW1: null
+  AW2: null
+  AY0: null
+  AY1: null
+  AY2: null
+  B: null
+  CH: null
+  D: null
+  DH: null
+  EH0: null
+  EH1: null
+  EH2: null
+  ER0: null
+  ER1: null
+  ER2: null
+  EY0: null
+  EY1: null
+  EY2: null
+  F: null
+  G: null
+  HH: null
+  IH0: null
+  IH1: null
+  IH2: null
+  IY0: null
+  IY1: null
+  IY2: null
+  JH: null
+  K: null
+  L: null
+  M: null
+  N: null
+  NG: null
+  OW0: null
+  OW1: null
+  OW2: null
+  OY0: null
+  OY1: null
+  OY2: null
+  P: null
+  R: null
+  S: null
+  SH: null
+  T: null
+  TH: null
+  UH0: null
+  UH1: null
+  UH2: null
+  UW0: null
+  UW1: null
+  UW2: null
+  V: null
+  W: null
+  Y: null
+  Z: null
+  ZH: null
+silence_probability: 0.18
+train_date: '2024-02-10 15:17:19.181270'
+training:
+  audio_duration: 3536308.477162502
+  average_log_likelihood: -0.050285424064008426
+  num_oovs: 0
+  num_speakers: 2485
+  num_utterances: 292367
+version: 3.0.0a2.dev0+g940e907.d20230824
+
+2026-06-08 16:49:11,311 - mfa - DEBUG - 
+2026-06-08 16:49:11,740 - mfa - DEBUG - Setup for alignment in 36.807 seconds
+2026-06-08 16:49:11,798 - mfa - INFO - Compiling training graphs...
+2026-06-08 16:49:12,805 - mfa - DEBUG - Compiling training graphs took 1.007 seconds
+2026-06-08 16:49:12,806 - mfa - INFO - Performing first-pass alignment...
+2026-06-08 16:49:12,807 - mfa - INFO - Generating alignments...
+2026-06-08 16:49:14,250 - mfa - DEBUG - Aligned 244, errors on 0, total 244
+2026-06-08 16:49:14,250 - mfa - DEBUG - Alignment round took 1.443 seconds
+2026-06-08 16:49:14,300 - mfa - INFO - Collecting phone and word alignments from alignment lattices...
+2026-06-08 16:49:16,125 - mfa - DEBUG - Bulk insert took 0.010 seconds
+2026-06-08 16:49:16,127 - mfa - DEBUG - Dropping temp tables took 0.002 seconds
+2026-06-08 16:49:16,131 - mfa - DEBUG - Collecting alignments took 1.830 seconds
+2026-06-08 16:49:16,132 - mfa - DEBUG - Generated alignments in 4.390 seconds
+2026-06-08 16:49:16,132 - mfa - INFO - Analyzing alignment quality...
+2026-06-08 16:49:17,358 - mfa - DEBUG - Analyzed alignment quality in 1.225 seconds
+2026-06-08 16:49:17,359 - mfa - INFO - Exporting alignment TextGrids to /Users/r34lp0w3r/Dev/sokinternet/speakapp/mfa/output/aligned...
+2026-06-08 16:49:17,362 - mfa - DEBUG - Not using multiprocessing for TextGrid export
+2026-06-08 16:49:17,502 - mfa - INFO - Finished exporting TextGrids to /Users/r34lp0w3r/Dev/sokinternet/speakapp/mfa/output/aligned!
+2026-06-08 16:49:17,503 - mfa - DEBUG - Exported TextGrids in a total of 0.141 seconds
+2026-06-08 16:49:17,506 - mfa - INFO - Done! Everything took 42.744 seconds

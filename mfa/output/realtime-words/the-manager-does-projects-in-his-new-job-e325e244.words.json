@@ -1,0 +1,79 @@
+{
+  "schema": 1,
+  "generated_at": "2026-06-08T14:48:00.356Z",
+  "hash": "ba65b4b9a7210e0e763ec5e91b0125019d2fde1a",
+  "text": "The manager does projects in his new job.",
+  "locale": "en-US",
+  "voice": "Danielle",
+  "engine": "neural",
+  "rate": "",
+  "pitch": "",
+  "voice_profile": "default",
+  "duration_ms": 2002,
+  "words": [
+    {
+      "index": 0,
+      "text": "The",
+      "start_ms": 25,
+      "end_ms": 100,
+      "start_char": 0,
+      "end_char": 3
+    },
+    {
+      "index": 1,
+      "text": "manager",
+      "start_ms": 100,
+      "end_ms": 575,
+      "start_char": 4,
+      "end_char": 11
+    },
+    {
+      "index": 2,
+      "text": "does",
+      "start_ms": 575,
+      "end_ms": 787,
+      "start_char": 12,
+      "end_char": 16
+    },
+    {
+      "index": 3,
+      "text": "projects",
+      "start_ms": 787,
+      "end_ms": 1275,
+      "start_char": 17,
+      "end_char": 25
+    },
+    {
+      "index": 4,
+      "text": "in",
+      "start_ms": 1275,
+      "end_ms": 1375,
+      "start_char": 26,
+      "end_char": 28
+    },
+    {
+      "index": 5,
+      "text": "his",
+      "start_ms": 1375,
+      "end_ms": 1587,
+      "start_char": 29,
+      "end_char": 32
+    },
+    {
+      "index": 6,
+      "text": "new",
+      "start_ms": 1587,
+      "end_ms": 1762,
+      "start_char": 33,
+      "end_char": 36
+    },
+    {
+      "index": 7,
+      "text": "job",
+      "start_ms": 1762,
+      "end_ms": 2002,
+      "start_char": 37,
+      "end_char": 40
+    }
+  ]
+}

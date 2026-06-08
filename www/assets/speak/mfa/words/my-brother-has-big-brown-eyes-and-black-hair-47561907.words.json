@@ -1,0 +1,47 @@
+[
+  {
+    "start": 0.04,
+    "end": 0.22,
+    "word": "my"
+  },
+  {
+    "start": 0.22,
+    "end": 0.6,
+    "word": "brother"
+  },
+  {
+    "start": 0.6,
+    "end": 0.81,
+    "word": "has"
+  },
+  {
+    "start": 0.81,
+    "end": 1.04,
+    "word": "big"
+  },
+  {
+    "start": 1.04,
+    "end": 1.33,
+    "word": "brown"
+  },
+  {
+    "start": 1.36,
+    "end": 1.69,
+    "word": "eyes"
+  },
+  {
+    "start": 1.69,
+    "end": 1.85,
+    "word": "and"
+  },
+  {
+    "start": 1.85,
+    "end": 2.14,
+    "word": "black"
+  },
+  {
+    "start": 2.14,
+    "end": 2.56,
+    "word": "hair"
+  }
+]

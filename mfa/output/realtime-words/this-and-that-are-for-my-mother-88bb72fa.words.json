@@ -1,0 +1,71 @@
+{
+  "schema": 1,
+  "generated_at": "2026-06-08T14:48:06.651Z",
+  "hash": "9188977ba0c610dd748b9164a29acd48b98c382b",
+  "text": "This and that are for my mother.",
+  "locale": "en-US",
+  "voice": "Danielle",
+  "engine": "neural",
+  "rate": "",
+  "pitch": "",
+  "voice_profile": "default",
+  "duration_ms": 1592,
+  "words": [
+    {
+      "index": 0,
+      "text": "This",
+      "start_ms": 25,
+      "end_ms": 362,
+      "start_char": 0,
+      "end_char": 4
+    },
+    {
+      "index": 1,
+      "text": "and",
+      "start_ms": 362,
+      "end_ms": 512,
+      "start_char": 5,
+      "end_char": 8
+    },
+    {
+      "index": 2,
+      "text": "that",
+      "start_ms": 512,
+      "end_ms": 687,
+      "start_char": 9,
+      "end_char": 13
+    },
+    {
+      "index": 3,
+      "text": "are",
+      "start_ms": 687,
+      "end_ms": 762,
+      "start_char": 14,
+      "end_char": 17
+    },
+    {
+      "index": 4,
+      "text": "for",
+      "start_ms": 762,
+      "end_ms": 950,
+      "start_char": 18,
+      "end_char": 21
+    },
+    {
+      "index": 5,
+      "text": "my",
+      "start_ms": 950,
+      "end_ms": 1112,
+      "start_char": 22,
+      "end_char": 24
+    },
+    {
+      "index": 6,
+      "text": "mother",
+      "start_ms": 1112,
+      "end_ms": 1592,
+      "start_char": 25,
+      "end_char": 31
+    }
+  ]
+}

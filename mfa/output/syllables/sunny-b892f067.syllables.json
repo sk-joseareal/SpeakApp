@@ -1,0 +1,21 @@
+[
+  {
+    "word": "sunny",
+    "start": 0.03,
+    "end": 0.59,
+    "syllables": [
+      {
+        "text": "sun",
+        "start": 0.03,
+        "end": 0.366,
+        "index": 0
+      },
+      {
+        "text": "ny",
+        "start": 0.366,
+        "end": 0.59,
+        "index": 1
+      }
+    ]
+  }
+]

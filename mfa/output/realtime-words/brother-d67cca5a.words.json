@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "generated_at": "2026-06-08T14:46:20.944Z",
+  "hash": "14601fc9bd2e4efe64b5d2e37a2e3744e6e618b4",
+  "text": "brother",
+  "locale": "en-US",
+  "voice": "Danielle",
+  "engine": "neural",
+  "rate": "",
+  "pitch": "",
+  "voice_profile": "default",
+  "duration_ms": 585,
+  "words": [
+    {
+      "index": 0,
+      "text": "brother",
+      "start_ms": 25,
+      "end_ms": 585,
+      "start_char": 0,
+      "end_char": 7
+    }
+  ]
+}

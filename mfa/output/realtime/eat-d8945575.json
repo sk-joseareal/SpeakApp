@@ -1,0 +1,28 @@
+{
+  "ok": true,
+  "provider": "aws-polly",
+  "cached": false,
+  "hash": "df59485eb7a5ad8fd8c0e2fe8f149fe13028420a",
+  "text": "eat",
+  "locale": "en-US",
+  "voice": "Danielle",
+  "engine": "neural",
+  "rate": "",
+  "pitch": "",
+  "voice_profile": "default",
+  "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/df59485eb7a5ad8fd8c0e2fe8f149fe13028420a.mp3",
+  "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/df59485eb7a5ad8fd8c0e2fe8f149fe13028420a.words.json",
+  "duration_ms": 265,
+  "words": [
+    {
+      "index": 0,
+      "text": "eat",
+      "start_ms": 25,
+      "end_ms": 265,
+      "start_char": 0,
+      "end_char": 3
+    }
+  ],
+  "limit_status": null,
+  "audio_kind": "polly"
+}

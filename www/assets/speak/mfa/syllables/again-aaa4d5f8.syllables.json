@@ -1,0 +1,21 @@
+[
+  {
+    "word": "again",
+    "start": 0.06,
+    "end": 0.61,
+    "syllables": [
+      {
+        "text": "a",
+        "start": 0.06,
+        "end": 0.17,
+        "index": 0
+      },
+      {
+        "text": "gain",
+        "start": 0.17,
+        "end": 0.61,
+        "index": 1
+      }
+    ]
+  }
+]

@@ -1,0 +1,148 @@
+[
+  {
+    "word": "the",
+    "start": 0.04,
+    "end": 0.15,
+    "syllables": [
+      {
+        "text": "the",
+        "start": 0.04,
+        "end": 0.15,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "little",
+    "start": 0.15,
+    "end": 0.39,
+    "syllables": [
+      {
+        "text": "litt",
+        "start": 0.15,
+        "end": 0.31,
+        "index": 0
+      },
+      {
+        "text": "le",
+        "start": 0.31,
+        "end": 0.39,
+        "index": 1
+      }
+    ]
+  },
+  {
+    "word": "sister",
+    "start": 0.39,
+    "end": 0.85,
+    "syllables": [
+      {
+        "text": "sis",
+        "start": 0.39,
+        "end": 0.62,
+        "index": 0
+      },
+      {
+        "text": "ter",
+        "start": 0.62,
+        "end": 0.85,
+        "index": 1
+      }
+    ]
+  },
+  {
+    "word": "opens",
+    "start": 0.85,
+    "end": 1.22,
+    "syllables": [
+      {
+        "text": "o",
+        "start": 0.85,
+        "end": 0.924,
+        "index": 0
+      },
+      {
+        "text": "pens",
+        "start": 0.924,
+        "end": 1.22,
+        "index": 1
+      }
+    ]
+  },
+  {
+    "word": "the",
+    "start": 1.22,
+    "end": 1.33,
+    "syllables": [
+      {
+        "text": "the",
+        "start": 1.22,
+        "end": 1.33,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "window",
+    "start": 1.33,
+    "end": 1.69,
+    "syllables": [
+      {
+        "text": "win",
+        "start": 1.33,
+        "end": 1.51,
+        "index": 0
+      },
+      {
+        "text": "dow",
+        "start": 1.51,
+        "end": 1.69,
+        "index": 1
+      }
+    ]
+  },
+  {
+    "word": "before",
+    "start": 1.69,
+    "end": 2.04,
+    "syllables": [
+      {
+        "text": "be",
+        "start": 1.69,
+        "end": 1.807,
+        "index": 0
+      },
+      {
+        "text": "fo",
+        "start": 1.807,
+        "end": 1.923,
+        "index": 1
+      },
+      {
+        "text": "re",
+        "start": 1.923,
+        "end": 2.04,
+        "index": 2
+      }
+    ]
+  },
+  {
+    "word": "dinner",
+    "start": 2.04,
+    "end": 2.46,
+    "syllables": [
+      {
+        "text": "din",
+        "start": 2.04,
+        "end": 2.25,
+        "index": 0
+      },
+      {
+        "text": "ner",
+        "start": 2.25,
+        "end": 2.46,
+        "index": 1
+      }
+    ]
+  }
+]

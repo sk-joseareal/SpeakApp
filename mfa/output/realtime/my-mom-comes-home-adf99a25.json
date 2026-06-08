@@ -1,0 +1,52 @@
+{
+  "ok": true,
+  "provider": "aws-polly",
+  "cached": false,
+  "hash": "4745fe586a1b8e9eab02b2a4c29cfdffae73e7fe",
+  "text": "My mom comes home.",
+  "locale": "en-US",
+  "voice": "Danielle",
+  "engine": "neural",
+  "rate": "",
+  "pitch": "",
+  "voice_profile": "default",
+  "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/4745fe586a1b8e9eab02b2a4c29cfdffae73e7fe.mp3",
+  "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/4745fe586a1b8e9eab02b2a4c29cfdffae73e7fe.words.json",
+  "duration_ms": 1120,
+  "words": [
+    {
+      "index": 0,
+      "text": "My",
+      "start_ms": 25,
+      "end_ms": 175,
+      "start_char": 0,
+      "end_char": 2
+    },
+    {
+      "index": 1,
+      "text": "mom",
+      "start_ms": 175,
+      "end_ms": 462,
+      "start_char": 3,
+      "end_char": 6
+    },
+    {
+      "index": 2,
+      "text": "comes",
+      "start_ms": 462,
+      "end_ms": 800,
+      "start_char": 7,
+      "end_char": 12
+    },
+    {
+      "index": 3,
+      "text": "home",
+      "start_ms": 800,
+      "end_ms": 1120,
+      "start_char": 13,
+      "end_char": 17
+    }
+  ],
+  "limit_status": null,
+  "audio_kind": "polly"
+}

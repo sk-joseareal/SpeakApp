@@ -1,19 +1,19 @@
 [
   {
     "word": "rabbit",
-    "start": 0,
-    "end": 0.46,
+    "start": 0.04,
+    "end": 0.52,
     "syllables": [
       {
         "text": "rab",
-        "start": 0,
-        "end": 0.23,
+        "start": 0.04,
+        "end": 0.28,
         "index": 0
       },
       {
         "text": "bit",
-        "start": 0.23,
-        "end": 0.46,
+        "start": 0.28,
+        "end": 0.52,
         "index": 1
       }
     ]

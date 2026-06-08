@@ -1,0 +1,68 @@
+{
+  "ok": true,
+  "provider": "aws-polly",
+  "cached": false,
+  "hash": "e0c49951155dad81b8845e7f880d226d2e57ced0",
+  "text": "My family and friends have fun.",
+  "locale": "en-US",
+  "voice": "Danielle",
+  "engine": "neural",
+  "rate": "",
+  "pitch": "",
+  "voice_profile": "default",
+  "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/e0c49951155dad81b8845e7f880d226d2e57ced0.mp3",
+  "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/e0c49951155dad81b8845e7f880d226d2e57ced0.words.json",
+  "duration_ms": 1627,
+  "words": [
+    {
+      "index": 0,
+      "text": "My",
+      "start_ms": 25,
+      "end_ms": 200,
+      "start_char": 0,
+      "end_char": 2
+    },
+    {
+      "index": 1,
+      "text": "family",
+      "start_ms": 200,
+      "end_ms": 700,
+      "start_char": 3,
+      "end_char": 9
+    },
+    {
+      "index": 2,
+      "text": "and",
+      "start_ms": 700,
+      "end_ms": 850,
+      "start_char": 10,
+      "end_char": 13
+    },
+    {
+      "index": 3,
+      "text": "friends",
+      "start_ms": 850,
+      "end_ms": 1212,
+      "start_char": 14,
+      "end_char": 21
+    },
+    {
+      "index": 4,
+      "text": "have",
+      "start_ms": 1212,
+      "end_ms": 1387,
+      "start_char": 22,
+      "end_char": 26
+    },
+    {
+      "index": 5,
+      "text": "fun",
+      "start_ms": 1387,
+      "end_ms": 1627,
+      "start_char": 27,
+      "end_char": 30
+    }
+  ],
+  "limit_status": null,
+  "audio_kind": "polly"
+}

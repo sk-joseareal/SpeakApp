@@ -1,0 +1,27 @@
+[
+  {
+    "start": 0.05,
+    "end": 0.12,
+    "word": "the"
+  },
+  {
+    "start": 0.12,
+    "end": 0.43,
+    "word": "black"
+  },
+  {
+    "start": 0.43,
+    "end": 0.69,
+    "word": "cat"
+  },
+  {
+    "start": 0.69,
+    "end": 0.82,
+    "word": "is"
+  },
+  {
+    "start": 0.82,
+    "end": 1.35,
+    "word": "happy"
+  }
+]

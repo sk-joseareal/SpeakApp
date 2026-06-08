@@ -1,0 +1,71 @@
+{
+  "schema": 1,
+  "generated_at": "2026-06-08T14:46:50.358Z",
+  "hash": "ec8b184e79962defb2ef7936ecb0698d183a116c",
+  "text": "Girls work with birds in my town.",
+  "locale": "en-US",
+  "voice": "Danielle",
+  "engine": "neural",
+  "rate": "",
+  "pitch": "",
+  "voice_profile": "default",
+  "duration_ms": 1657,
+  "words": [
+    {
+      "index": 0,
+      "text": "Girls",
+      "start_ms": 25,
+      "end_ms": 325,
+      "start_char": 0,
+      "end_char": 5
+    },
+    {
+      "index": 1,
+      "text": "work",
+      "start_ms": 325,
+      "end_ms": 575,
+      "start_char": 6,
+      "end_char": 10
+    },
+    {
+      "index": 2,
+      "text": "with",
+      "start_ms": 575,
+      "end_ms": 712,
+      "start_char": 11,
+      "end_char": 15
+    },
+    {
+      "index": 3,
+      "text": "birds",
+      "start_ms": 712,
+      "end_ms": 1087,
+      "start_char": 16,
+      "end_char": 21
+    },
+    {
+      "index": 4,
+      "text": "in",
+      "start_ms": 1087,
+      "end_ms": 1187,
+      "start_char": 22,
+      "end_char": 24
+    },
+    {
+      "index": 5,
+      "text": "my",
+      "start_ms": 1187,
+      "end_ms": 1337,
+      "start_char": 25,
+      "end_char": 27
+    },
+    {
+      "index": 6,
+      "text": "town",
+      "start_ms": 1337,
+      "end_ms": 1657,
+      "start_char": 28,
+      "end_char": 32
+    }
+  ]
+}

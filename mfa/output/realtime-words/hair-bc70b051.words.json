@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "generated_at": "2026-06-08T14:46:54.252Z",
+  "hash": "be56a1386bbdae8ece77b1e01078bcde9f4d3132",
+  "text": "hair",
+  "locale": "en-US",
+  "voice": "Danielle",
+  "engine": "neural",
+  "rate": "",
+  "pitch": "",
+  "voice_profile": "default",
+  "duration_ms": 345,
+  "words": [
+    {
+      "index": 0,
+      "text": "hair",
+      "start_ms": 25,
+      "end_ms": 345,
+      "start_char": 0,
+      "end_char": 4
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "generated_at": "2026-06-08T14:47:52.030Z",
+  "hash": "22b20763d040c6bd05882a8cb3a85b2fc5cb0eec",
+  "text": "teacher",
+  "locale": "en-US",
+  "voice": "Danielle",
+  "engine": "neural",
+  "rate": "",
+  "pitch": "",
+  "voice_profile": "default",
+  "duration_ms": 585,
+  "words": [
+    {
+      "index": 0,
+      "text": "teacher",
+      "start_ms": 25,
+      "end_ms": 585,
+      "start_char": 0,
+      "end_char": 7
+    }
+  ]
+}

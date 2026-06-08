@@ -1,0 +1,68 @@
+{
+  "ok": true,
+  "provider": "aws-polly",
+  "cached": false,
+  "hash": "689eaec45494c6a8f8309664a2b49bec8800f00b",
+  "text": "We talk about the sofa again.",
+  "locale": "en-US",
+  "voice": "Danielle",
+  "engine": "neural",
+  "rate": "",
+  "pitch": "",
+  "voice_profile": "default",
+  "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/689eaec45494c6a8f8309664a2b49bec8800f00b.mp3",
+  "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/689eaec45494c6a8f8309664a2b49bec8800f00b.words.json",
+  "duration_ms": 1575,
+  "words": [
+    {
+      "index": 0,
+      "text": "We",
+      "start_ms": 25,
+      "end_ms": 175,
+      "start_char": 0,
+      "end_char": 2
+    },
+    {
+      "index": 1,
+      "text": "talk",
+      "start_ms": 175,
+      "end_ms": 462,
+      "start_char": 3,
+      "end_char": 7
+    },
+    {
+      "index": 2,
+      "text": "about",
+      "start_ms": 462,
+      "end_ms": 700,
+      "start_char": 8,
+      "end_char": 13
+    },
+    {
+      "index": 3,
+      "text": "the",
+      "start_ms": 700,
+      "end_ms": 775,
+      "start_char": 14,
+      "end_char": 17
+    },
+    {
+      "index": 4,
+      "text": "sofa",
+      "start_ms": 775,
+      "end_ms": 1175,
+      "start_char": 18,
+      "end_char": 22
+    },
+    {
+      "index": 5,
+      "text": "again",
+      "start_ms": 1175,
+      "end_ms": 1575,
+      "start_char": 23,
+      "end_char": 28
+    }
+  ],
+  "limit_status": null,
+  "audio_kind": "polly"
+}

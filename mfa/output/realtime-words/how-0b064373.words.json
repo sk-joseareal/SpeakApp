@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "generated_at": "2026-06-08T14:46:59.136Z",
+  "hash": "50adc57b3772aab2fccf0899af3743242b71ae17",
+  "text": "how",
+  "locale": "en-US",
+  "voice": "Danielle",
+  "engine": "neural",
+  "rate": "",
+  "pitch": "",
+  "voice_profile": "default",
+  "duration_ms": 265,
+  "words": [
+    {
+      "index": 0,
+      "text": "how",
+      "start_ms": 25,
+      "end_ms": 265,
+      "start_char": 0,
+      "end_char": 3
+    }
+  ]
+}

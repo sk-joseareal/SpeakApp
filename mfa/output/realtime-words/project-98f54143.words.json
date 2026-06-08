@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "generated_at": "2026-06-08T14:47:30.881Z",
+  "hash": "f2c32bd4696cfa3a200814eb59828ce044a225dd",
+  "text": "project",
+  "locale": "en-US",
+  "voice": "Danielle",
+  "engine": "neural",
+  "rate": "",
+  "pitch": "",
+  "voice_profile": "default",
+  "duration_ms": 585,
+  "words": [
+    {
+      "index": 0,
+      "text": "project",
+      "start_ms": 25,
+      "end_ms": 585,
+      "start_char": 0,
+      "end_char": 7
+    }
+  ]
+}

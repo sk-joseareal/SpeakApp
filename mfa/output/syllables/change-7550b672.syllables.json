@@ -1,0 +1,21 @@
+[
+  {
+    "word": "change",
+    "start": 0.06,
+    "end": 0.77,
+    "syllables": [
+      {
+        "text": "chan",
+        "start": 0.06,
+        "end": 0.533,
+        "index": 0
+      },
+      {
+        "text": "ge",
+        "start": 0.533,
+        "end": 0.77,
+        "index": 1
+      }
+    ]
+  }
+]

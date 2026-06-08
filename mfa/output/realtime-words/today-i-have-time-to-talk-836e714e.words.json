@@ -1,0 +1,63 @@
+{
+  "schema": 1,
+  "generated_at": "2026-06-08T14:48:09.475Z",
+  "hash": "1b5aabf0f14a3f612b9230787207e3a6fa892a4a",
+  "text": "Today I have time to talk.",
+  "locale": "en-US",
+  "voice": "Danielle",
+  "engine": "neural",
+  "rate": "",
+  "pitch": "",
+  "voice_profile": "default",
+  "duration_ms": 1407,
+  "words": [
+    {
+      "index": 0,
+      "text": "Today",
+      "start_ms": 25,
+      "end_ms": 387,
+      "start_char": 0,
+      "end_char": 5
+    },
+    {
+      "index": 1,
+      "text": "I",
+      "start_ms": 387,
+      "end_ms": 512,
+      "start_char": 6,
+      "end_char": 7
+    },
+    {
+      "index": 2,
+      "text": "have",
+      "start_ms": 512,
+      "end_ms": 712,
+      "start_char": 8,
+      "end_char": 12
+    },
+    {
+      "index": 3,
+      "text": "time",
+      "start_ms": 712,
+      "end_ms": 987,
+      "start_char": 13,
+      "end_char": 17
+    },
+    {
+      "index": 4,
+      "text": "to",
+      "start_ms": 987,
+      "end_ms": 1087,
+      "start_char": 18,
+      "end_char": 20
+    },
+    {
+      "index": 5,
+      "text": "talk",
+      "start_ms": 1087,
+      "end_ms": 1407,
+      "start_char": 21,
+      "end_char": 25
+    }
+  ]
+}

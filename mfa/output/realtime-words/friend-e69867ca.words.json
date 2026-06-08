@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "generated_at": "2026-06-08T14:46:47.491Z",
+  "hash": "9cf1e5b995082e42ff443b0fb6edc79ae73789cb",
+  "text": "friend",
+  "locale": "en-US",
+  "voice": "Danielle",
+  "engine": "neural",
+  "rate": "",
+  "pitch": "",
+  "voice_profile": "default",
+  "duration_ms": 505,
+  "words": [
+    {
+      "index": 0,
+      "text": "friend",
+      "start_ms": 25,
+      "end_ms": 505,
+      "start_char": 0,
+      "end_char": 6
+    }
+  ]
+}

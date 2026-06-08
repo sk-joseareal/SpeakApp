@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "generated_at": "2026-06-08T14:46:13.710Z",
+  "hash": "3f60fbdd4ac44469af3eda7ae0a17fa60a1e0698",
+  "text": "again",
+  "locale": "en-US",
+  "voice": "Danielle",
+  "engine": "neural",
+  "rate": "",
+  "pitch": "",
+  "voice_profile": "default",
+  "duration_ms": 425,
+  "words": [
+    {
+      "index": 0,
+      "text": "again",
+      "start_ms": 25,
+      "end_ms": 425,
+      "start_char": 0,
+      "end_char": 5
+    }
+  ]
+}

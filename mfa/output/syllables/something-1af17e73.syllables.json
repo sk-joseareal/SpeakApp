@@ -1,0 +1,27 @@
+[
+  {
+    "word": "something",
+    "start": 0.03,
+    "end": 0.63,
+    "syllables": [
+      {
+        "text": "so",
+        "start": 0.03,
+        "end": 0.163,
+        "index": 0
+      },
+      {
+        "text": "met",
+        "start": 0.163,
+        "end": 0.363,
+        "index": 1
+      },
+      {
+        "text": "hing",
+        "start": 0.363,
+        "end": 0.63,
+        "index": 2
+      }
+    ]
+  }
+]

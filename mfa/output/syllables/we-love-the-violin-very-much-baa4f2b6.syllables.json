@@ -1,0 +1,98 @@
+[
+  {
+    "word": "we",
+    "start": 0.05,
+    "end": 0.18,
+    "syllables": [
+      {
+        "text": "we",
+        "start": 0.05,
+        "end": 0.18,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "love",
+    "start": 0.18,
+    "end": 0.45,
+    "syllables": [
+      {
+        "text": "lo",
+        "start": 0.18,
+        "end": 0.315,
+        "index": 0
+      },
+      {
+        "text": "ve",
+        "start": 0.315,
+        "end": 0.45,
+        "index": 1
+      }
+    ]
+  },
+  {
+    "word": "the",
+    "start": 0.45,
+    "end": 0.54,
+    "syllables": [
+      {
+        "text": "the",
+        "start": 0.45,
+        "end": 0.54,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "violin",
+    "start": 0.54,
+    "end": 1.03,
+    "syllables": [
+      {
+        "text": "vio",
+        "start": 0.54,
+        "end": 0.785,
+        "index": 0
+      },
+      {
+        "text": "lin",
+        "start": 0.785,
+        "end": 1.03,
+        "index": 1
+      }
+    ]
+  },
+  {
+    "word": "very",
+    "start": 1.03,
+    "end": 1.31,
+    "syllables": [
+      {
+        "text": "ve",
+        "start": 1.03,
+        "end": 1.17,
+        "index": 0
+      },
+      {
+        "text": "ry",
+        "start": 1.17,
+        "end": 1.31,
+        "index": 1
+      }
+    ]
+  },
+  {
+    "word": "much",
+    "start": 1.31,
+    "end": 1.88,
+    "syllables": [
+      {
+        "text": "much",
+        "start": 1.31,
+        "end": 1.88,
+        "index": 0
+      }
+    ]
+  }
+]

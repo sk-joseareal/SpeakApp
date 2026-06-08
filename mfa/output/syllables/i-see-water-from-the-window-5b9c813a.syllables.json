@@ -1,0 +1,92 @@
+[
+  {
+    "word": "i",
+    "start": 0.06,
+    "end": 0.19,
+    "syllables": [
+      {
+        "text": "i",
+        "start": 0.06,
+        "end": 0.19,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "see",
+    "start": 0.19,
+    "end": 0.45,
+    "syllables": [
+      {
+        "text": "see",
+        "start": 0.19,
+        "end": 0.45,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "water",
+    "start": 0.45,
+    "end": 0.8,
+    "syllables": [
+      {
+        "text": "wa",
+        "start": 0.45,
+        "end": 0.59,
+        "index": 0
+      },
+      {
+        "text": "ter",
+        "start": 0.59,
+        "end": 0.8,
+        "index": 1
+      }
+    ]
+  },
+  {
+    "word": "from",
+    "start": 0.8,
+    "end": 1,
+    "syllables": [
+      {
+        "text": "from",
+        "start": 0.8,
+        "end": 1,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "the",
+    "start": 1,
+    "end": 1.08,
+    "syllables": [
+      {
+        "text": "the",
+        "start": 1,
+        "end": 1.08,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "window",
+    "start": 1.08,
+    "end": 1.62,
+    "syllables": [
+      {
+        "text": "win",
+        "start": 1.08,
+        "end": 1.35,
+        "index": 0
+      },
+      {
+        "text": "dow",
+        "start": 1.35,
+        "end": 1.62,
+        "index": 1
+      }
+    ]
+  }
+]

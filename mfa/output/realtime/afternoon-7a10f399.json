@@ -1,0 +1,28 @@
+{
+  "ok": true,
+  "provider": "aws-polly",
+  "cached": false,
+  "hash": "873fc96b57728868fe43ce5bef05d66909849807",
+  "text": "afternoon",
+  "locale": "en-US",
+  "voice": "Danielle",
+  "engine": "neural",
+  "rate": "",
+  "pitch": "",
+  "voice_profile": "default",
+  "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/873fc96b57728868fe43ce5bef05d66909849807.mp3",
+  "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/873fc96b57728868fe43ce5bef05d66909849807.words.json",
+  "duration_ms": 745,
+  "words": [
+    {
+      "index": 0,
+      "text": "afternoon",
+      "start_ms": 25,
+      "end_ms": 745,
+      "start_char": 0,
+      "end_char": 9
+    }
+  ],
+  "limit_status": null,
+  "audio_kind": "polly"
+}

@@ -1,0 +1,76 @@
+{
+  "ok": true,
+  "provider": "aws-polly",
+  "cached": false,
+  "hash": "00bd794d53a43b2eff8acf4a6063ebdee5da779a",
+  "text": "They live in a house outside town.",
+  "locale": "en-US",
+  "voice": "Danielle",
+  "engine": "neural",
+  "rate": "",
+  "pitch": "",
+  "voice_profile": "default",
+  "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/00bd794d53a43b2eff8acf4a6063ebdee5da779a.mp3",
+  "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/00bd794d53a43b2eff8acf4a6063ebdee5da779a.words.json",
+  "duration_ms": 1807,
+  "words": [
+    {
+      "index": 0,
+      "text": "They",
+      "start_ms": 25,
+      "end_ms": 175,
+      "start_char": 0,
+      "end_char": 4
+    },
+    {
+      "index": 1,
+      "text": "live",
+      "start_ms": 175,
+      "end_ms": 425,
+      "start_char": 5,
+      "end_char": 9
+    },
+    {
+      "index": 2,
+      "text": "in",
+      "start_ms": 425,
+      "end_ms": 525,
+      "start_char": 10,
+      "end_char": 12
+    },
+    {
+      "index": 3,
+      "text": "a",
+      "start_ms": 525,
+      "end_ms": 587,
+      "start_char": 13,
+      "end_char": 14
+    },
+    {
+      "index": 4,
+      "text": "house",
+      "start_ms": 587,
+      "end_ms": 987,
+      "start_char": 15,
+      "end_char": 20
+    },
+    {
+      "index": 5,
+      "text": "outside",
+      "start_ms": 987,
+      "end_ms": 1487,
+      "start_char": 21,
+      "end_char": 28
+    },
+    {
+      "index": 6,
+      "text": "town",
+      "start_ms": 1487,
+      "end_ms": 1807,
+      "start_char": 29,
+      "end_char": 33
+    }
+  ],
+  "limit_status": null,
+  "audio_kind": "polly"
+}

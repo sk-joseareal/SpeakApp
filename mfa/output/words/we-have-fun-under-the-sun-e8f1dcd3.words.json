@@ -1,0 +1,32 @@
+[
+  {
+    "start": 0.05,
+    "end": 0.19,
+    "word": "we"
+  },
+  {
+    "start": 0.19,
+    "end": 0.4,
+    "word": "have"
+  },
+  {
+    "start": 0.4,
+    "end": 0.66,
+    "word": "fun"
+  },
+  {
+    "start": 0.66,
+    "end": 0.89,
+    "word": "under"
+  },
+  {
+    "start": 0.89,
+    "end": 1.01,
+    "word": "the"
+  },
+  {
+    "start": 1.01,
+    "end": 1.48,
+    "word": "sun"
+  }
+]

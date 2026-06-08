@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "generated_at": "2026-06-08T14:46:49.191Z",
+  "hash": "794a0cae4103cb19870f89ae2ac45357e2746dcf",
+  "text": "general",
+  "locale": "en-US",
+  "voice": "Danielle",
+  "engine": "neural",
+  "rate": "",
+  "pitch": "",
+  "voice_profile": "default",
+  "duration_ms": 585,
+  "words": [
+    {
+      "index": 0,
+      "text": "general",
+      "start_ms": 25,
+      "end_ms": 585,
+      "start_char": 0,
+      "end_char": 7
+    }
+  ]
+}

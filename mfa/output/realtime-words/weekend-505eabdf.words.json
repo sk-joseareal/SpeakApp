@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "generated_at": "2026-06-08T14:48:21.762Z",
+  "hash": "9929ae21285f5f2d5b5cdcf0b0d316bf32aa7366",
+  "text": "weekend",
+  "locale": "en-US",
+  "voice": "Danielle",
+  "engine": "neural",
+  "rate": "",
+  "pitch": "",
+  "voice_profile": "default",
+  "duration_ms": 585,
+  "words": [
+    {
+      "index": 0,
+      "text": "weekend",
+      "start_ms": 25,
+      "end_ms": 585,
+      "start_char": 0,
+      "end_char": 7
+    }
+  ]
+}

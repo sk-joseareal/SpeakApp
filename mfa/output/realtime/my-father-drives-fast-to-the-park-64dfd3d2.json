@@ -1,0 +1,76 @@
+{
+  "ok": true,
+  "provider": "aws-polly",
+  "cached": false,
+  "hash": "7f3eea8b0e205536a980918760febaff405f3453",
+  "text": "My father drives fast to the park.",
+  "locale": "en-US",
+  "voice": "Danielle",
+  "engine": "neural",
+  "rate": "",
+  "pitch": "",
+  "voice_profile": "default",
+  "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/7f3eea8b0e205536a980918760febaff405f3453.mp3",
+  "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/7f3eea8b0e205536a980918760febaff405f3453.words.json",
+  "duration_ms": 1870,
+  "words": [
+    {
+      "index": 0,
+      "text": "My",
+      "start_ms": 25,
+      "end_ms": 200,
+      "start_char": 0,
+      "end_char": 2
+    },
+    {
+      "index": 1,
+      "text": "father",
+      "start_ms": 200,
+      "end_ms": 550,
+      "start_char": 3,
+      "end_char": 9
+    },
+    {
+      "index": 2,
+      "text": "drives",
+      "start_ms": 550,
+      "end_ms": 975,
+      "start_char": 10,
+      "end_char": 16
+    },
+    {
+      "index": 3,
+      "text": "fast",
+      "start_ms": 975,
+      "end_ms": 1362,
+      "start_char": 17,
+      "end_char": 21
+    },
+    {
+      "index": 4,
+      "text": "to",
+      "start_ms": 1362,
+      "end_ms": 1462,
+      "start_char": 22,
+      "end_char": 24
+    },
+    {
+      "index": 5,
+      "text": "the",
+      "start_ms": 1462,
+      "end_ms": 1550,
+      "start_char": 25,
+      "end_char": 28
+    },
+    {
+      "index": 6,
+      "text": "park",
+      "start_ms": 1550,
+      "end_ms": 1870,
+      "start_char": 29,
+      "end_char": 33
+    }
+  ],
+  "limit_status": null,
+  "audio_kind": "polly"
+}

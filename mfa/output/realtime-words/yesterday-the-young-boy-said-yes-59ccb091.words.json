@@ -1,0 +1,63 @@
+{
+  "schema": 1,
+  "generated_at": "2026-06-08T14:48:26.107Z",
+  "hash": "15597dd867b914fe7ea369521e99311480d4610f",
+  "text": "Yesterday the young boy said yes.",
+  "locale": "en-US",
+  "voice": "Danielle",
+  "engine": "neural",
+  "rate": "",
+  "pitch": "",
+  "voice_profile": "default",
+  "duration_ms": 1815,
+  "words": [
+    {
+      "index": 0,
+      "text": "Yesterday",
+      "start_ms": 25,
+      "end_ms": 575,
+      "start_char": 0,
+      "end_char": 9
+    },
+    {
+      "index": 1,
+      "text": "the",
+      "start_ms": 575,
+      "end_ms": 675,
+      "start_char": 10,
+      "end_char": 13
+    },
+    {
+      "index": 2,
+      "text": "young",
+      "start_ms": 675,
+      "end_ms": 987,
+      "start_char": 14,
+      "end_char": 19
+    },
+    {
+      "index": 3,
+      "text": "boy",
+      "start_ms": 987,
+      "end_ms": 1225,
+      "start_char": 20,
+      "end_char": 23
+    },
+    {
+      "index": 4,
+      "text": "said",
+      "start_ms": 1225,
+      "end_ms": 1575,
+      "start_char": 24,
+      "end_char": 28
+    },
+    {
+      "index": 5,
+      "text": "yes",
+      "start_ms": 1575,
+      "end_ms": 1815,
+      "start_char": 29,
+      "end_char": 32
+    }
+  ]
+}

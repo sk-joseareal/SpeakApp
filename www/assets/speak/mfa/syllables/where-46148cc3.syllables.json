@@ -1,0 +1,21 @@
+[
+  {
+    "word": "where",
+    "start": 0.03,
+    "end": 0.52,
+    "syllables": [
+      {
+        "text": "whe",
+        "start": 0.03,
+        "end": 0.324,
+        "index": 0
+      },
+      {
+        "text": "re",
+        "start": 0.324,
+        "end": 0.52,
+        "index": 1
+      }
+    ]
+  }
+]

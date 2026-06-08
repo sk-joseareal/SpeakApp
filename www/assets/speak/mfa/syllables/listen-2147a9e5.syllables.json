@@ -1,0 +1,21 @@
+[
+  {
+    "word": "listen",
+    "start": 0.04,
+    "end": 0.57,
+    "syllables": [
+      {
+        "text": "lis",
+        "start": 0.04,
+        "end": 0.305,
+        "index": 0
+      },
+      {
+        "text": "ten",
+        "start": 0.305,
+        "end": 0.57,
+        "index": 1
+      }
+    ]
+  }
+]

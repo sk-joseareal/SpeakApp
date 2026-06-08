@@ -1,0 +1,283 @@
+{
+  "generator": "ffmpeg",
+  "source_hash": "sha256-021d7982883e885da86d243ef0b04b3757336f3eea42ea18fc313c4a379af9a3",
+  "generated_at": "2026-06-08T17:56:57.852Z",
+  "sessions": {
+    "session-1": {
+      "source": "session-1.mp4",
+      "video": "assets/speak/videos/session-1.mp4",
+      "poster": "assets/speak/videos/session-1.jpg",
+      "expected": "pen"
+    },
+    "session-2": {
+      "source": "session-2.mp4",
+      "video": "assets/speak/videos/session-2.mp4",
+      "poster": "assets/speak/videos/session-2.jpg",
+      "expected": "baby"
+    },
+    "session-3": {
+      "source": "session-3.mp4",
+      "video": "assets/speak/videos/session-3.mp4",
+      "poster": "assets/speak/videos/session-3.jpg",
+      "expected": "mom"
+    },
+    "session-4": {
+      "source": "session-4.mp4",
+      "video": "assets/speak/videos/session-4.mp4",
+      "poster": "assets/speak/videos/session-4.jpg",
+      "expected": "time"
+    },
+    "session-5": {
+      "source": "session-5.mp4",
+      "video": "assets/speak/videos/session-5.mp4",
+      "poster": "assets/speak/videos/session-5.jpg",
+      "expected": "cat"
+    },
+    "session-6": {
+      "source": "session-6.mp4",
+      "video": "assets/speak/videos/session-6.mp4",
+      "poster": "assets/speak/videos/session-6.jpg",
+      "expected": "egg"
+    },
+    "session-7": {
+      "source": "session-7.mp4",
+      "video": "assets/speak/videos/session-7.mp4",
+      "poster": "assets/speak/videos/session-7.jpg",
+      "expected": "sit"
+    },
+    "session-8": {
+      "source": "session-8.mp4",
+      "video": "assets/speak/videos/session-8.mp4",
+      "poster": "assets/speak/videos/session-8.jpg",
+      "expected": "box"
+    },
+    "session-9": {
+      "source": "session-9.mp4",
+      "video": "assets/speak/videos/session-9.mp4",
+      "poster": "assets/speak/videos/session-9.jpg",
+      "expected": "car"
+    },
+    "session-10": {
+      "source": "session-10.mp4",
+      "video": "assets/speak/videos/session-10.mp4",
+      "poster": "assets/speak/videos/session-10.jpg",
+      "expected": "day"
+    },
+    "session-11": {
+      "source": "session-11.mp4",
+      "video": "assets/speak/videos/session-11.mp4",
+      "poster": "assets/speak/videos/session-11.jpg",
+      "expected": "no"
+    },
+    "session-12": {
+      "source": "session-12.mp4",
+      "video": "assets/speak/videos/session-12.mp4",
+      "poster": "assets/speak/videos/session-12.jpg",
+      "expected": "go"
+    },
+    "session-13": {
+      "source": "session-13.mp4",
+      "video": "assets/speak/videos/session-13.mp4",
+      "poster": "assets/speak/videos/session-13.jpg",
+      "expected": "sun"
+    },
+    "session-14": {
+      "source": "session-14.mp4",
+      "video": "assets/speak/videos/session-14.mp4",
+      "poster": "assets/speak/videos/session-14.jpg",
+      "expected": "about"
+    },
+    "session-15": {
+      "source": "session-15.mp4",
+      "video": "assets/speak/videos/session-15.mp4",
+      "poster": "assets/speak/videos/session-15.jpg",
+      "expected": "book"
+    },
+    "session-16": {
+      "source": "session-16.mp4",
+      "video": "assets/speak/videos/session-16.mp4",
+      "poster": "assets/speak/videos/session-16.jpg",
+      "expected": "see"
+    },
+    "session-17": {
+      "source": "session-17.mp4",
+      "video": "assets/speak/videos/session-17.mp4",
+      "poster": "assets/speak/videos/session-17.jpg",
+      "expected": "family"
+    },
+    "session-18": {
+      "source": "session-18.mp4",
+      "video": "assets/speak/videos/session-18.mp4",
+      "poster": "assets/speak/videos/session-18.jpg",
+      "expected": "very"
+    },
+    "session-19": {
+      "source": "session-19.mp4",
+      "video": "assets/speak/videos/session-19.mp4",
+      "poster": "assets/speak/videos/session-19.jpg",
+      "expected": "see"
+    },
+    "session-20": {
+      "source": "session-20.mp4",
+      "video": "assets/speak/videos/session-20.mp4",
+      "poster": "assets/speak/videos/session-20.jpg",
+      "expected": "water"
+    },
+    "session-21": {
+      "source": "session-21.mp4",
+      "video": "assets/speak/videos/session-21.mp4",
+      "poster": "assets/speak/videos/session-21.jpg",
+      "expected": "name"
+    },
+    "session-22": {
+      "source": "session-22.mp4",
+      "video": "assets/speak/videos/session-22.mp4",
+      "poster": "assets/speak/videos/session-22.jpg",
+      "expected": "like"
+    },
+    "session-23": {
+      "source": "session-23.mp4",
+      "video": "assets/speak/videos/session-23.mp4",
+      "poster": "assets/speak/videos/session-23.jpg",
+      "expected": "home"
+    },
+    "session-24": {
+      "source": "session-24.mp4",
+      "video": "assets/speak/videos/session-24.mp4",
+      "poster": "assets/speak/videos/session-24.jpg",
+      "expected": "blue"
+    },
+    "session-25": {
+      "source": "session-25.mp4",
+      "video": "assets/speak/videos/session-25.mp4",
+      "poster": "assets/speak/videos/session-25.jpg",
+      "expected": "zero"
+    },
+    "session-26": {
+      "source": "session-26.mp4",
+      "video": "assets/speak/videos/session-26.mp4",
+      "poster": "assets/speak/videos/session-26.jpg",
+      "expected": "house"
+    },
+    "session-27": {
+      "source": "session-27.mp4",
+      "video": "assets/speak/videos/session-27.mp4",
+      "poster": "assets/speak/videos/session-27.jpg",
+      "expected": "yes"
+    },
+    "session-28": {
+      "source": "session-28.mp4",
+      "video": "assets/speak/videos/session-28.mp4",
+      "poster": "assets/speak/videos/session-28.jpg",
+      "expected": "tell"
+    },
+    "session-29": {
+      "source": "session-29.mp4",
+      "video": "assets/speak/videos/session-29.mp4",
+      "poster": "assets/speak/videos/session-29.jpg",
+      "expected": "red"
+    },
+    "session-30": {
+      "source": "session-30.mp4",
+      "video": "assets/speak/videos/session-30.mp4",
+      "poster": "assets/speak/videos/session-30.jpg",
+      "expected": "first"
+    },
+    "session-31": {
+      "source": "session-31.mp4",
+      "video": "assets/speak/videos/session-31.mp4",
+      "poster": "assets/speak/videos/session-31.jpg",
+      "expected": "fast"
+    },
+    "session-32": {
+      "source": "session-32.mp4",
+      "video": "assets/speak/videos/session-32.mp4",
+      "poster": "assets/speak/videos/session-32.jpg",
+      "expected": "saw"
+    },
+    "session-33": {
+      "source": "session-33.mp4",
+      "video": "assets/speak/videos/session-33.mp4",
+      "poster": "assets/speak/videos/session-33.jpg",
+      "expected": "think"
+    },
+    "session-34": {
+      "source": "session-34.mp4",
+      "video": "assets/speak/videos/session-34.mp4",
+      "poster": "assets/speak/videos/session-34.jpg",
+      "expected": "this"
+    },
+    "session-35": {
+      "source": "session-35.mp4",
+      "video": "assets/speak/videos/session-35.mp4",
+      "poster": "assets/speak/videos/session-35.jpg",
+      "expected": "she"
+    },
+    "session-36": {
+      "source": "session-36.mp4",
+      "video": "assets/speak/videos/session-36.mp4",
+      "poster": "assets/speak/videos/session-36.jpg",
+      "expected": "chair"
+    },
+    "session-37": {
+      "source": "session-37.mp4",
+      "video": "assets/speak/videos/session-37.mp4",
+      "poster": "assets/speak/videos/session-37.jpg",
+      "expected": "vision"
+    },
+    "session-38": {
+      "source": "session-38.mp4",
+      "video": "assets/speak/videos/session-38.mp4",
+      "poster": "assets/speak/videos/session-38.jpg",
+      "expected": "job"
+    },
+    "session-39": {
+      "source": "session-39.mp4",
+      "video": "assets/speak/videos/session-39.mp4",
+      "poster": "assets/speak/videos/session-39.jpg",
+      "expected": "sing"
+    },
+    "session-40": {
+      "source": "session-40.mp4",
+      "video": "assets/speak/videos/session-40.mp4",
+      "poster": "assets/speak/videos/session-40.jpg",
+      "expected": "boy"
+    },
+    "session-41": {
+      "source": "session-41.mp4",
+      "video": "assets/speak/videos/session-41.mp4",
+      "poster": "assets/speak/videos/session-41.jpg",
+      "expected": "mouth"
+    },
+    "session-42": {
+      "source": "session-42.mp4",
+      "video": "assets/speak/videos/session-42.mp4",
+      "poster": "assets/speak/videos/session-42.jpg",
+      "expected": "hair"
+    },
+    "session-43": {
+      "source": "session-43.mp4",
+      "video": "assets/speak/videos/session-43.mp4",
+      "poster": "assets/speak/videos/session-43.jpg",
+      "expected": "ear"
+    },
+    "session-44": {
+      "source": "session-44.mp4",
+      "video": "assets/speak/videos/session-44.mp4",
+      "poster": "assets/speak/videos/session-44.jpg",
+      "expected": "taxi"
+    },
+    "session-45": {
+      "source": "session-45.mp4",
+      "video": "assets/speak/videos/session-45.mp4",
+      "poster": "assets/speak/videos/session-45.jpg",
+      "expected": "exit"
+    },
+    "session-46": {
+      "source": "session-46.mp4",
+      "video": "assets/speak/videos/session-46.mp4",
+      "poster": "assets/speak/videos/session-46.jpg",
+      "expected": "berry"
+    }
+  }
+}

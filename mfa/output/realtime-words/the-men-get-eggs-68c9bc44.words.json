@@ -1,0 +1,47 @@
+{
+  "schema": 1,
+  "generated_at": "2026-06-08T14:48:00.920Z",
+  "hash": "e2926cbb3ad0148cad7bc141688eed6c97d9312a",
+  "text": "The men get eggs.",
+  "locale": "en-US",
+  "voice": "Danielle",
+  "engine": "neural",
+  "rate": "",
+  "pitch": "",
+  "voice_profile": "default",
+  "duration_ms": 907,
+  "words": [
+    {
+      "index": 0,
+      "text": "The",
+      "start_ms": 25,
+      "end_ms": 125,
+      "start_char": 0,
+      "end_char": 3
+    },
+    {
+      "index": 1,
+      "text": "men",
+      "start_ms": 125,
+      "end_ms": 412,
+      "start_char": 4,
+      "end_char": 7
+    },
+    {
+      "index": 2,
+      "text": "get",
+      "start_ms": 412,
+      "end_ms": 587,
+      "start_char": 8,
+      "end_char": 11
+    },
+    {
+      "index": 3,
+      "text": "eggs",
+      "start_ms": 587,
+      "end_ms": 907,
+      "start_char": 12,
+      "end_char": 16
+    }
+  ]
+}

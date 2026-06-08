@@ -1,0 +1,55 @@
+{
+  "schema": 1,
+  "generated_at": "2026-06-08T14:47:00.911Z",
+  "hash": "5433809f2bf3b42da9f3eeedaca9900c6068bd8b",
+  "text": "I like the night sky.",
+  "locale": "en-US",
+  "voice": "Danielle",
+  "engine": "neural",
+  "rate": "",
+  "pitch": "",
+  "voice_profile": "default",
+  "duration_ms": 990,
+  "words": [
+    {
+      "index": 0,
+      "text": "I",
+      "start_ms": 25,
+      "end_ms": 150,
+      "start_char": 0,
+      "end_char": 1
+    },
+    {
+      "index": 1,
+      "text": "like",
+      "start_ms": 150,
+      "end_ms": 400,
+      "start_char": 2,
+      "end_char": 6
+    },
+    {
+      "index": 2,
+      "text": "the",
+      "start_ms": 400,
+      "end_ms": 475,
+      "start_char": 7,
+      "end_char": 10
+    },
+    {
+      "index": 3,
+      "text": "night",
+      "start_ms": 475,
+      "end_ms": 750,
+      "start_char": 11,
+      "end_char": 16
+    },
+    {
+      "index": 4,
+      "text": "sky",
+      "start_ms": 750,
+      "end_ms": 990,
+      "start_char": 17,
+      "end_char": 20
+    }
+  ]
+}

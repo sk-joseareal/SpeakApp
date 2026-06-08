@@ -1,27 +1,27 @@
 [
   {
-    "start": 0,
-    "end": 0.09,
+    "start": 0.04,
+    "end": 0.14,
     "viseme": "NEUTRAL"
   },
   {
-    "start": 0.09,
-    "end": 0.16,
+    "start": 0.14,
+    "end": 0.21,
     "viseme": "I"
   },
   {
-    "start": 0.16,
-    "end": 0.2,
+    "start": 0.21,
+    "end": 0.24,
     "viseme": "NEUTRAL"
   },
   {
-    "start": 0.2,
-    "end": 0.26,
+    "start": 0.24,
+    "end": 0.31,
     "viseme": "A"
   },
   {
-    "start": 0.26,
-    "end": 0.37,
+    "start": 0.31,
+    "end": 0.49,
     "viseme": "NEUTRAL"
   }
 ]

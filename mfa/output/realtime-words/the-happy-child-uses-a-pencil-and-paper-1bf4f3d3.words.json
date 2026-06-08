@@ -1,0 +1,79 @@
+{
+  "schema": 1,
+  "generated_at": "2026-06-08T14:47:59.224Z",
+  "hash": "bc25b59117fb78229381f9e810458c43533eacc1",
+  "text": "The happy child uses a pencil and paper.",
+  "locale": "en-US",
+  "voice": "Danielle",
+  "engine": "neural",
+  "rate": "",
+  "pitch": "",
+  "voice_profile": "default",
+  "duration_ms": 2362,
+  "words": [
+    {
+      "index": 0,
+      "text": "The",
+      "start_ms": 25,
+      "end_ms": 112,
+      "start_char": 0,
+      "end_char": 3
+    },
+    {
+      "index": 1,
+      "text": "happy",
+      "start_ms": 112,
+      "end_ms": 450,
+      "start_char": 4,
+      "end_char": 9
+    },
+    {
+      "index": 2,
+      "text": "child",
+      "start_ms": 450,
+      "end_ms": 887,
+      "start_char": 10,
+      "end_char": 15
+    },
+    {
+      "index": 3,
+      "text": "uses",
+      "start_ms": 887,
+      "end_ms": 1237,
+      "start_char": 16,
+      "end_char": 20
+    },
+    {
+      "index": 4,
+      "text": "a",
+      "start_ms": 1237,
+      "end_ms": 1297,
+      "start_char": 21,
+      "end_char": 22
+    },
+    {
+      "index": 5,
+      "text": "pencil",
+      "start_ms": 1287,
+      "end_ms": 1800,
+      "start_char": 23,
+      "end_char": 29
+    },
+    {
+      "index": 6,
+      "text": "and",
+      "start_ms": 1800,
+      "end_ms": 1962,
+      "start_char": 30,
+      "end_char": 33
+    },
+    {
+      "index": 7,
+      "text": "paper",
+      "start_ms": 1962,
+      "end_ms": 2362,
+      "start_char": 34,
+      "end_char": 39
+    }
+  ]
+}

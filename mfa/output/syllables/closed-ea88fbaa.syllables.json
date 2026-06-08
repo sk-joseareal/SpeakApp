@@ -1,0 +1,21 @@
+[
+  {
+    "word": "closed",
+    "start": 0.05,
+    "end": 0.69,
+    "syllables": [
+      {
+        "text": "clo",
+        "start": 0.05,
+        "end": 0.37,
+        "index": 0
+      },
+      {
+        "text": "sed",
+        "start": 0.37,
+        "end": 0.69,
+        "index": 1
+      }
+    ]
+  }
+]

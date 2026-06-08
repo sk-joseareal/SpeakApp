@@ -1,0 +1,21 @@
+[
+  {
+    "word": "june",
+    "start": 0.07,
+    "end": 0.59,
+    "syllables": [
+      {
+        "text": "ju",
+        "start": 0.07,
+        "end": 0.33,
+        "index": 0
+      },
+      {
+        "text": "ne",
+        "start": 0.33,
+        "end": 0.59,
+        "index": 1
+      }
+    ]
+  }
+]

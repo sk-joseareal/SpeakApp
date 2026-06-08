@@ -1,0 +1,68 @@
+{
+  "ok": true,
+  "provider": "aws-polly",
+  "cached": false,
+  "hash": "020052a4df7c7b6986808215bfccce5ad27ba429",
+  "text": "I see water from the window.",
+  "locale": "en-US",
+  "voice": "Danielle",
+  "engine": "neural",
+  "rate": "",
+  "pitch": "",
+  "voice_profile": "default",
+  "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/020052a4df7c7b6986808215bfccce5ad27ba429.mp3",
+  "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/020052a4df7c7b6986808215bfccce5ad27ba429.words.json",
+  "duration_ms": 1542,
+  "words": [
+    {
+      "index": 0,
+      "text": "I",
+      "start_ms": 25,
+      "end_ms": 175,
+      "start_char": 0,
+      "end_char": 1
+    },
+    {
+      "index": 1,
+      "text": "see",
+      "start_ms": 175,
+      "end_ms": 425,
+      "start_char": 2,
+      "end_char": 5
+    },
+    {
+      "index": 2,
+      "text": "water",
+      "start_ms": 425,
+      "end_ms": 762,
+      "start_char": 6,
+      "end_char": 11
+    },
+    {
+      "index": 3,
+      "text": "from",
+      "start_ms": 762,
+      "end_ms": 975,
+      "start_char": 12,
+      "end_char": 16
+    },
+    {
+      "index": 4,
+      "text": "the",
+      "start_ms": 975,
+      "end_ms": 1062,
+      "start_char": 17,
+      "end_char": 20
+    },
+    {
+      "index": 5,
+      "text": "window",
+      "start_ms": 1062,
+      "end_ms": 1542,
+      "start_char": 21,
+      "end_char": 27
+    }
+  ],
+  "limit_status": null,
+  "audio_kind": "polly"
+}

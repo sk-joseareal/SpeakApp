@@ -1,0 +1,27 @@
+[
+  {
+    "start": 0.04,
+    "end": 0.27,
+    "word": "look"
+  },
+  {
+    "start": 0.27,
+    "end": 0.39,
+    "word": "at"
+  },
+  {
+    "start": 0.39,
+    "end": 0.47,
+    "word": "the"
+  },
+  {
+    "start": 0.47,
+    "end": 0.71,
+    "word": "good"
+  },
+  {
+    "start": 0.71,
+    "end": 1.16,
+    "word": "cook"
+  }
+]

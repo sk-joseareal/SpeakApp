@@ -2,18 +2,18 @@
   {
     "word": "phone",
     "start": 0,
-    "end": 0.44,
+    "end": 0.58,
     "syllables": [
       {
         "text": "pho",
         "start": 0,
-        "end": 0.264,
+        "end": 0.348,
         "index": 0
       },
       {
         "text": "ne",
-        "start": 0.264,
-        "end": 0.44,
+        "start": 0.348,
+        "end": 0.58,
         "index": 1
       }
     ]

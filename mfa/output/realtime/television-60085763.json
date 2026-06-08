@@ -1,0 +1,28 @@
+{
+  "ok": true,
+  "provider": "aws-polly",
+  "cached": false,
+  "hash": "889069e7b2ced0596dd1fe251bf2215e94791c69",
+  "text": "television",
+  "locale": "en-US",
+  "voice": "Danielle",
+  "engine": "neural",
+  "rate": "",
+  "pitch": "",
+  "voice_profile": "default",
+  "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/889069e7b2ced0596dd1fe251bf2215e94791c69.mp3",
+  "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/889069e7b2ced0596dd1fe251bf2215e94791c69.words.json",
+  "duration_ms": 825,
+  "words": [
+    {
+      "index": 0,
+      "text": "television",
+      "start_ms": 25,
+      "end_ms": 825,
+      "start_char": 0,
+      "end_char": 10
+    }
+  ],
+  "limit_status": null,
+  "audio_kind": "polly"
+}

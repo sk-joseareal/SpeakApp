@@ -1,0 +1,52 @@
+{
+  "ok": true,
+  "provider": "aws-polly",
+  "cached": false,
+  "hash": "9fc61021ec43b747eb7e2cc9640ed441175f0c85",
+  "text": "She shares special information.",
+  "locale": "en-US",
+  "voice": "Danielle",
+  "engine": "neural",
+  "rate": "",
+  "pitch": "",
+  "voice_profile": "default",
+  "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/9fc61021ec43b747eb7e2cc9640ed441175f0c85.mp3",
+  "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/9fc61021ec43b747eb7e2cc9640ed441175f0c85.words.json",
+  "duration_ms": 1880,
+  "words": [
+    {
+      "index": 0,
+      "text": "She",
+      "start_ms": 25,
+      "end_ms": 225,
+      "start_char": 0,
+      "end_char": 3
+    },
+    {
+      "index": 1,
+      "text": "shares",
+      "start_ms": 225,
+      "end_ms": 612,
+      "start_char": 4,
+      "end_char": 10
+    },
+    {
+      "index": 2,
+      "text": "special",
+      "start_ms": 612,
+      "end_ms": 1000,
+      "start_char": 11,
+      "end_char": 18
+    },
+    {
+      "index": 3,
+      "text": "information",
+      "start_ms": 1000,
+      "end_ms": 1880,
+      "start_char": 19,
+      "end_char": 30
+    }
+  ],
+  "limit_status": null,
+  "audio_kind": "polly"
+}

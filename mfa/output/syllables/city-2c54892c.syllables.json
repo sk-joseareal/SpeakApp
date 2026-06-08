@@ -1,0 +1,21 @@
+[
+  {
+    "word": "city",
+    "start": 0.03,
+    "end": 0.54,
+    "syllables": [
+      {
+        "text": "ci",
+        "start": 0.03,
+        "end": 0.285,
+        "index": 0
+      },
+      {
+        "text": "ty",
+        "start": 0.285,
+        "end": 0.54,
+        "index": 1
+      }
+    ]
+  }
+]

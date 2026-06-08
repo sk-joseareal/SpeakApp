@@ -10412,6 +10412,25 @@ ion-select.training-pill.active::part(icon) {
   transform: translateX(0.5px);
 }
 
+.training-row-done-pill {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: #6B7280;
+  border: 2px solid #6B7280;
+}
+
+.training-row-done-pill ion-icon {
+  font-size: 0.9rem;
+  color: #6B7280;
+  --ionicon-stroke-width: 56px;
+}
+
 .home-journey {
   background: transparent;
 }

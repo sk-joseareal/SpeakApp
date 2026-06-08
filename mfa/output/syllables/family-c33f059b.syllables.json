@@ -1,0 +1,27 @@
+[
+  {
+    "word": "family",
+    "start": 0,
+    "end": 0.64,
+    "syllables": [
+      {
+        "text": "fa",
+        "start": 0,
+        "end": 0.213,
+        "index": 0
+      },
+      {
+        "text": "mi",
+        "start": 0.213,
+        "end": 0.427,
+        "index": 1
+      },
+      {
+        "text": "ly",
+        "start": 0.427,
+        "end": 0.64,
+        "index": 2
+      }
+    ]
+  }
+]

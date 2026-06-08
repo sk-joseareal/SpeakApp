@@ -71,6 +71,7 @@ class PageDiagnostics extends HTMLElement {
     const SPEAK_PRONUNCIATION_AVATAR_VISEMES_V1 = 'visemes-v1';
     const SPEAK_PRONUNCIATION_AVATAR_VIDEO = 'video';
     const DIAG_UNLOCK_STATE_KEY = 'appv5:diag-unlock-state';
+    const RECORDING_STOP_DELAY_DEFAULT_MS = 600;
     const SPEAK_PRONUNCIATION_AVATAR_OPTIONS = [
       {
         value: SPEAK_PRONUNCIATION_AVATAR_VIDEO,
@@ -275,7 +276,7 @@ class PageDiagnostics extends HTMLElement {
       try {
         return normalizeRecordingStopDelayMs(localStorage.getItem(RECORDING_STOP_DELAY_KEY));
       } catch (err) {
-        return 0;
+        return RECORDING_STOP_DELAY_DEFAULT_MS;
       }
     };
     window.getRecordingStopDelayMs = () => getStoredRecordingStopDelayMs();
@@ -647,7 +648,7 @@ class PageDiagnostics extends HTMLElement {
                   value="${getStoredRecordingStopDelayMs()}" style="flex:1;">
                 <span id="diag-recording-stop-delay-label" style="min-width:48px;text-align:right;font-variant-numeric:tabular-nums;">${getStoredRecordingStopDelayMs()}ms</span>
               </div>
-              <div class="diag-debug-sub" id="diag-recording-stop-delay-sub">Tiempo extra de grabación tras pulsar stop. 0 = sin delay (por defecto).</div>
+              <div class="diag-debug-sub" id="diag-recording-stop-delay-sub">Tiempo extra de grabación tras pulsar stop. Por defecto: 600ms.</div>
             </div>
             <div class="diag-speak-block">
               <div class="diag-debug-title">Avatar pronunciación</div>
@@ -2863,7 +2864,11 @@ class PageDiagnostics extends HTMLElement {
         status: info.status || 'n/a',
         source: info.source || 'n/a',
         transport: info.transport || 'n/a',
+        version: info.version || 'n/a',
+        bundle_version: info.bundleVersion || 'n/a',
+        cache_hit: Boolean(info.cacheHit),
         request_url: info.requestUrl || 'n/a',
+        manifest_url: info.manifestUrl || 'n/a',
         loaded_at: info.loadedAt || null,
         release: info.release || null,
         counts: {

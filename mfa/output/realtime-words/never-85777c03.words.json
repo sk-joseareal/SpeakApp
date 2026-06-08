@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "generated_at": "2026-06-08T14:47:21.586Z",
+  "hash": "47e11a1fdd7cc4dedee395e9d0d21ddc8bf80007",
+  "text": "never",
+  "locale": "en-US",
+  "voice": "Danielle",
+  "engine": "neural",
+  "rate": "",
+  "pitch": "",
+  "voice_profile": "default",
+  "duration_ms": 425,
+  "words": [
+    {
+      "index": 0,
+      "text": "never",
+      "start_ms": 25,
+      "end_ms": 425,
+      "start_char": 0,
+      "end_char": 5
+    }
+  ]
+}

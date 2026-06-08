@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "generated_at": "2026-06-08T14:47:54.204Z",
+  "hash": "a96b1e1cc46b375f93ddba19349683ac9ff86075",
+  "text": "thank",
+  "locale": "en-US",
+  "voice": "Danielle",
+  "engine": "neural",
+  "rate": "",
+  "pitch": "",
+  "voice_profile": "default",
+  "duration_ms": 425,
+  "words": [
+    {
+      "index": 0,
+      "text": "thank",
+      "start_ms": 25,
+      "end_ms": 425,
+      "start_char": 0,
+      "end_char": 5
+    }
+  ]
+}

@@ -1,19 +1,19 @@
 [
   {
     "word": "water",
-    "start": 0,
-    "end": 0.38,
+    "start": 0.04,
+    "end": 0.5,
     "syllables": [
       {
         "text": "wa",
-        "start": 0,
-        "end": 0.152,
+        "start": 0.04,
+        "end": 0.224,
         "index": 0
       },
       {
         "text": "ter",
-        "start": 0.152,
-        "end": 0.38,
+        "start": 0.224,
+        "end": 0.5,
         "index": 1
       }
     ]

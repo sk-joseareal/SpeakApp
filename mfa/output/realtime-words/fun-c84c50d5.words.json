@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "generated_at": "2026-06-08T14:46:48.099Z",
+  "hash": "0ecf6dc72313914da99344c8550ffca91b8e14b7",
+  "text": "fun",
+  "locale": "en-US",
+  "voice": "Danielle",
+  "engine": "neural",
+  "rate": "",
+  "pitch": "",
+  "voice_profile": "default",
+  "duration_ms": 265,
+  "words": [
+    {
+      "index": 0,
+      "text": "fun",
+      "start_ms": 25,
+      "end_ms": 265,
+      "start_char": 0,
+      "end_char": 3
+    }
+  ]
+}

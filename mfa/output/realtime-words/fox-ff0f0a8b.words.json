@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "generated_at": "2026-06-08T14:46:46.990Z",
+  "hash": "e3ccd9e8f05de70ee9b8a8e9c1d6f14af29ad71c",
+  "text": "fox",
+  "locale": "en-US",
+  "voice": "Danielle",
+  "engine": "neural",
+  "rate": "",
+  "pitch": "",
+  "voice_profile": "default",
+  "duration_ms": 265,
+  "words": [
+    {
+      "index": 0,
+      "text": "fox",
+      "start_ms": 25,
+      "end_ms": 265,
+      "start_char": 0,
+      "end_char": 3
+    }
+  ]
+}

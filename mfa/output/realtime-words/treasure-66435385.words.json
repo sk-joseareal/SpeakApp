@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "generated_at": "2026-06-08T14:48:11.751Z",
+  "hash": "19ce4ec400c00de32b2fa6e4752d02d0e4554954",
+  "text": "treasure",
+  "locale": "en-US",
+  "voice": "Danielle",
+  "engine": "neural",
+  "rate": "",
+  "pitch": "",
+  "voice_profile": "default",
+  "duration_ms": 665,
+  "words": [
+    {
+      "index": 0,
+      "text": "treasure",
+      "start_ms": 25,
+      "end_ms": 665,
+      "start_char": 0,
+      "end_char": 8
+    }
+  ]
+}

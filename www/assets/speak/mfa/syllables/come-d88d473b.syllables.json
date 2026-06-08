@@ -1,0 +1,21 @@
+[
+  {
+    "word": "come",
+    "start": 0.05,
+    "end": 0.52,
+    "syllables": [
+      {
+        "text": "co",
+        "start": 0.05,
+        "end": 0.285,
+        "index": 0
+      },
+      {
+        "text": "me",
+        "start": 0.285,
+        "end": 0.52,
+        "index": 1
+      }
+    ]
+  }
+]

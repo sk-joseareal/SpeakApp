@@ -1,0 +1,799 @@
+{
+  "generator": "realtime",
+  "source_hash": "sha256-fdcdaed97d9e063dccf5d2a2fc317ad79a7b191f9d08365c6571cb84356466c9",
+  "generated_at": "2026-06-08T17:29:02.701Z",
+  "locales": {
+    "es": {
+      "Entrena todos los sonidos del inglés y mejorarás tu pronunciación.": {
+        "audio_url": "assets/app-copy-audio/audio/es/a349bcab6a471eb2.mp3",
+        "locale": "es-ES",
+        "text": "Entrena todos los sonidos del inglés y mejorarás tu pronunciación.",
+        "generated_at": "2026-06-08T17:29:03.759Z",
+        "hash": "b3a86ea874ee3689c26e1249d59a6c15e2d58347",
+        "duration_ms": 3462,
+        "voice": "Lucia",
+        "engine": "neural",
+        "rate": "",
+        "pitch": "",
+        "voice_profile": "default",
+        "words": [
+          {
+            "index": 0,
+            "text": "Entrena",
+            "start_ms": 125,
+            "end_ms": 500,
+            "start_char": 0,
+            "end_char": 7
+          },
+          {
+            "index": 1,
+            "text": "todos",
+            "start_ms": 500,
+            "end_ms": 812,
+            "start_char": 8,
+            "end_char": 13
+          },
+          {
+            "index": 2,
+            "text": "los",
+            "start_ms": 812,
+            "end_ms": 950,
+            "start_char": 14,
+            "end_char": 17
+          },
+          {
+            "index": 3,
+            "text": "sonidos",
+            "start_ms": 950,
+            "end_ms": 1375,
+            "start_char": 18,
+            "end_char": 25
+          },
+          {
+            "index": 4,
+            "text": "del",
+            "start_ms": 1375,
+            "end_ms": 1512,
+            "start_char": 26,
+            "end_char": 29
+          },
+          {
+            "index": 5,
+            "text": "inglés",
+            "start_ms": 1512,
+            "end_ms": 1875,
+            "start_char": 30,
+            "end_char": 37
+          },
+          {
+            "index": 6,
+            "text": "y",
+            "start_ms": 1875,
+            "end_ms": 1937,
+            "start_char": 38,
+            "end_char": 39
+          },
+          {
+            "index": 7,
+            "text": "mejorarás",
+            "start_ms": 1937,
+            "end_ms": 2437,
+            "start_char": 40,
+            "end_char": 50
+          },
+          {
+            "index": 8,
+            "text": "tu",
+            "start_ms": 2437,
+            "end_ms": 2562,
+            "start_char": 51,
+            "end_char": 53
+          },
+          {
+            "index": 9,
+            "text": "pronunciación",
+            "start_ms": 2562,
+            "end_ms": 3462,
+            "start_char": 54,
+            "end_char": 68
+          }
+        ],
+        "source_paths": [
+          "home.planMessage:1"
+        ]
+      },
+      "Practica cada día para sonar más natural.": {
+        "audio_url": "assets/app-copy-audio/audio/es/393a707175665db6.mp3",
+        "locale": "es-ES",
+        "text": "Practica cada día para sonar más natural.",
+        "generated_at": "2026-06-08T17:29:04.177Z",
+        "hash": "6a2567079926f4d143419dc6e7a3a2af5e886919",
+        "duration_ms": 2310,
+        "voice": "Lucia",
+        "engine": "neural",
+        "rate": "",
+        "pitch": "",
+        "voice_profile": "default",
+        "words": [
+          {
+            "index": 0,
+            "text": "Practica",
+            "start_ms": 62,
+            "end_ms": 500,
+            "start_char": 0,
+            "end_char": 8
+          },
+          {
+            "index": 1,
+            "text": "cada",
+            "start_ms": 500,
+            "end_ms": 812,
+            "start_char": 9,
+            "end_char": 13
+          },
+          {
+            "index": 2,
+            "text": "día",
+            "start_ms": 812,
+            "end_ms": 1000,
+            "start_char": 14,
+            "end_char": 18
+          },
+          {
+            "index": 3,
+            "text": "para",
+            "start_ms": 1000,
+            "end_ms": 1200,
+            "start_char": 19,
+            "end_char": 23
+          },
+          {
+            "index": 4,
+            "text": "sonar",
+            "start_ms": 1200,
+            "end_ms": 1512,
+            "start_char": 24,
+            "end_char": 29
+          },
+          {
+            "index": 5,
+            "text": "más",
+            "start_ms": 1512,
+            "end_ms": 1750,
+            "start_char": 30,
+            "end_char": 34
+          },
+          {
+            "index": 6,
+            "text": "natural",
+            "start_ms": 1750,
+            "end_ms": 2310,
+            "start_char": 35,
+            "end_char": 42
+          }
+        ],
+        "source_paths": [
+          "home.planMessage:2"
+        ]
+      },
+      "Explora cursos, unidades y lecciones para consultar contenido.": {
+        "audio_url": "assets/app-copy-audio/audio/es/3313d264f74e3002.mp3",
+        "locale": "es-ES",
+        "text": "Explora cursos, unidades y lecciones para consultar contenido.",
+        "generated_at": "2026-06-08T17:29:05.317Z",
+        "hash": "2d3ff716f5ff51e56c5a4c7777a5a070777bf58c",
+        "duration_ms": 3670,
+        "voice": "Lucia",
+        "engine": "neural",
+        "rate": "",
+        "pitch": "",
+        "voice_profile": "default",
+        "words": [
+          {
+            "index": 0,
+            "text": "Explora",
+            "start_ms": 125,
+            "end_ms": 562,
+            "start_char": 0,
+            "end_char": 7
+          },
+          {
+            "index": 1,
+            "text": "cursos",
+            "start_ms": 562,
+            "end_ms": 1150,
+            "start_char": 8,
+            "end_char": 14
+          },
+          {
+            "index": 2,
+            "text": "unidades",
+            "start_ms": 1150,
+            "end_ms": 1700,
+            "start_char": 16,
+            "end_char": 24
+          },
+          {
+            "index": 3,
+            "text": "y",
+            "start_ms": 1700,
+            "end_ms": 1760,
+            "start_char": 25,
+            "end_char": 26
+          },
+          {
+            "index": 4,
+            "text": "lecciones",
+            "start_ms": 1750,
+            "end_ms": 2250,
+            "start_char": 27,
+            "end_char": 36
+          },
+          {
+            "index": 5,
+            "text": "para",
+            "start_ms": 2250,
+            "end_ms": 2437,
+            "start_char": 37,
+            "end_char": 41
+          },
+          {
+            "index": 6,
+            "text": "consultar",
+            "start_ms": 2437,
+            "end_ms": 2950,
+            "start_char": 42,
+            "end_char": 51
+          },
+          {
+            "index": 7,
+            "text": "contenido",
+            "start_ms": 2950,
+            "end_ms": 3670,
+            "start_char": 52,
+            "end_char": 61
+          }
+        ],
+        "source_paths": [
+          "reference.subtitle:1"
+        ]
+      },
+      "Explora vocabulario, expresiones, verbos y más.": {
+        "audio_url": "assets/app-copy-audio/audio/es/3b5a0af147c72e09.mp3",
+        "locale": "es-ES",
+        "text": "Explora vocabulario, expresiones, verbos y más.",
+        "generated_at": "2026-06-08T17:29:06.113Z",
+        "hash": "499c671254a19ae6c6632058c67da399ef6cc514",
+        "duration_ms": 3190,
+        "voice": "Lucia",
+        "engine": "neural",
+        "rate": "",
+        "pitch": "",
+        "voice_profile": "default",
+        "words": [
+          {
+            "index": 0,
+            "text": "Explora",
+            "start_ms": 125,
+            "end_ms": 562,
+            "start_char": 0,
+            "end_char": 7
+          },
+          {
+            "index": 1,
+            "text": "vocabulario",
+            "start_ms": 562,
+            "end_ms": 1487,
+            "start_char": 8,
+            "end_char": 19
+          },
+          {
+            "index": 2,
+            "text": "expresiones",
+            "start_ms": 1487,
+            "end_ms": 2425,
+            "start_char": 21,
+            "end_char": 32
+          },
+          {
+            "index": 3,
+            "text": "verbos",
+            "start_ms": 2425,
+            "end_ms": 2887,
+            "start_char": 34,
+            "end_char": 40
+          },
+          {
+            "index": 4,
+            "text": "y",
+            "start_ms": 2887,
+            "end_ms": 2950,
+            "start_char": 41,
+            "end_char": 42
+          },
+          {
+            "index": 5,
+            "text": "más",
+            "start_ms": 2950,
+            "end_ms": 3190,
+            "start_char": 43,
+            "end_char": 47
+          }
+        ],
+        "source_paths": [
+          "reference.toolsSubtitle:1"
+        ]
+      },
+      "Traduce, escucha y practica la pronunciación de tus frases.": {
+        "audio_url": "assets/app-copy-audio/audio/es/b81db2cb9a5c9a6b.mp3",
+        "locale": "es-ES",
+        "text": "Traduce, escucha y practica la pronunciación de tus frases.",
+        "generated_at": "2026-06-08T17:29:06.810Z",
+        "hash": "214d5f8045604931c7fdf93d1b64a610b09482ca",
+        "duration_ms": 3230,
+        "voice": "Lucia",
+        "engine": "neural",
+        "rate": "",
+        "pitch": "",
+        "voice_profile": "default",
+        "words": [
+          {
+            "index": 0,
+            "text": "Traduce",
+            "start_ms": 25,
+            "end_ms": 750,
+            "start_char": 0,
+            "end_char": 7
+          },
+          {
+            "index": 1,
+            "text": "escucha",
+            "start_ms": 750,
+            "end_ms": 1250,
+            "start_char": 9,
+            "end_char": 16
+          },
+          {
+            "index": 2,
+            "text": "y",
+            "start_ms": 1250,
+            "end_ms": 1312,
+            "start_char": 17,
+            "end_char": 18
+          },
+          {
+            "index": 3,
+            "text": "practica",
+            "start_ms": 1312,
+            "end_ms": 1750,
+            "start_char": 19,
+            "end_char": 27
+          },
+          {
+            "index": 4,
+            "text": "la",
+            "start_ms": 1750,
+            "end_ms": 1812,
+            "start_char": 28,
+            "end_char": 30
+          },
+          {
+            "index": 5,
+            "text": "pronunciación",
+            "start_ms": 1812,
+            "end_ms": 2437,
+            "start_char": 31,
+            "end_char": 45
+          },
+          {
+            "index": 6,
+            "text": "de",
+            "start_ms": 2437,
+            "end_ms": 2562,
+            "start_char": 46,
+            "end_char": 48
+          },
+          {
+            "index": 7,
+            "text": "tus",
+            "start_ms": 2562,
+            "end_ms": 2750,
+            "start_char": 49,
+            "end_char": 52
+          },
+          {
+            "index": 8,
+            "text": "frases",
+            "start_ms": 2750,
+            "end_ms": 3230,
+            "start_char": 53,
+            "end_char": 59
+          }
+        ],
+        "source_paths": [
+          "freeRide.subtitle:1"
+        ]
+      }
+    },
+    "en": {
+      "Train every English sound and speak more naturally.": {
+        "audio_url": "assets/app-copy-audio/audio/en/a37cbc2b52fde77f.mp3",
+        "locale": "en-US",
+        "text": "Train every English sound and speak more naturally.",
+        "generated_at": "2026-06-08T17:29:04.523Z",
+        "hash": "9de159f28b626fd124025e4402ab0dd6cf996f8c",
+        "duration_ms": 2870,
+        "voice": "Danielle",
+        "engine": "neural",
+        "rate": "",
+        "pitch": "",
+        "voice_profile": "default",
+        "words": [
+          {
+            "index": 0,
+            "text": "Train",
+            "start_ms": 25,
+            "end_ms": 400,
+            "start_char": 0,
+            "end_char": 5
+          },
+          {
+            "index": 1,
+            "text": "every",
+            "start_ms": 400,
+            "end_ms": 737,
+            "start_char": 6,
+            "end_char": 11
+          },
+          {
+            "index": 2,
+            "text": "English",
+            "start_ms": 737,
+            "end_ms": 1112,
+            "start_char": 12,
+            "end_char": 19
+          },
+          {
+            "index": 3,
+            "text": "sound",
+            "start_ms": 1112,
+            "end_ms": 1487,
+            "start_char": 20,
+            "end_char": 25
+          },
+          {
+            "index": 4,
+            "text": "and",
+            "start_ms": 1487,
+            "end_ms": 1637,
+            "start_char": 26,
+            "end_char": 29
+          },
+          {
+            "index": 5,
+            "text": "speak",
+            "start_ms": 1637,
+            "end_ms": 1937,
+            "start_char": 30,
+            "end_char": 35
+          },
+          {
+            "index": 6,
+            "text": "more",
+            "start_ms": 1937,
+            "end_ms": 2150,
+            "start_char": 36,
+            "end_char": 40
+          },
+          {
+            "index": 7,
+            "text": "naturally",
+            "start_ms": 2150,
+            "end_ms": 2870,
+            "start_char": 41,
+            "end_char": 50
+          }
+        ],
+        "source_paths": [
+          "home.planMessage:1"
+        ]
+      },
+      "Practice every day to improve your pronunciation.": {
+        "audio_url": "assets/app-copy-audio/audio/en/9426943ecdd10df8.mp3",
+        "locale": "en-US",
+        "text": "Practice every day to improve your pronunciation.",
+        "generated_at": "2026-06-08T17:29:04.910Z",
+        "hash": "37d6b120817b2cb12b88d845b8df881cf0a50c1e",
+        "duration_ms": 2600,
+        "voice": "Danielle",
+        "engine": "neural",
+        "rate": "",
+        "pitch": "",
+        "voice_profile": "default",
+        "words": [
+          {
+            "index": 0,
+            "text": "Practice",
+            "start_ms": 25,
+            "end_ms": 512,
+            "start_char": 0,
+            "end_char": 8
+          },
+          {
+            "index": 1,
+            "text": "every",
+            "start_ms": 512,
+            "end_ms": 787,
+            "start_char": 9,
+            "end_char": 14
+          },
+          {
+            "index": 2,
+            "text": "day",
+            "start_ms": 787,
+            "end_ms": 1025,
+            "start_char": 15,
+            "end_char": 18
+          },
+          {
+            "index": 3,
+            "text": "to",
+            "start_ms": 1025,
+            "end_ms": 1212,
+            "start_char": 19,
+            "end_char": 21
+          },
+          {
+            "index": 4,
+            "text": "improve",
+            "start_ms": 1212,
+            "end_ms": 1600,
+            "start_char": 22,
+            "end_char": 29
+          },
+          {
+            "index": 5,
+            "text": "your",
+            "start_ms": 1600,
+            "end_ms": 1700,
+            "start_char": 30,
+            "end_char": 34
+          },
+          {
+            "index": 6,
+            "text": "pronunciation",
+            "start_ms": 1700,
+            "end_ms": 2600,
+            "start_char": 35,
+            "end_char": 48
+          }
+        ],
+        "source_paths": [
+          "home.planMessage:2"
+        ]
+      },
+      "Browse courses, units, and lessons to review content.": {
+        "audio_url": "assets/app-copy-audio/audio/en/214e02b779d90fe9.mp3",
+        "locale": "en-US",
+        "text": "Browse courses, units, and lessons to review content.",
+        "generated_at": "2026-06-08T17:29:05.656Z",
+        "hash": "9a44a7bb3211d300ebd28a0fa4e8d6e1872fa771",
+        "duration_ms": 3460,
+        "voice": "Danielle",
+        "engine": "neural",
+        "rate": "",
+        "pitch": "",
+        "voice_profile": "default",
+        "words": [
+          {
+            "index": 0,
+            "text": "Browse",
+            "start_ms": 25,
+            "end_ms": 400,
+            "start_char": 0,
+            "end_char": 6
+          },
+          {
+            "index": 1,
+            "text": "courses",
+            "start_ms": 400,
+            "end_ms": 1200,
+            "start_char": 7,
+            "end_char": 14
+          },
+          {
+            "index": 2,
+            "text": "units",
+            "start_ms": 1200,
+            "end_ms": 1950,
+            "start_char": 16,
+            "end_char": 21
+          },
+          {
+            "index": 3,
+            "text": "and",
+            "start_ms": 1950,
+            "end_ms": 2075,
+            "start_char": 23,
+            "end_char": 26
+          },
+          {
+            "index": 4,
+            "text": "lessons",
+            "start_ms": 2075,
+            "end_ms": 2487,
+            "start_char": 27,
+            "end_char": 34
+          },
+          {
+            "index": 5,
+            "text": "to",
+            "start_ms": 2487,
+            "end_ms": 2600,
+            "start_char": 35,
+            "end_char": 37
+          },
+          {
+            "index": 6,
+            "text": "review",
+            "start_ms": 2600,
+            "end_ms": 2900,
+            "start_char": 38,
+            "end_char": 44
+          },
+          {
+            "index": 7,
+            "text": "content",
+            "start_ms": 2900,
+            "end_ms": 3460,
+            "start_char": 45,
+            "end_char": 52
+          }
+        ],
+        "source_paths": [
+          "reference.subtitle:1"
+        ]
+      },
+      "Explore vocabulary, expressions, verbs and more.": {
+        "audio_url": "assets/app-copy-audio/audio/en/bfecbf6730234c8a.mp3",
+        "locale": "en-US",
+        "text": "Explore vocabulary, expressions, verbs and more.",
+        "generated_at": "2026-06-08T17:29:06.432Z",
+        "hash": "d9322ac5e3534a6bff9f13bbc4c3566400bf0f70",
+        "duration_ms": 3420,
+        "voice": "Danielle",
+        "engine": "neural",
+        "rate": "",
+        "pitch": "",
+        "voice_profile": "default",
+        "words": [
+          {
+            "index": 0,
+            "text": "Explore",
+            "start_ms": 25,
+            "end_ms": 487,
+            "start_char": 0,
+            "end_char": 7
+          },
+          {
+            "index": 1,
+            "text": "vocabulary",
+            "start_ms": 487,
+            "end_ms": 1575,
+            "start_char": 8,
+            "end_char": 18
+          },
+          {
+            "index": 2,
+            "text": "expressions",
+            "start_ms": 1575,
+            "end_ms": 2537,
+            "start_char": 20,
+            "end_char": 31
+          },
+          {
+            "index": 3,
+            "text": "verbs",
+            "start_ms": 2537,
+            "end_ms": 2950,
+            "start_char": 33,
+            "end_char": 38
+          },
+          {
+            "index": 4,
+            "text": "and",
+            "start_ms": 2950,
+            "end_ms": 3100,
+            "start_char": 39,
+            "end_char": 42
+          },
+          {
+            "index": 5,
+            "text": "more",
+            "start_ms": 3100,
+            "end_ms": 3420,
+            "start_char": 43,
+            "end_char": 47
+          }
+        ],
+        "source_paths": [
+          "reference.toolsSubtitle:1"
+        ]
+      },
+      "Translate, listen, and practice pronouncing your phrases.": {
+        "audio_url": "assets/app-copy-audio/audio/en/5a5d08ab80ae7968.mp3",
+        "locale": "en-US",
+        "text": "Translate, listen, and practice pronouncing your phrases.",
+        "generated_at": "2026-06-08T17:29:07.240Z",
+        "hash": "beaab8080b4244e252c2f3e45679535f3bf823a9",
+        "duration_ms": 3310,
+        "voice": "Danielle",
+        "engine": "neural",
+        "rate": "",
+        "pitch": "",
+        "voice_profile": "default",
+        "words": [
+          {
+            "index": 0,
+            "text": "Translate",
+            "start_ms": 25,
+            "end_ms": 800,
+            "start_char": 0,
+            "end_char": 9
+          },
+          {
+            "index": 1,
+            "text": "listen",
+            "start_ms": 800,
+            "end_ms": 1450,
+            "start_char": 11,
+            "end_char": 17
+          },
+          {
+            "index": 2,
+            "text": "and",
+            "start_ms": 1450,
+            "end_ms": 1612,
+            "start_char": 19,
+            "end_char": 22
+          },
+          {
+            "index": 3,
+            "text": "practice",
+            "start_ms": 1612,
+            "end_ms": 2062,
+            "start_char": 23,
+            "end_char": 31
+          },
+          {
+            "index": 4,
+            "text": "pronouncing",
+            "start_ms": 2062,
+            "end_ms": 2637,
+            "start_char": 32,
+            "end_char": 43
+          },
+          {
+            "index": 5,
+            "text": "your",
+            "start_ms": 2637,
+            "end_ms": 2750,
+            "start_char": 44,
+            "end_char": 48
+          },
+          {
+            "index": 6,
+            "text": "phrases",
+            "start_ms": 2750,
+            "end_ms": 3310,
+            "start_char": 49,
+            "end_char": 56
+          }
+        ],
+        "source_paths": [
+          "freeRide.subtitle:1"
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,60 @@
+{
+  "ok": true,
+  "provider": "aws-polly",
+  "cached": false,
+  "hash": "f59dfcd494c77802c1c785daa3c6be9743b29d04",
+  "text": "Red rabbits run along roads.",
+  "locale": "en-US",
+  "voice": "Danielle",
+  "engine": "neural",
+  "rate": "",
+  "pitch": "",
+  "voice_profile": "default",
+  "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/f59dfcd494c77802c1c785daa3c6be9743b29d04.mp3",
+  "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/f59dfcd494c77802c1c785daa3c6be9743b29d04.words.json",
+  "duration_ms": 1737,
+  "words": [
+    {
+      "index": 0,
+      "text": "Red",
+      "start_ms": 25,
+      "end_ms": 325,
+      "start_char": 0,
+      "end_char": 3
+    },
+    {
+      "index": 1,
+      "text": "rabbits",
+      "start_ms": 325,
+      "end_ms": 775,
+      "start_char": 4,
+      "end_char": 11
+    },
+    {
+      "index": 2,
+      "text": "run",
+      "start_ms": 775,
+      "end_ms": 950,
+      "start_char": 12,
+      "end_char": 15
+    },
+    {
+      "index": 3,
+      "text": "along",
+      "start_ms": 950,
+      "end_ms": 1337,
+      "start_char": 16,
+      "end_char": 21
+    },
+    {
+      "index": 4,
+      "text": "roads",
+      "start_ms": 1337,
+      "end_ms": 1737,
+      "start_char": 22,
+      "end_char": 27
+    }
+  ],
+  "limit_status": null,
+  "audio_kind": "polly"
+}

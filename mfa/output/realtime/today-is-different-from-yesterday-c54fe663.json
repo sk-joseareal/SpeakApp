@@ -1,0 +1,60 @@
+{
+  "ok": true,
+  "provider": "aws-polly",
+  "cached": false,
+  "hash": "61ffe6f4f9ca3b77499070eb00df460efbd59c4e",
+  "text": "Today is different from yesterday.",
+  "locale": "en-US",
+  "voice": "Danielle",
+  "engine": "neural",
+  "rate": "",
+  "pitch": "",
+  "voice_profile": "default",
+  "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/61ffe6f4f9ca3b77499070eb00df460efbd59c4e.mp3",
+  "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/61ffe6f4f9ca3b77499070eb00df460efbd59c4e.words.json",
+  "duration_ms": 1832,
+  "words": [
+    {
+      "index": 0,
+      "text": "Today",
+      "start_ms": 25,
+      "end_ms": 412,
+      "start_char": 0,
+      "end_char": 5
+    },
+    {
+      "index": 1,
+      "text": "is",
+      "start_ms": 412,
+      "end_ms": 575,
+      "start_char": 6,
+      "end_char": 8
+    },
+    {
+      "index": 2,
+      "text": "different",
+      "start_ms": 575,
+      "end_ms": 950,
+      "start_char": 9,
+      "end_char": 18
+    },
+    {
+      "index": 3,
+      "text": "from",
+      "start_ms": 950,
+      "end_ms": 1112,
+      "start_char": 19,
+      "end_char": 23
+    },
+    {
+      "index": 4,
+      "text": "yesterday",
+      "start_ms": 1112,
+      "end_ms": 1832,
+      "start_char": 24,
+      "end_char": 33
+    }
+  ],
+  "limit_status": null,
+  "audio_kind": "polly"
+}

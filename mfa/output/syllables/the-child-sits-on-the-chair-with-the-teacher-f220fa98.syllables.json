@@ -1,0 +1,125 @@
+[
+  {
+    "word": "the",
+    "start": 0.04,
+    "end": 0.14,
+    "syllables": [
+      {
+        "text": "the",
+        "start": 0.04,
+        "end": 0.14,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "child",
+    "start": 0.14,
+    "end": 0.58,
+    "syllables": [
+      {
+        "text": "child",
+        "start": 0.14,
+        "end": 0.58,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "sits",
+    "start": 0.58,
+    "end": 0.85,
+    "syllables": [
+      {
+        "text": "sits",
+        "start": 0.58,
+        "end": 0.85,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "on",
+    "start": 0.85,
+    "end": 0.96,
+    "syllables": [
+      {
+        "text": "on",
+        "start": 0.85,
+        "end": 0.96,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "the",
+    "start": 0.96,
+    "end": 1.04,
+    "syllables": [
+      {
+        "text": "the",
+        "start": 0.96,
+        "end": 1.04,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "chair",
+    "start": 1.04,
+    "end": 1.37,
+    "syllables": [
+      {
+        "text": "chair",
+        "start": 1.04,
+        "end": 1.37,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "with",
+    "start": 1.37,
+    "end": 1.52,
+    "syllables": [
+      {
+        "text": "with",
+        "start": 1.37,
+        "end": 1.52,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "the",
+    "start": 1.52,
+    "end": 1.61,
+    "syllables": [
+      {
+        "text": "the",
+        "start": 1.52,
+        "end": 1.61,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "teacher",
+    "start": 1.61,
+    "end": 2.14,
+    "syllables": [
+      {
+        "text": "teac",
+        "start": 1.61,
+        "end": 1.913,
+        "index": 0
+      },
+      {
+        "text": "her",
+        "start": 1.913,
+        "end": 2.14,
+        "index": 1
+      }
+    ]
+  }
+]

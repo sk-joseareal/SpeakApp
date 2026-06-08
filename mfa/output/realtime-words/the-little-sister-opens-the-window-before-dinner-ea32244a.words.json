@@ -1,0 +1,79 @@
+{
+  "schema": 1,
+  "generated_at": "2026-06-08T14:47:59.807Z",
+  "hash": "23371aab4119bcfc5326f38c5eb6d30047804112",
+  "text": "The little sister opens the window before dinner.",
+  "locale": "en-US",
+  "voice": "Danielle",
+  "engine": "neural",
+  "rate": "",
+  "pitch": "",
+  "voice_profile": "default",
+  "duration_ms": 2492,
+  "words": [
+    {
+      "index": 0,
+      "text": "The",
+      "start_ms": 25,
+      "end_ms": 112,
+      "start_char": 0,
+      "end_char": 3
+    },
+    {
+      "index": 1,
+      "text": "little",
+      "start_ms": 112,
+      "end_ms": 362,
+      "start_char": 4,
+      "end_char": 10
+    },
+    {
+      "index": 2,
+      "text": "sister",
+      "start_ms": 362,
+      "end_ms": 787,
+      "start_char": 11,
+      "end_char": 17
+    },
+    {
+      "index": 3,
+      "text": "opens",
+      "start_ms": 787,
+      "end_ms": 1212,
+      "start_char": 18,
+      "end_char": 23
+    },
+    {
+      "index": 4,
+      "text": "the",
+      "start_ms": 1212,
+      "end_ms": 1312,
+      "start_char": 24,
+      "end_char": 27
+    },
+    {
+      "index": 5,
+      "text": "window",
+      "start_ms": 1312,
+      "end_ms": 1662,
+      "start_char": 28,
+      "end_char": 34
+    },
+    {
+      "index": 6,
+      "text": "before",
+      "start_ms": 1662,
+      "end_ms": 2012,
+      "start_char": 35,
+      "end_char": 41
+    },
+    {
+      "index": 7,
+      "text": "dinner",
+      "start_ms": 2012,
+      "end_ms": 2492,
+      "start_char": 42,
+      "end_char": 48
+    }
+  ]
+}

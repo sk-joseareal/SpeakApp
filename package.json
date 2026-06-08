@@ -7,6 +7,10 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "postinstall": "patch-package",
     "sync:app-copy": "node ../scripts/export-app-copy.js",
+    "sync:app-copy-audio": "node ./scripts/build-app-copy-audio-bundle.js",
+    "sync:speak-videos": "node ./scripts/build-speak-videos-bundle.js",
+    "sync:training-data": "bash ./scripts/sync-training-data-from-content.sh",
+    "sync:training-data-meta": "node ./scripts/generate-training-data-meta.js",
     "fix:ios-codesign": "bash ./scripts/fix-ios-codesign-junk.sh"
   },
   "keywords": [],

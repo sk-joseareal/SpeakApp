@@ -1,19 +1,19 @@
 [
   {
     "word": "paper",
-    "start": 0,
-    "end": 0.43,
+    "start": 0.05,
+    "end": 0.6,
     "syllables": [
       {
         "text": "pa",
-        "start": 0,
-        "end": 0.172,
+        "start": 0.05,
+        "end": 0.27,
         "index": 0
       },
       {
         "text": "per",
-        "start": 0.172,
-        "end": 0.43,
+        "start": 0.27,
+        "end": 0.6,
         "index": 1
       }
     ]

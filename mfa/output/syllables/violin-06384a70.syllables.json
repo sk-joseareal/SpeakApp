@@ -1,0 +1,21 @@
+[
+  {
+    "word": "violin",
+    "start": 0.04,
+    "end": 0.75,
+    "syllables": [
+      {
+        "text": "vio",
+        "start": 0.04,
+        "end": 0.395,
+        "index": 0
+      },
+      {
+        "text": "lin",
+        "start": 0.395,
+        "end": 0.75,
+        "index": 1
+      }
+    ]
+  }
+]

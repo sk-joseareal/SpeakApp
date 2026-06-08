@@ -1,0 +1,87 @@
+{
+  "schema": 1,
+  "generated_at": "2026-06-08T14:47:55.273Z",
+  "hash": "9d6d862b9f9ed5fba2bf5f0e475e54d490c34784",
+  "text": "The baby and his brother read a brown book.",
+  "locale": "en-US",
+  "voice": "Danielle",
+  "engine": "neural",
+  "rate": "",
+  "pitch": "",
+  "voice_profile": "default",
+  "duration_ms": 2320,
+  "words": [
+    {
+      "index": 0,
+      "text": "The",
+      "start_ms": 25,
+      "end_ms": 137,
+      "start_char": 0,
+      "end_char": 3
+    },
+    {
+      "index": 1,
+      "text": "baby",
+      "start_ms": 137,
+      "end_ms": 575,
+      "start_char": 4,
+      "end_char": 8
+    },
+    {
+      "index": 2,
+      "text": "and",
+      "start_ms": 575,
+      "end_ms": 725,
+      "start_char": 9,
+      "end_char": 12
+    },
+    {
+      "index": 3,
+      "text": "his",
+      "start_ms": 725,
+      "end_ms": 925,
+      "start_char": 13,
+      "end_char": 16
+    },
+    {
+      "index": 4,
+      "text": "brother",
+      "start_ms": 925,
+      "end_ms": 1350,
+      "start_char": 17,
+      "end_char": 24
+    },
+    {
+      "index": 5,
+      "text": "read",
+      "start_ms": 1350,
+      "end_ms": 1562,
+      "start_char": 25,
+      "end_char": 29
+    },
+    {
+      "index": 6,
+      "text": "a",
+      "start_ms": 1562,
+      "end_ms": 1625,
+      "start_char": 30,
+      "end_char": 31
+    },
+    {
+      "index": 7,
+      "text": "brown",
+      "start_ms": 1625,
+      "end_ms": 2000,
+      "start_char": 32,
+      "end_char": 37
+    },
+    {
+      "index": 8,
+      "text": "book",
+      "start_ms": 2000,
+      "end_ms": 2320,
+      "start_char": 38,
+      "end_char": 42
+    }
+  ]
+}

@@ -1,0 +1,76 @@
+{
+  "ok": true,
+  "provider": "aws-polly",
+  "cached": false,
+  "hash": "5dd271bda5bc83250b8f5a04e4343166660aecd1",
+  "text": "In June, we use the blue canoe.",
+  "locale": "en-US",
+  "voice": "Danielle",
+  "engine": "neural",
+  "rate": "",
+  "pitch": "",
+  "voice_profile": "default",
+  "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/5dd271bda5bc83250b8f5a04e4343166660aecd1.mp3",
+  "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/5dd271bda5bc83250b8f5a04e4343166660aecd1.words.json",
+  "duration_ms": 1962,
+  "words": [
+    {
+      "index": 0,
+      "text": "In",
+      "start_ms": 25,
+      "end_ms": 212,
+      "start_char": 0,
+      "end_char": 2
+    },
+    {
+      "index": 1,
+      "text": "June",
+      "start_ms": 212,
+      "end_ms": 850,
+      "start_char": 3,
+      "end_char": 7
+    },
+    {
+      "index": 2,
+      "text": "we",
+      "start_ms": 850,
+      "end_ms": 1000,
+      "start_char": 9,
+      "end_char": 11
+    },
+    {
+      "index": 3,
+      "text": "use",
+      "start_ms": 1000,
+      "end_ms": 1262,
+      "start_char": 12,
+      "end_char": 15
+    },
+    {
+      "index": 4,
+      "text": "the",
+      "start_ms": 1262,
+      "end_ms": 1337,
+      "start_char": 16,
+      "end_char": 19
+    },
+    {
+      "index": 5,
+      "text": "blue",
+      "start_ms": 1337,
+      "end_ms": 1562,
+      "start_char": 20,
+      "end_char": 24
+    },
+    {
+      "index": 6,
+      "text": "canoe",
+      "start_ms": 1562,
+      "end_ms": 1962,
+      "start_char": 25,
+      "end_char": 30
+    }
+  ],
+  "limit_status": null,
+  "audio_kind": "polly"
+}

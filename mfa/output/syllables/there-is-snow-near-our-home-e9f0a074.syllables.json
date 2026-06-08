@@ -1,0 +1,92 @@
+[
+  {
+    "word": "there",
+    "start": 0.04,
+    "end": 0.2,
+    "syllables": [
+      {
+        "text": "the",
+        "start": 0.04,
+        "end": 0.136,
+        "index": 0
+      },
+      {
+        "text": "re",
+        "start": 0.136,
+        "end": 0.2,
+        "index": 1
+      }
+    ]
+  },
+  {
+    "word": "is",
+    "start": 0.2,
+    "end": 0.33,
+    "syllables": [
+      {
+        "text": "is",
+        "start": 0.2,
+        "end": 0.33,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "snow",
+    "start": 0.33,
+    "end": 0.64,
+    "syllables": [
+      {
+        "text": "snow",
+        "start": 0.33,
+        "end": 0.64,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "near",
+    "start": 0.64,
+    "end": 0.89,
+    "syllables": [
+      {
+        "text": "near",
+        "start": 0.64,
+        "end": 0.89,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "our",
+    "start": 0.89,
+    "end": 1.05,
+    "syllables": [
+      {
+        "text": "our",
+        "start": 0.89,
+        "end": 1.05,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "home",
+    "start": 1.05,
+    "end": 1.52,
+    "syllables": [
+      {
+        "text": "ho",
+        "start": 1.05,
+        "end": 1.285,
+        "index": 0
+      },
+      {
+        "text": "me",
+        "start": 1.285,
+        "end": 1.52,
+        "index": 1
+      }
+    ]
+  }
+]

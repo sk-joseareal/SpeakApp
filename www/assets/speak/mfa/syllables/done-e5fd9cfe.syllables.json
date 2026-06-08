@@ -1,0 +1,21 @@
+[
+  {
+    "word": "done",
+    "start": 0.06,
+    "end": 0.52,
+    "syllables": [
+      {
+        "text": "do",
+        "start": 0.06,
+        "end": 0.29,
+        "index": 0
+      },
+      {
+        "text": "ne",
+        "start": 0.29,
+        "end": 0.52,
+        "index": 1
+      }
+    ]
+  }
+]

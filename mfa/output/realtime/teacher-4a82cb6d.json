@@ -1,0 +1,28 @@
+{
+  "ok": true,
+  "provider": "aws-polly",
+  "cached": false,
+  "hash": "22b20763d040c6bd05882a8cb3a85b2fc5cb0eec",
+  "text": "teacher",
+  "locale": "en-US",
+  "voice": "Danielle",
+  "engine": "neural",
+  "rate": "",
+  "pitch": "",
+  "voice_profile": "default",
+  "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/22b20763d040c6bd05882a8cb3a85b2fc5cb0eec.mp3",
+  "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/22b20763d040c6bd05882a8cb3a85b2fc5cb0eec.words.json",
+  "duration_ms": 585,
+  "words": [
+    {
+      "index": 0,
+      "text": "teacher",
+      "start_ms": 25,
+      "end_ms": 585,
+      "start_char": 0,
+      "end_char": 7
+    }
+  ],
+  "limit_status": null,
+  "audio_kind": "polly"
+}

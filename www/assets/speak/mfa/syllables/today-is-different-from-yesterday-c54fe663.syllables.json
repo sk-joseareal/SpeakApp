@@ -1,0 +1,97 @@
+[
+  {
+    "word": "today",
+    "start": 0.05,
+    "end": 0.39,
+    "syllables": [
+      {
+        "text": "to",
+        "start": 0.05,
+        "end": 0.186,
+        "index": 0
+      },
+      {
+        "text": "day",
+        "start": 0.186,
+        "end": 0.39,
+        "index": 1
+      }
+    ]
+  },
+  {
+    "word": "is",
+    "start": 0.39,
+    "end": 0.61,
+    "syllables": [
+      {
+        "text": "is",
+        "start": 0.39,
+        "end": 0.61,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "different",
+    "start": 0.61,
+    "end": 0.98,
+    "syllables": [
+      {
+        "text": "dif",
+        "start": 0.61,
+        "end": 0.733,
+        "index": 0
+      },
+      {
+        "text": "fe",
+        "start": 0.733,
+        "end": 0.816,
+        "index": 1
+      },
+      {
+        "text": "rent",
+        "start": 0.816,
+        "end": 0.98,
+        "index": 2
+      }
+    ]
+  },
+  {
+    "word": "from",
+    "start": 0.98,
+    "end": 1.14,
+    "syllables": [
+      {
+        "text": "from",
+        "start": 0.98,
+        "end": 1.14,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "yesterday",
+    "start": 1.14,
+    "end": 1.81,
+    "syllables": [
+      {
+        "text": "yes",
+        "start": 1.14,
+        "end": 1.363,
+        "index": 0
+      },
+      {
+        "text": "ter",
+        "start": 1.363,
+        "end": 1.587,
+        "index": 1
+      },
+      {
+        "text": "day",
+        "start": 1.587,
+        "end": 1.81,
+        "index": 2
+      }
+    ]
+  }
+]

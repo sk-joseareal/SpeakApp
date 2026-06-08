@@ -1,0 +1,21 @@
+[
+  {
+    "word": "vision",
+    "start": 0.04,
+    "end": 0.6,
+    "syllables": [
+      {
+        "text": "vi",
+        "start": 0.04,
+        "end": 0.227,
+        "index": 0
+      },
+      {
+        "text": "sion",
+        "start": 0.227,
+        "end": 0.6,
+        "index": 1
+      }
+    ]
+  }
+]

@@ -1,0 +1,21 @@
+[
+  {
+    "word": "social",
+    "start": 0.03,
+    "end": 0.69,
+    "syllables": [
+      {
+        "text": "so",
+        "start": 0.03,
+        "end": 0.25,
+        "index": 0
+      },
+      {
+        "text": "cial",
+        "start": 0.25,
+        "end": 0.69,
+        "index": 1
+      }
+    ]
+  }
+]

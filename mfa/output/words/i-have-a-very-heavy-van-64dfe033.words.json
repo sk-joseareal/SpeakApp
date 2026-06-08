@@ -1,0 +1,32 @@
+[
+  {
+    "start": 0.06,
+    "end": 0.15,
+    "word": "i"
+  },
+  {
+    "start": 0.15,
+    "end": 0.38,
+    "word": "have"
+  },
+  {
+    "start": 0.38,
+    "end": 0.44,
+    "word": "a"
+  },
+  {
+    "start": 0.44,
+    "end": 0.75,
+    "word": "very"
+  },
+  {
+    "start": 0.75,
+    "end": 1.02,
+    "word": "heavy"
+  },
+  {
+    "start": 1.02,
+    "end": 1.45,
+    "word": "van"
+  }
+]

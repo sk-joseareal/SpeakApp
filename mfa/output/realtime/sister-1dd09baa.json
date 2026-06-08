@@ -1,0 +1,28 @@
+{
+  "ok": true,
+  "provider": "aws-polly",
+  "cached": false,
+  "hash": "915e1c505de487a2d3e6c242561446a2e946e38b",
+  "text": "sister",
+  "locale": "en-US",
+  "voice": "Danielle",
+  "engine": "neural",
+  "rate": "",
+  "pitch": "",
+  "voice_profile": "default",
+  "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/915e1c505de487a2d3e6c242561446a2e946e38b.mp3",
+  "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/915e1c505de487a2d3e6c242561446a2e946e38b.words.json",
+  "duration_ms": 505,
+  "words": [
+    {
+      "index": 0,
+      "text": "sister",
+      "start_ms": 25,
+      "end_ms": 505,
+      "start_char": 0,
+      "end_char": 6
+    }
+  ],
+  "limit_status": null,
+  "audio_kind": "polly"
+}

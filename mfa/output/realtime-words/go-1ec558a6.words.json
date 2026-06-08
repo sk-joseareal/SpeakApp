@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "generated_at": "2026-06-08T14:46:51.451Z",
+  "hash": "33d8b81334b2da4ae56a1a62bc639fd2ca4b7359",
+  "text": "go",
+  "locale": "en-US",
+  "voice": "Danielle",
+  "engine": "neural",
+  "rate": "",
+  "pitch": "",
+  "voice_profile": "default",
+  "duration_ms": 185,
+  "words": [
+    {
+      "index": 0,
+      "text": "go",
+      "start_ms": 25,
+      "end_ms": 185,
+      "start_char": 0,
+      "end_char": 2
+    }
+  ]
+}

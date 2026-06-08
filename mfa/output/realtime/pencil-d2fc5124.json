@@ -1,0 +1,28 @@
+{
+  "ok": true,
+  "provider": "aws-polly",
+  "cached": false,
+  "hash": "71176d158fc2bd593ba307ef22cfa33394e8e044",
+  "text": "pencil",
+  "locale": "en-US",
+  "voice": "Danielle",
+  "engine": "neural",
+  "rate": "",
+  "pitch": "",
+  "voice_profile": "default",
+  "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/71176d158fc2bd593ba307ef22cfa33394e8e044.mp3",
+  "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/71176d158fc2bd593ba307ef22cfa33394e8e044.words.json",
+  "duration_ms": 505,
+  "words": [
+    {
+      "index": 0,
+      "text": "pencil",
+      "start_ms": 25,
+      "end_ms": 505,
+      "start_char": 0,
+      "end_char": 6
+    }
+  ],
+  "limit_status": null,
+  "audio_kind": "polly"
+}

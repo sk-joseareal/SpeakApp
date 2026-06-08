@@ -1,0 +1,21 @@
+[
+  {
+    "word": "music",
+    "start": 0.04,
+    "end": 0.51,
+    "syllables": [
+      {
+        "text": "mu",
+        "start": 0.04,
+        "end": 0.228,
+        "index": 0
+      },
+      {
+        "text": "sic",
+        "start": 0.228,
+        "end": 0.51,
+        "index": 1
+      }
+    ]
+  }
+]

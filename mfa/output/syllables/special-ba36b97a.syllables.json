@@ -1,0 +1,21 @@
+[
+  {
+    "word": "special",
+    "start": 0.03,
+    "end": 0.68,
+    "syllables": [
+      {
+        "text": "spe",
+        "start": 0.03,
+        "end": 0.309,
+        "index": 0
+      },
+      {
+        "text": "cial",
+        "start": 0.309,
+        "end": 0.68,
+        "index": 1
+      }
+    ]
+  }
+]

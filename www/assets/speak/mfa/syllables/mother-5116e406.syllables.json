@@ -1,0 +1,21 @@
+[
+  {
+    "word": "mother",
+    "start": 0.04,
+    "end": 0.53,
+    "syllables": [
+      {
+        "text": "mot",
+        "start": 0.04,
+        "end": 0.285,
+        "index": 0
+      },
+      {
+        "text": "her",
+        "start": 0.285,
+        "end": 0.53,
+        "index": 1
+      }
+    ]
+  }
+]

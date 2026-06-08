@@ -1,0 +1,28 @@
+{
+  "ok": true,
+  "provider": "aws-polly",
+  "cached": false,
+  "hash": "c07ce6f292d692fd3291903be8f2ecc82e4b43a9",
+  "text": "day",
+  "locale": "en-US",
+  "voice": "Danielle",
+  "engine": "neural",
+  "rate": "",
+  "pitch": "",
+  "voice_profile": "default",
+  "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/c07ce6f292d692fd3291903be8f2ecc82e4b43a9.mp3",
+  "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/c07ce6f292d692fd3291903be8f2ecc82e4b43a9.words.json",
+  "duration_ms": 265,
+  "words": [
+    {
+      "index": 0,
+      "text": "day",
+      "start_ms": 25,
+      "end_ms": 265,
+      "start_char": 0,
+      "end_char": 3
+    }
+  ],
+  "limit_status": null,
+  "audio_kind": "polly"
+}

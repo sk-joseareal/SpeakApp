@@ -1,0 +1,68 @@
+{
+  "ok": true,
+  "provider": "aws-polly",
+  "cached": false,
+  "hash": "d5f3ae0918f25ba00c6439bb79e83e219e17cc68",
+  "text": "We have fun under the sun.",
+  "locale": "en-US",
+  "voice": "Danielle",
+  "engine": "neural",
+  "rate": "",
+  "pitch": "",
+  "voice_profile": "default",
+  "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/d5f3ae0918f25ba00c6439bb79e83e219e17cc68.mp3",
+  "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/d5f3ae0918f25ba00c6439bb79e83e219e17cc68.words.json",
+  "duration_ms": 1215,
+  "words": [
+    {
+      "index": 0,
+      "text": "We",
+      "start_ms": 25,
+      "end_ms": 162,
+      "start_char": 0,
+      "end_char": 2
+    },
+    {
+      "index": 1,
+      "text": "have",
+      "start_ms": 162,
+      "end_ms": 362,
+      "start_char": 3,
+      "end_char": 7
+    },
+    {
+      "index": 2,
+      "text": "fun",
+      "start_ms": 362,
+      "end_ms": 662,
+      "start_char": 8,
+      "end_char": 11
+    },
+    {
+      "index": 3,
+      "text": "under",
+      "start_ms": 662,
+      "end_ms": 875,
+      "start_char": 12,
+      "end_char": 17
+    },
+    {
+      "index": 4,
+      "text": "the",
+      "start_ms": 875,
+      "end_ms": 975,
+      "start_char": 18,
+      "end_char": 21
+    },
+    {
+      "index": 5,
+      "text": "sun",
+      "start_ms": 975,
+      "end_ms": 1215,
+      "start_char": 22,
+      "end_char": 25
+    }
+  ],
+  "limit_status": null,
+  "audio_kind": "polly"
+}

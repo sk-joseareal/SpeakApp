@@ -1,0 +1,84 @@
+{
+  "ok": true,
+  "provider": "aws-polly",
+  "cached": false,
+  "hash": "9b27fe7da930729afad7ddcb4017952bdc58a68d",
+  "text": "The boy has a toy and a coin.",
+  "locale": "en-US",
+  "voice": "Danielle",
+  "engine": "neural",
+  "rate": "",
+  "pitch": "",
+  "voice_profile": "default",
+  "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/9b27fe7da930729afad7ddcb4017952bdc58a68d.mp3",
+  "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/9b27fe7da930729afad7ddcb4017952bdc58a68d.words.json",
+  "duration_ms": 1607,
+  "words": [
+    {
+      "index": 0,
+      "text": "The",
+      "start_ms": 25,
+      "end_ms": 112,
+      "start_char": 0,
+      "end_char": 3
+    },
+    {
+      "index": 1,
+      "text": "boy",
+      "start_ms": 112,
+      "end_ms": 437,
+      "start_char": 4,
+      "end_char": 7
+    },
+    {
+      "index": 2,
+      "text": "has",
+      "start_ms": 437,
+      "end_ms": 662,
+      "start_char": 8,
+      "end_char": 11
+    },
+    {
+      "index": 3,
+      "text": "a",
+      "start_ms": 662,
+      "end_ms": 725,
+      "start_char": 12,
+      "end_char": 13
+    },
+    {
+      "index": 4,
+      "text": "toy",
+      "start_ms": 725,
+      "end_ms": 1100,
+      "start_char": 14,
+      "end_char": 17
+    },
+    {
+      "index": 5,
+      "text": "and",
+      "start_ms": 1100,
+      "end_ms": 1225,
+      "start_char": 18,
+      "end_char": 21
+    },
+    {
+      "index": 6,
+      "text": "a",
+      "start_ms": 1225,
+      "end_ms": 1287,
+      "start_char": 22,
+      "end_char": 23
+    },
+    {
+      "index": 7,
+      "text": "coin",
+      "start_ms": 1287,
+      "end_ms": 1607,
+      "start_char": 24,
+      "end_char": 28
+    }
+  ],
+  "limit_status": null,
+  "audio_kind": "polly"
+}

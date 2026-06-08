@@ -9,6 +9,7 @@ import {
 import { getAppLocale, setAppLocale, getActiveLocale, setLocaleOverride } from '../state.js';
 import { goToSpeak } from '../nav.js';
 import {
+  getAppCopyNarrationPayload,
   getHomeCopy,
   getNextLocaleCode,
   getSpeakCopy,
@@ -1309,7 +1310,7 @@ class PageHome extends HTMLElement {
             <section class="free-ride-card journey-sheet" data-sheet-state="${this.journeySheetExpanded ? 'expanded' : 'collapsed'}">
               <button class="free-ride-card-handle journey-sheet-handle${isHandleHintSeen() ? '' : ' has-hint'}" type="button" aria-label="${this.journeySheetExpanded ? 'Collapse training card' : 'Expand training card'}" aria-expanded="${this.journeySheetExpanded ? 'true' : 'false'}">
                 <span class="free-ride-card-handle-pill journey-sheet-handle-pill" aria-hidden="true"></span>
-                <span class="handle-hint${isHandleHintSeen() ? ' handle-hint-out' : ''}" aria-hidden="true"><ion-icon name="chevron-up-outline"></ion-icon><span class="handle-hint-label">${uiLocale === 'es' ? 'pruébame' : 'try me'}</span></span>
+                <span class="handle-hint${isHandleHintSeen() ? ' handle-hint-out' : ''}" aria-hidden="true"><ion-icon name="chevron-up-outline"></ion-icon><span class="handle-hint-label">${this.journeySheetExpanded ? (uiLocale === 'es' ? 'mostrar' : 'show') : (uiLocale === 'es' ? 'ocultar' : 'hide')}</span></span>
               </button>
               <div class="free-ride-card-main journey-sheet-main">
                 <div class="journey-accordion">
@@ -1861,7 +1862,7 @@ class PageHome extends HTMLElement {
             const greenSessions = module.sessions.filter(item => {
               if (!hasSessionAttempts(item)) return false;
               const pct = getSessionPercent(item);
-              return pct !== null && getScoreTone(pct) === 'good';
+              return pct !== null && getScoreTone(pct) !== 'bad';
             }).length;
             const showChevron = true;
             const moduleLeadIcon =
@@ -1913,7 +1914,9 @@ class PageHome extends HTMLElement {
                           </div>
                           ${isResumeSession
                             ? `<div class="training-row-next-pill" aria-hidden="true"><ion-icon name="play"></ion-icon></div>`
-                            : '<ion-icon name="chevron-forward" class="training-row-arrow"></ion-icon>'}
+                            : (tone === 'good' || tone === 'okay')
+                              ? `<div class="training-row-done-pill" aria-hidden="true"><ion-icon name="checkmark"></ion-icon></div>`
+                              : '<ion-icon name="chevron-forward" class="training-row-arrow"></ion-icon>'}
                         </div>
                       `;
                     })
@@ -2154,7 +2157,7 @@ class PageHome extends HTMLElement {
           <section class="free-ride-card journey-sheet" data-sheet-state="${this.journeySheetExpanded ? 'expanded' : 'collapsed'}">
             <button class="free-ride-card-handle journey-sheet-handle${isHandleHintSeen() ? '' : ' has-hint'}" type="button" aria-label="${this.journeySheetExpanded ? 'Collapse training card' : 'Expand training card'}" aria-expanded="${this.journeySheetExpanded ? 'true' : 'false'}">
               <span class="free-ride-card-handle-pill journey-sheet-handle-pill" aria-hidden="true"></span>
-              <span class="handle-hint${isHandleHintSeen() ? ' handle-hint-out' : ''}" aria-hidden="true"><ion-icon name="chevron-up-outline"></ion-icon><span class="handle-hint-label">${uiLocale === 'es' ? 'pruébame' : 'try me'}</span></span>
+              <span class="handle-hint${isHandleHintSeen() ? ' handle-hint-out' : ''}" aria-hidden="true"><ion-icon name="chevron-up-outline"></ion-icon><span class="handle-hint-label">${this.journeySheetExpanded ? (uiLocale === 'es' ? 'mostrar' : 'show') : (uiLocale === 'es' ? 'ocultar' : 'hide')}</span></span>
             </button>
             <div class="free-ride-card-main journey-sheet-main">
               <div class="journey-accordion">
@@ -2546,6 +2549,9 @@ class PageHome extends HTMLElement {
     const locale = String(lang || '').trim() || 'en-US';
     if (!expected) return null;
     const normalizedOptions = this.normalizeAlignedTtsRequestOptions(options);
+
+    const bundled = getAppCopyNarrationPayload(locale, expected);
+    if (bundled) return bundled;
 
     const cached = this.getAlignedTtsFromCache(expected, locale, normalizedOptions);
     if (cached) return cached;

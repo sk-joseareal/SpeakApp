@@ -1,0 +1,76 @@
+{
+  "ok": true,
+  "provider": "aws-polly",
+  "cached": false,
+  "hash": "e2841149f0db9b9f68b8a70d99607a6bd63c2d02",
+  "text": "We can hear the deer near us.",
+  "locale": "en-US",
+  "voice": "Danielle",
+  "engine": "neural",
+  "rate": "",
+  "pitch": "",
+  "voice_profile": "default",
+  "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/e2841149f0db9b9f68b8a70d99607a6bd63c2d02.mp3",
+  "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/e2841149f0db9b9f68b8a70d99607a6bd63c2d02.words.json",
+  "duration_ms": 1172,
+  "words": [
+    {
+      "index": 0,
+      "text": "We",
+      "start_ms": 25,
+      "end_ms": 137,
+      "start_char": 0,
+      "end_char": 2
+    },
+    {
+      "index": 1,
+      "text": "can",
+      "start_ms": 137,
+      "end_ms": 300,
+      "start_char": 3,
+      "end_char": 6
+    },
+    {
+      "index": 2,
+      "text": "hear",
+      "start_ms": 300,
+      "end_ms": 487,
+      "start_char": 7,
+      "end_char": 11
+    },
+    {
+      "index": 3,
+      "text": "the",
+      "start_ms": 487,
+      "end_ms": 575,
+      "start_char": 12,
+      "end_char": 15
+    },
+    {
+      "index": 4,
+      "text": "deer",
+      "start_ms": 575,
+      "end_ms": 787,
+      "start_char": 16,
+      "end_char": 20
+    },
+    {
+      "index": 5,
+      "text": "near",
+      "start_ms": 787,
+      "end_ms": 1012,
+      "start_char": 21,
+      "end_char": 25
+    },
+    {
+      "index": 6,
+      "text": "us",
+      "start_ms": 1012,
+      "end_ms": 1172,
+      "start_char": 26,
+      "end_char": 28
+    }
+  ],
+  "limit_status": null,
+  "audio_kind": "polly"
+}

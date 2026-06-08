@@ -1,0 +1,37 @@
+[
+  {
+    "start": 0.05,
+    "end": 0.34,
+    "word": "these"
+  },
+  {
+    "start": 0.34,
+    "end": 0.66,
+    "word": "green"
+  },
+  {
+    "start": 0.66,
+    "end": 1.08,
+    "word": "trees"
+  },
+  {
+    "start": 1.08,
+    "end": 1.22,
+    "word": "are"
+  },
+  {
+    "start": 1.25,
+    "end": 1.56,
+    "word": "easy"
+  },
+  {
+    "start": 1.56,
+    "end": 1.7,
+    "word": "to"
+  },
+  {
+    "start": 1.7,
+    "end": 2.13,
+    "word": "see"
+  }
+]

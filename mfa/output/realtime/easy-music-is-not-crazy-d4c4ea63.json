@@ -1,0 +1,60 @@
+{
+  "ok": true,
+  "provider": "aws-polly",
+  "cached": false,
+  "hash": "e49a5d7054143c681e186e02ecd835b45ec01e74",
+  "text": "Easy music is not crazy.",
+  "locale": "en-US",
+  "voice": "Danielle",
+  "engine": "neural",
+  "rate": "",
+  "pitch": "",
+  "voice_profile": "default",
+  "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/e49a5d7054143c681e186e02ecd835b45ec01e74.mp3",
+  "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/e49a5d7054143c681e186e02ecd835b45ec01e74.words.json",
+  "duration_ms": 1500,
+  "words": [
+    {
+      "index": 0,
+      "text": "Easy",
+      "start_ms": 25,
+      "end_ms": 312,
+      "start_char": 0,
+      "end_char": 4
+    },
+    {
+      "index": 1,
+      "text": "music",
+      "start_ms": 312,
+      "end_ms": 725,
+      "start_char": 5,
+      "end_char": 10
+    },
+    {
+      "index": 2,
+      "text": "is",
+      "start_ms": 725,
+      "end_ms": 862,
+      "start_char": 11,
+      "end_char": 13
+    },
+    {
+      "index": 3,
+      "text": "not",
+      "start_ms": 862,
+      "end_ms": 1100,
+      "start_char": 14,
+      "end_char": 17
+    },
+    {
+      "index": 4,
+      "text": "crazy",
+      "start_ms": 1100,
+      "end_ms": 1500,
+      "start_char": 18,
+      "end_char": 23
+    }
+  ],
+  "limit_status": null,
+  "audio_kind": "polly"
+}

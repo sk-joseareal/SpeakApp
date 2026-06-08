@@ -1,0 +1,4 @@
+2026-06-08 16:49:09,209 - kalpy.cmvn - INFO - Reading features from: /Users/r34lp0w3r/Dev/sokinternet/speakapp/mfa/output/tmp-1780929968/corpus/corpus/feats.scp
+2026-06-08 16:49:09,209 - kalpy.cmvn - INFO - Reading spk2utt from: /Users/r34lp0w3r/Dev/sokinternet/speakapp/mfa/output/tmp-1780929968/corpus/corpus/spk2utt.scp
+2026-06-08 16:49:09,210 - kalpy.cmvn - DEBUG - Writing to: ark,scp:/Users/r34lp0w3r/Dev/sokinternet/speakapp/mfa/output/tmp-1780929968/corpus/corpus/cmvn.ark,/Users/r34lp0w3r/Dev/sokinternet/speakapp/mfa/output/tmp-1780929968/corpus/corpus/cmvn.scp
+2026-06-08 16:49:09,211 - kalpy.cmvn - INFO - Processing speaker 1: 244 utterances

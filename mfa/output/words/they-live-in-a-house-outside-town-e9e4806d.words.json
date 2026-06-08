@@ -1,0 +1,37 @@
+[
+  {
+    "start": 0.05,
+    "end": 0.2,
+    "word": "they"
+  },
+  {
+    "start": 0.2,
+    "end": 0.45,
+    "word": "live"
+  },
+  {
+    "start": 0.45,
+    "end": 0.55,
+    "word": "in"
+  },
+  {
+    "start": 0.55,
+    "end": 0.61,
+    "word": "a"
+  },
+  {
+    "start": 0.61,
+    "end": 0.99,
+    "word": "house"
+  },
+  {
+    "start": 0.99,
+    "end": 1.53,
+    "word": "outside"
+  },
+  {
+    "start": 1.53,
+    "end": 2.01,
+    "word": "town"
+  }
+]

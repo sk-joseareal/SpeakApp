@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "generated_at": "2026-06-08T14:46:13.128Z",
+  "hash": "873fc96b57728868fe43ce5bef05d66909849807",
+  "text": "afternoon",
+  "locale": "en-US",
+  "voice": "Danielle",
+  "engine": "neural",
+  "rate": "",
+  "pitch": "",
+  "voice_profile": "default",
+  "duration_ms": 745,
+  "words": [
+    {
+      "index": 0,
+      "text": "afternoon",
+      "start_ms": 25,
+      "end_ms": 745,
+      "start_char": 0,
+      "end_char": 9
+    }
+  ]
+}

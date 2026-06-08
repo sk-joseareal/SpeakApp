@@ -1,0 +1,95 @@
+{
+  "schema": 1,
+  "generated_at": "2026-06-08T14:46:59.775Z",
+  "hash": "18dbf49c5cc3a8d08cb12d16e98402380abf686f",
+  "text": "I explained to the taxi driver to come at six.",
+  "locale": "en-US",
+  "voice": "Danielle",
+  "engine": "neural",
+  "rate": "",
+  "pitch": "",
+  "voice_profile": "default",
+  "duration_ms": 2365,
+  "words": [
+    {
+      "index": 0,
+      "text": "I",
+      "start_ms": 25,
+      "end_ms": 150,
+      "start_char": 0,
+      "end_char": 1
+    },
+    {
+      "index": 1,
+      "text": "explained",
+      "start_ms": 150,
+      "end_ms": 662,
+      "start_char": 2,
+      "end_char": 11
+    },
+    {
+      "index": 2,
+      "text": "to",
+      "start_ms": 662,
+      "end_ms": 762,
+      "start_char": 12,
+      "end_char": 14
+    },
+    {
+      "index": 3,
+      "text": "the",
+      "start_ms": 762,
+      "end_ms": 837,
+      "start_char": 15,
+      "end_char": 18
+    },
+    {
+      "index": 4,
+      "text": "taxi",
+      "start_ms": 837,
+      "end_ms": 1250,
+      "start_char": 19,
+      "end_char": 23
+    },
+    {
+      "index": 5,
+      "text": "driver",
+      "start_ms": 1250,
+      "end_ms": 1612,
+      "start_char": 24,
+      "end_char": 30
+    },
+    {
+      "index": 6,
+      "text": "to",
+      "start_ms": 1612,
+      "end_ms": 1737,
+      "start_char": 31,
+      "end_char": 33
+    },
+    {
+      "index": 7,
+      "text": "come",
+      "start_ms": 1737,
+      "end_ms": 1987,
+      "start_char": 34,
+      "end_char": 38
+    },
+    {
+      "index": 8,
+      "text": "at",
+      "start_ms": 1987,
+      "end_ms": 2125,
+      "start_char": 39,
+      "end_char": 41
+    },
+    {
+      "index": 9,
+      "text": "six",
+      "start_ms": 2125,
+      "end_ms": 2365,
+      "start_char": 42,
+      "end_char": 45
+    }
+  ]
+}

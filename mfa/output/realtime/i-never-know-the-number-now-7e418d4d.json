@@ -1,0 +1,68 @@
+{
+  "ok": true,
+  "provider": "aws-polly",
+  "cached": false,
+  "hash": "34a81d623db26a36ebe6121b8b70b643ac97a5d6",
+  "text": "I never know the number now.",
+  "locale": "en-US",
+  "voice": "Danielle",
+  "engine": "neural",
+  "rate": "",
+  "pitch": "",
+  "voice_profile": "default",
+  "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/34a81d623db26a36ebe6121b8b70b643ac97a5d6.mp3",
+  "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/34a81d623db26a36ebe6121b8b70b643ac97a5d6.words.json",
+  "duration_ms": 1302,
+  "words": [
+    {
+      "index": 0,
+      "text": "I",
+      "start_ms": 25,
+      "end_ms": 137,
+      "start_char": 0,
+      "end_char": 1
+    },
+    {
+      "index": 1,
+      "text": "never",
+      "start_ms": 137,
+      "end_ms": 450,
+      "start_char": 2,
+      "end_char": 7
+    },
+    {
+      "index": 2,
+      "text": "know",
+      "start_ms": 450,
+      "end_ms": 662,
+      "start_char": 8,
+      "end_char": 12
+    },
+    {
+      "index": 3,
+      "text": "the",
+      "start_ms": 662,
+      "end_ms": 762,
+      "start_char": 13,
+      "end_char": 16
+    },
+    {
+      "index": 4,
+      "text": "number",
+      "start_ms": 762,
+      "end_ms": 1062,
+      "start_char": 17,
+      "end_char": 23
+    },
+    {
+      "index": 5,
+      "text": "now",
+      "start_ms": 1062,
+      "end_ms": 1302,
+      "start_char": 24,
+      "end_char": 27
+    }
+  ],
+  "limit_status": null,
+  "audio_kind": "polly"
+}

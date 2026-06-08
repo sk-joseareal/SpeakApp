@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "generated_at": "2026-06-08T14:47:52.571Z",
+  "hash": "889069e7b2ced0596dd1fe251bf2215e94791c69",
+  "text": "television",
+  "locale": "en-US",
+  "voice": "Danielle",
+  "engine": "neural",
+  "rate": "",
+  "pitch": "",
+  "voice_profile": "default",
+  "duration_ms": 825,
+  "words": [
+    {
+      "index": 0,
+      "text": "television",
+      "start_ms": 25,
+      "end_ms": 825,
+      "start_char": 0,
+      "end_char": 10
+    }
+  ]
+}

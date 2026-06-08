@@ -1,0 +1,42 @@
+[
+  {
+    "start": 0.05,
+    "end": 0.15,
+    "word": "the"
+  },
+  {
+    "start": 0.15,
+    "end": 0.49,
+    "word": "happy"
+  },
+  {
+    "start": 0.49,
+    "end": 0.93,
+    "word": "child"
+  },
+  {
+    "start": 0.93,
+    "end": 1.26,
+    "word": "uses"
+  },
+  {
+    "start": 1.26,
+    "end": 1.33,
+    "word": "a"
+  },
+  {
+    "start": 1.33,
+    "end": 1.79,
+    "word": "pencil"
+  },
+  {
+    "start": 1.79,
+    "end": 1.99,
+    "word": "and"
+  },
+  {
+    "start": 1.99,
+    "end": 2.5,
+    "word": "paper"
+  }
+]

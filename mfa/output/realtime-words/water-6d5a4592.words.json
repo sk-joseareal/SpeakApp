@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "generated_at": "2026-06-08T14:48:18.407Z",
+  "hash": "e5371a0db5085c229d80f4e78ec22b7b1b0a9f62",
+  "text": "water",
+  "locale": "en-US",
+  "voice": "Danielle",
+  "engine": "neural",
+  "rate": "",
+  "pitch": "",
+  "voice_profile": "default",
+  "duration_ms": 425,
+  "words": [
+    {
+      "index": 0,
+      "text": "water",
+      "start_ms": 25,
+      "end_ms": 425,
+      "start_char": 0,
+      "end_char": 5
+    }
+  ]
+}

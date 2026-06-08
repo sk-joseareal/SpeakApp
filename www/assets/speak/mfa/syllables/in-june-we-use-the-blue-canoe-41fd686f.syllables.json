@@ -1,0 +1,111 @@
+[
+  {
+    "word": "in",
+    "start": 0.05,
+    "end": 0.24,
+    "syllables": [
+      {
+        "text": "in",
+        "start": 0.05,
+        "end": 0.24,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "june",
+    "start": 0.24,
+    "end": 0.73,
+    "syllables": [
+      {
+        "text": "ju",
+        "start": 0.24,
+        "end": 0.485,
+        "index": 0
+      },
+      {
+        "text": "ne",
+        "start": 0.485,
+        "end": 0.73,
+        "index": 1
+      }
+    ]
+  },
+  {
+    "word": "we",
+    "start": 0.87,
+    "end": 0.99,
+    "syllables": [
+      {
+        "text": "we",
+        "start": 0.87,
+        "end": 0.99,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "use",
+    "start": 0.99,
+    "end": 1.28,
+    "syllables": [
+      {
+        "text": "u",
+        "start": 0.99,
+        "end": 1.087,
+        "index": 0
+      },
+      {
+        "text": "se",
+        "start": 1.087,
+        "end": 1.28,
+        "index": 1
+      }
+    ]
+  },
+  {
+    "word": "the",
+    "start": 1.28,
+    "end": 1.37,
+    "syllables": [
+      {
+        "text": "the",
+        "start": 1.28,
+        "end": 1.37,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "blue",
+    "start": 1.37,
+    "end": 1.6,
+    "syllables": [
+      {
+        "text": "blue",
+        "start": 1.37,
+        "end": 1.6,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "canoe",
+    "start": 1.6,
+    "end": 2.09,
+    "syllables": [
+      {
+        "text": "ca",
+        "start": 1.6,
+        "end": 1.796,
+        "index": 0
+      },
+      {
+        "text": "noe",
+        "start": 1.796,
+        "end": 2.09,
+        "index": 1
+      }
+    ]
+  }
+]

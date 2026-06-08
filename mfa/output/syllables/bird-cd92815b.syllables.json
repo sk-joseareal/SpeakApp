@@ -1,13 +1,13 @@
 [
   {
     "word": "bird",
-    "start": 0,
-    "end": 0.28,
+    "start": 0.05,
+    "end": 0.5,
     "syllables": [
       {
         "text": "bird",
-        "start": 0,
-        "end": 0.28,
+        "start": 0.05,
+        "end": 0.5,
         "index": 0
       }
     ]

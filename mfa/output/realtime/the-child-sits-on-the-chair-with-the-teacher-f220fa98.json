@@ -1,0 +1,92 @@
+{
+  "ok": true,
+  "provider": "aws-polly",
+  "cached": false,
+  "hash": "869a3ac4ca0855c1ad1e47572a65bb8b77d159dd",
+  "text": "The child sits on the chair with the teacher.",
+  "locale": "en-US",
+  "voice": "Danielle",
+  "engine": "neural",
+  "rate": "",
+  "pitch": "",
+  "voice_profile": "default",
+  "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/869a3ac4ca0855c1ad1e47572a65bb8b77d159dd.mp3",
+  "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/869a3ac4ca0855c1ad1e47572a65bb8b77d159dd.words.json",
+  "duration_ms": 2135,
+  "words": [
+    {
+      "index": 0,
+      "text": "The",
+      "start_ms": 25,
+      "end_ms": 100,
+      "start_char": 0,
+      "end_char": 3
+    },
+    {
+      "index": 1,
+      "text": "child",
+      "start_ms": 100,
+      "end_ms": 537,
+      "start_char": 4,
+      "end_char": 9
+    },
+    {
+      "index": 2,
+      "text": "sits",
+      "start_ms": 537,
+      "end_ms": 825,
+      "start_char": 10,
+      "end_char": 14
+    },
+    {
+      "index": 3,
+      "text": "on",
+      "start_ms": 825,
+      "end_ms": 937,
+      "start_char": 15,
+      "end_char": 17
+    },
+    {
+      "index": 4,
+      "text": "the",
+      "start_ms": 937,
+      "end_ms": 1012,
+      "start_char": 18,
+      "end_char": 21
+    },
+    {
+      "index": 5,
+      "text": "chair",
+      "start_ms": 1012,
+      "end_ms": 1337,
+      "start_char": 22,
+      "end_char": 27
+    },
+    {
+      "index": 6,
+      "text": "with",
+      "start_ms": 1337,
+      "end_ms": 1500,
+      "start_char": 28,
+      "end_char": 32
+    },
+    {
+      "index": 7,
+      "text": "the",
+      "start_ms": 1500,
+      "end_ms": 1575,
+      "start_char": 33,
+      "end_char": 36
+    },
+    {
+      "index": 8,
+      "text": "teacher",
+      "start_ms": 1575,
+      "end_ms": 2135,
+      "start_char": 37,
+      "end_char": 44
+    }
+  ],
+  "limit_status": null,
+  "audio_kind": "polly"
+}

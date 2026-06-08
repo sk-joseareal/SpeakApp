@@ -7,6 +7,7 @@ import {
 } from '../translation-capabilities.js';
 import { renderAppHeader, updateAppHeaderRewards } from '../components/app-header.js';
 import {
+  getAppCopyNarrationPayload,
   getFreeRideCopy,
   getLocaleMeta,
   getNextLocaleCode,
@@ -2623,6 +2624,9 @@ class PageFreeRide extends HTMLElement {
     const expected = String(text || '').trim();
     const locale = String(lang || '').trim() || 'en-US';
     if (!expected) return null;
+
+    const bundled = getAppCopyNarrationPayload(locale, expected);
+    if (bundled) return bundled;
 
     const cached = this.getAlignedTtsFromCache(expected, locale);
     if (cached) return cached;
@@ -6834,7 +6838,7 @@ class PageFreeRide extends HTMLElement {
   }
 
   _triggerStopRecordingWithDelay() {
-    const delayMs = typeof window.getRecordingStopDelayMs === 'function' ? window.getRecordingStopDelayMs() : 0;
+    const delayMs = typeof window.getRecordingStopDelayMs === 'function' ? window.getRecordingStopDelayMs() : 600;
     if (delayMs > 0) {
       this._cancelPendingRecordingStop();
       this.state.recordingStopPending = true;

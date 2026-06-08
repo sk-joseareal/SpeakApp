@@ -1,19 +1,19 @@
 [
   {
     "word": "voice",
-    "start": 0,
-    "end": 0.44,
+    "start": 0.04,
+    "end": 0.69,
     "syllables": [
       {
         "text": "voi",
-        "start": 0,
-        "end": 0.264,
+        "start": 0.04,
+        "end": 0.43,
         "index": 0
       },
       {
         "text": "ce",
-        "start": 0.264,
-        "end": 0.44,
+        "start": 0.43,
+        "end": 0.69,
         "index": 1
       }
     ]

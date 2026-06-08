@@ -1,0 +1,84 @@
+{
+  "ok": true,
+  "provider": "aws-polly",
+  "cached": false,
+  "hash": "00573495657c86ab8657ffbe0340d228772de0c9",
+  "text": "I think we should thank the three boys.",
+  "locale": "en-US",
+  "voice": "Danielle",
+  "engine": "neural",
+  "rate": "",
+  "pitch": "",
+  "voice_profile": "default",
+  "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/00573495657c86ab8657ffbe0340d228772de0c9.mp3",
+  "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/00573495657c86ab8657ffbe0340d228772de0c9.words.json",
+  "duration_ms": 1620,
+  "words": [
+    {
+      "index": 0,
+      "text": "I",
+      "start_ms": 25,
+      "end_ms": 125,
+      "start_char": 0,
+      "end_char": 1
+    },
+    {
+      "index": 1,
+      "text": "think",
+      "start_ms": 125,
+      "end_ms": 387,
+      "start_char": 2,
+      "end_char": 7
+    },
+    {
+      "index": 2,
+      "text": "we",
+      "start_ms": 387,
+      "end_ms": 475,
+      "start_char": 8,
+      "end_char": 10
+    },
+    {
+      "index": 3,
+      "text": "should",
+      "start_ms": 475,
+      "end_ms": 687,
+      "start_char": 11,
+      "end_char": 17
+    },
+    {
+      "index": 4,
+      "text": "thank",
+      "start_ms": 687,
+      "end_ms": 937,
+      "start_char": 18,
+      "end_char": 23
+    },
+    {
+      "index": 5,
+      "text": "the",
+      "start_ms": 937,
+      "end_ms": 1025,
+      "start_char": 24,
+      "end_char": 27
+    },
+    {
+      "index": 6,
+      "text": "three",
+      "start_ms": 1025,
+      "end_ms": 1300,
+      "start_char": 28,
+      "end_char": 33
+    },
+    {
+      "index": 7,
+      "text": "boys",
+      "start_ms": 1300,
+      "end_ms": 1620,
+      "start_char": 34,
+      "end_char": 38
+    }
+  ],
+  "limit_status": null,
+  "audio_kind": "polly"
+}

@@ -1,0 +1,21 @@
+[
+  {
+    "word": "explain",
+    "start": 0.05,
+    "end": 0.75,
+    "syllables": [
+      {
+        "text": "exp",
+        "start": 0.05,
+        "end": 0.35,
+        "index": 0
+      },
+      {
+        "text": "lain",
+        "start": 0.35,
+        "end": 0.75,
+        "index": 1
+      }
+    ]
+  }
+]

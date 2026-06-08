@@ -1,0 +1,42 @@
+[
+  {
+    "start": 0.06,
+    "end": 0.19,
+    "word": "can"
+  },
+  {
+    "start": 0.19,
+    "end": 0.31,
+    "word": "i"
+  },
+  {
+    "start": 0.31,
+    "end": 0.46,
+    "word": "go"
+  },
+  {
+    "start": 0.46,
+    "end": 0.58,
+    "word": "to"
+  },
+  {
+    "start": 0.58,
+    "end": 0.89,
+    "word": "school"
+  },
+  {
+    "start": 0.89,
+    "end": 0.98,
+    "word": "in"
+  },
+  {
+    "start": 0.98,
+    "end": 1.06,
+    "word": "the"
+  },
+  {
+    "start": 1.06,
+    "end": 1.48,
+    "word": "car"
+  }
+]

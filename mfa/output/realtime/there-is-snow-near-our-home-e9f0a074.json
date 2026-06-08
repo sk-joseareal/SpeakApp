@@ -1,0 +1,68 @@
+{
+  "ok": true,
+  "provider": "aws-polly",
+  "cached": false,
+  "hash": "fd49dcc43f38e9ca00c7e6afb8a34787abea309c",
+  "text": "There is snow near our home.",
+  "locale": "en-US",
+  "voice": "Danielle",
+  "engine": "neural",
+  "rate": "",
+  "pitch": "",
+  "voice_profile": "default",
+  "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/fd49dcc43f38e9ca00c7e6afb8a34787abea309c.mp3",
+  "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/fd49dcc43f38e9ca00c7e6afb8a34787abea309c.words.json",
+  "duration_ms": 1345,
+  "words": [
+    {
+      "index": 0,
+      "text": "There",
+      "start_ms": 25,
+      "end_ms": 187,
+      "start_char": 0,
+      "end_char": 5
+    },
+    {
+      "index": 1,
+      "text": "is",
+      "start_ms": 187,
+      "end_ms": 287,
+      "start_char": 6,
+      "end_char": 8
+    },
+    {
+      "index": 2,
+      "text": "snow",
+      "start_ms": 287,
+      "end_ms": 612,
+      "start_char": 9,
+      "end_char": 13
+    },
+    {
+      "index": 3,
+      "text": "near",
+      "start_ms": 612,
+      "end_ms": 875,
+      "start_char": 14,
+      "end_char": 18
+    },
+    {
+      "index": 4,
+      "text": "our",
+      "start_ms": 875,
+      "end_ms": 1025,
+      "start_char": 19,
+      "end_char": 22
+    },
+    {
+      "index": 5,
+      "text": "home",
+      "start_ms": 1025,
+      "end_ms": 1345,
+      "start_char": 23,
+      "end_char": 27
+    }
+  ],
+  "limit_status": null,
+  "audio_kind": "polly"
+}

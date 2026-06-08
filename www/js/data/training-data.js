@@ -1,4 +1,7 @@
+import { BUNDLE_TRAINING_DATA_VERSION } from './training-data.meta.js';
+
 const LOCAL_DATA_URL = new URL('./training-data.json', import.meta.url);
+const TRAINING_DATA_CACHE_KEY = 'appv5:training-data-cache';
 const SELECTION_STORAGE_KEY = 'appv5:training-selection';
 const DEFAULT_REMOTE_FETCH_TIMEOUT_MS = 7000;
 
@@ -8,9 +11,13 @@ let dataLoadInfo = {
   status: 'idle',
   loadedAt: null,
   requestUrl: '',
+  manifestUrl: '',
   transport: '',
   source: '',
   release: null,
+  version: '',
+  bundleVersion: BUNDLE_TRAINING_DATA_VERSION,
+  cacheHit: false,
   triedUrls: [],
   errors: []
 };
@@ -86,6 +93,8 @@ const normalizeTrainingEndpoint = (raw) => {
   }
 };
 
+const normalizeTrainingVersion = (value) => String(value === undefined || value === null ? '' : value).trim();
+
 const getConfiguredTrainingDataUrls = () => {
   const localUrl = LOCAL_DATA_URL.toString();
   if (typeof window === 'undefined') return [localUrl];
@@ -121,6 +130,26 @@ const getConfiguredTrainingDataUrls = () => {
   return [...configured, localUrl];
 };
 
+const getConfiguredRemoteTrainingDataUrl = () => {
+  const urls = getConfiguredTrainingDataUrls();
+  const localUrl = LOCAL_DATA_URL.toString();
+  return urls.find((url) => url && url !== localUrl) || '';
+};
+
+const getTrainingDataManifestUrl = (trainingDataUrl) => {
+  const value = typeof trainingDataUrl === 'string' ? trainingDataUrl.trim() : '';
+  if (!value) return '';
+  try {
+    const parsed = new URL(value, typeof window !== 'undefined' && window.location ? window.location.href : undefined);
+    parsed.pathname = parsed.pathname.replace(/\/+$/, '') + '/meta';
+    parsed.search = '';
+    parsed.hash = '';
+    return parsed.toString();
+  } catch (err) {
+    return '';
+  }
+};
+
 const getTrainingDataToken = () => {
   if (typeof window === 'undefined') return '';
   const fromContentConfig =
@@ -140,6 +169,50 @@ const buildTrainingDataRequestHeaders = () => {
   const token = getTrainingDataToken();
   if (!token) return {};
   return { 'x-content-read-token': token };
+};
+
+const readTrainingDataCache = () => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(TRAINING_DATA_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return null;
+    const version = normalizeTrainingVersion(parsed.version);
+    const payload = parsed.payload && typeof parsed.payload === 'object' ? parsed.payload : null;
+    if (!version || !payload) return null;
+    return {
+      version,
+      payload,
+      source: typeof parsed.source === 'string' ? parsed.source : '',
+      release: parsed.release && typeof parsed.release === 'object' ? parsed.release : null,
+      storedAt: typeof parsed.storedAt === 'string' ? parsed.storedAt : ''
+    };
+  } catch (err) {
+    return null;
+  }
+};
+
+const writeTrainingDataCache = (entry) => {
+  if (typeof window === 'undefined') return;
+  try {
+    if (!entry || typeof entry !== 'object') return;
+    const version = normalizeTrainingVersion(entry.version);
+    const payload = entry.payload && typeof entry.payload === 'object' ? entry.payload : null;
+    if (!version || !payload) return;
+    localStorage.setItem(
+      TRAINING_DATA_CACHE_KEY,
+      JSON.stringify({
+        version,
+        payload,
+        source: typeof entry.source === 'string' ? entry.source : '',
+        release: entry.release && typeof entry.release === 'object' ? entry.release : null,
+        storedAt: new Date().toISOString()
+      })
+    );
+  } catch (err) {
+    // no-op
+  }
 };
 
 const getTrainingDataFetchTimeoutMs = () => {
@@ -164,6 +237,29 @@ const fetchWithTimeout = async (url, options = {}, timeoutMs = DEFAULT_REMOTE_FE
   } finally {
     clearTimeout(timer);
   }
+};
+
+const loadTrainingDataPayloadFromUrl = async (url, timeoutMs = DEFAULT_REMOTE_FETCH_TIMEOUT_MS) => {
+  const headers = buildTrainingDataRequestHeaders();
+  const fetchOpts = Object.keys(headers).length ? { headers } : undefined;
+  const isLocalUrl = url === LOCAL_DATA_URL.toString();
+  const effectiveTimeoutMs = isLocalUrl ? 0 : timeoutMs;
+  const res =
+    effectiveTimeoutMs > 0
+      ? await fetchWithTimeout(url, fetchOpts, effectiveTimeoutMs)
+      : await fetch(url, fetchOpts);
+  if (!res.ok) throw new Error(`training data: ${res.status}`);
+  const raw = await res.json();
+  return unwrapTrainingPayload(raw);
+};
+
+const loadTrainingDataMeta = async (url) => {
+  const headers = buildTrainingDataRequestHeaders();
+  const fetchOpts = Object.keys(headers).length ? { headers } : undefined;
+  const timeoutMs = getTrainingDataFetchTimeoutMs();
+  const res = await fetchWithTimeout(url, fetchOpts, timeoutMs);
+  if (!res.ok) throw new Error(`training data meta: ${res.status}`);
+  return res.json();
 };
 
 const unwrapTrainingPayload = (raw) => {
@@ -257,40 +353,222 @@ const loadTrainingData = async () => {
     dataPromise = (async () => {
       const urls = getConfiguredTrainingDataUrls();
       const localUrl = LOCAL_DATA_URL.toString();
+      const remoteUrl = getConfiguredRemoteTrainingDataUrl();
+      const manifestUrl = remoteUrl ? getTrainingDataManifestUrl(remoteUrl) : '';
+      const allowLocalFallback = urls.includes(localUrl);
+      const cached = allowLocalFallback ? readTrainingDataCache() : null;
       const errors = [];
       dataLoadInfo = {
         status: 'loading',
         loadedAt: null,
         requestUrl: '',
+        manifestUrl,
         transport: '',
         source: '',
         release: null,
+        version: '',
+        bundleVersion: BUNDLE_TRAINING_DATA_VERSION,
+        cacheHit: false,
         triedUrls: urls.slice(),
         errors: []
       };
 
-      for (const url of urls) {
-        try {
-          const headers = buildTrainingDataRequestHeaders();
-          const fetchOpts = Object.keys(headers).length ? { headers } : undefined;
-          const isLocalUrl = url === localUrl;
-          const timeoutMs = isLocalUrl ? 0 : getTrainingDataFetchTimeoutMs();
-          const res =
-            timeoutMs > 0
-              ? await fetchWithTimeout(url, fetchOpts, timeoutMs)
-              : await fetch(url, fetchOpts);
-          if (!res.ok) throw new Error(`training data: ${res.status}`);
-          const raw = await res.json();
-          const parsed = unwrapTrainingPayload(raw);
+      if (!allowLocalFallback) {
+        for (const url of urls) {
+          try {
+            const parsed = await loadTrainingDataPayloadFromUrl(url, getTrainingDataFetchTimeoutMs());
+            dataCache = hydrateData(parsed.payload);
+            dataLoadInfo = {
+              status: 'ok',
+              loadedAt: new Date().toISOString(),
+              requestUrl: url,
+              manifestUrl,
+              transport: url === localUrl ? 'local' : 'remote',
+              source: parsed.source || (url === localUrl ? 'local-json' : 'remote'),
+              release: parsed.release || null,
+              version: '',
+              bundleVersion: BUNDLE_TRAINING_DATA_VERSION,
+              cacheHit: false,
+              triedUrls: urls.slice(),
+              errors: errors.map((entry) => ({
+                url: entry.url,
+                message: entry.message
+              }))
+            };
+            dataPromise = null;
+            return dataCache;
+          } catch (err) {
+            const errorMessage =
+              err && err.name === 'AbortError'
+                ? `training data timeout after ${getTrainingDataFetchTimeoutMs()}ms`
+                : err && err.message
+                ? err.message
+                : String(err);
+            errors.push({
+              url,
+              message: errorMessage
+            });
+          }
+        }
+
+        console.error('[training-data] failed to load from all sources', errors);
+        dataCache = { routes: [] };
+        dataLoadInfo = {
+          status: 'error',
+          loadedAt: new Date().toISOString(),
+          requestUrl: '',
+          manifestUrl,
+          transport: '',
+          source: '',
+          release: null,
+          version: '',
+          bundleVersion: BUNDLE_TRAINING_DATA_VERSION,
+          cacheHit: false,
+          triedUrls: urls.slice(),
+          errors: errors.slice()
+        };
+        dataPromise = null;
+        return dataCache;
+      }
+
+      try {
+        const remoteMeta = remoteUrl ? await loadTrainingDataMeta(manifestUrl) : null;
+        const remoteVersion = normalizeTrainingVersion(
+          remoteMeta && typeof remoteMeta.version === 'string' ? remoteMeta.version : ''
+        );
+        const cacheVersion = cached ? normalizeTrainingVersion(cached.version) : '';
+
+        if (remoteVersion && remoteVersion === BUNDLE_TRAINING_DATA_VERSION) {
+          const parsed = await loadTrainingDataPayloadFromUrl(localUrl, 0);
           dataCache = hydrateData(parsed.payload);
           dataLoadInfo = {
             status: 'ok',
             loadedAt: new Date().toISOString(),
-            requestUrl: url,
-            transport: url === localUrl ? 'local' : 'remote',
-            source: parsed.source || (url === localUrl ? 'local-json' : 'remote'),
+            requestUrl: localUrl,
+            manifestUrl,
+            transport: 'local',
+            source: parsed.source || 'local-json',
             release: parsed.release || null,
-            triedUrls: urls.slice(),
+            version: remoteVersion,
+            bundleVersion: BUNDLE_TRAINING_DATA_VERSION,
+            cacheHit: false,
+            triedUrls: [manifestUrl, localUrl].filter(Boolean),
+            errors: []
+          };
+          dataPromise = null;
+          return dataCache;
+        }
+
+        if (remoteVersion && cached && cacheVersion === remoteVersion) {
+          dataCache = hydrateData(cached.payload);
+          dataLoadInfo = {
+            status: 'ok',
+            loadedAt: new Date().toISOString(),
+            requestUrl: `cache:${cacheVersion}`,
+            manifestUrl,
+            transport: 'cache',
+            source: cached.source || 'remote-cache',
+            release: cached.release || null,
+            version: cacheVersion,
+            bundleVersion: BUNDLE_TRAINING_DATA_VERSION,
+            cacheHit: true,
+            triedUrls: [manifestUrl],
+            errors: []
+          };
+          dataPromise = null;
+          return dataCache;
+        }
+
+        if (remoteVersion && remoteUrl) {
+          const parsed = await loadTrainingDataPayloadFromUrl(remoteUrl, getTrainingDataFetchTimeoutMs());
+          dataCache = hydrateData(parsed.payload);
+          writeTrainingDataCache({
+            version: remoteVersion,
+            payload: parsed.payload,
+            source: parsed.source || 'remote',
+            release: parsed.release || null
+          });
+          dataLoadInfo = {
+            status: 'ok',
+            loadedAt: new Date().toISOString(),
+            requestUrl: remoteUrl,
+            manifestUrl,
+            transport: 'remote',
+            source: parsed.source || 'remote',
+            release: parsed.release || null,
+            version: remoteVersion,
+            bundleVersion: BUNDLE_TRAINING_DATA_VERSION,
+            cacheHit: false,
+            triedUrls: [manifestUrl, remoteUrl].filter(Boolean),
+            errors: []
+          };
+          dataPromise = null;
+          return dataCache;
+        }
+
+        if (cached) {
+          dataCache = hydrateData(cached.payload);
+          dataLoadInfo = {
+            status: 'ok',
+            loadedAt: new Date().toISOString(),
+            requestUrl: `cache:${cacheVersion || 'unknown'}`,
+            manifestUrl,
+            transport: 'cache',
+            source: cached.source || 'remote-cache',
+            release: cached.release || null,
+            version: cacheVersion,
+            bundleVersion: BUNDLE_TRAINING_DATA_VERSION,
+            cacheHit: true,
+            triedUrls: [manifestUrl].filter(Boolean),
+            errors: []
+          };
+          dataPromise = null;
+          return dataCache;
+        }
+
+        const parsed = await loadTrainingDataPayloadFromUrl(localUrl, 0);
+        dataCache = hydrateData(parsed.payload);
+        dataLoadInfo = {
+          status: 'ok',
+          loadedAt: new Date().toISOString(),
+          requestUrl: localUrl,
+          manifestUrl,
+          transport: 'local',
+          source: parsed.source || 'local-json',
+          release: parsed.release || null,
+          version: BUNDLE_TRAINING_DATA_VERSION,
+          bundleVersion: BUNDLE_TRAINING_DATA_VERSION,
+          cacheHit: false,
+          triedUrls: [manifestUrl, localUrl].filter(Boolean),
+          errors: []
+        };
+        dataPromise = null;
+        return dataCache;
+      } catch (err) {
+        const errorMessage =
+          err && err.name === 'AbortError'
+            ? `training data timeout after ${getTrainingDataFetchTimeoutMs()}ms`
+            : err && err.message
+            ? err.message
+            : String(err);
+        errors.push({
+          url: manifestUrl || remoteUrl || localUrl,
+          message: errorMessage
+        });
+        if (cached) {
+          dataCache = hydrateData(cached.payload);
+          dataLoadInfo = {
+            status: 'ok',
+            loadedAt: new Date().toISOString(),
+            requestUrl: `cache:${normalizeTrainingVersion(cached.version) || 'unknown'}`,
+            manifestUrl,
+            transport: 'cache',
+            source: cached.source || 'remote-cache',
+            release: cached.release || null,
+            version: normalizeTrainingVersion(cached.version),
+            bundleVersion: BUNDLE_TRAINING_DATA_VERSION,
+            cacheHit: true,
+            triedUrls: [manifestUrl, localUrl].filter(Boolean),
             errors: errors.map((entry) => ({
               url: entry.url,
               message: entry.message
@@ -298,34 +576,27 @@ const loadTrainingData = async () => {
           };
           dataPromise = null;
           return dataCache;
-        } catch (err) {
-          const errorMessage =
-            err && err.name === 'AbortError'
-              ? `training data timeout after ${getTrainingDataFetchTimeoutMs()}ms`
-              : err && err.message
-              ? err.message
-              : String(err);
-          errors.push({
-            url,
-            message: errorMessage
-          });
         }
-      }
 
-      console.error('[training-data] failed to load from all sources', errors);
-      dataCache = { routes: [] };
-      dataLoadInfo = {
-        status: 'error',
-        loadedAt: new Date().toISOString(),
-        requestUrl: '',
-        transport: '',
-        source: '',
-        release: null,
-        triedUrls: urls.slice(),
-        errors: errors.slice()
-      };
-      dataPromise = null;
-      return dataCache;
+        console.error('[training-data] failed to load from all sources', errors);
+        dataCache = { routes: [] };
+        dataLoadInfo = {
+          status: 'error',
+          loadedAt: new Date().toISOString(),
+          requestUrl: '',
+          manifestUrl,
+          transport: '',
+          source: '',
+          release: null,
+          version: '',
+          bundleVersion: BUNDLE_TRAINING_DATA_VERSION,
+          cacheHit: false,
+          triedUrls: [manifestUrl, localUrl].filter(Boolean),
+          errors: errors.slice()
+        };
+        dataPromise = null;
+        return dataCache;
+      }
     })();
   }
   return dataPromise;

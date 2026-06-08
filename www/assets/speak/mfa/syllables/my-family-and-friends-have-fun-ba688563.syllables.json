@@ -1,0 +1,98 @@
+[
+  {
+    "word": "my",
+    "start": 0.04,
+    "end": 0.23,
+    "syllables": [
+      {
+        "text": "my",
+        "start": 0.04,
+        "end": 0.23,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "family",
+    "start": 0.23,
+    "end": 0.73,
+    "syllables": [
+      {
+        "text": "fa",
+        "start": 0.23,
+        "end": 0.397,
+        "index": 0
+      },
+      {
+        "text": "mi",
+        "start": 0.397,
+        "end": 0.563,
+        "index": 1
+      },
+      {
+        "text": "ly",
+        "start": 0.563,
+        "end": 0.73,
+        "index": 2
+      }
+    ]
+  },
+  {
+    "word": "and",
+    "start": 0.73,
+    "end": 0.89,
+    "syllables": [
+      {
+        "text": "and",
+        "start": 0.73,
+        "end": 0.89,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "friends",
+    "start": 0.89,
+    "end": 1.24,
+    "syllables": [
+      {
+        "text": "friends",
+        "start": 0.89,
+        "end": 1.24,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "have",
+    "start": 1.24,
+    "end": 1.42,
+    "syllables": [
+      {
+        "text": "ha",
+        "start": 1.24,
+        "end": 1.33,
+        "index": 0
+      },
+      {
+        "text": "ve",
+        "start": 1.33,
+        "end": 1.42,
+        "index": 1
+      }
+    ]
+  },
+  {
+    "word": "fun",
+    "start": 1.42,
+    "end": 1.89,
+    "syllables": [
+      {
+        "text": "fun",
+        "start": 1.42,
+        "end": 1.89,
+        "index": 0
+      }
+    ]
+  }
+]

@@ -1,0 +1,21 @@
+[
+  {
+    "word": "stove",
+    "start": 0.04,
+    "end": 0.68,
+    "syllables": [
+      {
+        "text": "sto",
+        "start": 0.04,
+        "end": 0.424,
+        "index": 0
+      },
+      {
+        "text": "ve",
+        "start": 0.424,
+        "end": 0.68,
+        "index": 1
+      }
+    ]
+  }
+]

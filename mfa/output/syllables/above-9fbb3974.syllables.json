@@ -1,0 +1,27 @@
+[
+  {
+    "word": "above",
+    "start": 0.05,
+    "end": 0.62,
+    "syllables": [
+      {
+        "text": "a",
+        "start": 0.05,
+        "end": 0.164,
+        "index": 0
+      },
+      {
+        "text": "bo",
+        "start": 0.164,
+        "end": 0.392,
+        "index": 1
+      },
+      {
+        "text": "ve",
+        "start": 0.392,
+        "end": 0.62,
+        "index": 2
+      }
+    ]
+  }
+]

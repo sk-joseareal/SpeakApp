@@ -1,19 +1,19 @@
 [
   {
     "word": "dance",
-    "start": 0,
-    "end": 0.48,
+    "start": 0.06,
+    "end": 0.72,
     "syllables": [
       {
         "text": "dan",
-        "start": 0,
-        "end": 0.288,
+        "start": 0.06,
+        "end": 0.456,
         "index": 0
       },
       {
         "text": "ce",
-        "start": 0.288,
-        "end": 0.48,
+        "start": 0.456,
+        "end": 0.72,
         "index": 1
       }
     ]

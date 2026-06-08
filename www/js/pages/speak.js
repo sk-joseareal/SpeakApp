@@ -3435,38 +3435,77 @@ class PageSpeak extends HTMLElement {
     };
 
     const playTts = (text, triggerBtn, options = {}) => {
-      if (!text || !canSpeak()) return;
+      if (!text) return;
       stopPlayback();
       setActivePlayButton(triggerBtn || null);
-      const utter = new SpeechSynthesisUtterance(text);
-      utter.lang = String(options.lang || 'en-US');
-      if (typeof options.onStart === 'function') {
-        utter.onstart = () => {
-          options.onStart();
+      const lang = String(options.lang || 'en-US');
+      const onStart = typeof options.onStart === 'function' ? options.onStart : null;
+      const onEnd = typeof options.onEnd === 'function' ? options.onEnd : null;
+      const onError = typeof options.onError === 'function' ? options.onError : null;
+      const plugin = getNativeTtsPlugin();
+
+      const speakWeb = () => {
+        if (!canSpeak()) return false;
+        const utter = new SpeechSynthesisUtterance(text);
+        utter.lang = lang;
+        if (onStart) {
+          utter.onstart = () => {
+            onStart();
+          };
+        }
+        utter.onend = () => {
+          if (onEnd) onEnd();
+          clearActivePlayButton();
         };
-      }
-      utter.onend = () => {
-        if (typeof options.onEnd === 'function') {
-          options.onEnd();
+        utter.onerror = () => {
+          if (onError) onError();
+          clearActivePlayButton();
+        };
+        const started =
+          typeof window.speakWebUtterance === 'function'
+            ? window.speakWebUtterance(utter)
+            : (() => {
+                window.speechSynthesis.speak(utter);
+                return true;
+              })();
+        if (!started) {
+          clearActivePlayButton();
         }
-        clearActivePlayButton();
+        return started;
       };
-      utter.onerror = () => {
-        if (typeof options.onError === 'function') {
-          options.onError();
+
+      const speakNative = async () => {
+        if (!plugin || typeof plugin.speak !== 'function') return false;
+        try {
+          if (onStart) onStart();
+          await Promise.resolve(
+            plugin.speak({
+              text,
+              lang,
+              rate: typeof options.rate === 'number' ? options.rate : 1,
+              pitch: typeof options.pitch === 'number' ? options.pitch : 1,
+              volume: typeof options.volume === 'number' ? options.volume : 1,
+              category: 'ambient',
+              queueStrategy: 1
+            })
+          );
+          if (onEnd) onEnd();
+          clearActivePlayButton();
+          return true;
+        } catch (err) {
+          if (onError) onError(err);
+          return false;
         }
-        clearActivePlayButton();
       };
-      const started =
-        typeof window.speakWebUtterance === 'function'
-          ? window.speakWebUtterance(utter)
-          : (() => {
-              window.speechSynthesis.speak(utter);
-              return true;
-            })();
-      if (!started) {
-        clearActivePlayButton();
-      }
+
+      Promise.resolve()
+        .then(() => speakNative())
+        .then((started) => {
+          if (!started) speakWeb();
+        })
+        .catch(() => {
+          speakWeb();
+        });
     };
 
     const ensureMfaItems = async () => {
@@ -3517,8 +3556,31 @@ class PageSpeak extends HTMLElement {
               index: 0
             }
           ]
-        }));
+          }));
       }
+    };
+
+    const wordsToSyllables = (words) => {
+      if (!Array.isArray(words)) return [];
+      return words
+        .map((word) => {
+          const text = String(word && (word.word || word.text) ? word.word || word.text : '').trim();
+          if (!text) return null;
+          return {
+            word: text,
+            start: Number(word.start || 0) || 0,
+            end: Number(word.end || 0) || 0,
+            syllables: [
+              {
+                text,
+                start: Number(word.start || 0) || 0,
+                end: Number(word.end || 0) || 0,
+                index: 0
+              }
+            ]
+          };
+        })
+        .filter(Boolean);
     };
 
     const splitPhoneticText = (phonetic, expected) => {
@@ -3711,8 +3773,64 @@ class PageSpeak extends HTMLElement {
       const ready = await ensureMfaItems();
       const itemId = ready ? getMfaIdForText(text) : null;
       if (!itemId) {
-        if (targetEl) targetEl.textContent = phonetic || text;
-        playTts(text, triggerBtn || null);
+        let remotePayload = null;
+        try {
+          remotePayload = await fetchAlignedTts(text, 'en-US');
+        } catch (err) {
+          remotePayload = null;
+        }
+
+        if (!remotePayload || typeof remotePayload.audio_url !== 'string' || !remotePayload.audio_url.trim()) {
+          if (targetEl) targetEl.textContent = phonetic || text;
+          playTts(text, triggerBtn || null);
+          return;
+        }
+
+        const split = phonetic ? splitPhoneticText(phonetic, text) : null;
+        const prefix = split ? split.prefix : '';
+        const suffix = split ? split.suffix : '';
+        const remoteSyllables = wordsToSyllables(remotePayload.words);
+        if (targetEl) {
+          renderSyllables(targetEl, remoteSyllables, text || phonetic, focusKey, prefix, suffix);
+        } else {
+          resetSyllables();
+        }
+
+        visemes = [];
+        const audio = new Audio(String(remotePayload.audio_url || '').trim());
+        playbackAudio = audio;
+        setActivePlayButton(triggerBtn || null);
+        if (withVisemes) {
+          avatarAudio = audio;
+        } else {
+          activeAudio = audio;
+        }
+        animating = true;
+        currentViseme = 0;
+        currentSyllable = 0;
+        activeSyllableIndex = -1;
+        lastVisemeKey = 'NEUTRAL';
+        setMouthViseme('NEUTRAL');
+        startHeroMascotTalk();
+
+        audio.onended = () => {
+          animating = false;
+          setMouthViseme('NEUTRAL');
+          highlightSyllable(-1);
+          stopHeroMascotTalk({ settle: true });
+          clearActivePlayButton();
+        };
+
+        audio.onerror = () => {
+          stopHeroMascotTalk({ settle: true });
+          clearActivePlayButton();
+        };
+
+        audio.play().catch(() => {
+          stopHeroMascotTalk({ settle: true });
+          clearActivePlayButton();
+        });
+        rafId = requestAnimationFrame(updateAvatar);
         return;
       }
 
@@ -3762,14 +3880,17 @@ class PageSpeak extends HTMLElement {
         animating = false;
         setMouthViseme('NEUTRAL');
         highlightSyllable(-1);
+        stopHeroMascotTalk({ settle: true });
         clearActivePlayButton();
       };
 
       audio.onerror = () => {
+        stopHeroMascotTalk({ settle: true });
         clearActivePlayButton();
       };
 
       audio.play().catch(() => {
+        stopHeroMascotTalk({ settle: true });
         clearActivePlayButton();
       });
       rafId = requestAnimationFrame(updateAvatar);
@@ -4925,7 +5046,7 @@ class PageSpeak extends HTMLElement {
 
       recordBtn?.addEventListener('click', () => {
         if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-          const delayMs = typeof window.getRecordingStopDelayMs === 'function' ? window.getRecordingStopDelayMs() : 0;
+          const delayMs = typeof window.getRecordingStopDelayMs === 'function' ? window.getRecordingStopDelayMs() : 600;
           if (delayMs > 0) {
             if (pendingRecordingStopTimer) { clearTimeout(pendingRecordingStopTimer); }
             recordingStopPending = true;

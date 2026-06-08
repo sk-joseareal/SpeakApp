@@ -1,0 +1,27 @@
+[
+  {
+    "word": "general",
+    "start": 0.07,
+    "end": 0.61,
+    "syllables": [
+      {
+        "text": "ge",
+        "start": 0.07,
+        "end": 0.224,
+        "index": 0
+      },
+      {
+        "text": "ne",
+        "start": 0.224,
+        "end": 0.379,
+        "index": 1
+      },
+      {
+        "text": "ral",
+        "start": 0.379,
+        "end": 0.61,
+        "index": 2
+      }
+    ]
+  }
+]

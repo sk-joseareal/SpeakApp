@@ -1,0 +1,32 @@
+[
+  {
+    "start": 0.04,
+    "end": 0.23,
+    "word": "he"
+  },
+  {
+    "start": 0.23,
+    "end": 0.35,
+    "word": "is"
+  },
+  {
+    "start": 0.35,
+    "end": 0.78,
+    "word": "happy"
+  },
+  {
+    "start": 0.78,
+    "end": 0.86,
+    "word": "in"
+  },
+  {
+    "start": 0.86,
+    "end": 1.03,
+    "word": "his"
+  },
+  {
+    "start": 1.03,
+    "end": 1.5,
+    "word": "home"
+  }
+]

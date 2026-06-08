@@ -1,0 +1,27 @@
+[
+  {
+    "start": 0.04,
+    "end": 0.32,
+    "word": "young"
+  },
+  {
+    "start": 0.32,
+    "end": 0.69,
+    "word": "boys"
+  },
+  {
+    "start": 0.69,
+    "end": 0.98,
+    "word": "sing"
+  },
+  {
+    "start": 0.98,
+    "end": 1.25,
+    "word": "long"
+  },
+  {
+    "start": 1.25,
+    "end": 1.95,
+    "word": "songs"
+  }
+]

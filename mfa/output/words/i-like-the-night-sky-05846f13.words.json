@@ -1,0 +1,27 @@
+[
+  {
+    "start": 0.06,
+    "end": 0.17,
+    "word": "i"
+  },
+  {
+    "start": 0.17,
+    "end": 0.42,
+    "word": "like"
+  },
+  {
+    "start": 0.42,
+    "end": 0.51,
+    "word": "the"
+  },
+  {
+    "start": 0.51,
+    "end": 0.78,
+    "word": "night"
+  },
+  {
+    "start": 0.78,
+    "end": 1.25,
+    "word": "sky"
+  }
+]

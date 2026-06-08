@@ -1,0 +1,7 @@
+2026-06-08 16:49:11,800 - kalpy.graphs - 13086257152 - 1 - DEBUG - Tree path: /Users/r34lp0w3r/Dev/sokinternet/speakapp/mfa/output/tmp-1780929968/corpus/alignment/tree
+2026-06-08 16:49:11,801 - kalpy.graphs - 13086257152 - 1 - DEBUG - Model path: /Users/r34lp0w3r/Dev/sokinternet/speakapp/mfa/output/tmp-1780929968/corpus/alignment/final.alimdl
+2026-06-08 16:49:12,546 - kalpy.graphs - 13086257152 - 1 - DEBUG - Set up took 0.7437970638275146 seconds
+2026-06-08 16:49:12,546 - kalpy.graphs - 13086257152 - 1 - INFO - Compiling graphs for english_us_arpa
+2026-06-08 16:49:12,548 - kalpy.graphs - 13086257152 - 1 - DEBUG - DISAMBIGUATION: False
+2026-06-08 16:49:12,693 - kalpy.graphs - 13086257152 - 1 - INFO - Done 244 utterances, errors on 0.
+2026-06-08 16:49:12,693 - kalpy.graphs - 13086257152 - 1 - DEBUG - Total compilation time: 0.8907623291015625 seconds

@@ -1,0 +1,55 @@
+{
+  "schema": 1,
+  "generated_at": "2026-06-08T14:48:26.675Z",
+  "hash": "db6baa5a5dfc0a56bd938fb16e7383539fc01efc",
+  "text": "Young boys sing long songs.",
+  "locale": "en-US",
+  "voice": "Danielle",
+  "engine": "neural",
+  "rate": "",
+  "pitch": "",
+  "voice_profile": "default",
+  "duration_ms": 1612,
+  "words": [
+    {
+      "index": 0,
+      "text": "Young",
+      "start_ms": 25,
+      "end_ms": 312,
+      "start_char": 0,
+      "end_char": 5
+    },
+    {
+      "index": 1,
+      "text": "boys",
+      "start_ms": 312,
+      "end_ms": 650,
+      "start_char": 6,
+      "end_char": 10
+    },
+    {
+      "index": 2,
+      "text": "sing",
+      "start_ms": 650,
+      "end_ms": 925,
+      "start_char": 11,
+      "end_char": 15
+    },
+    {
+      "index": 3,
+      "text": "long",
+      "start_ms": 925,
+      "end_ms": 1212,
+      "start_char": 16,
+      "end_char": 20
+    },
+    {
+      "index": 4,
+      "text": "songs",
+      "start_ms": 1212,
+      "end_ms": 1612,
+      "start_char": 21,
+      "end_char": 26
+    }
+  ]
+}

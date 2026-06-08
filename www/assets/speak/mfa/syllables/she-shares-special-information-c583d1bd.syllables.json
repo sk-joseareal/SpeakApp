@@ -1,0 +1,84 @@
+[
+  {
+    "word": "she",
+    "start": 0.04,
+    "end": 0.26,
+    "syllables": [
+      {
+        "text": "she",
+        "start": 0.04,
+        "end": 0.26,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "shares",
+    "start": 0.26,
+    "end": 0.64,
+    "syllables": [
+      {
+        "text": "sha",
+        "start": 0.26,
+        "end": 0.45,
+        "index": 0
+      },
+      {
+        "text": "res",
+        "start": 0.45,
+        "end": 0.64,
+        "index": 1
+      }
+    ]
+  },
+  {
+    "word": "special",
+    "start": 0.64,
+    "end": 1.03,
+    "syllables": [
+      {
+        "text": "spe",
+        "start": 0.64,
+        "end": 0.807,
+        "index": 0
+      },
+      {
+        "text": "cial",
+        "start": 0.807,
+        "end": 1.03,
+        "index": 1
+      }
+    ]
+  },
+  {
+    "word": "information",
+    "start": 1.03,
+    "end": 1.87,
+    "syllables": [
+      {
+        "text": "in",
+        "start": 1.03,
+        "end": 1.183,
+        "index": 0
+      },
+      {
+        "text": "for",
+        "start": 1.183,
+        "end": 1.412,
+        "index": 1
+      },
+      {
+        "text": "ma",
+        "start": 1.412,
+        "end": 1.565,
+        "index": 2
+      },
+      {
+        "text": "tion",
+        "start": 1.565,
+        "end": 1.87,
+        "index": 3
+      }
+    ]
+  }
+]

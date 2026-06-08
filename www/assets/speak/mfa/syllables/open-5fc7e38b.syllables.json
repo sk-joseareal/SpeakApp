@@ -1,19 +1,19 @@
 [
   {
     "word": "open",
-    "start": 0,
-    "end": 0.43,
+    "start": 0.06,
+    "end": 0.56,
     "syllables": [
       {
         "text": "o",
-        "start": 0,
-        "end": 0.107,
+        "start": 0.06,
+        "end": 0.185,
         "index": 0
       },
       {
         "text": "pen",
-        "start": 0.107,
-        "end": 0.43,
+        "start": 0.185,
+        "end": 0.56,
         "index": 1
       }
     ]

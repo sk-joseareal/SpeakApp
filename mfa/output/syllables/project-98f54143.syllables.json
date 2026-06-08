@@ -1,0 +1,21 @@
+[
+  {
+    "word": "project",
+    "start": 0.05,
+    "end": 0.63,
+    "syllables": [
+      {
+        "text": "pro",
+        "start": 0.05,
+        "end": 0.299,
+        "index": 0
+      },
+      {
+        "text": "ject",
+        "start": 0.299,
+        "end": 0.63,
+        "index": 1
+      }
+    ]
+  }
+]

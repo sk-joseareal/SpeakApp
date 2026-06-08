@@ -1,0 +1,68 @@
+{
+  "ok": true,
+  "provider": "aws-polly",
+  "cached": false,
+  "hash": "77c6c23873ce79ceeae3761275d08211f169a15f",
+  "text": "We love the violin very much.",
+  "locale": "en-US",
+  "voice": "Danielle",
+  "engine": "neural",
+  "rate": "",
+  "pitch": "",
+  "voice_profile": "default",
+  "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/77c6c23873ce79ceeae3761275d08211f169a15f.mp3",
+  "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/77c6c23873ce79ceeae3761275d08211f169a15f.words.json",
+  "duration_ms": 1595,
+  "words": [
+    {
+      "index": 0,
+      "text": "We",
+      "start_ms": 25,
+      "end_ms": 162,
+      "start_char": 0,
+      "end_char": 2
+    },
+    {
+      "index": 1,
+      "text": "love",
+      "start_ms": 162,
+      "end_ms": 412,
+      "start_char": 3,
+      "end_char": 7
+    },
+    {
+      "index": 2,
+      "text": "the",
+      "start_ms": 412,
+      "end_ms": 500,
+      "start_char": 8,
+      "end_char": 11
+    },
+    {
+      "index": 3,
+      "text": "violin",
+      "start_ms": 500,
+      "end_ms": 1000,
+      "start_char": 12,
+      "end_char": 18
+    },
+    {
+      "index": 4,
+      "text": "very",
+      "start_ms": 1000,
+      "end_ms": 1275,
+      "start_char": 19,
+      "end_char": 23
+    },
+    {
+      "index": 5,
+      "text": "much",
+      "start_ms": 1275,
+      "end_ms": 1595,
+      "start_char": 24,
+      "end_char": 28
+    }
+  ],
+  "limit_status": null,
+  "audio_kind": "polly"
+}

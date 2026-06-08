@@ -1,0 +1,27 @@
+[
+  {
+    "word": "manager",
+    "start": 0.04,
+    "end": 0.66,
+    "syllables": [
+      {
+        "text": "ma",
+        "start": 0.04,
+        "end": 0.217,
+        "index": 0
+      },
+      {
+        "text": "na",
+        "start": 0.217,
+        "end": 0.394,
+        "index": 1
+      },
+      {
+        "text": "ger",
+        "start": 0.394,
+        "end": 0.66,
+        "index": 2
+      }
+    ]
+  }
+]

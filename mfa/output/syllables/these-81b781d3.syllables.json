@@ -1,0 +1,21 @@
+[
+  {
+    "word": "these",
+    "start": 0.05,
+    "end": 0.63,
+    "syllables": [
+      {
+        "text": "the",
+        "start": 0.05,
+        "end": 0.398,
+        "index": 0
+      },
+      {
+        "text": "se",
+        "start": 0.398,
+        "end": 0.63,
+        "index": 1
+      }
+    ]
+  }
+]

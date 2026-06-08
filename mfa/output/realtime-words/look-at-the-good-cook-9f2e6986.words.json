@@ -1,0 +1,55 @@
+{
+  "schema": 1,
+  "generated_at": "2026-06-08T14:47:11.215Z",
+  "hash": "9c19fdc6710741b68532a85ebc85c5bffe3b9574",
+  "text": "Look at the good cook.",
+  "locale": "en-US",
+  "voice": "Danielle",
+  "engine": "neural",
+  "rate": "",
+  "pitch": "",
+  "voice_profile": "default",
+  "duration_ms": 982,
+  "words": [
+    {
+      "index": 0,
+      "text": "Look",
+      "start_ms": 25,
+      "end_ms": 250,
+      "start_char": 0,
+      "end_char": 4
+    },
+    {
+      "index": 1,
+      "text": "at",
+      "start_ms": 250,
+      "end_ms": 362,
+      "start_char": 5,
+      "end_char": 7
+    },
+    {
+      "index": 2,
+      "text": "the",
+      "start_ms": 362,
+      "end_ms": 437,
+      "start_char": 8,
+      "end_char": 11
+    },
+    {
+      "index": 3,
+      "text": "good",
+      "start_ms": 437,
+      "end_ms": 662,
+      "start_char": 12,
+      "end_char": 16
+    },
+    {
+      "index": 4,
+      "text": "cook",
+      "start_ms": 662,
+      "end_ms": 982,
+      "start_char": 17,
+      "end_char": 21
+    }
+  ]
+}

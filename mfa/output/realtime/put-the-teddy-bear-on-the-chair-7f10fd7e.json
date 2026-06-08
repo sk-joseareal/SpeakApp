@@ -1,0 +1,76 @@
+{
+  "ok": true,
+  "provider": "aws-polly",
+  "cached": false,
+  "hash": "c642eecd9c3a0852adecc1546fda76028fdd2829",
+  "text": "Put the teddy bear on the chair.",
+  "locale": "en-US",
+  "voice": "Danielle",
+  "engine": "neural",
+  "rate": "",
+  "pitch": "",
+  "voice_profile": "default",
+  "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/c642eecd9c3a0852adecc1546fda76028fdd2829.mp3",
+  "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/c642eecd9c3a0852adecc1546fda76028fdd2829.words.json",
+  "duration_ms": 1525,
+  "words": [
+    {
+      "index": 0,
+      "text": "Put",
+      "start_ms": 25,
+      "end_ms": 225,
+      "start_char": 0,
+      "end_char": 3
+    },
+    {
+      "index": 1,
+      "text": "the",
+      "start_ms": 225,
+      "end_ms": 325,
+      "start_char": 4,
+      "end_char": 7
+    },
+    {
+      "index": 2,
+      "text": "teddy",
+      "start_ms": 325,
+      "end_ms": 600,
+      "start_char": 8,
+      "end_char": 13
+    },
+    {
+      "index": 3,
+      "text": "bear",
+      "start_ms": 600,
+      "end_ms": 887,
+      "start_char": 14,
+      "end_char": 18
+    },
+    {
+      "index": 4,
+      "text": "on",
+      "start_ms": 887,
+      "end_ms": 1050,
+      "start_char": 19,
+      "end_char": 21
+    },
+    {
+      "index": 5,
+      "text": "the",
+      "start_ms": 1050,
+      "end_ms": 1125,
+      "start_char": 22,
+      "end_char": 25
+    },
+    {
+      "index": 6,
+      "text": "chair",
+      "start_ms": 1125,
+      "end_ms": 1525,
+      "start_char": 26,
+      "end_char": 31
+    }
+  ],
+  "limit_status": null,
+  "audio_kind": "polly"
+}

@@ -1,6 +1,8 @@
 const SUPPORTED_LOCALES = new Set(['es', 'en']);
 const APP_COPY_URL = new URL('../../data/app-copy.json', import.meta.url).href;
+const APP_COPY_AUDIO_URL = new URL('../../data/app-copy-audio.json', import.meta.url).href;
 const EMPTY_APP_COPY = { es: {}, en: {} };
+const EMPTY_APP_COPY_AUDIO = { locales: { es: {}, en: {} } };
 
 export const LOCALE_META = {
   es: {
@@ -49,7 +51,46 @@ const loadAppCopyPayload = () => {
   }
 };
 
+const loadAppCopyAudioPayload = () => {
+  if (typeof window === 'undefined' || typeof XMLHttpRequest === 'undefined') {
+    return EMPTY_APP_COPY_AUDIO;
+  }
+
+  try {
+    const xhr = new XMLHttpRequest();
+    const cacheBustedUrl = `${APP_COPY_AUDIO_URL}${APP_COPY_AUDIO_URL.includes('?') ? '&' : '?'}_ts=${Date.now()}`;
+    xhr.open('GET', cacheBustedUrl, false);
+    xhr.setRequestHeader('Cache-Control', 'no-cache');
+    xhr.setRequestHeader('Pragma', 'no-cache');
+    xhr.send(null);
+
+    if (xhr.status && xhr.status !== 0 && (xhr.status < 200 || xhr.status >= 300)) {
+      throw new Error(`HTTP ${xhr.status}`);
+    }
+
+    const payload = JSON.parse(xhr.responseText || '{}');
+    if (!isPlainObject(payload) || !isPlainObject(payload.locales)) {
+      throw new Error('payload must contain root locales map');
+    }
+    if (!isPlainObject(payload.locales.es) || !isPlainObject(payload.locales.en)) {
+      throw new Error('payload must contain root locales "es" and "en"');
+    }
+    return payload;
+  } catch (error) {
+    console.error('[copy] unable to load app copy audio payload from data/app-copy-audio.json', error);
+    return EMPTY_APP_COPY_AUDIO;
+  }
+};
+
 const APP_COPY = loadAppCopyPayload();
+const APP_COPY_AUDIO = loadAppCopyAudioPayload();
+
+const resolveNarrationLocale = (locale) => {
+  const normalized = String(locale || '').trim().toLowerCase();
+  if (normalized.startsWith('es')) return 'es';
+  if (normalized.startsWith('en')) return 'en';
+  return resolveLocale(locale);
+};
 
 export const normalizeLocale = (locale) => {
   const normalized = String(locale || '').trim().toLowerCase();
@@ -82,6 +123,41 @@ export const getOnboardingCopy = (locale) => getCopyBundle(locale).onboarding;
 export const getHomeCopy = (locale) => getCopyBundle(locale).home;
 export const getFreeRideCopy = (locale) => getCopyBundle(locale).freeRide;
 export const getSpeakCopy = (locale) => getCopyBundle(locale).speak;
+
+const normalizeNarrationText = (value) => String(value || '').replace(/\s+/g, ' ').trim();
+const normalizeNarrationLookupKey = (value) => normalizeNarrationText(value).toLowerCase();
+
+export const getAppCopyNarrationPayload = (locale, text) => {
+  const resolved = resolveNarrationLocale(locale);
+  const localePayload =
+    APP_COPY_AUDIO && APP_COPY_AUDIO.locales && isPlainObject(APP_COPY_AUDIO.locales[resolved])
+      ? APP_COPY_AUDIO.locales[resolved]
+      : {};
+  const key = normalizeNarrationText(text);
+  if (!key) return null;
+  const lookupKey = normalizeNarrationLookupKey(key);
+  const direct = localePayload[key];
+  const lookup =
+    localePayload.lookup && typeof localePayload.lookup === 'object'
+      ? localePayload.lookup[lookupKey]
+      : '';
+  let payload = direct || (lookup ? localePayload[lookup] : null);
+  if (!payload) {
+    payload = Object.entries(localePayload).find(([entryKey, entryValue]) => {
+      if (entryKey === 'lookup') return false;
+      if (!entryValue || typeof entryValue !== 'object') return false;
+      const candidate = normalizeNarrationLookupKey(entryValue.text || entryKey);
+      return candidate === lookupKey;
+    })?.[1] || null;
+  }
+  if (!payload || typeof payload !== 'object') return null;
+  return {
+    ok: true,
+    source: 'app-copy-audio',
+    ...payload,
+    words: Array.isArray(payload.words) ? payload.words.map((item) => ({ ...item })) : []
+  };
+};
 
 const normalizeCopyList = (value) =>
   Array.isArray(value) ? value.map((item) => String(item || '').trim()).filter(Boolean) : [];

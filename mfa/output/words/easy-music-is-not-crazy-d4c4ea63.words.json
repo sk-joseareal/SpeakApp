@@ -1,0 +1,27 @@
+[
+  {
+    "start": 0.04,
+    "end": 0.34,
+    "word": "easy"
+  },
+  {
+    "start": 0.34,
+    "end": 0.75,
+    "word": "music"
+  },
+  {
+    "start": 0.75,
+    "end": 0.9,
+    "word": "is"
+  },
+  {
+    "start": 0.9,
+    "end": 1.13,
+    "word": "not"
+  },
+  {
+    "start": 1.13,
+    "end": 1.73,
+    "word": "crazy"
+  }
+]

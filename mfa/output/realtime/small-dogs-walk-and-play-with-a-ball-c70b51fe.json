@@ -1,0 +1,84 @@
+{
+  "ok": true,
+  "provider": "aws-polly",
+  "cached": false,
+  "hash": "955fb5a17a06320a883109a38b97bd3df5c3796f",
+  "text": "Small dogs walk and play with a ball.",
+  "locale": "en-US",
+  "voice": "Danielle",
+  "engine": "neural",
+  "rate": "",
+  "pitch": "",
+  "voice_profile": "default",
+  "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/955fb5a17a06320a883109a38b97bd3df5c3796f.mp3",
+  "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/955fb5a17a06320a883109a38b97bd3df5c3796f.words.json",
+  "duration_ms": 2145,
+  "words": [
+    {
+      "index": 0,
+      "text": "Small",
+      "start_ms": 25,
+      "end_ms": 425,
+      "start_char": 0,
+      "end_char": 5
+    },
+    {
+      "index": 1,
+      "text": "dogs",
+      "start_ms": 425,
+      "end_ms": 875,
+      "start_char": 6,
+      "end_char": 10
+    },
+    {
+      "index": 2,
+      "text": "walk",
+      "start_ms": 875,
+      "end_ms": 1237,
+      "start_char": 11,
+      "end_char": 15
+    },
+    {
+      "index": 3,
+      "text": "and",
+      "start_ms": 1237,
+      "end_ms": 1387,
+      "start_char": 16,
+      "end_char": 19
+    },
+    {
+      "index": 4,
+      "text": "play",
+      "start_ms": 1387,
+      "end_ms": 1600,
+      "start_char": 20,
+      "end_char": 24
+    },
+    {
+      "index": 5,
+      "text": "with",
+      "start_ms": 1600,
+      "end_ms": 1787,
+      "start_char": 25,
+      "end_char": 29
+    },
+    {
+      "index": 6,
+      "text": "a",
+      "start_ms": 1787,
+      "end_ms": 1847,
+      "start_char": 30,
+      "end_char": 31
+    },
+    {
+      "index": 7,
+      "text": "ball",
+      "start_ms": 1825,
+      "end_ms": 2145,
+      "start_char": 32,
+      "end_char": 36
+    }
+  ],
+  "limit_status": null,
+  "audio_kind": "polly"
+}

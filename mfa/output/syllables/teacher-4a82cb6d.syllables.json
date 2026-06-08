@@ -1,0 +1,21 @@
+[
+  {
+    "word": "teacher",
+    "start": 0.05,
+    "end": 0.63,
+    "syllables": [
+      {
+        "text": "teac",
+        "start": 0.05,
+        "end": 0.381,
+        "index": 0
+      },
+      {
+        "text": "her",
+        "start": 0.381,
+        "end": 0.63,
+        "index": 1
+      }
+    ]
+  }
+]

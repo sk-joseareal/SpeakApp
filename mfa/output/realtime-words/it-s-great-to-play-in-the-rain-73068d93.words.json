@@ -1,0 +1,71 @@
+{
+  "schema": 1,
+  "generated_at": "2026-06-08T14:47:05.116Z",
+  "hash": "861213285f43dc56f0333039f96ca761a1587eec",
+  "text": "It's great to play in the rain.",
+  "locale": "en-US",
+  "voice": "Danielle",
+  "engine": "neural",
+  "rate": "",
+  "pitch": "",
+  "voice_profile": "default",
+  "duration_ms": 1457,
+  "words": [
+    {
+      "index": 0,
+      "text": "It's",
+      "start_ms": 25,
+      "end_ms": 237,
+      "start_char": 0,
+      "end_char": 4
+    },
+    {
+      "index": 1,
+      "text": "great",
+      "start_ms": 237,
+      "end_ms": 537,
+      "start_char": 5,
+      "end_char": 10
+    },
+    {
+      "index": 2,
+      "text": "to",
+      "start_ms": 537,
+      "end_ms": 637,
+      "start_char": 11,
+      "end_char": 13
+    },
+    {
+      "index": 3,
+      "text": "play",
+      "start_ms": 637,
+      "end_ms": 912,
+      "start_char": 14,
+      "end_char": 18
+    },
+    {
+      "index": 4,
+      "text": "in",
+      "start_ms": 912,
+      "end_ms": 1025,
+      "start_char": 19,
+      "end_char": 21
+    },
+    {
+      "index": 5,
+      "text": "the",
+      "start_ms": 1025,
+      "end_ms": 1137,
+      "start_char": 22,
+      "end_char": 25
+    },
+    {
+      "index": 6,
+      "text": "rain",
+      "start_ms": 1137,
+      "end_ms": 1457,
+      "start_char": 26,
+      "end_char": 30
+    }
+  ]
+}

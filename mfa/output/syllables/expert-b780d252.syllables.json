@@ -1,0 +1,21 @@
+[
+  {
+    "word": "expert",
+    "start": 0.05,
+    "end": 0.6,
+    "syllables": [
+      {
+        "text": "ex",
+        "start": 0.05,
+        "end": 0.233,
+        "index": 0
+      },
+      {
+        "text": "pert",
+        "start": 0.233,
+        "end": 0.6,
+        "index": 1
+      }
+    ]
+  }
+]

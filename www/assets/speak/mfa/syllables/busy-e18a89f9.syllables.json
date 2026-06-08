@@ -1,0 +1,21 @@
+[
+  {
+    "word": "busy",
+    "start": 0.06,
+    "end": 0.56,
+    "syllables": [
+      {
+        "text": "bu",
+        "start": 0.06,
+        "end": 0.31,
+        "index": 0
+      },
+      {
+        "text": "sy",
+        "start": 0.31,
+        "end": 0.56,
+        "index": 1
+      }
+    ]
+  }
+]

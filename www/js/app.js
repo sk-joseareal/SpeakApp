@@ -22,6 +22,8 @@ const LAB_THEME_COLOR = '#00000000';
 const APP_STATUSBAR_PRESET_KEY = 'appv5:statusbar-preset';
 const APP_FONT_SF_PRO_ENABLED_KEY = 'appv5:font-sf-pro-enabled';
 const SYSTEM_BOTTOM_INSET_DEBUG_KEY = 'appv5:system-bottom-inset-debug';
+const RECORDING_STOP_DELAY_KEY = 'appv5:recording-stop-delay-ms';
+const RECORDING_STOP_DELAY_DEFAULT_MS = 600;
 const LEGACY_LAYOUT_TRACE_STORAGE_KEY = 'appv5:legacy-layout-trace';
 const DEBUG_DISABLE_FOREGROUND_CHROME_RESYNC = false;
 const TAB_STORAGE_KEY = 'appv5:active-tab';
@@ -47,6 +49,48 @@ let _legacyLayoutUnlockTimer2 = 0;
 let _legacyLayoutReady = true;
 let _legacyLayoutInitDone = false;
 let _legacyViewportEventsFrozen = false;
+
+function normalizeRecordingStopDelayMs(value) {
+  const n = Math.round(Number(value));
+  if (!Number.isFinite(n) || n < 0) return RECORDING_STOP_DELAY_DEFAULT_MS;
+  return Math.min(5000, Math.max(0, n));
+}
+
+function getRecordingStopDelayMs() {
+  const runtimeValue =
+    window.r34lp0w3r && Object.prototype.hasOwnProperty.call(window.r34lp0w3r, 'recordingStopDelayMs')
+      ? window.r34lp0w3r.recordingStopDelayMs
+      : undefined;
+  if (runtimeValue !== undefined) return normalizeRecordingStopDelayMs(runtimeValue);
+  try {
+    const storedValue = localStorage.getItem(RECORDING_STOP_DELAY_KEY);
+    return storedValue === null
+      ? RECORDING_STOP_DELAY_DEFAULT_MS
+      : normalizeRecordingStopDelayMs(storedValue);
+  } catch (_err) {
+    return RECORDING_STOP_DELAY_DEFAULT_MS;
+  }
+}
+
+function setRecordingStopDelayMs(value) {
+  const normalized = normalizeRecordingStopDelayMs(value);
+  window.r34lp0w3p = window.r34lp0w3p || {};
+  window.r34lp0w3p.recordingStopDelayMs = normalized;
+  try {
+    localStorage.setItem(RECORDING_STOP_DELAY_KEY, String(normalized));
+  } catch (_err) {
+    // no-op
+  }
+  return normalized;
+}
+
+window.getRecordingStopDelayMs = getRecordingStopDelayMs;
+if (
+  !window.r34lp0w3p ||
+  !Object.prototype.hasOwnProperty.call(window.r34lp0w3p, 'recordingStopDelayMs')
+) {
+  setRecordingStopDelayMs(getRecordingStopDelayMs());
+}
 
 function freezeLegacyViewportEvents() {
   _legacyViewportEventsFrozen = true;

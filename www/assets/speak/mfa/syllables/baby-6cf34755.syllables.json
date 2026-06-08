@@ -1,19 +1,19 @@
 [
   {
     "word": "baby",
-    "start": 0,
-    "end": 0.4,
+    "start": 0.08,
+    "end": 0.57,
     "syllables": [
       {
         "text": "ba",
-        "start": 0,
-        "end": 0.2,
+        "start": 0.08,
+        "end": 0.325,
         "index": 0
       },
       {
         "text": "by",
-        "start": 0.2,
-        "end": 0.4,
+        "start": 0.325,
+        "end": 0.57,
         "index": 1
       }
     ]

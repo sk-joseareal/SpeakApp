@@ -1,0 +1,39 @@
+[
+  {
+    "word": "executive",
+    "start": 0.05,
+    "end": 0.79,
+    "syllables": [
+      {
+        "text": "e",
+        "start": 0.05,
+        "end": 0.132,
+        "index": 0
+      },
+      {
+        "text": "xe",
+        "start": 0.132,
+        "end": 0.297,
+        "index": 1
+      },
+      {
+        "text": "cu",
+        "start": 0.297,
+        "end": 0.461,
+        "index": 2
+      },
+      {
+        "text": "ti",
+        "start": 0.461,
+        "end": 0.626,
+        "index": 3
+      },
+      {
+        "text": "ve",
+        "start": 0.626,
+        "end": 0.79,
+        "index": 4
+      }
+    ]
+  }
+]

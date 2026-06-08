@@ -1,13 +1,13 @@
 [
   {
     "word": "two",
-    "start": 0.03,
-    "end": 0.33,
+    "start": 0.05,
+    "end": 0.52,
     "syllables": [
       {
         "text": "two",
-        "start": 0.03,
-        "end": 0.33,
+        "start": 0.05,
+        "end": 0.52,
         "index": 0
       }
     ]

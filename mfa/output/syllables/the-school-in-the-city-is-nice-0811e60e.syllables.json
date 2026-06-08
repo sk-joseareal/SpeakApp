@@ -1,0 +1,105 @@
+[
+  {
+    "word": "the",
+    "start": 0.05,
+    "end": 0.14,
+    "syllables": [
+      {
+        "text": "the",
+        "start": 0.05,
+        "end": 0.14,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "school",
+    "start": 0.14,
+    "end": 0.48,
+    "syllables": [
+      {
+        "text": "school",
+        "start": 0.14,
+        "end": 0.48,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "in",
+    "start": 0.48,
+    "end": 0.63,
+    "syllables": [
+      {
+        "text": "in",
+        "start": 0.48,
+        "end": 0.63,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "the",
+    "start": 0.63,
+    "end": 0.71,
+    "syllables": [
+      {
+        "text": "the",
+        "start": 0.63,
+        "end": 0.71,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "city",
+    "start": 0.71,
+    "end": 1.05,
+    "syllables": [
+      {
+        "text": "ci",
+        "start": 0.71,
+        "end": 0.88,
+        "index": 0
+      },
+      {
+        "text": "ty",
+        "start": 0.88,
+        "end": 1.05,
+        "index": 1
+      }
+    ]
+  },
+  {
+    "word": "is",
+    "start": 1.05,
+    "end": 1.21,
+    "syllables": [
+      {
+        "text": "is",
+        "start": 1.05,
+        "end": 1.21,
+        "index": 0
+      }
+    ]
+  },
+  {
+    "word": "nice",
+    "start": 1.21,
+    "end": 1.77,
+    "syllables": [
+      {
+        "text": "ni",
+        "start": 1.21,
+        "end": 1.49,
+        "index": 0
+      },
+      {
+        "text": "ce",
+        "start": 1.49,
+        "end": 1.77,
+        "index": 1
+      }
+    ]
+  }
+]

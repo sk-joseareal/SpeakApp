@@ -17,6 +17,7 @@ import {
   getReferenceTestsLoadInfo
 } from '../data/reference-tests.js';
 import {
+  getAppCopyNarrationPayload,
   getNextLocaleCode,
   getReferenceCopy,
   getTabsCopy,
@@ -1445,6 +1446,10 @@ class PageReference extends HTMLElement {
     const expected = String(text || '').trim();
     const locale = String(lang || '').trim() || 'en-US';
     if (!expected) return null;
+
+    const bundled = getAppCopyNarrationPayload(locale, expected);
+    if (bundled) return bundled;
+
     const cached = this.getAlignedTtsFromCache(expected, locale);
     if (cached) return cached;
     const endpoint = this.resolveAlignedTtsEndpoint();

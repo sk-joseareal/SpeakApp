@@ -1,0 +1,21 @@
+[
+  {
+    "word": "yellow",
+    "start": 0.04,
+    "end": 0.57,
+    "syllables": [
+      {
+        "text": "yel",
+        "start": 0.04,
+        "end": 0.305,
+        "index": 0
+      },
+      {
+        "text": "low",
+        "start": 0.305,
+        "end": 0.57,
+        "index": 1
+      }
+    ]
+  }
+]

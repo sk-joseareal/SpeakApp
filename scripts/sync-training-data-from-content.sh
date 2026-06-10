@@ -263,19 +263,16 @@ if [[ "$NEED_ASSETS_BUILD" == "1" ]]; then
   mkdir -p "$(dirname "$ASSETS_META")"
   rm -rf "$REPO_ROOT/www/assets/speak/mfa/audio" \
     "$REPO_ROOT/www/assets/speak/mfa/words" \
-    "$REPO_ROOT/www/assets/speak/mfa/visemes" \
     "$REPO_ROOT/www/assets/speak/mfa/syllables"
   rm -f "$REPO_ROOT/www/assets/speak/mfa/sentences.json"
   mkdir -p \
     "$REPO_ROOT/www/assets/speak/mfa/audio" \
     "$REPO_ROOT/www/assets/speak/mfa/words" \
-    "$REPO_ROOT/www/assets/speak/mfa/visemes" \
     "$REPO_ROOT/www/assets/speak/mfa/syllables"
 
   cp "$REPO_ROOT/mfa/output/items.json" "$REPO_ROOT/www/assets/speak/mfa/items.json"
   cp -R "$REPO_ROOT/mfa/output/audio/." "$REPO_ROOT/www/assets/speak/mfa/audio/"
   cp -R "$REPO_ROOT/mfa/output/words/." "$REPO_ROOT/www/assets/speak/mfa/words/"
-  cp -R "$REPO_ROOT/mfa/output/visemes/." "$REPO_ROOT/www/assets/speak/mfa/visemes/"
   cp -R "$REPO_ROOT/mfa/output/syllables/." "$REPO_ROOT/www/assets/speak/mfa/syllables/"
 
   node - "$ASSETS_META" "$REMOTE_VERSION" <<'NODE'

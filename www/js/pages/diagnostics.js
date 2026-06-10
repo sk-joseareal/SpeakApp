@@ -63,12 +63,6 @@ class PageDiagnostics extends HTMLElement {
     const SYSTEM_BOTTOM_INSET_DEBUG_KEY = 'appv5:system-bottom-inset-debug';
     const SPEAK_PRONUNCIATION_AVATAR_MODE_KEY = 'appv5:speak-pronunciation-avatar-mode';
     const RECORDING_STOP_DELAY_KEY = 'appv5:recording-stop-delay-ms';
-    const SPEAK_PRONUNCIATION_AVATAR_OLD = 'old';
-    const SPEAK_PRONUNCIATION_AVATAR_NEW = 'new';
-    const SPEAK_PRONUNCIATION_AVATAR_SET2 = 'set2';
-    const SPEAK_PRONUNCIATION_AVATAR_VISEMES_REAL = 'visemes-real';
-    const SPEAK_PRONUNCIATION_AVATAR_VISEMES_V2 = 'visemes-v2';
-    const SPEAK_PRONUNCIATION_AVATAR_VISEMES_V1 = 'visemes-v1';
     const SPEAK_PRONUNCIATION_AVATAR_VIDEO = 'video';
     const DIAG_UNLOCK_STATE_KEY = 'appv5:diag-unlock-state';
     const RECORDING_STOP_DELAY_DEFAULT_MS = 600;
@@ -77,36 +71,6 @@ class PageDiagnostics extends HTMLElement {
         value: SPEAK_PRONUNCIATION_AVATAR_VIDEO,
         label: 'Video',
         description: 'Video: reproduce el vídeo de pronunciación de la sesión.'
-      },
-      {
-        value: SPEAK_PRONUNCIATION_AVATAR_SET2,
-        label: 'Set 2',
-        description: 'Set 2: nuevo set de bocas realistas con cara completa.'
-      },
-      {
-        value: SPEAK_PRONUNCIATION_AVATAR_NEW,
-        label: 'Nuevo',
-        description: 'Nuevo: usa la chica con overlays de boca por visema.'
-      },
-      {
-        value: SPEAK_PRONUNCIATION_AVATAR_OLD,
-        label: 'Antiguo',
-        description: 'Antiguo: usa el avatar actual con las bocas simples.'
-      },
-      {
-        value: SPEAK_PRONUNCIATION_AVATAR_VISEMES_REAL,
-        label: 'visemes-real',
-        description: 'visemes-real: set realista de visemas en fotos.'
-      },
-      {
-        value: SPEAK_PRONUNCIATION_AVATAR_VISEMES_V2,
-        label: 'visemes-v2',
-        description: 'visemes-v2: set de visemas PNG con etiquetado fonético.'
-      },
-      {
-        value: SPEAK_PRONUNCIATION_AVATAR_VISEMES_V1,
-        label: 'visemes-v1',
-        description: 'visemes-v1: set alternativo de visemas.'
       }
     ];
     const REFERENCE_TAB_ENABLED_KEY = 'appv5:reference-tab-enabled';
@@ -359,12 +323,6 @@ class PageDiagnostics extends HTMLElement {
       }
     };
     const normalizeSpeakPronunciationAvatarMode = (value) => {
-      const normalized = String(value || '')
-        .trim()
-        .toLowerCase();
-      if (SPEAK_PRONUNCIATION_AVATAR_OPTIONS.some((option) => option.value === normalized)) {
-        return normalized;
-      }
       return SPEAK_PRONUNCIATION_AVATAR_VIDEO;
     };
     const buildSpeakPronunciationAvatarOptionsMarkup = (selectedValue) => {
@@ -386,7 +344,7 @@ class PageDiagnostics extends HTMLElement {
           localStorage.getItem(SPEAK_PRONUNCIATION_AVATAR_MODE_KEY)
         );
       } catch (err) {
-        return SPEAK_PRONUNCIATION_AVATAR_OLD;
+        return SPEAK_PRONUNCIATION_AVATAR_VIDEO;
       }
     };
     const normalizeTabVisibilityEnabled = (tab, value) => {

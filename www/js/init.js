@@ -25,6 +25,7 @@ const PLAN_TAB_VISIBILITY_KEYS = {
   chat: 'appv5:tab-chat-enabled',
   tu: 'appv5:tab-you-enabled'
 };
+const REFERENCE_TOOLS_ENABLED_KEY = 'appv5:reference-tools-enabled';
 
 const PREMIUM_PLAN_TABS = {
   home: true,
@@ -41,6 +42,8 @@ const STANDARD_PLAN_TABS = {
   chat: false,
   tu: true
 };
+const PREMIUM_PLAN_REFERENCE_TOOLS = true;
+const STANDARD_PLAN_REFERENCE_TOOLS = false;
 
 const isPremiumPlanUser = (user) => {
   if (!user || typeof user !== 'object') return false;
@@ -52,14 +55,23 @@ const isPremiumPlanUser = (user) => {
 };
 
 window.applyUserPlanTabVisibility = (user) => {
-  const nextPlan = user && typeof user === 'object' && isPremiumPlanUser(user) ? PREMIUM_PLAN_TABS : STANDARD_PLAN_TABS;
+  const isPremiumPlan = user && typeof user === 'object' && isPremiumPlanUser(user);
+  const nextPlan = isPremiumPlan ? PREMIUM_PLAN_TABS : STANDARD_PLAN_TABS;
+  const nextReferenceToolsEnabled = isPremiumPlan
+    ? PREMIUM_PLAN_REFERENCE_TOOLS
+    : STANDARD_PLAN_REFERENCE_TOOLS;
   window.r34lp0w3r = window.r34lp0w3r || {};
   window.r34lp0w3r.tabVisibility = { ...nextPlan };
   window.r34lp0w3r.referenceTabEnabled = nextPlan.reference === true;
+  window.r34lp0w3r.referenceToolsEnabled = nextReferenceToolsEnabled;
   try {
     Object.entries(PLAN_TAB_VISIBILITY_KEYS).forEach(([tab, key]) => {
       localStorage.setItem(key, nextPlan[tab] ? '1' : '0');
     });
+    localStorage.setItem(
+      REFERENCE_TOOLS_ENABLED_KEY,
+      nextReferenceToolsEnabled ? '1' : '0'
+    );
   } catch (err) {
     // no-op
   }
@@ -71,6 +83,11 @@ window.applyUserPlanTabVisibility = (user) => {
   window.dispatchEvent(
     new CustomEvent('app:reference-tab-enabled-change', {
       detail: { enabled: nextPlan.reference === true, source: 'plan-reset' }
+    })
+  );
+  window.dispatchEvent(
+    new CustomEvent('app:reference-tools-enabled-change', {
+      detail: { enabled: nextReferenceToolsEnabled, source: 'plan-reset' }
     })
   );
   return { ...nextPlan };

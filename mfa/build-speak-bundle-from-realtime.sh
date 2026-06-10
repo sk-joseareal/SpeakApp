@@ -24,7 +24,6 @@ rm -rf \
   "${OUTPUT_DIR}/audio" \
   "${OUTPUT_DIR}/corpus" \
   "${OUTPUT_DIR}/aligned" \
-  "${OUTPUT_DIR}/visemes" \
   "${OUTPUT_DIR}/words" \
   "${OUTPUT_DIR}/syllables" \
   "${OUTPUT_DIR}/realtime" \
@@ -58,7 +57,6 @@ else
     "${OUTPUT_DIR}/aligned"
 fi
 
-node "${SCRIPT_DIR}/generateVisemes.js" "${OUTPUT_DIR}/aligned" "${OUTPUT_DIR}/visemes"
 node "${SCRIPT_DIR}/generateWords.js" "${OUTPUT_DIR}/aligned" "${OUTPUT_DIR}/words"
 node "${SCRIPT_DIR}/generateSyllables.js" "${OUTPUT_DIR}/words" "${OUTPUT_DIR}/syllables"
 

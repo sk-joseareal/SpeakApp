@@ -164,12 +164,9 @@ class PageSpeak extends HTMLElement {
     const debugToggleBtn = this.querySelector('#speak-debug-toggle');
     const sheetHandleBtn = this.querySelector('#speak-sheet-handle');
 
-    const AVATAR_BASE = 'assets/speak/avatar';
-    const AVATAR_CHICA_BASE = 'assets/speak/avatar-chica';
     const MFA_BASE = 'assets/speak/mfa';
     const MFA_ITEMS_URL = `${MFA_BASE}/items.json`;
     const MFA_AUDIO_BASE = `${MFA_BASE}/audio`;
-    const MFA_VISEME_BASE = `${MFA_BASE}/visemes`;
     const MFA_WORDS_BASE = `${MFA_BASE}/words`;
     const MFA_SYLLABLES_BASE = `${MFA_BASE}/syllables`;
     const VIDEO_BASE = 'assets/speak/videos';
@@ -184,24 +181,7 @@ class PageSpeak extends HTMLElement {
     const FREE_RIDE_CARD_PADDED_KEY = 'appv5:free-ride-card-padded';
     const DEBUG_PANEL_OPEN_KEY = 'appv5:speak-debug-panel-open';
     const SPEAK_SESSION_PERCENTAGES_VISIBLE_KEY = 'appv5:speak-session-percentages-visible';
-    const SPEAK_PRONUNCIATION_AVATAR_MODE_KEY = 'appv5:speak-pronunciation-avatar-mode';
     const HOME_RETURN_REVEAL_KEY = 'appv5:home-return-reveal-target';
-    const SPEAK_PRONUNCIATION_AVATAR_OLD = 'old';
-    const SPEAK_PRONUNCIATION_AVATAR_NEW = 'new';
-    const SPEAK_PRONUNCIATION_AVATAR_SET2 = 'set2';
-    const SPEAK_PRONUNCIATION_AVATAR_VISEMES_REAL = 'visemes-real';
-    const SPEAK_PRONUNCIATION_AVATAR_VISEMES_V2 = 'visemes-v2';
-    const SPEAK_PRONUNCIATION_AVATAR_VISEMES_V1 = 'visemes-v1';
-    const SPEAK_PRONUNCIATION_AVATAR_VIDEO = 'video';
-    const SPEAK_PRONUNCIATION_AVATAR_MODES = [
-      SPEAK_PRONUNCIATION_AVATAR_OLD,
-      SPEAK_PRONUNCIATION_AVATAR_NEW,
-      SPEAK_PRONUNCIATION_AVATAR_SET2,
-      SPEAK_PRONUNCIATION_AVATAR_VISEMES_REAL,
-      SPEAK_PRONUNCIATION_AVATAR_VISEMES_V2,
-      SPEAK_PRONUNCIATION_AVATAR_VISEMES_V1,
-      SPEAK_PRONUNCIATION_AVATAR_VIDEO
-    ];
     const MODULE_TROPHY_REWARD_QTY = 1;
     const MODULE_TROPHY_REWARD_ICON = 'trophy';
     const MAX_ROUTE_BADGE_COUNT = 5;
@@ -251,25 +231,14 @@ class PageSpeak extends HTMLElement {
     let nativeSpeechActive = false;
     let nativeSpeechListeners = [];
     let activeAudio = null;
-    let avatarAudio = null;
     let playbackAudio = null;
     let activePlayButton = null;
     let mfaItems = [];
     let mfaLookup = {};
     let mfaReady = false;
-    let visemes = [];
-    let animating = false;
-    let currentViseme = 0;
     let syllableTimeline = [];
     let currentSyllable = 0;
     let activeSyllableIndex = -1;
-    let lastVisemeKey = 'NEUTRAL';
-    let mouthImgA = null;
-    let mouthImgB = null;
-    let activeMouth = null;
-    let inactiveMouth = null;
-    let currentPronunciationAvatarConfig = null;
-    let rafId = null;
     let isRecording = false;
     let isTranscribing = false;
     let transcribingStepKey = null;
@@ -297,7 +266,6 @@ class PageSpeak extends HTMLElement {
     let heroFirstRenderAt = 0;
     let hintLocaleOverride = '';
     let activeHintLocale = 'en';
-    let avatarResizeObserver = null;
     let speakSheetExpanded = initialSpeakSheetExpanded;
     let speakSheetExpandedOffset = initialSpeakSheetOffset;
     let speakSheetTranslateY = 0;
@@ -316,153 +284,6 @@ class PageSpeak extends HTMLElement {
     };
 
     const getSpeechRecognition = () => window.SpeechRecognition || window.webkitSpeechRecognition;
-    const normalizePronunciationAvatarMode = (value) => {
-      const normalized = String(value || '')
-        .trim()
-        .toLowerCase();
-      if (SPEAK_PRONUNCIATION_AVATAR_MODES.includes(normalized)) return normalized;
-      return SPEAK_PRONUNCIATION_AVATAR_VIDEO;
-    };
-    const getStoredPronunciationAvatarMode = () => {
-      const globalValue =
-        window.r34lp0w3r &&
-        typeof window.r34lp0w3r.speakPronunciationAvatarMode === 'string'
-          ? window.r34lp0w3r.speakPronunciationAvatarMode
-          : '';
-      if (globalValue) return normalizePronunciationAvatarMode(globalValue);
-      try {
-        return normalizePronunciationAvatarMode(
-          localStorage.getItem(SPEAK_PRONUNCIATION_AVATAR_MODE_KEY)
-        );
-      } catch (err) {
-        return SPEAK_PRONUNCIATION_AVATAR_OLD;
-      }
-    };
-    const getPronunciationAvatarConfig = () => {
-      const mode = getStoredPronunciationAvatarMode();
-      if (mode === SPEAK_PRONUNCIATION_AVATAR_SET2) {
-        const SET2_BASE = 'assets/speak/set-bocas-2';
-        return {
-          mode,
-          aspectRatio: 3 / 2,
-          headSrc: `${SET2_BASE}/1_neutral.png`,
-          wrapperClass: 'avatar-wrapper avatar-wrapper-wide',
-          mouthBaseClass: 'speak-mouth speak-mouth-full',
-          mouthMap: {
-            NEUTRAL: `${SET2_BASE}/1_neutral.png`,
-            A: `${SET2_BASE}/2_A.png`,
-            E: `${SET2_BASE}/3_O.png`,
-            I: `${SET2_BASE}/6_E.png`,
-            O: `${SET2_BASE}/3_O.png`,
-            U: `${SET2_BASE}/4_U_W.png`,
-            M: `${SET2_BASE}/1_neutral.png`,
-            F: `${SET2_BASE}/5_F_V.png`,
-            TH: `${SET2_BASE}/1_neutral.png`
-          }
-        };
-      }
-      if (mode === SPEAK_PRONUNCIATION_AVATAR_VISEMES_V1) {
-        const V1_BASE = 'assets/speak/visemes-v1';
-        return {
-          mode,
-          aspectRatio: 3 / 2,
-          headSrc: `${V1_BASE}/0.png`,
-          wrapperClass: 'avatar-wrapper avatar-wrapper-wide',
-          mouthBaseClass: 'speak-mouth speak-mouth-full',
-          mouthMap: {
-            NEUTRAL: `${V1_BASE}/0.png`,
-            A: `${V1_BASE}/1.png`,
-            E: `${V1_BASE}/11.png`,
-            I: `${V1_BASE}/11.png`,
-            O: `${V1_BASE}/5.png`,
-            U: `${V1_BASE}/6.png`,
-            M: `${V1_BASE}/9.png`,
-            F: `${V1_BASE}/2.png`,
-            TH: `${V1_BASE}/10.png`
-          }
-        };
-      }
-      if (mode === SPEAK_PRONUNCIATION_AVATAR_VISEMES_V2) {
-        const V2_BASE = 'assets/speak/visemes-v2';
-        return {
-          mode,
-          aspectRatio: 800 / 434,
-          headSrc: `${V2_BASE}/visema_0_NEUTRAL.png`,
-          wrapperClass: 'avatar-wrapper avatar-wrapper-wide',
-          mouthBaseClass: 'speak-mouth speak-mouth-full',
-          mouthMap: {
-            NEUTRAL: `${V2_BASE}/visema_0_NEUTRAL.png`,
-            A: `${V2_BASE}/visema_1_A.png`,
-            E: `${V2_BASE}/visema_2_E.png`,
-            I: `${V2_BASE}/visema_3_I.png`,
-            O: `${V2_BASE}/visema_5_O.png`,
-            U: `${V2_BASE}/visema_8_U.png`,
-            M: `${V2_BASE}/visema_7_B_M_P.png`,
-            F: `${V2_BASE}/visema_6_FV.png`,
-            TH: `${V2_BASE}/visema_10_J.png`
-          }
-        };
-      }
-      if (mode === SPEAK_PRONUNCIATION_AVATAR_VISEMES_REAL) {
-        const REAL_BASE = 'assets/speak/visemes-real';
-        return {
-          mode,
-          aspectRatio: 378 / 333,
-          headSrc: `${REAL_BASE}/06-N.jpg`,
-          wrapperClass: 'avatar-wrapper avatar-wrapper-wide',
-          mouthBaseClass: 'speak-mouth speak-mouth-full',
-          mouthMap: {
-            NEUTRAL: `${REAL_BASE}/06-N.jpg`,
-            A: `${REAL_BASE}/01-A.jpg`,
-            E: `${REAL_BASE}/03-IL.jpg`,
-            I: `${REAL_BASE}/03-IL.jpg`,
-            O: `${REAL_BASE}/04-O.jpg`,
-            U: `${REAL_BASE}/12-QW.jpg`,
-            M: `${REAL_BASE}/02-B.jpg`,
-            F: `${REAL_BASE}/11-ZFV.jpg`,
-            TH: `${REAL_BASE}/08-T.jpg`
-          }
-        };
-      }
-      if (mode === SPEAK_PRONUNCIATION_AVATAR_NEW) {
-        return {
-          mode,
-          aspectRatio: 3 / 2,
-          headSrc: `${AVATAR_CHICA_BASE}/chica-sin-boca.png`,
-          wrapperClass: 'avatar-wrapper avatar-wrapper-wide',
-          mouthBaseClass: 'speak-mouth speak-mouth-crop',
-          mouthMap: {
-            NEUTRAL: `${AVATAR_CHICA_BASE}/7-R.png`,
-            A: `${AVATAR_CHICA_BASE}/1-AEI.png`,
-            E: `${AVATAR_CHICA_BASE}/11-EE.png`,
-            I: `${AVATAR_CHICA_BASE}/11-EE.png`,
-            O: `${AVATAR_CHICA_BASE}/12-O.png`,
-            U: `${AVATAR_CHICA_BASE}/6-U.png`,
-            M: `${AVATAR_CHICA_BASE}/9-BMP.png`,
-            F: `${AVATAR_CHICA_BASE}/2-FV.png`,
-            TH: `${AVATAR_CHICA_BASE}/10-TH.png`
-          }
-        };
-      }
-      return {
-        mode,
-        aspectRatio: 1,
-        headSrc: `${AVATAR_BASE}/avatar-head.png`,
-        wrapperClass: 'avatar-wrapper',
-        mouthBaseClass: 'speak-mouth',
-        mouthMap: {
-          NEUTRAL: `${AVATAR_BASE}/mouth-neutral.png`,
-          A: `${AVATAR_BASE}/mouth-a.png`,
-          E: `${AVATAR_BASE}/mouth-e.png`,
-          I: `${AVATAR_BASE}/mouth-e.png`,
-          O: `${AVATAR_BASE}/mouth-o.png`,
-          U: `${AVATAR_BASE}/mouth-o.png`,
-          M: `${AVATAR_BASE}/mouth-m.png`,
-          F: `${AVATAR_BASE}/mouth-f.png`,
-          TH: `${AVATAR_BASE}/mouth-th.png`
-        }
-      };
-    };
 	    const resolveSessionVideoPath = (session) => {
 	      const sessionId = String(session?.id || '').trim();
 	      if (sessionId) return `${VIDEO_BASE}/${sessionId}.mp4`;
@@ -2996,6 +2817,7 @@ class PageSpeak extends HTMLElement {
         activePlayButton.classList.remove('is-playing');
         activePlayButton = null;
       }
+      setSpellingPlaybackState(false);
       // Cancel full hero narration task (token/timer + playback) to avoid overlap/race
       // when changing steps while the blue-card audio is still running.
       stopHeroNarration().catch(() => {});
@@ -3006,23 +2828,7 @@ class PageSpeak extends HTMLElement {
     };
 
     const stopAvatarPlayback = () => {
-      const shouldResetSyllables = playbackAudio === avatarAudio;
-      if (avatarAudio) {
-        avatarAudio.pause();
-        avatarAudio.currentTime = 0;
-        avatarAudio = null;
-      }
-      if (rafId) {
-        cancelAnimationFrame(rafId);
-        rafId = null;
-      }
-      animating = false;
-      currentViseme = 0;
-      setMouthViseme('NEUTRAL');
-      if (shouldResetSyllables) {
-        playbackAudio = null;
-        resetSyllables();
-      }
+      stopPlayback();
     };
 
     const setActivePlayButton = (buttonEl) => {
@@ -3039,6 +2845,20 @@ class PageSpeak extends HTMLElement {
       if (!activePlayButton) return;
       activePlayButton.classList.remove('is-playing');
       activePlayButton = null;
+    };
+
+    const setSpellingPlaybackState = (isPlaying) => {
+      if (!stepRoot) return;
+      const previewCard = stepRoot.querySelector('.speak-word-preview-card');
+      if (previewCard) {
+        previewCard.classList.toggle('is-playing', Boolean(isPlaying));
+      }
+      const activeWordButton = Array.from(stepRoot.querySelectorAll('.speak-word')).find(
+        (btn) => String(btn.dataset.word || '') === String(selectedWord || '')
+      );
+      if (activeWordButton) {
+        activeWordButton.classList.toggle('is-playing', Boolean(isPlaying));
+      }
     };
 
     const applyRecordingWaveValues = () => {
@@ -3765,7 +3585,7 @@ class PageSpeak extends HTMLElement {
       highlightSyllable(newIndex);
     };
 
-    const playReferenceAudio = async ({ text, targetEl, phonetic, withVisemes, triggerBtn }) => {
+    const playReferenceAudio = async ({ text, targetEl, phonetic, triggerBtn }) => {
       if (!text) return;
       stopPlayback();
       stopAvatarPlayback();
@@ -3796,41 +3616,35 @@ class PageSpeak extends HTMLElement {
           resetSyllables();
         }
 
-        visemes = [];
         const audio = new Audio(String(remotePayload.audio_url || '').trim());
         playbackAudio = audio;
+        activeAudio = audio;
         setActivePlayButton(triggerBtn || null);
-        if (withVisemes) {
-          avatarAudio = audio;
-        } else {
-          activeAudio = audio;
-        }
-        animating = true;
-        currentViseme = 0;
-        currentSyllable = 0;
-        activeSyllableIndex = -1;
-        lastVisemeKey = 'NEUTRAL';
-        setMouthViseme('NEUTRAL');
+        setSpellingPlaybackState(Boolean(targetEl));
         startHeroMascotTalk();
+        audio.ontimeupdate = () => {
+          updateSyllables(Number.isFinite(audio.currentTime) ? audio.currentTime : 0);
+        };
+        updateSyllables(0);
 
         audio.onended = () => {
-          animating = false;
-          setMouthViseme('NEUTRAL');
           highlightSyllable(-1);
           stopHeroMascotTalk({ settle: true });
           clearActivePlayButton();
+          setSpellingPlaybackState(false);
         };
 
         audio.onerror = () => {
           stopHeroMascotTalk({ settle: true });
           clearActivePlayButton();
+          setSpellingPlaybackState(false);
         };
 
         audio.play().catch(() => {
           stopHeroMascotTalk({ settle: true });
           clearActivePlayButton();
+          setSpellingPlaybackState(false);
         });
-        rafId = requestAnimationFrame(updateAvatar);
         return;
       }
 
@@ -3850,93 +3664,34 @@ class PageSpeak extends HTMLElement {
         resetSyllables();
       }
 
-      if (withVisemes) {
-        try {
-          const visemeData = await fetchJson(`${MFA_VISEME_BASE}/${itemId}.visemes.json`);
-          visemes = Array.isArray(visemeData) ? visemeData : [];
-        } catch (err) {
-          visemes = [];
-        }
-      } else {
-        visemes = [];
-      }
-
       const audio = new Audio(`${MFA_AUDIO_BASE}/${itemId}.wav`);
       playbackAudio = audio;
+      activeAudio = audio;
       setActivePlayButton(triggerBtn || null);
-      if (withVisemes) {
-        avatarAudio = audio;
-      } else {
-        activeAudio = audio;
-      }
-      animating = true;
-      currentViseme = 0;
-      currentSyllable = 0;
-      activeSyllableIndex = -1;
-      lastVisemeKey = 'NEUTRAL';
-      setMouthViseme('NEUTRAL');
+      setSpellingPlaybackState(Boolean(targetEl));
+      audio.ontimeupdate = () => {
+        updateSyllables(Number.isFinite(audio.currentTime) ? audio.currentTime : 0);
+      };
+      updateSyllables(0);
 
       audio.onended = () => {
-        animating = false;
-        setMouthViseme('NEUTRAL');
         highlightSyllable(-1);
         stopHeroMascotTalk({ settle: true });
         clearActivePlayButton();
+        setSpellingPlaybackState(false);
       };
 
       audio.onerror = () => {
         stopHeroMascotTalk({ settle: true });
         clearActivePlayButton();
+        setSpellingPlaybackState(false);
       };
 
       audio.play().catch(() => {
         stopHeroMascotTalk({ settle: true });
         clearActivePlayButton();
+        setSpellingPlaybackState(false);
       });
-      rafId = requestAnimationFrame(updateAvatar);
-    };
-
-    const setMouthViseme = (visemeKeyRaw) => {
-      if (!mouthImgA || !mouthImgB) return;
-      const avatarConfig = currentPronunciationAvatarConfig || getPronunciationAvatarConfig();
-      const visemeKey = (visemeKeyRaw || 'NEUTRAL').toUpperCase();
-      if (visemeKey === lastVisemeKey) return;
-      const imgSrc = avatarConfig.mouthMap[visemeKey] || avatarConfig.mouthMap.NEUTRAL;
-      const mouthBaseClass = avatarConfig.mouthBaseClass || 'speak-mouth';
-
-      const next = inactiveMouth;
-      const prev = activeMouth;
-
-      if (next.getAttribute('src') !== imgSrc) {
-        next.setAttribute('src', imgSrc);
-      }
-
-      next.className = `${mouthBaseClass} mouth-layer mouth-layer-active viseme-${visemeKey.toLowerCase()}`;
-      prev.className = `${mouthBaseClass} mouth-layer viseme-${lastVisemeKey.toLowerCase()}`;
-
-      activeMouth = next;
-      inactiveMouth = prev;
-      lastVisemeKey = visemeKey;
-    };
-
-    const updateAvatar = () => {
-      const audio = playbackAudio;
-      if (!animating || !audio || audio.paused || audio.ended) {
-        animating = false;
-        return;
-      }
-      const t = Math.max(0, audio.currentTime - AV_SYNC_DELAY);
-      if (visemes.length > 0) {
-        while (currentViseme < visemes.length - 1 && t > visemes[currentViseme].end) {
-          currentViseme += 1;
-        }
-        const v = visemes[currentViseme];
-        if (v && v.viseme && t >= v.start) {
-          setMouthViseme(v.viseme);
-        }
-      }
-      updateSyllables(t);
-      rafId = requestAnimationFrame(updateAvatar);
     };
 
     const escapeRegex = (value) => String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -4239,8 +3994,6 @@ class PageSpeak extends HTMLElement {
     };
 
     const renderSoundStep = () => {
-      currentPronunciationAvatarConfig = getPronunciationAvatarConfig();
-      const avatarConfig = currentPronunciationAvatarConfig;
       const locale = activeHintLocale || getHintUiLocale();
       const score = getScoreForStep('sound', locale);
       const hasRecording = Boolean(stepState.sound.recordingUrl);
@@ -4268,46 +4021,23 @@ class PageSpeak extends HTMLElement {
           </div>
           ${stepSubtitle ? `<p class="speak-step-subtitle">${stepSubtitle}</p>` : ''}
           <div class="speak-step-main">
-            ${getStoredPronunciationAvatarMode() === SPEAK_PRONUNCIATION_AVATAR_VIDEO
-              ? `<div class="speak-avatar-stage speak-avatar-stage-video">
-                   <div class="speak-video-wrap">
-                     <video
-                       id="speak-session-video"
-                       class="speak-session-video"
-                       src="${resolveSessionVideoPath(currentSessionData)}"
-                       poster="${resolveSessionPosterPath(currentSessionData)}"
-                       playsinline
-                     ></video>
-                   </div>
-                   <button class="speak-video-play-btn" id="speak-video-play" type="button" aria-label="Play">
-                     <ion-icon name="play-circle-outline"></ion-icon>
-                   </button>
-                   <button class="speak-video-fullscreen-btn" id="speak-video-fullscreen" type="button" aria-label="Fullscreen">
-                     <ion-icon name="expand-outline"></ion-icon>
-                   </button>
-                 </div>`
-              : `<div class="speak-avatar-stage">
-                   <div class="speak-avatar">
-                     <div class="${avatarConfig.wrapperClass}" data-avatar-ratio="${avatarConfig.aspectRatio}">
-                       <img class="avatar-head" src="${avatarConfig.headSrc}" alt="Avatar">
-                       <div class="avatar-mouth-container">
-                         <img
-                           id="speak-mouth-a"
-                           class="${avatarConfig.mouthBaseClass} mouth-layer mouth-layer-active viseme-neutral"
-                           src="${avatarConfig.mouthMap.NEUTRAL}"
-                           alt="Mouth"
-                         />
-                         <img
-                           id="speak-mouth-b"
-                           class="${avatarConfig.mouthBaseClass} mouth-layer viseme-neutral"
-                           src="${avatarConfig.mouthMap.NEUTRAL}"
-                           alt="Mouth"
-                         />
-                       </div>
-                     </div>
-                   </div>
-                 </div>`
-            }
+            <div class="speak-avatar-stage speak-avatar-stage-video">
+              <div class="speak-video-wrap">
+                <video
+                  id="speak-session-video"
+                  class="speak-session-video"
+                  src="${resolveSessionVideoPath(currentSessionData)}"
+                  poster="${resolveSessionPosterPath(currentSessionData)}"
+                  playsinline
+                ></video>
+              </div>
+              <button class="speak-video-play-btn" id="speak-video-play" type="button" aria-label="Play">
+                <ion-icon name="play-circle-outline"></ion-icon>
+              </button>
+              <button class="speak-video-fullscreen-btn" id="speak-video-fullscreen" type="button" aria-label="Fullscreen">
+                <ion-icon name="expand-outline"></ion-icon>
+              </button>
+            </div>
           </div>
           </div>
 
@@ -4362,13 +4092,14 @@ class PageSpeak extends HTMLElement {
 
       const spellingContentTitle = getLocalizedStepTitle(spellingStep, locale);
       const spellingFallback = getSpeakUiText('stepTitleSpelling', locale, 'Say the sound in words');
-      const stepTitle = spellingContentTitle || spellingFallback;
-      const stepSubtitle = spellingContentTitle ? spellingFallback : '';
+      const stepTitle = spellingFallback || spellingContentTitle;
       return `
         <div class="speak-step speak-step-spelling">
-          ${stepSubtitle ? `<p class="speak-step-heading">${stepSubtitle}</p>` : ''}
-          <p class="speak-step-subtitle">${stepTitle}</p>
+          <p class="speak-step-heading">${stepTitle}</p>
           <div class="speak-step-main">
+            <div class="speak-word-preview-card" aria-live="polite">
+              <span class="speak-word-preview" id="speak-word-preview">${highlightLetter(selectedWord, focusKey)}</span>
+            </div>
             <div class="speak-word-grid speak-word-grid--single">${words}</div>
           </div>
 
@@ -4762,77 +4493,8 @@ class PageSpeak extends HTMLElement {
       applySpeakSheetState({ animate: true, force: true });
     };
 
-    const disconnectAvatarResizeObserver = () => {
-      if (!avatarResizeObserver) return;
-      avatarResizeObserver.disconnect();
-      avatarResizeObserver = null;
-    };
-
-    const AVATAR_TARGET_SIDE_MARGIN_PX = 28;
-    const AVATAR_EXTRA_HEIGHT_BUDGET_PX = 72;
-
-    const fitAvatarToStage = (root) => {
-      const stage = root?.querySelector('.speak-avatar-stage');
-      const wrapper = root?.querySelector('.avatar-wrapper, .avatar-wrapper-wide');
-      if (!stage || !wrapper) return;
-      const stageStyles = window.getComputedStyle(stage);
-      const paddingX =
-        (parseFloat(stageStyles.paddingLeft) || 0) + (parseFloat(stageStyles.paddingRight) || 0);
-      const paddingY =
-        (parseFloat(stageStyles.paddingTop) || 0) + (parseFloat(stageStyles.paddingBottom) || 0);
-      const availableWidth = Math.max(0, stage.clientWidth - paddingX);
-      const availableHeight = Math.max(0, stage.clientHeight - paddingY);
-      if (!availableWidth || !availableHeight) return;
-      const ratioRaw = Number(wrapper.dataset.avatarRatio || 1);
-      const ratio = Number.isFinite(ratioRaw) && ratioRaw > 0 ? ratioRaw : 1;
-      let targetWidth = availableWidth;
-      let targetHeight = targetWidth / ratio;
-      if (targetHeight > availableHeight) {
-        targetHeight = availableHeight;
-        targetWidth = targetHeight * ratio;
-      }
-      const widthByPreferredMargin = Math.max(0, availableWidth - AVATAR_TARGET_SIDE_MARGIN_PX * 2);
-      const heightByPreferredMargin = widthByPreferredMargin / ratio;
-      const relaxedMaxHeight = availableHeight + AVATAR_EXTRA_HEIGHT_BUDGET_PX;
-      if (widthByPreferredMargin > targetWidth && heightByPreferredMargin <= relaxedMaxHeight) {
-        targetWidth = widthByPreferredMargin;
-        targetHeight = heightByPreferredMargin;
-      } else if (widthByPreferredMargin > targetWidth && relaxedMaxHeight > targetHeight) {
-        targetHeight = relaxedMaxHeight;
-        targetWidth = targetHeight * ratio;
-      }
-      if (targetWidth > availableWidth) {
-        targetWidth = availableWidth;
-        targetHeight = targetWidth / ratio;
-      }
-      wrapper.style.width = `${Math.max(0, Math.floor(targetWidth))}px`;
-      wrapper.style.height = `${Math.max(0, Math.floor(targetHeight))}px`;
-    };
-
-    const scheduleAvatarFit = (root, afterFit = null) => {
-      requestAnimationFrame(() => {
-        fitAvatarToStage(root);
-        requestAnimationFrame(() => {
-          fitAvatarToStage(root);
-          if (typeof afterFit === 'function') afterFit();
-        });
-      });
-    };
-
-    const observeAvatarStage = (root) => {
-      disconnectAvatarResizeObserver();
-      if (typeof ResizeObserver !== 'function') return;
-      const stage = root?.querySelector('.speak-avatar-stage');
-      if (!stage) return;
-      avatarResizeObserver = new ResizeObserver(() => {
-        fitAvatarToStage(root);
-      });
-      avatarResizeObserver.observe(stage);
-    };
-
     const renderStep = () => {
       const key = getStepKey();
-      const shouldFitAvatar = !showSummary && key === 'sound';
       if (swipeStage) {
         swipeStage.classList.remove('is-swiping');
         swipeStage.style.minHeight = '';
@@ -4872,12 +4534,6 @@ class PageSpeak extends HTMLElement {
       bindStepControls();
       speakSheetExpandedOffset = measureSpeakSheetExpandedOffset();
       applySpeakSheetState({ animate: false, force: true });
-      if (shouldFitAvatar) {
-        observeAvatarStage(stepRoot);
-        scheduleAvatarFit(stepRoot);
-      } else {
-        disconnectAvatarResizeObserver();
-      }
     };
 
     const bindStepControls = () => {
@@ -4893,25 +4549,18 @@ class PageSpeak extends HTMLElement {
       const debugPrevBtn = stepRoot.querySelector('#speak-debug-prev');
       const debugNextBtn = stepRoot.querySelector('#speak-debug-next');
       const wordButtons = Array.from(stepRoot.querySelectorAll('.speak-word'));
+      const wordPreviewEl = stepRoot.querySelector('#speak-word-preview');
 
-      mouthImgA = stepRoot.querySelector('#speak-mouth-a');
-      mouthImgB = stepRoot.querySelector('#speak-mouth-b');
-      if (mouthImgA && mouthImgB) {
-        currentPronunciationAvatarConfig = getPronunciationAvatarConfig();
-        activeMouth = mouthImgA;
-        inactiveMouth = mouthImgB;
-      }
-
-	      const sessionVideoEl = stepRoot.querySelector('#speak-session-video');
-	      const sessionVideoPlayBtn = stepRoot.querySelector('#speak-video-play');
-	      const sessionVideoFsBtn = stepRoot.querySelector('#speak-video-fullscreen');
-	      if (sessionVideoEl) {
-	        const originalVideoSrc = sessionVideoEl.getAttribute('src') || '';
-	        const resetVideo = () => {
-	          sessionVideoEl.pause();
-	          sessionVideoEl.currentTime = 0;
-	          sessionVideoPlayBtn?.classList.remove('is-playing');
-	        };
+      const sessionVideoEl = stepRoot.querySelector('#speak-session-video');
+      const sessionVideoPlayBtn = stepRoot.querySelector('#speak-video-play');
+      const sessionVideoFsBtn = stepRoot.querySelector('#speak-video-fullscreen');
+      if (sessionVideoEl) {
+        const originalVideoSrc = sessionVideoEl.getAttribute('src') || '';
+        const resetVideo = () => {
+          sessionVideoEl.pause();
+          sessionVideoEl.currentTime = 0;
+          sessionVideoPlayBtn?.classList.remove('is-playing');
+        };
         sessionVideoPlayBtn?.addEventListener('click', () => {
           if (sessionVideoEl.paused) {
             sessionVideoEl.play();
@@ -4920,22 +4569,22 @@ class PageSpeak extends HTMLElement {
             resetVideo();
           }
         });
-	        sessionVideoEl.addEventListener('error', () => {
-	          resetVideo();
-	          sessionVideoEl.dataset.loadError = '1';
-	          if (sessionVideoPlayBtn) {
-	            sessionVideoPlayBtn.classList.remove('is-playing');
-	            sessionVideoPlayBtn.setAttribute('aria-label', 'Video unavailable');
-	            sessionVideoPlayBtn.disabled = true;
-	          }
-	          if (sessionVideoFsBtn) {
-	            sessionVideoFsBtn.disabled = true;
-	          }
-	          console.warn('[speak] session video failed to load or decode', {
-	            src: originalVideoSrc || sessionVideoEl.currentSrc || sessionVideoEl.src || '',
-	            sessionId: currentSessionData && currentSessionData.id ? currentSessionData.id : ''
-	          });
-	        });
+        sessionVideoEl.addEventListener('error', () => {
+          resetVideo();
+          sessionVideoEl.dataset.loadError = '1';
+          if (sessionVideoPlayBtn) {
+            sessionVideoPlayBtn.classList.remove('is-playing');
+            sessionVideoPlayBtn.setAttribute('aria-label', 'Video unavailable');
+            sessionVideoPlayBtn.disabled = true;
+          }
+          if (sessionVideoFsBtn) {
+            sessionVideoFsBtn.disabled = true;
+          }
+          console.warn('[speak] session video failed to load or decode', {
+            src: originalVideoSrc || sessionVideoEl.currentSrc || sessionVideoEl.src || '',
+            sessionId: currentSessionData && currentSessionData.id ? currentSessionData.id : ''
+          });
+        });
         sessionVideoFsBtn?.addEventListener('click', () => {
           if (!document.fullscreenElement) {
             sessionVideoEl.requestFullscreen?.();
@@ -4973,7 +4622,6 @@ class PageSpeak extends HTMLElement {
             text: soundStep.expected,
             targetEl: phoneticTextEl,
             phonetic,
-            withVisemes: true,
             triggerBtn: playRefBtn
           });
           return;
@@ -4995,7 +4643,6 @@ class PageSpeak extends HTMLElement {
               text: soundStep.expected,
               targetEl: phoneticTextEl,
               phonetic,
-              withVisemes: true,
               triggerBtn: playControlBtn
             });
             return;
@@ -5009,7 +4656,7 @@ class PageSpeak extends HTMLElement {
           if (!selectedWord) return;
           playReferenceAudio({
             text: selectedWord,
-            withVisemes: false,
+            targetEl: wordPreviewEl,
             triggerBtn: playControlBtn
           });
           return;
@@ -5018,7 +4665,6 @@ class PageSpeak extends HTMLElement {
           playReferenceAudio({
             text: sentenceStep.sentence,
             targetEl: sentenceTextEl,
-            withVisemes: false,
             triggerBtn: playControlBtn
           });
         }
@@ -5029,7 +4675,6 @@ class PageSpeak extends HTMLElement {
           playReferenceAudio({
             text: sentenceStep.sentence,
             targetEl: sentenceTextEl,
-            withVisemes: false,
             triggerBtn: playSentenceBtn
           });
         }
@@ -5039,7 +4684,7 @@ class PageSpeak extends HTMLElement {
         if (!selectedWord) return;
         playReferenceAudio({
           text: selectedWord,
-          withVisemes: false,
+          targetEl: wordPreviewEl,
           triggerBtn: playWordBtn
         });
       });
@@ -5105,9 +4750,10 @@ class PageSpeak extends HTMLElement {
           const nextScrollEl = stepRoot.querySelector('.speak-step-main');
           if (nextScrollEl) nextScrollEl.scrollTop = prevScrollTop;
           const nextPlayWordBtn = stepRoot.querySelector('#speak-play-word');
+          const nextWordPreviewEl = stepRoot.querySelector('#speak-word-preview');
           playReferenceAudio({
             text: selectedWord,
-            withVisemes: false,
+            targetEl: nextWordPreviewEl,
             triggerBtn: nextPlayWordBtn || null
           });
         });
@@ -5202,7 +4848,6 @@ class PageSpeak extends HTMLElement {
       ghostRoot.innerHTML = sanitizeGhostMarkup(renderStepMarkup(key));
       ghostRoot.style.opacity = '1';
       updateSwipeStageHeight();
-      scheduleAvatarFit(ghostRoot, updateSwipeStageHeight);
       return true;
     };
 
@@ -5541,16 +5186,6 @@ class PageSpeak extends HTMLElement {
       handleSessionPercentagesVisibilityChange
     );
 
-    const handlePronunciationAvatarModeChange = () => {
-      stopPlayback();
-      renderStep();
-    };
-    this._handleSpeakPronunciationAvatarMode = handlePronunciationAvatarModeChange;
-    window.addEventListener(
-      'app:speak-pronunciation-avatar-mode-change',
-      handlePronunciationAvatarModeChange
-    );
-
     const handleAppLocaleChange = () => {
       const baseLocale = getBaseHintLocale();
       if (normalizeHintLocale(hintLocaleOverride) === baseLocale) {
@@ -5574,9 +5209,6 @@ class PageSpeak extends HTMLElement {
       lockHeroCardHeight();
       speakSheetExpandedOffset = measureSpeakSheetExpandedOffset();
       applySpeakSheetState({ animate: false, force: true });
-      if (stepRoot?.querySelector('.speak-step-sound')) {
-        scheduleAvatarFit(stepRoot);
-      }
     };
     this._handleSpeakResize = handleViewportResize;
     window.addEventListener('resize', handleViewportResize);
@@ -5705,12 +5337,6 @@ class PageSpeak extends HTMLElement {
           this._handleSpeakSessionPercentagesVisibility
         );
       }
-      if (this._handleSpeakPronunciationAvatarMode) {
-        window.removeEventListener(
-          'app:speak-pronunciation-avatar-mode-change',
-          this._handleSpeakPronunciationAvatarMode
-        );
-      }
       if (this._handleSpeakLocaleChange) {
         window.removeEventListener('app:locale-change', this._handleSpeakLocaleChange);
       }
@@ -5730,7 +5356,6 @@ class PageSpeak extends HTMLElement {
         this._speakTabsEl?.removeEventListener('ionTabsDidChange', this._handleSpeakTabEnter);
         window.removeEventListener('app:tab-change', this._handleSpeakTabEnter);
       }
-      disconnectAvatarResizeObserver();
       if (debugToggleBtn) {
         debugToggleBtn.removeEventListener('click', toggleDebugPanel);
       }

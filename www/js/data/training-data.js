@@ -3,7 +3,7 @@ import { BUNDLE_TRAINING_DATA_VERSION } from './training-data.meta.js';
 const LOCAL_DATA_URL = new URL('./training-data.json', import.meta.url);
 const TRAINING_DATA_CACHE_KEY = 'appv5:training-data-cache';
 const SELECTION_STORAGE_KEY = 'appv5:training-selection';
-const DEFAULT_REMOTE_FETCH_TIMEOUT_MS = 7000;
+const DEFAULT_REMOTE_FETCH_TIMEOUT_MS = 12000;
 
 let dataCache = null;
 let dataPromise = null;
@@ -109,24 +109,7 @@ const getConfiguredTrainingDataUrls = () => {
   ];
 
   const configured = uniqStrings(globals.map((item) => normalizeTrainingEndpoint(item)));
-  const hasConfiguredRemote = configured.some((url) => url !== localUrl);
 
-  const host = window.location && window.location.hostname ? String(window.location.hostname) : '';
-  const isLocalHost =
-    host === 'localhost' ||
-    host === '127.0.0.1' ||
-    host === '::1' ||
-    host.endsWith('.local');
-  const allowLocalFallbackConfig =
-    window.contentConfig && window.contentConfig.allowLocalFallback !== undefined
-      ? window.contentConfig.allowLocalFallback
-      : undefined;
-  const allowLocalFallback = parseBooleanLoose(
-    allowLocalFallbackConfig !== undefined ? allowLocalFallbackConfig : isLocalHost,
-    isLocalHost
-  );
-
-  if (hasConfiguredRemote && !allowLocalFallback) return configured;
   return [...configured, localUrl];
 };
 
@@ -276,6 +259,131 @@ const unwrapTrainingPayload = (raw) => {
   return { payload: raw, source: 'plain', release: null };
 };
 
+const assignTrainingDataLoadInfo = (next) => {
+  dataLoadInfo = { ...dataLoadInfo, ...next };
+};
+
+const applyTrainingDataPayload = (
+  parsed,
+  {
+    requestUrl = '',
+    manifestUrl = '',
+    transport = '',
+    source = '',
+    release = null,
+    version = '',
+    cacheHit = false,
+    triedUrls = [],
+    errors = []
+  } = {}
+) => {
+  dataCache = hydrateData(parsed.payload);
+  assignTrainingDataLoadInfo({
+    status: 'ok',
+    loadedAt: new Date().toISOString(),
+    requestUrl,
+    manifestUrl,
+    transport,
+    source,
+    release,
+    version,
+    bundleVersion: BUNDLE_TRAINING_DATA_VERSION,
+    cacheHit,
+    triedUrls: Array.isArray(triedUrls) ? triedUrls.slice() : [],
+    errors: Array.isArray(errors)
+      ? errors.map((entry) => ({
+          url: entry && entry.url ? String(entry.url) : '',
+          message: entry && entry.message ? String(entry.message) : ''
+        }))
+      : []
+  });
+};
+
+const refreshTrainingDataSelection = () => {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new CustomEvent('training:selection-change', { detail: selection }));
+};
+
+const refreshTrainingDataInBackground = async ({ localUrl, remoteUrl, manifestUrl, cached }) => {
+  if (!remoteUrl) return;
+  try {
+    const remoteMeta = await loadTrainingDataMeta(manifestUrl);
+    const remoteVersion = normalizeTrainingVersion(
+      remoteMeta && typeof remoteMeta.version === 'string' ? remoteMeta.version : ''
+    );
+    const cacheVersion = cached ? normalizeTrainingVersion(cached.version) : '';
+
+    if (remoteVersion && remoteVersion === BUNDLE_TRAINING_DATA_VERSION) {
+      assignTrainingDataLoadInfo({
+        loadedAt: new Date().toISOString(),
+        requestUrl: localUrl,
+        manifestUrl,
+        transport: 'local',
+        source: 'local-json',
+        release: null,
+        version: remoteVersion,
+        bundleVersion: BUNDLE_TRAINING_DATA_VERSION,
+        cacheHit: false,
+        triedUrls: [manifestUrl, localUrl].filter(Boolean),
+        errors: []
+      });
+      return;
+    }
+
+    if (remoteVersion && cached && cacheVersion === remoteVersion) {
+      dataCache = hydrateData(cached.payload);
+      assignTrainingDataLoadInfo({
+        loadedAt: new Date().toISOString(),
+        requestUrl: `cache:${cacheVersion}`,
+        manifestUrl,
+        transport: 'cache',
+        source: cached.source || 'remote-cache',
+        release: cached.release || null,
+        version: cacheVersion,
+        bundleVersion: BUNDLE_TRAINING_DATA_VERSION,
+        cacheHit: true,
+        triedUrls: [manifestUrl],
+        errors: []
+      });
+      refreshTrainingDataSelection();
+      return;
+    }
+
+    if (!remoteVersion) return;
+
+    const parsed = await loadTrainingDataPayloadFromUrl(remoteUrl, Math.max(getTrainingDataFetchTimeoutMs(), 12000));
+    dataCache = hydrateData(parsed.payload);
+    writeTrainingDataCache({
+      version: remoteVersion,
+      payload: parsed.payload,
+      source: parsed.source || 'remote',
+      release: parsed.release || null
+    });
+    assignTrainingDataLoadInfo({
+      loadedAt: new Date().toISOString(),
+      requestUrl: remoteUrl,
+      manifestUrl,
+      transport: 'remote',
+      source: parsed.source || 'remote',
+      release: parsed.release || null,
+      version: remoteVersion,
+      bundleVersion: BUNDLE_TRAINING_DATA_VERSION,
+      cacheHit: false,
+      triedUrls: [manifestUrl, remoteUrl].filter(Boolean),
+      errors: []
+    });
+    refreshTrainingDataSelection();
+  } catch (err) {
+    const message =
+      err && err.name === 'AbortError'
+        ? `training data background refresh timeout after ${Math.max(getTrainingDataFetchTimeoutMs(), 12000)}ms`
+        : err && err.message
+        ? err.message
+        : String(err);
+    console.warn('[training-data] background refresh failed:', message);
+  }
+};
+
 const readStoredSelection = () => {
   if (typeof window === 'undefined') return null;
   try {
@@ -355,10 +463,9 @@ const loadTrainingData = async () => {
       const localUrl = LOCAL_DATA_URL.toString();
       const remoteUrl = getConfiguredRemoteTrainingDataUrl();
       const manifestUrl = remoteUrl ? getTrainingDataManifestUrl(remoteUrl) : '';
-      const allowLocalFallback = urls.includes(localUrl);
-      const cached = allowLocalFallback ? readTrainingDataCache() : null;
+      const cached = readTrainingDataCache();
       const errors = [];
-      dataLoadInfo = {
+      assignTrainingDataLoadInfo({
         status: 'loading',
         loadedAt: null,
         requestUrl: '',
@@ -371,64 +478,42 @@ const loadTrainingData = async () => {
         cacheHit: false,
         triedUrls: urls.slice(),
         errors: []
-      };
+      });
 
-      if (!allowLocalFallback) {
-        for (const url of urls) {
-          try {
-            const parsed = await loadTrainingDataPayloadFromUrl(url, getTrainingDataFetchTimeoutMs());
-            dataCache = hydrateData(parsed.payload);
-            dataLoadInfo = {
-              status: 'ok',
-              loadedAt: new Date().toISOString(),
-              requestUrl: url,
-              manifestUrl,
-              transport: url === localUrl ? 'local' : 'remote',
-              source: parsed.source || (url === localUrl ? 'local-json' : 'remote'),
-              release: parsed.release || null,
-              version: '',
-              bundleVersion: BUNDLE_TRAINING_DATA_VERSION,
-              cacheHit: false,
-              triedUrls: urls.slice(),
-              errors: errors.map((entry) => ({
-                url: entry.url,
-                message: entry.message
-              }))
-            };
-            dataPromise = null;
-            return dataCache;
-          } catch (err) {
-            const errorMessage =
-              err && err.name === 'AbortError'
-                ? `training data timeout after ${getTrainingDataFetchTimeoutMs()}ms`
-                : err && err.message
-                ? err.message
-                : String(err);
-            errors.push({
-              url,
-              message: errorMessage
-            });
-          }
-        }
-
-        console.error('[training-data] failed to load from all sources', errors);
-        dataCache = { routes: [] };
-        dataLoadInfo = {
-          status: 'error',
-          loadedAt: new Date().toISOString(),
-          requestUrl: '',
+      try {
+        const parsed = await loadTrainingDataPayloadFromUrl(localUrl, 0);
+        applyTrainingDataPayload(parsed, {
+          requestUrl: localUrl,
           manifestUrl,
-          transport: '',
-          source: '',
-          release: null,
-          version: '',
-          bundleVersion: BUNDLE_TRAINING_DATA_VERSION,
+          transport: 'local',
+          source: parsed.source || 'local-json',
+          release: parsed.release || null,
+          version: BUNDLE_TRAINING_DATA_VERSION,
           cacheHit: false,
-          triedUrls: urls.slice(),
-          errors: errors.slice()
-        };
+          triedUrls: [manifestUrl, localUrl].filter(Boolean),
+          errors: []
+        });
         dataPromise = null;
+        if (remoteUrl) {
+          void refreshTrainingDataInBackground({
+            localUrl,
+            remoteUrl,
+            manifestUrl,
+            cached
+          });
+        }
         return dataCache;
+      } catch (localErr) {
+        const errorMessage =
+          localErr && localErr.name === 'AbortError'
+            ? `local training data timeout after 0ms`
+            : localErr && localErr.message
+            ? localErr.message
+            : String(localErr);
+        errors.push({
+          url: localUrl,
+          message: errorMessage
+        });
       }
 
       try {
@@ -440,28 +525,24 @@ const loadTrainingData = async () => {
 
         if (remoteVersion && remoteVersion === BUNDLE_TRAINING_DATA_VERSION) {
           const parsed = await loadTrainingDataPayloadFromUrl(localUrl, 0);
-          dataCache = hydrateData(parsed.payload);
-          dataLoadInfo = {
-            status: 'ok',
-            loadedAt: new Date().toISOString(),
+          applyTrainingDataPayload(parsed, {
             requestUrl: localUrl,
             manifestUrl,
             transport: 'local',
             source: parsed.source || 'local-json',
             release: parsed.release || null,
             version: remoteVersion,
-            bundleVersion: BUNDLE_TRAINING_DATA_VERSION,
             cacheHit: false,
             triedUrls: [manifestUrl, localUrl].filter(Boolean),
             errors: []
-          };
+          });
           dataPromise = null;
           return dataCache;
         }
 
         if (remoteVersion && cached && cacheVersion === remoteVersion) {
           dataCache = hydrateData(cached.payload);
-          dataLoadInfo = {
+          assignTrainingDataLoadInfo({
             status: 'ok',
             loadedAt: new Date().toISOString(),
             requestUrl: `cache:${cacheVersion}`,
@@ -474,41 +555,45 @@ const loadTrainingData = async () => {
             cacheHit: true,
             triedUrls: [manifestUrl],
             errors: []
-          };
+          });
           dataPromise = null;
+          if (remoteUrl) {
+            void refreshTrainingDataInBackground({
+              localUrl,
+              remoteUrl,
+              manifestUrl,
+              cached
+            });
+          }
           return dataCache;
         }
 
         if (remoteVersion && remoteUrl) {
           const parsed = await loadTrainingDataPayloadFromUrl(remoteUrl, getTrainingDataFetchTimeoutMs());
-          dataCache = hydrateData(parsed.payload);
-          writeTrainingDataCache({
-            version: remoteVersion,
-            payload: parsed.payload,
-            source: parsed.source || 'remote',
-            release: parsed.release || null
-          });
-          dataLoadInfo = {
-            status: 'ok',
-            loadedAt: new Date().toISOString(),
+          applyTrainingDataPayload(parsed, {
             requestUrl: remoteUrl,
             manifestUrl,
             transport: 'remote',
             source: parsed.source || 'remote',
             release: parsed.release || null,
             version: remoteVersion,
-            bundleVersion: BUNDLE_TRAINING_DATA_VERSION,
             cacheHit: false,
             triedUrls: [manifestUrl, remoteUrl].filter(Boolean),
             errors: []
-          };
+          });
+          writeTrainingDataCache({
+            version: remoteVersion,
+            payload: parsed.payload,
+            source: parsed.source || 'remote',
+            release: parsed.release || null
+          });
           dataPromise = null;
           return dataCache;
         }
 
         if (cached) {
           dataCache = hydrateData(cached.payload);
-          dataLoadInfo = {
+          assignTrainingDataLoadInfo({
             status: 'ok',
             loadedAt: new Date().toISOString(),
             requestUrl: `cache:${cacheVersion || 'unknown'}`,
@@ -521,28 +606,40 @@ const loadTrainingData = async () => {
             cacheHit: true,
             triedUrls: [manifestUrl].filter(Boolean),
             errors: []
-          };
+          });
           dataPromise = null;
+          if (remoteUrl) {
+            void refreshTrainingDataInBackground({
+              localUrl,
+              remoteUrl,
+              manifestUrl,
+              cached
+            });
+          }
           return dataCache;
         }
 
         const parsed = await loadTrainingDataPayloadFromUrl(localUrl, 0);
-        dataCache = hydrateData(parsed.payload);
-        dataLoadInfo = {
-          status: 'ok',
-          loadedAt: new Date().toISOString(),
+        applyTrainingDataPayload(parsed, {
           requestUrl: localUrl,
           manifestUrl,
           transport: 'local',
           source: parsed.source || 'local-json',
           release: parsed.release || null,
           version: BUNDLE_TRAINING_DATA_VERSION,
-          bundleVersion: BUNDLE_TRAINING_DATA_VERSION,
           cacheHit: false,
           triedUrls: [manifestUrl, localUrl].filter(Boolean),
           errors: []
-        };
+        });
         dataPromise = null;
+        if (remoteUrl) {
+          void refreshTrainingDataInBackground({
+            localUrl,
+            remoteUrl,
+            manifestUrl,
+            cached
+          });
+        }
         return dataCache;
       } catch (err) {
         const errorMessage =
@@ -555,6 +652,41 @@ const loadTrainingData = async () => {
           url: manifestUrl || remoteUrl || localUrl,
           message: errorMessage
         });
+        try {
+          const parsed = await loadTrainingDataPayloadFromUrl(localUrl, 0);
+          applyTrainingDataPayload(parsed, {
+            requestUrl: localUrl,
+            manifestUrl,
+            transport: 'local',
+            source: parsed.source || 'local-json',
+            release: parsed.release || null,
+            version: BUNDLE_TRAINING_DATA_VERSION,
+            cacheHit: false,
+            triedUrls: [manifestUrl, localUrl].filter(Boolean),
+            errors
+          });
+          dataPromise = null;
+          if (remoteUrl) {
+            void refreshTrainingDataInBackground({
+              localUrl,
+              remoteUrl,
+              manifestUrl,
+              cached
+            });
+          }
+          return dataCache;
+        } catch (localErr) {
+          const localMessage =
+            localErr && localErr.name === 'AbortError'
+              ? `local training data timeout after 0ms`
+              : localErr && localErr.message
+              ? localErr.message
+              : String(localErr);
+          errors.push({
+            url: localUrl,
+            message: localMessage
+          });
+        }
         if (cached) {
           dataCache = hydrateData(cached.payload);
           dataLoadInfo = {

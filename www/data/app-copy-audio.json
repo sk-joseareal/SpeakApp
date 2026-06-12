@@ -1,14 +1,22 @@
 {
   "generator": "realtime",
-  "source_hash": "sha256-fdcdaed97d9e063dccf5d2a2fc317ad79a7b191f9d08365c6571cb84356466c9",
-  "generated_at": "2026-06-08T17:29:02.701Z",
+  "source_hash": "sha256-5ff9839f33005c1719c85d0b51b82a880fb0ada52385942c69062ab770f7ca5d",
+  "generated_at": "2026-06-12T09:43:53.596Z",
   "locales": {
     "es": {
+      "lookup": {
+        "entrena todos los sonidos del inglés y mejorarás tu pronunciación.": "Entrena todos los sonidos del inglés y mejorarás tu pronunciación.",
+        "practica cada día para sonar más natural.": "Practica cada día para sonar más natural.",
+        "explora cursos, unidades y lecciones para consultar contenido.": "Explora cursos, unidades y lecciones para consultar contenido.",
+        "explora vocabulario, expresiones, verbos y más.": "Explora vocabulario, expresiones, verbos y más.",
+        "traduce, escucha y practica la pronunciación de tus frases.": "Traduce, escucha y practica la pronunciación de tus frases.",
+        "¡cada sonido te ayudará a hablar mejor en inglés!": "¡Cada sonido te ayudará a hablar mejor en inglés!"
+      },
       "Entrena todos los sonidos del inglés y mejorarás tu pronunciación.": {
         "audio_url": "assets/app-copy-audio/audio/es/a349bcab6a471eb2.mp3",
         "locale": "es-ES",
         "text": "Entrena todos los sonidos del inglés y mejorarás tu pronunciación.",
-        "generated_at": "2026-06-08T17:29:03.759Z",
+        "generated_at": "2026-06-12T09:43:54.585Z",
         "hash": "b3a86ea874ee3689c26e1249d59a6c15e2d58347",
         "duration_ms": 3462,
         "voice": "Lucia",
@@ -106,7 +114,7 @@
         "audio_url": "assets/app-copy-audio/audio/es/393a707175665db6.mp3",
         "locale": "es-ES",
         "text": "Practica cada día para sonar más natural.",
-        "generated_at": "2026-06-08T17:29:04.177Z",
+        "generated_at": "2026-06-12T09:43:54.930Z",
         "hash": "6a2567079926f4d143419dc6e7a3a2af5e886919",
         "duration_ms": 2310,
         "voice": "Lucia",
@@ -180,7 +188,7 @@
         "audio_url": "assets/app-copy-audio/audio/es/3313d264f74e3002.mp3",
         "locale": "es-ES",
         "text": "Explora cursos, unidades y lecciones para consultar contenido.",
-        "generated_at": "2026-06-08T17:29:05.317Z",
+        "generated_at": "2026-06-12T09:43:56.039Z",
         "hash": "2d3ff716f5ff51e56c5a4c7777a5a070777bf58c",
         "duration_ms": 3670,
         "voice": "Lucia",
@@ -262,7 +270,7 @@
         "audio_url": "assets/app-copy-audio/audio/es/3b5a0af147c72e09.mp3",
         "locale": "es-ES",
         "text": "Explora vocabulario, expresiones, verbos y más.",
-        "generated_at": "2026-06-08T17:29:06.113Z",
+        "generated_at": "2026-06-12T09:43:56.765Z",
         "hash": "499c671254a19ae6c6632058c67da399ef6cc514",
         "duration_ms": 3190,
         "voice": "Lucia",
@@ -328,7 +336,7 @@
         "audio_url": "assets/app-copy-audio/audio/es/b81db2cb9a5c9a6b.mp3",
         "locale": "es-ES",
         "text": "Traduce, escucha y practica la pronunciación de tus frases.",
-        "generated_at": "2026-06-08T17:29:06.810Z",
+        "generated_at": "2026-06-12T09:43:57.535Z",
         "hash": "214d5f8045604931c7fdf93d1b64a610b09482ca",
         "duration_ms": 3230,
         "voice": "Lucia",
@@ -413,14 +421,112 @@
         "source_paths": [
           "freeRide.subtitle:1"
         ]
+      },
+      "¡Cada sonido te ayudará a hablar mejor en inglés!": {
+        "audio_url": "assets/app-copy-audio/audio/es/96c830169395b03d.mp3",
+        "locale": "es-ES",
+        "text": "¡Cada sonido te ayudará a hablar mejor en inglés!",
+        "generated_at": "2026-06-12T09:43:58.179Z",
+        "hash": "bdedcb0b0a14bda6e6b210f5968047b912c8129d",
+        "duration_ms": 2567,
+        "voice": "Lucia",
+        "engine": "neural",
+        "rate": "",
+        "pitch": "",
+        "voice_profile": "default",
+        "words": [
+          {
+            "index": 0,
+            "text": "Cada",
+            "start_ms": 62,
+            "end_ms": 312,
+            "start_char": 2,
+            "end_char": 6
+          },
+          {
+            "index": 1,
+            "text": "sonido",
+            "start_ms": 312,
+            "end_ms": 687,
+            "start_char": 7,
+            "end_char": 13
+          },
+          {
+            "index": 2,
+            "text": "te",
+            "start_ms": 687,
+            "end_ms": 812,
+            "start_char": 14,
+            "end_char": 16
+          },
+          {
+            "index": 3,
+            "text": "ayudará",
+            "start_ms": 812,
+            "end_ms": 1250,
+            "start_char": 17,
+            "end_char": 25
+          },
+          {
+            "index": 4,
+            "text": "a",
+            "start_ms": 1250,
+            "end_ms": 1375,
+            "start_char": 26,
+            "end_char": 27
+          },
+          {
+            "index": 5,
+            "text": "hablar",
+            "start_ms": 1375,
+            "end_ms": 1687,
+            "start_char": 28,
+            "end_char": 34
+          },
+          {
+            "index": 6,
+            "text": "mejor",
+            "start_ms": 1687,
+            "end_ms": 2000,
+            "start_char": 35,
+            "end_char": 40
+          },
+          {
+            "index": 7,
+            "text": "en",
+            "start_ms": 2000,
+            "end_ms": 2087,
+            "start_char": 41,
+            "end_char": 43
+          },
+          {
+            "index": 8,
+            "text": "inglés",
+            "start_ms": 2087,
+            "end_ms": 2567,
+            "start_char": 44,
+            "end_char": 51
+          }
+        ],
+        "source_paths": [
+          "speak.heroNarration:1"
+        ]
       }
     },
     "en": {
+      "lookup": {
+        "train every english sound and speak more naturally.": "Train every English sound and speak more naturally.",
+        "practice every day to improve your pronunciation.": "Practice every day to improve your pronunciation.",
+        "browse courses, units, and lessons to review content.": "Browse courses, units, and lessons to review content.",
+        "explore vocabulary, expressions, verbs and more.": "Explore vocabulary, expressions, verbs and more.",
+        "translate, listen, and practice pronouncing your phrases.": "Translate, listen, and practice pronouncing your phrases.",
+        "every sound will help you speak english better!": "Every sound will help you speak English better!"
+      },
       "Train every English sound and speak more naturally.": {
         "audio_url": "assets/app-copy-audio/audio/en/a37cbc2b52fde77f.mp3",
         "locale": "en-US",
         "text": "Train every English sound and speak more naturally.",
-        "generated_at": "2026-06-08T17:29:04.523Z",
+        "generated_at": "2026-06-12T09:43:55.327Z",
         "hash": "9de159f28b626fd124025e4402ab0dd6cf996f8c",
         "duration_ms": 2870,
         "voice": "Danielle",
@@ -502,7 +608,7 @@
         "audio_url": "assets/app-copy-audio/audio/en/9426943ecdd10df8.mp3",
         "locale": "en-US",
         "text": "Practice every day to improve your pronunciation.",
-        "generated_at": "2026-06-08T17:29:04.910Z",
+        "generated_at": "2026-06-12T09:43:55.677Z",
         "hash": "37d6b120817b2cb12b88d845b8df881cf0a50c1e",
         "duration_ms": 2600,
         "voice": "Danielle",
@@ -576,7 +682,7 @@
         "audio_url": "assets/app-copy-audio/audio/en/214e02b779d90fe9.mp3",
         "locale": "en-US",
         "text": "Browse courses, units, and lessons to review content.",
-        "generated_at": "2026-06-08T17:29:05.656Z",
+        "generated_at": "2026-06-12T09:43:56.426Z",
         "hash": "9a44a7bb3211d300ebd28a0fa4e8d6e1872fa771",
         "duration_ms": 3460,
         "voice": "Danielle",
@@ -658,7 +764,7 @@
         "audio_url": "assets/app-copy-audio/audio/en/bfecbf6730234c8a.mp3",
         "locale": "en-US",
         "text": "Explore vocabulary, expressions, verbs and more.",
-        "generated_at": "2026-06-08T17:29:06.432Z",
+        "generated_at": "2026-06-12T09:43:57.167Z",
         "hash": "d9322ac5e3534a6bff9f13bbc4c3566400bf0f70",
         "duration_ms": 3420,
         "voice": "Danielle",
@@ -724,7 +830,7 @@
         "audio_url": "assets/app-copy-audio/audio/en/5a5d08ab80ae7968.mp3",
         "locale": "en-US",
         "text": "Translate, listen, and practice pronouncing your phrases.",
-        "generated_at": "2026-06-08T17:29:07.240Z",
+        "generated_at": "2026-06-12T09:43:57.868Z",
         "hash": "beaab8080b4244e252c2f3e45679535f3bf823a9",
         "duration_ms": 3310,
         "voice": "Danielle",
@@ -792,6 +898,88 @@
         ],
         "source_paths": [
           "freeRide.subtitle:1"
+        ]
+      },
+      "Every sound will help you speak English better!": {
+        "audio_url": "assets/app-copy-audio/audio/en/44b056ab7dde598b.mp3",
+        "locale": "en-US",
+        "text": "Every sound will help you speak English better!",
+        "generated_at": "2026-06-12T09:43:58.538Z",
+        "hash": "3548efbd592333b8f5f718a58a42a40424d9acb2",
+        "duration_ms": 2367,
+        "voice": "Danielle",
+        "engine": "neural",
+        "rate": "",
+        "pitch": "",
+        "voice_profile": "default",
+        "words": [
+          {
+            "index": 0,
+            "text": "Every",
+            "start_ms": 25,
+            "end_ms": 287,
+            "start_char": 0,
+            "end_char": 5
+          },
+          {
+            "index": 1,
+            "text": "sound",
+            "start_ms": 287,
+            "end_ms": 687,
+            "start_char": 6,
+            "end_char": 11
+          },
+          {
+            "index": 2,
+            "text": "will",
+            "start_ms": 687,
+            "end_ms": 812,
+            "start_char": 12,
+            "end_char": 16
+          },
+          {
+            "index": 3,
+            "text": "help",
+            "start_ms": 812,
+            "end_ms": 1062,
+            "start_char": 17,
+            "end_char": 21
+          },
+          {
+            "index": 4,
+            "text": "you",
+            "start_ms": 1062,
+            "end_ms": 1162,
+            "start_char": 22,
+            "end_char": 25
+          },
+          {
+            "index": 5,
+            "text": "speak",
+            "start_ms": 1162,
+            "end_ms": 1487,
+            "start_char": 26,
+            "end_char": 31
+          },
+          {
+            "index": 6,
+            "text": "English",
+            "start_ms": 1487,
+            "end_ms": 1887,
+            "start_char": 32,
+            "end_char": 39
+          },
+          {
+            "index": 7,
+            "text": "better",
+            "start_ms": 1887,
+            "end_ms": 2367,
+            "start_char": 40,
+            "end_char": 46
+          }
+        ],
+        "source_paths": [
+          "speak.heroNarration:1"
         ]
       }
     }

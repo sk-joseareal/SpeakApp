@@ -42,7 +42,6 @@ const TTS_LANG_BY_LOCALE = {
   en: 'en-US'
 };
 const BROWSER_AUTONARRATION_EXTRA_DELAY_MS = 120;
-const REFERENCE_ALIGNED_CACHE_MAX_ITEMS = 80;
 const REFERENCE_HERO_AUTONARRATION_PLAYED_KEY = 'appv5:reference-hero-auto-narration-played';
 const REFERENCE_TOOLS_ENABLED_KEY = 'appv5:reference-tools-enabled';
 const FREE_RIDE_CARD_PADDED_KEY = 'appv5:free-ride-card-padded';
@@ -211,7 +210,6 @@ class PageReference extends HTMLElement {
     this.heroMascotFrameTimer = null;
     this.heroMascotIsTalking = false;
     this.narrationAudio = null;
-    this.alignedTtsCache = new Map();
     this.initialHeroNarrationStarted = this.hasAutoHeroNarrationPlayed();
     this.referenceTestSelectionKey = '';
     this.referenceTestStates = {};
@@ -1384,99 +1382,6 @@ class PageReference extends HTMLElement {
     if (lines.length) return lines;
     const fallback = this.extractSpeechText(raw);
     return fallback ? [{ text: fallback, html: '' }] : [];
-  }
-
-  resolveAlignedTtsEndpoint() {
-    const cfg = window.realtimeConfig || {};
-    const direct = cfg.ttsAlignedEndpoint || window.REALTIME_TTS_ALIGNED_ENDPOINT;
-    if (typeof direct === 'string' && direct.trim()) {
-      return direct.trim();
-    }
-    const emitEndpoint = cfg.emitEndpoint;
-    if (typeof emitEndpoint === 'string' && emitEndpoint.trim()) {
-      const trimmed = emitEndpoint.trim().replace(/\/+$/, '');
-      if (trimmed.endsWith('/emit')) {
-        return `${trimmed.slice(0, -5)}/tts/aligned`;
-      }
-    }
-    return 'https://realtime.curso-ingles.com/realtime/tts/aligned';
-  }
-
-  buildAlignedTtsHeaders() {
-    const headers = { 'Content-Type': 'application/json' };
-    const cfg = window.realtimeConfig || {};
-    const token =
-      typeof cfg.authToken === 'string'
-        ? cfg.authToken.trim()
-          : '';
-    if (token) {
-      headers['x-rt-token'] = token;
-    }
-    return headers;
-  }
-
-  getAlignedTtsCacheKey(text, lang) {
-    return `${String(lang || '').trim().toLowerCase()}::${String(text || '').trim()}`;
-  }
-
-  getAlignedTtsFromCache(text, lang) {
-    const key = this.getAlignedTtsCacheKey(text, lang);
-    if (!key || !this.alignedTtsCache.has(key)) return null;
-    const cached = this.alignedTtsCache.get(key);
-    this.alignedTtsCache.delete(key);
-    this.alignedTtsCache.set(key, cached);
-    return cached;
-  }
-
-  storeAlignedTtsInCache(text, lang, payload) {
-    const key = this.getAlignedTtsCacheKey(text, lang);
-    if (!key || !payload) return;
-    this.alignedTtsCache.set(key, payload);
-    while (this.alignedTtsCache.size > REFERENCE_ALIGNED_CACHE_MAX_ITEMS) {
-      const oldest = this.alignedTtsCache.keys().next();
-      if (oldest && !oldest.done) {
-        this.alignedTtsCache.delete(oldest.value);
-      } else {
-        break;
-      }
-    }
-  }
-
-  async fetchAlignedTts(text, lang) {
-    const expected = String(text || '').trim();
-    const locale = String(lang || '').trim() || 'en-US';
-    if (!expected) return null;
-
-    const bundled = getAppCopyNarrationPayload(locale, expected);
-    if (bundled) return bundled;
-
-    const cached = this.getAlignedTtsFromCache(expected, locale);
-    if (cached) return cached;
-    const endpoint = this.resolveAlignedTtsEndpoint();
-    if (!endpoint) return null;
-    const body = {
-      text: expected,
-      locale
-    };
-    const user = window.user;
-    if (user && user.id !== undefined && user.id !== null && String(user.id).trim()) {
-      body.user_id = String(user.id).trim();
-    }
-    const userName = getResolvedUserName(user);
-    if (userName) {
-      body.user_name = userName;
-    }
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: this.buildAlignedTtsHeaders(),
-      body: JSON.stringify(body)
-    });
-    if (!response.ok) return null;
-    const payload = await response.json();
-    if (!payload || payload.ok !== true) return null;
-    if (typeof payload.audio_url !== 'string' || !payload.audio_url.trim()) return null;
-    this.storeAlignedTtsInCache(expected, locale, payload);
-    return payload;
   }
 
   getHeroBubbleEl() {
@@ -2876,12 +2781,7 @@ class PageReference extends HTMLElement {
     const message = String(text || '').trim();
     if (!message) return false;
     if (token !== this.narrationToken) return false;
-    let payload = null;
-    try {
-      payload = await this.fetchAlignedTts(message, lang);
-    } catch (_err) {
-      payload = null;
-    }
+    const payload = getAppCopyNarrationPayload(lang, message);
     if (!payload || token !== this.narrationToken) return false;
     const audioUrl = String(payload.audio_url || '').trim();
     if (!audioUrl) return false;

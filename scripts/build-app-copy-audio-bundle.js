@@ -31,7 +31,9 @@ const NARRATION_FIELDS = [
   { locale: 'es', path: ['reference', 'toolsSubtitle'] },
   { locale: 'en', path: ['reference', 'toolsSubtitle'] },
   { locale: 'es', path: ['freeRide', 'subtitle'] },
-  { locale: 'en', path: ['freeRide', 'subtitle'] }
+  { locale: 'en', path: ['freeRide', 'subtitle'] },
+  { locale: 'es', path: ['speak', 'heroNarration'] },
+  { locale: 'en', path: ['speak', 'heroNarration'] }
 ];
 
 const isPlainObject = (value) => Boolean(value && typeof value === 'object' && !Array.isArray(value));

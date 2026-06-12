@@ -15,8 +15,6 @@ Options:
                          Default: www/js/data/training-data.json
   --meta PATH            Local training-data.meta.js path
                          Default: www/js/data/training-data.meta.js
-  --assets-meta PATH     Local speak bundle meta path
-                         Default: www/assets/speak/mfa/bundle.meta.json
   --help                 Show this help
 
 Environment variables:
@@ -25,7 +23,6 @@ Environment variables:
   CONTENT_TRAINING_DATA_TOKEN
   CONTENT_JSON_PATH
   CONTENT_META_PATH
-  CONTENT_ASSETS_META_PATH
 EOF
 }
 
@@ -118,7 +115,6 @@ BASE_URL="${CONTENT_BASE_URL:-https://content.curso-ingles.com}"
 READ_TOKEN="${CONTENT_READ_TOKEN:-${CONTENT_TRAINING_DATA_TOKEN:-}}"
 JSON_PATH="${CONTENT_JSON_PATH:-www/js/data/training-data.json}"
 META_PATH="${CONTENT_META_PATH:-www/js/data/training-data.meta.js}"
-ASSETS_META_PATH="${CONTENT_ASSETS_META_PATH:-www/assets/speak/mfa/bundle.meta.json}"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -136,10 +132,6 @@ while [[ $# -gt 0 ]]; do
       ;;
     --meta)
       META_PATH="${2:-}"
-      shift 2
-      ;;
-    --assets-meta)
-      ASSETS_META_PATH="${2:-}"
       shift 2
       ;;
     --help|-h)
@@ -162,7 +154,6 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 INDEX_HTML="$REPO_ROOT/www/index.html"
 LOCAL_JSON="$REPO_ROOT/$JSON_PATH"
 LOCAL_META="$REPO_ROOT/$META_PATH"
-ASSETS_META="$REPO_ROOT/$ASSETS_META_PATH"
 
 if [[ -z "$READ_TOKEN" ]]; then
   READ_TOKEN="$(extract_token_from_index "$INDEX_HTML")"
@@ -180,13 +171,6 @@ trap 'rm -rf "$TMP_DIR"' EXIT
 LOCAL_VERSION=""
 if [[ -f "$LOCAL_META" ]]; then
   LOCAL_VERSION="$(extract_version_from_meta "$LOCAL_META" || true)"
-fi
-
-ASSETS_VERSION=""
-ASSETS_GENERATOR=""
-if [[ -f "$ASSETS_META" ]]; then
-  ASSETS_VERSION="$(json_read_field "$ASSETS_META" training_data_version || true)"
-  ASSETS_GENERATOR="$(json_read_field "$ASSETS_META" generator || true)"
 fi
 
 META_RESP="$TMP_DIR/meta.json"
@@ -212,17 +196,6 @@ NEED_JSON_DOWNLOAD=1
 if [[ -n "$LOCAL_VERSION" && "$LOCAL_VERSION" == "$REMOTE_VERSION" ]]; then
   NEED_JSON_DOWNLOAD=0
   echo "   JSON already up to date: $REMOTE_VERSION"
-fi
-
-NEED_ASSETS_BUILD=1
-BUILD_TTS_FORCE=0
-if [[ -n "$ASSETS_VERSION" && "$ASSETS_VERSION" == "$REMOTE_VERSION" && "$ASSETS_GENERATOR" == "realtime" ]]; then
-  NEED_ASSETS_BUILD=0
-  echo "   Speak bundle already up to date: $ASSETS_VERSION"
-else
-  if [[ -z "$ASSETS_VERSION" || "$ASSETS_GENERATOR" != "realtime" ]]; then
-    BUILD_TTS_FORCE=1
-  fi
 fi
 
 if [[ "$NEED_JSON_DOWNLOAD" == "1" ]]; then
@@ -253,54 +226,19 @@ NODE
   )
 fi
 
-if [[ "$NEED_ASSETS_BUILD" == "1" ]]; then
-  echo "3/3 Build speak bundle assets from realtime TTS"
-  (
-    cd "$REPO_ROOT"
-    TTS_FORCE="$BUILD_TTS_FORCE" MFA_TRAINING_DATA="$LOCAL_JSON" bash ./mfa/build-speak-bundle-from-realtime.sh
-  )
-
-  mkdir -p "$(dirname "$ASSETS_META")"
-  rm -rf "$REPO_ROOT/www/assets/speak/mfa/audio" \
-    "$REPO_ROOT/www/assets/speak/mfa/words" \
-    "$REPO_ROOT/www/assets/speak/mfa/syllables"
-  rm -f "$REPO_ROOT/www/assets/speak/mfa/sentences.json"
-  mkdir -p \
-    "$REPO_ROOT/www/assets/speak/mfa/audio" \
-    "$REPO_ROOT/www/assets/speak/mfa/words" \
-    "$REPO_ROOT/www/assets/speak/mfa/syllables"
-
-  cp "$REPO_ROOT/mfa/output/items.json" "$REPO_ROOT/www/assets/speak/mfa/items.json"
-  cp -R "$REPO_ROOT/mfa/output/audio/." "$REPO_ROOT/www/assets/speak/mfa/audio/"
-  cp -R "$REPO_ROOT/mfa/output/words/." "$REPO_ROOT/www/assets/speak/mfa/words/"
-  cp -R "$REPO_ROOT/mfa/output/syllables/." "$REPO_ROOT/www/assets/speak/mfa/syllables/"
-
-  node - "$ASSETS_META" "$REMOTE_VERSION" <<'NODE'
-const fs = require('fs');
-const outputFile = process.argv[2];
-const version = process.argv[3];
-const payload = {
-  training_data_version: String(version || ''),
-  generator: 'realtime',
-  generated_at: new Date().toISOString()
-};
-fs.writeFileSync(outputFile, JSON.stringify(payload, null, 2) + '\n', 'utf8');
-NODE
-fi
-
-echo "4/5 Build app-copy narration audio bundle"
+echo "3/4 Build app-copy narration audio bundle"
 (
   cd "$REPO_ROOT"
   npm run sync:app-copy-audio
 )
 
-echo "5/5 Build speak video bundle"
+echo "4/4 Build speak video bundle"
 (
   cd "$REPO_ROOT"
   npm run sync:speak-videos
 )
 
-if [[ "$NEED_JSON_DOWNLOAD" == "0" && "$NEED_ASSETS_BUILD" == "0" ]]; then
+if [[ "$NEED_JSON_DOWNLOAD" == "0" ]]; then
   echo "   Already up to date: $REMOTE_VERSION"
 else
   echo "   Synced: $REMOTE_VERSION"

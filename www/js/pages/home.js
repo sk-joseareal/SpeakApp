@@ -33,7 +33,6 @@ const TTS_LANG_BY_LOCALE = {
 
 const BROWSER_AUTONARRATION_EXTRA_DELAY_MS = 120;
 const SPEAK_SESSION_PERCENTAGES_VISIBLE_KEY = 'appv5:speak-session-percentages-visible';
-const HOME_ALIGNED_CACHE_MAX_ITEMS = 24;
 const HOME_PLAN_AUTONARRATION_PLAYED_KEY = 'appv5:home-plan-auto-narration-played';
 const HOME_EXPANDED_ROUTE_KEY = 'appv5:home-expanded-route-id';
 const HOME_RETURN_SCROLL_KEY = 'appv5:home-return-scroll-top';
@@ -169,7 +168,6 @@ class PageHome extends HTMLElement {
     this.planMascotFrameTimer = null;
     this.planMascotIsTalking = false;
     this.narrationAudio = null;
-    this.alignedTtsCache = new Map();
     this.planNarrationPromise = null;
     this.homeScrollTop = 0;
     this._homeScrollEl = null;
@@ -2512,146 +2510,8 @@ class PageHome extends HTMLElement {
     return fallback ? [{ text: fallback, html: '' }] : [];
   }
 
-  resolveAlignedTtsEndpoint() {
-    const cfg = window.realtimeConfig || {};
-    const direct = cfg.ttsAlignedEndpoint || window.REALTIME_TTS_ALIGNED_ENDPOINT;
-    if (typeof direct === 'string' && direct.trim()) {
-      return direct.trim();
-    }
-    const emitEndpoint = cfg.emitEndpoint;
-    if (typeof emitEndpoint === 'string' && emitEndpoint.trim()) {
-      const trimmed = emitEndpoint.trim().replace(/\/+$/, '');
-      if (trimmed.endsWith('/emit')) {
-        return `${trimmed.slice(0, -5)}/tts/aligned`;
-      }
-    }
-    return 'https://realtime.curso-ingles.com/realtime/tts/aligned';
-  }
-
-  buildAlignedTtsHeaders() {
-    const headers = { 'Content-Type': 'application/json' };
-    const cfg = window.realtimeConfig || {};
-    const token =
-      typeof cfg.authToken === 'string'
-        ? cfg.authToken.trim()
-          : '';
-    if (token) {
-      headers['x-rt-token'] = token;
-    }
-    return headers;
-  }
-
-  normalizeAlignedTtsRequestOptions(options = {}) {
-    const source = options && typeof options === 'object' ? options : {};
-    const voiceProfile = String(source.voiceProfile || source.voice_profile || '').trim().toLowerCase();
-    const voice = String(source.voice || '').trim();
-    const engine = String(source.engine || '').trim().toLowerCase();
-    const rate = String(source.rate || '').trim();
-    const pitch = String(source.pitch || '').trim();
-    return {
-      voiceProfile,
-      voice,
-      engine,
-      rate,
-      pitch
-    };
-  }
-
   getPlanNarrationTtsOptions(locale = this.currentUiLocale) {
     return {};
-  }
-
-  getAlignedTtsCacheKey(text, lang, options = {}) {
-    const normalized = this.normalizeAlignedTtsRequestOptions(options);
-    return [
-      String(lang || '').trim().toLowerCase(),
-      String(text || '').trim(),
-      normalized.voiceProfile,
-      normalized.voice,
-      normalized.engine,
-      normalized.rate,
-      normalized.pitch
-    ].join('::');
-  }
-
-  getAlignedTtsFromCache(text, lang, options = {}) {
-    const key = this.getAlignedTtsCacheKey(text, lang, options);
-    if (!key || !this.alignedTtsCache.has(key)) return null;
-    const cached = this.alignedTtsCache.get(key);
-    this.alignedTtsCache.delete(key);
-    this.alignedTtsCache.set(key, cached);
-    return cached;
-  }
-
-  storeAlignedTtsInCache(text, lang, payload, options = {}) {
-    const key = this.getAlignedTtsCacheKey(text, lang, options);
-    if (!key || !payload) return;
-    this.alignedTtsCache.set(key, payload);
-    while (this.alignedTtsCache.size > HOME_ALIGNED_CACHE_MAX_ITEMS) {
-      const oldest = this.alignedTtsCache.keys().next();
-      if (oldest && !oldest.done) {
-        this.alignedTtsCache.delete(oldest.value);
-      } else {
-        break;
-      }
-    }
-  }
-
-  async fetchAlignedTts(text, lang, options = {}) {
-    const expected = String(text || '').trim();
-    const locale = String(lang || '').trim() || 'en-US';
-    if (!expected) return null;
-    const normalizedOptions = this.normalizeAlignedTtsRequestOptions(options);
-
-    const bundled = getAppCopyNarrationPayload(locale, expected);
-    if (bundled) return bundled;
-
-    const cached = this.getAlignedTtsFromCache(expected, locale, normalizedOptions);
-    if (cached) return cached;
-
-    const endpoint = this.resolveAlignedTtsEndpoint();
-    if (!endpoint) return null;
-
-    const body = {
-      text: expected,
-      locale
-    };
-    if (normalizedOptions.voiceProfile) {
-      body.voice_profile = normalizedOptions.voiceProfile;
-    }
-    if (normalizedOptions.voice) {
-      body.voice = normalizedOptions.voice;
-    }
-    if (normalizedOptions.engine) {
-      body.engine = normalizedOptions.engine;
-    }
-    if (normalizedOptions.rate) {
-      body.rate = normalizedOptions.rate;
-    }
-    if (normalizedOptions.pitch) {
-      body.pitch = normalizedOptions.pitch;
-    }
-    const user = window.user;
-    if (user && user.id !== undefined && user.id !== null && String(user.id).trim()) {
-      body.user_id = String(user.id).trim();
-    }
-    const userName = getResolvedUserName(user);
-    if (userName) {
-      body.user_name = userName;
-    }
-
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: this.buildAlignedTtsHeaders(),
-      body: JSON.stringify(body)
-    });
-    if (!response.ok) return null;
-
-    const data = await response.json();
-    if (!data || data.ok !== true) return null;
-    if (typeof data.audio_url !== 'string' || !data.audio_url.trim()) return null;
-    this.storeAlignedTtsInCache(expected, locale, data, normalizedOptions);
-    return data;
   }
 
   async stopNarrationPlayback() {
@@ -2894,19 +2754,7 @@ class PageHome extends HTMLElement {
     if (!lineText) return false;
     if (token !== this.narrationToken) return false;
 
-    let payload = null;
-    try {
-      payload = await this.fetchAlignedTts(lineText, lang, ttsOptions);
-    } catch (err) {
-      payload = null;
-    }
-    if (!payload && ttsOptions && Object.keys(ttsOptions).length) {
-      try {
-        payload = await this.fetchAlignedTts(lineText, lang);
-      } catch (err) {
-        payload = null;
-      }
-    }
+    const payload = getAppCopyNarrationPayload(lang, lineText);
     if (!payload || token !== this.narrationToken) return false;
 
     const audioUrl = String(payload.audio_url || '').trim();

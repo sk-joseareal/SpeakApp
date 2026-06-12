@@ -6147,13 +6147,22 @@ page-speak .speak-content::part(scroll) {
 
 .speak-inline-expected {
   padding: 0 3px;
-  border-radius: 6px;
-  transition: background-color 0.08s ease-out, color 0.08s ease-out;
+  border: 1px solid #93C5FD;
+  border-radius: 8px;
+  animation: speak-word-pulse 1.6s ease-in-out infinite;
+  transition:
+    background-color 0.08s ease-out,
+    color 0.08s ease-out,
+    border-color 0.08s ease-out,
+    box-shadow 0.08s ease-out;
 }
 
 .speak-inline-expected.is-active {
-  background: #fde047;
+  background: rgba(47, 124, 246, 0.12);
   color: #1e293b;
+  border-color: var(--speak-blue);
+  animation: none;
+  box-shadow: 0 0 0 2px rgba(47, 124, 246, 0.18), 0 0 0 6px rgba(47, 124, 246, 0.08);
 }
 
 .accent {
@@ -6175,7 +6184,7 @@ page-speak .speak-content::part(scroll) {
 }
 
 .speak-syllable.is-active {
-  background: #fde047;
+  background: rgba(47, 124, 246, 0.12);
   color: #1e293b;
 }
 
@@ -7015,15 +7024,15 @@ page-speak .speak-content::part(scroll) {
 }
 
 .speak-step-spelling .speak-word-preview .speak-syllable.is-active {
-  box-shadow: 0 0 0 2px rgba(253, 224, 71, 0.7);
+  box-shadow: 0 0 0 2px rgba(47, 124, 246, 0.22);
 }
 
 .speak-step-spelling .speak-word.is-playing {
-  background: #fde047;
+  background: rgba(47, 124, 246, 0.12);
   color: #1e293b;
-  outline: 2px solid rgba(202, 138, 4, 0.9);
+  outline: 2px solid var(--speak-blue);
   outline-offset: 3px;
-  box-shadow: 0 0 0 3px rgba(253, 224, 71, 0.35), 0 0 0 8px rgba(253, 224, 71, 0.12);
+  box-shadow: 0 0 0 3px rgba(47, 124, 246, 0.18), 0 0 0 8px rgba(47, 124, 246, 0.08);
 }
 
 .speak-step-sound {
@@ -7403,11 +7412,11 @@ page-speak .speak-content::part(scroll) {
 }
 
 .speak-step-sentence .speak-sentence.is-playing {
-  background: #fde047;
+  background: rgba(47, 124, 246, 0.12);
   color: #1e293b;
-  border-color: rgba(202, 138, 4, 0.9);
+  border-color: var(--speak-blue);
   animation: none;
-  box-shadow: 0 0 0 2px rgba(253, 224, 71, 0.35), 0 0 0 6px rgba(253, 224, 71, 0.12);
+  box-shadow: 0 0 0 2px rgba(47, 124, 246, 0.18), 0 0 0 6px rgba(47, 124, 246, 0.08);
 }
 
 .speak-feedback {
@@ -8568,10 +8577,10 @@ page-profile.is-card-padded .free-ride-card {
 .free-ride-local-speaking-pill {
   display: inline;
   color: #0f172a;
-  background: rgba(253, 224, 71, 0.52);
+  background: rgba(47, 124, 246, 0.12);
   border-radius: 12px;
   padding: 2px 10px;
-  box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.34);
+  box-shadow: 0 0 0 1px rgba(47, 124, 246, 0.24);
   box-decoration-break: clone;
   -webkit-box-decoration-break: clone;
 }
@@ -8589,8 +8598,8 @@ page-profile.is-card-padded .free-ride-card {
 
 .free-ride-tts-token.is-active {
   color: #0f172a;
-  background: #fde047;
-  box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.38);
+  background: rgba(47, 124, 246, 0.12);
+  box-shadow: 0 0 0 1px rgba(47, 124, 246, 0.24);
 }
 
 .free-ride-transcript {

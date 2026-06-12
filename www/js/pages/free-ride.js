@@ -5878,12 +5878,7 @@ class PageFreeRide extends HTMLElement {
     if (!lineText) return false;
     if (token !== this.narrationToken) return false;
 
-    let payload = null;
-    try {
-      payload = await this.fetchAlignedTts(lineText, lang);
-    } catch (err) {
-      payload = null;
-    }
+    const payload = getAppCopyNarrationPayload(lang, lineText);
     if (!payload || token !== this.narrationToken) return false;
 
     const audioUrl = String(payload.audio_url || '').trim();

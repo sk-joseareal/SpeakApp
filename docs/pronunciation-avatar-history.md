@@ -40,9 +40,10 @@ Each option selected a different visual treatment for the `sound` step in `Speak
 
 ## Important distinction
 
-The removed avatar modes were only the visual layer. The `MFA` bundle still existed
-for the training playback flow and provided aligned audio, word timings and syllables.
-That bundle was not the same thing as the avatar-mode selector.
+The removed avatar modes were only the visual layer. At the time, the `MFA` bundle
+was a separate asset family used by the training playback flow for aligned audio,
+word timings and syllables. That bundle was not the same thing as the avatar-mode
+selector.
 
 ## If this ever needs to come back
 

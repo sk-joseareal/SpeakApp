@@ -9,6 +9,7 @@ import {
 import {
   getLocaleMeta,
   getNextLocaleCode,
+  getAppCopyNarrationPayload,
   getSpeakCopy as getSpeakCopyBundle,
   getSpeakFeedbackLabelScale,
   getSpeakFeedbackPhrases,
@@ -164,11 +165,6 @@ class PageSpeak extends HTMLElement {
     const debugToggleBtn = this.querySelector('#speak-debug-toggle');
     const sheetHandleBtn = this.querySelector('#speak-sheet-handle');
 
-    const MFA_BASE = 'assets/speak/mfa';
-    const MFA_ITEMS_URL = `${MFA_BASE}/items.json`;
-    const MFA_AUDIO_BASE = `${MFA_BASE}/audio`;
-    const MFA_WORDS_BASE = `${MFA_BASE}/words`;
-    const MFA_SYLLABLES_BASE = `${MFA_BASE}/syllables`;
     const VIDEO_BASE = 'assets/speak/videos';
     const AV_SYNC_DELAY = 0.06;
     const RECORDING_TIMESLICE = 500;
@@ -233,9 +229,6 @@ class PageSpeak extends HTMLElement {
     let activeAudio = null;
     let playbackAudio = null;
     let activePlayButton = null;
-    let mfaItems = [];
-    let mfaLookup = {};
-    let mfaReady = false;
     let syllableTimeline = [];
     let currentSyllable = 0;
     let activeSyllableIndex = -1;
@@ -2107,12 +2100,7 @@ class PageSpeak extends HTMLElement {
     const playHeroBubbleNarrationAligned = async (text, lang, token) => {
       const message = String(text || '').trim();
       if (!message || token !== heroNarrationToken) return false;
-      let payload = null;
-      try {
-        payload = await fetchAlignedTts(message, lang);
-      } catch (_err) {
-        payload = null;
-      }
+      const payload = getAppCopyNarrationPayload(lang, message);
       if (!payload || token !== heroNarrationToken) return false;
       const audioUrl = String(payload.audio_url || '').trim();
       if (!audioUrl) return false;
@@ -3335,58 +3323,6 @@ class PageSpeak extends HTMLElement {
         });
     };
 
-    const ensureMfaItems = async () => {
-      if (mfaReady) return true;
-      try {
-        const res = await fetch(MFA_ITEMS_URL);
-        if (!res.ok) return false;
-        const data = await res.json();
-        mfaItems = Array.isArray(data.items) ? data.items : [];
-        mfaLookup = data && typeof data.lookup === 'object' ? data.lookup : {};
-        mfaReady = true;
-        return true;
-      } catch (err) {
-        console.warn('[speak] mfa items error', err);
-        return false;
-      }
-    };
-
-    const getMfaIdForText = (text) => {
-      if (!mfaReady) return null;
-      const key = normalizeMfaKey(text);
-      if (!key) return null;
-      return mfaLookup[key] || null;
-    };
-
-    const fetchJson = async (url) => {
-      const res = await fetch(url);
-      if (!res.ok) {
-        throw new Error(`Failed to load ${url}`);
-      }
-      return res.json();
-    };
-
-    const loadSyllables = async (id) => {
-      try {
-        return await fetchJson(`${MFA_SYLLABLES_BASE}/${id}.syllables.json`);
-      } catch (err) {
-        const words = await fetchJson(`${MFA_WORDS_BASE}/${id}.words.json`);
-        return (Array.isArray(words) ? words : []).map((word) => ({
-          word: word.word,
-          start: word.start,
-          end: word.end,
-          syllables: [
-            {
-              text: word.word,
-              start: word.start,
-              end: word.end,
-              index: 0
-            }
-          ]
-          }));
-      }
-    };
-
     const wordsToSyllables = (words) => {
       if (!Array.isArray(words)) return [];
       return words
@@ -3633,131 +3569,31 @@ class PageSpeak extends HTMLElement {
       const isSpellingTarget = normalizedVisualKind === 'spelling';
       const isSentenceTarget = normalizedVisualKind === 'sentence';
 
-      const ready = await ensureMfaItems();
-      const itemId = ready ? getMfaIdForText(text) : null;
-      if (!itemId) {
-        let remotePayload = null;
-        try {
-          remotePayload = await fetchAlignedTts(text, 'en-US');
-        } catch (err) {
-          remotePayload = null;
+      const resetVisualState = () => {
+        if (isSoundTarget && targetEl) {
+          renderSoundExpectedInline(targetEl, false);
         }
-
-        if (!remotePayload || typeof remotePayload.audio_url !== 'string' || !remotePayload.audio_url.trim()) {
-          if (targetEl) targetEl.textContent = phonetic || text;
-          playTts(text, triggerBtn || null);
-          return;
-        }
-
-        if (targetEl && !isSentenceTarget) {
-          if (isSoundTarget) {
-            resetSyllables();
-            renderSoundExpectedInline(targetEl, true);
-          } else {
-            const split = phonetic ? splitPhoneticText(phonetic, text) : null;
-            const prefix = split ? split.prefix : '';
-            const suffix = split ? split.suffix : '';
-            const remoteSyllables = wordsToSyllables(remotePayload.words);
-            renderSyllables(targetEl, remoteSyllables, text || phonetic, focusKey, prefix, suffix);
-          }
-        } else {
-          resetSyllables();
-        }
-
-        const audio = new Audio(String(remotePayload.audio_url || '').trim());
-        playbackAudio = audio;
-        activeAudio = audio;
-        setActivePlayButton(triggerBtn || null);
-        setSpellingPlaybackState(isSpellingTarget);
-        setSentencePlaybackState(isSentenceTarget);
-        startHeroMascotTalk();
-        audio.ontimeupdate = () => {
-          updateSyllables(Number.isFinite(audio.currentTime) ? audio.currentTime : 0);
-        };
-        updateSyllables(0);
-
-        audio.onended = () => {
-          highlightSyllable(-1);
-          if (isSoundTarget) renderSoundExpectedInline(targetEl, false);
-          stopHeroMascotTalk({ settle: true });
-          clearActivePlayButton();
-          setSpellingPlaybackState(false);
-          setSentencePlaybackState(false);
-        };
-
-        audio.onerror = () => {
-          if (isSoundTarget) renderSoundExpectedInline(targetEl, false);
-          stopHeroMascotTalk({ settle: true });
-          clearActivePlayButton();
-          setSpellingPlaybackState(false);
-          setSentencePlaybackState(false);
-        };
-
-        audio.play().catch(() => {
-          if (isSoundTarget) renderSoundExpectedInline(targetEl, false);
-          stopHeroMascotTalk({ settle: true });
-          clearActivePlayButton();
-          setSpellingPlaybackState(false);
-          setSentencePlaybackState(false);
-        });
-        return;
-      }
-
-      if (targetEl && !isSentenceTarget) {
-        if (isSoundTarget) {
-          resetSyllables();
-          renderSoundExpectedInline(targetEl, true);
-        } else {
-          let syllablesData = [];
-          try {
-            syllablesData = await loadSyllables(itemId);
-          } catch (err) {
-            syllablesData = [];
-          }
-          const split = phonetic ? splitPhoneticText(phonetic, text) : null;
-          const prefix = split ? split.prefix : '';
-          const suffix = split ? split.suffix : '';
-          renderSyllables(targetEl, syllablesData, text || phonetic, focusKey, prefix, suffix);
-        }
-      } else {
-        resetSyllables();
-      }
-
-      const audio = new Audio(`${MFA_AUDIO_BASE}/${itemId}.wav`);
-      playbackAudio = audio;
-      activeAudio = audio;
-      setActivePlayButton(triggerBtn || null);
-      setSpellingPlaybackState(isSpellingTarget);
-      setSentencePlaybackState(isSentenceTarget);
-      audio.ontimeupdate = () => {
-        updateSyllables(Number.isFinite(audio.currentTime) ? audio.currentTime : 0);
-      };
-      updateSyllables(0);
-
-      audio.onended = () => {
-        highlightSyllable(-1);
-        if (isSoundTarget) renderSoundExpectedInline(targetEl, false);
         stopHeroMascotTalk({ settle: true });
         clearActivePlayButton();
         setSpellingPlaybackState(false);
         setSentencePlaybackState(false);
       };
 
-      audio.onerror = () => {
-        if (isSoundTarget) renderSoundExpectedInline(targetEl, false);
-        stopHeroMascotTalk({ settle: true });
-        clearActivePlayButton();
-        setSpellingPlaybackState(false);
-        setSentencePlaybackState(false);
-      };
-
-      audio.play().catch(() => {
-        if (isSoundTarget) renderSoundExpectedInline(targetEl, false);
-        stopHeroMascotTalk({ settle: true });
-        clearActivePlayButton();
-        setSpellingPlaybackState(false);
-        setSentencePlaybackState(false);
-      });
+      await Promise.resolve(
+        playTts(text, triggerBtn || null, {
+          lang: 'en-US',
+          onStart: () => {
+            if (isSoundTarget && targetEl) {
+              renderSoundExpectedInline(targetEl, true);
+            }
+            setSpellingPlaybackState(isSpellingTarget);
+            setSentencePlaybackState(isSentenceTarget);
+            startHeroMascotTalk();
+          },
+          onEnd: resetVisualState,
+          onError: resetVisualState
+        })
+      );
     };
 
     const escapeRegex = (value) => String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');

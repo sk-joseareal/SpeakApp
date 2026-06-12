@@ -65,7 +65,7 @@ class PageDiagnostics extends HTMLElement {
     const RECORDING_STOP_DELAY_KEY = 'appv5:recording-stop-delay-ms';
     const SPEAK_PRONUNCIATION_AVATAR_VIDEO = 'video';
     const DIAG_UNLOCK_STATE_KEY = 'appv5:diag-unlock-state';
-    const RECORDING_STOP_DELAY_DEFAULT_MS = 600;
+    const RECORDING_STOP_DELAY_DEFAULT_MS = 1400;
     const SPEAK_PRONUNCIATION_AVATAR_OPTIONS = [
       {
         value: SPEAK_PRONUNCIATION_AVATAR_VIDEO,
@@ -606,7 +606,7 @@ class PageDiagnostics extends HTMLElement {
                   value="${getStoredRecordingStopDelayMs()}" style="flex:1;">
                 <span id="diag-recording-stop-delay-label" style="min-width:48px;text-align:right;font-variant-numeric:tabular-nums;">${getStoredRecordingStopDelayMs()}ms</span>
               </div>
-              <div class="diag-debug-sub" id="diag-recording-stop-delay-sub">Tiempo extra de grabación tras pulsar stop. Por defecto: 600ms.</div>
+              <div class="diag-debug-sub" id="diag-recording-stop-delay-sub">Tiempo extra de grabación tras pulsar stop. Por defecto: 1400ms.</div>
             </div>
             <div class="diag-speak-block">
               <div class="diag-debug-title">Avatar pronunciación</div>

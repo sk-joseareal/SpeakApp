@@ -263,13 +263,13 @@
       "resultExcellent": "Excelente",
       "resultRegular": "Buen comienzo",
       "resultIncorrect": "Sigue mejorando",
-      "resultMatchLabel": "de acierto",
       "transcribing": "Transcribiendo..."
     },
     "speak": {
       "practiceSound": "Di el sonido",
       "practiceWords": "Di la palabra",
       "practicePhrase": "Di la frase",
+      "resultMatchLabel": "de acierto",
       "resultBanner": "Resultado",
       "summaryScoreLabel": "Puntuación final",
       "summaryHeadlineGood": "¡Excelente!",
@@ -328,8 +328,10 @@
       "practiceAgainAnytime": "(Practica de nuevo cuando quieras)",
       "stepBanner": "Paso {step} de {total}",
       "listen": "Escuchar",
+      "yourVoiceLabel": "Tu voz",
       "stepTitleSound": "Escucha con atención y repite",
       "stepTitleSpelling": "Di el sonido en palabras",
+      "stepSubtitleSpelling": "Escucha y repite cada palabra",
       "stepTitleSentence": "Di la frase completa"
     },
     "chat": {
@@ -802,13 +804,13 @@
       "resultExcellent": "Excellent",
       "resultRegular": "Good start",
       "resultIncorrect": "Keep improving",
-      "resultMatchLabel": "match",
       "transcribing": "Transcribing..."
     },
     "speak": {
       "practiceSound": "Say it",
       "practiceWords": "Say the word",
       "practicePhrase": "Say the phrase",
+      "resultMatchLabel": "match",
       "resultBanner": "Result",
       "summaryScoreLabel": "Final score",
       "summaryHeadlineGood": "Excellent!",
@@ -867,8 +869,10 @@
       "practiceAgainAnytime": "(Practice again anytime)",
       "stepBanner": "Step {step} of {total}",
       "listen": "Listen",
+      "yourVoiceLabel": "Your voice",
       "stepTitleSound": "Listen carefully and Say",
       "stepTitleSpelling": "Say the sound in words",
+      "stepSubtitleSpelling": "Listen and repeat each word",
       "stepTitleSentence": "Say the full sentence"
     },
     "chat": {

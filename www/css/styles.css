@@ -6145,6 +6145,17 @@ page-speak .speak-content::part(scroll) {
   font-size: 1.45rem;
 }
 
+.speak-inline-expected {
+  padding: 0 3px;
+  border-radius: 6px;
+  transition: background-color 0.08s ease-out, color 0.08s ease-out;
+}
+
+.speak-inline-expected.is-active {
+  background: #fde047;
+  color: #1e293b;
+}
+
 .accent {
   color: var(--speak-blue);
   font-weight: 700;
@@ -7008,9 +7019,11 @@ page-speak .speak-content::part(scroll) {
 }
 
 .speak-step-spelling .speak-word.is-playing {
-  outline: 2px solid rgba(47, 124, 246, 0.9);
+  background: #fde047;
+  color: #1e293b;
+  outline: 2px solid rgba(202, 138, 4, 0.9);
   outline-offset: 3px;
-  box-shadow: 0 0 0 3px rgba(47, 124, 246, 0.15), 0 0 0 8px rgba(47, 124, 246, 0.08);
+  box-shadow: 0 0 0 3px rgba(253, 224, 71, 0.35), 0 0 0 8px rgba(253, 224, 71, 0.12);
 }
 
 .speak-step-sound {
@@ -7366,6 +7379,7 @@ page-speak .speak-content::part(scroll) {
 }
 
 .speak-step-sentence .speak-sentence {
+  box-sizing: border-box;
   font-size: 2rem;
   line-height: 1.4;
   font-weight: 700;
@@ -7375,9 +7389,25 @@ page-speak .speak-content::part(scroll) {
   border-radius: 18px;
   box-shadow: 0 4px 16px rgba(15, 27, 45, 0.08);
   cursor: pointer;
-  padding: 32px 24px;
+  padding: 16px 24px;
   color: #0e0e10;
-  width: 100%;
+  width: calc(100% - 12px);
+  margin-inline: auto;
+  max-width: 100%;
+}
+
+.speak-step-sentence .speak-sentence.is-active {
+  border-color: #93C5FD;
+  animation: speak-word-pulse 1.6s ease-in-out infinite;
+  box-shadow: 0 0 0 2px rgba(147, 197, 253, 0.15);
+}
+
+.speak-step-sentence .speak-sentence.is-playing {
+  background: #fde047;
+  color: #1e293b;
+  border-color: rgba(202, 138, 4, 0.9);
+  animation: none;
+  box-shadow: 0 0 0 2px rgba(253, 224, 71, 0.35), 0 0 0 6px rgba(253, 224, 71, 0.12);
 }
 
 .speak-feedback {

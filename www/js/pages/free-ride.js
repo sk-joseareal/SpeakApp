@@ -6838,7 +6838,7 @@ class PageFreeRide extends HTMLElement {
   }
 
   _triggerStopRecordingWithDelay() {
-    const delayMs = typeof window.getRecordingStopDelayMs === 'function' ? window.getRecordingStopDelayMs() : 600;
+    const delayMs = typeof window.getRecordingStopDelayMs === 'function' ? window.getRecordingStopDelayMs() : 1400;
     if (delayMs > 0) {
       this._cancelPendingRecordingStop();
       this.state.recordingStopPending = true;

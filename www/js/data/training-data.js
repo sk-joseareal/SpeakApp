@@ -76,6 +76,21 @@ const parseBooleanLoose = (value, fallback = false) => {
   return ['1', 'true', 'yes', 'y', 'on'].includes(normalized);
 };
 
+const readStoredPremiumFlag = () => {
+  if (typeof window === 'undefined') return false;
+  try {
+    if (window.user && typeof window.user === 'object' && window.user.premium === true) {
+      return true;
+    }
+    const raw = localStorage.getItem('appv5:user');
+    if (!raw) return false;
+    const parsed = JSON.parse(raw);
+    return Boolean(parsed && typeof parsed === 'object' && parsed.premium === true);
+  } catch (_err) {
+    return false;
+  }
+};
+
 const normalizeTrainingEndpoint = (raw) => {
   const value = typeof raw === 'string' ? raw.trim() : '';
   if (!value) return '';
@@ -412,6 +427,19 @@ const writeStoredSelection = (value) => {
 
 let selection = readStoredSelection() || { routeId: '', moduleId: '', sessionId: '' };
 
+if (typeof window !== 'undefined' && !window.__trainingDataPremiumVisibilityBound) {
+  const refreshSelectionForRouteVisibility = () => {
+    if (!dataCache) return;
+    const resolved = resolveSelection(selection);
+    selection = resolved.selection;
+    writeStoredSelection(selection);
+    refreshTrainingDataSelection();
+  };
+  window.addEventListener('app:user-change', refreshSelectionForRouteVisibility);
+  window.addEventListener('app:iap-premium-change', refreshSelectionForRouteVisibility);
+  window.__trainingDataPremiumVisibilityBound = true;
+}
+
 const hydrateData = (raw) => {
   const sessions = Array.isArray(raw.sessions) ? raw.sessions : [];
   const modules = Array.isArray(raw.modules) ? raw.modules : [];
@@ -446,11 +474,12 @@ const hydrateData = (raw) => {
       const modulesForRoute = Array.isArray(route.moduleIds)
         ? route.moduleIds.map((id) => moduleMap.get(id)).filter(Boolean)
         : [];
-      return {
-        ...route,
-        modules: modulesForRoute
-      };
-    });
+    return {
+      ...route,
+      active: parseBooleanLoose(route.active !== undefined ? route.active : route.is_active, true),
+      modules: modulesForRoute
+    };
+  });
 
   return { routes: hydratedRoutes };
 };
@@ -734,7 +763,11 @@ const loadTrainingData = async () => {
   return dataPromise;
 };
 
-const getRoutes = () => (dataCache && Array.isArray(dataCache.routes) ? dataCache.routes : []);
+const getRoutes = () => {
+  const routes = dataCache && Array.isArray(dataCache.routes) ? dataCache.routes : [];
+  if (readStoredPremiumFlag()) return routes;
+  return routes.filter((route) => route && route.active !== false);
+};
 
 const resolveSelection = (nextSelection = selection) => {
   const routes = getRoutes();

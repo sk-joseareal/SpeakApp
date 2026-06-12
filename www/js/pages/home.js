@@ -41,6 +41,7 @@ const HOME_RETURN_VIEW_KEY = 'appv5:home-return-view-state';
 const HOME_RETURN_REVEAL_KEY = 'appv5:home-return-reveal-target';
 const HOME_RETURN_RESTORE_DELAYS_MS = [0, 60, 140, 280, 520, 900];
 const HOME_HANDLE_HINT_KEY = 'appv5:home-handle-hint-seen';
+const HOME_HANDLE_CLICK_FALLBACK_WINDOW_MS = 420;
 const HOME_SHEET_EXPANDED_KEY = 'appv5:home-sheet-expanded';
 const HOME_SHEET_OFFSET_KEY = 'appv5:home-sheet-expanded-offset';
 const isHandleHintSeen = () => {
@@ -102,6 +103,20 @@ const isFreeRideCardPadded = () => {
     return ['1', 'true', 'on', 'yes'].includes(normalized);
   } catch (_err) {
     return true;
+  }
+};
+
+const isPremiumPlanUser = () => {
+  try {
+    if (window.user && typeof window.user === 'object' && window.user.premium === true) {
+      return true;
+    }
+    const raw = localStorage.getItem('appv5:user');
+    if (!raw) return false;
+    const parsed = JSON.parse(raw);
+    return Boolean(parsed && typeof parsed === 'object' && parsed.premium === true);
+  } catch (_err) {
+    return false;
   }
 };
 
@@ -608,9 +623,15 @@ class PageHome extends HTMLElement {
     this.journeySheetDragging = this.journeySheetController.state.dragging;
     if (handleEl) {
       const hintEl = handleEl.querySelector('.handle-hint');
+      const hintLabelEl = handleEl.querySelector('.handle-hint-label');
+      const uiLocale = this.getUiLocale(this.getBaseLocale());
+      handleEl.setAttribute('aria-label', this.getJourneySheetAriaLabel(this.journeySheetExpanded, uiLocale));
       if (hintEl) {
         const seen = isHandleHintSeen();
         handleEl.classList.toggle('has-hint', !seen);
+        if (hintLabelEl) {
+          hintLabelEl.textContent = this.getJourneySheetHintLabel(this.journeySheetExpanded, uiLocale);
+        }
         if (seen) {
           if (!hintEl.classList.contains('handle-hint-out')) hintEl.classList.add('handle-hint-out');
           if (!hintEl.style.display) hintEl.style.display = 'none';
@@ -655,6 +676,15 @@ class PageHome extends HTMLElement {
 
   toggleJourneySheet(options = {}) {
     this.setJourneySheetExpanded(!this.journeySheetExpanded, options);
+  }
+
+  handleJourneySheetHandleClick(event) {
+    if (event && typeof event.preventDefault === 'function') {
+      event.preventDefault();
+    }
+    const sincePointerUp = Date.now() - (this.journeySheetLastPointerUpTs || 0);
+    if (sincePointerUp >= 0 && sincePointerUp < HOME_HANDLE_CLICK_FALLBACK_WINDOW_MS) return;
+    this.toggleJourneySheet({ animate: true });
   }
 
   startJourneySheetDrag(event) {
@@ -1308,9 +1338,9 @@ class PageHome extends HTMLElement {
               </div>
             </section>
             <section class="free-ride-card journey-sheet" data-sheet-state="${this.journeySheetExpanded ? 'expanded' : 'collapsed'}">
-              <button class="free-ride-card-handle journey-sheet-handle${isHandleHintSeen() ? '' : ' has-hint'}" type="button" aria-label="${this.journeySheetExpanded ? 'Collapse training card' : 'Expand training card'}" aria-expanded="${this.journeySheetExpanded ? 'true' : 'false'}">
+              <button class="free-ride-card-handle journey-sheet-handle${isHandleHintSeen() ? '' : ' has-hint'}" type="button" aria-label="${this.getJourneySheetAriaLabel(this.journeySheetExpanded, uiLocale)}" aria-expanded="${this.journeySheetExpanded ? 'true' : 'false'}">
                 <span class="free-ride-card-handle-pill journey-sheet-handle-pill" aria-hidden="true"></span>
-                <span class="handle-hint${isHandleHintSeen() ? ' handle-hint-out' : ''}" aria-hidden="true"><ion-icon name="chevron-up-outline"></ion-icon><span class="handle-hint-label">${this.journeySheetExpanded ? (uiLocale === 'es' ? 'mostrar' : 'show') : (uiLocale === 'es' ? 'ocultar' : 'hide')}</span></span>
+                <span class="handle-hint${isHandleHintSeen() ? ' handle-hint-out' : ''}" aria-hidden="true"><ion-icon name="chevron-up-outline"></ion-icon><span class="handle-hint-label">${this.getJourneySheetHintLabel(this.journeySheetExpanded, uiLocale)}</span></span>
               </button>
               <div class="free-ride-card-main journey-sheet-main">
                 <div class="journey-accordion">
@@ -1340,7 +1370,7 @@ class PageHome extends HTMLElement {
         this.cancelJourneySheetDrag();
       });
       journeySheetHandleEl?.addEventListener('click', (event) => {
-        event.preventDefault();
+        this.handleJourneySheetHandleClick(event);
       });
       journeySheetHandleEl?.addEventListener('keydown', (event) => {
         const key = event && event.key ? event.key : '';
@@ -1745,6 +1775,7 @@ class PageHome extends HTMLElement {
       window.r34lp0w3r && window.r34lp0w3r.speakSessionRewards
         ? window.r34lp0w3r.speakSessionRewards
         : {};
+    const premiumPlanUser = isPremiumPlanUser();
 
     const getRouteRewards = (route) => {
       const totals = {};
@@ -1766,7 +1797,7 @@ class PageHome extends HTMLElement {
     const isDebug = Boolean(window.r34lp0w3r && window.r34lp0w3r.speakDebug);
     const routeUnlockList = routes.map((route, idx) => {
       if (isDebug) return true;
-      if (route.disponible === false) return false;
+      if (route.disponible === false && !premiumPlanUser) return false;
       if (idx === 0) return true;
       const prev = routeProgressList[idx - 1];
       return prev && prev.tone === 'good';
@@ -1813,7 +1844,7 @@ class PageHome extends HTMLElement {
 
     const showLockedRouteToast = (routeIndex) => {
       const route = routes[routeIndex];
-      if (route && route.disponible === false) {
+      if (route && route.disponible === false && !premiumPlanUser) {
         const message = copy.comingSoon || (uiLocale === 'es' ? 'Contenido disponible próximamente' : 'Content coming soon');
         const toast = document.createElement('ion-toast');
         toast.message = message;
@@ -1826,8 +1857,16 @@ class PageHome extends HTMLElement {
       }
       const prevRoute = routeIndex > 0 ? routes[routeIndex - 1] : null;
       const message = prevRoute
-        ? `Aún no puedes acceder a este modulo. Completa primero la ruta anterior: ${getRouteTitle(prevRoute)}.`
-        : 'Aún no puedes acceder a este modulo.';
+        ? (
+            uiLocale === 'es'
+              ? `Aún no puedes acceder a esta ruta. Completa primero la ruta anterior: ${getRouteTitle(prevRoute)}.`
+              : `You can't access this route yet. Complete the previous route first: ${getRouteTitle(prevRoute)}.`
+          )
+        : (
+            uiLocale === 'es'
+              ? 'Aún no puedes acceder a esta ruta.'
+              : "You can't access this route yet."
+          );
       const toast = document.createElement('ion-toast');
       toast.message = message;
       toast.duration = 2200;
@@ -2155,9 +2194,9 @@ class PageHome extends HTMLElement {
           </section>
 
           <section class="free-ride-card journey-sheet" data-sheet-state="${this.journeySheetExpanded ? 'expanded' : 'collapsed'}">
-            <button class="free-ride-card-handle journey-sheet-handle${isHandleHintSeen() ? '' : ' has-hint'}" type="button" aria-label="${this.journeySheetExpanded ? 'Collapse training card' : 'Expand training card'}" aria-expanded="${this.journeySheetExpanded ? 'true' : 'false'}">
+            <button class="free-ride-card-handle journey-sheet-handle${isHandleHintSeen() ? '' : ' has-hint'}" type="button" aria-label="${this.getJourneySheetAriaLabel(this.journeySheetExpanded, uiLocale)}" aria-expanded="${this.journeySheetExpanded ? 'true' : 'false'}">
               <span class="free-ride-card-handle-pill journey-sheet-handle-pill" aria-hidden="true"></span>
-              <span class="handle-hint${isHandleHintSeen() ? ' handle-hint-out' : ''}" aria-hidden="true"><ion-icon name="chevron-up-outline"></ion-icon><span class="handle-hint-label">${this.journeySheetExpanded ? (uiLocale === 'es' ? 'mostrar' : 'show') : (uiLocale === 'es' ? 'ocultar' : 'hide')}</span></span>
+              <span class="handle-hint${isHandleHintSeen() ? ' handle-hint-out' : ''}" aria-hidden="true"><ion-icon name="chevron-up-outline"></ion-icon><span class="handle-hint-label">${this.getJourneySheetHintLabel(this.journeySheetExpanded, uiLocale)}</span></span>
             </button>
             <div class="free-ride-card-main journey-sheet-main">
               <div class="journey-accordion">
@@ -2199,7 +2238,7 @@ class PageHome extends HTMLElement {
         this.cancelJourneySheetDrag();
       });
       journeySheetHandleEl?.addEventListener('click', (event) => {
-        event.preventDefault();
+        this.handleJourneySheetHandleClick(event);
       });
       journeySheetHandleEl?.addEventListener('keydown', (event) => {
         const key = event && event.key ? event.key : '';
@@ -2286,6 +2325,20 @@ class PageHome extends HTMLElement {
     const overrideLocale = this.normalizeLocale(this.state.localeOverride);
     if (overrideLocale) return overrideLocale;
     return this.normalizeLocale(baseLocale) || this.getBaseLocale();
+  }
+
+  getJourneySheetHintLabel(expanded, locale = this.currentUiLocale) {
+    const resolvedLocale = this.normalizeLocale(locale) || 'en';
+    if (resolvedLocale === 'es') return expanded ? 'contraer' : 'expandir';
+    return expanded ? 'collapse' : 'expand';
+  }
+
+  getJourneySheetAriaLabel(expanded, locale = this.currentUiLocale) {
+    const resolvedLocale = this.normalizeLocale(locale) || 'en';
+    if (resolvedLocale === 'es') {
+      return expanded ? 'Contraer panel de training' : 'Expandir panel de training';
+    }
+    return expanded ? 'Collapse training card' : 'Expand training card';
   }
 
   applyHeaderColor(color) {

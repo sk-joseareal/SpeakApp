@@ -1,0 +1,2179 @@
+{
+  "routes": [
+    {
+      "id": "route1",
+      "title_en": "Sound Journey 1",
+      "title_es": "Ruta Sonidos 1",
+      "note_en": "Master the Essential Sounds",
+      "note_es": "Sonidos esenciales",
+      "disponible": true,
+      "moduleIds": [
+        "module-1",
+        "module-2",
+        "module-3",
+        "module-4"
+      ]
+    },
+    {
+      "id": "route2",
+      "title_en": "Sound Journey 2",
+      "title_es": "Ruta Sonidos 2",
+      "note_en": "Speak More Clearly and Naturally",
+      "note_es": "Habla más claro y natural",
+      "disponible": false,
+      "moduleIds": [
+        "module-5",
+        "module-6",
+        "module-7",
+        "module-8"
+      ]
+    },
+    {
+      "id": "route3",
+      "title_en": "Sound Journey 3",
+      "title_es": "Ruta Sonidos 3",
+      "note_en": "Speak with Fluency and Precision",
+      "note_es": "Habla con fluidez y precisión",
+      "disponible": false,
+      "moduleIds": [
+        "module-9",
+        "module-10",
+        "module-11",
+        "module-12"
+      ]
+    }
+  ],
+  "modules": [
+    {
+      "id": "module-1",
+      "title_en": "First Sounds",
+      "title_es": "Primeros Sonidos",
+      "subtitle_en": "",
+      "subtitle_es": "",
+      "sessionIds": [
+        "session-1",
+        "session-2",
+        "session-3",
+        "session-4"
+      ]
+    },
+    {
+      "id": "module-2",
+      "title_en": "Short Vowels",
+      "title_es": "Vocales Cortas",
+      "subtitle_en": "",
+      "subtitle_es": "",
+      "sessionIds": [
+        "session-5",
+        "session-6",
+        "session-7",
+        "session-8"
+      ]
+    },
+    {
+      "id": "module-3",
+      "title_en": "Clear Consonants",
+      "title_es": "Consonantes Claras",
+      "subtitle_en": "",
+      "subtitle_es": "",
+      "sessionIds": [
+        "session-9",
+        "session-10",
+        "session-11",
+        "session-12"
+      ]
+    },
+    {
+      "id": "module-4",
+      "title_en": "Everyday Sounds",
+      "title_es": "Sonidos cotidianos",
+      "subtitle_en": "",
+      "subtitle_es": "",
+      "sessionIds": [
+        "session-13",
+        "session-14",
+        "session-15",
+        "session-16"
+      ]
+    },
+    {
+      "id": "module-5",
+      "title_en": "Strong Consonants",
+      "title_es": "Consonantes fuertes",
+      "subtitle_en": "",
+      "subtitle_es": "",
+      "sessionIds": [
+        "session-17",
+        "session-18",
+        "session-19",
+        "session-20"
+      ]
+    },
+    {
+      "id": "module-6",
+      "title_en": "Long Vowels",
+      "title_es": "Vocales largas",
+      "subtitle_en": "",
+      "subtitle_es": "",
+      "sessionIds": [
+        "session-21",
+        "session-22",
+        "session-23",
+        "session-24"
+      ]
+    },
+    {
+      "id": "module-7",
+      "title_en": "Natural Speaking",
+      "title_es": "Habla natural",
+      "subtitle_en": "",
+      "subtitle_es": "",
+      "sessionIds": [
+        "session-25",
+        "session-26",
+        "session-27",
+        "session-28"
+      ]
+    },
+    {
+      "id": "module-8",
+      "title_en": "Tricky Sounds",
+      "title_es": "Sonidos difíciles",
+      "subtitle_en": "",
+      "subtitle_es": "",
+      "sessionIds": [
+        "session-29",
+        "session-30",
+        "session-31",
+        "session-32"
+      ]
+    },
+    {
+      "id": "module-9",
+      "title_en": "Sound Combos",
+      "title_es": "Combinaciones de sonido",
+      "subtitle_en": "",
+      "subtitle_es": "",
+      "sessionIds": [
+        "session-33",
+        "session-34",
+        "session-35",
+        "session-36"
+      ]
+    },
+    {
+      "id": "module-10",
+      "title_en": "Natural flow",
+      "title_es": "Fluidez natural",
+      "subtitle_en": "",
+      "subtitle_es": "",
+      "sessionIds": [
+        "session-37",
+        "session-38",
+        "session-39"
+      ]
+    },
+    {
+      "id": "module-11",
+      "title_en": "Connected Sounds",
+      "title_es": "Sonidos Conectados",
+      "subtitle_en": "",
+      "subtitle_es": "",
+      "sessionIds": [
+        "session-40",
+        "session-41",
+        "session-42",
+        "session-43"
+      ]
+    },
+    {
+      "id": "module-12",
+      "title_en": "Native Pronunciation",
+      "title_es": "Pronunciación nativa",
+      "subtitle_en": "",
+      "subtitle_es": "",
+      "sessionIds": [
+        "session-44",
+        "session-45",
+        "session-46",
+        "session-47"
+      ]
+    }
+  ],
+  "sessions": [
+    {
+      "id": "session-1",
+      "title_en": "P sound in PEN",
+      "title_es": "Sonido P en PEN",
+      "speak": {
+        "focus": "p",
+        "sound": {
+          "hint_en_line1": "Press your lips together and release the air quickly.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Junta los labios y suelta el aire de golpe",
+          "hint_es_line2": "",
+          "phonetic": "P sound in PEN",
+          "expected": "pen",
+          "title_en": "Learn the sound",
+          "title_es": "Aprende el sonido"
+        },
+        "spelling": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "words": [
+            "PAPER",
+            "PENCIL",
+            "OPEN",
+            "HAPPY"
+          ],
+          "title_en": "Listen and repeat each word",
+          "title_es": "Escucha y repite cada palabra"
+        },
+        "sentence": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "sentence": "The happy child uses a pencil and paper.",
+          "expected": "The happy child uses a pencil and paper.",
+          "title_en": "Speak naturally",
+          "title_es": "Habla de forma natural"
+        }
+      }
+    },
+    {
+      "id": "session-2",
+      "title_en": "B sound in BABY",
+      "title_es": "Sonido B en BABY",
+      "speak": {
+        "focus": "b",
+        "sound": {
+          "hint_en_line1": "Press your lips together and let the air out gently using your voice.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Junta los labios y deja salir el aire suavemente usando la voz.",
+          "hint_es_line2": "",
+          "phonetic": "B sound in BABY",
+          "expected": "baby",
+          "title_en": "Learn the sound",
+          "title_es": "Aprende el sonido"
+        },
+        "spelling": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "words": [
+            "BOOK",
+            "ABOUT",
+            "BROTHER",
+            "BROWN"
+          ],
+          "title_en": "Listen and repeat each word",
+          "title_es": "Escucha y repite cada palabra"
+        },
+        "sentence": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "sentence": "The baby and his brother read a brown book.",
+          "expected": "The baby and his brother read a brown book.",
+          "title_en": "Speak naturally",
+          "title_es": "Habla de forma natural"
+        }
+      }
+    },
+    {
+      "id": "session-3",
+      "title_en": "M sound in MOM",
+      "title_es": "Sonido M en MOM",
+      "speak": {
+        "focus": "m",
+        "sound": {
+          "hint_en_line1": "Close your lips and let the sound come out through your nose.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Cierra los labios y deja salir el sonido por la nariz.",
+          "hint_es_line2": "",
+          "phonetic": "M sound in MOM",
+          "expected": "mom",
+          "title_en": "Learn the sound",
+          "title_es": "Aprende el sonido"
+        },
+        "spelling": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "words": [
+            "MAN",
+            "TIME",
+            "COME",
+            "HOME"
+          ],
+          "title_en": "Listen and repeat each word",
+          "title_es": "Escucha y repite cada palabra"
+        },
+        "sentence": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "sentence": "My mom comes home.",
+          "expected": "My mom comes home.",
+          "title_en": "Speak naturally",
+          "title_es": "Habla de forma natural"
+        }
+      }
+    },
+    {
+      "id": "session-4",
+      "title_en": "T sound in TIME",
+      "title_es": "Sonido T en TIME",
+      "speak": {
+        "focus": "t",
+        "sound": {
+          "hint_en_line1": "Touch your tongue behind your top teeth and release the air.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Toca con la lengua detrás de los dientes superiores y suelta el aire.",
+          "hint_es_line2": "",
+          "phonetic": "T sound in TIME",
+          "expected": "time",
+          "title_en": "Learn the sound",
+          "title_es": "Aprende el sonido"
+        },
+        "spelling": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "words": [
+            "TODAY",
+            "TALK",
+            "TRY",
+            "TWO"
+          ],
+          "title_en": "Listen and repeat each word",
+          "title_es": "Escucha y repite cada palabra"
+        },
+        "sentence": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "sentence": "Today I have time to talk.",
+          "expected": "Today I have time to talk.",
+          "title_en": "Speak naturally",
+          "title_es": "Habla de forma natural"
+        }
+      }
+    },
+    {
+      "id": "session-5",
+      "title_en": "A sound in CAT",
+      "title_es": "Sonido A en CAT",
+      "speak": {
+        "focus": "a",
+        "sound": {
+          "hint_en_line1": "Open your mouth and make a short, relaxed sound.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Abre la boca y emite un sonido corto y relajado.",
+          "hint_es_line2": "",
+          "phonetic": "A sound in CAT",
+          "expected": "cat",
+          "title_en": "Learn the sound",
+          "title_es": "Aprende el sonido"
+        },
+        "spelling": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "words": [
+            "BLACK",
+            "FAT",
+            "RABBIT",
+            "HAPPY"
+          ],
+          "title_en": "Listen and repeat each word",
+          "title_es": "Escucha y repite cada palabra"
+        },
+        "sentence": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "sentence": "The black cat is happy.",
+          "expected": "The black cat is happy.",
+          "title_en": "Speak naturally",
+          "title_es": "Habla de forma natural"
+        }
+      }
+    },
+    {
+      "id": "session-6",
+      "title_en": "E sound in EGG",
+      "title_es": "Sonido E en EGG",
+      "speak": {
+        "focus": "e",
+        "sound": {
+          "hint_en_line1": "Open your mouth slightly and smile a little as you make the sound",
+          "hint_en_line2": "",
+          "hint_es_line1": "Abre un poco la boca y sonríe ligeramente al hacer el sonido.",
+          "hint_es_line2": "",
+          "phonetic": "E sound in EGG",
+          "expected": "egg",
+          "title_en": "Learn the sound",
+          "title_es": "Aprende el sonido"
+        },
+        "spelling": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "words": [
+            "RED",
+            "MEN",
+            "SEND",
+            "HELP"
+          ],
+          "title_en": "Listen and repeat each word",
+          "title_es": "Escucha y repite cada palabra"
+        },
+        "sentence": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "sentence": "The men get eggs.",
+          "expected": "The men get eggs.",
+          "title_en": "Speak naturally",
+          "title_es": "Habla de forma natural"
+        }
+      }
+    },
+    {
+      "id": "session-7",
+      "title_en": "I sound in SIT",
+      "title_es": "Sonido I en SIT",
+      "speak": {
+        "focus": "i",
+        "sound": {
+          "hint_en_line1": "Relax your mouth and make a short sound without tensing your lips.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Relaja la boca y emite un sonido corto sin tensar los labios.",
+          "hint_es_line2": "",
+          "phonetic": "I sound in SIT",
+          "expected": "sit",
+          "title_en": "Learn the sound",
+          "title_es": "Aprende el sonido"
+        },
+        "spelling": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "words": [
+            "LITTLE",
+            "WINDOW",
+            "SISTER",
+            "DINNER"
+          ],
+          "title_en": "Listen and repeat each word",
+          "title_es": "Escucha y repite cada palabra"
+        },
+        "sentence": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "sentence": "The little sister opens the window before dinner.",
+          "expected": "The little sister opens the window before dinner.",
+          "title_en": "Speak naturally",
+          "title_es": "Habla de forma natural"
+        }
+      }
+    },
+    {
+      "id": "session-8",
+      "title_en": "O sound in BOX",
+      "title_es": "Sonido O en BOX",
+      "speak": {
+        "focus": "o",
+        "sound": {
+          "hint_en_line1": "Open your mouth in a round shape and make a short sound.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Abre la boca en forma redonda y emite un sonido corto.",
+          "hint_es_line2": "",
+          "phonetic": "O sound in BOX",
+          "expected": "box",
+          "title_en": "Learn the sound",
+          "title_es": "Aprende el sonido"
+        },
+        "spelling": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "words": [
+            "SHOP",
+            "STOP",
+            "PROBLEM",
+            "DOCTOR"
+          ],
+          "title_en": "Listen and repeat each word",
+          "title_es": "Escucha y repite cada palabra"
+        },
+        "sentence": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "sentence": "The doctor stops at the shop.",
+          "expected": "The doctor stops at the shop.",
+          "title_en": "Speak naturally",
+          "title_es": "Habla de forma natural"
+        }
+      }
+    },
+    {
+      "id": "session-9",
+      "title_en": "K sound in CAR",
+      "title_es": "Sonido K en CAR",
+      "speak": {
+        "focus": "c",
+        "sound": {
+          "hint_en_line1": "Raise the back of your tongue and release the air",
+          "hint_en_line2": "",
+          "hint_es_line1": "Lleva la parte de atrás de la lengua hacia arriba y suelta el aire.",
+          "hint_es_line2": "",
+          "phonetic": "K sound in CAR",
+          "expected": "car",
+          "title_en": "Learn the sound",
+          "title_es": "Aprende el sonido"
+        },
+        "spelling": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "words": [
+            "CAN",
+            "CALL",
+            "COLD",
+            "SCHOOL"
+          ],
+          "title_en": "Listen and repeat each word",
+          "title_es": "Escucha y repite cada palabra"
+        },
+        "sentence": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "sentence": "Can I go to school in the car?",
+          "expected": "Can I go to school in the car?",
+          "title_en": "Speak naturally",
+          "title_es": "Habla de forma natural"
+        }
+      }
+    },
+    {
+      "id": "session-10",
+      "title_en": "D sound in DAY",
+      "title_es": "Sonido D en DAY",
+      "speak": {
+        "focus": "d",
+        "sound": {
+          "hint_en_line1": "Touch your tongue behind your top teeth and use your voice",
+          "hint_en_line2": "",
+          "hint_es_line1": "Toca con la lengua detrás de los dientes superiores y usa la voz.",
+          "hint_es_line2": "",
+          "phonetic": "D sound in DAY",
+          "expected": "day",
+          "title_en": "Learn the sound",
+          "title_es": "Aprende el sonido"
+        },
+        "spelling": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "words": [
+            "TODAY",
+            "DIFFERENT",
+            "DOWN",
+            "DONE"
+          ],
+          "title_en": "Listen and repeat each word",
+          "title_es": "Escucha y repite cada palabra"
+        },
+        "sentence": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "sentence": "Today is different from yesterday.",
+          "expected": "Today is different from yesterday.",
+          "title_en": "Speak naturally",
+          "title_es": "Habla de forma natural"
+        }
+      }
+    },
+    {
+      "id": "session-11",
+      "title_en": "N sound in NO",
+      "title_es": "Sonido N en NO",
+      "speak": {
+        "focus": "n",
+        "sound": {
+          "hint_en_line1": "Put your tongue behind your top teeth and let the air come out through your nose.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Toca con la lengua detrás de los dientes y deja salir el aire por la nariz.",
+          "hint_es_line2": "",
+          "phonetic": "N sound in NO",
+          "expected": "no",
+          "title_en": "Learn the sound",
+          "title_es": "Aprende el sonido"
+        },
+        "spelling": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "words": [
+            "NOW",
+            "NEVER",
+            "SUNNY",
+            "NUMBER"
+          ],
+          "title_en": "Listen and repeat each word",
+          "title_es": "Escucha y repite cada palabra"
+        },
+        "sentence": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "sentence": "I never know the number now.",
+          "expected": "I never know the number now.",
+          "title_en": "Speak naturally",
+          "title_es": "Habla de forma natural"
+        }
+      }
+    },
+    {
+      "id": "session-12",
+      "title_en": "G sound in GO",
+      "title_es": "Sonido G en GO",
+      "speak": {
+        "focus": "g",
+        "sound": {
+          "hint_en_line1": "Lift the back of your tongue to touch the soft palate, then make a vibrating sound",
+          "hint_en_line2": "",
+          "hint_es_line1": "Levanta la parte posterior de la lengua hasta tocar el paladar, haz el sonido mientras tu voz vibra.",
+          "hint_es_line2": "",
+          "phonetic": "G sound in GO",
+          "expected": "go",
+          "title_en": "Learn the sound",
+          "title_es": "Aprende el sonido"
+        },
+        "spelling": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "words": [
+            "GOOD",
+            "GAME",
+            "GOING",
+            "AGAIN"
+          ],
+          "title_en": "Listen and repeat each word",
+          "title_es": "Escucha y repite cada palabra"
+        },
+        "sentence": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "sentence": "We play a good game again.",
+          "expected": "We play a good game again.",
+          "title_en": "Speak naturally",
+          "title_es": "Habla de forma natural"
+        }
+      }
+    },
+    {
+      "id": "session-13",
+      "title_en": "U sound in SUN",
+      "title_es": "Sonido U en SUN",
+      "speak": {
+        "focus": "u",
+        "sound": {
+          "hint_en_line1": "Relax your mouth and make a short, central sound.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Relaja la boca y emite un sonido corto y central.",
+          "hint_es_line2": "",
+          "phonetic": "U sound in SUN",
+          "expected": "sun",
+          "title_en": "Learn the sound",
+          "title_es": "Aprende el sonido"
+        },
+        "spelling": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "words": [
+            "SUNNY",
+            "NUMBER",
+            "FUN",
+            "UNDER"
+          ],
+          "title_en": "Listen and repeat each word",
+          "title_es": "Escucha y repite cada palabra"
+        },
+        "sentence": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "sentence": "We have fun under the sun.",
+          "expected": "We have fun under the sun.",
+          "title_en": "Speak naturally",
+          "title_es": "Habla de forma natural"
+        }
+      }
+    },
+    {
+      "id": "session-14",
+      "title_en": "A sound in ABOUT",
+      "title_es": "Sonido A en ABOUT",
+      "speak": {
+        "focus": "a",
+        "sound": {
+          "hint_en_line1": "Completely relax your mouth and make a very soft neutral sound.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Relaja completamente la boca y emite un sonido neutro muy suave.",
+          "hint_es_line2": "",
+          "phonetic": "A sound in ABOUT",
+          "expected": "about",
+          "title_en": "Learn the sound",
+          "title_es": "Aprende el sonido"
+        },
+        "spelling": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "words": [
+            "THE",
+            "AGAIN",
+            "ABOVE",
+            "SOFA"
+          ],
+          "title_en": "Listen and repeat each word",
+          "title_es": "Escucha y repite cada palabra"
+        },
+        "sentence": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "sentence": "We talk about the sofa again.",
+          "expected": "We talk about the sofa again.",
+          "title_en": "Speak naturally",
+          "title_es": "Habla de forma natural"
+        }
+      }
+    },
+    {
+      "id": "session-15",
+      "title_en": "OO sound in BOOK",
+      "title_es": "Sonido OO en BOOK",
+      "speak": {
+        "focus": "oo",
+        "sound": {
+          "hint_en_line1": "Slightly round your lips and make a short sound.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Redondea ligeramente los labios y emite un sonido corto.",
+          "hint_es_line2": "",
+          "phonetic": "OO sound in BOOK",
+          "expected": "book",
+          "title_en": "Learn the sound",
+          "title_es": "Aprende el sonido"
+        },
+        "spelling": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "words": [
+            "GOOD",
+            "LOOK",
+            "FOOT",
+            "COOK"
+          ],
+          "title_en": "Listen and repeat each word",
+          "title_es": "Escucha y repite cada palabra"
+        },
+        "sentence": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "sentence": "Look at the good cook.",
+          "expected": "Look at the good cook.",
+          "title_en": "Speak naturally",
+          "title_es": "Habla de forma natural"
+        }
+      }
+    },
+    {
+      "id": "session-16",
+      "title_en": "E sound in SEE",
+      "title_es": "Sonido EE en SEE",
+      "speak": {
+        "focus": "ee",
+        "sound": {
+          "hint_en_line1": "Stretch your lips like a smile and hold the sound a bit longer.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Estira los labios como una sonrisa y mantén el sonido un poco más largo.",
+          "hint_es_line2": "",
+          "phonetic": "EE sound in SEE",
+          "expected": "see",
+          "title_en": "Learn the sound",
+          "title_es": "Aprende el sonido"
+        },
+        "spelling": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "words": [
+            "EAT",
+            "GREEN",
+            "THESE",
+            "CITY"
+          ],
+          "title_en": "Listen and repeat each word",
+          "title_es": "Escucha y repite cada palabra"
+        },
+        "sentence": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "sentence": "These green trees are easy to see.",
+          "expected": "These green trees are easy to see.",
+          "title_en": "Speak naturally",
+          "title_es": "Habla de forma natural"
+        }
+      }
+    },
+    {
+      "id": "session-17",
+      "title_en": "F sound in FAMILY",
+      "title_es": "Sonido F en FAMILY",
+      "speak": {
+        "focus": "f",
+        "sound": {
+          "hint_en_line1": "Touch your top teeth to your bottom lip and blow air",
+          "hint_en_line2": "",
+          "hint_es_line1": "Toca tus dientes superiores con tu labio inferior y sopla aire.",
+          "hint_es_line2": "",
+          "phonetic": "F sound in FAMILY",
+          "expected": "family",
+          "title_en": "Learn the sound",
+          "title_es": "Aprende el sonido"
+        },
+        "spelling": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "words": [
+            "FUN",
+            "FOOD",
+            "PHONE",
+            "FRIEND"
+          ],
+          "title_en": "Listen and repeat each word",
+          "title_es": "Escucha y repite cada palabra"
+        },
+        "sentence": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "sentence": "My family and friends have fun.",
+          "expected": "My family and friends have fun.",
+          "title_en": "Speak naturally",
+          "title_es": "Habla de forma natural"
+        }
+      }
+    },
+    {
+      "id": "session-18",
+      "title_en": "V sound in VERY",
+      "title_es": "Sonido V en VERY",
+      "speak": {
+        "focus": "v",
+        "sound": {
+          "hint_en_line1": "Touch your top teeth to your bottom lip, blow air with a vibrating voice",
+          "hint_en_line2": "",
+          "hint_es_line1": "Toca tus dientes superiores con tu labio inferior, sopla aire con una voz vibrante.",
+          "hint_es_line2": "",
+          "phonetic": "V sound in VERY",
+          "expected": "very",
+          "title_en": "Learn the sound",
+          "title_es": "Aprende el sonido"
+        },
+        "spelling": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "words": [
+            "HAVE",
+            "LOVE",
+            "OVER",
+            "NEVER"
+          ],
+          "title_en": "Listen and repeat each word",
+          "title_es": "Escucha y repite cada palabra"
+        },
+        "sentence": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "sentence": "I have a very heavy van.",
+          "expected": "I have a very heavy van.",
+          "title_en": "Speak naturally",
+          "title_es": "Habla de forma natural"
+        }
+      }
+    },
+    {
+      "id": "session-19",
+      "title_en": "S sound in SEE",
+      "title_es": "Sonido S en SEE",
+      "speak": {
+        "focus": "s",
+        "sound": {
+          "hint_en_line1": "Close your teeth, put your tongue near your front teeth and hiss air",
+          "hint_en_line2": "",
+          "hint_es_line1": "Cierra los dientes, acerca la lengua a tus dientes frontales y sisea aire",
+          "hint_es_line2": "",
+          "phonetic": "S sound in SEE",
+          "expected": "see",
+          "title_en": "Learn the sound",
+          "title_es": "Aprende el sonido"
+        },
+        "spelling": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "words": [
+            "SCHOOL",
+            "CITY",
+            "NICE",
+            "SOMETIMES"
+          ],
+          "title_en": "Listen and repeat each word",
+          "title_es": "Escucha y repite cada palabra"
+        },
+        "sentence": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "sentence": "The school in the city is nice.",
+          "expected": "The school in the city is nice.",
+          "title_en": "Speak naturally",
+          "title_es": "Habla de forma natural"
+        }
+      }
+    },
+    {
+      "id": "session-20",
+      "title_en": "W sound in WATER",
+      "title_es": "Sonido W en WATER",
+      "speak": {
+        "focus": "w",
+        "sound": {
+          "hint_en_line1": "Round your lips and push them forward, make a vibrating sound",
+          "hint_en_line2": "",
+          "hint_es_line1": "Redondea los labios y empújalos hacia adelante, produciendo un sonido vibrante",
+          "hint_es_line2": "",
+          "phonetic": "W sound in WATER",
+          "expected": "water",
+          "title_en": "Learn the sound",
+          "title_es": "Aprende el sonido"
+        },
+        "spelling": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "words": [
+            "WINDOW",
+            "WORK",
+            "WANT",
+            "WEEKEND"
+          ],
+          "title_en": "Listen and repeat each word",
+          "title_es": "Escucha y repite cada palabra"
+        },
+        "sentence": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "sentence": "I see water from the window.",
+          "expected": "I see water from the window.",
+          "title_en": "Speak naturally",
+          "title_es": "Habla de forma natural"
+        }
+      }
+    },
+    {
+      "id": "session-21",
+      "title_en": "A sound in NAME",
+      "title_es": "Sonido A en NAME",
+      "speak": {
+        "focus": "a",
+        "sound": {
+          "hint_en_line1": "Mouth slightly open, tongue mid-high and make a slight smile",
+          "hint_en_line2": "",
+          "hint_es_line1": "Boca ligeramente abierta, lengua a media altura y sonríe ligeramente",
+          "hint_es_line2": "",
+          "phonetic": "A sound in NAME",
+          "expected": "name",
+          "title_en": "Learn the sound",
+          "title_es": "Aprende el sonido"
+        },
+        "spelling": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "words": [
+            "LATE",
+            "RAIN",
+            "PLAY",
+            "GREAT"
+          ],
+          "title_en": "Listen and repeat each word",
+          "title_es": "Escucha y repite cada palabra"
+        },
+        "sentence": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "sentence": "It's great to play in the rain.",
+          "expected": "It's great to play in the rain.",
+          "title_en": "Speak naturally",
+          "title_es": "Habla de forma natural"
+        }
+      }
+    },
+    {
+      "id": "session-22",
+      "title_en": "I sound in LIKE",
+      "title_es": "Sonido I en LIKE",
+      "speak": {
+        "focus": "i",
+        "sound": {
+          "hint_en_line1": "Open your mouth and glide into a short 'ee' sound.",
+          "hint_en_line2": "",
+          "hint_es_line1": "Abre la boca y desliza hacia una I corta.",
+          "hint_es_line2": "",
+          "phonetic": "I sound in LIKE",
+          "expected": "like",
+          "title_en": "Learn the sound",
+          "title_es": "Aprende el sonido"
+        },
+        "spelling": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "words": [
+            "MY",
+            "NIGHT",
+            "FIVE",
+            "SKY"
+          ],
+          "title_en": "Listen and repeat each word",
+          "title_es": "Escucha y repite cada palabra"
+        },
+        "sentence": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "sentence": "I like the night sky.",
+          "expected": "I like the night sky.",
+          "title_en": "Speak naturally",
+          "title_es": "Habla de forma natural"
+        }
+      }
+    },
+    {
+      "id": "session-23",
+      "title_en": "O sound in HOME",
+      "title_es": "Sonido O en HOME",
+      "speak": {
+        "focus": "o",
+        "sound": {
+          "hint_en_line1": "Start with rounded lips and glide into a more closed sound",
+          "hint_en_line2": "",
+          "hint_es_line1": "Empieza con boca redondeada y desliza hacia un sonido más cerrado",
+          "hint_es_line2": "",
+          "phonetic": "O sound in HOME",
+          "expected": "home",
+          "title_en": "Learn the sound",
+          "title_es": "Aprende el sonido"
+        },
+        "spelling": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "words": [
+            "STOVE",
+            "SNOW",
+            "KNOW",
+            "CLOSED"
+          ],
+          "title_en": "Listen and repeat each word",
+          "title_es": "Escucha y repite cada palabra"
+        },
+        "sentence": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "sentence": "There is snow near our home.",
+          "expected": "There is snow near our home.",
+          "title_en": "Speak naturally",
+          "title_es": "Habla de forma natural"
+        }
+      }
+    },
+    {
+      "id": "session-24",
+      "title_en": "U sound in BLUE",
+      "title_es": "Sonido U en BLUE",
+      "speak": {
+        "focus": "u",
+        "sound": {
+          "hint_en_line1": "Start with rounded lips and keep them rounded for a long “oo” sound",
+          "hint_en_line2": "",
+          "hint_es_line1": "Empieza con los labios redondeados y mantenlos redondeados para un sonido largo de “oo”.",
+          "hint_es_line2": "",
+          "phonetic": "U sound in BLUE",
+          "expected": "blue",
+          "title_en": "Learn the sound",
+          "title_es": "Aprende el sonido"
+        },
+        "spelling": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "words": [
+            "NEW",
+            "STUDENT",
+            "JUNE",
+            "CANOE"
+          ],
+          "title_en": "Listen and repeat each word",
+          "title_es": "Escucha y repite cada palabra"
+        },
+        "sentence": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "sentence": "In June, we use the blue canoe.",
+          "expected": "In June, we use the blue canoe.",
+          "title_en": "Speak naturally",
+          "title_es": "Habla de forma natural"
+        }
+      }
+    },
+    {
+      "id": "session-25",
+      "title_en": "Z sound in ZERO",
+      "title_es": "Sonido Z en ZERO",
+      "speak": {
+        "focus": "z",
+        "sound": {
+          "hint_en_line1": "Almost close your teeth, bring the tongue near teeth and vibrate your voice like “zzz” like a bee",
+          "hint_en_line2": "",
+          "hint_es_line1": "Junta los dientes, acerca la lengua sin tocar y haz vibrar la voz como “zzz” como una abeja",
+          "hint_es_line2": "",
+          "phonetic": "Z sound in ZERO",
+          "expected": "zero",
+          "title_en": "Learn the sound",
+          "title_es": "Aprende el sonido"
+        },
+        "spelling": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "words": [
+            "MUSIC",
+            "EASY",
+            "CRAZY",
+            "BUSY"
+          ],
+          "title_en": "Listen and repeat each word",
+          "title_es": "Escucha y repite cada palabra"
+        },
+        "sentence": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "sentence": "Easy music is not crazy.",
+          "expected": "Easy music is not crazy.",
+          "title_en": "Speak naturally",
+          "title_es": "Habla de forma natural"
+        }
+      }
+    },
+    {
+      "id": "session-26",
+      "title_en": "H sound in HOUSE",
+      "title_es": "Sonido H en HOUSE",
+      "speak": {
+        "focus": "h",
+        "sound": {
+          "hint_en_line1": "Open your mouth and push air out to make the sound",
+          "hint_en_line2": "",
+          "hint_es_line1": "Abre la boca y saca aire para hacer el sonido",
+          "hint_es_line2": "",
+          "phonetic": "H sound in HOUSE",
+          "expected": "house",
+          "title_en": "Learn the sound",
+          "title_es": "Aprende el sonido"
+        },
+        "spelling": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "words": [
+            "HOME",
+            "HELP",
+            "HAPPY",
+            "HOW"
+          ],
+          "title_en": "Listen and repeat each word",
+          "title_es": "Escucha y repite cada palabra"
+        },
+        "sentence": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "sentence": "He is happy in his home.",
+          "expected": "He is happy in his home.",
+          "title_en": "Speak naturally",
+          "title_es": "Habla de forma natural"
+        }
+      }
+    },
+    {
+      "id": "session-27",
+      "title_en": "Y sound in YES",
+      "title_es": "Sonido Y en YES",
+      "speak": {
+        "focus": "y",
+        "sound": {
+          "hint_en_line1": "Raise the middle of your tongue toward the palate without touching it, glide into the vowel",
+          "hint_en_line2": "",
+          "hint_es_line1": "Sube la parte media de la lengua hacia el paladar sin tocarlo y desliza el sonido hacia la vocal",
+          "hint_es_line2": "",
+          "phonetic": "Y sound in YES",
+          "expected": "yes",
+          "title_en": "Learn the sound",
+          "title_es": "Aprende el sonido"
+        },
+        "spelling": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "words": [
+            "YEAR",
+            "YELLOW",
+            "YOUNG",
+            "YESTERDAY"
+          ],
+          "title_en": "Listen and repeat each word",
+          "title_es": "Escucha y repite cada palabra"
+        },
+        "sentence": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "sentence": "Yesterday the young boy said yes.",
+          "expected": "Yesterday the young boy said yes.",
+          "title_en": "Speak naturally",
+          "title_es": "Habla de forma natural"
+        }
+      }
+    },
+    {
+      "id": "session-28",
+      "title_en": "L sound in TELL",
+      "title_es": "Sonido L en TELL",
+      "speak": {
+        "focus": "l",
+        "sound": {
+          "hint_en_line1": "Tip of tongue behind the top teeth, when you make the sound the air comes out the sides",
+          "hint_en_line2": "",
+          "hint_es_line1": "Punta de la lengua toca detrás de los dientes superiores, con el sonido el aire sale por los lados",
+          "hint_es_line2": "",
+          "phonetic": "L sound in TELL",
+          "expected": "tell",
+          "title_en": "Learn the sound",
+          "title_es": "Aprende el sonido"
+        },
+        "spelling": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "words": [
+            "LITTLE",
+            "LISTEN",
+            "FAMILY",
+            "FALL"
+          ],
+          "title_en": "Listen and repeat each word",
+          "title_es": "Escucha y repite cada palabra"
+        },
+        "sentence": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "sentence": "Tell the little girl to listen.",
+          "expected": "Tell the little girl to listen.",
+          "title_en": "Speak naturally",
+          "title_es": "Habla de forma natural"
+        }
+      }
+    },
+    {
+      "id": "session-29",
+      "title_en": "R sound in RED",
+      "title_es": "Sonido R en RED",
+      "speak": {
+        "focus": "r",
+        "sound": {
+          "hint_en_line1": "Curl your tongue back without touching the palate and round your lips a little",
+          "hint_en_line2": "",
+          "hint_es_line1": "Curva un poco la lengua hacia atrás sin tocar el paladar y redondea ligeramente los labios",
+          "hint_es_line2": "",
+          "phonetic": "R sound in RED",
+          "expected": "red",
+          "title_en": "Learn the sound",
+          "title_es": "Aprende el sonido"
+        },
+        "spelling": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "words": [
+            "RAIN",
+            "ROAD",
+            "ROBOT",
+            "READY"
+          ],
+          "title_en": "Listen and repeat each word",
+          "title_es": "Escucha y repite cada palabra"
+        },
+        "sentence": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "sentence": "Red rabbits run along roads.",
+          "expected": "Red rabbits run along roads.",
+          "title_en": "Speak naturally",
+          "title_es": "Habla de forma natural"
+        }
+      }
+    },
+    {
+      "id": "session-30",
+      "title_en": "ER sound in FIRST",
+      "title_es": "Sonido de ER en FIRST",
+      "speak": {
+        "focus": "er",
+        "sound": {
+          "hint_en_line1": "Keep your tongue in “r” position and produce a vowel with voice",
+          "hint_en_line2": "",
+          "hint_es_line1": "Lengua en posición de “r”, produce un sonido vocal con vibración",
+          "hint_es_line2": "",
+          "phonetic": "ER sound in FIRST",
+          "expected": "first",
+          "title_en": "Learn the sound",
+          "title_es": "Aprende el sonido"
+        },
+        "spelling": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "words": [
+            "BIRD",
+            "SHIRT",
+            "WORK",
+            "GIRL"
+          ],
+          "title_en": "Listen and repeat each word",
+          "title_es": "Escucha y repite cada palabra"
+        },
+        "sentence": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "sentence": "Girls work with birds in my town.",
+          "expected": "Girls work with birds in my town.",
+          "title_en": "Speak naturally",
+          "title_es": "Habla de forma natural"
+        }
+      }
+    },
+    {
+      "id": "session-31",
+      "title_en": "A Sound in FAST",
+      "title_es": "Sonido A en FAST",
+      "speak": {
+        "focus": "a",
+        "sound": {
+          "hint_en_line1": "Open your mouth, keep your tongue low and back and make a long sound",
+          "hint_en_line2": "",
+          "hint_es_line1": "Boca abierta, lengua baja y hacia atrás, haz un sonido largo",
+          "hint_es_line2": "",
+          "phonetic": "A sound in FAST",
+          "expected": "fast",
+          "title_en": "Learn the sound",
+          "title_es": "Aprende el sonido"
+        },
+        "spelling": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "words": [
+            "HEART",
+            "GLASSES",
+            "AFTERNOON",
+            "DANCE"
+          ],
+          "title_en": "Listen and repeat each word",
+          "title_es": "Escucha y repite cada palabra"
+        },
+        "sentence": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "sentence": "My father drives fast to the park.",
+          "expected": "My father drives fast to the park.",
+          "title_en": "Speak naturally",
+          "title_es": "Habla de forma natural"
+        }
+      }
+    },
+    {
+      "id": "session-32",
+      "title_en": "AW Sound in SAW",
+      "title_es": "Sonido AW en SAW",
+      "speak": {
+        "focus": "aw",
+        "sound": {
+          "hint_en_line1": "Round your lips, keep your tongue relaxed low and back, produce a long sound with voice",
+          "hint_en_line2": "",
+          "hint_es_line1": "Labios redondeados, lengua relajada en posición baja y hacia atrás, haz un sonido largo con vibración",
+          "hint_es_line2": "",
+          "phonetic": "AW sound in SAW",
+          "expected": "saw",
+          "title_en": "Learn the sound",
+          "title_es": "Aprende el sonido"
+        },
+        "spelling": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "words": [
+            "BALL",
+            "SMALL",
+            "WALK",
+            "TALK"
+          ],
+          "title_en": "Listen and repeat each word",
+          "title_es": "Escucha y repite cada palabra"
+        },
+        "sentence": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "sentence": "Small dogs walk and play with a ball.",
+          "expected": "Small dogs walk and play with a ball.",
+          "title_en": "Speak naturally",
+          "title_es": "Habla de forma natural"
+        }
+      }
+    },
+    {
+      "id": "session-33",
+      "title_en": "TH sound in THINK",
+      "title_es": "Sonido TH en THINK",
+      "speak": {
+        "focus": "TH voiceless",
+        "sound": {
+          "hint_en_line1": "Place your tongue between your teeth and blow air without using your voice",
+          "hint_en_line2": "",
+          "hint_es_line1": "Coloca la lengua entre los dientes y sopla aire sin usar la voz",
+          "hint_es_line2": "",
+          "phonetic": "TH sound in THINK",
+          "expected": "think",
+          "title_en": "Learn the sound",
+          "title_es": "Aprende el sonido"
+        },
+        "spelling": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "words": [
+            "THANK",
+            "THREE",
+            "SOMETHING",
+            "MONTH"
+          ],
+          "title_en": "Listen and repeat each word",
+          "title_es": "Escucha y repite cada palabra"
+        },
+        "sentence": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "sentence": "I think we should thank the three boys.",
+          "expected": "I think we should thank the three boys.",
+          "title_en": "Speak naturally",
+          "title_es": "Habla de forma natural"
+        }
+      }
+    },
+    {
+      "id": "session-34",
+      "title_en": "TH sound in THIS",
+      "title_es": "Sonido TH en THIS",
+      "speak": {
+        "focus": "th",
+        "sound": {
+          "hint_en_line1": "Touch your upper teeth with your tongue and vibrate your voice",
+          "hint_en_line2": "",
+          "hint_es_line1": "Toca los dientes superiores con la lengua y haz vibrar la voz",
+          "hint_es_line2": "",
+          "phonetic": "TH sound in THIS",
+          "expected": "this",
+          "title_en": "Learn the sound",
+          "title_es": "Aprende el sonido"
+        },
+        "spelling": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "words": [
+            "THAT",
+            "THEY",
+            "MOTHER",
+            "BROTHER"
+          ],
+          "title_en": "Listen and repeat each word",
+          "title_es": "Escucha y repite cada palabra"
+        },
+        "sentence": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "sentence": "This and that are for my mother.",
+          "expected": "This and that are for my mother.",
+          "title_en": "Speak naturally",
+          "title_es": "Habla de forma natural"
+        }
+      }
+    },
+    {
+      "id": "session-35",
+      "title_en": "SH sound in SHE",
+      "title_es": "Sonido SH en SHE",
+      "speak": {
+        "focus": "sh",
+        "sound": {
+          "hint_en_line1": "Slightly round your lips, pull your tongue back, and let air flow continuously",
+          "hint_en_line2": "",
+          "hint_es_line1": "Redondea un poco los labios, lleva la lengua hacia atrás y deja salir aire continuo",
+          "hint_es_line2": "",
+          "phonetic": "SH sound in SHE",
+          "expected": "she",
+          "title_en": "Learn the sound",
+          "title_es": "Aprende el sonido"
+        },
+        "spelling": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "words": [
+            "SURE",
+            "SPECIAL",
+            "SOCIAL",
+            "INFORMATION"
+          ],
+          "title_en": "Listen and repeat each word",
+          "title_es": "Escucha y repite cada palabra"
+        },
+        "sentence": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "sentence": "She shares special information.",
+          "expected": "She shares special information.",
+          "title_en": "Speak naturally",
+          "title_es": "Habla de forma natural"
+        }
+      }
+    },
+    {
+      "id": "session-36",
+      "title_en": "CH sound in CHAIR",
+      "title_es": "Sonido CH en CHAIR",
+      "speak": {
+        "focus": "ch",
+        "sound": {
+          "hint_en_line1": "Start with a “t”-like contact at the top and release quickly into a “sh” sound",
+          "hint_en_line2": "",
+          "hint_es_line1": "Empieza tocando arriba como una “t” y suelta rápido hacia un “sh”",
+          "hint_es_line2": "",
+          "phonetic": "CH sound in CHAIR",
+          "expected": "chair",
+          "title_en": "Learn the sound",
+          "title_es": "Aprende el sonido"
+        },
+        "spelling": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "words": [
+            "CHANGE",
+            "CHILD",
+            "WATCH",
+            "TEACHER"
+          ],
+          "title_en": "Listen and repeat each word",
+          "title_es": "Escucha y repite cada palabra"
+        },
+        "sentence": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "sentence": "The child sits on the chair with the teacher.",
+          "expected": "The child sits on the chair with the teacher.",
+          "title_en": "Speak naturally",
+          "title_es": "Habla de forma natural"
+        }
+      }
+    },
+    {
+      "id": "session-37",
+      "title_en": "ZH sound in VISION",
+      "title_es": "Sonido ZH en VISION",
+      "speak": {
+        "focus": "zh",
+        "sound": {
+          "hint_en_line1": "Put your tongue toward the palate without touching, keep lips relaxed, let air pass with vibration",
+          "hint_en_line2": "",
+          "hint_es_line1": "Lengua ligeramente elevada hacia el paladar sin tocar, labios relajados, deja pasar el aire con vibración de voz",
+          "hint_es_line2": "",
+          "phonetic": "ZH sound in VISION",
+          "expected": "vision",
+          "title_en": "Learn the sound",
+          "title_es": "Aprende el sonido"
+        },
+        "spelling": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "words": [
+            "TREASURE",
+            "UNUSUAL",
+            "DECISION",
+            "TELEVISION"
+          ],
+          "title_en": "Listen and repeat each word",
+          "title_es": "Escucha y repite cada palabra"
+        },
+        "sentence": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "sentence": "It's an unusual vision of a treasure.",
+          "expected": "It's an unusual vision of a treasure.",
+          "title_en": "Speak naturally",
+          "title_es": "Habla de forma natural"
+        }
+      }
+    },
+    {
+      "id": "session-38",
+      "title_en": "J sound in JOB",
+      "title_es": "Sonido J en JOB",
+      "speak": {
+        "focus": "j",
+        "sound": {
+          "hint_en_line1": "Block the air and release it like “d” plus “zh” with voice",
+          "hint_en_line2": "",
+          "hint_es_line1": "Bloquea el aire y suéltalo como “d” seguido de “zh” con vibración",
+          "hint_es_line2": "",
+          "phonetic": "J sound in JOB",
+          "expected": "job",
+          "title_en": "Learn the sound",
+          "title_es": "Aprende el sonido"
+        },
+        "spelling": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "words": [
+            "JUST",
+            "GENERAL",
+            "PROJECT",
+            "MANAGER"
+          ],
+          "title_en": "Listen and repeat each word",
+          "title_es": "Escucha y repite cada palabra"
+        },
+        "sentence": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "sentence": "The manager does projects in his new job.",
+          "expected": "The manager does projects in his new job.",
+          "title_en": "Speak naturally",
+          "title_es": "Habla de forma natural"
+        }
+      }
+    },
+    {
+      "id": "session-39",
+      "title_en": "The NG sound in SING",
+      "title_es": "Sonido NG en SING",
+      "speak": {
+        "focus": "ng",
+        "sound": {
+          "hint_en_line1": "Raise the back of your tongue to the soft palate and let air vibrate through your nose",
+          "hint_en_line2": "",
+          "hint_es_line1": "Lleva la parte posterior de la lengua al paladar blando y deja vibrar el aire por la nariz",
+          "hint_es_line2": "",
+          "phonetic": "NG sound in SING",
+          "expected": "sing",
+          "title_en": "Learn the sound",
+          "title_es": "Aprende el sonido"
+        },
+        "spelling": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "words": [
+            "MORNING",
+            "YOUNG",
+            "LONG",
+            "SONG"
+          ],
+          "title_en": "Listen and repeat each word",
+          "title_es": "Escucha y repite cada palabra"
+        },
+        "sentence": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "sentence": "Young boys sing long songs.",
+          "expected": "Young boys sing long songs.",
+          "title_en": "Speak naturally",
+          "title_es": "Habla de forma natural"
+        }
+      }
+    },
+    {
+      "id": "session-40",
+      "title_en": "OY sound in BOY",
+      "title_es": "Sonido OY en BOY",
+      "speak": {
+        "focus": "oy",
+        "sound": {
+          "hint_en_line1": "Start with rounded lips and glide into “i”",
+          "hint_en_line2": "",
+          "hint_es_line1": "Empieza con labios redondeados y desliza hacia “i”",
+          "hint_es_line2": "",
+          "phonetic": "OY sound in BOY",
+          "expected": "boy",
+          "title_en": "Learn the sound",
+          "title_es": "Aprende el sonido"
+        },
+        "spelling": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "words": [
+            "TOY",
+            "COIN",
+            "NOISE",
+            "VOICE"
+          ],
+          "title_en": "Listen and repeat each word",
+          "title_es": "Escucha y repite cada palabra"
+        },
+        "sentence": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "sentence": "The boy has a toy and a coin.",
+          "expected": "The boy has a toy and a coin.",
+          "title_en": "Speak naturally",
+          "title_es": "Habla de forma natural"
+        }
+      }
+    },
+    {
+      "id": "session-41",
+      "title_en": "OU sound in MOUTH",
+      "title_es": "Sonido OU en MOUTH",
+      "speak": {
+        "focus": "ou",
+        "sound": {
+          "hint_en_line1": "Start with an open mouth and glide into a rounded “oo”-like sound, without tension",
+          "hint_en_line2": "",
+          "hint_es_line1": "Empieza con la boca abierta y desliza hacia un sonido “u” redondeado, sin tensión",
+          "hint_es_line2": "",
+          "phonetic": "OU sound in MOUTH",
+          "expected": "mouth",
+          "title_en": "Learn the sound",
+          "title_es": "Aprende el sonido"
+        },
+        "spelling": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "words": [
+            "OUT",
+            "HOUSE",
+            "TOWN",
+            "ABOUT"
+          ],
+          "title_en": "Listen and repeat each word",
+          "title_es": "Escucha y repite cada palabra"
+        },
+        "sentence": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "sentence": "They live in a house outside town.",
+          "expected": "They live in a house outside town.",
+          "title_en": "Speak naturally",
+          "title_es": "Habla de forma natural"
+        }
+      }
+    },
+    {
+      "id": "session-42",
+      "title_en": "AI sound in HAIR",
+      "title_es": "Sonido AI ​​en HAIR",
+      "speak": {
+        "focus": "ai",
+        "sound": {
+          "hint_en_line1": "Start with a mid-open mouth and glide into a more relaxed central sound, without a strong smile shape",
+          "hint_en_line2": "",
+          "hint_es_line1": "Empieza con la boca media abierta y desliza hacia un sonido más relajado y central, sin sonrisa marcada",
+          "hint_es_line2": "",
+          "phonetic": "AI sound in HAIR",
+          "expected": "hair",
+          "title_en": "Learn the sound",
+          "title_es": "Aprende el sonido"
+        },
+        "spelling": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "words": [
+            "CHAIR",
+            "THERE",
+            "WHERE",
+            "BEAR"
+          ],
+          "title_en": "Listen and repeat each word",
+          "title_es": "Escucha y repite cada palabra"
+        },
+        "sentence": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "sentence": "Put the teddy bear on the chair.",
+          "expected": "Put the teddy bear on the chair.",
+          "title_en": "Speak naturally",
+          "title_es": "Habla de forma natural"
+        }
+      }
+    },
+    {
+      "id": "session-43",
+      "title_en": "EA sound in EAR",
+      "title_es": "Sonido EA en EAR",
+      "speak": {
+        "focus": "ea",
+        "sound": {
+          "hint_en_line1": "Stretch your mouth into a smile and keep your tongue high and forward",
+          "hint_en_line2": "",
+          "hint_es_line1": "Estira la boca en sonrisa y mantén la lengua alta y delante",
+          "hint_es_line2": "",
+          "phonetic": "EA sound in EAR",
+          "expected": "ear",
+          "title_en": "Learn the sound",
+          "title_es": "Aprende el sonido"
+        },
+        "spelling": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "words": [
+            "HERE",
+            "NEAR",
+            "DEER",
+            "YEAR"
+          ],
+          "title_en": "Listen and repeat each word",
+          "title_es": "Escucha y repite cada palabra"
+        },
+        "sentence": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "sentence": "We can hear the deer near us.",
+          "expected": "We can hear the deer near us.",
+          "title_en": "Speak naturally",
+          "title_es": "Habla de forma natural"
+        }
+      }
+    },
+    {
+      "id": "session-44",
+      "title_en": "KS sound in TAXI",
+      "title_es": "Sonido KS en TAXI",
+      "speak": {
+        "focus": "ks",
+        "sound": {
+          "hint_en_line1": "Produce a sharp stop sound followed immediately by a soft hiss",
+          "hint_en_line2": "",
+          "hint_es_line1": "Produce un sonido oclusivo rápido seguido de un siseo suave",
+          "hint_es_line2": "",
+          "phonetic": "KS sound in TAXI",
+          "expected": "taxi",
+          "title_en": "Learn the sound",
+          "title_es": "Aprende el sonido"
+        },
+        "spelling": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "words": [
+            "FOX",
+            "BOX",
+            "SIX",
+            "EXPLAIN"
+          ],
+          "title_en": "Listen and repeat each word",
+          "title_es": "Escucha y repite cada palabra"
+        },
+        "sentence": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "sentence": "I explained to the taxi driver to come at six.",
+          "expected": "I explained to the taxi driver to come at six.",
+          "title_en": "Speak naturally",
+          "title_es": "Habla de forma natural"
+        }
+      }
+    },
+    {
+      "id": "session-45",
+      "title_en": "GZ sound in EXIT",
+      "title_es": "Sonido GZ en EXIT",
+      "speak": {
+        "focus": "gz",
+        "sound": {
+          "hint_en_line1": "Start with a voiced \"g\" sound followed by a vibrated \"zzz\" sound",
+          "hint_en_line2": "",
+          "hint_es_line1": "Di una “g” seguida de una “z” con vibración",
+          "hint_es_line2": "",
+          "phonetic": "GZ sound in EXIT",
+          "expected": "exit",
+          "title_en": "Learn the sound",
+          "title_es": "Aprende el sonido"
+        },
+        "spelling": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "words": [
+            "EXAM",
+            "EXPERT",
+            "EXAMPLE",
+            "EXECUTIVE"
+          ],
+          "title_en": "Listen and repeat each word",
+          "title_es": "Escucha y repite cada palabra"
+        },
+        "sentence": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "sentence": "The expert explains the exam example.",
+          "expected": "The expert explains the exam example.",
+          "title_en": "Speak naturally",
+          "title_es": "Habla de forma natural"
+        }
+      }
+    },
+    {
+      "id": "session-46",
+      "title_en": "B sound in BERRY",
+      "title_es": "Sonido B en BERRY",
+      "speak": {
+        "focus": "b",
+        "sound": {
+          "hint_en_line1": "Close your lips and release a quick burst of air for \"B\"",
+          "hint_en_line2": "",
+          "hint_es_line1": "Cierra los labios y suelta una pequeña explosión de aire para producir la B.",
+          "hint_es_line2": "",
+          "phonetic": "B sound in BERRY",
+          "expected": "berry",
+          "title_en": "Learn the sound",
+          "title_es": "Aprende el sonido"
+        },
+        "spelling": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "words": [
+            "BEST",
+            "BRING",
+            "BROTHER",
+            "BROWN"
+          ],
+          "title_en": "Listen and repeat each word",
+          "title_es": "Escucha y repite cada palabra"
+        },
+        "sentence": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "sentence": "My brother has big brown eyes and black hair.",
+          "expected": "My brother has big brown eyes and black hair.",
+          "title_en": "Speak naturally",
+          "title_es": "Habla de forma natural"
+        }
+      }
+    },
+    {
+      "id": "session-47",
+      "title_en": "V sound in VERY",
+      "title_es": "Sonido V en VERY",
+      "speak": {
+        "focus": "v",
+        "sound": {
+          "hint_en_line1": "Touch your lower lip with your upper teeth and let air pass with voice vibration",
+          "hint_en_line2": "",
+          "hint_es_line1": "Toca el labio inferior con los dientes superiores y deja pasar el aire con vibración de voz",
+          "hint_es_line2": "",
+          "phonetic": "V sound in VERY",
+          "expected": "very",
+          "title_en": "Learn the sound",
+          "title_es": "Aprende el sonido"
+        },
+        "spelling": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "words": [
+            "HAVE",
+            "LOVE",
+            "VIOLIN",
+            "OVER"
+          ],
+          "title_en": "Listen and repeat each word",
+          "title_es": "Escucha y repite cada palabra"
+        },
+        "sentence": {
+          "hint_en_line1": "",
+          "hint_en_line2": "",
+          "hint_es_line1": "",
+          "hint_es_line2": "",
+          "sentence": "We love the violin very much.",
+          "expected": "We love the violin very much.",
+          "title_en": "Speak naturally",
+          "title_es": "Habla de forma natural"
+        }
+      }
+    }
+  ]
+}

@@ -2594,6 +2594,8 @@ class PageSpeak extends HTMLElement {
       const locale = activeHintLocale || getHintUiLocale();
       const speakCopy = getSpeakCopyBundle(locale) || {};
       const listenLabel = speakCopy.listen || 'Listen';
+      const yourVoiceLabel =
+        speakCopy.yourVoiceLabel || (locale === 'es' ? 'Tu voz' : 'Your voice');
       if (isSpeakDebugEnabled() && debugPanelOpen) {
         return `
           <div class="speak-step-bottom">
@@ -2645,7 +2647,7 @@ class PageSpeak extends HTMLElement {
                   <span></span><span></span><span></span><span></span><span></span>
                 </span>
               </button>
-              <span class="speak-practice-voice-action-label">Your voice</span>
+              <span class="speak-practice-voice-action-label">${yourVoiceLabel}</span>
             </div>
           </div>
           ${scoreHtml}
@@ -2818,6 +2820,7 @@ class PageSpeak extends HTMLElement {
         activePlayButton = null;
       }
       setSpellingPlaybackState(false);
+      setSentencePlaybackState(false);
       // Cancel full hero narration task (token/timer + playback) to avoid overlap/race
       // when changing steps while the blue-card audio is still running.
       stopHeroNarration().catch(() => {});
@@ -2849,15 +2852,19 @@ class PageSpeak extends HTMLElement {
 
     const setSpellingPlaybackState = (isPlaying) => {
       if (!stepRoot) return;
-      const previewCard = stepRoot.querySelector('.speak-word-preview-card');
-      if (previewCard) {
-        previewCard.classList.toggle('is-playing', Boolean(isPlaying));
-      }
       const activeWordButton = Array.from(stepRoot.querySelectorAll('.speak-word')).find(
         (btn) => String(btn.dataset.word || '') === String(selectedWord || '')
       );
       if (activeWordButton) {
         activeWordButton.classList.toggle('is-playing', Boolean(isPlaying));
+      }
+    };
+
+    const setSentencePlaybackState = (isPlaying) => {
+      if (!stepRoot) return;
+      const sentenceButton = stepRoot.querySelector('#speak-play-sentence');
+      if (sentenceButton) {
+        sentenceButton.classList.toggle('is-playing', Boolean(isPlaying));
       }
     };
 
@@ -3429,6 +3436,28 @@ class PageSpeak extends HTMLElement {
       return null;
     };
 
+    const renderExpectedInlineHtml = (displayText, expected, highlightKey, isActive = false) => {
+      const source = String(displayText || '');
+      const target = String(expected || '');
+      if (!source) return '';
+      if (!target) return highlightLetter(source, highlightKey);
+      const lower = source.toLowerCase();
+      const needle = target.toLowerCase();
+      const idx = lower.indexOf(needle);
+      if (idx < 0) return highlightLetter(source, highlightKey);
+      const prefix = source.slice(0, idx);
+      const match = source.slice(idx, idx + target.length);
+      const suffix = source.slice(idx + target.length);
+      return `${highlightLetter(prefix, highlightKey)}<span class="speak-inline-expected${isActive ? ' is-active' : ''}">${highlightLetter(match, highlightKey)}</span>${highlightLetter(suffix, highlightKey)}`;
+    };
+
+    const renderSoundExpectedInline = (targetEl, isActive = false) => {
+      if (!targetEl) return;
+      const displayText = getSoundDisplayText();
+      const expected = soundStep && soundStep.expected ? soundStep.expected : '';
+      targetEl.innerHTML = renderExpectedInlineHtml(displayText, expected, focusKey, isActive);
+    };
+
     const getDisplayTokenMap = (text) => {
       const tokens = String(text || '')
         .replace(/[\u2019\u2018]/g, "'")
@@ -3585,10 +3614,24 @@ class PageSpeak extends HTMLElement {
       highlightSyllable(newIndex);
     };
 
-    const playReferenceAudio = async ({ text, targetEl, phonetic, triggerBtn }) => {
+    const playReferenceAudio = ({ text, targetEl, phonetic, triggerBtn, visualKind = '' }) => {
+      return playReferenceAudioImpl({
+        text,
+        targetEl,
+        phonetic,
+        triggerBtn,
+        visualKind
+      });
+    };
+
+    const playReferenceAudioImpl = async ({ text, targetEl, phonetic, triggerBtn, visualKind = '' }) => {
       if (!text) return;
       stopPlayback();
       stopAvatarPlayback();
+      const normalizedVisualKind = String(visualKind || '').trim().toLowerCase();
+      const isSoundTarget = normalizedVisualKind === 'sound';
+      const isSpellingTarget = normalizedVisualKind === 'spelling';
+      const isSentenceTarget = normalizedVisualKind === 'sentence';
 
       const ready = await ensureMfaItems();
       const itemId = ready ? getMfaIdForText(text) : null;
@@ -3606,12 +3649,17 @@ class PageSpeak extends HTMLElement {
           return;
         }
 
-        const split = phonetic ? splitPhoneticText(phonetic, text) : null;
-        const prefix = split ? split.prefix : '';
-        const suffix = split ? split.suffix : '';
-        const remoteSyllables = wordsToSyllables(remotePayload.words);
-        if (targetEl) {
-          renderSyllables(targetEl, remoteSyllables, text || phonetic, focusKey, prefix, suffix);
+        if (targetEl && !isSentenceTarget) {
+          if (isSoundTarget) {
+            resetSyllables();
+            renderSoundExpectedInline(targetEl, true);
+          } else {
+            const split = phonetic ? splitPhoneticText(phonetic, text) : null;
+            const prefix = split ? split.prefix : '';
+            const suffix = split ? split.suffix : '';
+            const remoteSyllables = wordsToSyllables(remotePayload.words);
+            renderSyllables(targetEl, remoteSyllables, text || phonetic, focusKey, prefix, suffix);
+          }
         } else {
           resetSyllables();
         }
@@ -3620,7 +3668,8 @@ class PageSpeak extends HTMLElement {
         playbackAudio = audio;
         activeAudio = audio;
         setActivePlayButton(triggerBtn || null);
-        setSpellingPlaybackState(Boolean(targetEl));
+        setSpellingPlaybackState(isSpellingTarget);
+        setSentencePlaybackState(isSentenceTarget);
         startHeroMascotTalk();
         audio.ontimeupdate = () => {
           updateSyllables(Number.isFinite(audio.currentTime) ? audio.currentTime : 0);
@@ -3629,37 +3678,47 @@ class PageSpeak extends HTMLElement {
 
         audio.onended = () => {
           highlightSyllable(-1);
+          if (isSoundTarget) renderSoundExpectedInline(targetEl, false);
           stopHeroMascotTalk({ settle: true });
           clearActivePlayButton();
           setSpellingPlaybackState(false);
+          setSentencePlaybackState(false);
         };
 
         audio.onerror = () => {
+          if (isSoundTarget) renderSoundExpectedInline(targetEl, false);
           stopHeroMascotTalk({ settle: true });
           clearActivePlayButton();
           setSpellingPlaybackState(false);
+          setSentencePlaybackState(false);
         };
 
         audio.play().catch(() => {
+          if (isSoundTarget) renderSoundExpectedInline(targetEl, false);
           stopHeroMascotTalk({ settle: true });
           clearActivePlayButton();
           setSpellingPlaybackState(false);
+          setSentencePlaybackState(false);
         });
         return;
       }
 
-      let syllablesData = [];
-      try {
-        syllablesData = await loadSyllables(itemId);
-      } catch (err) {
-        syllablesData = [];
-      }
-
-      if (targetEl) {
-        const split = phonetic ? splitPhoneticText(phonetic, text) : null;
-        const prefix = split ? split.prefix : '';
-        const suffix = split ? split.suffix : '';
-        renderSyllables(targetEl, syllablesData, text || phonetic, focusKey, prefix, suffix);
+      if (targetEl && !isSentenceTarget) {
+        if (isSoundTarget) {
+          resetSyllables();
+          renderSoundExpectedInline(targetEl, true);
+        } else {
+          let syllablesData = [];
+          try {
+            syllablesData = await loadSyllables(itemId);
+          } catch (err) {
+            syllablesData = [];
+          }
+          const split = phonetic ? splitPhoneticText(phonetic, text) : null;
+          const prefix = split ? split.prefix : '';
+          const suffix = split ? split.suffix : '';
+          renderSyllables(targetEl, syllablesData, text || phonetic, focusKey, prefix, suffix);
+        }
       } else {
         resetSyllables();
       }
@@ -3668,7 +3727,8 @@ class PageSpeak extends HTMLElement {
       playbackAudio = audio;
       activeAudio = audio;
       setActivePlayButton(triggerBtn || null);
-      setSpellingPlaybackState(Boolean(targetEl));
+      setSpellingPlaybackState(isSpellingTarget);
+      setSentencePlaybackState(isSentenceTarget);
       audio.ontimeupdate = () => {
         updateSyllables(Number.isFinite(audio.currentTime) ? audio.currentTime : 0);
       };
@@ -3676,21 +3736,27 @@ class PageSpeak extends HTMLElement {
 
       audio.onended = () => {
         highlightSyllable(-1);
+        if (isSoundTarget) renderSoundExpectedInline(targetEl, false);
         stopHeroMascotTalk({ settle: true });
         clearActivePlayButton();
         setSpellingPlaybackState(false);
+        setSentencePlaybackState(false);
       };
 
       audio.onerror = () => {
+        if (isSoundTarget) renderSoundExpectedInline(targetEl, false);
         stopHeroMascotTalk({ settle: true });
         clearActivePlayButton();
         setSpellingPlaybackState(false);
+        setSentencePlaybackState(false);
       };
 
       audio.play().catch(() => {
+        if (isSoundTarget) renderSoundExpectedInline(targetEl, false);
         stopHeroMascotTalk({ settle: true });
         clearActivePlayButton();
         setSpellingPlaybackState(false);
+        setSentencePlaybackState(false);
       });
     };
 
@@ -4016,7 +4082,7 @@ class PageSpeak extends HTMLElement {
           <p class="speak-step-heading">${stepTitle}</p>
           <div class="speak-phonetic">
             <span class="speak-phonetic-text" id="speak-phonetic-text">
-              ${highlightLetter(displayText, focusKey)}
+              ${renderExpectedInlineHtml(displayText, soundStep && soundStep.expected ? soundStep.expected : '', focusKey, false)}
             </span>
           </div>
           ${stepSubtitle ? `<p class="speak-step-subtitle">${stepSubtitle}</p>` : ''}
@@ -4092,14 +4158,17 @@ class PageSpeak extends HTMLElement {
 
       const spellingContentTitle = getLocalizedStepTitle(spellingStep, locale);
       const spellingFallback = getSpeakUiText('stepTitleSpelling', locale, 'Say the sound in words');
+      const spellingSubtitle = getSpeakUiText(
+        'stepSubtitleSpelling',
+        locale,
+        'Listen and repeat each word'
+      );
       const stepTitle = spellingFallback || spellingContentTitle;
       return `
         <div class="speak-step speak-step-spelling">
           <p class="speak-step-heading">${stepTitle}</p>
+          <p class="speak-step-subtitle">${spellingSubtitle}</p>
           <div class="speak-step-main">
-            <div class="speak-word-preview-card" aria-live="polite">
-              <span class="speak-word-preview" id="speak-word-preview">${highlightLetter(selectedWord, focusKey)}</span>
-            </div>
             <div class="speak-word-grid speak-word-grid--single">${words}</div>
           </div>
 
@@ -4134,14 +4203,13 @@ class PageSpeak extends HTMLElement {
         : getSpeakUiText('practicePhrase', locale, 'Practice the phrase');
       const sentenceContentTitle = getLocalizedStepTitle(sentenceStep, locale);
       const sentenceFallback = getSpeakUiText('stepTitleSentence', locale, 'Say a whole sentence');
-      const stepTitle = sentenceContentTitle || sentenceFallback;
-      const stepSubtitle = sentenceContentTitle ? sentenceFallback : '';
+      const stepTitle = sentenceFallback;
       return `
         <div class="speak-step speak-step-sentence">
-          ${stepSubtitle ? `<p class="speak-step-heading">${stepSubtitle}</p>` : ''}
-          <p class="speak-step-subtitle">${stepTitle}</p>
+          <p class="speak-step-heading">${stepTitle}</p>
+          ${sentenceContentTitle ? `<p class="speak-step-subtitle">${sentenceContentTitle}</p>` : ''}
           <div class="speak-step-main">
-            <button class="speak-sentence" id="speak-play-sentence" type="button">
+            <button class="speak-sentence is-active" id="speak-play-sentence" type="button">
               <span id="speak-sentence-text">${highlightSentence(sentenceStep.sentence, focusKey)}</span>
             </button>
           </div>
@@ -4549,8 +4617,6 @@ class PageSpeak extends HTMLElement {
       const debugPrevBtn = stepRoot.querySelector('#speak-debug-prev');
       const debugNextBtn = stepRoot.querySelector('#speak-debug-next');
       const wordButtons = Array.from(stepRoot.querySelectorAll('.speak-word'));
-      const wordPreviewEl = stepRoot.querySelector('#speak-word-preview');
-
       const sessionVideoEl = stepRoot.querySelector('#speak-session-video');
       const sessionVideoPlayBtn = stepRoot.querySelector('#speak-video-play');
       const sessionVideoFsBtn = stepRoot.querySelector('#speak-video-fullscreen');
@@ -4622,7 +4688,8 @@ class PageSpeak extends HTMLElement {
             text: soundStep.expected,
             targetEl: phoneticTextEl,
             phonetic,
-            triggerBtn: playRefBtn
+            triggerBtn: playRefBtn,
+            visualKind: 'sound'
           });
           return;
         }
@@ -4643,7 +4710,8 @@ class PageSpeak extends HTMLElement {
               text: soundStep.expected,
               targetEl: phoneticTextEl,
               phonetic,
-              triggerBtn: playControlBtn
+              triggerBtn: playControlBtn,
+              visualKind: 'sound'
             });
             return;
           }
@@ -4656,16 +4724,16 @@ class PageSpeak extends HTMLElement {
           if (!selectedWord) return;
           playReferenceAudio({
             text: selectedWord,
-            targetEl: wordPreviewEl,
-            triggerBtn: playControlBtn
+            triggerBtn: playControlBtn,
+            visualKind: 'spelling'
           });
           return;
         }
         if (playKind === 'sentence' && sentenceStep && sentenceStep.sentence) {
           playReferenceAudio({
             text: sentenceStep.sentence,
-            targetEl: sentenceTextEl,
-            triggerBtn: playControlBtn
+            triggerBtn: playControlBtn,
+            visualKind: 'sentence'
           });
         }
       });
@@ -4674,8 +4742,8 @@ class PageSpeak extends HTMLElement {
         if (sentenceStep && sentenceStep.sentence) {
           playReferenceAudio({
             text: sentenceStep.sentence,
-            targetEl: sentenceTextEl,
-            triggerBtn: playSentenceBtn
+            triggerBtn: playSentenceBtn,
+            visualKind: 'sentence'
           });
         }
       });
@@ -4684,14 +4752,14 @@ class PageSpeak extends HTMLElement {
         if (!selectedWord) return;
         playReferenceAudio({
           text: selectedWord,
-          targetEl: wordPreviewEl,
-          triggerBtn: playWordBtn
+          triggerBtn: playWordBtn,
+          visualKind: 'spelling'
         });
       });
 
       recordBtn?.addEventListener('click', () => {
         if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-          const delayMs = typeof window.getRecordingStopDelayMs === 'function' ? window.getRecordingStopDelayMs() : 600;
+          const delayMs = typeof window.getRecordingStopDelayMs === 'function' ? window.getRecordingStopDelayMs() : 1400;
           if (delayMs > 0) {
             if (pendingRecordingStopTimer) { clearTimeout(pendingRecordingStopTimer); }
             recordingStopPending = true;
@@ -4750,11 +4818,10 @@ class PageSpeak extends HTMLElement {
           const nextScrollEl = stepRoot.querySelector('.speak-step-main');
           if (nextScrollEl) nextScrollEl.scrollTop = prevScrollTop;
           const nextPlayWordBtn = stepRoot.querySelector('#speak-play-word');
-          const nextWordPreviewEl = stepRoot.querySelector('#speak-word-preview');
           playReferenceAudio({
             text: selectedWord,
-            targetEl: nextWordPreviewEl,
-            triggerBtn: nextPlayWordBtn || null
+            triggerBtn: nextPlayWordBtn || null,
+            visualKind: 'spelling'
           });
         });
       });

@@ -339,11 +339,8 @@ window.playSpeakUiSound = async (key, options = {}) => {
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) {
     stopAllUiSfxPlayback();
-    if (typeof window.syncSpeakProgress === 'function') {
-      window.syncSpeakProgress({
-        reason: 'visibility-hidden',
-        includeSnapshot: true
-      }).catch(() => {});
+    if (typeof window.flushSpeakSync === 'function') {
+      window.flushSpeakSync('visibility-hidden');
     }
   }
 });
@@ -358,11 +355,8 @@ try {
     appPlugin.addListener('appStateChange', ({ isActive }) => {
       if (!isActive) {
         stopAllUiSfxPlayback();
-        if (typeof window.syncSpeakProgress === 'function') {
-          window.syncSpeakProgress({
-            reason: 'app-background',
-            includeSnapshot: true
-          }).catch(() => {});
+        if (typeof window.flushSpeakSync === 'function') {
+          window.flushSpeakSync('app-background');
         }
       }
     });
@@ -1587,6 +1581,23 @@ const applySpeakSnapshot = (snapshot, opts = {}) => {
 
 let speakSyncTimer = null;
 let speakSyncInFlight = false;
+let speakSyncInFlightSince = 0;
+const SPEAK_SYNC_INFLIGHT_TIMEOUT_MS = 30000;
+
+const cancelSpeakSyncTimer = () => {
+  if (speakSyncTimer) {
+    clearTimeout(speakSyncTimer);
+    speakSyncTimer = null;
+  }
+};
+
+const guardSpeakSyncInFlight = () => {
+  if (!speakSyncInFlight) return;
+  if (speakSyncInFlightSince && Date.now() - speakSyncInFlightSince > SPEAK_SYNC_INFLIGHT_TIMEOUT_MS) {
+    speakSyncInFlight = false;
+    speakSyncInFlightSince = 0;
+  }
+};
 
 const scheduleSpeakSync = (opts = {}) => {
   if (speakSyncTimer) return;
@@ -1594,6 +1605,12 @@ const scheduleSpeakSync = (opts = {}) => {
     speakSyncTimer = null;
     window.syncSpeakProgress({ reason: 'debounce', ...opts });
   }, SPEAK_SYNC_DEBOUNCE_MS);
+};
+
+window.flushSpeakSync = (reason = 'flush') => {
+  cancelSpeakSyncTimer();
+  if (typeof window.syncSpeakProgress !== 'function') return;
+  window.syncSpeakProgress({ reason, force: true, includeSnapshot: true }).catch(() => {});
 };
 
 window.queueSpeakEvent = (event) => {
@@ -1612,6 +1629,7 @@ window.queueSpeakEvent = (event) => {
 };
 
 window.syncSpeakProgress = async (opts = {}) => {
+  guardSpeakSyncInFlight();
   if (speakSyncInFlight && !opts.force) return { ok: false, skipped: 'in-flight' };
   const owner = getSpeakSyncOwner();
   if (!owner) return { ok: false, skipped: 'no-owner' };
@@ -1665,6 +1683,7 @@ window.syncSpeakProgress = async (opts = {}) => {
   const headers = buildSpeakStateHeaders({ json: true });
 
   speakSyncInFlight = true;
+  speakSyncInFlightSince = Date.now();
   try {
     const res = await fetch(endpoint, {
       method: 'POST',
@@ -1673,11 +1692,13 @@ window.syncSpeakProgress = async (opts = {}) => {
     });
     if (!res.ok) {
       speakSyncInFlight = false;
+      speakSyncInFlightSince = 0;
       return { ok: false, status: res.status };
     }
     const data = await res.json();
     if (data && data.error && /\(002\)/.test(data.error)) {
       speakSyncInFlight = false;
+      speakSyncInFlightSince = 0;
       if (typeof window.requestSessionInvalidation === 'function') {
         window.requestSessionInvalidation('syncSpeakProgress', {
           endpoint,
@@ -1706,9 +1727,11 @@ window.syncSpeakProgress = async (opts = {}) => {
     localStorage.setItem(SPEAK_SYNC_OWNER_KEY, owner);
     localStorage.setItem(SPEAK_SYNC_TS_KEY, new Date().toISOString());
     speakSyncInFlight = false;
+    speakSyncInFlightSince = 0;
     return { ok: true, data };
   } catch (err) {
     speakSyncInFlight = false;
+    speakSyncInFlightSince = 0;
     console.error('[speak] sync error', err);
     return { ok: false, error: err.message || String(err) };
   }

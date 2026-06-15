@@ -2250,6 +2250,11 @@ function setupLoginModal() {
     }
 
     setLoginTabsLock();
+    try {
+      localStorage.setItem(TAB_STORAGE_KEY, 'tu');
+    } catch (_err) {
+      // no-op
+    }
     window.dispatchEvent(new CustomEvent('app:tabs-lock-change', { detail: { locked: true } }));
     if (modal) {
       applyLoginModalLock(true);

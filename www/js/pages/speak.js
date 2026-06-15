@@ -2353,14 +2353,11 @@ class PageSpeak extends HTMLElement {
     };
 
     const syncSpeakAwardsNow = (reason) => {
-      if (typeof window.syncSpeakProgress !== 'function') return;
-      window
-        .syncSpeakProgress({
-          reason: reason || 'speak-award',
-          force: true,
-          includeSnapshot: true
-        })
-        .catch(() => {});
+      if (typeof window.flushSpeakSync === 'function') {
+        window.flushSpeakSync(reason || 'speak-award');
+      } else if (typeof window.syncSpeakProgress === 'function') {
+        window.syncSpeakProgress({ reason: reason || 'speak-award', force: true, includeSnapshot: true }).catch(() => {});
+      }
     };
 
     const awardTrophyForCurrentModuleIfEligible = (locale = getHintUiLocale()) => {
@@ -4964,6 +4961,9 @@ class PageSpeak extends HTMLElement {
         } catch (err) {
           // no-op
         }
+        if (typeof window.flushSpeakSync === 'function') {
+          window.flushSpeakSync('summary-continue');
+        }
         goToHome('back');
         showBadgePopupSoon(summaryBadgeId, 220);
         return;
@@ -4993,6 +4993,9 @@ class PageSpeak extends HTMLElement {
       } catch (err) {
         // no-op
       }
+      if (typeof window.flushSpeakSync === 'function') {
+        window.flushSpeakSync('leave-session-review');
+      }
       goToHome('back');
       setTimeout(() => {
         window.dispatchEvent(new CustomEvent('app:profile-review-return'));
@@ -5010,6 +5013,9 @@ class PageSpeak extends HTMLElement {
         localStorage.setItem('appv5:active-tab', 'home');
       } catch (err) {
         // no-op
+      }
+      if (typeof window.flushSpeakSync === 'function') {
+        window.flushSpeakSync('leave-session');
       }
       goToHome('back');
     };

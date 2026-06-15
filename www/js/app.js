@@ -1,7 +1,7 @@
 import { ensureInitialHash, setRouter, goToHome } from './nav.js';
 import { clearLoginTabsLock, getAppLocale, hasLoginTabsLock, onboardingDone, setOnboardingDone, setLoginTabsLock } from './state.js';
 import { getUnreadCount, markAllNotificationsRead } from './notifications-store.js';
-import { ensureLegacySpeakCopyGlobals } from './content/copy.js';
+import { ensureLegacySpeakCopyGlobals, getTabsCopy, normalizeLocale as normalizeCopyLocale } from './content/copy.js';
 import { isAppTitlebarEnabled } from './components/app-header.js';
 import { refreshTranslationCapabilities } from './translation-capabilities.js';
 import './pages/onboarding.js';
@@ -49,6 +49,36 @@ let _legacyLayoutUnlockTimer2 = 0;
 let _legacyLayoutReady = true;
 let _legacyLayoutInitDone = false;
 let _legacyViewportEventsFrozen = false;
+
+function resolveChromeLocale(preferredLocale = '') {
+  const fromPreferred = normalizeCopyLocale(preferredLocale);
+  if (fromPreferred) return fromPreferred;
+  const fromState = normalizeCopyLocale(getAppLocale());
+  if (fromState) return fromState;
+  const fromGlobal = normalizeCopyLocale(window.varGlobal && window.varGlobal.locale);
+  return fromGlobal || 'en';
+}
+
+function syncTabsLocaleLabels(preferredLocale = '') {
+  const copy = getTabsCopy(resolveChromeLocale(preferredLocale)) || {};
+  const labelsByTab = {
+    home: copy.training || 'Training',
+    freeride: copy.lab || 'Lab',
+    reference: copy.reference || 'Reference',
+    chat: copy.chat || 'Chat',
+    tu: copy.you || 'Profile'
+  };
+  Object.entries(labelsByTab).forEach(([tab, label]) => {
+    const nextLabel = String(label || '').trim();
+    const buttonEl = document.querySelector(`tabs-page ion-tab-button[tab="${tab}"]`);
+    const labelEl = buttonEl ? buttonEl.querySelector('ion-label') : null;
+    if (labelEl) labelEl.textContent = nextLabel;
+    if (buttonEl) {
+      buttonEl.setAttribute('aria-label', nextLabel);
+      buttonEl.setAttribute('title', nextLabel);
+    }
+  });
+}
 
 function normalizeRecordingStopDelayMs(value) {
   const n = Math.round(Number(value));
@@ -1435,6 +1465,13 @@ syncNativeStatusBarCssHeight();
 syncNativeSystemInsetsCssVarsWithRetries();
 syncAppViewportHeightVar();
 refreshTranslationCapabilities().catch(() => {});
+window.addEventListener('app:locale-change', (event) => {
+  const nextLocale = event && event.detail ? event.detail.locale : '';
+  syncTabsLocaleLabels(nextLocale);
+});
+requestAnimationFrame(() => {
+  syncTabsLocaleLabels();
+});
 
 const routerReady = customElements.whenDefined('ion-router').then(() => document.querySelector('ion-router'));
 

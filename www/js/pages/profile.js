@@ -2239,6 +2239,7 @@ class PageProfile extends HTMLElement {
         expires_date: nextUser.expires_date || '',
         birthdate: nextUser.birthdate || '1901-01-01',
         lc: nextUser.lc || nextUser.locale || 'en-gb',
+        locale: resolveLocale(getActiveLocale() || (window.varGlobal && window.varGlobal.locale) || nextUser.locale || 'es', 'es'),
         sex: typeof nextUser.sex === 'number' ? nextUser.sex : 1
       };
       this.profileFormSeed = seed;
@@ -2270,6 +2271,7 @@ class PageProfile extends HTMLElement {
       expires_date: '',
       birthdate: '1901-01-01',
       lc: 'en-gb',
+      locale: resolveLocale(rawLocaleSetting || 'es', 'es'),
       sex: 1
     };
     const profileState = this.profileFormState || {
@@ -2283,7 +2285,14 @@ class PageProfile extends HTMLElement {
       const last = String(profileState.last_name || '').trim();
       const baseFirst = String(profileSeed.first_name || '').trim();
       const baseLast = String(profileSeed.last_name || '').trim();
+      const profileLocaleEl = this.querySelector('#profile-locale');
+      const chosenLocale = resolveLocale(
+        profileLocaleEl ? profileLocaleEl.value : (profileState.locale || rawLocaleSetting || 'es'),
+        'es'
+      );
+      const baseLocale = resolveLocale(profileSeed.locale || rawLocaleSetting || 'es', 'es');
       if (first !== baseFirst || last !== baseLast) return true;
+      if (chosenLocale !== baseLocale) return true;
       if (profileState.password || profileState.passwordConfirm) return true;
       return false;
     };
@@ -2791,8 +2800,8 @@ class PageProfile extends HTMLElement {
                   <label class="profile-input-shell profile-input-shell--select" for="profile-locale">
                     <span class="profile-input-icon" aria-hidden="true"><ion-icon name="globe-outline"></ion-icon></span>
                     <select class="profile-input profile-input--shell" id="profile-locale" aria-label="${escapeHtml(profileCopy.interfaceLanguage || 'Interface language')}">
-                      <option value="es"${(user && user.locale || rawLocaleSetting) === 'es' ? ' selected' : ''}>ES</option>
-                      <option value="en"${(user && user.locale || rawLocaleSetting) === 'en' ? ' selected' : ''}>EN</option>
+                      <option value="es"${rawLocaleSetting === 'es' ? ' selected' : ''}>ES</option>
+                      <option value="en"${rawLocaleSetting === 'en' ? ' selected' : ''}>EN</option>
                     </select>
                   </label>
                 </div>
@@ -3159,6 +3168,9 @@ class PageProfile extends HTMLElement {
     profilePasswordConfirm?.addEventListener('input', (event) => {
       applyProfileField('passwordConfirm', event.target.value);
     });
+    this.querySelector('#profile-locale')?.addEventListener('change', (event) => {
+      applyProfileField('locale', event.target.value);
+    });
     this.querySelector('#profile-password-toggle')?.addEventListener('click', () => {
       const passEl = this.querySelector('#profile-password');
       const iconEl = this.querySelector('#profile-password-toggle ion-icon');
@@ -3251,6 +3263,7 @@ class PageProfile extends HTMLElement {
       if (window.varGlobal && typeof window.varGlobal === 'object') {
         window.varGlobal.locale = chosenLocale;
       }
+      window.dispatchEvent(new CustomEvent('app:locale-change', { detail: { locale: chosenLocale } }));
       const nextUser = {
         ...user,
         first_name: firstName,

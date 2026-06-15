@@ -1906,8 +1906,17 @@ class PageSpeak extends HTMLElement {
       if (!sessionId || !word) return;
       const sessionScores = getSessionWordScores(sessionId);
       if (!sessionScores || !Object.prototype.hasOwnProperty.call(sessionScores, word)) return;
+      const now = Date.now();
       delete sessionScores[word];
       persistSpeakStores();
+      if (typeof window.queueSpeakEvent === 'function') {
+        window.queueSpeakEvent({
+          type: 'word_score_cleared',
+          session_id: sessionId,
+          word,
+          ts: now
+        });
+      }
     };
 
     const getStoredPhraseResult = (sessionId) => {
@@ -1941,8 +1950,16 @@ class PageSpeak extends HTMLElement {
       if (!sessionId) return;
       const store = getPhraseScoreStore();
       if (!Object.prototype.hasOwnProperty.call(store, sessionId)) return;
+      const now = Date.now();
       delete store[sessionId];
       persistSpeakStores();
+      if (typeof window.queueSpeakEvent === 'function') {
+        window.queueSpeakEvent({
+          type: 'phrase_score_cleared',
+          session_id: sessionId,
+          ts: now
+        });
+      }
     };
 
     const getStoredSessionReward = (sessionId) => {

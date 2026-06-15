@@ -339,6 +339,12 @@ window.playSpeakUiSound = async (key, options = {}) => {
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) {
     stopAllUiSfxPlayback();
+    if (typeof window.syncSpeakProgress === 'function') {
+      window.syncSpeakProgress({
+        reason: 'visibility-hidden',
+        includeSnapshot: true
+      }).catch(() => {});
+    }
   }
 });
 
@@ -352,6 +358,12 @@ try {
     appPlugin.addListener('appStateChange', ({ isActive }) => {
       if (!isActive) {
         stopAllUiSfxPlayback();
+        if (typeof window.syncSpeakProgress === 'function') {
+          window.syncSpeakProgress({
+            reason: 'app-background',
+            includeSnapshot: true
+          }).catch(() => {});
+        }
       }
     });
   }
@@ -1620,7 +1632,7 @@ window.syncSpeakProgress = async (opts = {}) => {
   let strategy = opts.strategy || 'merge';
   let forceIncludeSnapshot = false;
   if (conflictDecision && conflictDecision.action === 'use-local') {
-    strategy = 'replace';
+    strategy = 'merge';
     forceIncludeSnapshot = true;
   }
 
@@ -1671,7 +1683,8 @@ window.syncSpeakProgress = async (opts = {}) => {
           endpoint,
           status: res.status,
           error: data.error,
-          code: '002'
+          code: '002',
+          force: true
         });
       }
       return { ok: false, forced_logout: true };
@@ -1738,6 +1751,8 @@ window.addEventListener('app:user-change', (event) => {
         reason: 'user-change',
         includeSnapshot,
         includeSnapshotOnOwnerChange: true,
+        applySnapshot: true,
+        replaceSnapshot: true,
         applySnapshotIfEmpty: true
       });
     })();
@@ -1746,6 +1761,8 @@ window.addEventListener('app:user-change', (event) => {
   window.syncSpeakProgress({
     reason: 'user-change',
     includeSnapshotOnOwnerChange: true,
+    applySnapshot: true,
+    replaceSnapshot: true,
     applySnapshotIfEmpty: true
   });
 });
@@ -1912,7 +1929,8 @@ const pingSessionValidity = async () => {
           endpoint: summaryEndpoint,
           status: res.status,
           error: data.error,
-          code: '002'
+          code: '002',
+          force: true
         });
       }
     }
@@ -1931,6 +1949,7 @@ const onReady = () => {
   ensureUUID();
   initVoicesIfBrowser();
   syncStartupDeviceSeen();
+  pingSessionValidity();
 };
 
 // Compatibilidad con deviceready (cordova/capacitor bridge) y fallback a DOMContentLoaded

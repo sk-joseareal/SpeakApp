@@ -71,12 +71,14 @@ class TabsPage extends HTMLElement {
       const allowedTabs = getAllowedTabs();
       return allowedTabs.length ? allowedTabs[0] : 'home';
     };
-    const resolveUiLocale = () => {
+    const resolveUiLocale = (preferredLocale = '') => {
+      const fromPreferred = normalizeCopyLocale(preferredLocale);
+      if (fromPreferred) return fromPreferred;
       const fromState = normalizeCopyLocale(getAppLocale());
       if (fromState) return fromState;
       return normalizeCopyLocale(window.varGlobal?.locale) || 'en';
     };
-    const readTabsCopy = () => getTabsCopy(resolveUiLocale());
+    const readTabsCopy = (preferredLocale = '') => getTabsCopy(resolveUiLocale(preferredLocale));
     const tabsCopy = readTabsCopy();
     const initialUser = window.user;
     const initialLoggedIn = Boolean(initialUser && initialUser.id !== undefined && initialUser.id !== null);
@@ -142,18 +144,25 @@ class TabsPage extends HTMLElement {
       const selectedFromAttr = normalizeTab(tabsEl?.getAttribute('selected-tab') || '');
       return selectedFromProp || selectedFromAttr || '';
     };
-    const applyTabLabels = () => {
-      const copy = readTabsCopy();
-      const homeLabel = this.querySelector('[data-tab-label="home"]');
-      const freeRideLabel = this.querySelector('[data-tab-label="freeride"]');
-      const referenceLabel = this.querySelector('[data-tab-label="reference"]');
-      const chatLabel = this.querySelector('[data-tab-label="chat"]');
-      const youLabel = this.querySelector('[data-tab-label="tu"]');
-      if (homeLabel) homeLabel.textContent = copy.training;
-      if (freeRideLabel) freeRideLabel.textContent = copy.lab;
-      if (referenceLabel) referenceLabel.textContent = copy.reference;
-      if (chatLabel) chatLabel.textContent = copy.chat;
-      if (youLabel) youLabel.textContent = copy.you;
+    const applyTabLabels = (preferredLocale = '') => {
+      const copy = readTabsCopy(preferredLocale);
+      const labelsByTab = {
+        home: copy.training,
+        freeride: copy.lab,
+        reference: copy.reference,
+        chat: copy.chat,
+        tu: copy.you
+      };
+      Object.entries(labelsByTab).forEach(([tab, label]) => {
+        const nextLabel = String(label || '').trim();
+        const labelEl = this.querySelector(`[data-tab-label="${tab}"]`);
+        const buttonEl = this.querySelector(`ion-tab-button[tab="${tab}"]`);
+        if (labelEl) labelEl.textContent = nextLabel;
+        if (buttonEl) {
+          buttonEl.setAttribute('aria-label', nextLabel);
+          buttonEl.setAttribute('title', nextLabel);
+        }
+      });
     };
 
     let forcingTab = false;
@@ -415,7 +424,10 @@ class TabsPage extends HTMLElement {
     };
     window.addEventListener('app:user-change', this._userChangeHandler);
 
-    this._localeChangeHandler = () => applyTabLabels();
+    this._localeChangeHandler = (event) => {
+      const nextLocale = event && event.detail ? event.detail.locale : '';
+      applyTabLabels(nextLocale);
+    };
     window.addEventListener('app:locale-change', this._localeChangeHandler);
 
     this._tabVisibilityChangeHandler = () => {

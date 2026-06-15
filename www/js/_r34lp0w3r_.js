@@ -3432,32 +3432,13 @@ const refreshCurrentUserPremiumState = () => {
 window.refreshCurrentUserPremiumState = refreshCurrentUserPremiumState;
 
 const resetSpeakOnLogout = () => {
-  if (typeof window.resetSpeakProgress === 'function') {
-    window.resetSpeakProgress();
-    return;
-  }
+  // Preserve local training progress and pending sync queue across logout.
+  // Clearing here can drop completed work if the last sync has not reached
+  // the backend yet. The next login already has conflict handling.
   try {
-    localStorage.removeItem('appv5:speak-word-scores');
-    localStorage.removeItem('appv5:speak-phrase-scores');
-    localStorage.removeItem('appv5:speak-session-rewards');
-    localStorage.removeItem('appv5:speak-badges');
-    localStorage.removeItem('appv5:speak-events');
-    localStorage.removeItem('appv5:speak-sync-owner');
-    localStorage.removeItem('appv5:speak-sync-ts');
     localStorage.removeItem('appv5:speak-sync-conflict');
-    localStorage.removeItem('appv5:speak-local-owner');
   } catch (err) {
-    console.error('[speak] error limpiando progreso en logout', err);
-  }
-  if (!window.r34lp0w3r) window.r34lp0w3r = {};
-  window.r34lp0w3r.speakWordScores = {};
-  window.r34lp0w3r.speakPhraseScores = {};
-  window.r34lp0w3r.speakSessionRewards = {};
-  window.r34lp0w3r.speakBadges = {};
-  try {
-    window.dispatchEvent(new CustomEvent('app:speak-stores-change'));
-  } catch (err) {
-    // no-op
+    console.error('[speak] error limpiando estado transitorio en logout', err);
   }
 };
 
@@ -3505,6 +3486,7 @@ window.requestSessionInvalidation = (source, detail = {}) => {
   if (!sessionKey) {
     return { ok: false, skipped: 'no-user' };
   }
+  const forceLogout = detail && detail.force === true;
   window.r34lp0w3r = window.r34lp0w3r || {};
   const pending =
     window.r34lp0w3r.__sessionInvalidationPending &&
@@ -3531,6 +3513,7 @@ window.requestSessionInvalidation = (source, detail = {}) => {
   });
 
   const confirmed =
+    forceLogout ||
     pending.sessionKey === sessionKey &&
     pending.firstAt > 0 &&
     now - pending.firstAt <= SESSION_INVALIDATION_CONFIRM_WINDOW_MS;

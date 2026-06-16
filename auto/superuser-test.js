@@ -181,8 +181,158 @@ const path = require('path');
   // ==========================================
   // FINALIZACIÓN: Validar acceso al contenido
   // ==========================================
-  await page.waitForTimeout(3000); 
+  await page.waitForTimeout(3000);
   console.log('--- Proceso de login completado. App en pantalla de inicio ---');
+
+  // ==========================================
+  // PASO 5: Navegar a sesiones del tab Training
+  // ==========================================
+
+  // Color a asignar a cada palabra en el paso de spelling.
+  // Valores posibles: 'rojo' | 'amarillo' | 'verde' | 'azul'
+  //   rojo     → tone bad   (0%)
+  //   amarillo → tone okay  (~50%)
+  //   verde    → tone good  (100%)
+  //   azul     → reset      (quita el score)
+  const colorPalabras = 'verde';
+
+  const colorToTone = { rojo: 'bad', amarillo: 'okay', verde: 'good', azul: 'reset' };
+
+  // Lista de sesiones a abrir: ruta → módulo → sesión
+  const sesiones = [
+    { routeId: 'route3', moduleId: 'module-11', sessionId: 'session-43' },
+    { routeId: 'route2', moduleId: 'module-7', sessionId: 'session-27' }
+  ];
+
+  console.log('Paso 5: Cambiando al tab Training...');
+  const trainingTab = page.locator('ion-tab-button[tab="home"]');
+  await trainingTab.waitFor({ state: 'visible', timeout: 5000 });
+  await trainingTab.click();
+  await page.waitForTimeout(1000);
+
+  for (const { routeId, moduleId, sessionId } of sesiones) {
+    console.log(`\nAbriendo ruta="${routeId}" módulo="${moduleId}" sesión="${sessionId}"...`);
+
+    // -- Abrir la ruta si no está ya expandida --
+    const routeHeader = page.locator(`button.route-header[data-route-id="${routeId}"]`);
+    await routeHeader.waitFor({ state: 'visible', timeout: 5000 });
+
+    const routeIsOpen = await page.evaluate((rId) => {
+      const btn = document.querySelector(`button.route-header[data-route-id="${rId}"]`);
+      return btn ? btn.closest('.route-item')?.classList.contains('is-open') : false;
+    }, routeId);
+
+    if (!routeIsOpen) {
+      console.log(`  Expandiendo ruta "${routeId}"...`);
+      await routeHeader.click();
+      await page.waitForTimeout(500);
+    } else {
+      console.log(`  Ruta "${routeId}" ya estaba expandida.`);
+    }
+
+    // -- Abrir el módulo si no está ya expandido --
+    const moduleHeader = page.locator(`button.module-header[data-route-id="${routeId}"][data-module-id="${moduleId}"]`);
+    await moduleHeader.waitFor({ state: 'visible', timeout: 5000 });
+
+    const moduleIsOpen = await page.evaluate(({ rId, mId }) => {
+      const btn = document.querySelector(`button.module-header[data-route-id="${rId}"][data-module-id="${mId}"]`);
+      return btn ? btn.closest('.module-item')?.classList.contains('is-open') : false;
+    }, { rId: routeId, mId: moduleId });
+
+    if (!moduleIsOpen) {
+      console.log(`  Expandiendo módulo "${moduleId}"...`);
+      await moduleHeader.click();
+      await page.waitForTimeout(500);
+    } else {
+      console.log(`  Módulo "${moduleId}" ya estaba expandido.`);
+    }
+
+    // -- Hacer click en la sesión --
+    const sessionRow = page.locator(`.training-row[data-route-id="${routeId}"][data-module-id="${moduleId}"][data-session-id="${sessionId}"]`);
+    await sessionRow.waitFor({ state: 'visible', timeout: 5000 });
+    console.log(`  Abriendo sesión "${sessionId}"...`);
+    await sessionRow.click();
+    await page.waitForTimeout(2500);
+
+    console.log(`  ✓ Sesión abierta.`);
+
+    // -- Activar panel debug dentro de la sesión (solo si no está ya abierto) --
+    console.log('  Verificando panel debug de la sesión...');
+    const debugToggle = page.locator('#speak-debug-toggle');
+    await debugToggle.waitFor({ state: 'visible', timeout: 8000 });
+
+    const debugAlreadyOpen = await page.locator('#speak-debug-next').isVisible();
+    if (!debugAlreadyOpen) {
+      console.log('  Abriendo panel debug...');
+      await debugToggle.click();
+      await page.waitForTimeout(1000);
+    } else {
+      console.log('  Panel debug ya estaba abierto.');
+    }
+
+    // -- Ir al paso 2 (spelling) con el botón '>' del panel debug --
+    console.log('  Navegando al paso 2 (spelling)...');
+    const nextInline = page.locator('#speak-debug-next');
+    await nextInline.waitFor({ state: 'visible', timeout: 8000 });
+    await nextInline.click();
+    await page.waitForTimeout(1200);
+
+    // -- Leer las palabras disponibles en el paso de spelling --
+    const words = await page.evaluate(() =>
+      Array.from(document.querySelectorAll('.speak-word[data-word]'))
+        .map(btn => btn.dataset.word)
+        .filter(Boolean)
+    );
+    console.log(`  Palabras encontradas: ${words.join(', ')}`);
+
+    const tone = colorToTone[colorPalabras] || 'good';
+
+    for (const word of words) {
+      console.log(`  Asignando "${colorPalabras}" (${tone}) a "${word}"...`);
+
+      // Seleccionar la palabra
+      const wordBtn = page.locator(`.speak-word[data-word="${word}"]`);
+      await wordBtn.waitFor({ state: 'visible', timeout: 3000 });
+      await wordBtn.click();
+      await page.waitForTimeout(400);
+
+      // Pulsar el botón de color en el panel debug
+      const toneBtn = page.locator(`.speak-debug-tone[data-tone="${tone}"]`);
+      await toneBtn.waitFor({ state: 'visible', timeout: 3000 });
+      await toneBtn.click();
+      await page.waitForTimeout(400);
+    }
+
+    console.log(`  ✓ Colores asignados a todas las palabras.`);
+
+    // -- Ir al paso 3 (sentence) --
+    console.log('  Navegando al paso 3 (sentence)...');
+    await page.locator('#speak-debug-next').click();
+    await page.waitForTimeout(800);
+
+    // -- Asignar color a la frase (sentence) --
+    console.log(`  Asignando "${colorPalabras}" (${tone}) a la frase...`);
+    const sentenceToneBtn = page.locator(`.speak-debug-tone[data-tone="${tone}"]`);
+    await sentenceToneBtn.waitFor({ state: 'visible', timeout: 3000 });
+    await sentenceToneBtn.click();
+    await page.waitForTimeout(400);
+
+    // -- Ir a la pantalla de resultado --
+    console.log('  Navegando a la pantalla de resultado...');
+    await page.locator('#speak-debug-next').click();
+    await page.waitForTimeout(1000);
+
+    // -- Pulsar Continue en el resultado --
+    console.log('  Pulsando Continue...');
+    const continueBtn = page.locator('#speak-next-step');
+    await continueBtn.waitFor({ state: 'visible', timeout: 5000 });
+    await continueBtn.click();
+    await page.waitForTimeout(1000);
+
+    console.log(`  ✓ Sesión completada.`);
+  }
+
+  console.log('\n--- Flujo completado ---');
 
 //  await page.waitForTimeout(4000);
 //  await context.close();

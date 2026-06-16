@@ -1,7 +1,7 @@
 {
   "generator": "ffmpeg",
-  "source_hash": "sha256-021d7982883e885da86d243ef0b04b3757336f3eea42ea18fc313c4a379af9a3",
-  "generated_at": "2026-06-08T17:56:57.852Z",
+  "source_hash": "sha256-7bcc682678f25394b605d18c9c8499800051c4c1c400507f164170abc920b750",
+  "generated_at": "2026-06-16T10:24:28.936Z",
   "sessions": {
     "session-1": {
       "source": "session-1.mp4",
@@ -175,7 +175,7 @@
       "source": "session-29.mp4",
       "video": "assets/speak/videos/session-29.mp4",
       "poster": "assets/speak/videos/session-29.jpg",
-      "expected": "red"
+      "expected": "run"
     },
     "session-30": {
       "source": "session-30.mp4",
@@ -278,6 +278,12 @@
       "video": "assets/speak/videos/session-46.mp4",
       "poster": "assets/speak/videos/session-46.jpg",
       "expected": "berry"
+    },
+    "session-47": {
+      "source": "session-47.mp4",
+      "video": "assets/speak/videos/session-47.mp4",
+      "poster": "assets/speak/videos/session-47.jpg",
+      "expected": "very"
     }
   }
 }

@@ -1,16 +1,51 @@
-import { getAppLocale } from '../state.js';
+import { getAppLocale, getActiveLocale } from '../state.js';
 import { getLoginCopy, normalizeLocale as normalizeCopyLocale } from '../content/copy.js';
+
+const MARKETING_CONSENT_STORAGE_KEY = 'appv5:marketing-consent';
+
+const getStoredMarketingConsent = () => {
+  try {
+    return localStorage.getItem(MARKETING_CONSENT_STORAGE_KEY) === 'yes';
+  } catch (_err) {
+    return false;
+  }
+};
+
+const setStoredMarketingConsent = (value) => {
+  try {
+    localStorage.setItem(MARKETING_CONSENT_STORAGE_KEY, value ? 'yes' : 'no');
+  } catch (_err) {
+    // ignore storage failures
+  }
+};
+
+const buildLoginLegalNoticeHtml = (locale) => {
+  const authLocale = String(locale || '').trim().toLowerCase().startsWith('es') ? 'es' : 'en';
+  const termsUrl =
+    authLocale === 'es'
+      ? 'https://www.curso-ingles.com/var/datos-legales'
+      : 'https://www.curso-ingles.com/en/support/legal-data';
+  const privacyUrl =
+    authLocale === 'es'
+      ? 'https://www.curso-ingles.com/var/politica-de-privacidad'
+      : 'https://www.curso-ingles.com/en/support/privacy-policy';
+  return authLocale === 'es'
+    ? `Al unirme declaro que he leído y acepto los <a href="${termsUrl}" target="_blank" rel="noopener noreferrer">términos y condiciones de servicio</a> y la <a href="${privacyUrl}" target="_blank" rel="noopener noreferrer">política de privacidad</a>.`
+    : `By joining I declare that I have read and accept the <a href="${termsUrl}" target="_blank" rel="noopener noreferrer">terms and conditions of service</a> and the <a href="${privacyUrl}" target="_blank" rel="noopener noreferrer">privacy policy</a>.`;
+};
 
 class PageLogin extends HTMLElement {
   connectedCallback() {
     this.classList.add('ion-page');
     const resolveUiLocale = () => {
-      const fromState = normalizeCopyLocale(getAppLocale());
+      const fromState = normalizeCopyLocale(getActiveLocale());
       if (fromState) return fromState;
+      const fromPersisted = normalizeCopyLocale(getAppLocale());
+      if (fromPersisted) return fromPersisted;
       return normalizeCopyLocale(window.varGlobal?.locale) || 'en';
     };
-    const uiLocale = resolveUiLocale();
-    const copy = getLoginCopy(uiLocale);
+    let uiLocale = resolveUiLocale();
+    let copy = getLoginCopy(uiLocale);
     const embedded = this.hasAttribute('embedded');
     const flat = embedded && this.hasAttribute('flat');
     const platform =
@@ -38,6 +73,135 @@ class PageLogin extends HTMLElement {
               <span>${label}</span>
             </ion-button>
           `;
+    const renderMarketingConsent = () =>
+      flat
+        ? `
+          <label class="login-marketing-inline" for="login-marketing-consent">
+            <ion-checkbox id="login-marketing-consent" aria-label="${copy.marketingConsent}"></ion-checkbox>
+            <span id="login-marketing-consent-text">${copy.marketingConsent}</span>
+          </label>
+        `
+        : `
+          <ion-item lines="none" class="login-marketing-item">
+            <ion-checkbox id="login-marketing-consent" label-placement="end">${copy.marketingConsent}</ion-checkbox>
+          </ion-item>
+        `;
+
+    const updateLocalizedText = () => {
+      const titleEl = this.querySelector('ion-header ion-title');
+      if (titleEl) titleEl.textContent = copy.title || '';
+      const closeBtn = this.querySelector('#login-close');
+      if (closeBtn) closeBtn.textContent = copy.close || '';
+      const loginMagicBtn = this.querySelector('#login-magic-link');
+      if (loginMagicBtn) loginMagicBtn.textContent = copy.continueWithEmail || '';
+      const googleSpan = this.querySelector('#login-google span');
+      if (googleSpan) googleSpan.textContent = copy.socialGoogle || '';
+      const fbSpan = this.querySelector('#login-fb span');
+      if (fbSpan) fbSpan.textContent = copy.socialFacebook || '';
+      const appleSpan = this.querySelector('#login-apple span');
+      if (appleSpan) appleSpan.textContent = copy.socialApple || '';
+
+      const registerTitle = this.querySelector('[data-panel="register"] h3');
+      if (registerTitle) registerTitle.textContent = copy.registerTitle || '';
+      const registerBack = this.querySelector('#register-back');
+      if (registerBack) registerBack.textContent = copy.recoverBack || '';
+      const registerUser = this.querySelector('#register-username');
+      if (registerUser) {
+        registerUser.setAttribute('placeholder', copy.registerUserLabel || '');
+        registerUser.setAttribute('aria-label', copy.registerUserLabel || '');
+      }
+      const registerEmail = this.querySelector('#register-email');
+      if (registerEmail) {
+        registerEmail.setAttribute('placeholder', copy.registerEmailLabel || '');
+        registerEmail.setAttribute('aria-label', copy.registerEmailLabel || '');
+      }
+      const registerPass = this.querySelector('#register-pass');
+      if (registerPass) {
+        registerPass.setAttribute('placeholder', copy.registerPassLabel || '');
+        registerPass.setAttribute('aria-label', copy.registerPassLabel || '');
+      }
+      const registerPassToggle = this.querySelector('#register-pass-toggle');
+      if (registerPassToggle) registerPassToggle.setAttribute('aria-label', copy.registerPassLabel || '');
+      const registerPassConfirm = this.querySelector('#register-pass-confirm');
+      if (registerPassConfirm) {
+        registerPassConfirm.setAttribute('placeholder', copy.registerPassConfirmLabel || '');
+        registerPassConfirm.setAttribute('aria-label', copy.registerPassConfirmLabel || '');
+      }
+      const registerPassConfirmToggle = this.querySelector('#register-pass-confirm-toggle');
+      if (registerPassConfirmToggle) {
+        registerPassConfirmToggle.setAttribute('aria-label', copy.registerPassConfirmLabel || '');
+      }
+      const registerTerms = this.querySelector('#register-terms');
+      if (registerTerms) {
+        registerTerms.setAttribute('aria-label', copy.registerTerms || '');
+        registerTerms.textContent = copy.registerTerms || '';
+      }
+      const marketingConsent = this.querySelector('#login-marketing-consent');
+      if (marketingConsent) marketingConsent.setAttribute('aria-label', copy.marketingConsent || '');
+      const marketingConsentText = this.querySelector('#login-marketing-consent-text');
+      if (marketingConsentText) marketingConsentText.textContent = copy.marketingConsent || '';
+      if (marketingConsent && !marketingConsentText) marketingConsent.textContent = copy.marketingConsent || '';
+      const marketingLegal = this.querySelector('#login-marketing-legal');
+      if (marketingLegal) marketingLegal.innerHTML = buildLoginLegalNoticeHtml(uiLocale);
+      const registerSubmit = this.querySelector('#register-submit');
+      if (registerSubmit) registerSubmit.textContent = copy.registerSubmit || '';
+      const registerBackBottom = this.querySelector('#register-back');
+      if (registerBackBottom) registerBackBottom.textContent = copy.registerBack || '';
+
+      const magicTitle = this.querySelector('[data-panel="magic"] h3');
+      if (magicTitle) magicTitle.textContent = copy.continueWithEmail || '';
+      const magicBack = this.querySelector('#magic-back');
+      if (magicBack) magicBack.textContent = copy.magicBack || '';
+      const magicEmail = this.querySelector('#email-access-email');
+      if (magicEmail) {
+        magicEmail.setAttribute('placeholder', copy.magicEmailLabel || '');
+        magicEmail.setAttribute('aria-label', copy.magicEmailLabel || '');
+      }
+      const magicPass = this.querySelector('#email-access-pass');
+      if (magicPass) {
+        magicPass.setAttribute('placeholder', copy.passwordOptionalLabel || '');
+        magicPass.setAttribute('aria-label', copy.passwordOptionalLabel || '');
+      }
+      const magicPassToggle = this.querySelector('#email-access-pass-toggle');
+      if (magicPassToggle) magicPassToggle.setAttribute('aria-label', copy.passwordOptionalLabel || '');
+      const magicDivider = this.querySelector('.login-option-divider span');
+      if (magicDivider) magicDivider.textContent = copy.passwordOptionDivider || '';
+      const magicSubmit = this.querySelector('#magic-submit');
+      if (magicSubmit) magicSubmit.textContent = copy.magicSubmit || '';
+      const emailAccessSubmit = this.querySelector('#email-access-submit');
+      if (emailAccessSubmit) emailAccessSubmit.textContent = copy.loginCreateSubmit || '';
+      const emailAccessRecover = this.querySelector('#email-access-recover');
+      if (emailAccessRecover) emailAccessRecover.textContent = copy.forgotPassword || '';
+      const magicSentTitle = this.querySelector('#magic-sent h3');
+      if (magicSentTitle) magicSentTitle.textContent = copy.magicSentTitle || '';
+      const magicSentBack = this.querySelector('#magic-back-from-sent');
+      if (magicSentBack) magicSentBack.textContent = copy.magicBack || '';
+      const magicSentEmailText = this.querySelector('#magic-sent-email')?.textContent || '';
+      const magicSentMsg = this.querySelector('#magic-sent .muted');
+      if (magicSentMsg) {
+        magicSentMsg.innerHTML = `${copy.magicSentMessage || ''}<br><strong id="magic-sent-email"></strong>`;
+        const magicSentEmail = this.querySelector('#magic-sent-email');
+        if (magicSentEmail) magicSentEmail.textContent = magicSentEmailText;
+      }
+      const magicOtpLabel = this.querySelector('label[for="otp-digits"] .login-label');
+      if (magicOtpLabel) magicOtpLabel.textContent = copy.magicOtpLabel || '';
+      const magicResend = this.querySelector('#magic-resend');
+      if (magicResend) magicResend.textContent = copy.magicResend || '';
+
+      const recoverTitle = this.querySelector('[data-panel="recover"] h3');
+      if (recoverTitle) recoverTitle.textContent = copy.recoverTitle || '';
+      const recoverBack = this.querySelector('#recover-back');
+      if (recoverBack) recoverBack.textContent = copy.recoverBack || '';
+      const recoverSubtitle = this.querySelector('[data-panel="recover"] .muted');
+      if (recoverSubtitle) recoverSubtitle.textContent = copy.recoverSubtitle || '';
+      const recoverEmail = this.querySelector('#recover-email');
+      if (recoverEmail) {
+        recoverEmail.setAttribute('placeholder', copy.recoverEmailLabel || copy.recoverEmailPlaceholder || '');
+        recoverEmail.setAttribute('aria-label', copy.recoverEmailLabel || '');
+      }
+      const recoverSubmit = this.querySelector('#recover-submit');
+      if (recoverSubmit) recoverSubmit.textContent = copy.recoverSubmit || '';
+    };
     this.innerHTML = `
       ${embedded ? '' : `
       <ion-header translucent="true">
@@ -313,6 +477,10 @@ class PageLogin extends HTMLElement {
               <p id="recover-error" style="display:none; margin:4px 0 0; color: var(--ion-color-danger, #eb445a); font-size:0.9rem;"></p>
               ${renderActionButton('recover-submit', copy.recoverSubmit, flat ? 'primary' : 'secondary')}
             </div>
+            <div class="login-footer">
+              ${renderMarketingConsent()}
+              <p class="login-legal-note" id="login-marketing-legal">${buildLoginLegalNoticeHtml(uiLocale)}</p>
+            </div>
           </div>
         ${embedded ? '' : '</div></ion-content>'}
     `;
@@ -322,6 +490,7 @@ class PageLogin extends HTMLElement {
     const recoverErrorEl = () => this.querySelector('#recover-error');
     const magicErrorEl    = () => this.querySelector('#magic-error');
     const magicOtpErrorEl = () => this.querySelector('#magic-otp-error');
+    const marketingConsentEl = () => this.querySelector('#login-marketing-consent');
     const setError = (el, message) => {
       if (!el) return;
       if (message) {
@@ -437,8 +606,23 @@ class PageLogin extends HTMLElement {
     window.addEventListener('app:login-success', handleSocialSuccess);
     this._modalLockChangeHandler = () => syncLockedLoginUi();
     this._userChangeHandler = () => syncLockedLoginUi();
+    this._localeChangeHandler = () => {
+      const nextLocale = resolveUiLocale();
+      if (nextLocale === uiLocale) return;
+      uiLocale = nextLocale;
+      copy = getLoginCopy(uiLocale);
+      updateLocalizedText();
+    };
     window.addEventListener('app:login-modal-lock-change', this._modalLockChangeHandler);
     window.addEventListener('app:user-change', this._userChangeHandler);
+    window.addEventListener('app:locale-change', this._localeChangeHandler);
+    const marketingConsentCheckbox = marketingConsentEl();
+    if (marketingConsentCheckbox) {
+      marketingConsentCheckbox.checked = getStoredMarketingConsent();
+      marketingConsentCheckbox.addEventListener('change', () => {
+        setStoredMarketingConsent(Boolean(marketingConsentCheckbox.checked));
+      });
+    }
 
     const getAccessEmailInput = () => this.querySelector('#email-access-email');
     const getAccessPassInput = () => this.querySelector('#email-access-pass');
@@ -771,6 +955,7 @@ class PageLogin extends HTMLElement {
       const pass = passEl && passEl.value ? String(passEl.value) : '';
       const confirmation = confirmEl && confirmEl.value ? String(confirmEl.value) : '';
       const acceptterms = !!(termsEl && termsEl.checked);
+      const marketingConsent = !!(marketingConsentEl() && marketingConsentEl().checked);
 
       if (!username || !email || !pass || !confirmation) {
         setRegisterError(copy.errors.registerMissingFields);
@@ -798,6 +983,7 @@ class PageLogin extends HTMLElement {
         password: pass,
         confirmation,
         acceptterms,
+        marketing_consent: marketingConsent,
         lang: locale,
         locale
       };
@@ -843,7 +1029,13 @@ class PageLogin extends HTMLElement {
       }
 
       const locale = resolveUiLocale();
-      const result = await doPost('/auth/magic', null, { email, locale, lang: locale });
+      const marketingConsent = !!(marketingConsentEl() && marketingConsentEl().checked);
+      const result = await doPost('/auth/magic', null, {
+        email,
+        locale,
+        lang: locale,
+        marketing_consent: marketingConsent
+      });
 
       magicLinkPending = false;
       if (submitBtn) submitBtn.disabled = false;
@@ -1091,6 +1283,9 @@ class PageLogin extends HTMLElement {
     }
     if (this._userChangeHandler) {
       window.removeEventListener('app:user-change', this._userChangeHandler);
+    }
+    if (this._localeChangeHandler) {
+      window.removeEventListener('app:locale-change', this._localeChangeHandler);
     }
   }
 }

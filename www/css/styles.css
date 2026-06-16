@@ -519,6 +519,7 @@ page-login .login-links-bottom {
   align-items: center;
 }
 
+page-login .login-marketing-item,
 page-login .login-terms-item {
   --background: transparent;
   --border-color: transparent;
@@ -531,12 +532,14 @@ page-login .login-terms-item {
   --min-height: auto;
 }
 
+page-login .login-marketing-item ion-checkbox,
 page-login .login-terms-item ion-checkbox {
   margin: 0;
   font-size: 0.85rem;
   color: var(--app-muted);
 }
 
+page-login[embedded][flat] .login-marketing-inline,
 page-login[embedded][flat] .login-terms-inline {
   display: inline-flex;
   align-items: center;
@@ -551,6 +554,7 @@ page-login[embedded][flat] .login-terms-inline {
   cursor: pointer;
 }
 
+page-login[embedded][flat] .login-marketing-inline ion-checkbox,
 page-login[embedded][flat] .login-terms-inline ion-checkbox {
   margin: 0;
   flex: 0 0 auto;
@@ -559,8 +563,34 @@ page-login[embedded][flat] .login-terms-inline ion-checkbox {
   --border-color-checked: #2d6df0;
 }
 
+page-login[embedded][flat] .login-marketing-inline span,
 page-login[embedded][flat] .login-terms-inline span {
   text-align: left;
+}
+
+page-login .login-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+page-login .login-legal-note {
+  margin: 0;
+  color: #5f6b87;
+  font-size: 0.84rem;
+  line-height: 1.35;
+  text-align: center;
+}
+
+page-login .login-legal-note a {
+  color: #2d6df0;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+page-login .login-legal-note a:hover {
+  text-decoration: underline;
 }
 
 page-login .login-social-btn,
@@ -1100,6 +1130,23 @@ body.lab-chrome-active:not(.app-titlebar-enabled) page-profile .profile-shell--l
 .profile-auth-footer {
   margin-top: 0;
   padding-top: 22px;
+}
+
+.profile-auth-legal-note {
+  color: #5f6b87;
+  font-size: 0.84rem;
+  line-height: 1.35;
+  text-align: center;
+}
+
+.profile-auth-legal-note a {
+  color: #2d6df0;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.profile-auth-legal-note a:hover {
+  text-decoration: underline;
 }
 
 .profile-app-meta--auth {

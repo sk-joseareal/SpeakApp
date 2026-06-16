@@ -1090,10 +1090,7 @@ class PageProfile extends HTMLElement {
         }
         const titleEl = this.querySelector('.profile-login-title');
         if (titleEl) titleEl.textContent = copy.loginTitle || 'Inicia sesión';
-        const contactBtn = this.querySelector('[data-action="contact"]');
-        if (contactBtn) contactBtn.textContent = copy.contact || 'Contact';
-        const legalBtn = this.querySelector('[data-action="legal"]');
-        if (legalBtn) legalBtn.textContent = copy.legal || 'Legal';
+        this.scheduleProfileLayout(0);
       } else {
         this.render();
         this.scheduleProfileLayout(0);
@@ -2475,6 +2472,17 @@ class PageProfile extends HTMLElement {
       profileCopy.loginSubtitle || 'Debes iniciar sesión para ver tu perfil.'
     );
     const localeLabel = String(rawLocaleSetting || '').trim().toUpperCase() || 'EN';
+    const authLocale = String(rawLocaleSetting || '').trim().toLowerCase().startsWith('es') ? 'es' : 'en';
+    const termsUrl =
+      authLocale === 'es'
+        ? 'https://www.curso-ingles.com/var/datos-legales'
+        : 'https://www.curso-ingles.com/en/support/legal-data';
+    const privacyUrl =
+      authLocale === 'es'
+        ? 'https://www.curso-ingles.com/var/politica-de-privacidad'
+        : 'https://www.curso-ingles.com/en/support/privacy-policy';
+    const termsLabel = authLocale === 'es' ? 'Términos y condiciones de servicio' : 'Terms & conditions of service';
+    const privacyLabel = authLocale === 'es' ? 'Política de privacidad' : 'Privacy policy';
     const loggedOutHeaderHtml = titlebarEnabled
       ? `
       <ion-header class="app-header-shell">
@@ -2530,15 +2538,7 @@ class PageProfile extends HTMLElement {
                   <h1 class="profile-login-title">${escapeHtml(profileCopy.loginTitle || 'Inicia sesión')}</h1>
                 </div>
                 <page-login embedded flat></page-login>
-                <div class="profile-auth-footer">
-                  <div class="profile-links profile-links--centered" id="profile-links-login">
-                    <button class="profile-link-btn" type="button" data-action="contact">${escapeHtml(
-                      profileCopy.contact || 'Contact'
-                    )}</button>
-                    <button class="profile-link-btn" type="button" data-action="legal">${escapeHtml(
-                      profileCopy.legal || 'Legal'
-                    )}</button>
-                  </div>
+              <div class="profile-auth-footer">
                   <div class="profile-app-meta profile-app-meta--auth">${escapeHtml(appMetaLabel)}</div>
                 </div>
               </div>
@@ -2848,7 +2848,8 @@ class PageProfile extends HTMLElement {
                 <button class="profile-link-btn" type="button" data-action="iap-support">${escapeHtml(
                   profileCopy.subscriptionSupportMail || 'Send subscription support email'
                 )}</button>
-                <button class="profile-link-btn" type="button" data-action="legal">${escapeHtml(profileCopy.legal || 'Legal')}</button>
+                <button class="profile-link-btn" type="button" data-action="terms" data-url="${escapeHtml(termsUrl)}">${escapeHtml(termsLabel)}</button>
+                <button class="profile-link-btn" type="button" data-action="privacy" data-url="${escapeHtml(privacyUrl)}">${escapeHtml(privacyLabel)}</button>
               </div>
               <div class="profile-app-meta" id="profile-app-meta">${escapeHtml(appMetaLabel)}</div>
             </div>
@@ -2885,7 +2886,6 @@ class PageProfile extends HTMLElement {
     }
     this._lastRenderedLoggedIn = loggedIn;
 
-    const linksLogin = this.querySelector('#profile-links-login');
     const linksFooter = this.querySelector('#profile-links-footer');
     const appMetaEl = this.querySelector('#profile-app-meta');
     const avatarInput = this.querySelector('#profile-avatar-input');
@@ -2917,7 +2917,6 @@ class PageProfile extends HTMLElement {
       if (authCardSection) authCardSection.hidden = isLoggedIn;
       if (heroSection) heroSection.hidden = !isLoggedIn;
       if (cardSection) cardSection.hidden = !isLoggedIn;
-      if (linksLogin) linksLogin.hidden = isLoggedIn;
       const shouldShowFooterLinks = isLoggedIn && this.settingsOpen === true;
       const shouldShowAppMeta = isLoggedIn && this.settingsOpen === true;
       if (linksFooter) linksFooter.hidden = !shouldShowFooterLinks;
@@ -3566,9 +3565,28 @@ class PageProfile extends HTMLElement {
           ? 'openIapSupportMail'
           : action === 'legal'
           ? 'goWebLegal'
+          : action === 'terms' || action === 'privacy'
+          ? ''
           : '';
       const fn = fnName ? window[fnName] : null;
       if (typeof fn !== 'function') {
+        if (action === 'terms' || action === 'privacy') {
+          button.disabled = false;
+          button.addEventListener('click', () => {
+            try {
+              const url = String(button.dataset.url || '').trim();
+              if (!url) return;
+              if (window.Capacitor) {
+                window.open(url, '_system');
+              } else {
+                window.open(url, '_blank');
+              }
+            } catch (err) {
+              console.error('[profile] error ejecutando accion', err);
+            }
+          });
+          return;
+        }
         button.disabled = true;
         return;
       }

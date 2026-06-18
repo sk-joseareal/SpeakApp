@@ -33,7 +33,17 @@ const NARRATION_FIELDS = [
   { locale: 'es', path: ['freeRide', 'subtitle'] },
   { locale: 'en', path: ['freeRide', 'subtitle'] },
   { locale: 'es', path: ['speak', 'heroNarration'] },
-  { locale: 'en', path: ['speak', 'heroNarration'] }
+  { locale: 'en', path: ['speak', 'heroNarration'] },
+  { locale: 'es', path: ['chat', 'coachCatbotSubtitle'] },
+  { locale: 'en', path: ['chat', 'coachCatbotSubtitle'] },
+  { locale: 'es', path: ['chat', 'coachChatbotSubtitle'] },
+  { locale: 'en', path: ['chat', 'coachChatbotSubtitle'] },
+  { locale: 'es', path: ['chat', 'coachCommunitySubtitle'] },
+  { locale: 'en', path: ['chat', 'coachCommunitySubtitle'] },
+  { locale: 'es', path: ['chat', 'coachPrivateSubtitle'] },
+  { locale: 'en', path: ['chat', 'coachPrivateSubtitle'] },
+  { locale: 'es', path: ['profile', 'loginSubtitle'] },
+  { locale: 'en', path: ['profile', 'loginSubtitle'] }
 ];
 
 const isPlainObject = (value) => Boolean(value && typeof value === 'object' && !Array.isArray(value));

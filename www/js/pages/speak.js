@@ -16,6 +16,7 @@ import {
   getSpeakSummaryLabelPrefix,
   resolveLocale as resolveCopyLocale
 } from '../content/copy.js';
+import { getSpeakSessionAudioPayload } from '../data/speak-audio.js';
 import { renderAppHeader } from '../components/app-header.js';
 import { getAppLocale, setAppLocale, getActiveLocale, setLocaleOverride } from '../state.js';
 import { goToHome } from '../nav.js';
@@ -745,7 +746,7 @@ class PageSpeak extends HTMLElement {
           return `${trimmed.slice(0, -5)}/tts/aligned`;
         }
       }
-      return 'https://realtime.curso-ingles.com/realtime/tts/aligned';
+      return 'https://api.curso-ingles.com/realtime/tts/aligned';
     };
 
     const buildAlignedTtsHeaders = () => {
@@ -1722,6 +1723,9 @@ class PageSpeak extends HTMLElement {
         tone === 'good' && canGrantReward ? awardTrophyForCurrentModuleIfEligible(locale) : null;
       const awardedBadge =
         tone === 'good' && canGrantReward ? awardBadgeForCurrentRouteIfEligible() : null;
+      if (reward || awardedBadge) {
+        syncSpeakAwardsNow('summary-awards');
+      }
       progressUpdatedThisRun = false;
       return {
         percent,
@@ -2383,7 +2387,6 @@ class PageSpeak extends HTMLElement {
         rewardLabel,
         rewardIcon: MODULE_TROPHY_REWARD_ICON
       });
-      syncSpeakAwardsNow('session-reward');
       return {
         rewardQty: MODULE_TROPHY_REWARD_QTY,
         totalQty: MODULE_TROPHY_REWARD_QTY,
@@ -2400,20 +2403,7 @@ class PageSpeak extends HTMLElement {
       const meta = resolveRouteBadgeMeta(route);
       if (!meta) return null;
       const badgeStore = getBadgeStore();
-      if (badgeStore[meta.id]) {
-        if (!shouldReplayOwnedSpeakAwardsInDebug()) return null;
-        return {
-          id: meta.id,
-          routeId: meta.routeId,
-          routeTitle: meta.routeTitle,
-          badgeIndex: meta.badgeIndex,
-          image: meta.image,
-          title: meta.title,
-          ts: Date.now(),
-          simulated: true,
-          alreadyOwned: true
-        };
-      }
+      if (badgeStore[meta.id]) return null;
       const now = Date.now();
       const entry = {
         routeId: meta.routeId,
@@ -2438,7 +2428,6 @@ class PageSpeak extends HTMLElement {
         });
       }
       addBadgeNotification({ id: meta.id, ...entry });
-      syncSpeakAwardsNow('badge-awarded');
       return { id: meta.id, ...entry };
     };
 
@@ -3263,6 +3252,81 @@ class PageSpeak extends HTMLElement {
       };
     };
 
+    const playAudioUrl = (audioUrl, triggerBtn, options = {}) => {
+      const url = String(audioUrl || '').trim();
+      if (!url) return Promise.resolve(false);
+      stopPlayback();
+      setActivePlayButton(triggerBtn || null);
+
+      const onStart = typeof options.onStart === 'function' ? options.onStart : null;
+      const onEnd = typeof options.onEnd === 'function' ? options.onEnd : null;
+      const onError = typeof options.onError === 'function' ? options.onError : null;
+
+      return new Promise((resolve) => {
+        let settled = false;
+        const currentAudio = new Audio(url);
+        activeAudio = currentAudio;
+
+        const finish = (ok) => {
+          if (settled) return;
+          settled = true;
+          if (activeAudio === currentAudio) {
+            activeAudio = null;
+          }
+          clearActivePlayButton();
+          resolve(Boolean(ok));
+        };
+
+        currentAudio.onplaying = () => {
+          if (onStart) onStart();
+        };
+        currentAudio.onended = () => {
+          if (onEnd) onEnd();
+          finish(true);
+        };
+        currentAudio.onerror = (err) => {
+          if (onError) onError(err);
+          finish(false);
+        };
+
+        Promise.resolve()
+          .then(() => currentAudio.play())
+          .then(() => {
+            if (currentAudio !== activeAudio) {
+              finish(false);
+            }
+          })
+          .catch((err) => {
+            if (onError) onError(err);
+            finish(false);
+          });
+      });
+    };
+
+    const playSessionAudio = async (text, triggerBtn, options = {}) => {
+      const expected = String(text || '').trim();
+      if (!expected) return false;
+      const locale = 'en';
+      const localPayload = getSpeakSessionAudioPayload(locale, expected);
+      if (localPayload && typeof localPayload.audio_url === 'string' && localPayload.audio_url.trim()) {
+        const started = await playAudioUrl(localPayload.audio_url, triggerBtn, options);
+        if (started) return true;
+      }
+
+      let remotePayload = null;
+      try {
+        remotePayload = await fetchAlignedTts(expected, 'en-US');
+      } catch (err) {
+        remotePayload = null;
+      }
+      if (remotePayload && typeof remotePayload.audio_url === 'string' && remotePayload.audio_url.trim()) {
+        const started = await playAudioUrl(remotePayload.audio_url, triggerBtn, options);
+        if (started) return true;
+      }
+
+      return playTts(expected, triggerBtn, options);
+    };
+
     const playTts = (text, triggerBtn, options = {}) => {
       if (!text) return;
       stopPlayback();
@@ -3593,21 +3657,17 @@ class PageSpeak extends HTMLElement {
         setSentencePlaybackState(false);
       };
 
-      await Promise.resolve(
-        playTts(text, triggerBtn || null, {
-          lang: 'en-US',
-          onStart: () => {
-            if (isSoundTarget && targetEl) {
-              renderSoundExpectedInline(targetEl, true);
-            }
-            setSpellingPlaybackState(isSpellingTarget);
-            setSentencePlaybackState(isSentenceTarget);
-            startHeroMascotTalk();
-          },
-          onEnd: resetVisualState,
-          onError: resetVisualState
-        })
-      );
+      await playSessionAudio(text, triggerBtn || null, {
+        onStart: () => {
+          if (isSoundTarget && targetEl) {
+            renderSoundExpectedInline(targetEl, true);
+          }
+          setSpellingPlaybackState(isSpellingTarget);
+          setSentencePlaybackState(isSentenceTarget);
+        },
+        onEnd: resetVisualState,
+        onError: resetVisualState
+      });
     };
 
     const escapeRegex = (value) => String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -4544,7 +4604,10 @@ class PageSpeak extends HTMLElement {
           return;
         }
         if (soundStep && soundStep.phonetic) {
-          playTts(soundStep.phonetic, playRefBtn);
+          playReferenceAudio({
+            text: soundStep.phonetic,
+            triggerBtn: playRefBtn
+          });
         }
       });
 
@@ -4566,7 +4629,10 @@ class PageSpeak extends HTMLElement {
             return;
           }
           if (soundStep && soundStep.phonetic) {
-            playTts(soundStep.phonetic, playControlBtn);
+            playReferenceAudio({
+              text: soundStep.phonetic,
+              triggerBtn: playControlBtn
+            });
           }
           return;
         }

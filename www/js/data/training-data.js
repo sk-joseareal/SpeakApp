@@ -115,12 +115,7 @@ const getConfiguredTrainingDataUrls = () => {
   if (typeof window === 'undefined') return [localUrl];
 
   const globals = [
-    window.SPEAK_CONTENT_URL,
-    window.CONTENT_URL,
-    window.CONTENT_TRAINING_DATA_URL,
-    window.CONTENT_TRAINING_DATA_ENDPOINT,
-    window.contentConfig && window.contentConfig.trainingDataEndpoint,
-    window.contentConfig && window.contentConfig.baseUrl
+    window.contentConfig && window.contentConfig.trainingDataEndpoint
   ];
 
   const configured = uniqStrings(globals.map((item) => normalizeTrainingEndpoint(item)));

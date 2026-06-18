@@ -1,6 +1,6 @@
 import { getAppLocale, setAppLocale, getActiveLocale, setLocaleOverride } from '../state.js';
 import { renderAppHeader, updateAppHeaderRewards } from '../components/app-header.js';
-import { getChatCopy, getNextLocaleCode, getTabsCopy, normalizeLocale as normalizeCopyLocale } from '../content/copy.js';
+import { getAppCopyNarrationPayload, getChatCopy, getNextLocaleCode, getTabsCopy, normalizeLocale as normalizeCopyLocale } from '../content/copy.js';
 import {
   HERO_MASCOT_FRAMES as JOURNEY_MASCOT_FRAMES,
   HERO_MASCOT_REST_FRAME as JOURNEY_MASCOT_REST_FRAME
@@ -439,6 +439,8 @@ class PageChat extends HTMLElement {
     const communityDmDeliveredAcks = new Set();
     let realtimeConnected = false;
     let communityPresenceHeartbeatTimer = null;
+    let communityPresenceHeartbeatInFlight = false;
+    let communityPresenceRefreshDebounceTimer = null;
     let communityPresenceSessionId = '';
     let communityPresenceLastHeartbeatAt = 0;
     let communityPresenceLastHeartbeatSignature = '';
@@ -518,7 +520,7 @@ class PageChat extends HTMLElement {
     const COMMUNITY_PUBLIC_ROOM_ID = 'site-wide-chat-channel';
     const COMMUNITY_PUBLIC_CHANNEL = `private-${COMMUNITY_PUBLIC_ROOM_ID}`;
     const COMMUNITY_USER_INBOX_CHANNEL_PREFIX = 'private-community-user-';
-    const COMMUNITY_PRESENCE_HEARTBEAT_MS = 8000;
+    const COMMUNITY_PRESENCE_HEARTBEAT_MS = 30000;
     const COMMUNITY_PRESENCE_IMMEDIATE_THROTTLE_MS = 3000;
     const RECORDING_TIMESLICE = 500;
     const VOSK_SAMPLE_RATE_DEFAULT = 16000;
@@ -1128,7 +1130,7 @@ class PageChat extends HTMLElement {
 	          return `${trimmed.slice(0, -5)}/tts/aligned`;
 	        }
 	      }
-	      return 'https://realtime.curso-ingles.com/realtime/tts/aligned';
+	      return 'https://api.curso-ingles.com/realtime/tts/aligned';
 	    };
 
 		    const getRealtimeStateToken = () => {
@@ -3152,9 +3154,11 @@ class PageChat extends HTMLElement {
     };
 
     const clearCommunityPresenceHeartbeat = () => {
-      if (!communityPresenceHeartbeatTimer) return;
-      clearTimeout(communityPresenceHeartbeatTimer);
-      communityPresenceHeartbeatTimer = null;
+      if (communityPresenceHeartbeatTimer) {
+        clearTimeout(communityPresenceHeartbeatTimer);
+        communityPresenceHeartbeatTimer = null;
+      }
+      communityPresenceHeartbeatInFlight = false;
     };
 
     const getCommunityPresenceThrottleSignature = (payload) => {
@@ -3268,13 +3272,22 @@ class PageChat extends HTMLElement {
           : '';
       clearCommunityPresenceHeartbeat();
       if (chatMode !== 'community' || !isChatEnabledUser(currentUser) || !currentUserId) return;
+      if (currentAppTab !== 'chat') return;
       const run = async () => {
         communityPresenceHeartbeatTimer = null;
+        if (currentAppTab !== 'chat') return;
+        if (communityPresenceHeartbeatInFlight) {
+          communityPresenceHeartbeatTimer = setTimeout(run, COMMUNITY_PRESENCE_HEARTBEAT_MS);
+          return;
+        }
+        communityPresenceHeartbeatInFlight = true;
         const result = await sendCommunityPresence({
           action: 'heartbeat',
           silent: true,
           throttleMs: immediate ? COMMUNITY_PRESENCE_IMMEDIATE_THROTTLE_MS : 0
         });
+        communityPresenceHeartbeatInFlight = false;
+        if (currentAppTab !== 'chat') return;
         const nextDelay =
           result && result.throttled
             ? Math.max(1000, Math.min(COMMUNITY_PRESENCE_HEARTBEAT_MS, Number(result.retryAfterMs) || 0))
@@ -7907,10 +7920,12 @@ class PageChat extends HTMLElement {
       if (chatMode !== 'community' || !window.user || window.user.id === undefined || window.user.id === null) {
         return;
       }
-      scheduleCommunityPresenceHeartbeat({ immediate: true });
-      if (!silent) {
-        updateCommunityPresenceUi();
-      }
+      clearTimeout(communityPresenceRefreshDebounceTimer);
+      communityPresenceRefreshDebounceTimer = setTimeout(() => {
+        communityPresenceRefreshDebounceTimer = null;
+        scheduleCommunityPresenceHeartbeat({ immediate: true });
+        if (!silent) updateCommunityPresenceUi();
+      }, 100);
     };
 
     const syncCommunityStateAfterResume = async () => {
@@ -7932,6 +7947,7 @@ class PageChat extends HTMLElement {
       if (document.body?.classList?.contains('app-android-legacy-webview')) return;
       if (typeof document === 'undefined') return;
       if (document.hidden) {
+        clearCommunityPresenceHeartbeat();
         sendCommunityPresence({
           action: 'heartbeat',
           keepalive: true,
@@ -8548,18 +8564,16 @@ class PageChat extends HTMLElement {
       });
 
     const playHeroBubbleAligned = async (bubbleText, bubbleLang, requestToken) => {
-      let payload = null;
-      try {
-        payload = await fetchChatbotAlignedTts(bubbleText, bubbleLang);
-      } catch (err) {
-        payload = null;
-      }
+      const bubbleLocale = String(bubbleLang || '')
+        .trim()
+        .toLowerCase()
+        .split('-')[0] || 'en';
+      const payload = getAppCopyNarrationPayload(bubbleLocale, bubbleText);
       if (requestToken !== playbackRequestToken) return false;
       if (!payload || payload.ok === false) return false;
       const audioUrl = typeof payload.audio_url === 'string' ? payload.audio_url.trim() : '';
       if (!audioUrl) return false;
-      const playbackSource =
-        normalizeAudioKind(payload.audio_kind || payload.provider || 'polly') || 'polly';
+      const playbackSource = 'local';
       return playHeroBubbleAudioUrl(audioUrl, playbackSource);
     };
 
@@ -8711,12 +8725,19 @@ class PageChat extends HTMLElement {
 
     this._tabChangeHandler = (event) => {
       const tab = event && event.detail ? String(event.detail.tab || '').trim().toLowerCase() : '';
+      const previousTab = currentAppTab;
       currentAppTab = tab || currentAppTab;
       syncCommunityUnreadStateForCurrentView();
+      if (tab !== 'chat') {
+        if (chatMode === 'community' && previousTab === 'chat') {
+          clearCommunityPresenceHeartbeat();
+          leaveCommunityPresence({ keepalive: false, silent: true });
+        }
+        return;
+      }
       if (chatMode === 'community') {
         refreshCommunityPresenceNow({ silent: true });
       }
-      if (tab !== 'chat') return;
       measureChatSheetExpandedOffset();
       applyChatSheetState({ animate: false });
       scrollChatTimelineToLatest('auto');
@@ -8731,12 +8752,19 @@ class PageChat extends HTMLElement {
 
     this._tabUserClickHandler = (event) => {
       const tab = event && event.detail ? String(event.detail.tab || '').trim().toLowerCase() : '';
+      const previousTab = currentAppTab;
       currentAppTab = tab || currentAppTab;
       syncCommunityUnreadStateForCurrentView();
+      if (tab !== 'chat') {
+        if (chatMode === 'community' && previousTab === 'chat') {
+          clearCommunityPresenceHeartbeat();
+          leaveCommunityPresence({ keepalive: false, silent: true });
+        }
+        return;
+      }
       if (chatMode === 'community') {
         refreshCommunityPresenceNow({ silent: true });
       }
-      if (tab !== 'chat') return;
       measureChatSheetExpandedOffset();
       applyChatSheetState({ animate: false });
       scrollChatTimelineToLatest('auto');

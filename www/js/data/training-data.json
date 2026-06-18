@@ -6,6 +6,7 @@
       "title_es": "Ruta Sonidos 1",
       "note_en": "Master the Essential Sounds",
       "note_es": "Sonidos esenciales",
+      "active": true,
       "disponible": true,
       "moduleIds": [
         "module-1",
@@ -20,6 +21,7 @@
       "title_es": "Ruta Sonidos 2",
       "note_en": "Speak More Clearly and Naturally",
       "note_es": "Habla más claro y natural",
+      "active": true,
       "disponible": false,
       "moduleIds": [
         "module-5",
@@ -34,6 +36,7 @@
       "title_es": "Ruta Sonidos 3",
       "note_en": "Speak with Fluency and Precision",
       "note_es": "Habla con fluidez y precisión",
+      "active": true,
       "disponible": false,
       "moduleIds": [
         "module-9",
@@ -214,6 +217,40 @@
           "hint_es_line2": "",
           "phonetic": "P sound in PEN",
           "expected": "pen",
+          "tts": {
+            "en": {
+              "line1": {
+                "text": "Press your lips together and release the air quickly.",
+                "hash": "d4a24289c0afd96d51d789c1770fd2ec08cb1f4c",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/d4a24289c0afd96d51d789c1770fd2ec08cb1f4c.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/d4a24289c0afd96d51d789c1770fd2ec08cb1f4c.words.json",
+                "voice": "Danielle",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 2610,
+                "generated_at": "2026-06-16T10:28:33.283Z"
+              }
+            },
+            "es": {
+              "line1": {
+                "text": "Junta los labios y suelta el aire de golpe",
+                "hash": "283af3652f31992b3bcbf9065624010a5c54099b",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/283af3652f31992b3bcbf9065624010a5c54099b.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/283af3652f31992b3bcbf9065624010a5c54099b.words.json",
+                "voice": "Lucia",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 2275,
+                "generated_at": "2026-06-16T10:28:33.329Z"
+              }
+            }
+          },
           "title_en": "Learn the sound",
           "title_es": "Aprende el sonido"
         },
@@ -256,6 +293,40 @@
           "hint_es_line2": "",
           "phonetic": "B sound in BABY",
           "expected": "baby",
+          "tts": {
+            "en": {
+              "line1": {
+                "text": "Press your lips together and let the air out gently using your voice.",
+                "hash": "498d05e48b308786e3ca10c1561301548dbe556a",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/498d05e48b308786e3ca10c1561301548dbe556a.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/498d05e48b308786e3ca10c1561301548dbe556a.words.json",
+                "voice": "Danielle",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 3287,
+                "generated_at": "2026-06-16T10:28:33.366Z"
+              }
+            },
+            "es": {
+              "line1": {
+                "text": "Junta los labios y deja salir el aire suavemente usando la voz.",
+                "hash": "1eace30b6ed5bd10242ee473d7a7123e1ee3e17b",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/1eace30b6ed5bd10242ee473d7a7123e1ee3e17b.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/1eace30b6ed5bd10242ee473d7a7123e1ee3e17b.words.json",
+                "voice": "Lucia",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 3302,
+                "generated_at": "2026-06-16T10:28:33.422Z"
+              }
+            }
+          },
           "title_en": "Learn the sound",
           "title_es": "Aprende el sonido"
         },
@@ -298,6 +369,40 @@
           "hint_es_line2": "",
           "phonetic": "M sound in MOM",
           "expected": "mom",
+          "tts": {
+            "en": {
+              "line1": {
+                "text": "Close your lips and let the sound come out through your nose.",
+                "hash": "0eb0ae084d6af231ae06eda8faa76ea57e73f300",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/0eb0ae084d6af231ae06eda8faa76ea57e73f300.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/0eb0ae084d6af231ae06eda8faa76ea57e73f300.words.json",
+                "voice": "Danielle",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 2695,
+                "generated_at": "2026-06-16T10:28:33.420Z"
+              }
+            },
+            "es": {
+              "line1": {
+                "text": "Cierra los labios y deja salir el sonido por la nariz.",
+                "hash": "bfdd616202e42033c15bc5744518a01ee72bb7f2",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/bfdd616202e42033c15bc5744518a01ee72bb7f2.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/bfdd616202e42033c15bc5744518a01ee72bb7f2.words.json",
+                "voice": "Lucia",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 2787,
+                "generated_at": "2026-06-16T10:28:33.490Z"
+              }
+            }
+          },
           "title_en": "Learn the sound",
           "title_es": "Aprende el sonido"
         },
@@ -340,6 +445,40 @@
           "hint_es_line2": "",
           "phonetic": "T sound in TIME",
           "expected": "time",
+          "tts": {
+            "en": {
+              "line1": {
+                "text": "Touch your tongue behind your top teeth and release the air.",
+                "hash": "350ef5d818941d7f272201b8ffe95288ef676c6f",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/350ef5d818941d7f272201b8ffe95288ef676c6f.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/350ef5d818941d7f272201b8ffe95288ef676c6f.words.json",
+                "voice": "Danielle",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 2802,
+                "generated_at": "2026-06-16T10:28:33.512Z"
+              }
+            },
+            "es": {
+              "line1": {
+                "text": "Toca con la lengua detrás de los dientes superiores y suelta el aire.",
+                "hash": "e61de299d148a4a2ff9a4dda4f45d73616966e1b",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/e61de299d148a4a2ff9a4dda4f45d73616966e1b.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/e61de299d148a4a2ff9a4dda4f45d73616966e1b.words.json",
+                "voice": "Lucia",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 3257,
+                "generated_at": "2026-06-16T10:28:33.570Z"
+              }
+            }
+          },
           "title_en": "Learn the sound",
           "title_es": "Aprende el sonido"
         },
@@ -382,6 +521,40 @@
           "hint_es_line2": "",
           "phonetic": "A sound in CAT",
           "expected": "cat",
+          "tts": {
+            "en": {
+              "line1": {
+                "text": "Open your mouth and make a short, relaxed sound.",
+                "hash": "1eb1589b7d27327e696ec1b1f43f2eb8c59b9c4a",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/1eb1589b7d27327e696ec1b1f43f2eb8c59b9c4a.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/1eb1589b7d27327e696ec1b1f43f2eb8c59b9c4a.words.json",
+                "voice": "Danielle",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 2687,
+                "generated_at": "2026-06-16T10:28:33.575Z"
+              }
+            },
+            "es": {
+              "line1": {
+                "text": "Abre la boca y emite un sonido corto y relajado.",
+                "hash": "38df3b086b0566115c545a2c59b7e3c3975784a5",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/38df3b086b0566115c545a2c59b7e3c3975784a5.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/38df3b086b0566115c545a2c59b7e3c3975784a5.words.json",
+                "voice": "Lucia",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 2727,
+                "generated_at": "2026-06-16T10:28:33.684Z"
+              }
+            }
+          },
           "title_en": "Learn the sound",
           "title_es": "Aprende el sonido"
         },
@@ -424,6 +597,40 @@
           "hint_es_line2": "",
           "phonetic": "E sound in EGG",
           "expected": "egg",
+          "tts": {
+            "en": {
+              "line1": {
+                "text": "Open your mouth slightly and smile a little as you make the sound",
+                "hash": "21f23305c3168d744c7f8b0108bafe9cc3b3f3ff",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/21f23305c3168d744c7f8b0108bafe9cc3b3f3ff.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/21f23305c3168d744c7f8b0108bafe9cc3b3f3ff.words.json",
+                "voice": "Danielle",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 3125,
+                "generated_at": "2026-06-16T10:28:33.657Z"
+              }
+            },
+            "es": {
+              "line1": {
+                "text": "Abre un poco la boca y sonríe ligeramente al hacer el sonido.",
+                "hash": "6f1e8ee0c83647d7cd11f23d80548f9817506fec",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/6f1e8ee0c83647d7cd11f23d80548f9817506fec.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/6f1e8ee0c83647d7cd11f23d80548f9817506fec.words.json",
+                "voice": "Lucia",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 3267,
+                "generated_at": "2026-06-16T10:28:33.712Z"
+              }
+            }
+          },
           "title_en": "Learn the sound",
           "title_es": "Aprende el sonido"
         },
@@ -466,6 +673,40 @@
           "hint_es_line2": "",
           "phonetic": "I sound in SIT",
           "expected": "sit",
+          "tts": {
+            "en": {
+              "line1": {
+                "text": "Relax your mouth and make a short sound without tensing your lips.",
+                "hash": "bcd479eb35ba4529b64a69ccc42677bae9659b7f",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/bcd479eb35ba4529b64a69ccc42677bae9659b7f.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/bcd479eb35ba4529b64a69ccc42677bae9659b7f.words.json",
+                "voice": "Danielle",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 3170,
+                "generated_at": "2026-06-16T10:28:33.742Z"
+              }
+            },
+            "es": {
+              "line1": {
+                "text": "Relaja la boca y emite un sonido corto sin tensar los labios.",
+                "hash": "db33686d7a1dacd61a17dce59e0bd85ba5e0b09d",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/db33686d7a1dacd61a17dce59e0bd85ba5e0b09d.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/db33686d7a1dacd61a17dce59e0bd85ba5e0b09d.words.json",
+                "voice": "Lucia",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 3417,
+                "generated_at": "2026-06-16T10:28:33.780Z"
+              }
+            }
+          },
           "title_en": "Learn the sound",
           "title_es": "Aprende el sonido"
         },
@@ -508,6 +749,40 @@
           "hint_es_line2": "",
           "phonetic": "O sound in BOX",
           "expected": "box",
+          "tts": {
+            "en": {
+              "line1": {
+                "text": "Open your mouth in a round shape and make a short sound.",
+                "hash": "4571618728ec6f7eb0917cf6724d01975d6ca0bd",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/4571618728ec6f7eb0917cf6724d01975d6ca0bd.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/4571618728ec6f7eb0917cf6724d01975d6ca0bd.words.json",
+                "voice": "Danielle",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 2850,
+                "generated_at": "2026-06-16T10:28:33.828Z"
+              }
+            },
+            "es": {
+              "line1": {
+                "text": "Abre la boca en forma redonda y emite un sonido corto.",
+                "hash": "2b7a70a80b6f626fe6712f85fafd1f3b510d50dc",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/2b7a70a80b6f626fe6712f85fafd1f3b510d50dc.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/2b7a70a80b6f626fe6712f85fafd1f3b510d50dc.words.json",
+                "voice": "Lucia",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 2837,
+                "generated_at": "2026-06-16T10:28:33.884Z"
+              }
+            }
+          },
           "title_en": "Learn the sound",
           "title_es": "Aprende el sonido"
         },
@@ -550,6 +825,40 @@
           "hint_es_line2": "",
           "phonetic": "K sound in CAR",
           "expected": "car",
+          "tts": {
+            "en": {
+              "line1": {
+                "text": "Raise the back of your tongue and release the air",
+                "hash": "e2a5a0e7bc77b3a420b81d2e5d04212394180984",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/e2a5a0e7bc77b3a420b81d2e5d04212394180984.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/e2a5a0e7bc77b3a420b81d2e5d04212394180984.words.json",
+                "voice": "Danielle",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 2302,
+                "generated_at": "2026-06-16T10:28:33.905Z"
+              }
+            },
+            "es": {
+              "line1": {
+                "text": "Lleva la parte de atrás de la lengua hacia arriba y suelta el aire.",
+                "hash": "4c4d74927aee61773c6474c9b8df2d669e0df46f",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/4c4d74927aee61773c6474c9b8df2d669e0df46f.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/4c4d74927aee61773c6474c9b8df2d669e0df46f.words.json",
+                "voice": "Lucia",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 3132,
+                "generated_at": "2026-06-16T10:28:33.979Z"
+              }
+            }
+          },
           "title_en": "Learn the sound",
           "title_es": "Aprende el sonido"
         },
@@ -592,6 +901,40 @@
           "hint_es_line2": "",
           "phonetic": "D sound in DAY",
           "expected": "day",
+          "tts": {
+            "en": {
+              "line1": {
+                "text": "Touch your tongue behind your top teeth and use your voice",
+                "hash": "333067343a2506161010c897b3f55faf166d85f4",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/333067343a2506161010c897b3f55faf166d85f4.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/333067343a2506161010c897b3f55faf166d85f4.words.json",
+                "voice": "Danielle",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 2675,
+                "generated_at": "2026-06-16T10:28:33.956Z"
+              }
+            },
+            "es": {
+              "line1": {
+                "text": "Toca con la lengua detrás de los dientes superiores y usa la voz.",
+                "hash": "06201dbf415027bc3883d62989166185640c59c0",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/06201dbf415027bc3883d62989166185640c59c0.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/06201dbf415027bc3883d62989166185640c59c0.words.json",
+                "voice": "Lucia",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 3115,
+                "generated_at": "2026-06-16T10:28:34.035Z"
+              }
+            }
+          },
           "title_en": "Learn the sound",
           "title_es": "Aprende el sonido"
         },
@@ -634,6 +977,40 @@
           "hint_es_line2": "",
           "phonetic": "N sound in NO",
           "expected": "no",
+          "tts": {
+            "en": {
+              "line1": {
+                "text": "Put your tongue behind your top teeth and let the air come out through your nose.",
+                "hash": "f76dec53baef8db75ca9be65cad7eb217c56338f",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/f76dec53baef8db75ca9be65cad7eb217c56338f.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/f76dec53baef8db75ca9be65cad7eb217c56338f.words.json",
+                "voice": "Danielle",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 3420,
+                "generated_at": "2026-06-16T10:28:34.078Z"
+              }
+            },
+            "es": {
+              "line1": {
+                "text": "Toca con la lengua detrás de los dientes y deja salir el aire por la nariz.",
+                "hash": "03b615469fc0f65cca85b8d4171e798ff7f35e63",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/03b615469fc0f65cca85b8d4171e798ff7f35e63.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/03b615469fc0f65cca85b8d4171e798ff7f35e63.words.json",
+                "voice": "Lucia",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 3787,
+                "generated_at": "2026-06-16T10:28:34.111Z"
+              }
+            }
+          },
           "title_en": "Learn the sound",
           "title_es": "Aprende el sonido"
         },
@@ -676,6 +1053,40 @@
           "hint_es_line2": "",
           "phonetic": "G sound in GO",
           "expected": "go",
+          "tts": {
+            "en": {
+              "line1": {
+                "text": "Lift the back of your tongue to touch the soft palate, then make a vibrating sound",
+                "hash": "203eb882016fc7713bf52f7754a9e1d9793477d1",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/203eb882016fc7713bf52f7754a9e1d9793477d1.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/203eb882016fc7713bf52f7754a9e1d9793477d1.words.json",
+                "voice": "Danielle",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 3962,
+                "generated_at": "2026-06-16T10:28:34.200Z"
+              }
+            },
+            "es": {
+              "line1": {
+                "text": "Levanta la parte posterior de la lengua hasta tocar el paladar, haz el sonido mientras tu voz vibra.",
+                "hash": "d1651f1fe95137bda6a4a0ff499b5bcd846720fa",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/d1651f1fe95137bda6a4a0ff499b5bcd846720fa.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/d1651f1fe95137bda6a4a0ff499b5bcd846720fa.words.json",
+                "voice": "Lucia",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 4900,
+                "generated_at": "2026-06-16T10:28:34.166Z"
+              }
+            }
+          },
           "title_en": "Learn the sound",
           "title_es": "Aprende el sonido"
         },
@@ -718,6 +1129,40 @@
           "hint_es_line2": "",
           "phonetic": "U sound in SUN",
           "expected": "sun",
+          "tts": {
+            "en": {
+              "line1": {
+                "text": "Relax your mouth and make a short, central sound.",
+                "hash": "f94da3262c98271e0209be3ef06678add36309ed",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/f94da3262c98271e0209be3ef06678add36309ed.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/f94da3262c98271e0209be3ef06678add36309ed.words.json",
+                "voice": "Danielle",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 2612,
+                "generated_at": "2026-06-16T10:28:34.238Z"
+              }
+            },
+            "es": {
+              "line1": {
+                "text": "Relaja la boca y emite un sonido corto y central.",
+                "hash": "cdaadb05554ff5472616c55397fa602b78578a4d",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/cdaadb05554ff5472616c55397fa602b78578a4d.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/cdaadb05554ff5472616c55397fa602b78578a4d.words.json",
+                "voice": "Lucia",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 2822,
+                "generated_at": "2026-06-16T10:28:34.275Z"
+              }
+            }
+          },
           "title_en": "Learn the sound",
           "title_es": "Aprende el sonido"
         },
@@ -760,6 +1205,40 @@
           "hint_es_line2": "",
           "phonetic": "A sound in ABOUT",
           "expected": "about",
+          "tts": {
+            "en": {
+              "line1": {
+                "text": "Completely relax your mouth and make a very soft neutral sound.",
+                "hash": "a3fe5946fa76547324a79242268680d8fd838291",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/a3fe5946fa76547324a79242268680d8fd838291.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/a3fe5946fa76547324a79242268680d8fd838291.words.json",
+                "voice": "Danielle",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 3250,
+                "generated_at": "2026-06-16T10:28:34.324Z"
+              }
+            },
+            "es": {
+              "line1": {
+                "text": "Relaja completamente la boca y emite un sonido neutro muy suave.",
+                "hash": "96ec8f9d83466c24d12e817fa8a42b8026438750",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/96ec8f9d83466c24d12e817fa8a42b8026438750.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/96ec8f9d83466c24d12e817fa8a42b8026438750.words.json",
+                "voice": "Lucia",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 3462,
+                "generated_at": "2026-06-16T10:28:34.355Z"
+              }
+            }
+          },
           "title_en": "Learn the sound",
           "title_es": "Aprende el sonido"
         },
@@ -802,6 +1281,40 @@
           "hint_es_line2": "",
           "phonetic": "OO sound in BOOK",
           "expected": "book",
+          "tts": {
+            "en": {
+              "line1": {
+                "text": "Slightly round your lips and make a short sound.",
+                "hash": "d7fd6c5e1a1127f1f1ec820ce3addec4009b0e62",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/d7fd6c5e1a1127f1f1ec820ce3addec4009b0e62.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/d7fd6c5e1a1127f1f1ec820ce3addec4009b0e62.words.json",
+                "voice": "Danielle",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 2487,
+                "generated_at": "2026-06-16T10:28:34.430Z"
+              }
+            },
+            "es": {
+              "line1": {
+                "text": "Redondea ligeramente los labios y emite un sonido corto.",
+                "hash": "6e6b9f3a07fa9809fb598fd8877fc48676f61a3a",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/6e6b9f3a07fa9809fb598fd8877fc48676f61a3a.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/6e6b9f3a07fa9809fb598fd8877fc48676f61a3a.words.json",
+                "voice": "Lucia",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 3087,
+                "generated_at": "2026-06-16T10:28:34.401Z"
+              }
+            }
+          },
           "title_en": "Learn the sound",
           "title_es": "Aprende el sonido"
         },
@@ -844,6 +1357,40 @@
           "hint_es_line2": "",
           "phonetic": "EE sound in SEE",
           "expected": "see",
+          "tts": {
+            "en": {
+              "line1": {
+                "text": "Stretch your lips like a smile and hold the sound a bit longer.",
+                "hash": "d5f1844af5b00945899f008148616e9e237e21e8",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/d5f1844af5b00945899f008148616e9e237e21e8.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/d5f1844af5b00945899f008148616e9e237e21e8.words.json",
+                "voice": "Danielle",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 3180,
+                "generated_at": "2026-06-16T10:28:34.498Z"
+              }
+            },
+            "es": {
+              "line1": {
+                "text": "Estira los labios como una sonrisa y mantén el sonido un poco más largo.",
+                "hash": "5cb250bff864e483219af94aa94164a55a69045f",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/5cb250bff864e483219af94aa94164a55a69045f.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/5cb250bff864e483219af94aa94164a55a69045f.words.json",
+                "voice": "Lucia",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 4025,
+                "generated_at": "2026-06-16T10:28:34.524Z"
+              }
+            }
+          },
           "title_en": "Learn the sound",
           "title_es": "Aprende el sonido"
         },
@@ -886,6 +1433,40 @@
           "hint_es_line2": "",
           "phonetic": "F sound in FAMILY",
           "expected": "family",
+          "tts": {
+            "en": {
+              "line1": {
+                "text": "Touch your top teeth to your bottom lip and blow air",
+                "hash": "d702ca098a938549c48bd5b76bdb2c8d008ab0d8",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/d702ca098a938549c48bd5b76bdb2c8d008ab0d8.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/d702ca098a938549c48bd5b76bdb2c8d008ab0d8.words.json",
+                "voice": "Danielle",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 2652,
+                "generated_at": "2026-06-16T10:28:34.563Z"
+              }
+            },
+            "es": {
+              "line1": {
+                "text": "Toca tus dientes superiores con tu labio inferior y sopla aire.",
+                "hash": "af175644a80ca78cdedb8baeeaab273f7b19d6f5",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/af175644a80ca78cdedb8baeeaab273f7b19d6f5.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/af175644a80ca78cdedb8baeeaab273f7b19d6f5.words.json",
+                "voice": "Lucia",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 3145,
+                "generated_at": "2026-06-16T10:28:34.602Z"
+              }
+            }
+          },
           "title_en": "Learn the sound",
           "title_es": "Aprende el sonido"
         },
@@ -928,6 +1509,40 @@
           "hint_es_line2": "",
           "phonetic": "V sound in VERY",
           "expected": "very",
+          "tts": {
+            "en": {
+              "line1": {
+                "text": "Touch your top teeth to your bottom lip, blow air with a vibrating voice",
+                "hash": "03f8c8f9b0988ff76051aee7f872ce851fe77c20",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/03f8c8f9b0988ff76051aee7f872ce851fe77c20.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/03f8c8f9b0988ff76051aee7f872ce851fe77c20.words.json",
+                "voice": "Danielle",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 3737,
+                "generated_at": "2026-06-16T10:28:34.678Z"
+              }
+            },
+            "es": {
+              "line1": {
+                "text": "Toca tus dientes superiores con tu labio inferior, sopla aire con una voz vibrante.",
+                "hash": "89e91b2895d56056728dcc3863f0ccc1bd6898b5",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/89e91b2895d56056728dcc3863f0ccc1bd6898b5.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/89e91b2895d56056728dcc3863f0ccc1bd6898b5.words.json",
+                "voice": "Lucia",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 4452,
+                "generated_at": "2026-06-16T10:28:34.693Z"
+              }
+            }
+          },
           "title_en": "Learn the sound",
           "title_es": "Aprende el sonido"
         },
@@ -970,6 +1585,40 @@
           "hint_es_line2": "",
           "phonetic": "S sound in SEE",
           "expected": "see",
+          "tts": {
+            "en": {
+              "line1": {
+                "text": "Close your teeth, put your tongue near your front teeth and hiss air",
+                "hash": "72872ace3698f82ed361598074f0e6f1647f4b20",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/72872ace3698f82ed361598074f0e6f1647f4b20.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/72872ace3698f82ed361598074f0e6f1647f4b20.words.json",
+                "voice": "Danielle",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 3215,
+                "generated_at": "2026-06-16T10:28:34.748Z"
+              }
+            },
+            "es": {
+              "line1": {
+                "text": "Cierra los dientes, acerca la lengua a tus dientes frontales y sisea aire",
+                "hash": "bd0b35d0f6f7038753b88ec3a00e2dcb9afa90ff",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/bd0b35d0f6f7038753b88ec3a00e2dcb9afa90ff.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/bd0b35d0f6f7038753b88ec3a00e2dcb9afa90ff.words.json",
+                "voice": "Lucia",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 4045,
+                "generated_at": "2026-06-16T10:28:34.768Z"
+              }
+            }
+          },
           "title_en": "Learn the sound",
           "title_es": "Aprende el sonido"
         },
@@ -1012,6 +1661,40 @@
           "hint_es_line2": "",
           "phonetic": "W sound in WATER",
           "expected": "water",
+          "tts": {
+            "en": {
+              "line1": {
+                "text": "Round your lips and push them forward, make a vibrating sound",
+                "hash": "facfc76f96203d2919750059f0c80ed710de7e31",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/facfc76f96203d2919750059f0c80ed710de7e31.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/facfc76f96203d2919750059f0c80ed710de7e31.words.json",
+                "voice": "Danielle",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 3250,
+                "generated_at": "2026-06-16T10:28:34.843Z"
+              }
+            },
+            "es": {
+              "line1": {
+                "text": "Redondea los labios y empújalos hacia adelante, produciendo un sonido vibrante",
+                "hash": "f1912f4f3af3b8a91ecab06b6061bdc41401c1aa",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/f1912f4f3af3b8a91ecab06b6061bdc41401c1aa.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/f1912f4f3af3b8a91ecab06b6061bdc41401c1aa.words.json",
+                "voice": "Lucia",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 4527,
+                "generated_at": "2026-06-16T10:28:34.844Z"
+              }
+            }
+          },
           "title_en": "Learn the sound",
           "title_es": "Aprende el sonido"
         },
@@ -1054,6 +1737,40 @@
           "hint_es_line2": "",
           "phonetic": "A sound in NAME",
           "expected": "name",
+          "tts": {
+            "en": {
+              "line1": {
+                "text": "Mouth slightly open, tongue mid-high and make a slight smile",
+                "hash": "237bb9accff50e385450b8ccdd82e1506cbc165c",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/237bb9accff50e385450b8ccdd82e1506cbc165c.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/237bb9accff50e385450b8ccdd82e1506cbc165c.words.json",
+                "voice": "Danielle",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 3400,
+                "generated_at": "2026-06-16T10:28:34.905Z"
+              }
+            },
+            "es": {
+              "line1": {
+                "text": "Boca ligeramente abierta, lengua a media altura y sonríe ligeramente",
+                "hash": "a7e0ac7fcf11e2dff2e40b2fdde04ea77f244ef3",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/a7e0ac7fcf11e2dff2e40b2fdde04ea77f244ef3.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/a7e0ac7fcf11e2dff2e40b2fdde04ea77f244ef3.words.json",
+                "voice": "Lucia",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 4192,
+                "generated_at": "2026-06-16T10:28:34.900Z"
+              }
+            }
+          },
           "title_en": "Learn the sound",
           "title_es": "Aprende el sonido"
         },
@@ -1096,6 +1813,40 @@
           "hint_es_line2": "",
           "phonetic": "I sound in LIKE",
           "expected": "like",
+          "tts": {
+            "en": {
+              "line1": {
+                "text": "Open your mouth and glide into a short 'ee' sound.",
+                "hash": "06607d28e6ca174e04f1110cb24aefc0ac428255",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/06607d28e6ca174e04f1110cb24aefc0ac428255.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/06607d28e6ca174e04f1110cb24aefc0ac428255.words.json",
+                "voice": "Danielle",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 2575,
+                "generated_at": "2026-06-16T10:28:35.013Z"
+              }
+            },
+            "es": {
+              "line1": {
+                "text": "Abre la boca y desliza hacia una I corta.",
+                "hash": "59d6b4346c5aeeb15bf56b280194de5fce95a7ed",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/59d6b4346c5aeeb15bf56b280194de5fce95a7ed.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/59d6b4346c5aeeb15bf56b280194de5fce95a7ed.words.json",
+                "voice": "Lucia",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 2237,
+                "generated_at": "2026-06-16T10:28:35.009Z"
+              }
+            }
+          },
           "title_en": "Learn the sound",
           "title_es": "Aprende el sonido"
         },
@@ -1138,6 +1889,40 @@
           "hint_es_line2": "",
           "phonetic": "O sound in HOME",
           "expected": "home",
+          "tts": {
+            "en": {
+              "line1": {
+                "text": "Start with rounded lips and glide into a more closed sound",
+                "hash": "20211ba016f2eb62bdb66fc49b72aea35110ba82",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/20211ba016f2eb62bdb66fc49b72aea35110ba82.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/20211ba016f2eb62bdb66fc49b72aea35110ba82.words.json",
+                "voice": "Danielle",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 3237,
+                "generated_at": "2026-06-16T10:28:35.130Z"
+              }
+            },
+            "es": {
+              "line1": {
+                "text": "Empieza con boca redondeada y desliza hacia un sonido más cerrado",
+                "hash": "a2a68bea31f26d77b558dbc1aa3766753a85fb8d",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/a2a68bea31f26d77b558dbc1aa3766753a85fb8d.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/a2a68bea31f26d77b558dbc1aa3766753a85fb8d.words.json",
+                "voice": "Lucia",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 3510,
+                "generated_at": "2026-06-16T10:28:35.090Z"
+              }
+            }
+          },
           "title_en": "Learn the sound",
           "title_es": "Aprende el sonido"
         },
@@ -1180,6 +1965,40 @@
           "hint_es_line2": "",
           "phonetic": "U sound in BLUE",
           "expected": "blue",
+          "tts": {
+            "en": {
+              "line1": {
+                "text": "Start with rounded lips and keep them rounded for a long “oo” sound",
+                "hash": "f55b5b5f62d3cb67a73676f06c8d191071b20996",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/f55b5b5f62d3cb67a73676f06c8d191071b20996.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/f55b5b5f62d3cb67a73676f06c8d191071b20996.words.json",
+                "voice": "Danielle",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 3512,
+                "generated_at": "2026-06-16T10:28:35.152Z"
+              }
+            },
+            "es": {
+              "line1": {
+                "text": "Empieza con los labios redondeados y mantenlos redondeados para un sonido largo de “oo”.",
+                "hash": "6ec9c873d97a0c91861524870d326c05f735291f",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/6ec9c873d97a0c91861524870d326c05f735291f.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/6ec9c873d97a0c91861524870d326c05f735291f.words.json",
+                "voice": "Lucia",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 4410,
+                "generated_at": "2026-06-16T10:28:35.257Z"
+              }
+            }
+          },
           "title_en": "Learn the sound",
           "title_es": "Aprende el sonido"
         },
@@ -1222,6 +2041,40 @@
           "hint_es_line2": "",
           "phonetic": "Z sound in ZERO",
           "expected": "zero",
+          "tts": {
+            "en": {
+              "line1": {
+                "text": "Almost close your teeth, bring the tongue near teeth and vibrate your voice like “zzz” like a bee",
+                "hash": "8bdef59a28103e390fa5ba3e5ba593735567e216",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/8bdef59a28103e390fa5ba3e5ba593735567e216.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/8bdef59a28103e390fa5ba3e5ba593735567e216.words.json",
+                "voice": "Danielle",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 4977,
+                "generated_at": "2026-06-16T10:28:35.345Z"
+              }
+            },
+            "es": {
+              "line1": {
+                "text": "Junta los dientes, acerca la lengua sin tocar y haz vibrar la voz como “zzz” como una abeja",
+                "hash": "09085b6599fddb8ca0127c677bd81486841ad8db",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/09085b6599fddb8ca0127c677bd81486841ad8db.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/09085b6599fddb8ca0127c677bd81486841ad8db.words.json",
+                "voice": "Lucia",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 5337,
+                "generated_at": "2026-06-16T10:28:35.331Z"
+              }
+            }
+          },
           "title_en": "Learn the sound",
           "title_es": "Aprende el sonido"
         },
@@ -1264,6 +2117,40 @@
           "hint_es_line2": "",
           "phonetic": "H sound in HOUSE",
           "expected": "house",
+          "tts": {
+            "en": {
+              "line1": {
+                "text": "Open your mouth and push air out to make the sound",
+                "hash": "d66c1eb53c640f7f61ef2010bd22f38758be02c4",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/d66c1eb53c640f7f61ef2010bd22f38758be02c4.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/d66c1eb53c640f7f61ef2010bd22f38758be02c4.words.json",
+                "voice": "Danielle",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 2575,
+                "generated_at": "2026-06-16T10:28:35.439Z"
+              }
+            },
+            "es": {
+              "line1": {
+                "text": "Abre la boca y saca aire para hacer el sonido",
+                "hash": "f1132f660b4465a0331bbd04484b37c170ec620b",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/f1132f660b4465a0331bbd04484b37c170ec620b.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/f1132f660b4465a0331bbd04484b37c170ec620b.words.json",
+                "voice": "Lucia",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 2480,
+                "generated_at": "2026-06-16T10:28:35.412Z"
+              }
+            }
+          },
           "title_en": "Learn the sound",
           "title_es": "Aprende el sonido"
         },
@@ -1306,6 +2193,40 @@
           "hint_es_line2": "",
           "phonetic": "Y sound in YES",
           "expected": "yes",
+          "tts": {
+            "en": {
+              "line1": {
+                "text": "Raise the middle of your tongue toward the palate without touching it, glide into the vowel",
+                "hash": "e70d2907a5628e48644b18085563a7d127c186f0",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/e70d2907a5628e48644b18085563a7d127c186f0.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/e70d2907a5628e48644b18085563a7d127c186f0.words.json",
+                "voice": "Danielle",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 4150,
+                "generated_at": "2026-06-16T10:28:35.480Z"
+              }
+            },
+            "es": {
+              "line1": {
+                "text": "Sube la parte media de la lengua hacia el paladar sin tocarlo y desliza el sonido hacia la vocal",
+                "hash": "7eaaa599ed88945505dc006e80324294bb855375",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/7eaaa599ed88945505dc006e80324294bb855375.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/7eaaa599ed88945505dc006e80324294bb855375.words.json",
+                "voice": "Lucia",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 4812,
+                "generated_at": "2026-06-16T10:28:35.500Z"
+              }
+            }
+          },
           "title_en": "Learn the sound",
           "title_es": "Aprende el sonido"
         },
@@ -1348,6 +2269,40 @@
           "hint_es_line2": "",
           "phonetic": "L sound in TELL",
           "expected": "tell",
+          "tts": {
+            "en": {
+              "line1": {
+                "text": "Tip of tongue behind the top teeth, when you make the sound the air comes out the sides",
+                "hash": "5f3ed53f683598536a0bfdeb8f3bd0447bd4cfb4",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/5f3ed53f683598536a0bfdeb8f3bd0447bd4cfb4.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/5f3ed53f683598536a0bfdeb8f3bd0447bd4cfb4.words.json",
+                "voice": "Danielle",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 4112,
+                "generated_at": "2026-06-16T10:28:35.524Z"
+              }
+            },
+            "es": {
+              "line1": {
+                "text": "Punta de la lengua toca detrás de los dientes superiores, con el sonido el aire sale por los lados",
+                "hash": "feae991884b9e9217454f71c28d419183f50c131",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/feae991884b9e9217454f71c28d419183f50c131.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/feae991884b9e9217454f71c28d419183f50c131.words.json",
+                "voice": "Lucia",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 4962,
+                "generated_at": "2026-06-16T10:28:35.555Z"
+              }
+            }
+          },
           "title_en": "Learn the sound",
           "title_es": "Aprende el sonido"
         },
@@ -1390,6 +2345,40 @@
           "hint_es_line2": "",
           "phonetic": "R sound in RUN",
           "expected": "run",
+          "tts": {
+            "en": {
+              "line1": {
+                "text": "Curl your tongue back without touching the palate and round your lips a little",
+                "hash": "33f2dafad390211b7a62d668c05f83ca9bef1178",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/33f2dafad390211b7a62d668c05f83ca9bef1178.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/33f2dafad390211b7a62d668c05f83ca9bef1178.words.json",
+                "voice": "Danielle",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 3642,
+                "generated_at": "2026-06-16T10:28:35.590Z"
+              }
+            },
+            "es": {
+              "line1": {
+                "text": "Curva un poco la lengua hacia atrás sin tocar el paladar y redondea ligeramente los labios",
+                "hash": "cac88d7367653c0252ac2b89b3bcf8259eaf1123",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/cac88d7367653c0252ac2b89b3bcf8259eaf1123.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/cac88d7367653c0252ac2b89b3bcf8259eaf1123.words.json",
+                "voice": "Lucia",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 4667,
+                "generated_at": "2026-06-16T10:28:35.635Z"
+              }
+            }
+          },
           "title_en": "Learn the sound",
           "title_es": "Aprende el sonido"
         },
@@ -1432,6 +2421,40 @@
           "hint_es_line2": "",
           "phonetic": "ER sound in FIRST",
           "expected": "first",
+          "tts": {
+            "en": {
+              "line1": {
+                "text": "Keep your tongue in “r” position and produce a vowel with voice",
+                "hash": "0dfc195884bed0c529755ec8dfe6e057c96682d6",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/0dfc195884bed0c529755ec8dfe6e057c96682d6.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/0dfc195884bed0c529755ec8dfe6e057c96682d6.words.json",
+                "voice": "Danielle",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 2962,
+                "generated_at": "2026-06-16T10:28:35.658Z"
+              }
+            },
+            "es": {
+              "line1": {
+                "text": "Lengua en posición de “r”, produce un sonido vocal con vibración",
+                "hash": "fa9732394237e8eaf54fcb1a70b0805bb919213a",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/fa9732394237e8eaf54fcb1a70b0805bb919213a.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/fa9732394237e8eaf54fcb1a70b0805bb919213a.words.json",
+                "voice": "Lucia",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 3845,
+                "generated_at": "2026-06-16T10:28:35.709Z"
+              }
+            }
+          },
           "title_en": "Learn the sound",
           "title_es": "Aprende el sonido"
         },
@@ -1474,6 +2497,40 @@
           "hint_es_line2": "",
           "phonetic": "A sound in FAST",
           "expected": "fast",
+          "tts": {
+            "en": {
+              "line1": {
+                "text": "Open your mouth, keep your tongue low and back and make a long sound",
+                "hash": "a7abb93fd53093647ba455db51572a69bb8dec2f",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/a7abb93fd53093647ba455db51572a69bb8dec2f.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/a7abb93fd53093647ba455db51572a69bb8dec2f.words.json",
+                "voice": "Danielle",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 3300,
+                "generated_at": "2026-06-16T10:28:35.799Z"
+              }
+            },
+            "es": {
+              "line1": {
+                "text": "Boca abierta, lengua baja y hacia atrás, haz un sonido largo",
+                "hash": "5972e86cf9c67d0ce8033e95a02f6dd2193e915b",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/5972e86cf9c67d0ce8033e95a02f6dd2193e915b.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/5972e86cf9c67d0ce8033e95a02f6dd2193e915b.words.json",
+                "voice": "Lucia",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 3775,
+                "generated_at": "2026-06-16T10:28:35.786Z"
+              }
+            }
+          },
           "title_en": "Learn the sound",
           "title_es": "Aprende el sonido"
         },
@@ -1516,6 +2573,40 @@
           "hint_es_line2": "",
           "phonetic": "AW sound in SAW",
           "expected": "saw",
+          "tts": {
+            "en": {
+              "line1": {
+                "text": "Round your lips, keep your tongue relaxed low and back, produce a long sound with voice",
+                "hash": "f3533c486f5cc44a53ced03a5ea9a3b34547b11f",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/f3533c486f5cc44a53ced03a5ea9a3b34547b11f.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/f3533c486f5cc44a53ced03a5ea9a3b34547b11f.words.json",
+                "voice": "Danielle",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 4425,
+                "generated_at": "2026-06-16T10:28:35.876Z"
+              }
+            },
+            "es": {
+              "line1": {
+                "text": "Labios redondeados, lengua relajada en posición baja y hacia atrás, haz un sonido largo con vibración",
+                "hash": "645b20426e91d310f785bf5c033fe6103a7072b9",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/645b20426e91d310f785bf5c033fe6103a7072b9.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/645b20426e91d310f785bf5c033fe6103a7072b9.words.json",
+                "voice": "Lucia",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 5845,
+                "generated_at": "2026-06-16T10:28:35.903Z"
+              }
+            }
+          },
           "title_en": "Learn the sound",
           "title_es": "Aprende el sonido"
         },
@@ -1558,6 +2649,40 @@
           "hint_es_line2": "",
           "phonetic": "TH sound in THINK",
           "expected": "think",
+          "tts": {
+            "en": {
+              "line1": {
+                "text": "Place your tongue between your teeth and blow air without using your voice",
+                "hash": "14023d257185067b0191ea3ffac2d4151917b897",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/14023d257185067b0191ea3ffac2d4151917b897.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/14023d257185067b0191ea3ffac2d4151917b897.words.json",
+                "voice": "Danielle",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 3412,
+                "generated_at": "2026-06-16T10:28:35.946Z"
+              }
+            },
+            "es": {
+              "line1": {
+                "text": "Coloca la lengua entre los dientes y sopla aire sin usar la voz",
+                "hash": "45f7d0f21283a264ac88078deee87a519345781a",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/45f7d0f21283a264ac88078deee87a519345781a.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/45f7d0f21283a264ac88078deee87a519345781a.words.json",
+                "voice": "Lucia",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 3302,
+                "generated_at": "2026-06-16T10:28:35.968Z"
+              }
+            }
+          },
           "title_en": "Learn the sound",
           "title_es": "Aprende el sonido"
         },
@@ -1600,6 +2725,40 @@
           "hint_es_line2": "",
           "phonetic": "TH sound in THIS",
           "expected": "this",
+          "tts": {
+            "en": {
+              "line1": {
+                "text": "Touch your upper teeth with your tongue and vibrate your voice",
+                "hash": "afbb9b729fb892e270179b3f6803e212a798b437",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/afbb9b729fb892e270179b3f6803e212a798b437.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/afbb9b729fb892e270179b3f6803e212a798b437.words.json",
+                "voice": "Danielle",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 2787,
+                "generated_at": "2026-06-16T10:28:36.004Z"
+              }
+            },
+            "es": {
+              "line1": {
+                "text": "Toca los dientes superiores con la lengua y haz vibrar la voz",
+                "hash": "22198bd389436824704f8b57e854fcd8eec50724",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/22198bd389436824704f8b57e854fcd8eec50724.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/22198bd389436824704f8b57e854fcd8eec50724.words.json",
+                "voice": "Lucia",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 2927,
+                "generated_at": "2026-06-16T10:28:36.054Z"
+              }
+            }
+          },
           "title_en": "Learn the sound",
           "title_es": "Aprende el sonido"
         },
@@ -1642,6 +2801,40 @@
           "hint_es_line2": "",
           "phonetic": "SH sound in SHE",
           "expected": "she",
+          "tts": {
+            "en": {
+              "line1": {
+                "text": "Slightly round your lips, pull your tongue back, and let air flow continuously",
+                "hash": "97741e204d869e9167dffe510124731dd2627297",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/97741e204d869e9167dffe510124731dd2627297.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/97741e204d869e9167dffe510124731dd2627297.words.json",
+                "voice": "Danielle",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 4450,
+                "generated_at": "2026-06-16T10:28:36.058Z"
+              }
+            },
+            "es": {
+              "line1": {
+                "text": "Redondea un poco los labios, lleva la lengua hacia atrás y deja salir aire continuo",
+                "hash": "d1bbb76db08de1a979fec8110fccec641c0fbf37",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/d1bbb76db08de1a979fec8110fccec641c0fbf37.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/d1bbb76db08de1a979fec8110fccec641c0fbf37.words.json",
+                "voice": "Lucia",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 4640,
+                "generated_at": "2026-06-16T10:28:36.156Z"
+              }
+            }
+          },
           "title_en": "Learn the sound",
           "title_es": "Aprende el sonido"
         },
@@ -1684,6 +2877,40 @@
           "hint_es_line2": "",
           "phonetic": "CH sound in CHAIR",
           "expected": "chair",
+          "tts": {
+            "en": {
+              "line1": {
+                "text": "Start with a “t”-like contact at the top and release quickly into a “sh” sound",
+                "hash": "a5016ae6e6cf3265ce035f4c1fb0e0a4f0861588",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/a5016ae6e6cf3265ce035f4c1fb0e0a4f0861588.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/a5016ae6e6cf3265ce035f4c1fb0e0a4f0861588.words.json",
+                "voice": "Danielle",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 4325,
+                "generated_at": "2026-06-16T10:28:36.144Z"
+              }
+            },
+            "es": {
+              "line1": {
+                "text": "Empieza tocando arriba como una “t” y suelta rápido hacia un “sh”",
+                "hash": "cc47c6244cc332473398a2efe1be5a4c04b45739",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/cc47c6244cc332473398a2efe1be5a4c04b45739.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/cc47c6244cc332473398a2efe1be5a4c04b45739.words.json",
+                "voice": "Lucia",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 3447,
+                "generated_at": "2026-06-16T10:28:36.243Z"
+              }
+            }
+          },
           "title_en": "Learn the sound",
           "title_es": "Aprende el sonido"
         },
@@ -1726,6 +2953,40 @@
           "hint_es_line2": "",
           "phonetic": "ZH sound in VISION",
           "expected": "vision",
+          "tts": {
+            "en": {
+              "line1": {
+                "text": "Put your tongue toward the palate without touching, keep lips relaxed, let air pass with vibration",
+                "hash": "61ed74e81392815ea118bc9ab2e751888cf49c93",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/61ed74e81392815ea118bc9ab2e751888cf49c93.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/61ed74e81392815ea118bc9ab2e751888cf49c93.words.json",
+                "voice": "Danielle",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 5132,
+                "generated_at": "2026-06-16T10:28:36.312Z"
+              }
+            },
+            "es": {
+              "line1": {
+                "text": "Lengua ligeramente elevada hacia el paladar sin tocar, labios relajados, deja pasar el aire con vibración de voz",
+                "hash": "e889ee6d65ccacc64116ac106f75ac0bf33f150d",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/e889ee6d65ccacc64116ac106f75ac0bf33f150d.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/e889ee6d65ccacc64116ac106f75ac0bf33f150d.words.json",
+                "voice": "Lucia",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 6265,
+                "generated_at": "2026-06-16T10:28:36.308Z"
+              }
+            }
+          },
           "title_en": "Learn the sound",
           "title_es": "Aprende el sonido"
         },
@@ -1768,6 +3029,40 @@
           "hint_es_line2": "",
           "phonetic": "J sound in JOB",
           "expected": "job",
+          "tts": {
+            "en": {
+              "line1": {
+                "text": "Block the air and release it like “d” plus “zh” with voice",
+                "hash": "f956aaaea901b7f6af92568a13fdce1521f1352d",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/f956aaaea901b7f6af92568a13fdce1521f1352d.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/f956aaaea901b7f6af92568a13fdce1521f1352d.words.json",
+                "voice": "Danielle",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 3137,
+                "generated_at": "2026-06-16T10:28:36.414Z"
+              }
+            },
+            "es": {
+              "line1": {
+                "text": "Bloquea el aire y suéltalo como “d” seguido de “zh” con vibración",
+                "hash": "436ffe99dc9d7cb9babc2afd5b4bcb08772c21f9",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/436ffe99dc9d7cb9babc2afd5b4bcb08772c21f9.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/436ffe99dc9d7cb9babc2afd5b4bcb08772c21f9.words.json",
+                "voice": "Lucia",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 3782,
+                "generated_at": "2026-06-16T10:28:36.418Z"
+              }
+            }
+          },
           "title_en": "Learn the sound",
           "title_es": "Aprende el sonido"
         },
@@ -1810,6 +3105,40 @@
           "hint_es_line2": "",
           "phonetic": "NG sound in SING",
           "expected": "sing",
+          "tts": {
+            "en": {
+              "line1": {
+                "text": "Raise the back of your tongue to the soft palate and let air vibrate through your nose",
+                "hash": "1a620705314e7f5309e7a6872f2800fcdb21fe90",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/1a620705314e7f5309e7a6872f2800fcdb21fe90.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/1a620705314e7f5309e7a6872f2800fcdb21fe90.words.json",
+                "voice": "Danielle",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 3870,
+                "generated_at": "2026-06-16T10:28:36.511Z"
+              }
+            },
+            "es": {
+              "line1": {
+                "text": "Lleva la parte posterior de la lengua al paladar blando y deja vibrar el aire por la nariz",
+                "hash": "5b590156d61a16358f7f3fef56eeaf798fa85e20",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/5b590156d61a16358f7f3fef56eeaf798fa85e20.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/5b590156d61a16358f7f3fef56eeaf798fa85e20.words.json",
+                "voice": "Lucia",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 4650,
+                "generated_at": "2026-06-16T10:28:36.495Z"
+              }
+            }
+          },
           "title_en": "Learn the sound",
           "title_es": "Aprende el sonido"
         },
@@ -1852,6 +3181,40 @@
           "hint_es_line2": "",
           "phonetic": "OY sound in BOY",
           "expected": "boy",
+          "tts": {
+            "en": {
+              "line1": {
+                "text": "Start with rounded lips and glide into “i”",
+                "hash": "4cd7b8a6420c51926585392828c4c5c1a840ca23",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/4cd7b8a6420c51926585392828c4c5c1a840ca23.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/4cd7b8a6420c51926585392828c4c5c1a840ca23.words.json",
+                "voice": "Danielle",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 2302,
+                "generated_at": "2026-06-16T10:28:36.563Z"
+              }
+            },
+            "es": {
+              "line1": {
+                "text": "Empieza con labios redondeados y desliza hacia “i”",
+                "hash": "51ec2955d035632176b2e0a94d5cc1ca397d82e7",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/51ec2955d035632176b2e0a94d5cc1ca397d82e7.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/51ec2955d035632176b2e0a94d5cc1ca397d82e7.words.json",
+                "voice": "Lucia",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 2652,
+                "generated_at": "2026-06-16T10:28:36.584Z"
+              }
+            }
+          },
           "title_en": "Learn the sound",
           "title_es": "Aprende el sonido"
         },
@@ -1894,6 +3257,40 @@
           "hint_es_line2": "",
           "phonetic": "OU sound in MOUTH",
           "expected": "mouth",
+          "tts": {
+            "en": {
+              "line1": {
+                "text": "Start with an open mouth and glide into a rounded “oo”-like sound, without tension",
+                "hash": "5e915d4cd0cc8e1c0cf83e854f3debb9873963d0",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/5e915d4cd0cc8e1c0cf83e854f3debb9873963d0.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/5e915d4cd0cc8e1c0cf83e854f3debb9873963d0.words.json",
+                "voice": "Danielle",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 4722,
+                "generated_at": "2026-06-16T10:28:36.648Z"
+              }
+            },
+            "es": {
+              "line1": {
+                "text": "Empieza con la boca abierta y desliza hacia un sonido “u” redondeado, sin tensión",
+                "hash": "8e19debd6527af09446449eb1a28a0df4b5507a7",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/8e19debd6527af09446449eb1a28a0df4b5507a7.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/8e19debd6527af09446449eb1a28a0df4b5507a7.words.json",
+                "voice": "Lucia",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 4510,
+                "generated_at": "2026-06-16T10:28:36.711Z"
+              }
+            }
+          },
           "title_en": "Learn the sound",
           "title_es": "Aprende el sonido"
         },
@@ -1936,6 +3333,40 @@
           "hint_es_line2": "",
           "phonetic": "AI sound in HAIR",
           "expected": "hair",
+          "tts": {
+            "en": {
+              "line1": {
+                "text": "Start with a mid-open mouth and glide into a more relaxed central sound, without a strong smile shape",
+                "hash": "2a30c901d69490a19a98df334b9ef3d7997a336a",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/2a30c901d69490a19a98df334b9ef3d7997a336a.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/2a30c901d69490a19a98df334b9ef3d7997a336a.words.json",
+                "voice": "Danielle",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 5812,
+                "generated_at": "2026-06-16T10:28:36.720Z"
+              }
+            },
+            "es": {
+              "line1": {
+                "text": "Empieza con la boca media abierta y desliza hacia un sonido más relajado y central, sin sonrisa marcada",
+                "hash": "6fa383ef90e2e0ca9db4c8a3a4f4201dbd2ef494",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/6fa383ef90e2e0ca9db4c8a3a4f4201dbd2ef494.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/6fa383ef90e2e0ca9db4c8a3a4f4201dbd2ef494.words.json",
+                "voice": "Lucia",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 5872,
+                "generated_at": "2026-06-16T10:28:36.824Z"
+              }
+            }
+          },
           "title_en": "Learn the sound",
           "title_es": "Aprende el sonido"
         },
@@ -1978,6 +3409,40 @@
           "hint_es_line2": "",
           "phonetic": "EA sound in EAR",
           "expected": "ear",
+          "tts": {
+            "en": {
+              "line1": {
+                "text": "Stretch your mouth into a smile and keep your tongue high and forward",
+                "hash": "ba2fae5ff5fb4953684cd1bb24d913e252c79757",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/ba2fae5ff5fb4953684cd1bb24d913e252c79757.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/ba2fae5ff5fb4953684cd1bb24d913e252c79757.words.json",
+                "voice": "Danielle",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 3472,
+                "generated_at": "2026-06-16T10:28:36.829Z"
+              }
+            },
+            "es": {
+              "line1": {
+                "text": "Estira la boca en sonrisa y mantén la lengua alta y delante",
+                "hash": "72f75f6718db4d60649e628ff568c26588ce056a",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/72f75f6718db4d60649e628ff568c26588ce056a.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/72f75f6718db4d60649e628ff568c26588ce056a.words.json",
+                "voice": "Lucia",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 3185,
+                "generated_at": "2026-06-16T10:28:36.932Z"
+              }
+            }
+          },
           "title_en": "Learn the sound",
           "title_es": "Aprende el sonido"
         },
@@ -2020,6 +3485,40 @@
           "hint_es_line2": "",
           "phonetic": "KS sound in TAXI",
           "expected": "taxi",
+          "tts": {
+            "en": {
+              "line1": {
+                "text": "Produce a sharp stop sound followed immediately by a soft hiss",
+                "hash": "af4fbcc9a8686bcc60cd006c73ece44cf0945e3c",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/af4fbcc9a8686bcc60cd006c73ece44cf0945e3c.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/af4fbcc9a8686bcc60cd006c73ece44cf0945e3c.words.json",
+                "voice": "Danielle",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 3457,
+                "generated_at": "2026-06-16T10:28:36.872Z"
+              }
+            },
+            "es": {
+              "line1": {
+                "text": "Produce un sonido oclusivo rápido seguido de un siseo suave",
+                "hash": "3f7bc305552a3631c15ea025c2cba92e5c117338",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/3f7bc305552a3631c15ea025c2cba92e5c117338.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/3f7bc305552a3631c15ea025c2cba92e5c117338.words.json",
+                "voice": "Lucia",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 3287,
+                "generated_at": "2026-06-16T10:28:36.955Z"
+              }
+            }
+          },
           "title_en": "Learn the sound",
           "title_es": "Aprende el sonido"
         },
@@ -2062,6 +3561,40 @@
           "hint_es_line2": "",
           "phonetic": "GZ sound in EXIT",
           "expected": "exit",
+          "tts": {
+            "en": {
+              "line1": {
+                "text": "Start with a voiced \"g\" sound followed by a vibrated \"zzz\" sound",
+                "hash": "cac45ac66c4b922b2a6a450cebb47a147df054ce",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/cac45ac66c4b922b2a6a450cebb47a147df054ce.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/cac45ac66c4b922b2a6a450cebb47a147df054ce.words.json",
+                "voice": "Danielle",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 3412,
+                "generated_at": "2026-06-16T10:28:37.110Z"
+              }
+            },
+            "es": {
+              "line1": {
+                "text": "Di una “g” seguida de una “z” con vibración",
+                "hash": "39a4b9fa58ded3835273839dd198d9d2efa0b7dc",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/39a4b9fa58ded3835273839dd198d9d2efa0b7dc.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/39a4b9fa58ded3835273839dd198d9d2efa0b7dc.words.json",
+                "voice": "Lucia",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 2595,
+                "generated_at": "2026-06-16T10:28:37.032Z"
+              }
+            }
+          },
           "title_en": "Learn the sound",
           "title_es": "Aprende el sonido"
         },
@@ -2104,6 +3637,40 @@
           "hint_es_line2": "",
           "phonetic": "B sound in BERRY",
           "expected": "berry",
+          "tts": {
+            "en": {
+              "line1": {
+                "text": "Close your lips and release a quick burst of air for \"B\"",
+                "hash": "f671e4acc9a822577f3b6af3aef7a8407b1d800b",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/f671e4acc9a822577f3b6af3aef7a8407b1d800b.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/f671e4acc9a822577f3b6af3aef7a8407b1d800b.words.json",
+                "voice": "Danielle",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 2677,
+                "generated_at": "2026-06-16T10:28:37.095Z"
+              }
+            },
+            "es": {
+              "line1": {
+                "text": "Cierra los labios y suelta una pequeña explosión de aire para producir la B.",
+                "hash": "c2dd92e0ecbdd24f63a1b2a4a15ed048d0b36fc2",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/c2dd92e0ecbdd24f63a1b2a4a15ed048d0b36fc2.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/c2dd92e0ecbdd24f63a1b2a4a15ed048d0b36fc2.words.json",
+                "voice": "Lucia",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 3890,
+                "generated_at": "2026-06-16T10:28:37.247Z"
+              }
+            }
+          },
           "title_en": "Learn the sound",
           "title_es": "Aprende el sonido"
         },
@@ -2146,6 +3713,40 @@
           "hint_es_line2": "",
           "phonetic": "V sound in VERY",
           "expected": "very",
+          "tts": {
+            "en": {
+              "line1": {
+                "text": "Touch your lower lip with your upper teeth and let air pass with voice vibration",
+                "hash": "1682851107a4cd7f615e4385b5c9aaee077a2408",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/1682851107a4cd7f615e4385b5c9aaee077a2408.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/en-US/1682851107a4cd7f615e4385b5c9aaee077a2408.words.json",
+                "voice": "Danielle",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 4045,
+                "generated_at": "2026-06-16T10:28:37.188Z"
+              }
+            },
+            "es": {
+              "line1": {
+                "text": "Toca el labio inferior con los dientes superiores y deja pasar el aire con vibración de voz",
+                "hash": "8972ecf0aa7ce332d1befe2908751f05bb246a60",
+                "audio_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/8972ecf0aa7ce332d1befe2908751f05bb246a60.mp3",
+                "words_url": "https://s3.amazonaws.com/sk.audios.v5/realtime/tts-aligned/es-ES/8972ecf0aa7ce332d1befe2908751f05bb246a60.words.json",
+                "voice": "Lucia",
+                "engine": "neural",
+                "rate": "",
+                "pitch": "",
+                "voice_profile": "",
+                "provider": "aws-polly",
+                "duration_ms": 4690,
+                "generated_at": "2026-06-16T10:28:37.241Z"
+              }
+            }
+          },
           "title_en": "Learn the sound",
           "title_es": "Aprende el sonido"
         },

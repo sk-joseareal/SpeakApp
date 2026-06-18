@@ -194,14 +194,59 @@ const path = require('path');
   //   amarillo → tone okay  (~50%)
   //   verde    → tone good  (100%)
   //   azul     → reset      (quita el score)
-  const colorPalabras = 'verde';
+  const colorPalabras = 'rojo';
 
   const colorToTone = { rojo: 'bad', amarillo: 'okay', verde: 'good', azul: 'reset' };
 
   // Lista de sesiones a abrir: ruta → módulo → sesión
   const sesiones = [
+    { routeId: 'route1', moduleId: 'module-1',  sessionId: 'session-1'  },
+    { routeId: 'route1', moduleId: 'module-1',  sessionId: 'session-2'  },
+    { routeId: 'route1', moduleId: 'module-1',  sessionId: 'session-3'  },
+    { routeId: 'route1', moduleId: 'module-1',  sessionId: 'session-4'  },
+    { routeId: 'route1', moduleId: 'module-2',  sessionId: 'session-5'  },
+    { routeId: 'route1', moduleId: 'module-2',  sessionId: 'session-6'  },
+    { routeId: 'route1', moduleId: 'module-2',  sessionId: 'session-7'  },
+    { routeId: 'route1', moduleId: 'module-2',  sessionId: 'session-8'  },
+    { routeId: 'route1', moduleId: 'module-3',  sessionId: 'session-9'  },
+    { routeId: 'route1', moduleId: 'module-3',  sessionId: 'session-10' },
+    { routeId: 'route1', moduleId: 'module-3',  sessionId: 'session-11' },
+    { routeId: 'route1', moduleId: 'module-3',  sessionId: 'session-12' },
+    { routeId: 'route1', moduleId: 'module-4',  sessionId: 'session-13' },
+    { routeId: 'route1', moduleId: 'module-4',  sessionId: 'session-14' },
+    { routeId: 'route1', moduleId: 'module-4',  sessionId: 'session-15' },
+    { routeId: 'route1', moduleId: 'module-4',  sessionId: 'session-16' },
+    { routeId: 'route2', moduleId: 'module-5',  sessionId: 'session-17' },
+    { routeId: 'route2', moduleId: 'module-5',  sessionId: 'session-18' },
+    { routeId: 'route2', moduleId: 'module-5',  sessionId: 'session-19' },
+    { routeId: 'route2', moduleId: 'module-5',  sessionId: 'session-20' },
+    { routeId: 'route2', moduleId: 'module-6',  sessionId: 'session-21' },
+    { routeId: 'route2', moduleId: 'module-6',  sessionId: 'session-22' },
+    { routeId: 'route2', moduleId: 'module-6',  sessionId: 'session-23' },
+    { routeId: 'route2', moduleId: 'module-6',  sessionId: 'session-24' },
+    { routeId: 'route2', moduleId: 'module-7',  sessionId: 'session-25' },
+    { routeId: 'route2', moduleId: 'module-7',  sessionId: 'session-26' },
+    { routeId: 'route2', moduleId: 'module-7',  sessionId: 'session-27' },
+    { routeId: 'route2', moduleId: 'module-7',  sessionId: 'session-28' },
+    { routeId: 'route2', moduleId: 'module-8',  sessionId: 'session-29' },
+    { routeId: 'route2', moduleId: 'module-8',  sessionId: 'session-30' },
+    { routeId: 'route2', moduleId: 'module-8',  sessionId: 'session-31' },
+    { routeId: 'route2', moduleId: 'module-8',  sessionId: 'session-32' },
+    { routeId: 'route3', moduleId: 'module-9',  sessionId: 'session-33' },
+    { routeId: 'route3', moduleId: 'module-9',  sessionId: 'session-34' },
+    { routeId: 'route3', moduleId: 'module-9',  sessionId: 'session-35' },
+    { routeId: 'route3', moduleId: 'module-9',  sessionId: 'session-36' },
+    { routeId: 'route3', moduleId: 'module-10', sessionId: 'session-37' },
+    { routeId: 'route3', moduleId: 'module-10', sessionId: 'session-38' },
+    { routeId: 'route3', moduleId: 'module-10', sessionId: 'session-39' },
+    { routeId: 'route3', moduleId: 'module-11', sessionId: 'session-40' },
+    { routeId: 'route3', moduleId: 'module-11', sessionId: 'session-41' },
+    { routeId: 'route3', moduleId: 'module-11', sessionId: 'session-42' },
     { routeId: 'route3', moduleId: 'module-11', sessionId: 'session-43' },
-    { routeId: 'route2', moduleId: 'module-7', sessionId: 'session-27' }
+    { routeId: 'route3', moduleId: 'module-12', sessionId: 'session-44' },
+    { routeId: 'route3', moduleId: 'module-12', sessionId: 'session-45' },
+    { routeId: 'route3', moduleId: 'module-12', sessionId: 'session-46' },
+    { routeId: 'route3', moduleId: 'module-12', sessionId: 'session-47' },
   ];
 
   console.log('Paso 5: Cambiando al tab Training...');

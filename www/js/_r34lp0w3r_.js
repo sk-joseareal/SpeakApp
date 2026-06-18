@@ -3769,7 +3769,7 @@ const registerPushTokenRemote = async (record) => {
   if (!record || !record.token) return { ok: false, error: 'token_required' };
   const endpoint =
     (window.realtimeConfig && window.realtimeConfig.pushRegisterEndpoint) ||
-    'https://realtime.curso-ingles.com/realtime/push/register';
+    ((window.env === 'DEV' ? window.apiDEV : window.apiPRO) || 'https://api.curso-ingles.com') + '/realtime/push/register';
   const headers = { 'Content-Type': 'application/json' };
   const rtToken = (window.realtimeConfig && window.realtimeConfig.authToken) || '';
   if (rtToken) headers['x-rt-token'] = rtToken;

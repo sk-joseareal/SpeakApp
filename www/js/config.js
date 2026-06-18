@@ -10,7 +10,7 @@
 
   window.appMeta = window.appMeta || {
     version: window.APP_VERSION || '5.0.1',
-    build: window.APP_BUILD || '999005024'
+    build: window.APP_BUILD || '999005026'
   };
 
   const emitAppMeta = () => {
@@ -132,8 +132,7 @@
   }
   if (window.realtimeConfig.pushRegisterEndpoint === undefined) {
     window.realtimeConfig.pushRegisterEndpoint =
-      window.REALTIME_PUSH_REGISTER_ENDPOINT ||
-      'https://realtime.curso-ingles.com/realtime/push/register';
+      `${apiBase}/realtime/push/register`;
   }
   if (window.realtimeConfig.chatbotUsageDailyEndpoint === undefined) {
     window.realtimeConfig.chatbotUsageDailyEndpoint =
@@ -153,17 +152,17 @@
   if (window.realtimeConfig.ttsAlignedEndpoint === undefined) {
     window.realtimeConfig.ttsAlignedEndpoint =
       window.REALTIME_TTS_ALIGNED_ENDPOINT ||
-      'https://realtime.curso-ingles.com/realtime/tts/aligned';
+      `${apiBase}/realtime/tts/aligned`;
   }
   if (window.realtimeConfig.ttsUsageDailyEndpoint === undefined) {
     window.realtimeConfig.ttsUsageDailyEndpoint =
       window.REALTIME_TTS_USAGE_DAILY_ENDPOINT ||
-      'https://realtime.curso-ingles.com/realtime/tts/usage/daily';
+      `${apiBase}/realtime/tts/usage/daily`;
   }
   if (window.realtimeConfig.ttsUsageLimitEndpoint === undefined) {
     window.realtimeConfig.ttsUsageLimitEndpoint =
       window.REALTIME_TTS_USAGE_LIMIT_ENDPOINT ||
-      'https://realtime.curso-ingles.com/realtime/tts/usage/limit';
+      `${apiBase}/realtime/tts/usage/limit`;
   }
   if (window.realtimeConfig.pronunciationUsageDailyEndpoint === undefined) {
     window.realtimeConfig.pronunciationUsageDailyEndpoint =
@@ -261,9 +260,7 @@
   window.contentConfig = window.contentConfig || {};
   if (window.contentConfig.trainingDataEndpoint === undefined) {
     window.contentConfig.trainingDataEndpoint =
-      window.CONTENT_TRAINING_DATA_ENDPOINT ||
-      window.SPEAK_CONTENT_URL ||
-      'https://content.curso-ingles.com/content/training-data';
+      `${apiBase}/content/training-data`;
   }
   if (window.contentConfig.trainingDataToken === undefined) {
     window.contentConfig.trainingDataToken = window.CONTENT_TRAINING_DATA_TOKEN || '';

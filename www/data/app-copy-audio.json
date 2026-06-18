@@ -1,7 +1,7 @@
 {
   "generator": "realtime",
-  "source_hash": "sha256-2de0d279c9069129eab83c1b968fc623d7ae4fac4b5b8b8e5aa056012e1df1c4",
-  "generated_at": "2026-06-16T10:21:57.096Z",
+  "source_hash": "sha256-c427d225288ed94f759c02a4648792d84346a13cdb5896ec9af0b8e2799453ff",
+  "generated_at": "2026-06-17T15:39:30.555Z",
   "locales": {
     "es": {
       "lookup": {
@@ -10,13 +10,18 @@
         "explora cursos, unidades y lecciones para consultar contenido.": "Explora cursos, unidades y lecciones para consultar contenido.",
         "explora vocabulario, expresiones, verbos y más.": "Explora vocabulario, expresiones, verbos y más.",
         "traduce, escucha y practica la pronunciación de tus frases.": "Traduce, escucha y practica la pronunciación de tus frases.",
-        "¡cada sonido te ayudará a hablar mejor en inglés!": "¡Cada sonido te ayudará a hablar mejor en inglés!"
+        "¡cada sonido te ayudará a hablar mejor en inglés!": "¡Cada sonido te ayudará a hablar mejor en inglés!",
+        "comprueba tu pronunciación practicando.": "Comprueba tu pronunciación practicando.",
+        "interactua libremente con el tutor de ingles.": "Interactua libremente con el tutor de Ingles.",
+        "habla con otros estudiantes.": "Habla con otros estudiantes.",
+        "habla en privado con otros usuarios conectados.": "Habla en privado con otros usuarios conectados.",
+        "inicia sesión para continuar.": "Inicia sesión para continuar."
       },
       "Entrena todos los sonidos del inglés y mejorarás tu pronunciación.": {
         "audio_url": "assets/app-copy-audio/audio/es/a349bcab6a471eb2.mp3",
         "locale": "es-ES",
         "text": "Entrena todos los sonidos del inglés y mejorarás tu pronunciación.",
-        "generated_at": "2026-06-16T10:21:58.108Z",
+        "generated_at": "2026-06-17T15:39:31.550Z",
         "hash": "b3a86ea874ee3689c26e1249d59a6c15e2d58347",
         "duration_ms": 3462,
         "voice": "Lucia",
@@ -114,7 +119,7 @@
         "audio_url": "assets/app-copy-audio/audio/es/393a707175665db6.mp3",
         "locale": "es-ES",
         "text": "Practica cada día para sonar más natural.",
-        "generated_at": "2026-06-16T10:21:58.483Z",
+        "generated_at": "2026-06-17T15:39:31.905Z",
         "hash": "6a2567079926f4d143419dc6e7a3a2af5e886919",
         "duration_ms": 2310,
         "voice": "Lucia",
@@ -188,7 +193,7 @@
         "audio_url": "assets/app-copy-audio/audio/es/3313d264f74e3002.mp3",
         "locale": "es-ES",
         "text": "Explora cursos, unidades y lecciones para consultar contenido.",
-        "generated_at": "2026-06-16T10:21:59.525Z",
+        "generated_at": "2026-06-17T15:39:33.022Z",
         "hash": "2d3ff716f5ff51e56c5a4c7777a5a070777bf58c",
         "duration_ms": 3670,
         "voice": "Lucia",
@@ -270,7 +275,7 @@
         "audio_url": "assets/app-copy-audio/audio/es/3b5a0af147c72e09.mp3",
         "locale": "es-ES",
         "text": "Explora vocabulario, expresiones, verbos y más.",
-        "generated_at": "2026-06-16T10:22:00.300Z",
+        "generated_at": "2026-06-17T15:39:33.798Z",
         "hash": "499c671254a19ae6c6632058c67da399ef6cc514",
         "duration_ms": 3190,
         "voice": "Lucia",
@@ -336,7 +341,7 @@
         "audio_url": "assets/app-copy-audio/audio/es/b81db2cb9a5c9a6b.mp3",
         "locale": "es-ES",
         "text": "Traduce, escucha y practica la pronunciación de tus frases.",
-        "generated_at": "2026-06-16T10:22:01.138Z",
+        "generated_at": "2026-06-17T15:39:34.513Z",
         "hash": "214d5f8045604931c7fdf93d1b64a610b09482ca",
         "duration_ms": 3230,
         "voice": "Lucia",
@@ -426,7 +431,7 @@
         "audio_url": "assets/app-copy-audio/audio/es/96c830169395b03d.mp3",
         "locale": "es-ES",
         "text": "¡Cada sonido te ayudará a hablar mejor en inglés!",
-        "generated_at": "2026-06-16T10:22:01.811Z",
+        "generated_at": "2026-06-17T15:39:35.188Z",
         "hash": "bdedcb0b0a14bda6e6b210f5968047b912c8129d",
         "duration_ms": 2567,
         "voice": "Lucia",
@@ -511,6 +516,304 @@
         "source_paths": [
           "speak.heroNarration:1"
         ]
+      },
+      "Comprueba tu pronunciación practicando.": {
+        "audio_url": "assets/app-copy-audio/audio/es/c0a76b993a09491d.mp3",
+        "locale": "es-ES",
+        "text": "Comprueba tu pronunciación practicando.",
+        "generated_at": "2026-06-17T15:39:36.030Z",
+        "hash": "5fdcf2efaa13ba5f2dc7959d595fae7260e053c6",
+        "duration_ms": 2255,
+        "voice": "Lucia",
+        "engine": "neural",
+        "rate": "",
+        "pitch": "",
+        "voice_profile": "default",
+        "words": [
+          {
+            "index": 0,
+            "text": "Comprueba",
+            "start_ms": 12,
+            "end_ms": 562,
+            "start_char": 0,
+            "end_char": 9
+          },
+          {
+            "index": 1,
+            "text": "tu",
+            "start_ms": 562,
+            "end_ms": 687,
+            "start_char": 10,
+            "end_char": 12
+          },
+          {
+            "index": 2,
+            "text": "pronunciación",
+            "start_ms": 687,
+            "end_ms": 1375,
+            "start_char": 13,
+            "end_char": 27
+          },
+          {
+            "index": 3,
+            "text": "practicando",
+            "start_ms": 1375,
+            "end_ms": 2255,
+            "start_char": 28,
+            "end_char": 39
+          }
+        ],
+        "source_paths": [
+          "chat.coachCatbotSubtitle:1"
+        ]
+      },
+      "Interactua libremente con el tutor de Ingles.": {
+        "audio_url": "assets/app-copy-audio/audio/es/522beeab51c2f75a.mp3",
+        "locale": "es-ES",
+        "text": "Interactua libremente con el tutor de Ingles.",
+        "generated_at": "2026-06-17T15:39:36.786Z",
+        "hash": "1d941b0a9d7b2d96c5e58adcdf777861977d38bb",
+        "duration_ms": 2417,
+        "voice": "Lucia",
+        "engine": "neural",
+        "rate": "",
+        "pitch": "",
+        "voice_profile": "default",
+        "words": [
+          {
+            "index": 0,
+            "text": "Interactua",
+            "start_ms": 125,
+            "end_ms": 750,
+            "start_char": 0,
+            "end_char": 10
+          },
+          {
+            "index": 1,
+            "text": "libremente",
+            "start_ms": 750,
+            "end_ms": 1250,
+            "start_char": 11,
+            "end_char": 21
+          },
+          {
+            "index": 2,
+            "text": "con",
+            "start_ms": 1250,
+            "end_ms": 1437,
+            "start_char": 22,
+            "end_char": 25
+          },
+          {
+            "index": 3,
+            "text": "el",
+            "start_ms": 1437,
+            "end_ms": 1562,
+            "start_char": 26,
+            "end_char": 28
+          },
+          {
+            "index": 4,
+            "text": "tutor",
+            "start_ms": 1562,
+            "end_ms": 1875,
+            "start_char": 29,
+            "end_char": 34
+          },
+          {
+            "index": 5,
+            "text": "de",
+            "start_ms": 1875,
+            "end_ms": 1937,
+            "start_char": 35,
+            "end_char": 37
+          },
+          {
+            "index": 6,
+            "text": "Ingles",
+            "start_ms": 1937,
+            "end_ms": 2417,
+            "start_char": 38,
+            "end_char": 44
+          }
+        ],
+        "source_paths": [
+          "chat.coachChatbotSubtitle:1"
+        ]
+      },
+      "Habla con otros estudiantes.": {
+        "audio_url": "assets/app-copy-audio/audio/es/e15d1700d7805942.mp3",
+        "locale": "es-ES",
+        "text": "Habla con otros estudiantes.",
+        "generated_at": "2026-06-17T15:39:37.515Z",
+        "hash": "16a2b1947e68dc8679ad1aea43578a9a368c2165",
+        "duration_ms": 1692,
+        "voice": "Lucia",
+        "engine": "neural",
+        "rate": "",
+        "pitch": "",
+        "voice_profile": "default",
+        "words": [
+          {
+            "index": 0,
+            "text": "Habla",
+            "start_ms": 125,
+            "end_ms": 375,
+            "start_char": 0,
+            "end_char": 5
+          },
+          {
+            "index": 1,
+            "text": "con",
+            "start_ms": 375,
+            "end_ms": 562,
+            "start_char": 6,
+            "end_char": 9
+          },
+          {
+            "index": 2,
+            "text": "otros",
+            "start_ms": 562,
+            "end_ms": 812,
+            "start_char": 10,
+            "end_char": 15
+          },
+          {
+            "index": 3,
+            "text": "estudiantes",
+            "start_ms": 812,
+            "end_ms": 1692,
+            "start_char": 16,
+            "end_char": 27
+          }
+        ],
+        "source_paths": [
+          "chat.coachCommunitySubtitle:1"
+        ]
+      },
+      "Habla en privado con otros usuarios conectados.": {
+        "audio_url": "assets/app-copy-audio/audio/es/cbed072adec12605.mp3",
+        "locale": "es-ES",
+        "text": "Habla en privado con otros usuarios conectados.",
+        "generated_at": "2026-06-17T15:39:38.181Z",
+        "hash": "a7d79201696d3af44bab1cef5a367e0d0f3b2b7f",
+        "duration_ms": 2562,
+        "voice": "Lucia",
+        "engine": "neural",
+        "rate": "",
+        "pitch": "",
+        "voice_profile": "default",
+        "words": [
+          {
+            "index": 0,
+            "text": "Habla",
+            "start_ms": 125,
+            "end_ms": 312,
+            "start_char": 0,
+            "end_char": 5
+          },
+          {
+            "index": 1,
+            "text": "en",
+            "start_ms": 312,
+            "end_ms": 450,
+            "start_char": 6,
+            "end_char": 8
+          },
+          {
+            "index": 2,
+            "text": "privado",
+            "start_ms": 450,
+            "end_ms": 875,
+            "start_char": 9,
+            "end_char": 16
+          },
+          {
+            "index": 3,
+            "text": "con",
+            "start_ms": 875,
+            "end_ms": 1062,
+            "start_char": 17,
+            "end_char": 20
+          },
+          {
+            "index": 4,
+            "text": "otros",
+            "start_ms": 1062,
+            "end_ms": 1312,
+            "start_char": 21,
+            "end_char": 26
+          },
+          {
+            "index": 5,
+            "text": "usuarios",
+            "start_ms": 1312,
+            "end_ms": 1762,
+            "start_char": 27,
+            "end_char": 35
+          },
+          {
+            "index": 6,
+            "text": "conectados",
+            "start_ms": 1762,
+            "end_ms": 2562,
+            "start_char": 36,
+            "end_char": 46
+          }
+        ],
+        "source_paths": [
+          "chat.coachPrivateSubtitle:1"
+        ]
+      },
+      "Inicia sesión para continuar.": {
+        "audio_url": "assets/app-copy-audio/audio/es/e52d759ceec8bead.mp3",
+        "locale": "es-ES",
+        "text": "Inicia sesión para continuar.",
+        "generated_at": "2026-06-17T15:39:38.869Z",
+        "hash": "e298ca5255dd5e14a1c8efea46e15e51ed155125",
+        "duration_ms": 1845,
+        "voice": "Lucia",
+        "engine": "neural",
+        "rate": "",
+        "pitch": "",
+        "voice_profile": "default",
+        "words": [
+          {
+            "index": 0,
+            "text": "Inicia",
+            "start_ms": 125,
+            "end_ms": 562,
+            "start_char": 0,
+            "end_char": 6
+          },
+          {
+            "index": 1,
+            "text": "sesión",
+            "start_ms": 562,
+            "end_ms": 937,
+            "start_char": 7,
+            "end_char": 14
+          },
+          {
+            "index": 2,
+            "text": "para",
+            "start_ms": 937,
+            "end_ms": 1125,
+            "start_char": 15,
+            "end_char": 19
+          },
+          {
+            "index": 3,
+            "text": "continuar",
+            "start_ms": 1125,
+            "end_ms": 1845,
+            "start_char": 20,
+            "end_char": 29
+          }
+        ],
+        "source_paths": [
+          "profile.loginSubtitle:1"
+        ]
       }
     },
     "en": {
@@ -520,13 +823,18 @@
         "browse courses, units, and lessons to review content.": "Browse courses, units, and lessons to review content.",
         "explore vocabulary, expressions, verbs and more.": "Explore vocabulary, expressions, verbs and more.",
         "translate, listen, and practice pronouncing your phrases.": "Translate, listen, and practice pronouncing your phrases.",
-        "every sound will help you speak english better!": "Every sound will help you speak English better!"
+        "every sound will help you speak english better!": "Every sound will help you speak English better!",
+        "test your pronunciation.": "Test your pronunciation.",
+        "chat freely with your english tutor.": "Chat freely with your English tutor.",
+        "talk with other learners.": "Talk with other learners.",
+        "talk privately with other users.": "Talk privately with other users.",
+        "please sign in to continue.": "Please sign in to continue."
       },
       "Train every English sound and speak more naturally.": {
         "audio_url": "assets/app-copy-audio/audio/en/a37cbc2b52fde77f.mp3",
         "locale": "en-US",
         "text": "Train every English sound and speak more naturally.",
-        "generated_at": "2026-06-16T10:21:58.840Z",
+        "generated_at": "2026-06-17T15:39:32.310Z",
         "hash": "9de159f28b626fd124025e4402ab0dd6cf996f8c",
         "duration_ms": 2870,
         "voice": "Danielle",
@@ -608,7 +916,7 @@
         "audio_url": "assets/app-copy-audio/audio/en/9426943ecdd10df8.mp3",
         "locale": "en-US",
         "text": "Practice every day to improve your pronunciation.",
-        "generated_at": "2026-06-16T10:21:59.189Z",
+        "generated_at": "2026-06-17T15:39:32.719Z",
         "hash": "37d6b120817b2cb12b88d845b8df881cf0a50c1e",
         "duration_ms": 2600,
         "voice": "Danielle",
@@ -682,7 +990,7 @@
         "audio_url": "assets/app-copy-audio/audio/en/214e02b779d90fe9.mp3",
         "locale": "en-US",
         "text": "Browse courses, units, and lessons to review content.",
-        "generated_at": "2026-06-16T10:21:59.961Z",
+        "generated_at": "2026-06-17T15:39:33.320Z",
         "hash": "9a44a7bb3211d300ebd28a0fa4e8d6e1872fa771",
         "duration_ms": 3460,
         "voice": "Danielle",
@@ -764,7 +1072,7 @@
         "audio_url": "assets/app-copy-audio/audio/en/bfecbf6730234c8a.mp3",
         "locale": "en-US",
         "text": "Explore vocabulary, expressions, verbs and more.",
-        "generated_at": "2026-06-16T10:22:00.698Z",
+        "generated_at": "2026-06-17T15:39:34.141Z",
         "hash": "d9322ac5e3534a6bff9f13bbc4c3566400bf0f70",
         "duration_ms": 3420,
         "voice": "Danielle",
@@ -830,7 +1138,7 @@
         "audio_url": "assets/app-copy-audio/audio/en/5a5d08ab80ae7968.mp3",
         "locale": "en-US",
         "text": "Translate, listen, and practice pronouncing your phrases.",
-        "generated_at": "2026-06-16T10:22:01.471Z",
+        "generated_at": "2026-06-17T15:39:34.830Z",
         "hash": "beaab8080b4244e252c2f3e45679535f3bf823a9",
         "duration_ms": 3310,
         "voice": "Danielle",
@@ -904,7 +1212,7 @@
         "audio_url": "assets/app-copy-audio/audio/en/44b056ab7dde598b.mp3",
         "locale": "en-US",
         "text": "Every sound will help you speak English better!",
-        "generated_at": "2026-06-16T10:22:02.161Z",
+        "generated_at": "2026-06-17T15:39:35.595Z",
         "hash": "3548efbd592333b8f5f718a58a42a40424d9acb2",
         "duration_ms": 2367,
         "voice": "Danielle",
@@ -980,6 +1288,280 @@
         ],
         "source_paths": [
           "speak.heroNarration:1"
+        ]
+      },
+      "Test your pronunciation.": {
+        "audio_url": "assets/app-copy-audio/audio/en/733652df70930557.mp3",
+        "locale": "en-US",
+        "text": "Test your pronunciation.",
+        "generated_at": "2026-06-17T15:39:36.348Z",
+        "hash": "0158602049a86d520c093bb7f4560c8a8eb3d524",
+        "duration_ms": 1350,
+        "voice": "Danielle",
+        "engine": "neural",
+        "rate": "",
+        "pitch": "",
+        "voice_profile": "default",
+        "words": [
+          {
+            "index": 0,
+            "text": "Test",
+            "start_ms": 25,
+            "end_ms": 325,
+            "start_char": 0,
+            "end_char": 4
+          },
+          {
+            "index": 1,
+            "text": "your",
+            "start_ms": 325,
+            "end_ms": 450,
+            "start_char": 5,
+            "end_char": 9
+          },
+          {
+            "index": 2,
+            "text": "pronunciation",
+            "start_ms": 450,
+            "end_ms": 1350,
+            "start_char": 10,
+            "end_char": 23
+          }
+        ],
+        "source_paths": [
+          "chat.coachCatbotSubtitle:1"
+        ]
+      },
+      "Chat freely with your English tutor.": {
+        "audio_url": "assets/app-copy-audio/audio/en/9ba03517cdbc454a.mp3",
+        "locale": "en-US",
+        "text": "Chat freely with your English tutor.",
+        "generated_at": "2026-06-17T15:39:37.117Z",
+        "hash": "aa0c9415f17c96c80927185bc53f377a604ab44b",
+        "duration_ms": 1887,
+        "voice": "Danielle",
+        "engine": "neural",
+        "rate": "",
+        "pitch": "",
+        "voice_profile": "default",
+        "words": [
+          {
+            "index": 0,
+            "text": "Chat",
+            "start_ms": 25,
+            "end_ms": 312,
+            "start_char": 0,
+            "end_char": 4
+          },
+          {
+            "index": 1,
+            "text": "freely",
+            "start_ms": 312,
+            "end_ms": 675,
+            "start_char": 5,
+            "end_char": 11
+          },
+          {
+            "index": 2,
+            "text": "with",
+            "start_ms": 675,
+            "end_ms": 875,
+            "start_char": 12,
+            "end_char": 16
+          },
+          {
+            "index": 3,
+            "text": "your",
+            "start_ms": 875,
+            "end_ms": 1050,
+            "start_char": 17,
+            "end_char": 21
+          },
+          {
+            "index": 4,
+            "text": "English",
+            "start_ms": 1050,
+            "end_ms": 1487,
+            "start_char": 22,
+            "end_char": 29
+          },
+          {
+            "index": 5,
+            "text": "tutor",
+            "start_ms": 1487,
+            "end_ms": 1887,
+            "start_char": 30,
+            "end_char": 35
+          }
+        ],
+        "source_paths": [
+          "chat.coachChatbotSubtitle:1"
+        ]
+      },
+      "Talk with other learners.": {
+        "audio_url": "assets/app-copy-audio/audio/en/4453159383ce6ba5.mp3",
+        "locale": "en-US",
+        "text": "Talk with other learners.",
+        "generated_at": "2026-06-17T15:39:37.869Z",
+        "hash": "dc9bf2db9f2f6a6f6cf4c9c4a2bef24511e57405",
+        "duration_ms": 1352,
+        "voice": "Danielle",
+        "engine": "neural",
+        "rate": "",
+        "pitch": "",
+        "voice_profile": "default",
+        "words": [
+          {
+            "index": 0,
+            "text": "Talk",
+            "start_ms": 25,
+            "end_ms": 337,
+            "start_char": 0,
+            "end_char": 4
+          },
+          {
+            "index": 1,
+            "text": "with",
+            "start_ms": 337,
+            "end_ms": 487,
+            "start_char": 5,
+            "end_char": 9
+          },
+          {
+            "index": 2,
+            "text": "other",
+            "start_ms": 487,
+            "end_ms": 712,
+            "start_char": 10,
+            "end_char": 15
+          },
+          {
+            "index": 3,
+            "text": "learners",
+            "start_ms": 712,
+            "end_ms": 1352,
+            "start_char": 16,
+            "end_char": 24
+          }
+        ],
+        "source_paths": [
+          "chat.coachCommunitySubtitle:1"
+        ]
+      },
+      "Talk privately with other users.": {
+        "audio_url": "assets/app-copy-audio/audio/en/ee1f073adeabd1be.mp3",
+        "locale": "en-US",
+        "text": "Talk privately with other users.",
+        "generated_at": "2026-06-17T15:39:38.487Z",
+        "hash": "21b69adf9833455d5c559d49e58e3a9c7cb81928",
+        "duration_ms": 1625,
+        "voice": "Danielle",
+        "engine": "neural",
+        "rate": "",
+        "pitch": "",
+        "voice_profile": "default",
+        "words": [
+          {
+            "index": 0,
+            "text": "Talk",
+            "start_ms": 25,
+            "end_ms": 300,
+            "start_char": 0,
+            "end_char": 4
+          },
+          {
+            "index": 1,
+            "text": "privately",
+            "start_ms": 300,
+            "end_ms": 787,
+            "start_char": 5,
+            "end_char": 14
+          },
+          {
+            "index": 2,
+            "text": "with",
+            "start_ms": 787,
+            "end_ms": 1012,
+            "start_char": 15,
+            "end_char": 19
+          },
+          {
+            "index": 3,
+            "text": "other",
+            "start_ms": 1012,
+            "end_ms": 1225,
+            "start_char": 20,
+            "end_char": 25
+          },
+          {
+            "index": 4,
+            "text": "users",
+            "start_ms": 1225,
+            "end_ms": 1625,
+            "start_char": 26,
+            "end_char": 31
+          }
+        ],
+        "source_paths": [
+          "chat.coachPrivateSubtitle:1"
+        ]
+      },
+      "Please sign in to continue.": {
+        "audio_url": "assets/app-copy-audio/audio/en/20fc66176e778f49.mp3",
+        "locale": "en-US",
+        "text": "Please sign in to continue.",
+        "generated_at": "2026-06-17T15:39:39.212Z",
+        "hash": "49567ad3d6fb38d6e3e524d7655db70efd7885e3",
+        "duration_ms": 1540,
+        "voice": "Danielle",
+        "engine": "neural",
+        "rate": "",
+        "pitch": "",
+        "voice_profile": "default",
+        "words": [
+          {
+            "index": 0,
+            "text": "Please",
+            "start_ms": 25,
+            "end_ms": 312,
+            "start_char": 0,
+            "end_char": 6
+          },
+          {
+            "index": 1,
+            "text": "sign",
+            "start_ms": 312,
+            "end_ms": 625,
+            "start_char": 7,
+            "end_char": 11
+          },
+          {
+            "index": 2,
+            "text": "in",
+            "start_ms": 625,
+            "end_ms": 787,
+            "start_char": 12,
+            "end_char": 14
+          },
+          {
+            "index": 3,
+            "text": "to",
+            "start_ms": 787,
+            "end_ms": 900,
+            "start_char": 15,
+            "end_char": 17
+          },
+          {
+            "index": 4,
+            "text": "continue",
+            "start_ms": 900,
+            "end_ms": 1540,
+            "start_char": 18,
+            "end_char": 26
+          }
+        ],
+        "source_paths": [
+          "profile.loginSubtitle:1"
         ]
       }
     }

@@ -192,6 +192,16 @@ if [[ -z "$REMOTE_VERSION" ]]; then
   exit 1
 fi
 
+REMOTE_RELEASE_ID="$(json_read_field "$META_RESP" release.id || true)"
+REMOTE_RELEASE_NAME="$(json_read_field "$META_RESP" release.name || true)"
+REMOTE_RELEASE_SOURCE="$(json_read_field "$META_RESP" release.source || true)"
+
+echo "   Remote version: $REMOTE_VERSION"
+if [[ -n "$REMOTE_RELEASE_ID" || -n "$REMOTE_RELEASE_NAME" || -n "$REMOTE_RELEASE_SOURCE" ]]; then
+  echo "   Remote release: id=${REMOTE_RELEASE_ID:-n/a} name=${REMOTE_RELEASE_NAME:-n/a} source=${REMOTE_RELEASE_SOURCE:-n/a}"
+fi
+echo "   Local bundle version: ${LOCAL_VERSION:-n/a}"
+
 NEED_JSON_DOWNLOAD=1
 if [[ -n "$LOCAL_VERSION" && "$LOCAL_VERSION" == "$REMOTE_VERSION" ]]; then
   NEED_JSON_DOWNLOAD=0
@@ -224,15 +234,22 @@ NODE
     cd "$REPO_ROOT"
     npm run sync:training-data-meta
   )
+  LOCAL_VERSION="$(extract_version_from_meta "$LOCAL_META" || true)"
 fi
 
-echo "3/4 Build app-copy narration audio bundle"
+echo "3/5 Build app-copy narration audio bundle"
 (
   cd "$REPO_ROOT"
   npm run sync:app-copy-audio
 )
 
-echo "4/4 Build speak video bundle"
+echo "4/5 Build speak session audio bundle"
+(
+  cd "$REPO_ROOT"
+  npm run sync:speak-session-audio
+)
+
+echo "5/5 Build speak video bundle"
 (
   cd "$REPO_ROOT"
   npm run sync:speak-videos
@@ -242,4 +259,8 @@ if [[ "$NEED_JSON_DOWNLOAD" == "0" ]]; then
   echo "   Already up to date: $REMOTE_VERSION"
 else
   echo "   Synced: $REMOTE_VERSION"
+  echo "   Local bundle version after sync: ${LOCAL_VERSION:-n/a}"
+  if [[ -n "$LOCAL_VERSION" && "$LOCAL_VERSION" != "$REMOTE_VERSION" ]]; then
+    echo "   WARNING: local bundle version does not match remote version" >&2
+  fi
 fi

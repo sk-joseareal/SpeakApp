@@ -2577,7 +2577,7 @@ class PageFreeRide extends HTMLElement {
         return `${trimmed.slice(0, -5)}/tts/aligned`;
       }
     }
-    return 'https://realtime.curso-ingles.com/realtime/tts/aligned';
+    return 'https://api.curso-ingles.com/realtime/tts/aligned';
   }
 
   buildAlignedTtsHeaders() {

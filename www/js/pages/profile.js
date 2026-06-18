@@ -11,7 +11,7 @@ import {
   getLocalizedReferenceTestValue,
   getReferenceTestCourses
 } from '../data/reference-tests.js';
-import { getNextLocaleCode, getProfileCopy, getTabsCopy, resolveLocale } from '../content/copy.js';
+import { getAppCopyNarrationPayload, getNextLocaleCode, getProfileCopy, getTabsCopy, resolveLocale } from '../content/copy.js';
 import { goToSpeak } from '../nav.js';
 import {
   HERO_MASCOT_FRAMES as PROFILE_AUTH_MASCOT_FRAMES,
@@ -269,7 +269,7 @@ class PageProfile extends HTMLElement {
       const trimmed = emitEndpoint.trim().replace(/\/+$/, '');
       if (trimmed.endsWith('/emit')) return `${trimmed.slice(0, -5)}/tts/aligned`;
     }
-    return 'https://realtime.curso-ingles.com/realtime/tts/aligned';
+    return 'https://api.curso-ingles.com/realtime/tts/aligned';
   }
 
   buildAlignedTtsHeaders() {
@@ -460,19 +460,11 @@ class PageProfile extends HTMLElement {
   async playAuthNarrationAligned(text, lang, token, hooks = {}, ttsOptions = {}) {
     const lineText = String(text || '').trim();
     if (!lineText || token !== this.authNarrationToken) return false;
-    let payload = null;
-    try {
-      payload = await this.fetchAuthAlignedTts(lineText, lang, ttsOptions);
-    } catch (_err) {
-      payload = null;
-    }
-    if (!payload && ttsOptions && Object.keys(ttsOptions).length) {
-      try {
-        payload = await this.fetchAuthAlignedTts(lineText, lang);
-      } catch (_err) {
-        payload = null;
-      }
-    }
+    const localeCode = String(lang || '')
+      .trim()
+      .toLowerCase()
+      .split('-')[0] || 'en';
+    const payload = getAppCopyNarrationPayload(localeCode, lineText);
     if (!payload || token !== this.authNarrationToken) return false;
     const audioUrl = String(payload.audio_url || '').trim();
     if (!audioUrl) return false;

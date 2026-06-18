@@ -1600,7 +1600,10 @@ const guardSpeakSyncInFlight = () => {
 };
 
 const scheduleSpeakSync = (opts = {}) => {
-  if (speakSyncTimer) return;
+  if (speakSyncTimer) {
+    clearTimeout(speakSyncTimer);
+    speakSyncTimer = null;
+  }
   speakSyncTimer = setTimeout(() => {
     speakSyncTimer = null;
     window.syncSpeakProgress({ reason: 'debounce', ...opts });
@@ -1610,7 +1613,7 @@ const scheduleSpeakSync = (opts = {}) => {
 window.flushSpeakSync = (reason = 'flush') => {
   cancelSpeakSyncTimer();
   if (typeof window.syncSpeakProgress !== 'function') return;
-  window.syncSpeakProgress({ reason, force: true, includeSnapshot: true }).catch(() => {});
+  window.syncSpeakProgress({ reason, force: true }).catch(() => {});
 };
 
 window.queueSpeakEvent = (event) => {
@@ -1664,9 +1667,6 @@ window.syncSpeakProgress = async (opts = {}) => {
     opts.includeSnapshot === true ||
     (opts.includeSnapshotOnOwnerChange && ownerChanged) ||
     (opts.includeSnapshotIfEmpty && !hasSnapshotData);
-  if (opts.force && hasSnapshotData) {
-    includeSnapshot = true;
-  }
 
   if (!batch.length && !includeSnapshot) return { ok: false, skipped: 'empty' };
 

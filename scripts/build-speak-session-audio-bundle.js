@@ -17,7 +17,7 @@ const manifestPath = path.join(speakappRoot, 'www', 'data', 'speak-audio.json');
 const endpoint =
   (process.env.SPEAK_SESSION_TTS_ENDPOINT ||
     process.env.REALTIME_TTS_ENDPOINT ||
-    'https://realtime.curso-ingles.com/realtime/tts/aligned').trim();
+    'https://api.curso-ingles.com/realtime/tts/aligned').trim();
 const token =
   (process.env.SPEAK_SESSION_TTS_TOKEN ||
     process.env.RT_TOKEN ||

@@ -1119,18 +1119,20 @@ class PageChat extends HTMLElement {
 
 	    const resolveAlignedTtsEndpoint = () => {
 	      const cfg = window.realtimeConfig || {};
-	      const direct = cfg.ttsAlignedEndpoint || window.REALTIME_TTS_ALIGNED_ENDPOINT;
-	      if (typeof direct === 'string' && direct.trim()) {
-	        return direct.trim();
-	      }
-	      const emitEndpoint = cfg.emitEndpoint;
-	      if (typeof emitEndpoint === 'string' && emitEndpoint.trim()) {
-	        const trimmed = emitEndpoint.trim().replace(/\/+$/, '');
-	        if (trimmed.endsWith('/emit')) {
-	          return `${trimmed.slice(0, -5)}/tts/aligned`;
-	        }
-	      }
-	      return 'https://api.curso-ingles.com/realtime/tts/aligned';
+	      const apiBase =
+	        (window.env === 'PRO' ? window.apiPRO : window.apiDEV) ||
+	        window.apiPRO ||
+	        window.apiDEV ||
+	        'https://api.curso-ingles.com';
+      const direct = cfg.ttsAlignedEndpoint || window.REALTIME_TTS_ALIGNED_ENDPOINT;
+      if (typeof direct === 'string' && direct.trim()) {
+        const trimmed = direct.trim();
+        if (trimmed.endsWith('/tts/aligned')) {
+          return `${apiBase}/realtime/tts/aligned`;
+        }
+        return trimmed;
+      }
+	      return `${apiBase}/realtime/tts/aligned`;
 	    };
 
 		    const getRealtimeStateToken = () => {

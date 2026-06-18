@@ -15,7 +15,7 @@ const inputPath = process.argv[2];
 const outputPath = process.argv[3];
 const force = process.argv.includes('--force');
 
-const DEFAULT_TTS_ENDPOINT = 'https://realtime.curso-ingles.com/realtime/tts/aligned';
+const DEFAULT_TTS_ENDPOINT = 'https://api.curso-ingles.com/realtime/tts/aligned';
 const DEFAULT_TTS_TOKEN = 'ca6c8ad7c431233c1d891f2bd9eebc1dbb0de269c690de994e2313b8c7e7a50';
 
 if (!inputPath || !outputPath) {

@@ -15,7 +15,7 @@ const endpoint =
   (process.env.APP_COPY_TTS_ENDPOINT ||
     process.env.TTS_ENDPOINT ||
     process.env.REALTIME_TTS_ENDPOINT ||
-    'https://realtime.curso-ingles.com/realtime/tts/aligned').trim();
+    'https://api.curso-ingles.com/realtime/tts/aligned').trim();
 const token =
   (process.env.APP_COPY_TTS_TOKEN ||
     process.env.RT_TOKEN ||

@@ -461,7 +461,7 @@ private final class LabAlignedTTSClient {
         }
     }
 
-    private let endpoint = URL(string: "https://realtime.curso-ingles.com/realtime/tts/aligned")!
+    private let endpoint = URL(string: "https://api.curso-ingles.com/realtime/tts/aligned")!
     private let token = RealtimeEnvironment.stateToken
     private let decoder = JSONDecoder()
     private let cache = NSCache<NSString, NSData>()

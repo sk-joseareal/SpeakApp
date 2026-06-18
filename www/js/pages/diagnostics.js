@@ -3020,6 +3020,17 @@ class PageDiagnostics extends HTMLElement {
       minimumFractionDigits: 6,
       maximumFractionDigits: 6
     });
+    const getApiBase = () => {
+      const cfg = window.realtimeConfig || {};
+      const direct = window.env === 'PRO' ? window.apiPRO : window.apiDEV;
+      const fallback =
+        typeof direct === 'string' && direct.trim()
+          ? direct.trim()
+          : typeof cfg.apiBase === 'string' && cfg.apiBase.trim()
+            ? cfg.apiBase.trim()
+            : 'https://api.curso-ingles.com';
+      return fallback.replace(/\/+$/, '');
+    };
 
     const formatUsageDate = (value) => {
       if (!value) return '';
@@ -3318,17 +3329,10 @@ class PageDiagnostics extends HTMLElement {
       if (typeof ttsAligned === 'string' && ttsAligned.trim()) {
         const trimmed = ttsAligned.trim().replace(/\/+$/, '');
         if (trimmed.endsWith('/tts/aligned')) {
-          return `${trimmed.slice(0, -12)}/tts/usage/daily`;
+          return `${getApiBase()}/realtime/tts/usage/daily`;
         }
       }
-      const emitEndpoint = cfg.emitEndpoint;
-      if (typeof emitEndpoint === 'string' && emitEndpoint.trim()) {
-        const trimmed = emitEndpoint.trim().replace(/\/+$/, '');
-        if (trimmed.endsWith('/emit')) {
-          return `${trimmed.slice(0, -5)}/tts/usage/daily`;
-        }
-      }
-      return '';
+      return `${getApiBase()}/realtime/tts/usage/daily`;
     };
 
     const resolveTtsUsageLimitEndpoint = () => {
@@ -3339,7 +3343,7 @@ class PageDiagnostics extends HTMLElement {
       if (dailyEndpoint) {
         return dailyEndpoint.replace(/\/daily$/, '/limit');
       }
-      return '';
+      return `${getApiBase()}/realtime/tts/usage/limit`;
     };
 
     const updateTtsUsageLimitStatus = (text) => {

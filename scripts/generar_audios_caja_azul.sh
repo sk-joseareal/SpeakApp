@@ -1,5 +1,5 @@
 RT_TOKEN="ca6c8ad7c431233c1d891f2bd9eebc1dbb0de269c690de994e2313b8c7e7a50"
-TTS_ENDPOINT="https://realtime.curso-ingles.com/realtime/tts/aligned"
+TTS_ENDPOINT="https://api.curso-ingles.com/realtime/tts/aligned"
 
 gen () {
   local locale="$1"
@@ -24,4 +24,3 @@ gen () {
 # Referencia
 gen en-US "Explora cursos, unidades y lecciones para consultar contenido."
 gen es-ES "Browse courses, units, and lessons to review content."
-

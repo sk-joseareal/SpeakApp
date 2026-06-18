@@ -21,7 +21,7 @@ private struct ChatRealtimeConfig {
         forceTLS: true,
         authEndpoint: URL(string: "https://realtime.curso-ingles.com/realtime/auth")!,
         emitEndpoint: URL(string: "https://realtime.curso-ingles.com/realtime/emit")!,
-        ttsAlignedEndpoint: URL(string: "https://realtime.curso-ingles.com/realtime/tts/aligned")!,
+        ttsAlignedEndpoint: URL(string: "https://api.curso-ingles.com/realtime/tts/aligned")!,
         stateToken: RealtimeEnvironment.stateToken,
         channelType: "private",
         channelPrefix: "coach",

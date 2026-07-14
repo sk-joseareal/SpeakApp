@@ -17,6 +17,10 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     // vertical jumps during splash/app handoff.
     private let legacyManualWebViewFrameStatusbarFixEnabled = false
 
+    private func applyStoredDisplayZoomCompensation(reason: String) {
+        print(">#N00#> AppDelegate displayZoomCompensation: webScale mode only (\(reason)).")
+    }
+
     private func applyLaunchChrome() {
         self.window?.backgroundColor = launchBlue
         if let bridgeVC = self.window?.rootViewController as? CAPBridgeViewController {
@@ -177,6 +181,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         }
 
         FirebaseApp.configure()
+        applyStoredDisplayZoomCompensation(reason: "didFinishLaunching")
                
         return true
     }
@@ -203,6 +208,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         configureAmbientAudioSession(active: true)
         clearApplicationBadge(reason: "didBecomeActive")
         clearNowPlayingState()
+        applyStoredDisplayZoomCompensation(reason: "didBecomeActive")
     }
 
     func applicationWillTerminate(_ application: UIApplication) {

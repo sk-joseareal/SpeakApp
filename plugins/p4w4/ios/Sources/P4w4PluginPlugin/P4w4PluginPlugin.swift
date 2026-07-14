@@ -1,6 +1,7 @@
 import Foundation
 import Capacitor
 import UIKit
+import WebKit
 import UserNotifications
 import Speech
 import AudioToolbox
@@ -20,6 +21,10 @@ public class P4w4PluginPlugin: CAPPlugin, CAPBridgedPlugin {
     public let identifier = "P4w4PluginPlugin"
     public let jsName = "P4w4Plugin"
     private let transparentChromeBackdropColor = UIColor(red: 167.0 / 255.0, green: 198.0 / 255.0, blue: 247.0 / 255.0, alpha: 1.0)
+    public static let nativeChromePrefs = "p4w4_native_chrome"
+    public static let prefDisplayZoomCompensationEnabled = "displayZoomCompensationEnabled"
+    public static let prefDisplayZoomCompensationFactor = "displayZoomCompensationFactor"
+    public static let defaultDisplayZoomCompensationFactor = 0.92
     public let pluginMethods: [CAPPluginMethod] = [
         CAPPluginMethod(name: "echo", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "reverse", returnType: CAPPluginReturnPromise),
@@ -27,6 +32,8 @@ public class P4w4PluginPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "offsetTopWebView", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "getStatusBarHeight", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "getSystemInsets", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "getDisplayZoomCompensationInfo", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "setDisplayZoomCompensation", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "setNativeChrome", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "detectLanguage", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "getTranslationStatus", returnType: CAPPluginReturnPromise),
@@ -47,6 +54,61 @@ public class P4w4PluginPlugin: CAPPlugin, CAPBridgedPlugin {
     private var translationBridgeHost: UIViewController?
     private var translationBridgeModel: AnyObject?
     #endif
+
+    private static func normalizedDisplayZoomCompensationFactor(_ value: Double?) -> Double {
+        let candidate = value ?? defaultDisplayZoomCompensationFactor
+        guard candidate.isFinite else { return defaultDisplayZoomCompensationFactor }
+        return min(1.0, max(0.5, candidate))
+    }
+
+    private static func displayZoomPreferences() -> UserDefaults {
+        return UserDefaults.standard
+    }
+
+    public static func storedDisplayZoomCompensationEnabled() -> Bool {
+        return displayZoomPreferences().bool(forKey: prefDisplayZoomCompensationEnabled)
+    }
+
+    public static func storedDisplayZoomCompensationFactor() -> Double {
+        let prefs = displayZoomPreferences()
+        if prefs.object(forKey: prefDisplayZoomCompensationFactor) == nil {
+            return defaultDisplayZoomCompensationFactor
+        }
+        return normalizedDisplayZoomCompensationFactor(prefs.double(forKey: prefDisplayZoomCompensationFactor))
+    }
+
+    public static func persistDisplayZoomCompensation(enabled: Bool, factor: Double?) {
+        let prefs = displayZoomPreferences()
+        prefs.set(enabled, forKey: prefDisplayZoomCompensationEnabled)
+        prefs.set(normalizedDisplayZoomCompensationFactor(factor), forKey: prefDisplayZoomCompensationFactor)
+    }
+
+    private func buildDisplayZoomCompensationInfo(applied: Bool? = nil) -> [String: Any] {
+        let enabled = Self.storedDisplayZoomCompensationEnabled()
+        let factor = Self.storedDisplayZoomCompensationFactor()
+        let screen = UIScreen.main
+        let webView = self.bridge?.webView
+        let currentZoom = 1.0
+        let supported = true
+        return [
+            "supported": supported,
+            "enabled": enabled,
+            "applied": applied ?? enabled,
+            "factor": factor,
+            "currentZoom": currentZoom,
+            "mode": "webScale",
+            "platform": "ios",
+            "osVersion": UIDevice.current.systemVersion,
+            "screenScale": Double(screen.scale),
+            "screenNativeScale": Double(screen.nativeScale),
+            "screenWidthPoints": Double(screen.bounds.width),
+            "screenHeightPoints": Double(screen.bounds.height),
+            "nativeScreenWidthPx": Double(screen.nativeBounds.width),
+            "nativeScreenHeightPx": Double(screen.nativeBounds.height),
+            "webViewWidth": Double(webView?.bounds.width ?? 0),
+            "webViewHeight": Double(webView?.bounds.height ?? 0)
+        ]
+    }
 
     @objc func echo(_ call: CAPPluginCall) {
         let value = call.getString("value") ?? ""
@@ -182,6 +244,17 @@ public class P4w4PluginPlugin: CAPPlugin, CAPBridgedPlugin {
             "platform": "ios",
             "osVersion": osVersion
         ])
+    }
+
+    @objc func getDisplayZoomCompensationInfo(_ call: CAPPluginCall) {
+        call.resolve(buildDisplayZoomCompensationInfo())
+    }
+
+    @objc func setDisplayZoomCompensation(_ call: CAPPluginCall) {
+        let enabled = call.getBool("enabled") ?? false
+        let factor = Self.normalizedDisplayZoomCompensationFactor(call.getDouble("factor"))
+        Self.persistDisplayZoomCompensation(enabled: enabled, factor: factor)
+        call.resolve(self.buildDisplayZoomCompensationInfo(applied: true))
     }
 
     private func colorFromHex(_ rawValue: String) -> UIColor? {

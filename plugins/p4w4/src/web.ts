@@ -1,6 +1,7 @@
 import { WebPlugin } from '@capacitor/core';
 
 import type {
+  P4w4DisplayZoomCompensationInfo,
   P4w4LanguageDetectionResult,
   P4w4PluginPlugin,
   P4w4TranslationResult,
@@ -91,6 +92,30 @@ export class P4w4PluginWeb extends WebPlugin implements P4w4PluginPlugin {
 
   async getSystemInsets(): Promise<{ top: number; right: number; bottom: number; left: number; platform?: string; osVersion?: string }> {
     return { top: 0, right: 0, bottom: 0, left: 0, platform: 'web', osVersion: '' };
+  }
+
+  async getDisplayZoomCompensationInfo(): Promise<P4w4DisplayZoomCompensationInfo> {
+    return {
+      supported: false,
+      enabled: false,
+      applied: false,
+      factor: 0.92,
+      mode: 'unsupported',
+      platform: 'web',
+      osVersion: ''
+    };
+  }
+
+  async setDisplayZoomCompensation(options: { enabled: boolean; factor?: number }): Promise<P4w4DisplayZoomCompensationInfo> {
+    return {
+      supported: false,
+      enabled: Boolean(options && options.enabled),
+      applied: false,
+      factor: Number.isFinite(Number(options && options.factor)) ? Number(options.factor) : 0.92,
+      mode: 'unsupported',
+      platform: 'web',
+      osVersion: ''
+    };
   }
 
   async playNotificationBell(_options?: { soundId?: number; durationMs?: number; vibrate?: boolean }): Promise<{ started?: boolean; stream?: number; vibrated?: boolean; mode?: string } | void> {

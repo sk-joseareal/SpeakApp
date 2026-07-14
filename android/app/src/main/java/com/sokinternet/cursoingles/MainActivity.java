@@ -17,6 +17,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
+import android.webkit.WebView;
 
 import com.getcapacitor.BridgeActivity;
 import com.getcapacitor.Plugin;
@@ -57,6 +58,14 @@ public class MainActivity extends BridgeActivity {
             return prefs.getBoolean(P4w4PluginPlugin.PREF_LEGACY_CHROME_DEBUG, false);
         } catch (Exception error) {
             return false;
+        }
+    }
+
+    private void applyStoredDisplayZoomCompensation(String reason) {
+        try {
+            Log.i(">#N00#> MainActivity", "applyStoredDisplayZoomCompensation reason=" + reason + " mode=webScale");
+        } catch (Exception error) {
+            Log.e(">#N00#> MainActivity", "applyStoredDisplayZoomCompensation error reason=" + reason + " " + error.getMessage());
         }
     }
 
@@ -382,6 +391,7 @@ public class MainActivity extends BridgeActivity {
             // Keep legacy Android pinned to edge-to-edge from the first frame.
             WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
             applyTransparentStatusBarChrome("onCreate-legacy");
+            applyStoredDisplayZoomCompensation("onCreate-legacy");
             installLegacyInsetsLogger();
             installLegacyWebViewLayoutWatcher();
             installLegacyWebViewInsetsMargins();
@@ -390,6 +400,7 @@ public class MainActivity extends BridgeActivity {
         }
 
         applyTransparentStatusBarChrome("onCreate");
+        applyStoredDisplayZoomCompensation("onCreate");
     }
 
     @Override
@@ -443,12 +454,14 @@ public class MainActivity extends BridgeActivity {
             // otherwise shrink the visible frame and recut the bottom of the page.
             WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
             installLegacyWebViewLayoutWatcher();
+            getWindow().getDecorView().post(() -> applyStoredDisplayZoomCompensation("onResume-legacy"));
             getWindow().getDecorView().post(() -> reapplyStoredChrome("onResume-legacy"));
             getWindow().getDecorView().postDelayed(() -> reapplyStoredChrome("onResume-legacy+250"), 250);
             getWindow().getDecorView().postDelayed(() -> reapplyStoredChrome("onResume-legacy+900"), 900);
             logLegacyWindowState("onResume-legacy");
             return;
         }
+        getWindow().getDecorView().post(() -> applyStoredDisplayZoomCompensation("onResume"));
         getWindow().getDecorView().post(() -> reapplyStoredChrome("onResume"));
         getWindow().getDecorView().postDelayed(() -> reapplyStoredChrome("onResume+250"), 250);
         getWindow().getDecorView().postDelayed(() -> reapplyStoredChrome("onResume+900"), 900);
@@ -462,6 +475,7 @@ public class MainActivity extends BridgeActivity {
             WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
             installLegacyWebViewLayoutWatcher();
             if (hasFocus) {
+                getWindow().getDecorView().post(() -> applyStoredDisplayZoomCompensation("onWindowFocusChanged-legacy"));
                 getWindow().getDecorView().post(() -> reapplyStoredChrome("onWindowFocusChanged-legacy"));
             }
             if (hasFocus) {
@@ -470,6 +484,7 @@ public class MainActivity extends BridgeActivity {
             return;
         }
         if (hasFocus) {
+            getWindow().getDecorView().post(() -> applyStoredDisplayZoomCompensation("onWindowFocusChanged"));
             getWindow().getDecorView().post(() -> reapplyStoredChrome("onWindowFocusChanged"));
         }
     }

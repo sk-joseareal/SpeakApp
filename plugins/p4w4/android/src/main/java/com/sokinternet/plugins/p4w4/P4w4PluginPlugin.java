@@ -24,6 +24,7 @@ import android.os.Build;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
 import android.os.VibratorManager;
+import android.util.DisplayMetrics;
 
 import android.webkit.WebView;
 import android.content.SharedPreferences;
@@ -71,6 +72,9 @@ public class P4w4PluginPlugin extends Plugin {
     public static final String PREF_BG = "backgroundColor";
     public static final String PREF_LIGHT_ICONS = "lightIcons";
     public static final String PREF_LEGACY_CHROME_DEBUG = "legacyChromeDebug";
+    public static final String PREF_DISPLAY_ZOOM_COMPENSATION_ENABLED = "displayZoomCompensationEnabled";
+    public static final String PREF_DISPLAY_ZOOM_COMPENSATION_FACTOR = "displayZoomCompensationFactor";
+    public static final int DEFAULT_DISPLAY_ZOOM_COMPENSATION_TEXT_ZOOM = 92;
     private static final String LEGACY_STATUSBAR_COLOR = "#A7C6F7";
     private static final String LEGACY_NAVBAR_COLOR = "#EEF3FF";
     private static final String LEGACY_TEST_WINDOW_COLOR = "#00ffff";
@@ -99,6 +103,57 @@ public class P4w4PluginPlugin extends Plugin {
         } catch (Exception error) {
             return false;
         }
+    }
+
+    private int normalizeDisplayZoomCompensationTextZoom(double factor) {
+        if (Double.isNaN(factor) || Double.isInfinite(factor)) {
+            return DEFAULT_DISPLAY_ZOOM_COMPENSATION_TEXT_ZOOM;
+        }
+        int textZoom = (int) Math.round(factor * 100.0d);
+        return Math.max(50, Math.min(100, textZoom));
+    }
+
+    private int getStoredDisplayZoomCompensationTextZoom(SharedPreferences prefs) {
+        String raw = prefs.getString(PREF_DISPLAY_ZOOM_COMPENSATION_FACTOR, "");
+        if (raw == null || raw.trim().isEmpty()) {
+            return DEFAULT_DISPLAY_ZOOM_COMPENSATION_TEXT_ZOOM;
+        }
+        try {
+            return normalizeDisplayZoomCompensationTextZoom(Double.parseDouble(raw));
+        } catch (Exception error) {
+            return DEFAULT_DISPLAY_ZOOM_COMPENSATION_TEXT_ZOOM;
+        }
+    }
+
+    private JSObject buildDisplayZoomCompensationInfo(Boolean appliedOverride) {
+        SharedPreferences prefs = getContext().getSharedPreferences(NATIVE_CHROME_PREFS, Context.MODE_PRIVATE);
+        boolean enabled = prefs.getBoolean(PREF_DISPLAY_ZOOM_COMPENSATION_ENABLED, false);
+        int textZoom = getStoredDisplayZoomCompensationTextZoom(prefs);
+        double factor = textZoom / 100.0d;
+        DisplayMetrics metrics = getContext().getResources().getDisplayMetrics();
+        android.content.res.Configuration configuration = getContext().getResources().getConfiguration();
+        WebView webView = bridge != null && bridge.getWebView() instanceof WebView ? (WebView) bridge.getWebView() : null;
+
+        JSObject ret = new JSObject();
+        ret.put("supported", true);
+        ret.put("enabled", enabled);
+        ret.put("applied", appliedOverride != null ? appliedOverride.booleanValue() : enabled);
+        ret.put("factor", factor);
+        ret.put("textZoom", 100);
+        ret.put("currentZoom", 1.0d);
+        ret.put("mode", "webScale");
+        ret.put("platform", "android");
+        ret.put("osVersion", String.valueOf(Build.VERSION.SDK_INT));
+        ret.put("fontScale", configuration.fontScale);
+        ret.put("density", metrics.density);
+        ret.put("scaledDensity", metrics.scaledDensity);
+        ret.put("screenWidthPx", metrics.widthPixels);
+        ret.put("screenHeightPx", metrics.heightPixels);
+        ret.put("screenWidthPoints", configuration.screenWidthDp);
+        ret.put("screenHeightPoints", configuration.screenHeightDp);
+        ret.put("webViewWidth", webView != null ? webView.getWidth() : 0);
+        ret.put("webViewHeight", webView != null ? webView.getHeight() : 0);
+        return ret;
     }
 
     private void applyStatusBarIcons(android.view.Window window, boolean lightIcons) {
@@ -390,6 +445,32 @@ public class P4w4PluginPlugin extends Plugin {
         }
 
         call.resolve(ret);
+    }
+
+    @PluginMethod
+    public void getDisplayZoomCompensationInfo(PluginCall call) {
+        call.resolve(buildDisplayZoomCompensationInfo(null));
+    }
+
+    @PluginMethod
+    public void setDisplayZoomCompensation(PluginCall call) {
+        boolean enabled = call.getBoolean("enabled", false);
+        double factor = call.getDouble("factor", DEFAULT_DISPLAY_ZOOM_COMPENSATION_TEXT_ZOOM / 100.0d);
+        int textZoom = normalizeDisplayZoomCompensationTextZoom(factor);
+        getActivity().runOnUiThread(() -> {
+            try {
+                SharedPreferences prefs = getContext().getSharedPreferences(NATIVE_CHROME_PREFS, Context.MODE_PRIVATE);
+                prefs.edit()
+                    .putBoolean(PREF_DISPLAY_ZOOM_COMPENSATION_ENABLED, enabled)
+                    .putString(PREF_DISPLAY_ZOOM_COMPENSATION_FACTOR, String.valueOf(textZoom / 100.0d))
+                    .apply();
+                boolean applied = true;
+                Log.i("P4w4Plugin", ">#P4w4Plugin#> displayZoomCompensation stored: enabled=" + enabled + " factor=" + (textZoom / 100.0d) + " mode=webScale");
+                call.resolve(buildDisplayZoomCompensationInfo(Boolean.valueOf(applied)));
+            } catch (Exception error) {
+                call.reject("Error aplicando display zoom compensation.", error);
+            }
+        });
     }
 
     @PluginMethod

@@ -859,6 +859,16 @@ class PageProfile extends HTMLElement {
     this.setProfileSheetExpanded(!this.profileSheetExpanded, options);
   }
 
+  handleProfileSheetHandleClick(event) {
+    this.profileSheetController.state.expanded = this.profileSheetExpanded;
+    this.profileSheetController.state.offset = this.profileSheetExpandedOffset;
+    this.profileSheetController.handleClick(event);
+    this.profileSheetExpanded = this.profileSheetController.state.expanded;
+    this.profileSheetExpandedOffset = this.profileSheetController.state.offset;
+    this.profileSheetTranslateY = this.profileSheetController.state.translateY;
+    this.profileSheetDragging = this.profileSheetController.state.dragging;
+  }
+
   startProfileSheetDrag(event) {
     this.profileSheetController.state.expanded = this.profileSheetExpanded;
     this.profileSheetController.state.offset = this.profileSheetExpandedOffset;
@@ -911,12 +921,14 @@ class PageProfile extends HTMLElement {
       this.cancelProfileSheetDrag();
     });
     handleEl.addEventListener('click', (e) => {
-      e.preventDefault();
+      this.handleProfileSheetHandleClick(e);
     });
     handleEl.addEventListener('keydown', (e) => {
-      if (e.key !== 'Enter' && e.key !== ' ') return;
-      e.preventDefault();
-      this.toggleProfileSheet({ animate: true });
+      this.profileSheetController.handleKeyDown(e);
+      this.profileSheetExpanded = this.profileSheetController.state.expanded;
+      this.profileSheetExpandedOffset = this.profileSheetController.state.offset;
+      this.profileSheetTranslateY = this.profileSheetController.state.translateY;
+      this.profileSheetDragging = this.profileSheetController.state.dragging;
     });
     this.profileSheetExpandedOffset = this.measureProfileSheetExpandedOffset();
     this.applyProfileSheetState({ animate: false, force: true });
@@ -1576,7 +1588,7 @@ class PageProfile extends HTMLElement {
     const phraseScoresStore =
       window.r34lp0w3r && window.r34lp0w3r.speakPhraseScores ? window.r34lp0w3r.speakPhraseScores : {};
     const user = window.user;
-    const showReferenceProgress = isPremiumUser(user);
+    const showReferenceProgress = isPremiumUser(user) || Boolean(window.r34lp0w3r && window.r34lp0w3r.referenceTabEnabled);
     const rawLocaleSetting = resolveLocale(
       getActiveLocale() || (window.varGlobal && window.varGlobal.locale) || 'es',
       'es'
@@ -2464,7 +2476,7 @@ class PageProfile extends HTMLElement {
     const userDisplayName = escapeHtml(
       getUserDisplayName(user) || profileCopy.userFallbackName || 'Usuario'
     );
-    const premiumBadgeMarkup = showReferenceProgress ? '<div class="profile-hero-premium">Premium</div>' : '';
+    const premiumBadgeMarkup = isPremiumUser(user) ? '<div class="profile-hero-premium">Premium</div>' : '';
     const authMascotSrc = this.getAuthMascotFramePath(this.authMascotFrameIndex);
     const authBubbleText = escapeHtml(
       profileCopy.loginSubtitle || 'Debes iniciar sesión para ver tu perfil.'

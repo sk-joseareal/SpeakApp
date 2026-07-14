@@ -217,7 +217,6 @@
           "hint_es_line2": "",
           "phonetic": "P sound in PEN",
           "expected": "pen",
-          "expected_es": "bolígrafo",
           "tts": {
             "en": {
               "line1": {
@@ -266,12 +265,6 @@
             "OPEN",
             "HAPPY"
           ],
-          "words_es": [
-            "papel",
-            "lápiz",
-            "abrir",
-            "feliz"
-          ],
           "title_en": "Listen and repeat each word",
           "title_es": "Escucha y repite cada palabra"
         },
@@ -281,7 +274,6 @@
           "hint_es_line1": "",
           "hint_es_line2": "",
           "sentence": "The happy child uses a pencil and paper.",
-          "sentence_es": "El niño feliz usa un lápiz y papel.",
           "expected": "The happy child uses a pencil and paper.",
           "title_en": "Speak naturally",
           "title_es": "Habla de forma natural"
@@ -301,7 +293,6 @@
           "hint_es_line2": "",
           "phonetic": "B sound in BABY",
           "expected": "baby",
-          "expected_es": "bebé",
           "tts": {
             "en": {
               "line1": {
@@ -350,12 +341,6 @@
             "BROTHER",
             "BROWN"
           ],
-          "words_es": [
-            "libro",
-            "sobre",
-            "hermano",
-            "marrón"
-          ],
           "title_en": "Listen and repeat each word",
           "title_es": "Escucha y repite cada palabra"
         },
@@ -365,7 +350,6 @@
           "hint_es_line1": "",
           "hint_es_line2": "",
           "sentence": "The baby and his brother read a brown book.",
-          "sentence_es": "El bebé y su hermano leen un libro marrón.",
           "expected": "The baby and his brother read a brown book.",
           "title_en": "Speak naturally",
           "title_es": "Habla de forma natural"
@@ -385,7 +369,6 @@
           "hint_es_line2": "",
           "phonetic": "M sound in MOM",
           "expected": "mom",
-          "expected_es": "mamá",
           "tts": {
             "en": {
               "line1": {
@@ -434,12 +417,6 @@
             "COME",
             "HOME"
           ],
-          "words_es": [
-            "hombre",
-            "tiempo",
-            "venir",
-            "casa"
-          ],
           "title_en": "Listen and repeat each word",
           "title_es": "Escucha y repite cada palabra"
         },
@@ -449,7 +426,6 @@
           "hint_es_line1": "",
           "hint_es_line2": "",
           "sentence": "My mom comes home.",
-          "sentence_es": "Mi mamá llega a casa.",
           "expected": "My mom comes home.",
           "title_en": "Speak naturally",
           "title_es": "Habla de forma natural"
@@ -469,7 +445,6 @@
           "hint_es_line2": "",
           "phonetic": "T sound in TIME",
           "expected": "time",
-          "expected_es": "tiempo",
           "tts": {
             "en": {
               "line1": {
@@ -518,12 +493,6 @@
             "TRY",
             "TWO"
           ],
-          "words_es": [
-            "hoy",
-            "hablar",
-            "intentar",
-            "dos"
-          ],
           "title_en": "Listen and repeat each word",
           "title_es": "Escucha y repite cada palabra"
         },
@@ -533,7 +502,6 @@
           "hint_es_line1": "",
           "hint_es_line2": "",
           "sentence": "Today I have time to talk.",
-          "sentence_es": "Hoy tengo tiempo para hablar.",
           "expected": "Today I have time to talk.",
           "title_en": "Speak naturally",
           "title_es": "Habla de forma natural"
@@ -553,7 +521,6 @@
           "hint_es_line2": "",
           "phonetic": "A sound in CAT",
           "expected": "cat",
-          "expected_es": "gato",
           "tts": {
             "en": {
               "line1": {
@@ -602,12 +569,6 @@
             "RABBIT",
             "HAPPY"
           ],
-          "words_es": [
-            "negro",
-            "gordo",
-            "conejo",
-            "feliz"
-          ],
           "title_en": "Listen and repeat each word",
           "title_es": "Escucha y repite cada palabra"
         },
@@ -617,7 +578,6 @@
           "hint_es_line1": "",
           "hint_es_line2": "",
           "sentence": "The black cat is happy.",
-          "sentence_es": "El gato negro está feliz.",
           "expected": "The black cat is happy.",
           "title_en": "Speak naturally",
           "title_es": "Habla de forma natural"
@@ -637,7 +597,6 @@
           "hint_es_line2": "",
           "phonetic": "E sound in EGG",
           "expected": "egg",
-          "expected_es": "huevo",
           "tts": {
             "en": {
               "line1": {
@@ -686,12 +645,6 @@
             "SEND",
             "HELP"
           ],
-          "words_es": [
-            "rojo",
-            "hombres",
-            "enviar",
-            "ayuda"
-          ],
           "title_en": "Listen and repeat each word",
           "title_es": "Escucha y repite cada palabra"
         },
@@ -701,7 +654,6 @@
           "hint_es_line1": "",
           "hint_es_line2": "",
           "sentence": "The men get eggs.",
-          "sentence_es": "Los hombres consiguen huevos.",
           "expected": "The men get eggs.",
           "title_en": "Speak naturally",
           "title_es": "Habla de forma natural"
@@ -721,7 +673,6 @@
           "hint_es_line2": "",
           "phonetic": "I sound in SIT",
           "expected": "sit",
-          "expected_es": "sentar",
           "tts": {
             "en": {
               "line1": {
@@ -770,12 +721,6 @@
             "SISTER",
             "DINNER"
           ],
-          "words_es": [
-            "pequeño",
-            "ventana",
-            "hermana",
-            "cena"
-          ],
           "title_en": "Listen and repeat each word",
           "title_es": "Escucha y repite cada palabra"
         },
@@ -785,7 +730,6 @@
           "hint_es_line1": "",
           "hint_es_line2": "",
           "sentence": "The little sister opens the window before dinner.",
-          "sentence_es": "La hermanita abre la ventana antes de la cena.",
           "expected": "The little sister opens the window before dinner.",
           "title_en": "Speak naturally",
           "title_es": "Habla de forma natural"
@@ -805,7 +749,6 @@
           "hint_es_line2": "",
           "phonetic": "O sound in BOX",
           "expected": "box",
-          "expected_es": "caja",
           "tts": {
             "en": {
               "line1": {
@@ -854,12 +797,6 @@
             "PROBLEM",
             "DOCTOR"
           ],
-          "words_es": [
-            "tienda",
-            "parar",
-            "problema",
-            "doctor"
-          ],
           "title_en": "Listen and repeat each word",
           "title_es": "Escucha y repite cada palabra"
         },
@@ -869,7 +806,6 @@
           "hint_es_line1": "",
           "hint_es_line2": "",
           "sentence": "The doctor stops at the shop.",
-          "sentence_es": "El doctor para en la tienda.",
           "expected": "The doctor stops at the shop.",
           "title_en": "Speak naturally",
           "title_es": "Habla de forma natural"
@@ -889,7 +825,6 @@
           "hint_es_line2": "",
           "phonetic": "K sound in CAR",
           "expected": "car",
-          "expected_es": "coche",
           "tts": {
             "en": {
               "line1": {
@@ -938,12 +873,6 @@
             "COLD",
             "SCHOOL"
           ],
-          "words_es": [
-            "lata",
-            "llamar",
-            "frío",
-            "escuela"
-          ],
           "title_en": "Listen and repeat each word",
           "title_es": "Escucha y repite cada palabra"
         },
@@ -953,7 +882,6 @@
           "hint_es_line1": "",
           "hint_es_line2": "",
           "sentence": "Can I go to school in the car?",
-          "sentence_es": "¿Puedo ir a la escuela en el coche?",
           "expected": "Can I go to school in the car?",
           "title_en": "Speak naturally",
           "title_es": "Habla de forma natural"
@@ -973,7 +901,6 @@
           "hint_es_line2": "",
           "phonetic": "D sound in DAY",
           "expected": "day",
-          "expected_es": "día",
           "tts": {
             "en": {
               "line1": {
@@ -1022,12 +949,6 @@
             "DOWN",
             "DONE"
           ],
-          "words_es": [
-            "hoy",
-            "diferente",
-            "abajo",
-            "hecho"
-          ],
           "title_en": "Listen and repeat each word",
           "title_es": "Escucha y repite cada palabra"
         },
@@ -1037,7 +958,6 @@
           "hint_es_line1": "",
           "hint_es_line2": "",
           "sentence": "Today is different from yesterday.",
-          "sentence_es": "Hoy es diferente de ayer.",
           "expected": "Today is different from yesterday.",
           "title_en": "Speak naturally",
           "title_es": "Habla de forma natural"
@@ -1057,7 +977,6 @@
           "hint_es_line2": "",
           "phonetic": "N sound in NO",
           "expected": "no",
-          "expected_es": "no",
           "tts": {
             "en": {
               "line1": {
@@ -1106,12 +1025,6 @@
             "SUNNY",
             "NUMBER"
           ],
-          "words_es": [
-            "ahora",
-            "nunca",
-            "soleado",
-            "número"
-          ],
           "title_en": "Listen and repeat each word",
           "title_es": "Escucha y repite cada palabra"
         },
@@ -1121,7 +1034,6 @@
           "hint_es_line1": "",
           "hint_es_line2": "",
           "sentence": "I never know the number.",
-          "sentence_es": "Nunca sé el número.",
           "expected": "I never know the number.",
           "title_en": "Speak naturally",
           "title_es": "Habla de forma natural"
@@ -1141,7 +1053,6 @@
           "hint_es_line2": "",
           "phonetic": "G sound in GO",
           "expected": "go",
-          "expected_es": "ir",
           "tts": {
             "en": {
               "line1": {
@@ -1190,12 +1101,6 @@
             "GOING",
             "AGAIN"
           ],
-          "words_es": [
-            "bueno",
-            "juego",
-            "en marcha",
-            "otra vez"
-          ],
           "title_en": "Listen and repeat each word",
           "title_es": "Escucha y repite cada palabra"
         },
@@ -1205,7 +1110,6 @@
           "hint_es_line1": "",
           "hint_es_line2": "",
           "sentence": "We played a good game again.",
-          "sentence_es": "Jugamos un buen juego otra vez.",
           "expected": "We played a good game again.",
           "title_en": "Speak naturally",
           "title_es": "Habla de forma natural"
@@ -1225,7 +1129,6 @@
           "hint_es_line2": "",
           "phonetic": "U sound in SUN",
           "expected": "sun",
-          "expected_es": "sol",
           "tts": {
             "en": {
               "line1": {
@@ -1274,12 +1177,6 @@
             "FUN",
             "UNDER"
           ],
-          "words_es": [
-            "soleado",
-            "número",
-            "diversión",
-            "debajo"
-          ],
           "title_en": "Listen and repeat each word",
           "title_es": "Escucha y repite cada palabra"
         },
@@ -1289,7 +1186,6 @@
           "hint_es_line1": "",
           "hint_es_line2": "",
           "sentence": "We have fun under the sun.",
-          "sentence_es": "Nos divertimos bajo el sol.",
           "expected": "We have fun under the sun.",
           "title_en": "Speak naturally",
           "title_es": "Habla de forma natural"
@@ -1309,7 +1205,6 @@
           "hint_es_line2": "",
           "phonetic": "A sound in ABOUT",
           "expected": "about",
-          "expected_es": "acerca de",
           "tts": {
             "en": {
               "line1": {
@@ -1358,12 +1253,6 @@
             "ABOVE",
             "SOFA"
           ],
-          "words_es": [
-            "el",
-            "otra vez",
-            "encima",
-            "sofá"
-          ],
           "title_en": "Listen and repeat each word",
           "title_es": "Escucha y repite cada palabra"
         },
@@ -1373,7 +1262,6 @@
           "hint_es_line1": "",
           "hint_es_line2": "",
           "sentence": "We talk about the sofa again.",
-          "sentence_es": "Hablamos acerca del sofá otra vez.",
           "expected": "We talk about the sofa again.",
           "title_en": "Speak naturally",
           "title_es": "Habla de forma natural"
@@ -1393,7 +1281,6 @@
           "hint_es_line2": "",
           "phonetic": "OO sound in BOOK",
           "expected": "book",
-          "expected_es": "libro",
           "tts": {
             "en": {
               "line1": {
@@ -1442,12 +1329,6 @@
             "FOOT",
             "COOK"
           ],
-          "words_es": [
-            "bueno",
-            "mirar",
-            "pie",
-            "cocinero"
-          ],
           "title_en": "Listen and repeat each word",
           "title_es": "Escucha y repite cada palabra"
         },
@@ -1457,7 +1338,6 @@
           "hint_es_line1": "",
           "hint_es_line2": "",
           "sentence": "Look at the good cook.",
-          "sentence_es": "Mira al buen cocinero.",
           "expected": "Look at the good cook.",
           "title_en": "Speak naturally",
           "title_es": "Habla de forma natural"
@@ -1477,7 +1357,6 @@
           "hint_es_line2": "",
           "phonetic": "EE sound in SEE",
           "expected": "see",
-          "expected_es": "ver",
           "tts": {
             "en": {
               "line1": {
@@ -1526,12 +1405,6 @@
             "THESE",
             "CITY"
           ],
-          "words_es": [
-            "comida",
-            "verde",
-            "estos",
-            "ciudad"
-          ],
           "title_en": "Listen and repeat each word",
           "title_es": "Escucha y repite cada palabra"
         },
@@ -1541,7 +1414,6 @@
           "hint_es_line1": "",
           "hint_es_line2": "",
           "sentence": "These green trees are easy to see.",
-          "sentence_es": "Estos árboles verdes son fáciles de ver.",
           "expected": "These green trees are easy to see.",
           "title_en": "Speak naturally",
           "title_es": "Habla de forma natural"
@@ -1561,7 +1433,6 @@
           "hint_es_line2": "",
           "phonetic": "F sound in FAMILY",
           "expected": "family",
-          "expected_es": "familia",
           "tts": {
             "en": {
               "line1": {
@@ -1610,12 +1481,6 @@
             "PHONE",
             "FRIEND"
           ],
-          "words_es": [
-            "diversión",
-            "comida",
-            "teléfono",
-            "amigo"
-          ],
           "title_en": "Listen and repeat each word",
           "title_es": "Escucha y repite cada palabra"
         },
@@ -1625,7 +1490,6 @@
           "hint_es_line1": "",
           "hint_es_line2": "",
           "sentence": "My family and friends have fun.",
-          "sentence_es": "Mi familia y amigos se divierten.",
           "expected": "My family and friends have fun.",
           "title_en": "Speak naturally",
           "title_es": "Habla de forma natural"
@@ -1645,7 +1509,6 @@
           "hint_es_line2": "",
           "phonetic": "V sound in VERY",
           "expected": "very",
-          "expected_es": "muy",
           "tts": {
             "en": {
               "line1": {
@@ -1694,12 +1557,6 @@
             "OVER",
             "NEVER"
           ],
-          "words_es": [
-            "tener",
-            "amor",
-            "sobre",
-            "nunca"
-          ],
           "title_en": "Listen and repeat each word",
           "title_es": "Escucha y repite cada palabra"
         },
@@ -1709,7 +1566,6 @@
           "hint_es_line1": "",
           "hint_es_line2": "",
           "sentence": "I have a very heavy van.",
-          "sentence_es": "Tengo una furgoneta muy pesada.",
           "expected": "I have a very heavy van.",
           "title_en": "Speak naturally",
           "title_es": "Habla de forma natural"
@@ -1729,7 +1585,6 @@
           "hint_es_line2": "",
           "phonetic": "S sound in SEE",
           "expected": "see",
-          "expected_es": "ver",
           "tts": {
             "en": {
               "line1": {
@@ -1778,12 +1633,6 @@
             "NICE",
             "SOMETIMES"
           ],
-          "words_es": [
-            "escuela",
-            "ciudad",
-            "agradable",
-            "a veces"
-          ],
           "title_en": "Listen and repeat each word",
           "title_es": "Escucha y repite cada palabra"
         },
@@ -1793,7 +1642,6 @@
           "hint_es_line1": "",
           "hint_es_line2": "",
           "sentence": "The school in the city is nice.",
-          "sentence_es": "La escuela en la ciudad es agradable.",
           "expected": "The school in the city is nice.",
           "title_en": "Speak naturally",
           "title_es": "Habla de forma natural"
@@ -1813,7 +1661,6 @@
           "hint_es_line2": "",
           "phonetic": "W sound in WATER",
           "expected": "water",
-          "expected_es": "agua",
           "tts": {
             "en": {
               "line1": {
@@ -1862,12 +1709,6 @@
             "WANT",
             "WEEKEND"
           ],
-          "words_es": [
-            "ventana",
-            "trabajo",
-            "quiero",
-            "fin de semana"
-          ],
           "title_en": "Listen and repeat each word",
           "title_es": "Escucha y repite cada palabra"
         },
@@ -1877,7 +1718,6 @@
           "hint_es_line1": "",
           "hint_es_line2": "",
           "sentence": "I see water from the window.",
-          "sentence_es": "Veo agua desde la ventana.",
           "expected": "I see water from the window.",
           "title_en": "Speak naturally",
           "title_es": "Habla de forma natural"
@@ -1897,7 +1737,6 @@
           "hint_es_line2": "",
           "phonetic": "A sound in NAME",
           "expected": "name",
-          "expected_es": "nombre",
           "tts": {
             "en": {
               "line1": {
@@ -1946,12 +1785,6 @@
             "PLAY",
             "GREAT"
           ],
-          "words_es": [
-            "tarde",
-            "lluvia",
-            "juego",
-            "genial"
-          ],
           "title_en": "Listen and repeat each word",
           "title_es": "Escucha y repite cada palabra"
         },
@@ -1961,7 +1794,6 @@
           "hint_es_line1": "",
           "hint_es_line2": "",
           "sentence": "It's great to play in the rain.",
-          "sentence_es": "Es genial jugar bajo la lluvia.",
           "expected": "It's great to play in the rain.",
           "title_en": "Speak naturally",
           "title_es": "Habla de forma natural"
@@ -1981,7 +1813,6 @@
           "hint_es_line2": "",
           "phonetic": "I sound in LIKE",
           "expected": "like",
-          "expected_es": "gustar",
           "tts": {
             "en": {
               "line1": {
@@ -2030,12 +1861,6 @@
             "FIVE",
             "SKY"
           ],
-          "words_es": [
-            "mi",
-            "noche",
-            "cinco",
-            "cielo"
-          ],
           "title_en": "Listen and repeat each word",
           "title_es": "Escucha y repite cada palabra"
         },
@@ -2045,7 +1870,6 @@
           "hint_es_line1": "",
           "hint_es_line2": "",
           "sentence": "I like the night sky.",
-          "sentence_es": "Me gusta el cielo nocturno.",
           "expected": "I like the night sky.",
           "title_en": "Speak naturally",
           "title_es": "Habla de forma natural"
@@ -2065,7 +1889,6 @@
           "hint_es_line2": "",
           "phonetic": "O sound in HOME",
           "expected": "home",
-          "expected_es": "casa",
           "tts": {
             "en": {
               "line1": {
@@ -2114,12 +1937,6 @@
             "PHONE",
             "GO"
           ],
-          "words_es": [
-            "carretera",
-            "nieve",
-            "teléfono",
-            "ir"
-          ],
           "title_en": "Listen and repeat each word",
           "title_es": "Escucha y repite cada palabra"
         },
@@ -2129,7 +1946,6 @@
           "hint_es_line1": "",
           "hint_es_line2": "",
           "sentence": "I go home with my phone.",
-          "sentence_es": "Voy a casa con mi teléfono.",
           "expected": "I go home with my phone.",
           "title_en": "Speak naturally",
           "title_es": "Habla de forma natural"
@@ -2149,7 +1965,6 @@
           "hint_es_line2": "",
           "phonetic": "U sound in BLUE",
           "expected": "blue",
-          "expected_es": "azul",
           "tts": {
             "en": {
               "line1": {
@@ -2198,12 +2013,6 @@
             "JUNE",
             "CANOE"
           ],
-          "words_es": [
-            "nuevo",
-            "estudiante",
-            "junio",
-            "canoa"
-          ],
           "title_en": "Listen and repeat each word",
           "title_es": "Escucha y repite cada palabra"
         },
@@ -2213,7 +2022,6 @@
           "hint_es_line1": "",
           "hint_es_line2": "",
           "sentence": "In June, we use the blue canoe.",
-          "sentence_es": "En junio, usamos la canoa azul.",
           "expected": "In June, we use the blue canoe.",
           "title_en": "Speak naturally",
           "title_es": "Habla de forma natural"
@@ -2233,7 +2041,6 @@
           "hint_es_line2": "",
           "phonetic": "Z sound in ZERO",
           "expected": "zero",
-          "expected_es": "cero",
           "tts": {
             "en": {
               "line1": {
@@ -2282,12 +2089,6 @@
             "CRAZY",
             "BUSY"
           ],
-          "words_es": [
-            "música",
-            "fácil",
-            "loco",
-            "ocupado"
-          ],
           "title_en": "Listen and repeat each word",
           "title_es": "Escucha y repite cada palabra"
         },
@@ -2297,7 +2098,6 @@
           "hint_es_line1": "",
           "hint_es_line2": "",
           "sentence": "Easy music is not crazy.",
-          "sentence_es": "La música fácil no es loca.",
           "expected": "Easy music is not crazy.",
           "title_en": "Speak naturally",
           "title_es": "Habla de forma natural"
@@ -2317,7 +2117,6 @@
           "hint_es_line2": "",
           "phonetic": "H sound in HOUSE",
           "expected": "house",
-          "expected_es": "casa",
           "tts": {
             "en": {
               "line1": {
@@ -2366,12 +2165,6 @@
             "HAPPY",
             "HOW"
           ],
-          "words_es": [
-            "casa",
-            "ayuda",
-            "feliz",
-            "cómo"
-          ],
           "title_en": "Listen and repeat each word",
           "title_es": "Escucha y repite cada palabra"
         },
@@ -2381,7 +2174,6 @@
           "hint_es_line1": "",
           "hint_es_line2": "",
           "sentence": "He is happy in his home.",
-          "sentence_es": "Él está feliz en su casa.",
           "expected": "He is happy in his home.",
           "title_en": "Speak naturally",
           "title_es": "Habla de forma natural"
@@ -2401,7 +2193,6 @@
           "hint_es_line2": "",
           "phonetic": "Y sound in YES",
           "expected": "yes",
-          "expected_es": "sí",
           "tts": {
             "en": {
               "line1": {
@@ -2450,12 +2241,6 @@
             "YOUNG",
             "YESTERDAY"
           ],
-          "words_es": [
-            "año",
-            "amarillo",
-            "joven",
-            "ayer"
-          ],
           "title_en": "Listen and repeat each word",
           "title_es": "Escucha y repite cada palabra"
         },
@@ -2465,7 +2250,6 @@
           "hint_es_line1": "",
           "hint_es_line2": "",
           "sentence": "Yesterday the young boy said yes.",
-          "sentence_es": "Ayer el niño joven dijo sí.",
           "expected": "Yesterday the young boy said yes.",
           "title_en": "Speak naturally",
           "title_es": "Habla de forma natural"
@@ -2485,7 +2269,6 @@
           "hint_es_line2": "",
           "phonetic": "L sound in TELL",
           "expected": "tell",
-          "expected_es": "decir",
           "tts": {
             "en": {
               "line1": {
@@ -2534,12 +2317,6 @@
             "FAMILY",
             "FALL"
           ],
-          "words_es": [
-            "pequeño",
-            "escuchar",
-            "familia",
-            "otoño"
-          ],
           "title_en": "Listen and repeat each word",
           "title_es": "Escucha y repite cada palabra"
         },
@@ -2549,7 +2326,6 @@
           "hint_es_line1": "",
           "hint_es_line2": "",
           "sentence": "Tell the little girl to listen.",
-          "sentence_es": "Dile a la niña que escuche.",
           "expected": "Tell the little girl to listen.",
           "title_en": "Speak naturally",
           "title_es": "Habla de forma natural"
@@ -2569,7 +2345,6 @@
           "hint_es_line2": "",
           "phonetic": "R sound in RUN",
           "expected": "run",
-          "expected_es": "correr",
           "tts": {
             "en": {
               "line1": {
@@ -2618,12 +2393,6 @@
             "ROBOT",
             "READY"
           ],
-          "words_es": [
-            "lluvia",
-            "carretera",
-            "robot",
-            "listo"
-          ],
           "title_en": "Listen and repeat each word",
           "title_es": "Escucha y repite cada palabra"
         },
@@ -2633,7 +2402,6 @@
           "hint_es_line1": "",
           "hint_es_line2": "",
           "sentence": "Red rabbits run along roads.",
-          "sentence_es": "Los conejos rojos corren por las carreteras.",
           "expected": "Red rabbits run along roads.",
           "title_en": "Speak naturally",
           "title_es": "Habla de forma natural"
@@ -2653,7 +2421,6 @@
           "hint_es_line2": "",
           "phonetic": "ER sound in FIRST",
           "expected": "first",
-          "expected_es": "primero",
           "tts": {
             "en": {
               "line1": {
@@ -2702,12 +2469,6 @@
             "WORK",
             "GIRL"
           ],
-          "words_es": [
-            "pájaro",
-            "camisa",
-            "trabajo",
-            "niña"
-          ],
           "title_en": "Listen and repeat each word",
           "title_es": "Escucha y repite cada palabra"
         },
@@ -2717,7 +2478,6 @@
           "hint_es_line1": "",
           "hint_es_line2": "",
           "sentence": "Girls work with birds in my town.",
-          "sentence_es": "Las niñas trabajan con pájaros en mi pueblo.",
           "expected": "Girls work with birds in my town.",
           "title_en": "Speak naturally",
           "title_es": "Habla de forma natural"
@@ -2737,7 +2497,6 @@
           "hint_es_line2": "",
           "phonetic": "A sound in FAST",
           "expected": "fast",
-          "expected_es": "rápido",
           "tts": {
             "en": {
               "line1": {
@@ -2786,12 +2545,6 @@
             "AFTERNOON",
             "DANCE"
           ],
-          "words_es": [
-            "corazón",
-            "gafas",
-            "tarde",
-            "baile"
-          ],
           "title_en": "Listen and repeat each word",
           "title_es": "Escucha y repite cada palabra"
         },
@@ -2801,7 +2554,6 @@
           "hint_es_line1": "",
           "hint_es_line2": "",
           "sentence": "My father drives fast to the park.",
-          "sentence_es": "Mi padre conduce rápido al parque.",
           "expected": "My father drives fast to the park.",
           "title_en": "Speak naturally",
           "title_es": "Habla de forma natural"
@@ -2821,7 +2573,6 @@
           "hint_es_line2": "",
           "phonetic": "AW sound in SAW",
           "expected": "saw",
-          "expected_es": "vio",
           "tts": {
             "en": {
               "line1": {
@@ -2870,12 +2621,6 @@
             "WALK",
             "TALK"
           ],
-          "words_es": [
-            "pelota",
-            "pequeño",
-            "caminar",
-            "hablar"
-          ],
           "title_en": "Listen and repeat each word",
           "title_es": "Escucha y repite cada palabra"
         },
@@ -2885,7 +2630,6 @@
           "hint_es_line1": "",
           "hint_es_line2": "",
           "sentence": "Small dogs walk and play with a ball.",
-          "sentence_es": "Los perros pequeños caminan y juegan con una pelota.",
           "expected": "Small dogs walk and play with a ball.",
           "title_en": "Speak naturally",
           "title_es": "Habla de forma natural"
@@ -2905,7 +2649,6 @@
           "hint_es_line2": "",
           "phonetic": "TH sound in THINK",
           "expected": "think",
-          "expected_es": "pensar",
           "tts": {
             "en": {
               "line1": {
@@ -2954,12 +2697,6 @@
             "SOMETHING",
             "MONTH"
           ],
-          "words_es": [
-            "gracias",
-            "tres",
-            "algo",
-            "mes"
-          ],
           "title_en": "Listen and repeat each word",
           "title_es": "Escucha y repite cada palabra"
         },
@@ -2969,7 +2706,6 @@
           "hint_es_line1": "",
           "hint_es_line2": "",
           "sentence": "I think we should thank the three boys.",
-          "sentence_es": "Creo que deberíamos dar las gracias a los tres niños.",
           "expected": "I think we should thank the three boys.",
           "title_en": "Speak naturally",
           "title_es": "Habla de forma natural"
@@ -2989,7 +2725,6 @@
           "hint_es_line2": "",
           "phonetic": "TH sound in THIS",
           "expected": "this",
-          "expected_es": "esto",
           "tts": {
             "en": {
               "line1": {
@@ -3038,12 +2773,6 @@
             "MOTHER",
             "BROTHER"
           ],
-          "words_es": [
-            "eso",
-            "ellos",
-            "madre",
-            "hermano"
-          ],
           "title_en": "Listen and repeat each word",
           "title_es": "Escucha y repite cada palabra"
         },
@@ -3053,7 +2782,6 @@
           "hint_es_line1": "",
           "hint_es_line2": "",
           "sentence": "This and that are for my mother.",
-          "sentence_es": "Esto y aquello son para mi madre.",
           "expected": "This and that are for my mother.",
           "title_en": "Speak naturally",
           "title_es": "Habla de forma natural"
@@ -3073,7 +2801,6 @@
           "hint_es_line2": "",
           "phonetic": "SH sound in SHE",
           "expected": "she",
-          "expected_es": "ella",
           "tts": {
             "en": {
               "line1": {
@@ -3122,12 +2849,6 @@
             "SOCIAL",
             "INFORMATION"
           ],
-          "words_es": [
-            "seguro",
-            "especial",
-            "social",
-            "información"
-          ],
           "title_en": "Listen and repeat each word",
           "title_es": "Escucha y repite cada palabra"
         },
@@ -3137,7 +2858,6 @@
           "hint_es_line1": "",
           "hint_es_line2": "",
           "sentence": "She shares special information.",
-          "sentence_es": "Ella comparte información especial.",
           "expected": "She shares special information.",
           "title_en": "Speak naturally",
           "title_es": "Habla de forma natural"
@@ -3157,7 +2877,6 @@
           "hint_es_line2": "",
           "phonetic": "CH sound in CHAIR",
           "expected": "chair",
-          "expected_es": "silla",
           "tts": {
             "en": {
               "line1": {
@@ -3206,12 +2925,6 @@
             "WATCH",
             "TEACHER"
           ],
-          "words_es": [
-            "cambio",
-            "niño",
-            "reloj",
-            "profesor"
-          ],
           "title_en": "Listen and repeat each word",
           "title_es": "Escucha y repite cada palabra"
         },
@@ -3221,7 +2934,6 @@
           "hint_es_line1": "",
           "hint_es_line2": "",
           "sentence": "The child sits on the chair with the teacher.",
-          "sentence_es": "El niño se sienta en la silla con el profesor.",
           "expected": "The child sits on the chair with the teacher.",
           "title_en": "Speak naturally",
           "title_es": "Habla de forma natural"
@@ -3241,7 +2953,6 @@
           "hint_es_line2": "",
           "phonetic": "ZH sound in VISION",
           "expected": "vision",
-          "expected_es": "visión",
           "tts": {
             "en": {
               "line1": {
@@ -3290,12 +3001,6 @@
             "DECISION",
             "TELEVISION"
           ],
-          "words_es": [
-            "tesoro",
-            "inusual",
-            "decisión",
-            "televisión"
-          ],
           "title_en": "Listen and repeat each word",
           "title_es": "Escucha y repite cada palabra"
         },
@@ -3305,7 +3010,6 @@
           "hint_es_line1": "",
           "hint_es_line2": "",
           "sentence": "It's an unusual vision of a treasure.",
-          "sentence_es": "Es una visión inusual de un tesoro.",
           "expected": "It's an unusual vision of a treasure.",
           "title_en": "Speak naturally",
           "title_es": "Habla de forma natural"
@@ -3325,7 +3029,6 @@
           "hint_es_line2": "",
           "phonetic": "J sound in JOB",
           "expected": "job",
-          "expected_es": "trabajo",
           "tts": {
             "en": {
               "line1": {
@@ -3374,12 +3077,6 @@
             "PROJECT",
             "MANAGER"
           ],
-          "words_es": [
-            "justo",
-            "general",
-            "proyecto",
-            "gerente"
-          ],
           "title_en": "Listen and repeat each word",
           "title_es": "Escucha y repite cada palabra"
         },
@@ -3389,7 +3086,6 @@
           "hint_es_line1": "",
           "hint_es_line2": "",
           "sentence": "The manager does projects in his new job.",
-          "sentence_es": "El gerente hace proyectos en su nuevo trabajo.",
           "expected": "The manager does projects in his new job.",
           "title_en": "Speak naturally",
           "title_es": "Habla de forma natural"
@@ -3409,7 +3105,6 @@
           "hint_es_line2": "",
           "phonetic": "NG sound in SING",
           "expected": "sing",
-          "expected_es": "cantar",
           "tts": {
             "en": {
               "line1": {
@@ -3458,12 +3153,6 @@
             "LONG",
             "SONG"
           ],
-          "words_es": [
-            "mañana",
-            "joven",
-            "largo",
-            "canción"
-          ],
           "title_en": "Listen and repeat each word",
           "title_es": "Escucha y repite cada palabra"
         },
@@ -3473,7 +3162,6 @@
           "hint_es_line1": "",
           "hint_es_line2": "",
           "sentence": "Young boys sing long songs.",
-          "sentence_es": "Los chicos jóvenes cantan canciones largas.",
           "expected": "Young boys sing long songs.",
           "title_en": "Speak naturally",
           "title_es": "Habla de forma natural"
@@ -3493,7 +3181,6 @@
           "hint_es_line2": "",
           "phonetic": "OY sound in BOY",
           "expected": "boy",
-          "expected_es": "niño",
           "tts": {
             "en": {
               "line1": {
@@ -3542,12 +3229,6 @@
             "NOISE",
             "VOICE"
           ],
-          "words_es": [
-            "juguete",
-            "moneda",
-            "ruido",
-            "voz"
-          ],
           "title_en": "Listen and repeat each word",
           "title_es": "Escucha y repite cada palabra"
         },
@@ -3557,7 +3238,6 @@
           "hint_es_line1": "",
           "hint_es_line2": "",
           "sentence": "The boy has a toy and a coin.",
-          "sentence_es": "El niño tiene un juguete y una moneda.",
           "expected": "The boy has a toy and a coin.",
           "title_en": "Speak naturally",
           "title_es": "Habla de forma natural"
@@ -3577,7 +3257,6 @@
           "hint_es_line2": "",
           "phonetic": "OU sound in MOUTH",
           "expected": "mouth",
-          "expected_es": "boca",
           "tts": {
             "en": {
               "line1": {
@@ -3626,12 +3305,6 @@
             "TOWN",
             "ABOUT"
           ],
-          "words_es": [
-            "fuera",
-            "casa",
-            "pueblo",
-            "sobre"
-          ],
           "title_en": "Listen and repeat each word",
           "title_es": "Escucha y repite cada palabra"
         },
@@ -3641,7 +3314,6 @@
           "hint_es_line1": "",
           "hint_es_line2": "",
           "sentence": "They live in a house outside town.",
-          "sentence_es": "Viven en una casa fuera del pueblo.",
           "expected": "They live in a house outside town.",
           "title_en": "Speak naturally",
           "title_es": "Habla de forma natural"
@@ -3661,7 +3333,6 @@
           "hint_es_line2": "",
           "phonetic": "AI sound in HAIR",
           "expected": "hair",
-          "expected_es": "pelo",
           "tts": {
             "en": {
               "line1": {
@@ -3710,12 +3381,6 @@
             "WHERE",
             "BEAR"
           ],
-          "words_es": [
-            "silla",
-            "allí",
-            "dónde",
-            "oso"
-          ],
           "title_en": "Listen and repeat each word",
           "title_es": "Escucha y repite cada palabra"
         },
@@ -3725,7 +3390,6 @@
           "hint_es_line1": "",
           "hint_es_line2": "",
           "sentence": "Put the teddy bear on the chair.",
-          "sentence_es": "Pon el osito de peluche en la silla.",
           "expected": "Put the teddy bear on the chair.",
           "title_en": "Speak naturally",
           "title_es": "Habla de forma natural"
@@ -3745,7 +3409,6 @@
           "hint_es_line2": "",
           "phonetic": "EA sound in EAR",
           "expected": "ear",
-          "expected_es": "oreja",
           "tts": {
             "en": {
               "line1": {
@@ -3794,12 +3457,6 @@
             "YEAR",
             "HERE"
           ],
-          "words_es": [
-            "oír",
-            "cerca",
-            "año",
-            "aquí"
-          ],
           "title_en": "Listen and repeat each word",
           "title_es": "Escucha y repite cada palabra"
         },
@@ -3809,7 +3466,6 @@
           "hint_es_line1": "",
           "hint_es_line2": "",
           "sentence": "We come here every year.",
-          "sentence_es": "Venimos aquí cada año.",
           "expected": "We come here every year.",
           "title_en": "Speak naturally",
           "title_es": "Habla de forma natural"
@@ -3829,7 +3485,6 @@
           "hint_es_line2": "",
           "phonetic": "KS sound in TAXI",
           "expected": "taxi",
-          "expected_es": "taxi",
           "tts": {
             "en": {
               "line1": {
@@ -3878,12 +3533,6 @@
             "SIX",
             "EXPLAIN"
           ],
-          "words_es": [
-            "zorro",
-            "caja",
-            "seis",
-            "explicado"
-          ],
           "title_en": "Listen and repeat each word",
           "title_es": "Escucha y repite cada palabra"
         },
@@ -3893,7 +3542,6 @@
           "hint_es_line1": "",
           "hint_es_line2": "",
           "sentence": "I explained to the taxi driver to come at six.",
-          "sentence_es": "Le expliqué al taxista que viniera a las seis.",
           "expected": "I explained to the taxi driver to come at six.",
           "title_en": "Speak naturally",
           "title_es": "Habla de forma natural"
@@ -3913,7 +3561,6 @@
           "hint_es_line2": "",
           "phonetic": "GZ sound in EXIT",
           "expected": "exit",
-          "expected_es": "salida",
           "tts": {
             "en": {
               "line1": {
@@ -3962,12 +3609,6 @@
             "EXAMPLE",
             "EXECUTIVE"
           ],
-          "words_es": [
-            "examen",
-            "experto",
-            "ejemplo",
-            "ejecutivo"
-          ],
           "title_en": "Listen and repeat each word",
           "title_es": "Escucha y repite cada palabra"
         },
@@ -3977,7 +3618,6 @@
           "hint_es_line1": "",
           "hint_es_line2": "",
           "sentence": "The expert explains the exam.",
-          "sentence_es": "El experto explica el examen.",
           "expected": "The expert explains the exam.",
           "title_en": "Speak naturally",
           "title_es": "Habla de forma natural"
@@ -3997,7 +3637,6 @@
           "hint_es_line2": "",
           "phonetic": "B sound in BERRY",
           "expected": "berry",
-          "expected_es": "baya",
           "tts": {
             "en": {
               "line1": {
@@ -4046,12 +3685,6 @@
             "BROTHER",
             "BROWN"
           ],
-          "words_es": [
-            "mejor",
-            "traer",
-            "hermano",
-            "marrón"
-          ],
           "title_en": "Listen and repeat each word",
           "title_es": "Escucha y repite cada palabra"
         },
@@ -4061,7 +3694,6 @@
           "hint_es_line1": "",
           "hint_es_line2": "",
           "sentence": "My brother has big brown eyes and black hair.",
-          "sentence_es": "Mi hermano tiene ojos grandes y marrones y pelo negro.",
           "expected": "My brother has big brown eyes and black hair.",
           "title_en": "Speak naturally",
           "title_es": "Habla de forma natural"
@@ -4081,7 +3713,6 @@
           "hint_es_line2": "",
           "phonetic": "V sound in VERY",
           "expected": "very",
-          "expected_es": "muy",
           "tts": {
             "en": {
               "line1": {
@@ -4130,12 +3761,6 @@
             "VIOLIN",
             "OVER"
           ],
-          "words_es": [
-            "tener",
-            "amor",
-            "violín",
-            "sobre"
-          ],
           "title_en": "Listen and repeat each word",
           "title_es": "Escucha y repite cada palabra"
         },
@@ -4145,7 +3770,6 @@
           "hint_es_line1": "",
           "hint_es_line2": "",
           "sentence": "We love the violin very much.",
-          "sentence_es": "Nos encanta mucho el violín.",
           "expected": "We love the violin very much.",
           "title_en": "Speak naturally",
           "title_es": "Habla de forma natural"

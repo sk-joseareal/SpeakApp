@@ -34,6 +34,31 @@ export interface P4w4TranslationStatusResult {
   osVersion?: string;
 }
 
+export interface P4w4DisplayZoomCompensationInfo {
+  supported: boolean;
+  enabled: boolean;
+  applied: boolean;
+  factor: number;
+  currentZoom?: number;
+  textZoom?: number;
+  mode?: string;
+  platform?: string;
+  osVersion?: string;
+  screenScale?: number;
+  screenNativeScale?: number;
+  fontScale?: number;
+  density?: number;
+  scaledDensity?: number;
+  screenWidthPoints?: number;
+  screenHeightPoints?: number;
+  screenWidthPx?: number;
+  screenHeightPx?: number;
+  nativeScreenWidthPx?: number;
+  nativeScreenHeightPx?: number;
+  webViewWidth?: number;
+  webViewHeight?: number;
+}
+
 export interface P4w4PluginPlugin {
   echo(options: { value: string }): Promise<{ value: string }>;
   reverse(options: { value: string }): Promise<{ value: string }>;
@@ -41,6 +66,8 @@ export interface P4w4PluginPlugin {
   offsetTopWebView(options: { offset: number }): Promise<void>;
   getStatusBarHeight(): Promise<{ height: number }>;
   getSystemInsets(): Promise<{ top: number; right: number; bottom: number; left: number; platform?: string; osVersion?: string }>;
+  getDisplayZoomCompensationInfo(): Promise<P4w4DisplayZoomCompensationInfo>;
+  setDisplayZoomCompensation(options: { enabled: boolean; factor?: number }): Promise<P4w4DisplayZoomCompensationInfo>;
   setNativeChrome(options: { backgroundColor: string; lightIcons?: boolean; source?: string; path?: string; legacyChromeDebug?: boolean }): Promise<void>;
   setLegacyChromeDebug(options: { enabled: boolean }): Promise<{ enabled?: boolean; platform?: string; osVersion?: string } | void>;
   detectLanguage(options: { text: string }): Promise<P4w4LanguageDetectionResult>;

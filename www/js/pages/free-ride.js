@@ -1992,6 +1992,16 @@ class PageFreeRide extends HTMLElement {
     this.setFreeRideSheetExpanded(!this.freeRideSheetExpanded, options);
   }
 
+  handleFreeRideSheetHandleClick(event) {
+    this.freeRideSheetController.state.expanded = this.freeRideSheetExpanded;
+    this.freeRideSheetController.state.offset = this.freeRideSheetExpandedOffset;
+    this.freeRideSheetController.handleClick(event);
+    this.freeRideSheetExpanded = this.freeRideSheetController.state.expanded;
+    this.freeRideSheetExpandedOffset = this.freeRideSheetController.state.offset;
+    this.freeRideSheetTranslateY = this.freeRideSheetController.state.translateY;
+    this.freeRideSheetDragging = this.freeRideSheetController.state.dragging;
+  }
+
   startFreeRideSheetDrag(event) {
     this.freeRideSheetController.state.expanded = this.freeRideSheetExpanded;
     this.freeRideSheetController.state.offset = this.freeRideSheetExpandedOffset;
@@ -7714,13 +7724,14 @@ class PageFreeRide extends HTMLElement {
       this.cancelFreeRideSheetDrag();
     });
     sheetHandleBtn?.addEventListener('click', (event) => {
-      event.preventDefault();
+      this.handleFreeRideSheetHandleClick(event);
     });
     sheetHandleBtn?.addEventListener('keydown', (event) => {
-      const key = event && event.key ? event.key : '';
-      if (key !== 'Enter' && key !== ' ') return;
-      event.preventDefault();
-      this.toggleFreeRideSheet({ animate: true });
+      this.freeRideSheetController.handleKeyDown(event);
+      this.freeRideSheetExpanded = this.freeRideSheetController.state.expanded;
+      this.freeRideSheetExpandedOffset = this.freeRideSheetController.state.offset;
+      this.freeRideSheetTranslateY = this.freeRideSheetController.state.translateY;
+      this.freeRideSheetDragging = this.freeRideSheetController.state.dragging;
     });
 
     const heroCardEl = this.querySelector('.free-ride-hero-card');

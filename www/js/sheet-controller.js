@@ -10,6 +10,7 @@ export const createSheetController = (options) => {
     getTopInset = () => 0,
     getExpandedLabel = () => 'Collapse card',
     getCollapsedLabel = () => 'Expand card',
+    getLayoutScale = null,
     canInteract = () => true
   } = options || {};
 
@@ -40,6 +41,7 @@ export const createSheetController = (options) => {
   };
 
   const AUTO_MEASURE_COOLDOWN_MS = 350;
+  const HANDLE_CLICK_FALLBACK_WINDOW_MS = 420;
 
   const markInteraction = () => {
     state.lastInteractionTs = Date.now();
@@ -50,6 +52,22 @@ export const createSheetController = (options) => {
     if (state.dragging) return true;
     const sinceInteraction = Date.now() - (state.lastInteractionTs || 0);
     return sinceInteraction >= 0 && sinceInteraction < AUTO_MEASURE_COOLDOWN_MS;
+  };
+
+  const resolveLayoutScale = () => {
+    if (typeof getLayoutScale === 'function') {
+      const customScale = Number(getLayoutScale());
+      if (Number.isFinite(customScale) && customScale > 0) return customScale;
+    }
+    if (typeof document === 'undefined' || !document.body?.classList?.contains('app-display-zoom-compensation')) {
+      return 1;
+    }
+    const raw =
+      typeof window !== 'undefined' && typeof window.getComputedStyle === 'function'
+        ? window.getComputedStyle(document.documentElement).getPropertyValue('--app-display-zoom-compensation-factor')
+        : '';
+    const scale = Number.parseFloat(String(raw || '').trim());
+    return Number.isFinite(scale) && scale > 0 ? scale : 1;
   };
 
   const readAppliedTranslateY = (sheetEl) => {
@@ -76,8 +94,10 @@ export const createSheetController = (options) => {
     const shellRect = shellEl.getBoundingClientRect();
     const sheetRect = sheetEl.getBoundingClientRect();
     const currentTranslate = readAppliedTranslateY(sheetEl);
-    const targetTop = shellRect.top + Math.max(0, Number(getTopInset()) || 0);
-    const offset = Math.max(0, Math.round(sheetRect.top - currentTranslate - targetTop));
+    const layoutScale = resolveLayoutScale();
+    const targetTop = shellRect.top + Math.max(0, Number(getTopInset()) || 0) * layoutScale;
+    const visualBaseTop = sheetRect.top - currentTranslate * layoutScale;
+    const offset = Math.max(0, Math.round((visualBaseTop - targetTop) / layoutScale));
     state.offset = offset;
     return offset;
   };
@@ -88,8 +108,9 @@ export const createSheetController = (options) => {
     const handleEl = getHandleEl();
     if (!sheetEl) return;
 
+    const canForceMeasure = opts.force && !shouldSkipAutoMeasure(opts);
     const offset = state.expanded
-      ? (opts.force ? measureOffset({ force: true }) : (state.offset || measureOffset()))
+      ? (canForceMeasure ? measureOffset(opts) : (state.offset || measureOffset(opts)))
       : 0;
     state.translateY = state.expanded ? -offset : 0;
 
@@ -148,6 +169,24 @@ export const createSheetController = (options) => {
 
   const toggle = (opts = {}) => setExpanded(!state.expanded, opts);
 
+  const handleClick = (event, opts = {}) => {
+    if (event && typeof event.preventDefault === 'function') {
+      event.preventDefault();
+    }
+    const sincePointerUp = Date.now() - (state.lastPointerUpTs || 0);
+    if (sincePointerUp >= 0 && sincePointerUp < HANDLE_CLICK_FALLBACK_WINDOW_MS) return;
+    toggle({ animate: true, ...opts });
+  };
+
+  const handleKeyDown = (event, opts = {}) => {
+    const key = event && event.key ? event.key : '';
+    if (key !== 'Enter' && key !== ' ') return;
+    if (event && typeof event.preventDefault === 'function') {
+      event.preventDefault();
+    }
+    toggle({ animate: true, ...opts });
+  };
+
   const startDrag = (event) => {
     const handleEl = event && event.currentTarget ? event.currentTarget : null;
     const sheetEl = getSheetEl();
@@ -197,6 +236,8 @@ export const createSheetController = (options) => {
     state.lastPointerUpTs = Date.now();
     markInteraction();
 
+    setExpanded(nextExpanded, { animate: true });
+
     if (handleEl) {
       try {
         if (typeof event.pointerId === 'number' && handleEl.hasPointerCapture(event.pointerId)) {
@@ -204,7 +245,6 @@ export const createSheetController = (options) => {
         }
       } catch (_) {}
     }
-    setExpanded(nextExpanded, { animate: true });
   };
 
   const cancelDrag = () => {
@@ -221,6 +261,8 @@ export const createSheetController = (options) => {
     applyState,
     setExpanded,
     toggle,
+    handleClick,
+    handleKeyDown,
     startDrag,
     moveDrag,
     finishDrag,

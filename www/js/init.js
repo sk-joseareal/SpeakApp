@@ -54,10 +54,21 @@ const isPremiumPlanUser = (user) => {
   return expires.getTime() > Date.now();
 };
 
+const isLegacyUser = (user) => {
+  if (!user || typeof user !== 'object') return false;
+  const id = parseInt(user.id, 10);
+  return Number.isFinite(id) && id > 0 && id < 2727228;
+};
+
 window.applyUserPlanTabVisibility = (user) => {
   const isPremiumPlan = user && typeof user === 'object' && isPremiumPlanUser(user);
-  const nextPlan = isPremiumPlan ? PREMIUM_PLAN_TABS : STANDARD_PLAN_TABS;
-  const nextReferenceToolsEnabled = isPremiumPlan
+  const isLegacy = isLegacyUser(user);
+  const nextPlan = isPremiumPlan
+    ? PREMIUM_PLAN_TABS
+    : isLegacy
+    ? { ...STANDARD_PLAN_TABS, reference: true }
+    : STANDARD_PLAN_TABS;
+  const nextReferenceToolsEnabled = isPremiumPlan || isLegacy
     ? PREMIUM_PLAN_REFERENCE_TOOLS
     : STANDARD_PLAN_REFERENCE_TOOLS;
   window.r34lp0w3r = window.r34lp0w3r || {};

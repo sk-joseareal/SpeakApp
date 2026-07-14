@@ -22,6 +22,7 @@ const LAB_THEME_COLOR = '#00000000';
 const APP_STATUSBAR_PRESET_KEY = 'appv5:statusbar-preset';
 const APP_FONT_SF_PRO_ENABLED_KEY = 'appv5:font-sf-pro-enabled';
 const SYSTEM_BOTTOM_INSET_DEBUG_KEY = 'appv5:system-bottom-inset-debug';
+const DISPLAY_ZOOM_COMPENSATION_DEFAULT_FACTOR = 0.92;
 const RECORDING_STOP_DELAY_KEY = 'appv5:recording-stop-delay-ms';
 const RECORDING_STOP_DELAY_DEFAULT_MS = 1400;
 const LEGACY_LAYOUT_TRACE_STORAGE_KEY = 'appv5:legacy-layout-trace';
@@ -44,6 +45,7 @@ let _legacyViewportRelayoutTimer = 0;
 let _viewportHeightSyncRaf = 0;
 let _nativeSystemInsetsSyncRaf = 0;
 let _nativeSystemInsetsRetryTimers = [];
+let _nativeDisplayZoomCompensationRetryTimers = [];
 let _legacyLayoutUnlockTimer = 0;
 let _legacyLayoutUnlockTimer2 = 0;
 let _legacyLayoutReady = true;
@@ -572,6 +574,31 @@ function applyAppFontPreference(enabled = getStoredAppFontSfProEnabled()) {
   return normalized;
 }
 
+function normalizeDisplayZoomCompensationFactor(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return DISPLAY_ZOOM_COMPENSATION_DEFAULT_FACTOR;
+  return Math.min(1, Math.max(0.5, numeric));
+}
+
+function applyDisplayZoomCompensationPreference(info = {}) {
+  const factor = normalizeDisplayZoomCompensationFactor(info.factor);
+  const mode = String(info.mode || '').trim();
+  const enabled = info.enabled === true;
+  const applied = info.applied === true;
+  const shouldCompensateWebLayout = enabled && applied && mode === 'webScale';
+  document.documentElement.style.setProperty('--app-display-zoom-compensation-factor', String(factor));
+  window.r34lp0w3r = window.r34lp0w3r || {};
+  window.r34lp0w3r.displayZoomCompensation = {
+    ...info,
+    factor,
+    enabled,
+    applied,
+    mode
+  };
+  document.body.classList.toggle('app-display-zoom-compensation', shouldCompensateWebLayout);
+  return window.r34lp0w3r.displayZoomCompensation;
+}
+
 function normalizeSystemBottomInsetDebugEnabled(value) {
   if (typeof value === 'boolean') return value;
   const normalized = String(value || '')
@@ -761,6 +788,41 @@ function syncNativeSystemInsetsCssVarsWithRetries() {
   syncNativeSystemInsetsCssVars();
   [120, 320, 800, 1500].forEach((delay) => {
     _nativeSystemInsetsRetryTimers.push(setTimeout(() => syncNativeSystemInsetsCssVars(), delay));
+  });
+}
+
+function syncNativeDisplayZoomCompensation() {
+  try {
+    const nativePlugin =
+      window.Capacitor && window.Capacitor.Plugins ? window.Capacitor.Plugins.P4w4Plugin : null;
+    if (!nativePlugin || typeof nativePlugin.getDisplayZoomCompensationInfo !== 'function') {
+      applyDisplayZoomCompensationPreference({
+        supported: false,
+        enabled: false,
+        applied: false,
+        factor: DISPLAY_ZOOM_COMPENSATION_DEFAULT_FACTOR,
+        mode: 'unsupported'
+      });
+      return;
+    }
+    Promise.resolve(nativePlugin.getDisplayZoomCompensationInfo())
+      .then((info) => {
+        applyDisplayZoomCompensationPreference(info || {});
+      })
+      .catch(() => {});
+  } catch (_err) {
+    // no-op
+  }
+}
+
+function syncNativeDisplayZoomCompensationWithRetries() {
+  _nativeDisplayZoomCompensationRetryTimers.forEach((timerId) => clearTimeout(timerId));
+  _nativeDisplayZoomCompensationRetryTimers = [];
+  syncNativeDisplayZoomCompensation();
+  [120, 320, 800, 1500].forEach((delay) => {
+    _nativeDisplayZoomCompensationRetryTimers.push(
+      setTimeout(() => syncNativeDisplayZoomCompensation(), delay)
+    );
   });
 }
 
@@ -1461,8 +1523,10 @@ installIonContentDimensionGuard();
 ensureLegacySpeakCopyGlobals();
 applyAppFontPreference();
 applySystemBottomInsetDebugPreference();
+applyDisplayZoomCompensationPreference();
 syncNativeStatusBarCssHeight();
 syncNativeSystemInsetsCssVarsWithRetries();
+syncNativeDisplayZoomCompensationWithRetries();
 syncAppViewportHeightVar();
 refreshTranslationCapabilities().catch(() => {});
 window.addEventListener('app:locale-change', (event) => {
@@ -1590,6 +1654,12 @@ window.addEventListener('app:font-sf-pro-change', (event) => {
 
 window.addEventListener('app:system-bottom-inset-debug-change', (event) => {
   applySystemBottomInsetDebugPreference(event && event.detail ? event.detail.enabled : undefined);
+  _lastAppliedChromeKey = '';
+  scheduleAppChromeSync(getCurrentAppPath());
+});
+
+window.addEventListener('app:display-zoom-compensation-change', (event) => {
+  applyDisplayZoomCompensationPreference(event && event.detail ? event.detail : {});
   _lastAppliedChromeKey = '';
   scheduleAppChromeSync(getCurrentAppPath());
 });

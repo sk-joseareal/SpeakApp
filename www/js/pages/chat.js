@@ -363,13 +363,12 @@ class PageChat extends HTMLElement {
       cancelChatSheetDrag();
     });
     chatSheetHandleEl?.addEventListener('click', (event) => {
-      event.preventDefault();
+      chatSheetController.handleClick(event);
+      chatSheetLastPointerUpTs = chatSheetController.state.lastPointerUpTs;
     });
     chatSheetHandleEl?.addEventListener('keydown', (event) => {
-      const key = event && event.key ? event.key : '';
-      if (key !== 'Enter' && key !== ' ') return;
-      event.preventDefault();
-      toggleChatSheet(true);
+      chatSheetController.handleKeyDown(event);
+      chatSheetLastPointerUpTs = chatSheetController.state.lastPointerUpTs;
     });
     measureChatSheetExpandedOffset();
     applyChatSheetState({ animate: false, force: true });

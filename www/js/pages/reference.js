@@ -228,10 +228,9 @@ class PageReference extends HTMLElement {
     this.pendingReferenceCourseBadgePopup = null;
     this.referenceLessonTab = 'content';
     this.referenceMainTab = 'courses';
-    this.referenceLessonTabScrollTop = {
-      content: 0,
-      tests: 0
-    };
+    this.referenceLessonTabScrollTop = {};
+    this.referenceOverviewScrollTop = 0;
+    this.referenceSkipNextRenderScrollCapture = false;
     this.toolView = false;
     this.activeTool = '';
     this.toolsDataCache = {};
@@ -267,6 +266,8 @@ class PageReference extends HTMLElement {
     this.layoutSyncTimer = null;
     this.layoutSyncRaf = null;
     this.layoutSyncVersion = 0;
+    this.referenceScrollRestoreRaf = null;
+    this.referenceLessonNavRaf = null;
   }
 
   connectedCallback() {
@@ -326,7 +327,7 @@ class PageReference extends HTMLElement {
         return;
       }
       this.referenceSheetExpandedOffset = this.measureReferenceSheetExpandedOffset();
-      this.applyReferenceSheetState({ animate: false, force: true });
+      this.applyReferenceSheetState({ animate: false });
       this.scheduleLayoutSync(0);
     };
     document.addEventListener('ionTabsDidChange', this._tabChangeHandler);
@@ -351,7 +352,7 @@ class PageReference extends HTMLElement {
       if (!this.isConnected) return;
       if (document.body?.classList?.contains('app-android-legacy-webview')) return;
       this.referenceSheetExpandedOffset = this.measureReferenceSheetExpandedOffset();
-      this.applyReferenceSheetState({ animate: false, force: true });
+      this.applyReferenceSheetState({ animate: false });
       this.scheduleLayoutSync(0);
     };
     window.addEventListener('resize', this._resizeHandler);
@@ -425,6 +426,14 @@ class PageReference extends HTMLElement {
     this.clearReferenceLessonCompletionTimer();
     this.clearLayoutSync();
     this.stopHeroNarration();
+    if (this.referenceScrollRestoreRaf) {
+      cancelAnimationFrame(this.referenceScrollRestoreRaf);
+      this.referenceScrollRestoreRaf = null;
+    }
+    if (this.referenceLessonNavRaf) {
+      cancelAnimationFrame(this.referenceLessonNavRaf);
+      this.referenceLessonNavRaf = null;
+    }
   }
 
   disconnectFloatingHintsObserver() {
@@ -1446,6 +1455,120 @@ class PageReference extends HTMLElement {
     return this.querySelector('.reference-content-card .journey-sheet-handle');
   }
 
+  getReferenceLayoutScale() {
+    if (!document.body?.classList?.contains('app-display-zoom-compensation')) return 1;
+    const raw = window.getComputedStyle(document.documentElement).getPropertyValue('--app-display-zoom-compensation-factor');
+    const scale = Number.parseFloat(String(raw || '').trim());
+    return Number.isFinite(scale) && scale > 0 ? scale : 1;
+  }
+
+  getReferenceVisibleTopLimit(extraPx = 0) {
+    const viewport = window.visualViewport || null;
+    const viewportTop = viewport ? Number(viewport.offsetTop) || 0 : 0;
+    const headerEl = this.querySelector('ion-header.app-header-shell') || this.querySelector('ion-header');
+    const headerRect =
+      headerEl && typeof headerEl.getBoundingClientRect === 'function'
+        ? headerEl.getBoundingClientRect()
+        : null;
+    const headerBottom =
+      headerRect && Number.isFinite(headerRect.bottom) && headerRect.height > 0
+        ? headerRect.bottom
+        : 0;
+    return Math.max(0, Math.round(Math.max(viewportTop, headerBottom) + (Number(extraPx) || 0)));
+  }
+
+  getReferenceCardMainEl() {
+    return this.querySelector('.reference-content-card .journey-sheet-main');
+  }
+
+  getReferenceLessonNavEl() {
+    return this.querySelector('.reference-lesson-nav');
+  }
+
+  isReferenceLessonNavAdjustmentEnabled() {
+    return Boolean(
+      this.lessonView &&
+        document.body?.classList?.contains('app-platform-ios') &&
+        document.body?.classList?.contains('app-display-zoom-compensation')
+    );
+  }
+
+  resetReferenceLessonNavAdjustment() {
+    const navEl = this.getReferenceLessonNavEl();
+    if (!navEl) return;
+    navEl.style.removeProperty('--reference-lesson-nav-offset');
+    navEl.classList.remove('is-ios-nav-adjusted');
+  }
+
+  updateReferenceLessonNavAdjustment() {
+    const navEl = this.getReferenceLessonNavEl();
+    const mainEl = this.getReferenceCardMainEl();
+    if (!navEl || !mainEl || !this.isReferenceLessonNavAdjustmentEnabled()) {
+      this.resetReferenceLessonNavAdjustment();
+      return;
+    }
+
+    navEl.style.setProperty('--reference-lesson-nav-offset', '0px');
+    const mainRect = mainEl.getBoundingClientRect();
+    const navRect = navEl.getBoundingClientRect();
+    const visualDelta = mainRect.bottom - navRect.bottom;
+    const layoutScale = this.getReferenceLayoutScale();
+    const cssOffset = Number.isFinite(visualDelta)
+      ? Math.round(visualDelta / Math.max(0.01, layoutScale))
+      : 0;
+    const nextOffset = Math.abs(cssOffset) <= 1 ? 0 : cssOffset;
+    navEl.style.setProperty('--reference-lesson-nav-offset', `${nextOffset}px`);
+    navEl.classList.toggle('is-ios-nav-adjusted', nextOffset !== 0);
+  }
+
+  scheduleReferenceLessonNavAdjustment() {
+    if (this.referenceLessonNavRaf) {
+      cancelAnimationFrame(this.referenceLessonNavRaf);
+      this.referenceLessonNavRaf = null;
+    }
+    this.referenceLessonNavRaf = requestAnimationFrame(() => {
+      this.referenceLessonNavRaf = null;
+      if (!this.isConnected) return;
+      this.updateReferenceLessonNavAdjustment();
+    });
+  }
+
+  captureReferenceCurrentDomScroll() {
+    const cardMainEl = this.getReferenceCardMainEl();
+    if (!cardMainEl) return 0;
+    const scrollTop = Math.max(0, Number(cardMainEl.scrollTop) || 0);
+    const lessonMainEl = this.querySelector('.reference-sublevel-main');
+    if (lessonMainEl) {
+      const scrollState = this.getReferenceLessonTabScrollState();
+      scrollState[this.getActiveReferenceLessonTab()] = scrollTop;
+      return scrollTop;
+    }
+    this.referenceOverviewScrollTop = scrollTop;
+    return scrollTop;
+  }
+
+  restoreReferenceCurrentDomScroll() {
+    const cardMainEl = this.getReferenceCardMainEl();
+    if (!cardMainEl) return;
+    const lessonMainEl = this.querySelector('.reference-sublevel-main');
+    const targetTop = lessonMainEl
+      ? this.getReferenceLessonTabScrollState()[this.getActiveReferenceLessonTab()] || 0
+      : this.referenceOverviewScrollTop || 0;
+    cardMainEl.scrollTop = Math.max(0, Number(targetTop) || 0);
+  }
+
+  scheduleReferenceScrollRestore() {
+    if (this.referenceScrollRestoreRaf) {
+      cancelAnimationFrame(this.referenceScrollRestoreRaf);
+      this.referenceScrollRestoreRaf = null;
+    }
+    this.referenceScrollRestoreRaf = requestAnimationFrame(() => {
+      this.referenceScrollRestoreRaf = null;
+      if (!this.isConnected) return;
+      this.restoreReferenceCurrentDomScroll();
+    });
+  }
+
   updateReferenceCardWedgePath() {
     const cardEl = this.getReferenceSheetEl();
     if (!cardEl) return;
@@ -1453,15 +1576,24 @@ class PageReference extends HTMLElement {
   }
 
   getReferenceSheetTopInset() {
-    if (document.body.classList.contains('app-titlebar-enabled')) return 0;
     const shellEl = this.getReferenceShellEl();
     if (!shellEl) return 0;
+    const shellRect =
+      typeof shellEl.getBoundingClientRect === 'function'
+        ? shellEl.getBoundingClientRect()
+        : { top: 0 };
     const paddingTop = Number.parseFloat(window.getComputedStyle(shellEl).paddingTop || '0');
-    return Number.isFinite(paddingTop) ? Math.max(0, Math.round(paddingTop)) : 0;
+    const baseInset =
+      !document.body.classList.contains('app-titlebar-enabled') && Number.isFinite(paddingTop)
+        ? Math.max(0, Math.round(paddingTop))
+        : 0;
+    const layoutScale = this.getReferenceLayoutScale();
+    const visibleInset = (this.getReferenceVisibleTopLimit(4) - (Number(shellRect.top) || 0)) / layoutScale;
+    return Math.max(baseInset, Math.max(0, Math.round(visibleInset)));
   }
 
-  measureReferenceSheetExpandedOffset() {
-    const offset = this.referenceSheetController.measureOffset();
+  measureReferenceSheetExpandedOffset(options = {}) {
+    const offset = this.referenceSheetController.measureOffset(options);
     this.referenceSheetExpandedOffset = this.referenceSheetController.state.offset;
     this.referenceSheetTranslateY = this.referenceSheetController.state.translateY;
     return offset;
@@ -1526,6 +1658,16 @@ class PageReference extends HTMLElement {
     this.referenceSheetDragging = this.referenceSheetController.state.dragging;
   }
 
+  handleReferenceSheetHandleClick(event) {
+    this.referenceSheetController.state.expanded = this.referenceSheetExpanded;
+    this.referenceSheetController.state.offset = this.referenceSheetExpandedOffset;
+    this.referenceSheetController.handleClick(event);
+    this.referenceSheetExpanded = this.referenceSheetController.state.expanded;
+    this.referenceSheetExpandedOffset = this.referenceSheetController.state.offset;
+    this.referenceSheetTranslateY = this.referenceSheetController.state.translateY;
+    this.referenceSheetDragging = this.referenceSheetController.state.dragging;
+  }
+
   bindReferenceSheetInteractions() {
     const handleEl = this.getReferenceSheetHandleEl();
     if (!handleEl) return;
@@ -1545,15 +1687,18 @@ class PageReference extends HTMLElement {
       this.cancelReferenceSheetDrag();
     });
     handleEl.addEventListener('click', (event) => {
-      event.preventDefault();
+      this.handleReferenceSheetHandleClick(event);
     });
     handleEl.addEventListener('keydown', (event) => {
       const key = event && event.key ? event.key : '';
       if (key !== 'Enter' && key !== ' ') return;
-      event.preventDefault();
-      this.toggleReferenceSheet({ animate: true });
+      this.referenceSheetController.handleKeyDown(event);
+      this.referenceSheetExpanded = this.referenceSheetController.state.expanded;
+      this.referenceSheetExpandedOffset = this.referenceSheetController.state.offset;
+      this.referenceSheetTranslateY = this.referenceSheetController.state.translateY;
+      this.referenceSheetDragging = this.referenceSheetController.state.dragging;
     });
-    this.applyReferenceSheetState({ animate: false, force: true });
+    this.applyReferenceSheetState({ animate: false });
   }
 
   clearLayoutSync() {
@@ -1614,7 +1759,8 @@ class PageReference extends HTMLElement {
     const tabBarEl = document.querySelector('tabs-page ion-tab-bar');
     const tabBarTop = tabBarEl ? tabBarEl.getBoundingClientRect().top : layoutViewportBottom;
     const bottomLimit = Math.min(visualViewportBottom, tabBarTop);
-    const usableHeight = bottomLimit - shellRect.top - 8;
+    const topLimit = Math.max(shellRect.top, this.getReferenceVisibleTopLimit(4));
+    const usableHeight = bottomLimit - topLimit - 8;
 
     if (!Number.isFinite(usableHeight) || usableHeight <= 40) {
       shellEl.style.removeProperty('--free-ride-shell-height');
@@ -1622,12 +1768,14 @@ class PageReference extends HTMLElement {
       return;
     }
 
-    const nextHeight = Math.max(160, Math.floor(usableHeight));
+    const layoutScale = this.getReferenceLayoutScale();
+    const nextHeight = Math.max(160, Math.floor(usableHeight / layoutScale));
     shellEl.style.setProperty('--free-ride-shell-height', `${nextHeight}px`);
     shellEl.style.setProperty('--journey-shell-height', `${nextHeight}px`);
     this.referenceSheetExpandedOffset = this.measureReferenceSheetExpandedOffset();
-    this.applyReferenceSheetState({ animate: false, force: true });
+    this.applyReferenceSheetState({ animate: false });
     this.updateReferenceCardWedgePath();
+    this.scheduleReferenceLessonNavAdjustment();
   }
 
   setHeroBubbleSpeaking(isSpeaking) {
@@ -3158,12 +3306,17 @@ class PageReference extends HTMLElement {
   }
 
   getActiveReferenceLessonTab() {
-    return this.referenceLessonTab === 'tests' ? 'tests' : 'content';
+    return this.referenceLessonTab || 'content';
+  }
+
+  isTestTab(tab) {
+    const t = String(tab || '');
+    return t.startsWith('lesson:') || t.startsWith('unit:');
   }
 
   getReferenceLessonTabScrollState() {
     if (!this.referenceLessonTabScrollTop || typeof this.referenceLessonTabScrollTop !== 'object') {
-      this.referenceLessonTabScrollTop = { content: 0, tests: 0 };
+      this.referenceLessonTabScrollTop = {};
     }
     return this.referenceLessonTabScrollTop;
   }
@@ -3214,31 +3367,37 @@ class PageReference extends HTMLElement {
     contentEl.scrollTop = targetTop;
   }
 
-  async switchReferenceLessonTab(nextTab) {
-    const normalizedTab = nextTab === 'tests' ? 'tests' : 'content';
+  async switchReferenceLessonTab(nextTab, uiLocale) {
     const currentTab = this.getActiveReferenceLessonTab();
-    if (normalizedTab === currentTab) return;
+    if (nextTab === currentTab) return;
     const scrollState = this.getReferenceLessonTabScrollState();
     scrollState[currentTab] = await this.getReferenceLessonScrollTop();
-    this.referenceLessonTab = normalizedTab;
-    this.applyReferenceLessonTabUi(normalizedTab);
+    this.referenceLessonTab = nextTab;
+    if (this.isTestTab(nextTab)) {
+      this.referenceTestSelectionKey = nextTab;
+      this.persistReferenceTestsState();
+    }
+    this.applyReferenceLessonTabUi(nextTab, uiLocale);
     await new Promise((resolve) => requestAnimationFrame(() => resolve()));
-    await this.setReferenceLessonScrollTop(scrollState[normalizedTab] || 0);
+    await this.setReferenceLessonScrollTop(scrollState[nextTab] || 0);
   }
 
-  applyReferenceLessonTabUi(tab = this.getActiveReferenceLessonTab()) {
-    const normalizedTab = tab === 'tests' ? 'tests' : 'content';
+  applyReferenceLessonTabUi(tab = this.getActiveReferenceLessonTab(), uiLocale) {
     const buttons = Array.from(this.querySelectorAll('[data-reference-lesson-tab]'));
     buttons.forEach((button) => {
-      const isActive = String(button.dataset.referenceLessonTab || '').trim() === normalizedTab;
+      const isActive = String(button.dataset.referenceLessonTab || '').trim() === tab;
       button.classList.toggle('active', isActive);
       button.setAttribute('aria-selected', isActive ? 'true' : 'false');
       button.setAttribute('tabindex', isActive ? '0' : '-1');
     });
     const contentPanel = this.querySelector('#reference-content-panel');
     const testsPanel = this.querySelector('#reference-tests-panel');
-    if (contentPanel) contentPanel.hidden = normalizedTab !== 'content';
-    if (testsPanel) testsPanel.hidden = normalizedTab !== 'tests';
+    const isTest = this.isTestTab(tab);
+    if (contentPanel) contentPanel.hidden = isTest || tab !== 'content';
+    if (testsPanel) testsPanel.hidden = !isTest;
+    if (isTest) {
+      this.renderReferenceTestsSection(uiLocale || getActiveLocale() || 'en');
+    }
   }
 
   renderReferenceLessonDots(lessonProgress) {
@@ -3255,6 +3414,7 @@ class PageReference extends HTMLElement {
 
   renderReferenceProgressPill(percent, tone, options = {}) {
     const value = Math.max(0, Math.min(100, Math.round(Number(percent) || 0)));
+    if (value === 0 && !options.showZero) return '';
     const normalizedTone = ['good', 'okay', 'bad', 'neutral'].includes(String(tone || '').trim())
       ? String(tone || '').trim()
       : 'neutral';
@@ -4395,32 +4555,17 @@ class PageReference extends HTMLElement {
     const { copy, loadInfo, lessonItems, unitItems, allItems, activeItem } = context;
 
     if (loadInfo.status === 'loading' && !allItems.length) {
-      sectionEl.innerHTML = `
-        <div class="reference-tests-shell">
-          <div class="pill">${this.escapeHtml(copy.lessonTabTests)}</div>
-          <div class="reference-empty">${this.escapeHtml(copy.testsLoading)}</div>
-        </div>
-      `;
+      sectionEl.innerHTML = `<div class="reference-tests-shell"><div class="reference-empty">${this.escapeHtml(copy.testsLoading)}</div></div>`;
       return;
     }
 
     if (loadInfo.status === 'error' && !allItems.length) {
-      sectionEl.innerHTML = `
-        <div class="reference-tests-shell">
-          <div class="pill">${this.escapeHtml(copy.lessonTabTests)}</div>
-          <div class="reference-empty">${this.escapeHtml(copy.testsLoadError)}</div>
-        </div>
-      `;
+      sectionEl.innerHTML = `<div class="reference-tests-shell"><div class="reference-empty">${this.escapeHtml(copy.testsLoadError)}</div></div>`;
       return;
     }
 
     if (!allItems.length) {
-      sectionEl.innerHTML = `
-        <div class="reference-tests-shell">
-          <div class="pill">${this.escapeHtml(copy.lessonTabTests)}</div>
-          <div class="reference-empty">${this.escapeHtml(copy.testsEmpty)}</div>
-        </div>
-      `;
+      sectionEl.innerHTML = `<div class="reference-tests-shell"><div class="reference-empty">${this.escapeHtml(copy.testsEmpty)}</div></div>`;
       return;
     }
 
@@ -4440,61 +4585,8 @@ class PageReference extends HTMLElement {
       activeTest && activeTest.header && activeTest.header.word_bank
         ? activeTest.header.word_bank[uiLocale] || activeTest.header.word_bank.en || activeTest.header.word_bank.es || []
         : [];
-    const renderItemGroup = (label, items) => {
-      if (!items.length) return '';
-      return `
-        <div class="reference-tests-group">
-          <div class="reference-tests-group-label">${this.escapeHtml(label)}</div>
-          <div class="reference-tests-list">
-            ${items
-              .map((item) => {
-                const itemKey = this.getReferenceTestKey(item.scope, item.test);
-                const itemTitle = this.getLocalizedTestText(item.test.display, uiLocale) || `Test ${item.test.code}`;
-                const itemProgress =
-                  progressSnapshot.tests[itemKey] || this.getReferenceTestDisplayProgress(item.test, itemKey);
-                const questionsLabel = this.formatReferenceCopy(copy.testsQuestions, {
-                  n: Array.isArray(item.test.questions) ? item.test.questions.length : 0
-                });
-                return `
-                  <button
-                    type="button"
-                    class="reference-test-chip ${itemKey === activeTestKey ? 'is-active' : ''} ${
-                      itemProgress.completed ? 'is-complete' : ''
-                    }"
-                    data-action="select-reference-test"
-                    data-test-key="${this.escapeHtml(itemKey)}"
-                  >
-                    <span class="reference-test-chip-title-row">
-                      <span class="reference-test-chip-title">${this.escapeHtml(itemTitle)}</span>
-                      ${this.renderReferenceProgressPill(itemProgress.percent, itemProgress.tone, {
-                        compact: true,
-                        ariaLabel: `${itemTitle}: ${itemProgress.percent}%`
-                      })}
-                      ${
-                        itemProgress.completed
-                          ? `<span class="reference-test-chip-complete" aria-hidden="true"><ion-icon name="checkmark-circle"></ion-icon></span>`
-                          : ''
-                      }
-                    </span>
-                    <span class="reference-test-chip-meta">${this.escapeHtml(questionsLabel)}</span>
-                    <span class="reference-test-chip-progress">
-                      <span class="reference-test-chip-progress-fill" style="width:${Math.round(
-                        itemProgress.progressRatio * 100
-                      )}%"></span>
-                    </span>
-                  </button>
-                `;
-              })
-              .join('')}
-          </div>
-        </div>
-      `;
-    };
-
     sectionEl.innerHTML = `
       <div class="reference-tests-shell">
-        ${renderItemGroup(copy.lessonTests, lessonItems)}
-        ${renderItemGroup(copy.unitTests, unitItems)}
         ${
           activeTest
             ? `
@@ -4507,7 +4599,6 @@ class PageReference extends HTMLElement {
                     })
                   )}</div>
                 </div>
-                <h4 class="reference-test-card-title">${this.escapeHtml(activeDisplay)}</h4>
                 ${
                   activeInstruction
                     ? `<p class="reference-test-card-instruction">${this.escapeHtml(activeInstruction)}</p>`
@@ -4604,13 +4695,6 @@ class PageReference extends HTMLElement {
       const action = String(actionEl.getAttribute('data-action') || '').trim();
       if (!action) return;
 
-      if (action === 'select-reference-test') {
-        event.preventDefault();
-        this.referenceTestSelectionKey = String(actionEl.getAttribute('data-test-key') || '').trim();
-        this.persistReferenceTestsState();
-        this.renderReferenceTestsSection(uiLocale);
-        return;
-      }
 
       if (action === 'check-reference-test') {
         event.preventDefault();
@@ -4794,6 +4878,11 @@ class PageReference extends HTMLElement {
   }
 
   render(options = {}) {
+    if (this.referenceSkipNextRenderScrollCapture) {
+      this.referenceSkipNextRenderScrollCapture = false;
+    } else {
+      this.captureReferenceCurrentDomScroll();
+    }
     this.stopHeroNarration();
     this.disconnectFloatingHintsObserver();
     this.clearReferenceLessonCompletionTimer();
@@ -5373,30 +5462,22 @@ class PageReference extends HTMLElement {
       const doOpen = () => {
         this.expandedCourseCode = String(lessonRef.courseCode);
         this.expandedUnitCode = String(lessonRef.unitCode);
-        this.referenceLessonTab = this.lessonView ? this.getActiveReferenceLessonTab() : 'content';
-        this.referenceLessonTabScrollTop = { content: 0, tests: 0 };
+        this.referenceLessonTab = 'content';
+        this.referenceLessonTabScrollTop = {};
+        this.referenceTestSelectionKey = '';
+        this.referenceTestFocus = { testKey: '', questionCode: '', inputIndex: 0 };
+        this.persistReferenceTestsState();
+        this.referenceSkipNextRenderScrollCapture = true;
         this.lessonView = true;
         setReferenceSelection({
           courseCode: String(lessonRef.courseCode),
           unitCode: String(lessonRef.unitCode),
           lessonCode: String(lessonRef.lessonCode)
         });
-        this.render();
       };
       if (!this.lessonView) {
-        const ionContent = this.querySelector('ion-content');
-        if (ionContent && typeof ionContent.getScrollElement === 'function') {
-          ionContent.getScrollElement().then((el) => {
-            this._savedScrollTop = el ? el.scrollTop : 0;
-            doOpen();
-          }).catch(() => {
-            this._savedScrollTop = 0;
-            doOpen();
-          });
-        } else {
-          this._savedScrollTop = 0;
-          doOpen();
-        }
+        this.captureReferenceCurrentDomScroll();
+        doOpen();
       } else {
         doOpen();
       }
@@ -5454,11 +5535,6 @@ class PageReference extends HTMLElement {
                           </div>
                           <div class="training-row-body">
                             <div class="training-row-title">${this.escapeHtml(lessonTitle)}</div>
-                            ${
-                              lessonSubtitle
-                                ? `<div class="module-sub reference-lesson-sub">${this.escapeHtml(lessonSubtitle)}</div>`
-                                : ''
-                            }
                           </div>
                           ${this.renderReferenceLessonDots(lessonProgress)}
                           <ion-icon name="chevron-forward" class="training-row-arrow"></ion-icon>
@@ -5555,6 +5631,24 @@ class PageReference extends HTMLElement {
       .join(' · ');
     const activeLessonTab = this.getActiveReferenceLessonTab();
 
+    // Build tab items for the scrollable segment control
+    const buildLessonTabItems = () => {
+      const { lessonItems, unitItems } = this.getReferenceTestsContext(uiLocale);
+      const tabs = [{ key: 'content', label: copy.lessonTabContent }];
+      lessonItems.forEach((item, i) => {
+        const key = this.getReferenceTestKey(item.scope, item.test);
+        const label = this.formatReferenceCopy(copy.lessonTabTestN || 'Test {n}', { n: i + 1 });
+        tabs.push({ key, label });
+      });
+      unitItems.forEach((item) => {
+        const key = this.getReferenceTestKey(item.scope, item.test);
+        tabs.push({ key, label: copy.lessonTabUnitTest || 'Unit test' });
+      });
+      return tabs;
+    };
+    const lessonTabItems = buildLessonTabItems();
+    const isTestTab = this.isTestTab(activeLessonTab);
+
     if (this.lessonView) {
       const lessonDisplayTitle = this.getText(selectedLesson, 'display', uiLocale) || `Lesson ${selectedLessonCode}`;
       this.innerHTML = `
@@ -5578,31 +5672,17 @@ class PageReference extends HTMLElement {
                       <div class="reference-lesson-breadcrumb">${selectedPath}</div>
                     </div>
                   </div>
-                  <div class="profile-segmented-tabs reference-lesson-tabs" role="tablist" aria-label="${this.escapeHtml(
-                    copy.selectedLesson
-                  )}">
-                    <button
-                      type="button"
-                      class="profile-segmented-btn reference-lesson-tab ${activeLessonTab === 'content' ? 'active' : ''}"
-                      id="reference-tab-content"
-                      data-reference-lesson-tab="content"
-                      role="tab"
-                      aria-selected="${activeLessonTab === 'content' ? 'true' : 'false'}"
-                      aria-controls="reference-content-panel"
-                    >
-                      ${this.escapeHtml(copy.lessonTabContent)}
-                    </button>
-                    <button
-                      type="button"
-                      class="profile-segmented-btn reference-lesson-tab ${activeLessonTab === 'tests' ? 'active' : ''}"
-                      id="reference-tab-tests"
-                      data-reference-lesson-tab="tests"
-                      role="tab"
-                      aria-selected="${activeLessonTab === 'tests' ? 'true' : 'false'}"
-                      aria-controls="reference-tests-panel"
-                    >
-                      ${this.escapeHtml(copy.lessonTabTests)}
-                    </button>
+                  <div class="reference-lesson-tabs-scroll" role="tablist" aria-label="${this.escapeHtml(copy.selectedLesson)}">
+                    ${lessonTabItems.map((item) => `
+                      <button
+                        type="button"
+                        class="profile-segmented-btn reference-lesson-tab ${activeLessonTab === item.key ? 'active' : ''}"
+                        data-reference-lesson-tab="${this.escapeHtml(item.key)}"
+                        role="tab"
+                        aria-selected="${activeLessonTab === item.key ? 'true' : 'false'}"
+                        tabindex="${activeLessonTab === item.key ? '0' : '-1'}"
+                      >${this.escapeHtml(item.label)}</button>
+                    `).join('')}
                   </div>
                 </div>
 
@@ -5611,7 +5691,6 @@ class PageReference extends HTMLElement {
                     class="reference-lesson-panel reference-lesson-panel--content"
                     id="reference-content-panel"
                     role="tabpanel"
-                    aria-labelledby="reference-tab-content"
                     ${activeLessonTab === 'content' ? '' : 'hidden'}
                   >
                     ${
@@ -5626,8 +5705,7 @@ class PageReference extends HTMLElement {
                     class="reference-lesson-panel reference-lesson-panel--tests"
                     id="reference-tests-panel"
                     role="tabpanel"
-                    aria-labelledby="reference-tab-tests"
-                    ${activeLessonTab === 'tests' ? '' : 'hidden'}
+                    ${isTestTab ? '' : 'hidden'}
                   >
                     <div id="reference-tests-section"></div>
                   </section>
@@ -5752,8 +5830,10 @@ class PageReference extends HTMLElement {
       if (lessonContent) {
         this.enhanceMarkdownWithMarked(lessonContent, markdownRenderToken);
       }
-      this.renderReferenceTestsSection(uiLocale);
-      this.applyReferenceLessonTabUi(activeLessonTab);
+      if (isTestTab) {
+        this.renderReferenceTestsSection(uiLocale);
+      }
+      this.applyReferenceLessonTabUi(activeLessonTab, uiLocale);
       this.startReferenceLessonCompletionTimer({
         courseCode: selectedCourseCode,
         unitCode: selectedUnitCode,
@@ -5761,17 +5841,8 @@ class PageReference extends HTMLElement {
       });
 
       this.querySelector('#reference-back-btn')?.addEventListener('click', () => {
-        const savedScroll = this._savedScrollTop || 0;
         this.lessonView = false;
         this.render();
-        if (savedScroll > 0) {
-          const ionContent = this.querySelector('ion-content');
-          if (ionContent && typeof ionContent.getScrollElement === 'function') {
-            ionContent.getScrollElement().then((el) => {
-              if (el) el.scrollTop = savedScroll;
-            }).catch(() => {});
-          }
-        }
       });
 
       this.querySelector('#reference-prev-btn')?.addEventListener('click', (event) => {
@@ -5788,14 +5859,18 @@ class PageReference extends HTMLElement {
 
       this.querySelectorAll('[data-reference-lesson-tab]').forEach((button) => {
         button.addEventListener('click', () => {
-          const nextTab =
-            String(button.getAttribute('data-reference-lesson-tab') || '').trim() === 'tests'
-              ? 'tests'
-              : 'content';
-          if (this.referenceLessonTab === nextTab) return;
-          this.switchReferenceLessonTab(nextTab);
+          const nextTab = String(button.getAttribute('data-reference-lesson-tab') || '').trim();
+          if (!nextTab || this.referenceLessonTab === nextTab) return;
+          this.switchReferenceLessonTab(nextTab, uiLocale);
         });
       });
+      this.getReferenceCardMainEl()?.addEventListener(
+        'scroll',
+        () => {
+          this.scheduleReferenceLessonNavAdjustment();
+        },
+        { passive: true }
+      );
 
       // ── Floating hints + swipe + tap edge ──
       const lessonCardEl = this.querySelector('#reference-lesson-stage');
@@ -5829,6 +5904,9 @@ class PageReference extends HTMLElement {
           )
         );
       };
+      const isInsideReferenceNavigationSurface = (target) => (
+        target instanceof Element && Boolean(target.closest('#reference-lesson-stage'))
+      );
       if (floatingHintsEl && hasDirectionalHints && lessonCardEl) {
         const applyVisibility = (visible) => {
           floatingHintsEl.classList.toggle('is-card-visible', Boolean(visible));
@@ -5845,6 +5923,7 @@ class PageReference extends HTMLElement {
         if (!event.touches || event.touches.length !== 1) return;
         const target = event.target instanceof Element ? event.target : null;
         if (!target) return;
+        if (!isInsideReferenceNavigationSurface(target)) return;
         if (isInteractiveTarget(target)) return;
         const touch = event.touches[0];
         swipeTouchActive = true;
@@ -5892,6 +5971,7 @@ class PageReference extends HTMLElement {
         if (Date.now() < suppressTapUntil) return;
         const target = event && event.target instanceof Element ? event.target : null;
         if (!target) return;
+        if (!isInsideReferenceNavigationSurface(target)) return;
         if (isInteractiveTarget(target)) return;
         const selection = typeof window.getSelection === 'function' ? window.getSelection() : null;
         if (selection && !selection.isCollapsed && String(selection).trim()) return;
@@ -5987,6 +6067,8 @@ class PageReference extends HTMLElement {
         });
       });
     }
+    this.scheduleReferenceScrollRestore();
+    this.scheduleReferenceLessonNavAdjustment();
   }
 }
 

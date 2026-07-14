@@ -3700,6 +3700,22 @@ class PageSpeak extends HTMLElement {
       return expected || phonetic;
     };
 
+    const getSoundTranslationText = (locale = getHintUiLocale()) => {
+      if (normalizeHintLocale(locale) !== 'es' || !soundStep) return '';
+      return String(soundStep.expected_es || '').trim();
+    };
+
+    const getSpellingWordTranslation = (index, locale = getHintUiLocale()) => {
+      if (normalizeHintLocale(locale) !== 'es' || !spellingStep) return '';
+      const wordsEs = Array.isArray(spellingStep.words_es) ? spellingStep.words_es : [];
+      return String(wordsEs[index] || '').trim();
+    };
+
+    const getSentenceTranslationText = (locale = getHintUiLocale()) => {
+      if (normalizeHintLocale(locale) !== 'es' || !sentenceStep) return '';
+      return String(sentenceStep.sentence_es || '').trim();
+    };
+
     const getExpectedText = (key) => {
       if (key === 'sound') return soundStep && soundStep.expected ? soundStep.expected : '';
       if (key === 'spelling') return selectedWord;
@@ -3985,6 +4001,7 @@ class PageSpeak extends HTMLElement {
         ? score.label
         : getSpeakUiText('practiceSound', locale, 'Practice the sound');
       const displayText = getSoundDisplayText();
+      const translationText = getSoundTranslationText(locale);
 
       const stepTitle = getLocalizedStepTitle(soundStep, locale) || getSpeakUiText('stepTitleSound', locale, 'Listen carefully and Say');
       const stepSubtitle = resolveHeroHintText(soundStep, locale);
@@ -3996,6 +4013,7 @@ class PageSpeak extends HTMLElement {
             <span class="speak-phonetic-text" id="speak-phonetic-text">
               ${renderExpectedInlineHtml(displayText, soundStep && soundStep.expected ? soundStep.expected : '', focusKey, false)}
             </span>
+            ${translationText ? `<span class="speak-inline-translation">(${escapeHtml(translationText)})</span>` : ''}
           </div>
           ${stepSubtitle ? `<p class="speak-step-subtitle">${stepSubtitle}</p>` : ''}
           <div class="speak-step-main">
@@ -4050,7 +4068,7 @@ class PageSpeak extends HTMLElement {
         : getSpeakUiText('practiceWords', locale, 'Practice the words');
 
       const words = spellingStep.words
-        .map((word) => {
+        .map((word, index) => {
           const result = getStoredWordResult(currentSessionId, word);
           const wordTone =
             result && typeof result.percent === 'number' ? getScoreTone(result.percent, locale) : '';
@@ -4059,9 +4077,13 @@ class PageSpeak extends HTMLElement {
             : wordTone === 'bad' ? '<span class="speak-word-icon">✕</span>'
             : wordTone === 'okay' ? '<span class="speak-word-icon">!</span>'
             : '';
+          const translation = getSpellingWordTranslation(index, locale);
           return `
             <button class="speak-word ${toneClass} ${word === selectedWord ? 'is-active' : ''}" data-word="${word}" type="button">
-              <span>${highlightLetter(word, focusKey)}</span>
+              <span class="speak-word-copy">
+                <span class="speak-word-text">${highlightLetter(word, focusKey)}</span>
+                ${translation ? `<span class="speak-word-translation">${escapeHtml(translation)}</span>` : ''}
+              </span>
               ${toneIcon}
             </button>
           `;
@@ -4115,6 +4137,7 @@ class PageSpeak extends HTMLElement {
         : getSpeakUiText('practicePhrase', locale, 'Practice the phrase');
       const sentenceContentTitle = getLocalizedStepTitle(sentenceStep, locale);
       const sentenceFallback = getSpeakUiText('stepTitleSentence', locale, 'Say a whole sentence');
+      const sentenceTranslation = getSentenceTranslationText(locale);
       const stepTitle = sentenceFallback;
       return `
         <div class="speak-step speak-step-sentence">
@@ -4122,7 +4145,8 @@ class PageSpeak extends HTMLElement {
           ${sentenceContentTitle ? `<p class="speak-step-subtitle">${sentenceContentTitle}</p>` : ''}
           <div class="speak-step-main">
             <button class="speak-sentence is-active" id="speak-play-sentence" type="button">
-              <span id="speak-sentence-text">${highlightSentence(sentenceStep.sentence, focusKey)}</span>
+              <span class="speak-sentence-main" id="speak-sentence-text">${highlightSentence(sentenceStep.sentence, focusKey)}</span>
+              ${sentenceTranslation ? `<span class="speak-sentence-translation">${escapeHtml(sentenceTranslation)}</span>` : ''}
             </button>
           </div>
 

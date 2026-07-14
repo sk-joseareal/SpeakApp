@@ -61,6 +61,7 @@ class PageDiagnostics extends HTMLElement {
     const APP_STATUSBAR_PRESET_KEY = 'appv5:statusbar-preset';
     const APP_FONT_SF_PRO_ENABLED_KEY = 'appv5:font-sf-pro-enabled';
     const SYSTEM_BOTTOM_INSET_DEBUG_KEY = 'appv5:system-bottom-inset-debug';
+    const DISPLAY_ZOOM_COMPENSATION_DEFAULT_FACTOR = 0.92;
     const SPEAK_PRONUNCIATION_AVATAR_MODE_KEY = 'appv5:speak-pronunciation-avatar-mode';
     const RECORDING_STOP_DELAY_KEY = 'appv5:recording-stop-delay-ms';
     const SPEAK_PRONUNCIATION_AVATAR_VIDEO = 'video';
@@ -547,6 +548,25 @@ class PageDiagnostics extends HTMLElement {
                 <div class="diag-debug-sub" id="diag-system-bottom-inset-debug-sub"></div>
               </div>
               <ion-toggle id="diag-system-bottom-inset-debug-toggle" aria-label="Zonas del sistema" ${getStoredSystemBottomInsetDebugEnabled() ? 'checked' : ''}></ion-toggle>
+            </div>
+            <div class="diag-debug-toggle" style="margin-top: 10px;">
+              <div class="diag-debug-text">
+                <div class="diag-debug-title">Compensación display zoom</div>
+                <div class="diag-debug-sub" id="diag-display-zoom-compensation-sub"></div>
+              </div>
+              <ion-toggle id="diag-display-zoom-compensation-toggle" aria-label="Compensación display zoom"></ion-toggle>
+            </div>
+            <div class="diag-speak-block" style="margin-top:10px;">
+              <div class="diag-debug-title">Factor compensación display zoom</div>
+              <div style="display:flex;align-items:center;gap:10px;margin-top:6px;">
+                <input type="range" id="diag-display-zoom-compensation-factor" min="0.85" max="1" step="0.01"
+                  value="${DISPLAY_ZOOM_COMPENSATION_DEFAULT_FACTOR}" style="flex:1;">
+                <span id="diag-display-zoom-compensation-factor-label" style="min-width:48px;text-align:right;font-variant-numeric:tabular-nums;">${DISPLAY_ZOOM_COMPENSATION_DEFAULT_FACTOR.toFixed(2)}</span>
+              </div>
+            </div>
+            <div class="diag-speak-block">
+              <div class="pill">Display zoom / viewport</div>
+              <pre class="diag-json" id="diag-display-zoom-compensation-output"></pre>
             </div>
             <div class="diag-speak-block">
               <div class="diag-debug-title">Tipografía global</div>
@@ -2012,6 +2032,11 @@ class PageDiagnostics extends HTMLElement {
     const statusbarPresetSubEl = this.querySelector('#diag-statusbar-preset-sub');
     const systemBottomInsetDebugToggleEl = this.querySelector('#diag-system-bottom-inset-debug-toggle');
     const systemBottomInsetDebugSubEl = this.querySelector('#diag-system-bottom-inset-debug-sub');
+    const displayZoomCompensationToggleEl = this.querySelector('#diag-display-zoom-compensation-toggle');
+    const displayZoomCompensationSubEl = this.querySelector('#diag-display-zoom-compensation-sub');
+    const displayZoomCompensationOutputEl = this.querySelector('#diag-display-zoom-compensation-output');
+    const displayZoomCompensationFactorEl = this.querySelector('#diag-display-zoom-compensation-factor');
+    const displayZoomCompensationFactorLabelEl = this.querySelector('#diag-display-zoom-compensation-factor-label');
     const freeRideAudioModeEl = this.querySelector('#diag-free-ride-audio-mode');
     const freeRideAudioSubEl = this.querySelector('#diag-free-ride-audio-sub');
     const freeRideAdvancedToggleEl = this.querySelector('#diag-free-ride-advanced-toggle');
@@ -2050,6 +2075,8 @@ class PageDiagnostics extends HTMLElement {
     let pronUsageRequestSeq = 0;
     let ttsUtter = null;
     let ttsPlaying = false;
+    let lastDisplayZoomCompensationInfo = null;
+    let displayZoomCompensationApplySeq = 0;
 
     const getStatusBarPlugin = () => window.Capacitor?.Plugins?.StatusBar || null;
 
@@ -2169,6 +2196,346 @@ class PageDiagnostics extends HTMLElement {
         ) / 100}; viewport ${metrics.viewport}.`;
       }
       return normalized;
+    };
+
+    const getDisplayZoomCompensationPlugin = () => window.Capacitor?.Plugins?.P4w4Plugin || null;
+    const canSetDisplayZoomCompensation = () => {
+      const nativePlugin = getDisplayZoomCompensationPlugin();
+      return Boolean(nativePlugin && typeof nativePlugin.setDisplayZoomCompensation === 'function');
+    };
+
+    const readDisplayZoomViewportMetrics = () => {
+      const viewport = window.visualViewport || null;
+      return {
+        innerWidth: Number(window.innerWidth) || 0,
+        innerHeight: Number(window.innerHeight) || 0,
+        outerWidth: Number(window.outerWidth) || 0,
+        outerHeight: Number(window.outerHeight) || 0,
+        devicePixelRatio: Number(window.devicePixelRatio) || 1,
+        visualViewportWidth: viewport ? Number(viewport.width) || 0 : 0,
+        visualViewportHeight: viewport ? Number(viewport.height) || 0 : 0,
+        visualViewportScale: viewport ? Number(viewport.scale) || 0 : 0
+      };
+    };
+
+    const normalizeDisplayZoomCompensationFactor = (value) => {
+      const numeric = Number(value);
+      if (!Number.isFinite(numeric)) return DISPLAY_ZOOM_COMPENSATION_DEFAULT_FACTOR;
+      return Math.min(1, Math.max(0.85, Math.round(numeric * 100) / 100));
+    };
+
+    const updateDisplayZoomCompensationFactorUi = (value) => {
+      const factor = normalizeDisplayZoomCompensationFactor(value);
+      if (displayZoomCompensationFactorEl) {
+        displayZoomCompensationFactorEl.value = factor.toFixed(2);
+      }
+      if (displayZoomCompensationFactorLabelEl) {
+        displayZoomCompensationFactorLabelEl.textContent = factor.toFixed(2);
+      }
+      return factor;
+    };
+
+    const roundDisplayZoomMetric = (value, digits = 2) => {
+      const numeric = Number(value);
+      if (!Number.isFinite(numeric)) return null;
+      const factor = 10 ** digits;
+      return Math.round(numeric * factor) / factor;
+    };
+
+    const evaluateDisplayZoomEnvironment = (info = {}, viewportMetrics = readDisplayZoomViewportMetrics()) => {
+      const platform = String(info.platform || window.Capacitor?.getPlatform?.() || 'web')
+        .trim()
+        .toLowerCase();
+      const reasons = [];
+      const signals = {
+        platform,
+        screenWidthPoints: roundDisplayZoomMetric(info.screenWidthPoints),
+        screenHeightPoints: roundDisplayZoomMetric(info.screenHeightPoints),
+        innerWidth: roundDisplayZoomMetric(viewportMetrics.innerWidth),
+        innerHeight: roundDisplayZoomMetric(viewportMetrics.innerHeight),
+        devicePixelRatio: roundDisplayZoomMetric(viewportMetrics.devicePixelRatio),
+        visualViewportScale: roundDisplayZoomMetric(viewportMetrics.visualViewportScale),
+        screenScale: roundDisplayZoomMetric(info.screenScale),
+        screenNativeScale: roundDisplayZoomMetric(info.screenNativeScale),
+        fontScale: roundDisplayZoomMetric(info.fontScale),
+        density: roundDisplayZoomMetric(info.density),
+        scaledDensity: roundDisplayZoomMetric(info.scaledDensity)
+      };
+      let compressedVisualEnvironment = 'unknown';
+      let confidence = 'low';
+
+      const innerWidth = Number(viewportMetrics.innerWidth) || 0;
+      const visualViewportScale = Number(viewportMetrics.visualViewportScale) || 0;
+      const screenWidthPoints = Number(info.screenWidthPoints) || 0;
+
+      if (visualViewportScale > 1.01) {
+        compressedVisualEnvironment = 'yes';
+        confidence = 'high';
+        reasons.push(`visualViewport.scale=${roundDisplayZoomMetric(visualViewportScale)} (>1)`);
+      }
+
+      if (platform === 'ios' && compressedVisualEnvironment === 'unknown') {
+        const screenScale = Number(info.screenScale) || 0;
+        const screenNativeScale = Number(info.screenNativeScale) || 0;
+        const nativeScreenWidthPx = Number(info.nativeScreenWidthPx) || 0;
+        const nativePixelsPerPoint =
+          screenWidthPoints > 0 && nativeScreenWidthPx > 0 ? nativeScreenWidthPx / screenWidthPoints : 0;
+        const scaleDelta = screenNativeScale > 0 && screenScale > 0 ? screenNativeScale - screenScale : 0;
+        const nativePerPointDelta =
+          nativePixelsPerPoint > 0 && screenScale > 0 ? nativePixelsPerPoint - screenScale : 0;
+        signals.nativePixelsPerPoint = roundDisplayZoomMetric(nativePixelsPerPoint);
+        signals.scaleDelta = roundDisplayZoomMetric(scaleDelta);
+        signals.nativePerPointDelta = roundDisplayZoomMetric(nativePerPointDelta);
+
+        if ((scaleDelta >= 0.2 || nativePerPointDelta >= 0.2) && (screenWidthPoints <= 380 || innerWidth <= 380)) {
+          compressedVisualEnvironment = 'yes';
+          confidence = 'medium';
+          reasons.push(
+            `iOS con ancho lógico reducido (${roundDisplayZoomMetric(screenWidthPoints || innerWidth)}pt) y delta de escala ${roundDisplayZoomMetric(
+              Math.max(scaleDelta, nativePerPointDelta)
+            )}`
+          );
+        } else if (screenScale > 0 && screenNativeScale > 0 && Math.abs(scaleDelta) < 0.08 && screenWidthPoints >= 390) {
+          compressedVisualEnvironment = 'no';
+          confidence = 'medium';
+          reasons.push(
+            `iOS sin desajuste apreciable de escala (scale ${roundDisplayZoomMetric(screenScale)}, nativeScale ${roundDisplayZoomMetric(
+              screenNativeScale
+            )})`
+          );
+        }
+      }
+
+      if (platform === 'android' && compressedVisualEnvironment === 'unknown') {
+        const fontScale = Number(info.fontScale) || 0;
+        const density = Number(info.density) || 0;
+        const scaledDensity = Number(info.scaledDensity) || 0;
+        const densityRatio = density > 0 && scaledDensity > 0 ? scaledDensity / density : 0;
+        signals.densityRatio = roundDisplayZoomMetric(densityRatio);
+
+        if (fontScale >= 1.08 || densityRatio >= 1.08) {
+          compressedVisualEnvironment = 'yes';
+          confidence = 'high';
+          reasons.push(
+            `Android con escalado tipográfico ampliado (fontScale ${roundDisplayZoomMetric(fontScale)}, ratio ${roundDisplayZoomMetric(
+              densityRatio
+            )})`
+          );
+        } else if (fontScale > 0 && fontScale <= 1.02 && screenWidthPoints >= 400) {
+          compressedVisualEnvironment = 'no';
+          confidence = 'medium';
+          reasons.push(
+            `Android con fontScale normal (${roundDisplayZoomMetric(fontScale)}) y ancho lógico amplio (${roundDisplayZoomMetric(
+              screenWidthPoints
+            )}dp)`
+          );
+        }
+      }
+
+      const compensationSuggested = compressedVisualEnvironment === 'yes';
+      const compensationAlreadyEnabled = Boolean(info.enabled) && Boolean(info.applied);
+      const recommendation =
+        compressedVisualEnvironment === 'yes'
+          ? compensationAlreadyEnabled
+            ? 'already-enabled'
+            : 'yes'
+          : compressedVisualEnvironment === 'no'
+            ? 'no'
+            : 'unknown';
+
+      if (compressedVisualEnvironment === 'unknown' && reasons.length === 0) {
+        reasons.push('No hay señales suficientemente fiables para afirmar que el entorno esté comprimido.');
+      }
+
+      return {
+        compressedVisualEnvironment,
+        confidence,
+        recommendation,
+        compensationSuggested,
+        compensationAlreadyEnabled,
+        reasons,
+        signals
+      };
+    };
+
+    const updateDisplayZoomCompensationUi = (info = lastDisplayZoomCompensationInfo, message = '') => {
+      const nextInfo =
+        info && typeof info === 'object'
+          ? info
+          : {
+              supported: false,
+              enabled: false,
+              applied: false,
+              factor: DISPLAY_ZOOM_COMPENSATION_DEFAULT_FACTOR,
+              mode: 'unsupported',
+              platform: window.Capacitor?.getPlatform?.() || 'web'
+            };
+      const viewportMetrics = readDisplayZoomViewportMetrics();
+      const heuristic = evaluateDisplayZoomEnvironment(nextInfo, viewportMetrics);
+      lastDisplayZoomCompensationInfo = nextInfo;
+      updateDisplayZoomCompensationFactorUi(nextInfo.factor);
+      const controlsAvailable = nextInfo.supported !== false && canSetDisplayZoomCompensation();
+      if (displayZoomCompensationToggleEl) {
+        displayZoomCompensationToggleEl.checked = Boolean(nextInfo.enabled);
+        displayZoomCompensationToggleEl.disabled = !controlsAvailable;
+      }
+      if (displayZoomCompensationFactorEl) {
+        displayZoomCompensationFactorEl.disabled = !controlsAvailable || !Boolean(nextInfo.enabled);
+      }
+      if (displayZoomCompensationSubEl) {
+        const platform = String(nextInfo.platform || '').trim().toLowerCase();
+        const mode =
+          nextInfo.mode === 'pageZoom'
+            ? 'iOS pageZoom'
+            : nextInfo.mode === 'webScale'
+              ? platform === 'android'
+                ? 'Android webScale'
+                : 'iOS webScale'
+            : nextInfo.mode === 'textZoom'
+              ? 'Android textZoom'
+              : 'No soportado';
+        const heuristicSummary =
+          heuristic.compressedVisualEnvironment === 'yes'
+            ? `Entorno comprimido: sí (${heuristic.confidence})`
+            : heuristic.compressedVisualEnvironment === 'no'
+              ? `Entorno comprimido: no (${heuristic.confidence})`
+              : 'Entorno comprimido: desconocido';
+        const recommendationSummary =
+          heuristic.recommendation === 'yes'
+            ? 'compensación sugerida'
+            : heuristic.recommendation === 'already-enabled'
+              ? 'compensación ya activa'
+              : heuristic.recommendation === 'no'
+                ? 'compensación no sugerida'
+                : 'compensación no inferible';
+        displayZoomCompensationSubEl.textContent =
+          message ||
+          (nextInfo.supported === false
+            ? 'No disponible en este entorno.'
+            : `${nextInfo.enabled ? 'Activado' : 'Desactivado'}: ${mode}; factor ${Number(
+                nextInfo.factor || DISPLAY_ZOOM_COMPENSATION_DEFAULT_FACTOR
+              ).toFixed(2)}; aplicado ${nextInfo.applied ? 'sí' : 'no'}. ${heuristicSummary}; ${recommendationSummary}.`);
+      }
+      if (displayZoomCompensationOutputEl) {
+        displayZoomCompensationOutputEl.textContent = JSON.stringify(
+          {
+            ...(nextInfo || {}),
+            viewport: viewportMetrics,
+            heuristic
+          },
+          null,
+          2
+        );
+      }
+      window.r34lp0w3r = window.r34lp0w3r || {};
+      window.r34lp0w3r.displayZoomCompensationHeuristic = heuristic;
+      window.dispatchEvent(
+        new CustomEvent('app:display-zoom-compensation-change', {
+          detail: {
+            ...nextInfo,
+            heuristic
+          }
+        })
+      );
+      return nextInfo;
+    };
+
+    const refreshDisplayZoomCompensationInfo = async (message = '') => {
+      const nativePlugin = getDisplayZoomCompensationPlugin();
+      if (!nativePlugin || typeof nativePlugin.getDisplayZoomCompensationInfo !== 'function') {
+        return updateDisplayZoomCompensationUi(
+          {
+            supported: false,
+            enabled: false,
+            applied: false,
+            factor: DISPLAY_ZOOM_COMPENSATION_DEFAULT_FACTOR,
+            mode: 'unsupported',
+            platform: window.Capacitor?.getPlatform?.() || 'web'
+          },
+          message || 'Plugin nativo no disponible en este entorno.'
+        );
+      }
+      try {
+        const info = await nativePlugin.getDisplayZoomCompensationInfo();
+        return updateDisplayZoomCompensationUi(info || null, message);
+      } catch (err) {
+        return updateDisplayZoomCompensationUi(
+          {
+            supported: false,
+            enabled: false,
+            applied: false,
+            factor: DISPLAY_ZOOM_COMPENSATION_DEFAULT_FACTOR,
+            mode: 'error',
+            platform: window.Capacitor?.getPlatform?.() || 'web',
+            error: err && err.message ? err.message : String(err || '')
+          },
+          message || 'Error leyendo el estado nativo.'
+        );
+      }
+    };
+
+    const applyDisplayZoomCompensationSettings = async (enabled, factor, pendingMessage = '') => {
+      const nativePlugin = getDisplayZoomCompensationPlugin();
+      if (!nativePlugin || typeof nativePlugin.setDisplayZoomCompensation !== 'function') {
+        updateDisplayZoomCompensationUi(
+          {
+            supported: false,
+            enabled: false,
+            applied: false,
+            factor: DISPLAY_ZOOM_COMPENSATION_DEFAULT_FACTOR,
+            mode: 'unsupported',
+            platform: window.Capacitor?.getPlatform?.() || 'web'
+          },
+          'Plugin nativo no disponible en este entorno.'
+        );
+        return;
+      }
+      const nextFactor = normalizeDisplayZoomCompensationFactor(factor);
+      const requestId = ++displayZoomCompensationApplySeq;
+      if (displayZoomCompensationToggleEl) displayZoomCompensationToggleEl.disabled = true;
+      if (displayZoomCompensationFactorEl) displayZoomCompensationFactorEl.disabled = true;
+      updateDisplayZoomCompensationFactorUi(nextFactor);
+      if (pendingMessage) {
+        updateDisplayZoomCompensationUi(
+          {
+            ...(lastDisplayZoomCompensationInfo || {}),
+            supported: true,
+            enabled: Boolean(enabled),
+            factor: nextFactor,
+            applied: Boolean(lastDisplayZoomCompensationInfo?.applied),
+            mode: lastDisplayZoomCompensationInfo?.mode || 'webScale',
+            platform: lastDisplayZoomCompensationInfo?.platform || window.Capacitor?.getPlatform?.() || 'web'
+          },
+          pendingMessage
+        );
+      }
+      try {
+        const info = await nativePlugin.setDisplayZoomCompensation({
+          enabled: Boolean(enabled),
+          factor: nextFactor
+        });
+        if (requestId !== displayZoomCompensationApplySeq) return;
+        updateDisplayZoomCompensationUi(info || null);
+      } catch (err) {
+        if (requestId !== displayZoomCompensationApplySeq) return;
+        updateDisplayZoomCompensationUi(
+          lastDisplayZoomCompensationInfo,
+          `Error aplicando compensación: ${err && err.message ? err.message : err}`
+        );
+      } finally {
+        if (requestId === displayZoomCompensationApplySeq) {
+          const controlsAvailable =
+            lastDisplayZoomCompensationInfo?.supported !== false && canSetDisplayZoomCompensation();
+          if (displayZoomCompensationToggleEl) displayZoomCompensationToggleEl.disabled = !controlsAvailable;
+          if (displayZoomCompensationFactorEl) {
+            displayZoomCompensationFactorEl.disabled =
+              !controlsAvailable || !Boolean(lastDisplayZoomCompensationInfo?.enabled);
+          }
+          setTimeout(() => {
+            refreshDisplayZoomCompensationInfo().catch(() => {});
+          }, 250);
+        }
+      }
     };
 
     const setFreeRideAudioMode = (mode) => {
@@ -4035,9 +4402,12 @@ class PageDiagnostics extends HTMLElement {
     updateChatChatbotUi(initialChatChatbotEnabled);
     updateStatusbarPresetUi(getStoredStatusbarPreset());
     updateSystemBottomInsetDebugUi(getStoredSystemBottomInsetDebugEnabled());
+    updateDisplayZoomCompensationUi();
+    refreshDisplayZoomCompensationInfo().catch(() => {});
 
     this._systemBottomInsetDebugMetricsHandler = () => {
       updateSystemBottomInsetDebugUi(getStoredSystemBottomInsetDebugEnabled());
+      updateDisplayZoomCompensationUi();
     };
     window.addEventListener('resize', this._systemBottomInsetDebugMetricsHandler);
     window.addEventListener('app:system-insets-change', this._systemBottomInsetDebugMetricsHandler);
@@ -4202,6 +4572,24 @@ class PageDiagnostics extends HTMLElement {
       const checked =
         event && event.detail ? event.detail.checked : systemBottomInsetDebugToggleEl.checked;
       updateSystemBottomInsetDebugUi(setSystemBottomInsetDebugEnabled(checked));
+    });
+    displayZoomCompensationToggleEl?.addEventListener('ionChange', async (event) => {
+      const checked =
+        event && event.detail ? event.detail.checked : displayZoomCompensationToggleEl.checked;
+      const factor = displayZoomCompensationFactorEl
+        ? normalizeDisplayZoomCompensationFactor(displayZoomCompensationFactorEl.value)
+        : normalizeDisplayZoomCompensationFactor(lastDisplayZoomCompensationInfo?.factor);
+      await applyDisplayZoomCompensationSettings(Boolean(checked), factor, 'Aplicando compensación...');
+    });
+    displayZoomCompensationFactorEl?.addEventListener('input', () => {
+      updateDisplayZoomCompensationFactorUi(displayZoomCompensationFactorEl.value);
+    });
+    displayZoomCompensationFactorEl?.addEventListener('change', async () => {
+      const factor = normalizeDisplayZoomCompensationFactor(displayZoomCompensationFactorEl.value);
+      const enabled =
+        displayZoomCompensationToggleEl?.checked ??
+        Boolean(lastDisplayZoomCompensationInfo && lastDisplayZoomCompensationInfo.enabled);
+      await applyDisplayZoomCompensationSettings(enabled, factor, 'Aplicando factor de compensación...');
     });
     badgesPickerEl?.addEventListener('click', (event) => {
       const target = event.target instanceof Element ? event.target : null;

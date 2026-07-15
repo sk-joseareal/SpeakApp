@@ -13,6 +13,103 @@
     build: window.APP_BUILD || '999005031'
   };
 
+  const requestTelemetryMetaReady = (async () => {
+    try {
+      const appPlugin = window.Capacitor && window.Capacitor.Plugins
+        ? window.Capacitor.Plugins.App
+        : null;
+      if (!appPlugin || typeof appPlugin.getInfo !== 'function') return;
+      const info = await appPlugin.getInfo();
+      if (info && typeof info === 'object') {
+        window.appMeta = { ...(window.appMeta || {}), ...info };
+      }
+    } catch (_err) {
+      // Web and partially initialized native bridges keep the configured fallback.
+    }
+  })();
+
+  const getRequestTelemetryMeta = () => {
+    const capacitorPlatform =
+      window.Capacitor && typeof window.Capacitor.getPlatform === 'function'
+        ? window.Capacitor.getPlatform()
+        : 'web';
+    const normalizedPlatform = capacitorPlatform === 'ios' || capacitorPlatform === 'android'
+      ? capacitorPlatform
+      : 'web';
+    const meta = window.appMeta || {};
+    return {
+      platform: normalizedPlatform,
+      build: String(meta.build || meta.appBuild || meta.buildNumber || meta.versionCode || '').trim()
+    };
+  };
+
+  const isSpeakBackendRequest = (input) => {
+    try {
+      const rawUrl = typeof input === 'string' || input instanceof URL
+        ? String(input)
+        : String(input && input.url || '');
+      if (!/^https?:\/\//i.test(rawUrl)) return false;
+      const url = new URL(rawUrl, window.location.href);
+      const hostname = String(url.hostname || '').toLowerCase();
+      return (
+        hostname === 'localhost' ||
+        hostname === '127.0.0.1' ||
+        hostname === '10.0.2.2' ||
+        hostname === 'curso-ingles.com' ||
+        hostname.endsWith('.curso-ingles.com')
+      );
+    } catch (_err) {
+      return false;
+    }
+  };
+
+  const addRequestTelemetryHeaders = (headersInit) => {
+    const headers = new Headers(headersInit || {});
+    const meta = getRequestTelemetryMeta();
+    if (!headers.has('X-Platform')) headers.set('X-Platform', meta.platform);
+    if (meta.build && !headers.has('X-Build')) headers.set('X-Build', meta.build);
+    return headers;
+  };
+
+  if (typeof window.fetch === 'function' && !window.__speakTelemetryFetchInstalled) {
+    const nativeFetch = window.fetch.bind(window);
+    window.fetch = async (input, init = {}) => {
+      if (!isSpeakBackendRequest(input)) return nativeFetch(input, init);
+      await requestTelemetryMetaReady;
+      const sourceHeaders = init.headers || (input instanceof Request ? input.headers : undefined);
+      return nativeFetch(input, { ...init, headers: addRequestTelemetryHeaders(sourceHeaders) });
+    };
+    window.__speakTelemetryFetchInstalled = true;
+  }
+
+  if (typeof window.XMLHttpRequest === 'function' && !window.__speakTelemetryXhrInstalled) {
+    const nativeOpen = XMLHttpRequest.prototype.open;
+    const nativeSend = XMLHttpRequest.prototype.send;
+    XMLHttpRequest.prototype.open = function (method, url) {
+      this.__speakTelemetryUrl = url;
+      return nativeOpen.apply(this, arguments);
+    };
+    XMLHttpRequest.prototype.send = function () {
+      if (!isSpeakBackendRequest(this.__speakTelemetryUrl)) {
+        return nativeSend.apply(this, arguments);
+      }
+      const xhr = this;
+      const sendArgs = arguments;
+      requestTelemetryMetaReady.finally(() => {
+        const meta = getRequestTelemetryMeta();
+        try {
+          xhr.setRequestHeader('X-Platform', meta.platform);
+          if (meta.build) xhr.setRequestHeader('X-Build', meta.build);
+        } catch (_err) {
+          // The request remains usable if a WebView rejects custom headers.
+        }
+        nativeSend.apply(xhr, sendArgs);
+      });
+      return undefined;
+    };
+    window.__speakTelemetryXhrInstalled = true;
+  }
+
   const emitAppMeta = () => {
     try {
       window.dispatchEvent(new CustomEvent('app:meta-change', { detail: window.appMeta }));

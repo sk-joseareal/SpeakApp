@@ -167,6 +167,7 @@ class PageSpeak extends HTMLElement {
     const sheetHandleBtn = this.querySelector('#speak-sheet-handle');
 
     const VIDEO_BASE = 'assets/speak/videos';
+    const SENTENCE_IMAGE_BASE = 'assets/speak/sentence-images';
     const AV_SYNC_DELAY = 0.06;
     const RECORDING_TIMESLICE = 500;
     const VOSK_SAMPLE_RATE_DEFAULT = 16000;
@@ -256,7 +257,9 @@ class PageSpeak extends HTMLElement {
     let heroMascotIsTalking = false;
     let heroNarrationInProgress = false;
     let heroRemoteAudioEl = null;
+    let sentenceImageRequestToken = 0;
     const alignedTtsCache = new Map();
+    const sentenceImageSrcCache = new Map();
     let heroFirstRenderAt = 0;
     let hintLocaleOverride = '';
     let activeHintLocale = 'en';
@@ -292,6 +295,60 @@ class PageSpeak extends HTMLElement {
       if (sessionId) return `${VIDEO_BASE}/${sessionId}.jpg`;
       const videoPath = resolveSessionVideoPath(session);
       return videoPath.replace(/\.mp4$/i, '.jpg');
+    };
+    const resolveSentenceImageCandidates = (sessionId = currentSessionId) => {
+      const safeSessionId = String(sessionId || '').trim();
+      if (!safeSessionId) return [];
+      return ['webp', 'png', 'jpg', 'jpeg'].map((ext) => `${SENTENCE_IMAGE_BASE}/${safeSessionId}.${ext}`);
+    };
+    const getCachedSentenceImageSrc = (sessionId = currentSessionId) =>
+      String(sentenceImageSrcCache.get(String(sessionId || '').trim()) || '').trim();
+    const syncSentenceIllustrationLayout = () => {
+      if (!stepRoot) return;
+      const sentenceMainEl = stepRoot.querySelector('.speak-step-sentence .speak-step-main');
+      const sentenceIllustrationHost = stepRoot.querySelector('#speak-sentence-illustration');
+      const sentenceCardEl = stepRoot.querySelector('#speak-play-sentence');
+      const sentenceIllustrationImg = sentenceIllustrationHost
+        ? sentenceIllustrationHost.querySelector('.speak-sentence-illustration-img')
+        : null;
+      if (!sentenceMainEl || !sentenceIllustrationHost || !sentenceCardEl) return;
+
+      sentenceMainEl.classList.remove('has-centered-cards');
+      if (
+        !sentenceIllustrationImg ||
+        !sentenceIllustrationImg.complete ||
+        !sentenceIllustrationImg.naturalWidth ||
+        !sentenceIllustrationImg.naturalHeight
+      ) {
+        sentenceIllustrationHost.hidden = true;
+        return;
+      }
+
+      sentenceIllustrationHost.hidden = false;
+      const mainHeight = Math.max(
+        sentenceMainEl.clientHeight || 0,
+        sentenceMainEl.getBoundingClientRect().height || 0
+      );
+      const phraseHeight = Math.max(
+        sentenceCardEl.offsetHeight || 0,
+        sentenceCardEl.getBoundingClientRect().height || 0
+      );
+      const imageCardHeight = Math.max(
+        sentenceIllustrationHost.offsetHeight || 0,
+        sentenceIllustrationHost.getBoundingClientRect().height || 0
+      );
+      const gap = Number.parseFloat(window.getComputedStyle(sentenceMainEl).gap || '0') || 0;
+      const minImageHeight = phraseHeight;
+      const requiredHeight = phraseHeight + gap + minImageHeight;
+      const hasEnoughHeight = mainHeight >= requiredHeight - 1;
+      const imageTallEnough = imageCardHeight >= minImageHeight - 1;
+
+      if (!hasEnoughHeight || !imageTallEnough) {
+        sentenceIllustrationHost.hidden = true;
+        return;
+      }
+
+      sentenceMainEl.classList.add('has-centered-cards');
     };
     const getNativeTranscribePlugin = () =>
       window.Capacitor && window.Capacitor.Plugins ? window.Capacitor.Plugins.P4w4Plugin : null;
@@ -4138,12 +4195,16 @@ class PageSpeak extends HTMLElement {
       const sentenceContentTitle = getLocalizedStepTitle(sentenceStep, locale);
       const sentenceFallback = getSpeakUiText('stepTitleSentence', locale, 'Say a whole sentence');
       const sentenceTranslation = getSentenceTranslationText(locale);
+      const sentenceImageSrc = getCachedSentenceImageSrc();
       const stepTitle = sentenceFallback;
       return `
         <div class="speak-step speak-step-sentence">
           <p class="speak-step-heading">${stepTitle}</p>
           ${sentenceContentTitle ? `<p class="speak-step-subtitle">${sentenceContentTitle}</p>` : ''}
           <div class="speak-step-main">
+            <div class="speak-sentence-illustration" id="speak-sentence-illustration"${sentenceImageSrc ? '' : ' hidden'}>
+              ${sentenceImageSrc ? `<img class="speak-sentence-illustration-img" src="${escapeHtml(sentenceImageSrc)}" alt="${escapeHtml(sentenceStep && sentenceStep.sentence ? sentenceStep.sentence : 'Sentence illustration')}">` : ''}
+            </div>
             <button class="speak-sentence is-active" id="speak-play-sentence" type="button">
               <span class="speak-sentence-main" id="speak-sentence-text">${highlightSentence(sentenceStep.sentence, focusKey)}</span>
               ${sentenceTranslation ? `<span class="speak-sentence-translation">${escapeHtml(sentenceTranslation)}</span>` : ''}
@@ -4613,6 +4674,63 @@ class PageSpeak extends HTMLElement {
 
       phoneticTextEl = stepRoot.querySelector('#speak-phonetic-text');
       sentenceTextEl = stepRoot.querySelector('#speak-sentence-text');
+
+      const sentenceIllustrationHost = stepRoot.querySelector('#speak-sentence-illustration');
+      if (sentenceIllustrationHost) {
+        sentenceImageRequestToken += 1;
+        const requestToken = sentenceImageRequestToken;
+        const candidates = resolveSentenceImageCandidates();
+        const cachedSentenceImageSrc = getCachedSentenceImageSrc();
+        const hasRenderedSentenceImage = Boolean(sentenceIllustrationHost.querySelector('.speak-sentence-illustration-img'));
+        if (cachedSentenceImageSrc && hasRenderedSentenceImage) {
+          sentenceIllustrationHost.hidden = false;
+        }
+
+        const showLoadedSentenceImage = (img) => {
+          if (requestToken !== sentenceImageRequestToken) return;
+          const safeSessionId = String(currentSessionId || '').trim();
+          if (safeSessionId) {
+            sentenceImageSrcCache.set(safeSessionId, img.currentSrc || img.src || '');
+          }
+          sentenceIllustrationHost.innerHTML = '';
+          sentenceIllustrationHost.appendChild(img);
+          sentenceIllustrationHost.hidden = false;
+          requestAnimationFrame(() => {
+            syncSentenceIllustrationLayout();
+            updateSwipeStageHeight();
+            speakSheetExpandedOffset = measureSpeakSheetExpandedOffset();
+            applySpeakSheetState({ animate: false, force: true });
+          });
+        };
+
+        const tryLoadSentenceImage = (index) => {
+          if (requestToken !== sentenceImageRequestToken) return;
+          if (!Array.isArray(candidates) || index >= candidates.length) {
+            sentenceIllustrationHost.hidden = true;
+            sentenceIllustrationHost.innerHTML = '';
+            return;
+          }
+          const src = candidates[index];
+          const img = new Image();
+          img.className = 'speak-sentence-illustration-img';
+          img.alt = sentenceStep && sentenceStep.sentence ? sentenceStep.sentence : 'Sentence illustration';
+          img.decoding = 'async';
+          img.loading = 'eager';
+          img.onload = () => showLoadedSentenceImage(img);
+          img.onerror = () => tryLoadSentenceImage(index + 1);
+          img.src = src;
+        };
+
+        if (!cachedSentenceImageSrc && candidates.length) {
+          tryLoadSentenceImage(0);
+        }
+        requestAnimationFrame(() => {
+          syncSentenceIllustrationLayout();
+          updateSwipeStageHeight();
+          speakSheetExpandedOffset = measureSpeakSheetExpandedOffset();
+          applySpeakSheetState({ animate: false, force: true });
+        });
+      }
 
       playRefBtn?.addEventListener('click', () => {
         if (soundStep && soundStep.expected) {

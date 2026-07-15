@@ -7483,6 +7483,42 @@ page-speak .speak-content::part(scroll) {
   gap: 10px;
 }
 
+.speak-step-sentence .speak-step-main {
+  justify-content: center;
+  gap: 12px;
+  overflow-y: auto;
+  padding-block: 4px;
+}
+
+.speak-step-sentence .speak-step-main.has-centered-cards {
+  justify-content: center;
+}
+
+.speak-sentence-illustration {
+  flex: 0 1 auto;
+  width: 100%;
+  max-width: min(100%, 460px);
+  max-height: min(28vh, 240px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 22px;
+  overflow: hidden;
+  background: #ffffff;
+  border: 1.5px solid #e8edf2;
+  box-shadow: 0 10px 22px rgba(15, 27, 45, 0.08);
+}
+
+.speak-sentence-illustration-img {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  max-height: 100%;
+  object-fit: contain;
+  object-position: center;
+}
+
 .speak-step-sentence .speak-sentence {
   display: flex;
   flex-direction: column;
@@ -7519,6 +7555,78 @@ page-speak .speak-content::part(scroll) {
   line-height: 1.35;
   font-weight: 600;
   color: #64748b;
+}
+
+@media (max-height: 900px) {
+  .speak-step-spelling {
+    gap: 8px;
+    --speak-spelling-word-gap: 6px;
+    --speak-spelling-word-pad-y: 8px;
+    --speak-spelling-word-pad-x-end: 42px;
+    --speak-spelling-word-pad-x-start: 16px;
+    --speak-spelling-word-font-size: 1.1rem;
+    --speak-spelling-word-translation-size: 0.82rem;
+  }
+
+  .speak-step-spelling .speak-step-main {
+    padding-block: 4px;
+  }
+
+  .speak-step-spelling .speak-word-grid--single {
+    row-gap: 6px;
+    padding: 4px;
+  }
+
+  .speak-step-sentence .speak-step-main {
+    gap: 10px;
+  }
+
+  .speak-sentence-illustration {
+    max-height: min(21vh, 170px);
+  }
+
+  .speak-step-sentence .speak-sentence {
+    gap: 8px;
+    padding: 12px 18px;
+  }
+
+  .speak-step-sentence .speak-sentence-main {
+    font-size: 1.5rem;
+    line-height: 1.24;
+  }
+
+  .speak-step-sentence .speak-sentence-translation {
+    font-size: 0.92rem;
+    line-height: 1.28;
+  }
+}
+
+@media (max-height: 820px) {
+  .speak-step-sentence .speak-step-main {
+    gap: 10px;
+  }
+
+  .speak-sentence-illustration {
+    max-height: min(23vh, 190px);
+  }
+
+  .speak-step-sentence .speak-sentence-main {
+    font-size: 1.58rem;
+  }
+
+  .speak-step-sentence .speak-sentence-translation {
+    font-size: 0.94rem;
+  }
+}
+
+@media (max-height: 720px) {
+  .speak-sentence-illustration {
+    display: none;
+  }
+
+  .speak-step-sentence .speak-step-main {
+    justify-content: center;
+  }
 }
 
 .speak-step-sentence .speak-sentence.is-active {

@@ -51,10 +51,14 @@
       if (!/^https?:\/\//i.test(rawUrl)) return false;
       const url = new URL(rawUrl, window.location.href);
       const hostname = String(url.hostname || '').toLowerCase();
-      return (
+      const isLocalBackendHost =
         hostname === 'localhost' ||
         hostname === '127.0.0.1' ||
-        hostname === '10.0.2.2' ||
+        hostname === '10.0.2.2';
+      if (isLocalBackendHost) {
+        return url.origin !== window.location.origin;
+      }
+      return (
         hostname === 'curso-ingles.com' ||
         hostname.endsWith('.curso-ingles.com')
       );
@@ -87,6 +91,7 @@
     const nativeSend = XMLHttpRequest.prototype.send;
     XMLHttpRequest.prototype.open = function (method, url) {
       this.__speakTelemetryUrl = url;
+      this.__speakTelemetryAsync = arguments.length < 3 || arguments[2] !== false;
       return nativeOpen.apply(this, arguments);
     };
     XMLHttpRequest.prototype.send = function () {
@@ -95,7 +100,7 @@
       }
       const xhr = this;
       const sendArgs = arguments;
-      requestTelemetryMetaReady.finally(() => {
+      const sendWithTelemetry = () => {
         const meta = getRequestTelemetryMeta();
         try {
           xhr.setRequestHeader('X-Platform', meta.platform);
@@ -103,8 +108,10 @@
         } catch (_err) {
           // The request remains usable if a WebView rejects custom headers.
         }
-        nativeSend.apply(xhr, sendArgs);
-      });
+        return nativeSend.apply(xhr, sendArgs);
+      };
+      if (!this.__speakTelemetryAsync) return sendWithTelemetry();
+      requestTelemetryMetaReady.finally(sendWithTelemetry);
       return undefined;
     };
     window.__speakTelemetryXhrInstalled = true;

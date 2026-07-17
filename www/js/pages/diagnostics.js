@@ -564,6 +564,25 @@ class PageDiagnostics extends HTMLElement {
                 <span id="diag-display-zoom-compensation-factor-label" style="min-width:48px;text-align:right;font-variant-numeric:tabular-nums;">${DISPLAY_ZOOM_COMPENSATION_DEFAULT_FACTOR.toFixed(2)}</span>
               </div>
             </div>
+            <div class="diag-speak-block" style="margin-top:10px;">
+              <div class="diag-debug-title">Presets tamaño pantalla (A11y)</div>
+              ${[
+                { key: 'compact',  id: 'diag-a11y-factor-compact',  label: 'Compact',  defaultVal: 0.85 },
+                { key: 'standard', id: 'diag-a11y-factor-standard', label: 'Standard', defaultVal: 1.0  },
+                { key: 'large',    id: 'diag-a11y-factor-large',    label: 'Large',    defaultVal: 1.15 }
+              ].map(p => {
+                const stored = (() => { try { const raw = localStorage.getItem('appv5:a11y-factor-' + p.key); if (raw === null) return p.defaultVal; const v = Number(raw); return Number.isFinite(v) ? v : p.defaultVal; } catch { return p.defaultVal; } })();
+                return `
+                  <div style="margin-top:8px;">
+                    <div style="font-size:0.82rem;font-weight:600;color:#4a6080;margin-bottom:4px;">${p.label}</div>
+                    <div style="display:flex;align-items:center;gap:10px;">
+                      <input type="range" id="${p.id}" data-a11y-preset-key="${p.key}" min="0.5" max="1.5" step="0.01" value="${stored.toFixed(2)}" style="flex:1;">
+                      <span id="${p.id}-label" style="min-width:48px;text-align:right;font-variant-numeric:tabular-nums;">${stored.toFixed(2)}</span>
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
             <div class="diag-speak-block">
               <div class="pill">Display zoom / viewport</div>
               <pre class="diag-json" id="diag-display-zoom-compensation-output"></pre>
@@ -4591,6 +4610,29 @@ class PageDiagnostics extends HTMLElement {
         Boolean(lastDisplayZoomCompensationInfo && lastDisplayZoomCompensationInfo.enabled);
       await applyDisplayZoomCompensationSettings(enabled, factor, 'Aplicando factor de compensación...');
     });
+    // ── A11y preset sliders ──
+    ['compact', 'standard', 'large'].forEach((presetKey) => {
+      const sliderEl = this.querySelector(`#diag-a11y-factor-${presetKey}`);
+      const labelEl = this.querySelector(`#diag-a11y-factor-${presetKey}-label`);
+      if (!sliderEl) return;
+      sliderEl.addEventListener('input', () => {
+        if (labelEl) labelEl.textContent = Number(sliderEl.value).toFixed(2);
+      });
+      sliderEl.addEventListener('change', () => {
+        const factor = Math.min(1, Math.max(0.5, Number(sliderEl.value)));
+        if (labelEl) labelEl.textContent = factor.toFixed(2);
+        if (typeof window.r34lp0w3r?.setA11yPresetFactor === 'function') {
+          window.r34lp0w3r.setA11yPresetFactor(presetKey, factor);
+        }
+        // If this preset is currently active, re-apply immediately
+        if (typeof window.r34lp0w3r?.getA11yPreset === 'function' &&
+            window.r34lp0w3r.getA11yPreset() === presetKey &&
+            typeof window.r34lp0w3r.applyA11yPreset === 'function') {
+          window.r34lp0w3r.applyA11yPreset(presetKey);
+        }
+      });
+    });
+
     badgesPickerEl?.addEventListener('click', (event) => {
       const target = event.target instanceof Element ? event.target : null;
       const button = target ? target.closest('[data-badge-id]') : null;

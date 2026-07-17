@@ -73,6 +73,12 @@ const renderRewardBadges = (rewardBadgesId) => {
   return `<div class="reward-badges"${idAttr}>${badges}</div>`;
 };
 
+const renderA11yButton = () => `
+  <button class="app-a11y-btn" type="button" aria-label="Display size">
+    <ion-icon name="accessibility-outline" aria-hidden="true" style="font-size:16px;pointer-events:none;"></ion-icon>
+  </button>
+`;
+
 const renderLocaleButton = (locale) => {
   const label = normalizeLocaleLabel(locale);
   return `
@@ -180,6 +186,7 @@ export function renderAppHeader(_options = {}) {
         <div class="app-header-actions" slot="end">
           ${renderRewardBadges(rewardBadgesId)}
           ${showNotifications ? renderNotifyButton() : ''}
+          ${renderA11yButton()}
           ${renderLocaleButton(locale)}
         </div>
       </ion-toolbar>

@@ -10,7 +10,7 @@
 
   window.appMeta = window.appMeta || {
     version: window.APP_VERSION || '5.0.2',
-    build: window.APP_BUILD || '999005031'
+    build: window.APP_BUILD || '999005032'
   };
 
   const requestTelemetryMetaReady = (async () => {

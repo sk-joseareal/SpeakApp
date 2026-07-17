@@ -1,5 +1,5 @@
 import { ensureInitialHash, setRouter, goToHome } from './nav.js';
-import { clearLoginTabsLock, getAppLocale, hasLoginTabsLock, onboardingDone, setOnboardingDone, setLoginTabsLock } from './state.js';
+import { clearLoginTabsLock, getActiveLocale, getAppLocale, hasLoginTabsLock, onboardingDone, setOnboardingDone, setLoginTabsLock } from './state.js';
 import { getUnreadCount, markAllNotificationsRead } from './notifications-store.js';
 import { ensureLegacySpeakCopyGlobals, getTabsCopy, normalizeLocale as normalizeCopyLocale } from './content/copy.js';
 import { isAppTitlebarEnabled } from './components/app-header.js';
@@ -577,7 +577,7 @@ function applyAppFontPreference(enabled = getStoredAppFontSfProEnabled()) {
 function normalizeDisplayZoomCompensationFactor(value) {
   const numeric = Number(value);
   if (!Number.isFinite(numeric)) return DISPLAY_ZOOM_COMPENSATION_DEFAULT_FACTOR;
-  return Math.min(1, Math.max(0.5, numeric));
+  return Math.min(1.5, Math.max(0.5, numeric));
 }
 
 function applyDisplayZoomCompensationPreference(info = {}) {
@@ -1662,6 +1662,113 @@ window.addEventListener('app:display-zoom-compensation-change', (event) => {
   applyDisplayZoomCompensationPreference(event && event.detail ? event.detail : {});
   _lastAppliedChromeKey = '';
   scheduleAppChromeSync(getCurrentAppPath());
+  // If user has an explicit a11y preset, re-apply it over native sync
+  const _storedPreset = (() => { try { return localStorage.getItem('appv5:a11y-preset'); } catch { return null; } })();
+  if (_storedPreset) applyA11yPreset(_storedPreset);
+});
+
+// ── A11y display-size presets ──────────────────────────────────────────────
+const A11Y_PRESET_KEY = 'appv5:a11y-preset';
+const A11Y_FACTOR_KEY = { compact: 'appv5:a11y-factor-compact', standard: 'appv5:a11y-factor-standard', large: 'appv5:a11y-factor-large' };
+const A11Y_PRESETS = ['compact', 'standard', 'large'];
+const A11Y_DEFAULT_FACTORS = { compact: 0.85, standard: 1.0, large: 1.15 };
+
+function getA11yPreset() {
+  try { return localStorage.getItem(A11Y_PRESET_KEY) || 'standard'; } catch { return 'standard'; }
+}
+function getA11yPresetFactor(preset) {
+  try {
+    const raw = localStorage.getItem(A11Y_FACTOR_KEY[preset] || A11Y_FACTOR_KEY.standard);
+    if (raw === null) return A11Y_DEFAULT_FACTORS[preset] ?? 0.92;
+    const val = Number(raw);
+    return Number.isFinite(val) ? Math.min(1.5, Math.max(0.5, val)) : A11Y_DEFAULT_FACTORS[preset] ?? 1.0;
+  } catch { return A11Y_DEFAULT_FACTORS[preset] ?? 0.92; }
+}
+function setA11yPresetFactor(preset, factor) {
+  const key = A11Y_FACTOR_KEY[preset];
+  if (!key) return;
+  const normalized = Math.min(1.5, Math.max(0.5, Number(factor) || 1.0));
+  try { localStorage.setItem(key, normalized.toFixed(2)); } catch {}
+  return normalized;
+}
+function applyA11yPreset(preset) {
+  const p = A11Y_PRESETS.includes(preset) ? preset : 'standard';
+  try { localStorage.setItem(A11Y_PRESET_KEY, p); } catch {}
+  const factor = getA11yPresetFactor(p);
+  const currentInfo = (window.r34lp0w3r && window.r34lp0w3r.displayZoomCompensation) || {};
+  applyDisplayZoomCompensationPreference({ ...currentInfo, factor, enabled: true, applied: true, mode: 'webScale' });
+  document.documentElement.setAttribute('data-a11y-preset', p);
+  window.dispatchEvent(new CustomEvent('app:a11y-preset-change', { detail: { preset: p, factor } }));
+}
+window.r34lp0w3r = window.r34lp0w3r || {};
+Object.assign(window.r34lp0w3r, { getA11yPreset, getA11yPresetFactor, setA11yPresetFactor, applyA11yPreset });
+
+// Apply stored preset on startup; default to Standard on first launch
+(function () {
+  const stored = (() => { try { return localStorage.getItem(A11Y_PRESET_KEY); } catch { return null; } })();
+  applyA11yPreset(A11Y_PRESETS.includes(stored) ? stored : 'standard');
+}());
+
+// ── A11y popover ───────────────────────────────────────────────────────────
+let _a11yPopoverEl = null;
+let _a11yDismissHandler = null;
+
+function hideA11yPopover() {
+  if (_a11yPopoverEl) { _a11yPopoverEl.remove(); _a11yPopoverEl = null; }
+  if (_a11yDismissHandler) { document.removeEventListener('click', _a11yDismissHandler, true); _a11yDismissHandler = null; }
+}
+
+function showA11yPopover(anchorEl) {
+  hideA11yPopover();
+  const activePreset = getA11yPreset();
+  const isEs = (getActiveLocale() || getAppLocale() || (window.varGlobal?.locale || '')).startsWith('es');
+  const popoverTitle = isEs ? 'Visualización' : 'Display';
+  const opts = [
+    { key: 'compact',  label: isEs ? 'Compacto'  : 'Compact'  },
+    { key: 'standard', label: isEs ? 'Estándar'  : 'Standard' },
+    { key: 'large',    label: isEs ? 'Grande'    : 'Large'    }
+  ];
+  const el = document.createElement('div');
+  el.className = 'app-a11y-popover';
+  el.innerHTML = `<div class="app-a11y-popover-title">${popoverTitle}</div>` + opts.map((o) => `
+    <button class="app-a11y-option${o.key === activePreset ? ' is-active' : ''}" data-a11y-preset="${o.key}">
+      <span class="app-a11y-option-label">${o.label}</span>
+      <svg class="app-a11y-check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        ${o.key === activePreset ? '<polyline points="20 6 9 17 4 12"></polyline>' : ''}
+      </svg>
+    </button>
+  `).join('');
+  document.body.appendChild(el);
+  _a11yPopoverEl = el;
+  // Position anchored below the button
+  const rect = anchorEl.getBoundingClientRect();
+  const pw = el.offsetWidth || 160;
+  const left = Math.max(8, Math.min(rect.right - pw, window.innerWidth - pw - 8));
+  el.style.top = `${rect.bottom + 6}px`;
+  el.style.left = `${left}px`;
+  el.addEventListener('click', (e) => {
+    const btn = e.target instanceof Element ? e.target.closest('[data-a11y-preset]') : null;
+    if (!btn) return;
+    const p = btn.getAttribute('data-a11y-preset') || '';
+    if (A11Y_PRESETS.includes(p)) applyA11yPreset(p);
+    hideA11yPopover();
+  });
+  setTimeout(() => {
+    _a11yDismissHandler = (e) => {
+      if (_a11yPopoverEl && _a11yPopoverEl.contains(e.target)) return;
+      // Let the a11y button's own delegation handler deal with the close
+      if (e.target instanceof Element && e.target.closest('.app-a11y-btn')) return;
+      hideA11yPopover();
+    };
+    document.addEventListener('click', _a11yDismissHandler, true);
+  }, 10);
+}
+
+document.addEventListener('click', (e) => {
+  const btn = e.target instanceof Element ? e.target.closest('.app-a11y-btn') : null;
+  if (!btn) return;
+  if (_a11yPopoverEl) { hideA11yPopover(); return; }
+  showA11yPopover(btn);
 });
 
 window.addEventListener('app:legacy-chrome-debug-change', (event) => {

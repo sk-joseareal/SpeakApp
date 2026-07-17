@@ -2499,6 +2499,9 @@ class PageProfile extends HTMLElement {
         <ion-toolbar class="secret-title-area toolbar-title-default">
           <ion-title></ion-title>
           <div class="app-header-actions profile-auth-header-actions" slot="end">
+            <button class="app-a11y-btn" type="button" aria-label="Display size">
+              <ion-icon name="accessibility-outline" aria-hidden="true" style="font-size:16px;pointer-events:none;"></ion-icon>
+            </button>
             <button class="app-locale-btn" type="button" aria-label="${escapeHtml(localeLabel)}">
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <circle cx="12" cy="12" r="10"></circle>
@@ -2514,6 +2517,9 @@ class PageProfile extends HTMLElement {
     const authInlineLocaleHtml = !titlebarEnabled
       ? `
       <div class="profile-hero-actions-left profile-auth-actions-left">
+        <button class="app-a11y-btn" type="button" aria-label="Display size">
+          <ion-icon name="accessibility-outline" aria-hidden="true" style="font-size:16px;pointer-events:none;"></ion-icon>
+        </button>
         <button class="app-locale-btn" type="button" aria-label="${escapeHtml(localeLabel)}">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
           <span class="app-locale-label">${escapeHtml(localeLabel)}</span>
@@ -2556,6 +2562,56 @@ class PageProfile extends HTMLElement {
           </section>
           ${onboardingOverlayEnabled ? '<div class="profile-onboarding-overlay" id="profile-onboarding-overlay"><page-onboarding embedded></page-onboarding></div>' : ''}`
       : '';
+    const FEEDBACK_SENT_KEY = 'appv5:feedback-sent';
+    const feedbackSent = Boolean(localStorage.getItem(FEEDBACK_SENT_KEY));
+    const feedbackCardMarkup = !feedbackSent && loggedIn ? `
+      <div class="profile-feedback-card" id="profile-feedback-card">
+        <div class="profile-feedback-card-icon" aria-hidden="true">
+          <ion-icon name="chatbubble-ellipses-outline"></ion-icon>
+        </div>
+        <div class="profile-feedback-card-body">
+          <div class="profile-feedback-card-title">${escapeHtml(profileCopy.feedbackCardTitle || '¿Qué te parece la aplicación?')}</div>
+          <div class="profile-feedback-card-subtitle">${escapeHtml(profileCopy.feedbackCardSubtitle || 'Tu opinión nos ayuda a seguir mejorando la experiencia.')}</div>
+        </div>
+        <button class="profile-feedback-card-btn" type="button" id="profile-feedback-open-btn">
+          ${escapeHtml(profileCopy.feedbackCardBtn || 'Enviar mi opinión')}
+          <ion-icon name="chevron-forward-outline" aria-hidden="true"></ion-icon>
+        </button>
+      </div>
+    ` : '';
+    // Overlay mounted on body to avoid transform stacking-context issues
+    if (!feedbackSent && loggedIn) {
+      if (!document.getElementById('profile-feedback-overlay')) {
+        const overlayEl = document.createElement('div');
+        overlayEl.className = 'profile-feedback-overlay';
+        overlayEl.id = 'profile-feedback-overlay';
+        overlayEl.innerHTML = `
+          <div class="profile-feedback-sheet" id="profile-feedback-sheet">
+            <button class="profile-feedback-close" type="button" id="profile-feedback-close" aria-label="${escapeHtml(profileCopy.close || 'Cerrar')}">&#x2715;</button>
+            <div class="profile-feedback-sheet-icon" aria-hidden="true">
+              <ion-icon name="chatbubbles-outline"></ion-icon>
+            </div>
+            <h2 class="profile-feedback-sheet-title">${escapeHtml(profileCopy.feedbackSheetTitle || 'Envíanos tu opinión')}</h2>
+            <p class="profile-feedback-sheet-subtitle">${escapeHtml(profileCopy.feedbackSheetSubtitle || 'Cuéntanos qué te gusta, qué mejorarías o si has encontrado algún problema.')}</p>
+            <textarea
+              class="profile-feedback-textarea"
+              id="profile-feedback-textarea"
+              maxlength="1000"
+              placeholder="${escapeHtml(profileCopy.feedbackPlaceholder || 'Escribe tu mensaje aquí...')}"
+              rows="5"
+            ></textarea>
+            <div class="profile-feedback-counter" id="profile-feedback-counter">0/1000</div>
+            <button class="profile-feedback-send-btn" type="button" id="profile-feedback-send-btn">
+              ${escapeHtml(profileCopy.feedbackSendBtn || 'Enviar opinión')}
+            </button>
+            <p class="profile-feedback-privacy">&#x1F512; ${escapeHtml(profileCopy.feedbackPrivacyNote || 'Tu comentario se enviará junto con el email de tu cuenta para poder responderte.')}</p>
+          </div>
+        `;
+        document.body.appendChild(overlayEl);
+      }
+    } else {
+      document.getElementById('profile-feedback-overlay')?.remove();
+    }
     const progressCardsMarkup = [
       {
         label: tabsCopy.training || 'Training',
@@ -2696,6 +2752,7 @@ class PageProfile extends HTMLElement {
                   ${earnedBadgesMarkup}
                 </div>
               </div>
+              ${feedbackCardMarkup}
             </div>
             <div class="profile-tab-panel" ${reviewActive ? '' : 'hidden'}>
               <div class="profile-review-section">
@@ -3627,6 +3684,55 @@ class PageProfile extends HTMLElement {
     profileSettingsBackBtn?.addEventListener('click', () => {
       this.settingsOpen = false;
       this.render();
+    });
+
+    // ── Feedback card ──
+    // Open button is inside the profile card; overlay lives on document.body
+    const feedbackOpenBtn = this.querySelector('#profile-feedback-open-btn');
+    const feedbackOverlay = document.getElementById('profile-feedback-overlay');
+    const feedbackSheet = document.getElementById('profile-feedback-sheet');
+    const feedbackClose = document.getElementById('profile-feedback-close');
+    const feedbackTextarea = document.getElementById('profile-feedback-textarea');
+    const feedbackCounter = document.getElementById('profile-feedback-counter');
+    const feedbackSendBtn = document.getElementById('profile-feedback-send-btn');
+    const openFeedbackSheet = () => {
+      if (!feedbackOverlay) return;
+      feedbackOverlay.classList.add('is-open');
+      setTimeout(() => feedbackTextarea?.focus(), 50);
+    };
+    const closeFeedbackSheet = () => {
+      if (!feedbackOverlay) return;
+      feedbackOverlay.classList.remove('is-open');
+    };
+    feedbackOpenBtn?.addEventListener('click', openFeedbackSheet);
+    // clicking the overlay area outside the sheet closes it
+    feedbackOverlay?.addEventListener('click', closeFeedbackSheet);
+    // clicks inside the sheet do not bubble up to the overlay
+    feedbackSheet?.addEventListener('click', (e) => e.stopPropagation());
+    feedbackClose?.addEventListener('click', closeFeedbackSheet);
+    feedbackTextarea?.addEventListener('input', () => {
+      const len = (feedbackTextarea.value || '').length;
+      if (feedbackCounter) feedbackCounter.textContent = `${len}/1000`;
+    });
+    feedbackSendBtn?.addEventListener('click', () => {
+      const text = (feedbackTextarea?.value || '').trim();
+      if (!text) { feedbackTextarea?.focus(); return; }
+      const platform = (window.r34lp0w3r && window.r34lp0w3r.platform) || 'unknown';
+      const uuid = window.uuid || localStorage.getItem('uuid') || 'n/a';
+      const meta = window.appMeta || {};
+      const version = meta.version || meta.appVersion || '';
+      const build = meta.build || meta.appBuild || '';
+      const versionLabel = version && build ? `v${version} (${build})` : version ? `v${version}` : '';
+      const storedUser = window.user || (typeof readStoredUser === 'function' ? readStoredUser() : null);
+      const userRef = storedUser && storedUser.id != null ? String(storedUser.id) : '';
+      const subjectSuffix = `${uuid}${versionLabel ? ' ' + versionLabel : ''}${userRef ? ' ' + userRef : ''}`;
+      const subject = encodeURIComponent(`App feedback. (${subjectSuffix})`);
+      const body = encodeURIComponent(text);
+      window.location.href = `mailto:contact@sokinternet.com?subject=${subject}&body=${body}`;
+      localStorage.setItem('appv5:feedback-sent', '1');
+      closeFeedbackSheet();
+      feedbackOverlay?.remove();
+      this.querySelector('#profile-feedback-card')?.remove();
     });
 
     updateSaveState();

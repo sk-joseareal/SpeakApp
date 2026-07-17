@@ -3894,6 +3894,30 @@ class PageReference extends HTMLElement {
       .filter(Boolean);
   }
 
+  seededShuffle(arr, seed) {
+    const a = arr.slice();
+    let s = Math.abs(seed | 0) || 1;
+    for (let i = a.length - 1; i > 0; i--) {
+      s = (s * 1664525 + 1013904223) & 0x7fffffff;
+      const j = s % (i + 1);
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  getReorderSourceTokens(question) {
+    const text = String(question.text || '');
+    if (text.includes('/')) {
+      return this.parseReferenceReorderTokens(text);
+    }
+    const firstAccepted =
+      question.answer && Array.isArray(question.answer.accepted) && question.answer.accepted[0]
+        ? question.answer.accepted[0]
+        : '';
+    const raw = firstAccepted.trim().split(/\s+/).filter(Boolean);
+    return this.seededShuffle(raw, parseInt(question.code, 10) || 0);
+  }
+
   getReferenceQuestionSlotCount(question) {
     const acceptedPlaceholders =
       question &&
@@ -4082,9 +4106,47 @@ class PageReference extends HTMLElement {
     };
   }
 
+  isTestWithExampleQuestion(test) {
+    const ins = test && test.header && test.header.instruction;
+    const check = (s) => {
+      if (!s) return false;
+      const lower = s.toLowerCase();
+      const pos = Math.max(lower.indexOf('ejemplo'), lower.indexOf('example'));
+      if (pos < 0) return false;
+      return !s.slice(pos, pos + 40).includes('(');
+    };
+    return check(ins && ins.es) || check(ins && ins.en);
+  }
+
+  getEvaluableQuestions(test) {
+    const questions = Array.isArray(test && test.questions) ? test.questions : [];
+    return this.isTestWithExampleQuestion(test) ? questions.slice(1) : questions;
+  }
+
+  renderReferenceExampleQuestion(question, copy, uiLocale) {
+    const accepted = this.getReferenceQuestionAcceptedAnswers(question);
+    const sep = uiLocale === 'es' ? 'ó' : 'or';
+    return `
+      <div class="reference-test-question reference-test-question-example">
+        <div class="reference-test-question-head">
+          <span class="pill reference-test-question-pill reference-test-example-pill">${this.escapeHtml(copy.testsExample || 'Ejemplo')}</span>
+        </div>
+        <p class="reference-test-question-text reference-test-example-prompt">${this.escapeHtml(question.text || '')}</p>
+        <div class="reference-test-example-answers">
+          ${accepted
+            .map((ans, i) => `
+              ${i > 0 ? `<span class="reference-test-example-sep">${this.escapeHtml(sep)}</span>` : ''}
+              <div class="reference-test-example-answer">${this.escapeHtml(ans)}</div>
+            `)
+            .join('')}
+        </div>
+      </div>
+    `;
+  }
+
   evaluateReferenceTest(test, testKey) {
     const state = this.peekReferenceTestState(testKey);
-    const questions = Array.isArray(test && test.questions) ? test.questions : [];
+    const questions = this.getEvaluableQuestions(test);
     const results = questions.map((question) => {
       const response = state.responses[String(question.code || '')];
       return {
@@ -4119,7 +4181,7 @@ class PageReference extends HTMLElement {
   }
 
   getReferenceTestProgress(test, testKey) {
-    const questions = Array.isArray(test && test.questions) ? test.questions : [];
+    const questions = this.getEvaluableQuestions(test);
     const state = this.peekReferenceTestState(testKey);
     const evaluation = this.evaluateReferenceTest(test, testKey);
     const answeredCount = questions.reduce((count, question) => {
@@ -4394,9 +4456,6 @@ class PageReference extends HTMLElement {
 
   renderReferenceTestQuestion(question, testKey, testState, result, copy, uiLocale) {
     const questionCode = String(question.code || '');
-    const questionLabel = this.formatReferenceCopy(copy.testsQuestionLabel, {
-      n: ''
-    });
     const checked = Boolean(testState.checked);
     const explanation = this.getLocalizedTestText(question.explanation, uiLocale);
     const response = testState.responses[questionCode];
@@ -4438,39 +4497,45 @@ class PageReference extends HTMLElement {
         </div>
       `;
     } else if (interaction === 'reorder_words') {
-      const sourceTokens = this.parseReferenceReorderTokens(question.text);
+      const hasSlashTokens = String(question.text || '').includes('/');
+      const sourceTokens = this.getReorderSourceTokens(question);
+      const reorderQuestionText = !hasSlashTokens
+        ? `<p class="reference-test-question-text">${this.escapeHtml(question.text || '')}</p>`
+        : '';
       const answerTokens = Array.isArray(response) ? response.slice() : [];
-      const usage = new Map();
+      // Build pool slots with fixed positions — placed tokens become invisible placeholders
+      // so remaining tokens never shift visually when tokens move in/out.
+      const usageMap = new Map();
       answerTokens.forEach((token) => {
         const key = String(token);
-        usage.set(key, (usage.get(key) || 0) + 1);
+        usageMap.set(key, (usageMap.get(key) || 0) + 1);
       });
-      const poolTokens = [];
-      sourceTokens.forEach((token) => {
+      const poolSlots = sourceTokens.map((token) => {
         const key = String(token);
-        const usedCount = usage.get(key) || 0;
-        if (usedCount > 0) {
-          usage.set(key, usedCount - 1);
-          return;
+        const used = usageMap.get(key) || 0;
+        if (used > 0) {
+          usageMap.set(key, used - 1);
+          return { token, hidden: true };
         }
-        poolTokens.push(token);
+        return { token, hidden: false };
       });
       bodyMarkup = `
+        ${reorderQuestionText}
         <div class="reference-test-reorder">
           <div class="reference-test-reorder-answer ${checked ? (result.correct ? 'is-correct' : 'is-incorrect') : ''}">
             ${answerTokens.length
               ? answerTokens
                   .map(
-                    (token, index) => `
-                      <button
-                        type="button"
-                        class="reference-test-token is-answer"
-                        data-action="reference-test-reorder-remove"
-                        data-test-key="${this.escapeHtml(testKey)}"
-                        data-question-code="${this.escapeHtml(questionCode)}"
-                        data-token-index="${index}"
-                      >${this.escapeHtml(token)}</button>
-                    `
+                    (token, index) => checked
+                      ? `<span class="reference-test-token is-answer">${this.escapeHtml(token)}</span>`
+                      : `<button
+                          type="button"
+                          class="reference-test-token is-answer"
+                          data-action="reference-test-reorder-remove"
+                          data-test-key="${this.escapeHtml(testKey)}"
+                          data-question-code="${this.escapeHtml(questionCode)}"
+                          data-token-index="${index}"
+                        >${this.escapeHtml(token)}</button>`
                   )
                   .join('')
               : `<span class="reference-test-reorder-placeholder">${this.escapeHtml(
@@ -4478,19 +4543,20 @@ class PageReference extends HTMLElement {
                 )}</span>`}
           </div>
           <div class="reference-test-reorder-pool">
-            ${poolTokens
-              .map(
-                (token, index) => `
-                  <button
-                    type="button"
-                    class="reference-test-token"
-                    data-action="reference-test-reorder-add"
-                    data-test-key="${this.escapeHtml(testKey)}"
-                    data-question-code="${this.escapeHtml(questionCode)}"
-                    data-token-index="${index}"
-                    data-token-value="${this.escapeHtml(token)}"
-                  >${this.escapeHtml(token)}</button>
-                `
+            ${poolSlots
+              .map((slot) =>
+                slot.hidden
+                  ? `<span class="reference-test-token is-pool-placeholder" aria-hidden="true">${this.escapeHtml(slot.token)}</span>`
+                  : checked
+                    ? `<span class="reference-test-token">${this.escapeHtml(slot.token)}</span>`
+                    : `<button
+                        type="button"
+                        class="reference-test-token"
+                        data-action="reference-test-reorder-add"
+                        data-test-key="${this.escapeHtml(testKey)}"
+                        data-question-code="${this.escapeHtml(questionCode)}"
+                        data-token-value="${this.escapeHtml(slot.token)}"
+                      >${this.escapeHtml(slot.token)}</button>`
               )
               .join('')}
           </div>
@@ -4509,16 +4575,15 @@ class PageReference extends HTMLElement {
 
     return `
       <div class="reference-test-question ${checked ? (result.correct ? 'is-correct' : 'is-incorrect') : ''}">
-        <div class="reference-test-question-head">
-          <span class="pill reference-test-question-pill">${this.escapeHtml(questionLabel.trim())}</span>
-          ${
-            checked
-              ? `<span class="reference-test-status ${result.correct ? 'is-correct' : 'is-incorrect'}">${this.escapeHtml(
+        ${
+          checked
+            ? `<div class="reference-test-question-head">
+                <span class="reference-test-status ${result.correct ? 'is-correct' : 'is-incorrect'}">${this.escapeHtml(
                   result.correct ? copy.testsCorrect : copy.testsIncorrect
-                )}</span>`
-              : ''
-          }
-        </div>
+                )}</span>
+              </div>`
+            : ''
+        }
         ${bodyMarkup}
         ${
           checked
@@ -4591,14 +4656,6 @@ class PageReference extends HTMLElement {
           activeTest
             ? `
               <div class="reference-test-card">
-                <div class="reference-test-card-head">
-                  <div class="pill">${this.escapeHtml(copy.testsSelectedTest)}</div>
-                  <div class="reference-test-card-meta">${this.escapeHtml(
-                    this.formatReferenceCopy(copy.testsQuestions, {
-                      n: evaluation ? evaluation.total : 0
-                    })
-                  )}</div>
-                </div>
                 ${
                   activeInstruction
                     ? `<p class="reference-test-card-instruction">${this.escapeHtml(activeInstruction)}</p>`
@@ -4640,7 +4697,10 @@ class PageReference extends HTMLElement {
                     : ''
                 }
                 <div class="reference-test-questions">
-                  ${(Array.isArray(activeTest.questions) ? activeTest.questions : [])
+                  ${activeTest && this.isTestWithExampleQuestion(activeTest) && activeTest.questions[0]
+                    ? this.renderReferenceExampleQuestion(activeTest.questions[0], copy, uiLocale)
+                    : ''}
+                  ${this.getEvaluableQuestions(activeTest)
                     .map((question, index) =>
                       this.renderReferenceTestQuestion(
                         {
@@ -5749,8 +5809,7 @@ class PageReference extends HTMLElement {
         { key: 'regverbs',     label: copy.toolRegVerbs,     icon: 'create-outline',       iconBg: '#e0e7ff', iconColor: '#4338ca' },
         { key: 'irregverbs',   label: copy.toolIrregVerbs,   icon: 'shuffle-outline',      iconBg: '#ffedd5', iconColor: '#c2410c' },
         { key: 'phrasalverbs', label: copy.toolPhrasalVerbs, icon: 'link-outline',          iconBg: '#fce7f3', iconColor: '#be185d' },
-        { key: 'cheatsheets', label: copy.toolCheatSheets, icon: 'document-text-outline',  iconBg: '#f0fdf4', iconColor: '#15803d' },
-        { key: 'articles',    label: copy.toolArticles,    icon: 'newspaper-outline',      iconBg: '#ecfdf5', iconColor: '#059669' }
+        { key: 'cheatsheets', label: copy.toolCheatSheets, icon: 'document-text-outline',  iconBg: '#f0fdf4', iconColor: '#15803d' }
       ];
       const segmentedControlHtml = toolsEnabled ? `
         <div class="profile-segmented-tabs reference-main-tabs" style="margin: 0 0 8px;">
@@ -5872,7 +5931,7 @@ class PageReference extends HTMLElement {
         { passive: true }
       );
 
-      // ── Floating hints + swipe + tap edge ──
+      // ── Floating hints + swipe ──
       const lessonCardEl = this.querySelector('#reference-lesson-stage');
       const floatingHintsEl = this.querySelector('.reference-page-hints');
       const ionContentEl = this.querySelector('ion-content');
@@ -5880,8 +5939,6 @@ class PageReference extends HTMLElement {
       const SWIPE_DRAG_THRESHOLD = 10;
       const SWIPE_COMMIT_THRESHOLD = 56;
       const SWIPE_VERTICAL_RATIO = 1.2;
-      const TAP_EDGE_ZONE_RATIO = 0.25;
-      let suppressTapUntil = 0;
       let swipeTouchActive = false;
       let swipeTouchHorizontal = false;
       let swipeTouchBlocked = false;
@@ -5955,8 +6012,7 @@ class PageReference extends HTMLElement {
         const absDx = Math.abs(dx);
         swipeTouchHorizontal = false;
         swipeTouchBlocked = false;
-        if (absDx < SWIPE_COMMIT_THRESHOLD) { suppressTapUntil = Date.now() + 180; return; }
-        suppressTapUntil = Date.now() + 420;
+        if (absDx < SWIPE_COMMIT_THRESHOLD) return;
         if (dx > 0) { if (prevLessonRef) openLesson(prevLessonRef); return; }
         if (nextLessonRef) openLesson(nextLessonRef);
       }, { passive: true });
@@ -5965,25 +6021,7 @@ class PageReference extends HTMLElement {
         swipeTouchActive = false;
         swipeTouchHorizontal = false;
         swipeTouchBlocked = false;
-        suppressTapUntil = Date.now() + 120;
       }, { passive: true });
-      ionContentEl?.addEventListener('click', (event) => {
-        if (Date.now() < suppressTapUntil) return;
-        const target = event && event.target instanceof Element ? event.target : null;
-        if (!target) return;
-        if (!isInsideReferenceNavigationSurface(target)) return;
-        if (isInteractiveTarget(target)) return;
-        const selection = typeof window.getSelection === 'function' ? window.getSelection() : null;
-        if (selection && !selection.isCollapsed && String(selection).trim()) return;
-        const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 0;
-        if (!viewportWidth) return;
-        const clientX = Number.isFinite(event.clientX) ? event.clientX : viewportWidth / 2;
-        const leftEdgeLimit = viewportWidth * TAP_EDGE_ZONE_RATIO;
-        const rightEdgeLimit = viewportWidth * (1 - TAP_EDGE_ZONE_RATIO);
-        if (clientX <= leftEdgeLimit) { if (prevLessonRef) openLesson(prevLessonRef); return; }
-        if (clientX < rightEdgeLimit) return;
-        if (nextLessonRef) openLesson(nextLessonRef);
-      });
     } else {
       // ── List view listeners ──
       const toolsEnabled = this.isReferenceToolsEnabled();

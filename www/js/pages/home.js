@@ -1894,7 +1894,6 @@ class PageHome extends HTMLElement {
             const progress = getModulePercent(module);
             const lockedClass = routeUnlocked ? '' : 'module-item-locked';
             const toneCls = progress.started ? progress.tone : 'neutral';
-            const isMastered = progress.started && progress.tone === 'good';
             const totalSessions = module.sessions.length;
             const greenSessions = module.sessions.filter(item => {
               if (!hasSessionAttempts(item)) return false;
@@ -1910,8 +1909,6 @@ class PageHome extends HTMLElement {
               routeUnlocked && isModuleOpen
                 ? `<div class="module-sessions training-list">${module.sessions
                     .map((item) => {
-                      const sessionProgress = getCorrectCount(item);
-                      const progressText = `${sessionProgress.correct}/${sessionProgress.total}`;
                       const sessionPercent = hasSessionAttempts(item) ? getSessionPercent(item) : 0;
                       const tone = getScoreTone(sessionPercent);
                       const toneClass =
@@ -1919,10 +1916,6 @@ class PageHome extends HTMLElement {
                       const sessionCircleLabel = getSessionCircleLabel(item);
                       const sessionCircleColor = sessionCircleColorById.get(item.id) || SESSION_CIRCLE_COLORS[0];
                       const sessionTitle = getSessionTitle(item);
-                      const labelText = getScoreLabel(
-                        sessionPercent,
-                        `${route.id}:${module.id}:${item.id}`
-                      );
                       const isCurrentSession =
                         route.id === activeRoute.id &&
                         module.id === activeModule.id &&
@@ -1946,13 +1939,12 @@ class PageHome extends HTMLElement {
                           <div class="session-body">
                             <div class="session-title">
                               <span class="session-title-main">${sessionTitle}</span>
-                              ${labelText ? `<span class="session-label session-label-${toneClass}">${labelText}</span>` : ''}
                             </div>
                           </div>
                           ${isResumeSession
                             ? `<div class="training-row-next-pill" aria-hidden="true"><ion-icon name="play"></ion-icon></div>`
                             : (tone === 'good' || tone === 'okay')
-                              ? `<div class="training-row-done-pill" aria-hidden="true"><ion-icon name="checkmark"></ion-icon></div>`
+                              ? `<div class="training-row-done-pill training-row-done-pill-${toneClass}" aria-hidden="true"><ion-icon name="checkmark"></ion-icon></div>`
                               : '<ion-icon name="chevron-forward" class="training-row-arrow"></ion-icon>'}
                         </div>
                       `;
@@ -1974,7 +1966,6 @@ class PageHome extends HTMLElement {
                     <div class="module-info">
                       <div class="module-header-row">
                         <span class="module-title">${getModuleTitle(module)}</span>
-                        ${isMastered ? `<span class="module-mastered-pill"><ion-icon name="checkmark"></ion-icon>Mastered!</span>` : ''}
                       </div>
                       <div class="module-sub module-sub-${toneCls}">${getModuleSubtitle(module)}</div>
                       <div class="module-sessions-count">${greenSessions}/${totalSessions} ${copy.sessionsCompleted}</div>

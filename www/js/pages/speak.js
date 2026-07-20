@@ -167,7 +167,7 @@ class PageSpeak extends HTMLElement {
     const sheetHandleBtn = this.querySelector('#speak-sheet-handle');
 
     const VIDEO_BASE = 'assets/speak/videos';
-    const SENTENCE_IMAGE_BASE = 'assets/speak/sentence-images';
+    const SENTENCE_IMAGE_BASE = 'https://s3.amazonaws.com/sk.assets/speakapp/sentence-images';
     const AV_SYNC_DELAY = 0.06;
     const RECORDING_TIMESLICE = 500;
     const VOSK_SAMPLE_RATE_DEFAULT = 16000;
@@ -299,7 +299,7 @@ class PageSpeak extends HTMLElement {
     const resolveSentenceImageCandidates = (sessionId = currentSessionId) => {
       const safeSessionId = String(sessionId || '').trim();
       if (!safeSessionId) return [];
-      return ['webp', 'png', 'jpg', 'jpeg'].map((ext) => `${SENTENCE_IMAGE_BASE}/${safeSessionId}.${ext}`);
+      return [`${SENTENCE_IMAGE_BASE}/${encodeURIComponent(safeSessionId)}.webp`];
     };
     const getCachedSentenceImageSrc = (sessionId = currentSessionId) =>
       String(sentenceImageSrcCache.get(String(sessionId || '').trim()) || '').trim();

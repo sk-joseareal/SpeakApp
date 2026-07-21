@@ -299,7 +299,14 @@ class PageSpeak extends HTMLElement {
     const resolveSentenceImageCandidates = (sessionId = currentSessionId) => {
       const safeSessionId = String(sessionId || '').trim();
       if (!safeSessionId) return [];
-      return [`${SENTENCE_IMAGE_BASE}/${encodeURIComponent(safeSessionId)}.webp`];
+      const candidates = new Set([
+        `${SENTENCE_IMAGE_BASE}/${encodeURIComponent(safeSessionId)}.webp`
+      ]);
+      const numericMatch = safeSessionId.match(/^session-([0-9]+)$/i);
+      if (numericMatch && numericMatch[1]) {
+        candidates.add(`${SENTENCE_IMAGE_BASE}/${encodeURIComponent(numericMatch[1])}.webp`);
+      }
+      return Array.from(candidates);
     };
     const getCachedSentenceImageSrc = (sessionId = currentSessionId) =>
       String(sentenceImageSrcCache.get(String(sessionId || '').trim()) || '').trim();

@@ -11,6 +11,10 @@ CACHE_CONTROL="${SPEAK_SENTENCE_IMAGES_CACHE_CONTROL:-public, max-age=3600, stal
 if [[ "$#" -eq 0 ]]; then
   default_sources=()
   for source_path in \
+    "$SOURCE_DIR"/[0-9]*.webp \
+    "$SOURCE_DIR"/[0-9]*.png \
+    "$SOURCE_DIR"/[0-9]*.jpg \
+    "$SOURCE_DIR"/[0-9]*.jpeg \
     "$SOURCE_DIR"/session-*.webp \
     "$SOURCE_DIR"/session-*.png \
     "$SOURCE_DIR"/session-*.jpg \
@@ -49,12 +53,16 @@ for source_path in "$@"; do
 
   file_name="$(basename "$source_path")"
   session_id="${file_name%.*}"
-  if [[ ! "$session_id" =~ ^session-[0-9]+$ ]]; then
-    echo "Invalid image name: $file_name (expected session-N.png/jpg/webp)" >&2
+  if [[ "$session_id" =~ ^session-([0-9]+)$ ]]; then
+    session_id="${BASH_REMATCH[1]}"
+  elif [[ "$session_id" =~ ^[0-9]+$ ]]; then
+    session_id="$session_id"
+  else
+    echo "Invalid image name: $file_name (expected N.png/jpg/webp or session-N.png/jpg/webp)" >&2
     exit 1
   fi
 
-  output_path="$temporary_dir/$session_id.webp"
+  output_path="$temporary_dir/session-$session_id.webp"
   extension="${file_name##*.}"
   case "$extension" in
     webp|WEBP|WebP)
@@ -65,7 +73,7 @@ for source_path in "$@"; do
       ;;
   esac
 
-  object_key="$PREFIX/$session_id.webp"
+  object_key="$PREFIX/session-$session_id.webp"
   aws s3 cp "$output_path" "s3://$BUCKET/$object_key" \
     --only-show-errors \
     --content-type "image/webp" \
@@ -73,6 +81,6 @@ for source_path in "$@"; do
 
   source_size="$(wc -c < "$source_path" | tr -d ' ')"
   output_size="$(wc -c < "$output_path" | tr -d ' ')"
-  echo "$session_id: $source_size -> $output_size bytes"
+  echo "session-$session_id: $source_size -> $output_size bytes"
   echo "https://s3.amazonaws.com/$BUCKET/$object_key"
 done

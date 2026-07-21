@@ -1255,8 +1255,11 @@ class PageFreeRide extends HTMLElement {
     }
     const endpoint = this.resolveFreeRideTranslatorEndpoint();
     const url = new URL(endpoint);
+    url.searchParams.set('mode', 'lite');
     url.searchParams.set('text', normalizedText);
     url.searchParams.set('locale', targetLanguage || 'en');
+    url.searchParams.set('source_language', sourceLanguage || 'es');
+    url.searchParams.set('target_language', targetLanguage || 'en');
     url.searchParams.set('user_id', String(auth.userId));
     url.searchParams.set('token', String(auth.token));
     url.searchParams.set('timestamp', String(Math.round(Date.now() / 1000)));

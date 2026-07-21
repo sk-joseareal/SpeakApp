@@ -168,6 +168,8 @@ class PageSpeak extends HTMLElement {
 
     const VIDEO_BASE = 'assets/speak/videos';
     const SENTENCE_IMAGE_BASE = 'https://s3.amazonaws.com/sk.assets/speakapp/sentence-images';
+    const SENTENCE_IMAGE_ASSET_VERSION =
+      String(window.SPEAK_SENTENCE_IMAGE_VERSION || '20260721-1').trim() || '20260721-1';
     const AV_SYNC_DELAY = 0.06;
     const RECORDING_TIMESLICE = 500;
     const VOSK_SAMPLE_RATE_DEFAULT = 16000;
@@ -299,12 +301,13 @@ class PageSpeak extends HTMLElement {
     const resolveSentenceImageCandidates = (sessionId = currentSessionId) => {
       const safeSessionId = String(sessionId || '').trim();
       if (!safeSessionId) return [];
+      const withVersion = (url) => `${url}?v=${encodeURIComponent(SENTENCE_IMAGE_ASSET_VERSION)}`;
       const candidates = new Set([
-        `${SENTENCE_IMAGE_BASE}/${encodeURIComponent(safeSessionId)}.webp`
+        withVersion(`${SENTENCE_IMAGE_BASE}/${encodeURIComponent(safeSessionId)}.webp`)
       ]);
       const numericMatch = safeSessionId.match(/^session-([0-9]+)$/i);
       if (numericMatch && numericMatch[1]) {
-        candidates.add(`${SENTENCE_IMAGE_BASE}/${encodeURIComponent(numericMatch[1])}.webp`);
+        candidates.add(withVersion(`${SENTENCE_IMAGE_BASE}/${encodeURIComponent(numericMatch[1])}.webp`));
       }
       return Array.from(candidates);
     };

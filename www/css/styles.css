@@ -7768,15 +7768,33 @@ page-speak .speak-content::part(scroll) {
   flex: 0 1 auto;
   width: 100%;
   max-width: min(100%, 460px);
+  aspect-ratio: 16 / 9;
+  min-height: 148px;
   max-height: min(28vh, 240px);
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
   border-radius: 22px;
   overflow: hidden;
   background: #ffffff;
   border: 1.5px solid #e8edf2;
   box-shadow: 0 10px 22px rgba(15, 27, 45, 0.08);
+}
+
+.speak-sentence-illustration.is-loading {
+  background:
+    linear-gradient(135deg, rgba(147, 197, 253, 0.08), rgba(255, 255, 255, 0.9)),
+    #ffffff;
+}
+
+.speak-sentence-illustration-placeholder {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(226, 232, 240, 0.16) 0%, rgba(191, 219, 254, 0.36) 50%, rgba(226, 232, 240, 0.16) 100%);
+  background-size: 220% 100%;
+  animation: speakSentencePlaceholderPulse 1.2s ease-in-out infinite;
 }
 
 .speak-sentence-illustration-img {
@@ -7853,6 +7871,7 @@ page-speak .speak-content::part(scroll) {
 
   .speak-sentence-illustration {
     max-height: min(21vh, 170px);
+    min-height: 128px;
   }
 
   .speak-step-sentence .speak-sentence {
@@ -7878,6 +7897,7 @@ page-speak .speak-content::part(scroll) {
 
   .speak-sentence-illustration {
     max-height: min(23vh, 190px);
+    min-height: 136px;
   }
 
   .speak-step-sentence .speak-sentence-main {
@@ -7911,6 +7931,15 @@ page-speak .speak-content::part(scroll) {
   border-color: var(--speak-blue);
   animation: none;
   box-shadow: 0 0 0 2px rgba(47, 124, 246, 0.18), 0 0 0 6px rgba(47, 124, 246, 0.08);
+}
+
+@keyframes speakSentencePlaceholderPulse {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
 }
 
 .speak-feedback {

@@ -262,6 +262,7 @@ class PageSpeak extends HTMLElement {
     let sentenceImageRequestToken = 0;
     const alignedTtsCache = new Map();
     const sentenceImageSrcCache = new Map();
+    const sentenceImageAvailabilityCache = new Map();
     let heroFirstRenderAt = 0;
     let hintLocaleOverride = '';
     let activeHintLocale = 'en';
@@ -313,6 +314,56 @@ class PageSpeak extends HTMLElement {
     };
     const getCachedSentenceImageSrc = (sessionId = currentSessionId) =>
       String(sentenceImageSrcCache.get(String(sessionId || '').trim()) || '').trim();
+    const getSentenceImageAvailability = (sessionId = currentSessionId) => {
+      const safeSessionId = String(sessionId || '').trim();
+      if (!safeSessionId) return 'missing';
+      const cached = sentenceImageAvailabilityCache.get(safeSessionId);
+      return cached && cached.status ? cached.status : 'unknown';
+    };
+    const probeSentenceImageAvailability = (sessionId = currentSessionId) => {
+      const safeSessionId = String(sessionId || '').trim();
+      if (!safeSessionId) return Promise.resolve(false);
+      const cachedSrc = getCachedSentenceImageSrc(safeSessionId);
+      if (cachedSrc) {
+        sentenceImageAvailabilityCache.set(safeSessionId, { status: 'present', promise: null });
+        return Promise.resolve(true);
+      }
+      const cached = sentenceImageAvailabilityCache.get(safeSessionId);
+      if (cached && cached.status === 'present') return Promise.resolve(true);
+      if (cached && cached.status === 'missing') return Promise.resolve(false);
+      if (cached && cached.promise) return cached.promise;
+
+      const candidates = resolveSentenceImageCandidates(safeSessionId);
+      if (!candidates.length) {
+        sentenceImageAvailabilityCache.set(safeSessionId, { status: 'missing', promise: null });
+        return Promise.resolve(false);
+      }
+
+      const promise = new Promise((resolve) => {
+        const tryLoad = (index) => {
+          if (index >= candidates.length) {
+            sentenceImageAvailabilityCache.set(safeSessionId, { status: 'missing', promise: null });
+            resolve(false);
+            return;
+          }
+          const src = candidates[index];
+          const img = new Image();
+          img.decoding = 'async';
+          img.loading = 'eager';
+          img.onload = () => {
+            sentenceImageSrcCache.set(safeSessionId, img.currentSrc || img.src || src);
+            sentenceImageAvailabilityCache.set(safeSessionId, { status: 'present', promise: null });
+            resolve(true);
+          };
+          img.onerror = () => tryLoad(index + 1);
+          img.src = src;
+        };
+        tryLoad(0);
+      });
+
+      sentenceImageAvailabilityCache.set(safeSessionId, { status: 'loading', promise });
+      return promise;
+    };
     const syncSentenceIllustrationLayout = () => {
       if (!stepRoot) return;
       const sentenceMainEl = stepRoot.querySelector('.speak-step-sentence .speak-step-main');
@@ -324,6 +375,10 @@ class PageSpeak extends HTMLElement {
       if (!sentenceMainEl || !sentenceIllustrationHost || !sentenceCardEl) return;
 
       sentenceMainEl.classList.remove('has-centered-cards');
+      if (sentenceIllustrationHost.dataset.state === 'loading') {
+        sentenceIllustrationHost.hidden = false;
+        return;
+      }
       if (
         !sentenceIllustrationImg ||
         !sentenceIllustrationImg.complete ||
@@ -4051,6 +4106,33 @@ class PageSpeak extends HTMLElement {
         window.r34lp0w3r.speakStartWord = null;
       }
       lockHeroCardHeight();
+      probeSentenceImageAvailability(session.id).then((exists) => {
+        const safeSessionId = String(session.id || '').trim();
+        if (String(currentSessionId || '').trim() !== safeSessionId) return;
+        if (showSummary || getStepKey() !== 'sentence' || !stepRoot) return;
+        const sentenceIllustrationHost = stepRoot.querySelector('#speak-sentence-illustration');
+        if (!sentenceIllustrationHost) return;
+        if (exists) {
+          const cachedSentenceImageSrc = getCachedSentenceImageSrc(safeSessionId);
+          if (cachedSentenceImageSrc) {
+            sentenceIllustrationHost.classList.remove('is-loading');
+            sentenceIllustrationHost.dataset.state = 'loaded';
+            sentenceIllustrationHost.innerHTML = `<img class="speak-sentence-illustration-img" src="${escapeHtml(cachedSentenceImageSrc)}" alt="${escapeHtml(sentenceStep && sentenceStep.sentence ? sentenceStep.sentence : 'Sentence illustration')}">`;
+            sentenceIllustrationHost.hidden = false;
+          }
+        } else {
+          sentenceIllustrationHost.classList.remove('is-loading');
+          sentenceIllustrationHost.dataset.state = 'missing';
+          sentenceIllustrationHost.hidden = true;
+          sentenceIllustrationHost.innerHTML = '';
+        }
+        requestAnimationFrame(() => {
+          syncSentenceIllustrationLayout();
+          updateSwipeStageHeight();
+          speakSheetExpandedOffset = measureSpeakSheetExpandedOffset();
+          applySpeakSheetState({ animate: false, force: true });
+        });
+      });
       renderStep();
     };
 
@@ -4206,14 +4288,18 @@ class PageSpeak extends HTMLElement {
       const sentenceFallback = getSpeakUiText('stepTitleSentence', locale, 'Say a whole sentence');
       const sentenceTranslation = getSentenceTranslationText(locale);
       const sentenceImageSrc = getCachedSentenceImageSrc();
+      const sentenceImageState = getSentenceImageAvailability();
+      const showSentenceImageSlot = sentenceImageState !== 'missing';
+      const sentenceImageLoading = showSentenceImageSlot && !sentenceImageSrc;
       const stepTitle = sentenceFallback;
       return `
         <div class="speak-step speak-step-sentence">
           <p class="speak-step-heading">${stepTitle}</p>
           ${sentenceContentTitle ? `<p class="speak-step-subtitle">${sentenceContentTitle}</p>` : ''}
           <div class="speak-step-main">
-            <div class="speak-sentence-illustration" id="speak-sentence-illustration"${sentenceImageSrc ? '' : ' hidden'}>
+            <div class="speak-sentence-illustration${sentenceImageLoading ? ' is-loading' : ''}" id="speak-sentence-illustration" data-state="${sentenceImageLoading ? 'loading' : sentenceImageSrc ? 'loaded' : 'missing'}"${showSentenceImageSlot ? '' : ' hidden'}>
               ${sentenceImageSrc ? `<img class="speak-sentence-illustration-img" src="${escapeHtml(sentenceImageSrc)}" alt="${escapeHtml(sentenceStep && sentenceStep.sentence ? sentenceStep.sentence : 'Sentence illustration')}">` : ''}
+              ${sentenceImageLoading ? '<span class="speak-sentence-illustration-placeholder" aria-hidden="true"></span>' : ''}
             </div>
             <button class="speak-sentence is-active" id="speak-play-sentence" type="button">
               <span class="speak-sentence-main" id="speak-sentence-text">${highlightSentence(sentenceStep.sentence, focusKey)}</span>
@@ -4689,7 +4775,7 @@ class PageSpeak extends HTMLElement {
       if (sentenceIllustrationHost) {
         sentenceImageRequestToken += 1;
         const requestToken = sentenceImageRequestToken;
-        const candidates = resolveSentenceImageCandidates();
+        const availability = getSentenceImageAvailability();
         const cachedSentenceImageSrc = getCachedSentenceImageSrc();
         const hasRenderedSentenceImage = Boolean(sentenceIllustrationHost.querySelector('.speak-sentence-illustration-img'));
         if (cachedSentenceImageSrc && hasRenderedSentenceImage) {
@@ -4715,8 +4801,12 @@ class PageSpeak extends HTMLElement {
 
         const tryLoadSentenceImage = (index) => {
           if (requestToken !== sentenceImageRequestToken) return;
+          const candidates = resolveSentenceImageCandidates();
           if (!Array.isArray(candidates) || index >= candidates.length) {
+            sentenceImageAvailabilityCache.set(String(currentSessionId || '').trim(), { status: 'missing', promise: null });
             sentenceIllustrationHost.hidden = true;
+            sentenceIllustrationHost.dataset.state = 'missing';
+            sentenceIllustrationHost.classList.remove('is-loading');
             sentenceIllustrationHost.innerHTML = '';
             return;
           }
@@ -4731,8 +4821,40 @@ class PageSpeak extends HTMLElement {
           img.src = src;
         };
 
-        if (!cachedSentenceImageSrc && candidates.length) {
+        if (!cachedSentenceImageSrc && availability !== 'missing') {
+          sentenceIllustrationHost.hidden = false;
+          sentenceIllustrationHost.dataset.state = 'loading';
+          sentenceIllustrationHost.classList.add('is-loading');
+        }
+        if (!cachedSentenceImageSrc && availability === 'present') {
           tryLoadSentenceImage(0);
+        }
+        if (!cachedSentenceImageSrc && availability === 'loading') {
+          probeSentenceImageAvailability().then((exists) => {
+            if (requestToken !== sentenceImageRequestToken) return;
+            if (exists) {
+              const resolvedSrc = getCachedSentenceImageSrc();
+              if (!resolvedSrc) return;
+              const img = new Image();
+              img.className = 'speak-sentence-illustration-img';
+              img.alt = sentenceStep && sentenceStep.sentence ? sentenceStep.sentence : 'Sentence illustration';
+              img.decoding = 'async';
+              img.loading = 'eager';
+              img.onload = () => showLoadedSentenceImage(img);
+              img.onerror = () => {
+                sentenceIllustrationHost.hidden = true;
+                sentenceIllustrationHost.dataset.state = 'missing';
+                sentenceIllustrationHost.classList.remove('is-loading');
+                sentenceIllustrationHost.innerHTML = '';
+              };
+              img.src = resolvedSrc;
+            } else {
+              sentenceIllustrationHost.hidden = true;
+              sentenceIllustrationHost.dataset.state = 'missing';
+              sentenceIllustrationHost.classList.remove('is-loading');
+              sentenceIllustrationHost.innerHTML = '';
+            }
+          });
         }
         requestAnimationFrame(() => {
           syncSentenceIllustrationLayout();

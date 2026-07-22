@@ -2837,8 +2837,17 @@ ion-modal.diagnostics-modal ion-content {
 }
 
 body.app-platform-android.lab-chrome-active ion-modal.diagnostics-modal ion-header ion-toolbar {
-  --padding-top: var(--app-native-statusbar-height, env(safe-area-inset-top, 0px));
-  --min-height: calc(56px + var(--app-native-statusbar-height, env(safe-area-inset-top, 0px)));
+  --padding-top: var(--app-system-top-inset, env(safe-area-inset-top, 0px));
+  --min-height: calc(56px + var(--app-system-top-inset, env(safe-area-inset-top, 0px)));
+}
+
+/* Ionic already reserves the safe area on iPhone. Full-screen iPad modals do
+   not do so consistently, especially when the app display scale is changed. */
+@media (min-width: 600px) and (min-height: 600px) {
+  body.app-platform-ios ion-modal.diagnostics-modal ion-header ion-toolbar {
+    --padding-top: var(--app-system-top-inset, env(safe-area-inset-top, 0px));
+    --min-height: calc(56px + var(--app-system-top-inset, env(safe-area-inset-top, 0px)));
+  }
 }
 
 .notify-title {

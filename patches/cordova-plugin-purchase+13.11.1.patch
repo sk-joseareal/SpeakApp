@@ -1,0 +1,103 @@
+diff --git a/node_modules/cordova-plugin-purchase/plugin.xml b/node_modules/cordova-plugin-purchase/plugin.xml
+index 1461f9d..ba7a4ea 100644
+--- a/node_modules/cordova-plugin-purchase/plugin.xml
++++ b/node_modules/cordova-plugin-purchase/plugin.xml
+@@ -124,7 +124,7 @@ SOFTWARE.
+ 
+       <!-- To ensure we're using the latest version, see here:
+         https://developer.android.com/google/play/billing/billing_library_releases_notes -->
+-      <framework src="com.android.billingclient:billing:7.0.0" />
++      <framework src="com.android.billingclient:billing:8.0.0" />
+       <source-file src="src/android/cc/fovea/PurchasePlugin.java" target-dir="src/cc/fovea" />
+       <source-file src="src/android/cc/fovea/Constants.java" target-dir="src/cc/fovea" />
+     </platform>
+diff --git a/node_modules/cordova-plugin-purchase/src/android/cc/fovea/PurchasePlugin.java b/node_modules/cordova-plugin-purchase/src/android/cc/fovea/PurchasePlugin.java
+index ac8aa6d..2a7b1e9 100644
+--- a/node_modules/cordova-plugin-purchase/src/android/cc/fovea/PurchasePlugin.java
++++ b/node_modules/cordova-plugin-purchase/src/android/cc/fovea/PurchasePlugin.java
+@@ -42,6 +42,7 @@ import com.android.billingclient.api.ProductDetailsResponseListener;
+ import com.android.billingclient.api.Purchase;
+ import com.android.billingclient.api.PurchasesResponseListener;
+ import com.android.billingclient.api.PurchasesUpdatedListener;
++import com.android.billingclient.api.PendingPurchasesParams;
+ import com.android.billingclient.api.QueryProductDetailsParams;
+ import com.android.billingclient.api.QueryProductDetailsParams.Product;
+ import com.android.billingclient.api.QueryPurchasesParams;
+@@ -69,6 +70,12 @@ public final class PurchasePlugin
+         ConsumeResponseListener,
+         AcknowledgePurchaseResponseListener {
+ 
++  private interface ProductDetailsListResponseListener {
++    void onProductDetailsResponse(
++        BillingResult result,
++        List<ProductDetails> productDetailsList);
++  }
++
+   /** Tag used for log messages. */
+   private final String mTag = "CdvPurchase";
+ 
+@@ -299,7 +306,10 @@ public final class PurchasePlugin
+ 
+     mBillingClient = BillingClient
+       .newBuilder(cordova.getActivity())
+-      .enablePendingPurchases()
++      .enablePendingPurchases(
++          PendingPurchasesParams.newBuilder()
++            .enableOneTimeProducts()
++            .build())
+       .setListener(this)
+       .build();
+ 
+@@ -557,8 +567,7 @@ public final class PurchasePlugin
+ 
+   private void getAvailableProducts(List<String> inAppProductIds, List<String> subsProductIds) {
+     Log.d(mTag, "getAvailableProducts()");
+-    queryAllProductDetails(inAppProductIds, subsProductIds, new ProductDetailsResponseListener() {
+-      @Override
++    queryAllProductDetails(inAppProductIds, subsProductIds, new ProductDetailsListResponseListener() {
+         public void onProductDetailsResponse(
+             final BillingResult result,
+             final List<ProductDetails> productDetailsList) {
+@@ -1091,7 +1100,7 @@ public final class PurchasePlugin
+    *
+    * @param listener Code to run once data has been loaded
+    */
+-  private void queryAllProductDetails(List<String> inAppProductIds, List<String> subsProductIds, final ProductDetailsResponseListener listener) {
++  private void queryAllProductDetails(List<String> inAppProductIds, List<String> subsProductIds, final ProductDetailsListResponseListener listener) {
+     Log.d(mTag, "queryAllProductDetails()");
+     ArrayList<ProductDetails> allProducts = new ArrayList<ProductDetails>();
+ 
+@@ -1100,9 +1109,8 @@ public final class PurchasePlugin
+       + (inAppProductIds.size() > 0 ? 1 : 0);
+     nProductDetailsQuerySuccessful = 0;
+ 
+-    final ProductDetailsResponseListener queryListener =
+-      new ProductDetailsResponseListener() {
+-        @Override
++    final ProductDetailsListResponseListener queryListener =
++      new ProductDetailsListResponseListener() {
+         public void onProductDetailsResponse(
+             final BillingResult result,
+             final List<ProductDetails> productDetailsList) {
+@@ -1169,7 +1177,7 @@ public final class PurchasePlugin
+   public void queryProductDetailsAsync(
+       // @ProductType final String itemType,
+       final List<Product> productList,
+-      final ProductDetailsResponseListener listener) {
++      final ProductDetailsListResponseListener listener) {
+     Log.d(mTag, "queryProductDetailsAsync()");
+     executeServiceRequest(() -> {
+       if (getLastResponseCode() != BillingResponseCode.OK) {
+@@ -1180,7 +1188,11 @@ public final class PurchasePlugin
+         Log.d(mTag, "queryProductDetailsAsync() -> Success");
+         QueryProductDetailsParams.Builder params = QueryProductDetailsParams.newBuilder();
+         params.setProductList(productList)/* .setType(itemType) */;
+-        mBillingClient.queryProductDetailsAsync(params.build(), listener);
++        mBillingClient.queryProductDetailsAsync(params.build(), (result, queryResult) -> {
++          listener.onProductDetailsResponse(
++              result,
++              queryResult != null ? queryResult.getProductDetailsList() : null);
++        });
+       }
+     });
+   }

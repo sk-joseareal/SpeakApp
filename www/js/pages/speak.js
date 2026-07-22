@@ -29,6 +29,7 @@ import {
   preloadHeroMascotFrames
 } from '../mascot-frames.js';
 import { createSheetController } from '../sheet-controller.js';
+import { persistSheetState } from '../sheet-state.js';
 
 const FREE_RIDE_HEADER_COLOR_KEY = 'appv5:free-ride-header-color';
 const FREE_RIDE_HEADER_COLOR_VALUES = ['white', 'dark', 'blue'];
@@ -44,10 +45,20 @@ const getStoredHeaderColor = () => {
   }
 };
 
+const readStoredPositiveInt = (key) => {
+  try {
+    const parsed = parseInt(localStorage.getItem(key) || '0', 10);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+  } catch (_err) {
+    return 0;
+  }
+};
+
 class PageSpeak extends HTMLElement {
   connectedCallback() {
-    const SPEAK_SHEET_EXPANDED_KEY = 'speak:sheet-expanded';
+    const SPEAK_SHEET_EXPANDED_KEY = 'appv5:home-sheet-expanded';
     const SPEAK_SHEET_OFFSET_KEY = 'speak:sheet-expanded-offset';
+    const HOME_SHEET_OFFSET_KEY = 'appv5:home-sheet-expanded-offset';
     const initialSpeakSheetController = createSheetController({
       expandedKey: SPEAK_SHEET_EXPANDED_KEY,
       offsetKey: SPEAK_SHEET_OFFSET_KEY,
@@ -65,9 +76,13 @@ class PageSpeak extends HTMLElement {
       getCollapsedLabel: () => 'Expand practice card'
     });
     const initialSpeakSheetExpanded = initialSpeakSheetController.state.expanded;
-    const initialSpeakSheetOffset = initialSpeakSheetController.state.offset;
+    const initialSpeakSheetOffset = initialSpeakSheetExpanded
+      ? initialSpeakSheetController.state.offset || readStoredPositiveInt(HOME_SHEET_OFFSET_KEY)
+      : 0;
 
-    this.classList.add('ion-page');
+    // Ionic can expose the entering page before ionRouteDidChange. Keep the sheet
+    // transition disabled until its final geometry has been measured for this route.
+    this.classList.add('ion-page', 'is-sheet-entering');
     const isSpeakCardPadded = () => {
       const cached = window.r34lp0w3r && window.r34lp0w3r.freeRideCardPadded;
       if (typeof cached === 'boolean') return cached;
@@ -122,7 +137,11 @@ class PageSpeak extends HTMLElement {
             </div>
             <p class="secret-title" id="speak-hero-hint" aria-hidden="true"></p>
           </section>
-          <section class="speak-sheet" data-sheet-state="${initialSpeakSheetExpanded ? 'expanded' : 'collapsed'}">
+          <section
+            class="speak-sheet"
+            data-sheet-state="${initialSpeakSheetExpanded ? 'expanded' : 'collapsed'}"
+            style="--sheet-lift: ${initialSpeakSheetOffset}px"
+          >
             <button
               id="speak-sheet-handle"
               class="speak-sheet-handle"
@@ -4063,9 +4082,13 @@ class PageSpeak extends HTMLElement {
     const applySessionData = (nextSelection = getSelection()) => {
       const { session } = resolveSelection(nextSelection);
       if (!session || !session.speak) return;
+      speakSheetController.syncFromStorage();
       speakSheetExpanded = speakSheetController.state.expanded;
-      if (speakSheetExpanded && speakSheetExpandedOffset <= 0) {
-        speakSheetExpandedOffset = speakSheetController.state.offset;
+      if (speakSheetExpanded) {
+        const persistedSpeakOffset = Number(speakSheetController.state.offset) || 0;
+        const fallbackHomeOffset = readStoredPositiveInt(HOME_SHEET_OFFSET_KEY);
+        speakSheetExpandedOffset =
+          persistedSpeakOffset > 0 ? persistedSpeakOffset : fallbackHomeOffset;
       }
       heroFirstRenderAt = Date.now();
       currentSessionId = session.id;
@@ -4612,6 +4635,16 @@ class PageSpeak extends HTMLElement {
       syncSpeakSheetVarsFromController();
     };
 
+    const persistCurrentSpeakSheetOffset = () => {
+      if (!speakSheetExpanded || speakSheetExpandedOffset <= 0) return;
+      persistSheetState(
+        SPEAK_SHEET_EXPANDED_KEY,
+        SPEAK_SHEET_OFFSET_KEY,
+        true,
+        speakSheetExpandedOffset
+      );
+    };
+
     const setSpeakSheetExpanded = (nextExpanded, options = {}) => {
       const expanded = Boolean(nextExpanded);
       if (speakSheetExpanded === expanded && !options.force) {
@@ -4695,6 +4728,7 @@ class PageSpeak extends HTMLElement {
       bindStepControls();
       speakSheetExpandedOffset = measureSpeakSheetExpandedOffset();
       applySpeakSheetState({ animate: false, force: true });
+      persistCurrentSpeakSheetOffset();
     };
 
     const bindStepControls = () => {
@@ -5553,18 +5587,53 @@ class PageSpeak extends HTMLElement {
     });
 
     applySpeakSheetState({ animate: false, force: true });
+    persistCurrentSpeakSheetOffset();
 
     const ionRouter = document.querySelector('ion-router');
-    const handleSpeakRouteEnter = (event) => {
+    let speakSheetEntryReleaseRaf = 0;
+    let speakSheetEntryReleaseTimer = 0;
+    const releaseSpeakSheetEntryLock = () => {
+      if (speakSheetEntryReleaseTimer) {
+        clearTimeout(speakSheetEntryReleaseTimer);
+        speakSheetEntryReleaseTimer = 0;
+      }
+      if (speakSheetEntryReleaseRaf) cancelAnimationFrame(speakSheetEntryReleaseRaf);
+      speakSheetEntryReleaseRaf = requestAnimationFrame(() => {
+        speakSheetEntryReleaseRaf = requestAnimationFrame(() => {
+          speakSheetEntryReleaseRaf = 0;
+          if (this.isConnected) this.classList.remove('is-sheet-entering');
+        });
+      });
+    };
+    const syncSpeakSheetForRoute = (event) => {
       const to = event && event.detail ? event.detail.to : null;
-      if (!to || !String(to).startsWith('/speak')) return;
-      if (!this.isConnected) return;
+      if (!to || !String(to).startsWith('/speak')) return false;
+      if (!this.isConnected) return false;
+      speakSheetController.syncFromStorage();
+      speakSheetExpanded = speakSheetController.state.expanded;
+      if (speakSheetExpanded && (!Number.isFinite(speakSheetExpandedOffset) || speakSheetExpandedOffset <= 0)) {
+        const persistedSpeakOffset = Number(speakSheetController.state.offset) || 0;
+        const fallbackHomeOffset = readStoredPositiveInt(HOME_SHEET_OFFSET_KEY);
+        speakSheetExpandedOffset =
+          persistedSpeakOffset > 0 ? persistedSpeakOffset : fallbackHomeOffset;
+      }
       speakSheetExpandedOffset = measureSpeakSheetExpandedOffset();
       applySpeakSheetState({ animate: false });
+      persistCurrentSpeakSheetOffset();
+      return true;
     };
-    ionRouter?.addEventListener('ionRouteDidChange', handleSpeakRouteEnter);
-    this._handleSpeakRouteEnter = handleSpeakRouteEnter;
+    const handleSpeakRouteWillChange = (event) => {
+      syncSpeakSheetForRoute(event);
+    };
+    const handleSpeakRouteDidChange = (event) => {
+      if (syncSpeakSheetForRoute(event)) releaseSpeakSheetEntryLock();
+    };
+    ionRouter?.addEventListener('ionRouteWillChange', handleSpeakRouteWillChange);
+    ionRouter?.addEventListener('ionRouteDidChange', handleSpeakRouteDidChange);
+    this._handleSpeakRouteWillChange = handleSpeakRouteWillChange;
+    this._handleSpeakRouteDidChange = handleSpeakRouteDidChange;
     this._speakIonRouter = ionRouter;
+    speakSheetEntryReleaseTimer = setTimeout(releaseSpeakSheetEntryLock, 700);
     this._speakTabsEl = document.querySelector('tabs-page');
     this._handleSpeakTabEnter = (event) => {
       const tab = event && event.detail ? String(event.detail.tab || '') : '';
@@ -5617,8 +5686,19 @@ class PageSpeak extends HTMLElement {
       if (this._handleSpeakHeaderColor) {
         window.removeEventListener('app:free-ride-header-color-change', this._handleSpeakHeaderColor);
       }
-      if (this._handleSpeakRouteEnter) {
-        this._speakIonRouter?.removeEventListener('ionRouteDidChange', this._handleSpeakRouteEnter);
+      if (this._handleSpeakRouteWillChange) {
+        this._speakIonRouter?.removeEventListener('ionRouteWillChange', this._handleSpeakRouteWillChange);
+      }
+      if (this._handleSpeakRouteDidChange) {
+        this._speakIonRouter?.removeEventListener('ionRouteDidChange', this._handleSpeakRouteDidChange);
+      }
+      if (speakSheetEntryReleaseTimer) {
+        clearTimeout(speakSheetEntryReleaseTimer);
+        speakSheetEntryReleaseTimer = 0;
+      }
+      if (speakSheetEntryReleaseRaf) {
+        cancelAnimationFrame(speakSheetEntryReleaseRaf);
+        speakSheetEntryReleaseRaf = 0;
       }
       if (this._handleSpeakTabEnter) {
         this._speakTabsEl?.removeEventListener('ionTabsDidChange', this._handleSpeakTabEnter);

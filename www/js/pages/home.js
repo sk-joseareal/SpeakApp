@@ -1227,6 +1227,11 @@ class PageHome extends HTMLElement {
   _renderSync(options = {}) {
     this.clearRoutesCenterScrollTimers();
     this.applyPendingHomeReturnViewState();
+    this.journeySheetController.syncFromStorage();
+    this.journeySheetExpanded = this.journeySheetController.state.expanded;
+    if (this.journeySheetExpanded) {
+      this.journeySheetExpandedOffset = this.journeySheetController.state.offset;
+    }
     const baseLocale = this.getBaseLocale();
     const uiLocale = this.getUiLocale(baseLocale);
     const copy = getHomeCopy(uiLocale);

@@ -14510,6 +14510,10 @@ page-speak.is-card-padded .speak-sheet {
   transition: none;
 }
 
+page-speak.is-sheet-entering .speak-sheet {
+  transition: none !important;
+}
+
 .speak-sheet-handle {
   width: 100%;
   min-height: 24px;

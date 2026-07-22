@@ -167,6 +167,22 @@ export const createSheetController = (options) => {
     });
   };
 
+  const syncFromStorage = () => {
+    const persistedState = readPersistedSheetState(expandedKey, offsetKey);
+    state.expanded = persistedState.expanded;
+    if (persistedState.expanded && Number.isFinite(persistedState.offset) && persistedState.offset > 0) {
+      state.offset = persistedState.offset;
+    } else if (!persistedState.expanded) {
+      state.offset = 0;
+    }
+    log('syncFromStorage', {
+      expandedKey,
+      expanded: state.expanded,
+      offset: state.offset
+    });
+    return { expanded: state.expanded, offset: state.offset };
+  };
+
   const toggle = (opts = {}) => setExpanded(!state.expanded, opts);
 
   const handleClick = (event, opts = {}) => {
@@ -260,6 +276,7 @@ export const createSheetController = (options) => {
     measureOffset,
     applyState,
     setExpanded,
+    syncFromStorage,
     toggle,
     handleClick,
     handleKeyDown,

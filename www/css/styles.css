@@ -1864,6 +1864,353 @@ body.lab-chrome-active:not(.app-titlebar-enabled) page-profile .profile-settings
   font-weight: 700;
 }
 
+/* ── Daily challenge entry card ──────────────────────────────────────────── */
+.dc-entry-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: linear-gradient(135deg, #1a3fa8, #2d6df0);
+  border-radius: 18px;
+  padding: 14px 16px;
+  margin: 0 12px 10px;
+  color: #ffffff;
+}
+
+.dc-entry-card.is-done {
+  background: rgba(255,255,255,0.18);
+  color: #162a4a;
+}
+
+.dc-entry-icon {
+  font-size: 1.5rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.dc-entry-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.dc-entry-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.dc-entry-sub {
+  font-size: 0.8rem;
+  opacity: 0.82;
+  margin-top: 2px;
+}
+
+.dc-entry-streak {
+  font-size: 0.88rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.dc-entry-btn {
+  flex-shrink: 0;
+  background: #ffffff;
+  color: #1a3fa8;
+  border: none;
+  border-radius: 12px;
+  padding: 8px 14px;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* ── Daily challenge modal ───────────────────────────────────────────────── */
+.dc-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9100;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  padding: max(20px, env(safe-area-inset-top, 0px)) 0 max(20px, env(safe-area-inset-bottom, 0px));
+  overflow-y: auto;
+}
+
+.dc-progress {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px 20px 0;
+}
+
+.dc-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #dbe5f4;
+  transition: background 0.2s;
+}
+
+.dc-dot.is-active    { background: #2d6df0; }
+.dc-dot.is-correct   { background: #2eb880; }
+.dc-dot.is-incorrect { background: #f59e0b; }
+
+.dc-close {
+  position: absolute;
+  top: max(16px, env(safe-area-inset-top, 0px));
+  right: 16px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #f0f4fb;
+  border: none;
+  color: #5a7090;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.dc-question-num {
+  text-align: center;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #8aa0bc;
+  margin: 14px 20px 0;
+}
+
+.dc-body {
+  flex: 1;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.dc-question-text {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #162a4a;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.dc-question-label {
+  font-size: 0.85rem;
+  color: #8aa0bc;
+  font-weight: 600;
+  margin: 0;
+}
+
+.dc-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.dc-option {
+  text-align: left;
+  padding: 13px 16px;
+  border: 1.5px solid #dbe5f4;
+  border-radius: 14px;
+  background: #ffffff;
+  color: #162a4a;
+  font: inherit;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.dc-option.is-selected {
+  border-color: #2d6df0;
+  background: #edf3ff;
+  font-weight: 600;
+}
+
+.dc-reorder-answer {
+  min-height: 48px;
+  border: 1.5px dashed #c8d6ec;
+  border-radius: 12px;
+  padding: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  background: rgba(255,255,255,0.9);
+}
+
+.dc-reorder-answer.is-empty {
+  background: rgba(240,245,255,0.6);
+}
+
+.dc-reorder-ph {
+  color: #8aa0bc;
+  font-size: 0.85rem;
+}
+
+.dc-reorder-pool {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.dc-token {
+  padding: 7px 12px;
+  border: 1.5px solid #cedcf2;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #fff 0%, #f3f8ff 100%);
+  color: #1b3c75;
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 3px 8px rgba(29,95,208,0.08);
+}
+
+.dc-token.is-answer {
+  background: linear-gradient(180deg, #edf4ff 0%, #e1edff 100%);
+  border-color: #b7cbf7;
+}
+
+.dc-token.is-ph {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.dc-feedback {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 24px 20px;
+  text-align: center;
+}
+
+.dc-feedback-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.6rem;
+  font-weight: 700;
+}
+
+.dc-feedback.is-correct .dc-feedback-icon {
+  background: rgba(46, 184, 128, 0.15);
+  color: #1f8b61;
+}
+
+.dc-feedback.is-incorrect .dc-feedback-icon {
+  background: rgba(245, 158, 11, 0.15);
+  color: #b56a00;
+}
+
+.dc-feedback-label {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #162a4a;
+}
+
+.dc-feedback-answer {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: #f4f8ff;
+  border-radius: 12px;
+  padding: 10px 14px;
+  width: 100%;
+}
+
+.dc-feedback-answer-lbl {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #8aa0bc;
+}
+
+.dc-feedback-answer-val {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #162a4a;
+}
+
+.dc-feedback-expl {
+  font-size: 0.85rem;
+  color: #5a7090;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.dc-result {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px 20px;
+  text-align: center;
+}
+
+.dc-result-trophy {
+  font-size: 3.5rem;
+  line-height: 1;
+}
+
+.dc-result-score {
+  font-size: 3rem;
+  font-weight: 800;
+  color: #162a4a;
+}
+
+.dc-result-total {
+  font-size: 1.8rem;
+  color: #8aa0bc;
+}
+
+.dc-result-label {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #4a6080;
+}
+
+.dc-result-streak {
+  margin-top: 4px;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1a3fa8;
+  background: #edf3ff;
+  border-radius: 999px;
+  padding: 6px 16px;
+}
+
+.dc-footer {
+  padding: 12px 20px;
+  border-top: 1px solid #edf1f9;
+}
+
+.dc-btn-primary {
+  width: 100%;
+  background: #2d6df0;
+  color: #ffffff;
+  border: none;
+  border-radius: 16px;
+  padding: 15px;
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.dc-btn-primary.is-disabled {
+  opacity: 0.45;
+}
+
 .profile-feedback-card {
   display: flex;
   flex-direction: column;
@@ -11228,7 +11575,8 @@ ion-select.training-pill.active::part(icon) {
   color: #0f57d7;
 }
 
-.journey-plan-bubble.is-speaking .journey-plan-bubble-icon ion-icon {
+.journey-plan-bubble.is-speaking .journey-plan-bubble-icon ion-icon,
+.journey-plan-bubble.is-speaking .free-ride-hero-bubble-icon ion-icon {
   color: #4d7df4;
 }
 
@@ -11817,6 +12165,159 @@ body.app-platform-ios.app-display-zoom-compensation .reference-sublevel-main .re
   margin-top: 16px;
   padding-top: 16px;
   border-top: 1px solid rgba(203, 213, 225, 0.5);
+}
+
+.reference-lesson-audio-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 7px;
+  min-height: 36px;
+  white-space: nowrap;
+}
+
+.reference-lesson-audio-toolbar[hidden] {
+  display: none;
+}
+
+.reference-lesson-audio-progress {
+  min-width: 42px;
+  color: #64748b;
+  font-size: 0.76rem;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.reference-lesson-listen-btn {
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 7px 12px;
+  border: 1px solid #c9dcff;
+  border-radius: 999px;
+  background: #f5f9ff;
+  color: #245ad4;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.reference-lesson-listen-btn ion-icon {
+  font-size: 1.05rem;
+}
+
+.reference-lesson-listen-btn.is-playing {
+  border-color: #7eb0ff;
+  background: #e4efff;
+}
+
+.reference-lesson-listen-btn.is-paused {
+  border-color: #a9c7fb;
+  background: #f0f5ff;
+}
+
+.reference-lesson-stop-btn,
+.reference-lesson-step-btn {
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  padding: 0;
+  border: 1px solid #d6e0ef;
+  border-radius: 50%;
+  background: #fff;
+  color: #52657f;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.reference-lesson-stop-btn ion-icon,
+.reference-lesson-step-btn ion-icon {
+  font-size: 0.92rem;
+}
+
+.reference-lesson-stop-btn:disabled,
+.reference-lesson-step-btn:disabled {
+  opacity: 0.38;
+  cursor: default;
+}
+
+.reference-lesson-step-btn[hidden] {
+  display: none;
+}
+
+.reference-lesson-listen-btn.is-playing ion-icon,
+.reference-lesson-block-audio.is-playing ion-icon {
+  animation: reference-lesson-audio-pulse 0.8s ease-in-out infinite alternate;
+}
+
+.reference-markdown .has-reference-lesson-audio {
+  position: relative;
+  padding-right: 42px;
+}
+
+.reference-markdown .is-reference-lesson-selectable {
+  cursor: pointer;
+  -webkit-tap-highlight-color: rgba(75, 134, 245, 0.08);
+}
+
+.reference-lesson-block-audio {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid rgba(126, 176, 255, 0.55);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.82);
+  color: #4b86f5;
+  transform: translateY(-50%);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.reference-lesson-block-audio ion-icon {
+  font-size: 0.98rem;
+}
+
+.reference-lesson-block-audio.is-playing {
+  border-color: #4b86f5;
+  background: #e5efff;
+}
+
+.reference-lesson-block-audio.is-paused {
+  border-color: #8eb6f7;
+  background: #f0f5ff;
+}
+
+::highlight(reference-lesson-speech) {
+  color: inherit;
+  background: rgba(255, 210, 82, 0.56);
+  text-decoration: underline;
+  text-decoration-color: rgba(219, 151, 16, 0.58);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 2px;
+}
+
+.reference-markdown .is-reference-lesson-speaking {
+  border-radius: 6px;
+  box-shadow: 0 0 0 3px rgba(255, 210, 82, 0.42);
+  background-color: rgba(255, 226, 139, 0.25);
+}
+
+@keyframes reference-lesson-audio-pulse {
+  from { opacity: 0.42; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1.08); }
 }
 
 .reference-markdown {

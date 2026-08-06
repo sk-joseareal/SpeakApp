@@ -32,6 +32,11 @@ import {
   preloadHeroMascotFrames
 } from '../mascot-frames.js';
 import { createSheetController } from '../sheet-controller.js';
+import { isDailyChallengeEnabled, getDailyChallengeState, getDailyChallengeQuestions, openDailyChallengeModal } from '../daily-challenge.js';
+import {
+  REFERENCE_LESSON_AUDIO_CHANGE_EVENT,
+  isReferenceLessonAudioEnabled
+} from '../reference-lesson-audio.js';
 
 const MARKED_CDN_URLS = [
   'https://cdn.jsdelivr.net/npm/marked/lib/marked.esm.js',
@@ -44,6 +49,7 @@ const TTS_LANG_BY_LOCALE = {
 const BROWSER_AUTONARRATION_EXTRA_DELAY_MS = 120;
 const REFERENCE_HERO_AUTONARRATION_PLAYED_KEY = 'appv5:reference-hero-auto-narration-played';
 const REFERENCE_TOOLS_ENABLED_KEY = 'appv5:reference-tools-enabled';
+const REFERENCE_LESSON_SPEECH_HIGHLIGHT = 'reference-lesson-speech';
 const FREE_RIDE_CARD_PADDED_KEY = 'appv5:free-ride-card-padded';
 const FREE_RIDE_HEADER_COLOR_KEY = 'appv5:free-ride-header-color';
 const FREE_RIDE_HEADER_COLOR_VALUES = ['white', 'dark', 'blue'];
@@ -268,6 +274,10 @@ class PageReference extends HTMLElement {
     this.layoutSyncVersion = 0;
     this.referenceScrollRestoreRaf = null;
     this.referenceLessonNavRaf = null;
+    this.referenceLessonAudioControl = null;
+    this.referenceLessonPlayback = null;
+    this.referenceLessonSpeechCatalog = null;
+    this.referenceLessonHighlightBlock = null;
   }
 
   connectedCallback() {
@@ -340,6 +350,11 @@ class PageReference extends HTMLElement {
       this.render();
     };
     window.addEventListener('app:reference-tools-enabled-change', this._referenceToolsHandler);
+    this._referenceLessonAudioHandler = () => {
+      this.stopReferenceLessonAudio();
+      if (this.isConnected && this.lessonView) this.render();
+    };
+    window.addEventListener(REFERENCE_LESSON_AUDIO_CHANGE_EVENT, this._referenceLessonAudioHandler);
     this._cardPaddedHandler = (event) => {
       if (!this.isConnected) return;
       const detail = event && event.detail ? event.detail : {};
@@ -404,6 +419,10 @@ class PageReference extends HTMLElement {
     }
     if (this._referenceToolsHandler) {
       window.removeEventListener('app:reference-tools-enabled-change', this._referenceToolsHandler);
+    }
+    if (this._referenceLessonAudioHandler) {
+      window.removeEventListener(REFERENCE_LESSON_AUDIO_CHANGE_EVENT, this._referenceLessonAudioHandler);
+      this._referenceLessonAudioHandler = null;
     }
     if (this._cardPaddedHandler) {
       window.removeEventListener('app:free-ride-card-padded-change', this._cardPaddedHandler);
@@ -819,7 +838,7 @@ class PageReference extends HTMLElement {
     return blocks.join('');
   }
 
-  async enhanceMarkdownWithMarked(markdown, renderToken) {
+  async enhanceMarkdownWithMarked(markdown, renderToken, locale = 'en') {
     const parseFn = await this.loadMarkedParseFunction();
     if (!parseFn || !this.isConnected) return;
     if (this._markdownRenderToken !== renderToken) return;
@@ -834,9 +853,608 @@ class PageReference extends HTMLElement {
       });
       if (this._markdownRenderToken !== renderToken) return;
       target.innerHTML = this.sanitizeMarkedHtml(rawHtml);
+      this.enhanceReferenceLessonAudio(target, locale);
+      this.refreshReferenceLessonSpeechCatalog(target, locale);
     } catch (err) {
       // fallback already rendered
     }
+  }
+
+  getReferenceLessonSpeechBlock(block, documentLocale = 'en') {
+    if (!(block instanceof Element)) return null;
+    const clone = block.cloneNode(true);
+    clone.querySelectorAll('.reference-lesson-block-audio').forEach((button) => button.remove());
+    let text = String(clone.textContent || '').replace(/\s+/g, ' ').trim();
+    if (!text) return null;
+
+    const normalizedDocumentLocale = this.normalizeLocale(documentLocale) || 'en';
+    const firstStrong = clone.querySelector('strong');
+    const rawStrongText = firstStrong ? String(firstStrong.textContent || '').trim() : '';
+    const structuralLabelMatch = text.match(
+      /^(Example|Translation|Note|Nota|Exception|Avoid|Tip|Person[ao]? [AB]|Persona [AB])\s*:\s*/i
+    );
+    const explicitStrongLabel = /:\s*$/.test(rawStrongText)
+      ? rawStrongText.replace(/[:\s]+$/, '')
+      : '';
+    const rawLabel = structuralLabelMatch ? structuralLabelMatch[1] : explicitStrongLabel;
+    const normalizedLabel = rawLabel.toLocaleLowerCase('en');
+    let locale = normalizedDocumentLocale;
+
+    if (normalizedLabel === 'example' || /^person(?:a)? [ab]$/.test(normalizedLabel)) {
+      locale = 'en';
+    } else if (normalizedLabel === 'translation' || normalizedLabel === 'traducción') {
+      locale = normalizedDocumentLocale;
+    }
+
+    if (structuralLabelMatch) {
+      text = text.slice(structuralLabelMatch[0].length).trim();
+    } else if (explicitStrongLabel) {
+      const escapedLabel = explicitStrongLabel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      text = text.replace(new RegExp(`^${escapedLabel}\\s*:\\s*`, 'i'), '').trim();
+    }
+    return text ? { text, locale, sourceBlock: block } : null;
+  }
+
+  collectReferenceLessonSpeechLines(root, documentLocale = 'en') {
+    if (!(root instanceof Element)) return [];
+    const normalizedDocumentLocale = this.normalizeLocale(documentLocale) || 'en';
+    const selector = normalizedDocumentLocale === 'en'
+      ? 'h1, h2, h3, h4, p, li, td'
+      : 'h1, h2, h3, h4, p, li';
+    return Array.from(root.querySelectorAll(selector))
+      .filter((block) => {
+        if (block.closest('button, [aria-hidden="true"]')) return false;
+        if (block.matches('p') && block.closest('li, td')) return false;
+        if (block.matches('li') && block.querySelector(':scope > p')) return false;
+        return true;
+      })
+      .map((block) => this.getReferenceLessonSpeechBlock(block, normalizedDocumentLocale))
+      .filter(Boolean)
+      .flatMap((speech) => this.splitReferenceLessonSpeech(speech));
+  }
+
+  prepareReferenceLessonSpeechLines(lines, documentLocale = 'en') {
+    return this.fitReferenceLessonSpeechToBubble(lines).map((line) => ({
+      ...line,
+      spokenText:
+        (this.normalizeLocale(line.locale) || this.normalizeLocale(documentLocale)) === 'en' &&
+        String(line.text || '').trim() === 'I'
+          ? 'eye'
+          : String(line.text || '').trim()
+    }));
+  }
+
+  refreshReferenceLessonSpeechCatalog(root, documentLocale = 'en') {
+    if (!(root instanceof Element)) {
+      this.referenceLessonSpeechCatalog = null;
+      return null;
+    }
+    const normalizedLocale = this.normalizeLocale(documentLocale) || 'en';
+    const lines = this.prepareReferenceLessonSpeechLines(
+      this.collectReferenceLessonSpeechLines(root, normalizedLocale),
+      normalizedLocale
+    );
+    lines.forEach((line) => {
+      if (line.sourceBlock instanceof Element) {
+        line.sourceBlock.classList.add('is-reference-lesson-selectable');
+      }
+    });
+    this.referenceLessonSpeechCatalog = { root, locale: normalizedLocale, lines };
+    return this.referenceLessonSpeechCatalog;
+  }
+
+  getReferenceLessonSpeechCatalog(root, documentLocale = 'en') {
+    const catalog = this.referenceLessonSpeechCatalog;
+    if (
+      catalog &&
+      catalog.root === root &&
+      catalog.root?.isConnected &&
+      catalog.lines.every((line) => line.sourceBlock?.isConnected)
+    ) {
+      return catalog;
+    }
+    return this.refreshReferenceLessonSpeechCatalog(root, documentLocale);
+  }
+
+  splitReferenceLessonSpeech(speech) {
+    if (!speech || !speech.text) return [];
+    const text = String(speech.text).replace(/\s+/g, ' ').trim();
+    if (!text) return [];
+
+    const segments = text.match(/[^.!?…]+(?:[.!?…]+|$)/g) || [text];
+    const lines = segments
+      .map((segment) => String(segment || '').trim())
+      .filter(Boolean)
+      .map((segment) => ({ ...speech, text: segment }));
+    return lines.length ? lines : [{ ...speech, text }];
+  }
+
+  fitReferenceLessonSpeechToBubble(lines) {
+    const sourceLines = Array.isArray(lines) ? lines.filter((line) => line && line.text) : [];
+    if (!sourceLines.length) return [];
+    const bubbleEl = this.getHeroBubbleEl();
+    if (!bubbleEl) return sourceLines;
+    const bubbleRect = bubbleEl.getBoundingClientRect();
+    if (bubbleRect.width <= 0 || bubbleRect.height <= 0) return sourceLines;
+
+    const probe = bubbleEl.cloneNode(true);
+    probe.removeAttribute('id');
+    probe.setAttribute('aria-hidden', 'true');
+    probe.classList.remove('is-speaking');
+    probe.style.position = 'fixed';
+    probe.style.left = '-10000px';
+    probe.style.top = '0';
+    probe.style.width = `${bubbleRect.width}px`;
+    probe.style.height = 'auto';
+    probe.style.visibility = 'hidden';
+    probe.style.pointerEvents = 'none';
+    const parent = bubbleEl.parentElement || this;
+    parent.appendChild(probe);
+    const textWrap = probe.querySelector('.journey-plan-bubble-text');
+    if (!textWrap) {
+      probe.remove();
+      return sourceLines;
+    }
+
+    const setProbeText = (text) => {
+      Array.from(textWrap.childNodes).forEach((node) => {
+        if (
+          node instanceof Element &&
+          node.classList.contains('free-ride-hero-bubble-icon')
+        ) return;
+        node.remove();
+      });
+      textWrap.appendChild(document.createTextNode(text));
+    };
+    const fits = (text) => {
+      setProbeText(text);
+      return probe.getBoundingClientRect().height <= bubbleRect.height + 1;
+    };
+
+    const getNaturalBreaks = (text) => {
+      const breaks = new Set();
+      const punctuation = /[,;:!?…]|[—–]|[.](?=\s|$)/g;
+      let match = null;
+      while ((match = punctuation.exec(text))) {
+        breaks.add(match.index + match[0].length);
+      }
+      const parentheses = /[()]/g;
+      while ((match = parentheses.exec(text))) {
+        breaks.add(match[0] === '(' ? match.index : match.index + 1);
+      }
+      return Array.from(breaks)
+        .filter((index) => index > 0 && index < text.length)
+        .sort((a, b) => a - b);
+    };
+
+    const findWordBreak = (text) => {
+      const words = text.split(/\s+/).filter(Boolean);
+      let chunk = '';
+      for (const word of words) {
+        const candidate = chunk ? `${chunk} ${word}` : word;
+        if (chunk && !fits(candidate)) break;
+        chunk = candidate;
+      }
+      return chunk || words[0] || text;
+    };
+
+    const fitted = [];
+    sourceLines.forEach((line) => {
+      let remaining = String(line.text || '').trim();
+      while (remaining) {
+        if (fits(remaining)) {
+          fitted.push({ ...line, text: remaining });
+          break;
+        }
+
+        let chunk = '';
+        getNaturalBreaks(remaining).forEach((breakIndex) => {
+          const candidate = remaining.slice(0, breakIndex).trim();
+          if (candidate && fits(candidate)) chunk = candidate;
+        });
+        if (!chunk) chunk = findWordBreak(remaining);
+        fitted.push({ ...line, text: chunk });
+        remaining = remaining.slice(chunk.length).trim();
+      }
+    });
+    probe.remove();
+    return fitted.length ? fitted : sourceLines;
+  }
+
+  enhanceReferenceLessonAudio(root, documentLocale = 'en') {
+    if (!isReferenceLessonAudioEnabled() || !(root instanceof Element)) return;
+    const normalizedDocumentLocale = this.normalizeLocale(documentLocale) || 'en';
+    const selector = normalizedDocumentLocale === 'en' ? 'blockquote > p, td' : 'blockquote > p';
+    const ariaLabel = normalizedDocumentLocale === 'es' ? 'Escuchar este bloque' : 'Listen to this block';
+
+    root.querySelectorAll(selector).forEach((block) => {
+      if (block.querySelector(':scope > .reference-lesson-block-audio')) return;
+      const speech = this.getReferenceLessonSpeechBlock(block, normalizedDocumentLocale);
+      if (!speech || !speech.text) return;
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'reference-lesson-block-audio';
+      button.setAttribute('aria-label', ariaLabel);
+      button.setAttribute('title', ariaLabel);
+      button.dataset.referenceLessonBlockAudio = '1';
+      const icon = document.createElement('ion-icon');
+      icon.setAttribute('name', 'volume-high-outline');
+      icon.setAttribute('aria-hidden', 'true');
+      button.appendChild(icon);
+      block.classList.add('has-reference-lesson-audio');
+      block.appendChild(button);
+    });
+  }
+
+  clearReferenceLessonSpeechHighlight() {
+    if (typeof CSS !== 'undefined' && CSS.highlights) {
+      CSS.highlights.delete(REFERENCE_LESSON_SPEECH_HIGHLIGHT);
+    }
+    if (this.referenceLessonHighlightBlock instanceof Element) {
+      this.referenceLessonHighlightBlock.classList.remove('is-reference-lesson-speaking');
+    }
+    this.referenceLessonHighlightBlock = null;
+  }
+
+  findReferenceLessonSpeechRange(block, targetText) {
+    if (!(block instanceof Element)) return null;
+    const target = String(targetText || '').replace(/\s+/g, ' ').trim();
+    if (!target) return null;
+
+    const walker = document.createTreeWalker(block, NodeFilter.SHOW_TEXT, {
+      acceptNode: (node) => {
+        const parent = node.parentElement;
+        if (!parent || parent.closest('.reference-lesson-block-audio, button, [aria-hidden="true"]')) {
+          return NodeFilter.FILTER_REJECT;
+        }
+        return NodeFilter.FILTER_ACCEPT;
+      }
+    });
+    const positions = [];
+    let normalized = '';
+    let pendingSpace = false;
+    let node = walker.nextNode();
+    while (node) {
+      const value = String(node.nodeValue || '');
+      for (let offset = 0; offset < value.length; offset += 1) {
+        const character = value[offset];
+        if (/\s/.test(character)) {
+          pendingSpace = normalized.length > 0;
+          continue;
+        }
+        if (pendingSpace) {
+          normalized += ' ';
+          positions.push({ node, start: offset, end: offset });
+          pendingSpace = false;
+        }
+        normalized += character;
+        positions.push({ node, start: offset, end: offset + 1 });
+      }
+      node = walker.nextNode();
+    }
+
+    const startIndex = normalized.indexOf(target);
+    const endIndex = startIndex + target.length - 1;
+    if (startIndex < 0 || !positions[startIndex] || !positions[endIndex]) return null;
+    const range = document.createRange();
+    range.setStart(positions[startIndex].node, positions[startIndex].start);
+    range.setEnd(positions[endIndex].node, positions[endIndex].end);
+    return range;
+  }
+
+  scrollReferenceLessonHighlightIntoView(block) {
+    if (!(block instanceof Element)) return;
+    const scrollEl = this.querySelector('.reference-sublevel-main');
+    if (!(scrollEl instanceof Element)) return;
+    const blockRect = block.getBoundingClientRect();
+    const scrollRect = scrollEl.getBoundingClientRect();
+    const stickyRect = this.querySelector('.reference-lesson-sticky')?.getBoundingClientRect();
+    const visibleTop = Math.max(scrollRect.top, stickyRect?.bottom || scrollRect.top) + 8;
+    const visibleBottom = scrollRect.bottom - 84;
+    if (blockRect.top >= visibleTop && blockRect.bottom <= visibleBottom) return;
+
+    const visibleHeight = Math.max(0, visibleBottom - visibleTop);
+    const centeredTop = visibleTop + Math.max(0, (visibleHeight - blockRect.height) / 2);
+    scrollEl.scrollTo({
+      top: Math.max(0, scrollEl.scrollTop + blockRect.top - centeredTop),
+      behavior: 'smooth'
+    });
+  }
+
+  highlightReferenceLessonSpeechLine(line) {
+    this.clearReferenceLessonSpeechHighlight();
+    const block = line && line.sourceBlock;
+    if (!(block instanceof Element) || !block.isConnected) return;
+    const range = this.findReferenceLessonSpeechRange(block, line.text);
+    const supportsCssHighlights =
+      typeof CSS !== 'undefined' &&
+      CSS.highlights &&
+      typeof Highlight === 'function';
+    if (range && supportsCssHighlights) {
+      CSS.highlights.set(REFERENCE_LESSON_SPEECH_HIGHLIGHT, new Highlight(range));
+    } else {
+      block.classList.add('is-reference-lesson-speaking');
+    }
+    this.referenceLessonHighlightBlock = block;
+    this.scrollReferenceLessonHighlightIntoView(block);
+  }
+
+  getReferenceLessonSpeechLineIndexAtPoint(lines, target, clientX, clientY) {
+    if (!(target instanceof Element) || !Array.isArray(lines) || !lines.length) return -1;
+    const candidates = lines
+      .map((line, index) => ({ line, index }))
+      .filter(({ line }) => {
+        const block = line.sourceBlock;
+        return block instanceof Element && (block === target || block.contains(target));
+      });
+    if (!candidates.length) return -1;
+    if (candidates.length === 1) return candidates[0].index;
+
+    let nearestIndex = candidates[0].index;
+    let nearestDistance = Number.POSITIVE_INFINITY;
+    candidates.forEach(({ line, index }) => {
+      const range = this.findReferenceLessonSpeechRange(line.sourceBlock, line.text);
+      if (!range) return;
+      Array.from(range.getClientRects()).forEach((rect) => {
+        const dx = clientX < rect.left ? rect.left - clientX : clientX > rect.right ? clientX - rect.right : 0;
+        const dy = clientY < rect.top ? rect.top - clientY : clientY > rect.bottom ? clientY - rect.bottom : 0;
+        const distance = dx * dx + dy * dy;
+        if (distance < nearestDistance) {
+          nearestDistance = distance;
+          nearestIndex = index;
+        }
+      });
+    });
+    return nearestIndex;
+  }
+
+  getReferenceLessonPlaybackCopy(locale = getActiveLocale() || 'en') {
+    const isEs = this.normalizeLocale(locale) === 'es';
+    return isEs
+      ? { play: 'Escuchar lección', pause: 'Pausar', resume: 'Continuar', stop: 'Detener' }
+      : { play: 'Listen to lesson', pause: 'Pause', resume: 'Resume', stop: 'Stop' };
+  }
+
+  updateReferenceLessonPlaybackUi() {
+    const playback = this.referenceLessonPlayback;
+    const status = playback ? playback.status : 'idle';
+    const copy = this.getReferenceLessonPlaybackCopy(playback?.documentLocale);
+    const playButton = this.querySelector('#reference-lesson-listen-btn');
+    const stopButton = this.querySelector('#reference-lesson-stop-btn');
+    const previousButton = this.querySelector('#reference-lesson-previous-fragment-btn');
+    const nextButton = this.querySelector('#reference-lesson-next-fragment-btn');
+    const progress = this.querySelector('#reference-lesson-audio-progress');
+
+    this.querySelectorAll('.reference-lesson-block-audio').forEach((button) => {
+      const isActive = playback && playback.control === button;
+      button.classList.toggle('is-playing', Boolean(isActive && status === 'playing'));
+      button.classList.toggle('is-paused', Boolean(isActive && status === 'paused'));
+      button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+      const icon = button.querySelector('ion-icon');
+      if (icon) {
+        icon.setAttribute(
+          'name',
+          isActive ? (status === 'playing' ? 'pause-outline' : 'play-outline') : 'volume-high-outline'
+        );
+      }
+    });
+
+    if (playButton) {
+      const label = status === 'playing' ? copy.pause : status === 'paused' ? copy.resume : copy.play;
+      playButton.classList.toggle('is-playing', status === 'playing');
+      playButton.classList.toggle('is-paused', status === 'paused');
+      playButton.setAttribute('aria-pressed', status === 'playing' ? 'true' : 'false');
+      playButton.setAttribute('aria-label', label);
+      const icon = playButton.querySelector('ion-icon');
+      if (icon) {
+        icon.setAttribute(
+          'name',
+          status === 'playing' ? 'pause-outline' : status === 'paused' ? 'play-outline' : 'volume-high-outline'
+        );
+      }
+      const labelEl = playButton.querySelector('[data-reference-lesson-playback-label]');
+      if (labelEl) labelEl.textContent = label;
+    }
+    if (stopButton) {
+      stopButton.disabled = !playback;
+      stopButton.setAttribute('aria-label', copy.stop);
+      stopButton.setAttribute('title', copy.stop);
+    }
+    const showStepControls = Boolean(playback && status === 'paused');
+    if (previousButton) {
+      previousButton.hidden = !showStepControls;
+      previousButton.disabled = !playback || playback.currentIndex <= 0;
+    }
+    if (nextButton) {
+      nextButton.hidden = !showStepControls;
+      nextButton.disabled = !playback || playback.currentIndex >= playback.lines.length - 1;
+    }
+    if (progress) {
+      const total = playback ? playback.lines.length : 0;
+      const current = total ? Math.min(total, playback.currentIndex + 1) : 0;
+      progress.textContent = total ? `${current} / ${total}` : '';
+      progress.hidden = !total;
+    }
+  }
+
+  pauseReferenceLessonAudio() {
+    const playback = this.referenceLessonPlayback;
+    if (!playback || playback.status !== 'playing') return;
+    playback.status = 'paused';
+    this.narrationToken += 1;
+    this.stopHeroNarrationPlayback().catch(() => {});
+    this.stopHeroMascotTalk({ settle: true });
+    this.updateReferenceLessonPlaybackUi();
+  }
+
+  resumeReferenceLessonAudio() {
+    const playback = this.referenceLessonPlayback;
+    if (!playback || playback.status !== 'paused') return Promise.resolve(false);
+    playback.status = 'playing';
+    this.updateReferenceLessonPlaybackUi();
+    return this.runReferenceLessonPlayback(playback);
+  }
+
+  async playReferenceLessonSelectedFragment(playback, index) {
+    if (!playback || this.referenceLessonPlayback !== playback || !playback.lines.length) return false;
+    const targetIndex = Math.max(0, Math.min(Number(index) || 0, playback.lines.length - 1));
+    const line = playback.lines[targetIndex];
+    const runId = ++playback.runId;
+    playback.status = 'paused';
+    playback.currentIndex = targetIndex;
+    playback.nextIndex = targetIndex;
+    this.highlightReferenceLessonSpeechLine(line);
+    this.updateReferenceLessonPlaybackUi();
+    const started = await this.speakHeroNarration([line], playback.documentLocale, {
+      allowWebFallback: true,
+      showNarrationText: true,
+      preserveBubbleHeight: true,
+      onLineStart: () => {
+        if (this.referenceLessonPlayback === playback && playback.runId === runId) {
+          this.highlightReferenceLessonSpeechLine(line);
+        }
+      }
+    });
+    return this.referenceLessonPlayback === playback && playback.runId === runId ? started : false;
+  }
+
+  stepReferenceLessonAudio(direction) {
+    const playback = this.referenceLessonPlayback;
+    if (!playback || playback.status !== 'paused') return Promise.resolve(false);
+    const nextIndex = Math.max(
+      0,
+      Math.min(playback.currentIndex + (direction < 0 ? -1 : 1), playback.lines.length - 1)
+    );
+    if (nextIndex === playback.currentIndex) return Promise.resolve(false);
+    return this.playReferenceLessonSelectedFragment(playback, nextIndex);
+  }
+
+  selectReferenceLessonSpeechLine(lines, index, documentLocale = 'en') {
+    if (!Array.isArray(lines) || !lines.length || index < 0 || index >= lines.length) return;
+    this.stopReferenceLessonAudio();
+    const control = this.querySelector('#reference-lesson-listen-btn');
+    const playback = {
+      control,
+      lines,
+      documentLocale,
+      currentIndex: index,
+      nextIndex: index,
+      runId: 0,
+      status: 'paused'
+    };
+    this.referenceLessonPlayback = playback;
+    this.referenceLessonAudioControl = control;
+    this.highlightReferenceLessonSpeechLine(lines[index]);
+    this.updateReferenceLessonPlaybackUi();
+  }
+
+  stopReferenceLessonAudio() {
+    this.stopHeroNarration();
+  }
+
+  async runReferenceLessonPlayback(playback) {
+    if (!playback || this.referenceLessonPlayback !== playback || playback.status !== 'playing') {
+      return false;
+    }
+    const startIndex = Math.max(0, Math.min(playback.nextIndex, playback.lines.length - 1));
+    const runId = ++playback.runId;
+    const started = await this.speakHeroNarration(
+      playback.lines.slice(startIndex),
+      playback.documentLocale,
+      {
+        allowWebFallback: true,
+        showNarrationText: true,
+        preserveBubbleHeight: true,
+        onLineStart: (line, relativeIndex) => {
+          if (this.referenceLessonPlayback !== playback || playback.runId !== runId) return;
+          playback.currentIndex = startIndex + relativeIndex;
+          this.highlightReferenceLessonSpeechLine(line);
+          this.updateReferenceLessonPlaybackUi();
+        },
+        onLineComplete: (_line, relativeIndex) => {
+          if (this.referenceLessonPlayback !== playback || playback.runId !== runId) return;
+          playback.nextIndex = startIndex + relativeIndex + 1;
+        }
+      }
+    );
+    if (
+      this.referenceLessonPlayback === playback &&
+      playback.runId === runId &&
+      playback.status === 'playing' &&
+      playback.nextIndex >= playback.lines.length
+    ) {
+      this.stopReferenceLessonAudio();
+    }
+    return started;
+  }
+
+  async playReferenceLessonAudio(control, lines, documentLocale = 'en') {
+    if (!(control instanceof Element)) return false;
+    const activePlayback = this.referenceLessonPlayback;
+    const isToolbarControl = control.id === 'reference-lesson-listen-btn';
+    if (activePlayback && (activePlayback.control === control || isToolbarControl)) {
+      if (activePlayback.status === 'playing') {
+        this.pauseReferenceLessonAudio();
+        return false;
+      }
+      return this.resumeReferenceLessonAudio();
+    }
+
+    const speechLines = this.prepareReferenceLessonSpeechLines(lines, documentLocale);
+    if (!speechLines.length) return false;
+
+    this.stopReferenceLessonAudio();
+    const playback = {
+      control,
+      lines: speechLines,
+      documentLocale,
+      currentIndex: 0,
+      nextIndex: 0,
+      runId: 0,
+      status: 'playing'
+    };
+    this.referenceLessonPlayback = playback;
+    this.referenceLessonAudioControl = control;
+    this.updateReferenceLessonPlaybackUi();
+    return this.runReferenceLessonPlayback(playback);
+  }
+
+  bindReferenceLessonAudio(documentLocale = 'en') {
+    if (!isReferenceLessonAudioEnabled()) return;
+    const panel = this.querySelector('#reference-content-panel');
+    const root = this.querySelector('#reference-markdown-content');
+    if (!panel || !root || panel.dataset.referenceLessonAudioBound === '1') return;
+    panel.dataset.referenceLessonAudioBound = '1';
+    this.refreshReferenceLessonSpeechCatalog(root, documentLocale);
+    panel.addEventListener('click', (event) => {
+      const target = event.target instanceof Element ? event.target : null;
+      const control = target?.closest('[data-reference-lesson-block-audio]');
+      if (control) {
+        event.preventDefault();
+        event.stopPropagation();
+        const block = control.parentElement;
+        const speech = this.getReferenceLessonSpeechBlock(block, documentLocale);
+        if (speech) {
+          this.playReferenceLessonAudio(
+            control,
+            this.splitReferenceLessonSpeech(speech),
+            documentLocale
+          ).catch(() => {});
+        }
+        return;
+      }
+
+      if (!target || target.closest('a, button, input, textarea, select, [contenteditable="true"]')) return;
+      const catalog = this.getReferenceLessonSpeechCatalog(root, documentLocale);
+      const index = this.getReferenceLessonSpeechLineIndexAtPoint(
+        catalog?.lines || [],
+        target,
+        Number(event.clientX) || 0,
+        Number(event.clientY) || 0
+      );
+      if (index < 0) return;
+      this.selectReferenceLessonSpeechLine(catalog.lines, index, catalog.locale);
+    });
   }
 
   async scrollContentIntoView(options = {}) {
@@ -2872,8 +3490,17 @@ class PageReference extends HTMLElement {
   }
 
   stopHeroNarration() {
+    this.clearReferenceLessonSpeechHighlight();
     this.clearNarrationTimer();
     this.narrationToken += 1;
+    const lessonControl = this.referenceLessonAudioControl || this.referenceLessonPlayback?.control;
+    this.referenceLessonPlayback = null;
+    this.referenceLessonAudioControl = null;
+    if (lessonControl instanceof Element) {
+      lessonControl.classList.remove('is-playing', 'is-paused');
+      lessonControl.setAttribute('aria-pressed', 'false');
+    }
+    this.updateReferenceLessonPlaybackUi();
     this.stopHeroNarrationPlayback().catch(() => {});
   }
 
@@ -3119,10 +3746,11 @@ class PageReference extends HTMLElement {
       : this.extractNarrationLines(linesOrText);
     if (!lines.length) return false;
     const normalizedLocale = this.normalizeLocale(locale) || 'en';
-    const lang = TTS_LANG_BY_LOCALE[normalizedLocale] || 'en-US';
     const token = ++this.narrationToken;
-    const bubbleEl = this.getHeroBubbleEl();
+    const bubbleEl = options && options.updateBubble === false ? null : this.getHeroBubbleEl();
     const allowWebFallback = !options || options.allowWebFallback !== false;
+    const showNarrationText = Boolean(options && options.showNarrationText);
+    const preserveBubbleHeight = Boolean(options && options.preserveBubbleHeight);
     const hasMultipleLines = lines.length > 1;
     const restLine = lines[0] || null;
     const originalBubbleHtml = bubbleEl ? bubbleEl.innerHTML : '';
@@ -3133,6 +3761,20 @@ class PageReference extends HTMLElement {
 
     const applyLine = (line) => {
       if (!bubbleEl || !line) return;
+      if (showNarrationText) {
+        const textWrap = bubbleEl.querySelector('.journey-plan-bubble-text');
+        if (textWrap) {
+          Array.from(textWrap.childNodes).forEach((node) => {
+            if (
+              node instanceof Element &&
+              node.classList.contains('free-ride-hero-bubble-icon')
+            ) return;
+            node.remove();
+          });
+          textWrap.appendChild(document.createTextNode(line.text || ''));
+          return;
+        }
+      }
       const lineHtml = typeof line.html === 'string' ? line.html.trim() : '';
       if (lineHtml) {
         bubbleEl.innerHTML = lineHtml;
@@ -3176,13 +3818,13 @@ class PageReference extends HTMLElement {
     };
 
     if (bubbleEl) {
-      if (hasMultipleLines && restLine) applyLine(restLine);
-      if (hasMultipleLines) {
+      if ((hasMultipleLines || showNarrationText) && restLine) applyLine(restLine);
+      if (hasMultipleLines && !preserveBubbleHeight) {
         const maxHeight = measureMaxLineHeight();
         if (maxHeight > 0) {
           bubbleEl.style.minHeight = `${maxHeight}px`;
         }
-      } else {
+      } else if (!hasMultipleLines) {
         bubbleEl.style.minHeight = originalBubbleMinHeight;
       }
     }
@@ -3207,20 +3849,36 @@ class PageReference extends HTMLElement {
       for (let index = 0; index < lines.length; index += 1) {
         if (token !== this.narrationToken) return startedAny;
         const line = lines[index];
-        const lineText = String(line.text || '').trim();
+        const lineText = String(line.spokenText || line.text || '').trim();
         if (!lineText) continue;
-        if (hasMultipleLines) {
+        const lineLocale = this.normalizeLocale(line.locale) || normalizedLocale;
+        const lineLang = TTS_LANG_BY_LOCALE[lineLocale] || 'en-US';
+        if (hasMultipleLines || showNarrationText) {
           applyLine(line);
         }
+        if (typeof options.onLineStart === 'function') {
+          try {
+            options.onLineStart(line, index);
+          } catch (_err) {
+            // Highlighting is presentation-only and must never interrupt narration.
+          }
+        }
 
-        let started = await this.playHeroNarrationAligned(lineText, lang, token);
+        let started = await this.playHeroNarrationAligned(lineText, lineLang, token);
         if (!started && token === this.narrationToken) {
-          started = await this.speakHeroWithNativePlugin(lineText, lang, token);
+          started = await this.speakHeroWithNativePlugin(lineText, lineLang, token);
         }
         if (!started && allowWebFallback && token === this.narrationToken) {
-          started = await this.speakHeroWithWebTts(lineText, lang, token);
+          started = await this.speakHeroWithWebTts(lineText, lineLang, token);
         }
         startedAny = startedAny || started;
+        if (token === this.narrationToken && typeof options.onLineComplete === 'function') {
+          try {
+            options.onLineComplete(line, index, started);
+          } catch (_err) {
+            // Playback progress is presentation-only and must never interrupt narration.
+          }
+        }
 
         if (index < lines.length - 1 && token === this.narrationToken) {
           await waitMs(130);
@@ -3370,6 +4028,7 @@ class PageReference extends HTMLElement {
   async switchReferenceLessonTab(nextTab, uiLocale) {
     const currentTab = this.getActiveReferenceLessonTab();
     if (nextTab === currentTab) return;
+    this.stopReferenceLessonAudio();
     const scrollState = this.getReferenceLessonTabScrollState();
     scrollState[currentTab] = await this.getReferenceLessonScrollTop();
     this.referenceLessonTab = nextTab;
@@ -3392,9 +4051,11 @@ class PageReference extends HTMLElement {
     });
     const contentPanel = this.querySelector('#reference-content-panel');
     const testsPanel = this.querySelector('#reference-tests-panel');
+    const audioToolbar = this.querySelector('#reference-lesson-audio-toolbar');
     const isTest = this.isTestTab(tab);
     if (contentPanel) contentPanel.hidden = isTest || tab !== 'content';
     if (testsPanel) testsPanel.hidden = !isTest;
+    if (audioToolbar) audioToolbar.hidden = tab !== 'content';
     if (isTest) {
       this.renderReferenceTestsSection(uiLocale || getActiveLocale() || 'en');
     }
@@ -4944,6 +5605,7 @@ class PageReference extends HTMLElement {
       this.captureReferenceCurrentDomScroll();
     }
     this.stopHeroNarration();
+    this.referenceLessonSpeechCatalog = null;
     this.disconnectFloatingHintsObserver();
     this.clearReferenceLessonCompletionTimer();
     const baseLocale = this.getBaseLocale();
@@ -5708,6 +6370,11 @@ class PageReference extends HTMLElement {
     };
     const lessonTabItems = buildLessonTabItems();
     const isTestTab = this.isTestTab(activeLessonTab);
+    const lessonAudioEnabled = isReferenceLessonAudioEnabled();
+    const lessonAudioLabel = uiLocale === 'es' ? 'Escuchar lección' : 'Listen to lesson';
+    const lessonAudioStopLabel = uiLocale === 'es' ? 'Detener' : 'Stop';
+    const lessonAudioPreviousLabel = uiLocale === 'es' ? 'Fragmento anterior' : 'Previous fragment';
+    const lessonAudioNextLabel = uiLocale === 'es' ? 'Fragmento siguiente' : 'Next fragment';
 
     if (this.lessonView) {
       const lessonDisplayTitle = this.getText(selectedLesson, 'display', uiLocale) || `Lesson ${selectedLessonCode}`;
@@ -5744,6 +6411,22 @@ class PageReference extends HTMLElement {
                       >${this.escapeHtml(item.label)}</button>
                     `).join('')}
                   </div>
+                  ${lessonAudioEnabled ? `<div class="reference-lesson-audio-toolbar" id="reference-lesson-audio-toolbar" ${activeLessonTab === 'content' ? '' : 'hidden'}>
+                    <span class="reference-lesson-audio-progress" id="reference-lesson-audio-progress" aria-live="polite" hidden></span>
+                    <button class="reference-lesson-step-btn" type="button" id="reference-lesson-previous-fragment-btn" aria-label="${this.escapeHtml(lessonAudioPreviousLabel)}" title="${this.escapeHtml(lessonAudioPreviousLabel)}" hidden disabled>
+                      <ion-icon name="chevron-back" aria-hidden="true"></ion-icon>
+                    </button>
+                    <button class="reference-lesson-stop-btn" type="button" id="reference-lesson-stop-btn" aria-label="${this.escapeHtml(lessonAudioStopLabel)}" title="${this.escapeHtml(lessonAudioStopLabel)}" disabled>
+                      <ion-icon name="stop" aria-hidden="true"></ion-icon>
+                    </button>
+                    <button class="reference-lesson-listen-btn" type="button" id="reference-lesson-listen-btn" aria-pressed="false">
+                      <ion-icon name="volume-high-outline" aria-hidden="true"></ion-icon>
+                      <span data-reference-lesson-playback-label>${this.escapeHtml(lessonAudioLabel)}</span>
+                    </button>
+                    <button class="reference-lesson-step-btn" type="button" id="reference-lesson-next-fragment-btn" aria-label="${this.escapeHtml(lessonAudioNextLabel)}" title="${this.escapeHtml(lessonAudioNextLabel)}" hidden disabled>
+                      <ion-icon name="chevron-forward" aria-hidden="true"></ion-icon>
+                    </button>
+                  </div>` : ''}
                 </div>
 
                 <div class="reference-lesson-stage" id="reference-lesson-stage">
@@ -5830,6 +6513,23 @@ class PageReference extends HTMLElement {
       const mainContentHtml = toolsEnabled && activeMainTab === 'tools'
         ? toolsListHtml
         : `<div class="journey-accordion reference-accordion">${accordionMarkup}</div>`;
+      const isEs = uiLocale === 'es';
+      const dcEnabled = isDailyChallengeEnabled();
+      const dcState   = dcEnabled ? getDailyChallengeState() : null;
+      const dcCardHtml = dcEnabled ? `
+        <div class="dc-entry-card${dcState?.completedToday ? ' is-done' : ''}" id="dc-entry-card">
+          <div class="dc-entry-icon">${dcState?.completedToday ? '✓' : '⚡'}</div>
+          <div class="dc-entry-body">
+            <div class="dc-entry-title">${isEs ? 'Reto del día' : 'Daily challenge'}</div>
+            <div class="dc-entry-sub">${dcState?.completedToday
+              ? (isEs ? 'Completado hoy' : 'Completed today')
+              : (isEs ? '5 preguntas rápidas' : '5 quick questions')}</div>
+          </div>
+          ${dcState?.streak > 1 ? `<div class="dc-entry-streak">🔥 ${dcState.streak}</div>` : ''}
+          ${!dcState?.completedToday
+            ? `<button class="dc-entry-btn" type="button" id="dc-open-btn">${isEs ? 'Empezar' : 'Start'}</button>`
+            : ''}
+        </div>` : '';
       this.innerHTML = `
         ${this.renderHeaderHtml()}
         <ion-content fullscreen class="home-journey free-ride-content secret-content">
@@ -5850,6 +6550,7 @@ class PageReference extends HTMLElement {
                 <span class="free-ride-card-handle-pill journey-sheet-handle-pill" aria-hidden="true"></span>
               </button>
               <div class="free-ride-card-main journey-sheet-main">
+                ${dcCardHtml}
                 ${segmentedControlHtml}
                 ${mainContentHtml}
               </div>
@@ -5873,6 +6574,20 @@ class PageReference extends HTMLElement {
       this.updateHeaderRewards();
     }
 
+    // Daily challenge
+    this.querySelector('#dc-open-btn')?.addEventListener('click', async () => {
+      try {
+        const questions = await getDailyChallengeQuestions();
+        openDailyChallengeModal({
+          questions,
+          locale: uiLocale,
+          onClose: () => this.render()
+        });
+      } catch (err) {
+        console.error('[daily-challenge] error loading questions', err);
+      }
+    });
+
     if (this.lessonView) {
       // ── Lesson view listeners ──
       this.currentHeroMessage = copy.subtitle;
@@ -5887,7 +6602,10 @@ class PageReference extends HTMLElement {
       });
 
       if (lessonContent) {
-        this.enhanceMarkdownWithMarked(lessonContent, markdownRenderToken);
+        const markdownRoot = this.querySelector('#reference-markdown-content');
+        this.enhanceReferenceLessonAudio(markdownRoot, uiLocale);
+        this.bindReferenceLessonAudio(uiLocale);
+        this.enhanceMarkdownWithMarked(lessonContent, markdownRenderToken, uiLocale);
       }
       if (isTestTab) {
         this.renderReferenceTestsSection(uiLocale);
@@ -5914,6 +6632,30 @@ class PageReference extends HTMLElement {
         event.preventDefault();
         event.stopPropagation();
         if (nextLessonRef) openLesson(nextLessonRef);
+      });
+
+      this.querySelector('#reference-lesson-listen-btn')?.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        const control = event.currentTarget;
+        const markdownRoot = this.querySelector('#reference-markdown-content');
+        const lines = this.collectReferenceLessonSpeechLines(markdownRoot, uiLocale);
+        this.playReferenceLessonAudio(control, lines, uiLocale).catch(() => {});
+      });
+      this.querySelector('#reference-lesson-stop-btn')?.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        this.stopReferenceLessonAudio();
+      });
+      this.querySelector('#reference-lesson-previous-fragment-btn')?.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        this.stepReferenceLessonAudio(-1).catch(() => {});
+      });
+      this.querySelector('#reference-lesson-next-fragment-btn')?.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        this.stepReferenceLessonAudio(1).catch(() => {});
       });
 
       this.querySelectorAll('[data-reference-lesson-tab]').forEach((button) => {

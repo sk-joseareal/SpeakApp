@@ -14,7 +14,7 @@ window.r34lp0w3r.__uiSfxActiveSources = window.r34lp0w3r.__uiSfxActiveSources ||
 const UI_SFX_SOURCES = {
   green: 'assets/sounds/green.mp3',
   yellow: 'assets/sounds/yellow.mp3',
-  red: 'assets/sounds/red.mp3',
+
   notification: 'assets/sounds/notification.mp3'
 };
 

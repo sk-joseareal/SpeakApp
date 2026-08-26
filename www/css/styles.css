@@ -12309,6 +12309,15 @@ body.app-platform-ios.app-display-zoom-compensation .reference-sublevel-main .re
   text-underline-offset: 2px;
 }
 
+.reference-markdown .reference-lesson-speech-mark {
+  color: inherit;
+  background: rgba(255, 210, 82, 0.56);
+  text-decoration: underline;
+  text-decoration-color: rgba(219, 151, 16, 0.58);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 2px;
+}
+
 .reference-markdown .is-reference-lesson-speaking {
   border-radius: 6px;
   box-shadow: 0 0 0 3px rgba(255, 210, 82, 0.42);

@@ -32,7 +32,13 @@ import {
   preloadHeroMascotFrames
 } from '../mascot-frames.js';
 import { createSheetController } from '../sheet-controller.js';
-import { isDailyChallengeEnabled, getDailyChallengeState, getDailyChallengeQuestions, openDailyChallengeModal } from '../daily-challenge.js';
+import {
+  DAILY_CHALLENGE_ENABLED_CHANGE_EVENT,
+  isDailyChallengeEnabled,
+  getDailyChallengeState,
+  getDailyChallengeQuestions,
+  openDailyChallengeModal
+} from '../daily-challenge.js';
 import {
   REFERENCE_LESSON_AUDIO_CHANGE_EVENT,
   isReferenceLessonAudioEnabled
@@ -278,6 +284,8 @@ class PageReference extends HTMLElement {
     this.referenceLessonPlayback = null;
     this.referenceLessonSpeechCatalog = null;
     this.referenceLessonHighlightBlock = null;
+    this.referenceLessonHighlightMark = null;
+    this.activeNarrationBubbleState = null;
   }
 
   connectedCallback() {
@@ -350,6 +358,11 @@ class PageReference extends HTMLElement {
       this.render();
     };
     window.addEventListener('app:reference-tools-enabled-change', this._referenceToolsHandler);
+    this._dailyChallengeEnabledHandler = () => {
+      if (!this.isConnected || this.lessonView || this.toolView) return;
+      this.render();
+    };
+    window.addEventListener(DAILY_CHALLENGE_ENABLED_CHANGE_EVENT, this._dailyChallengeEnabledHandler);
     this._referenceLessonAudioHandler = () => {
       this.stopReferenceLessonAudio();
       if (this.isConnected && this.lessonView) this.render();
@@ -419,6 +432,10 @@ class PageReference extends HTMLElement {
     }
     if (this._referenceToolsHandler) {
       window.removeEventListener('app:reference-tools-enabled-change', this._referenceToolsHandler);
+    }
+    if (this._dailyChallengeEnabledHandler) {
+      window.removeEventListener(DAILY_CHALLENGE_ENABLED_CHANGE_EVENT, this._dailyChallengeEnabledHandler);
+      this._dailyChallengeEnabledHandler = null;
     }
     if (this._referenceLessonAudioHandler) {
       window.removeEventListener(REFERENCE_LESSON_AUDIO_CHANGE_EVENT, this._referenceLessonAudioHandler);
@@ -1090,6 +1107,16 @@ class PageReference extends HTMLElement {
     if (typeof CSS !== 'undefined' && CSS.highlights) {
       CSS.highlights.delete(REFERENCE_LESSON_SPEECH_HIGHLIGHT);
     }
+    if (this.referenceLessonHighlightMark instanceof Element) {
+      const mark = this.referenceLessonHighlightMark;
+      const parent = mark.parentNode;
+      if (parent) {
+        while (mark.firstChild) parent.insertBefore(mark.firstChild, mark);
+        mark.remove();
+        parent.normalize();
+      }
+    }
+    this.referenceLessonHighlightMark = null;
     if (this.referenceLessonHighlightBlock instanceof Element) {
       this.referenceLessonHighlightBlock.classList.remove('is-reference-lesson-speaking');
     }
@@ -1170,8 +1197,24 @@ class PageReference extends HTMLElement {
       typeof CSS !== 'undefined' &&
       CSS.highlights &&
       typeof Highlight === 'function';
-    if (range && supportsCssHighlights) {
+    const capacitorPlatform = typeof window !== 'undefined' && window.Capacitor
+      ? (typeof window.Capacitor.getPlatform === 'function'
+        ? window.Capacitor.getPlatform()
+        : window.Capacitor.platform)
+      : '';
+    const useDomHighlight = this.isNativeRuntime() && capacitorPlatform === 'ios';
+    if (range && supportsCssHighlights && !useDomHighlight) {
       CSS.highlights.set(REFERENCE_LESSON_SPEECH_HIGHLIGHT, new Highlight(range));
+    } else if (range) {
+      try {
+        const mark = document.createElement('mark');
+        mark.className = 'reference-lesson-speech-mark';
+        mark.appendChild(range.extractContents());
+        range.insertNode(mark);
+        this.referenceLessonHighlightMark = mark;
+      } catch (_err) {
+        block.classList.add('is-reference-lesson-speaking');
+      }
     } else {
       block.classList.add('is-reference-lesson-speaking');
     }
@@ -1281,6 +1324,7 @@ class PageReference extends HTMLElement {
     const playback = this.referenceLessonPlayback;
     if (!playback || playback.status !== 'playing') return;
     playback.status = 'paused';
+    this.restoreActiveNarrationBubble();
     this.narrationToken += 1;
     this.stopHeroNarrationPlayback().catch(() => {});
     this.stopHeroMascotTalk({ settle: true });
@@ -3489,7 +3533,21 @@ class PageReference extends HTMLElement {
     this.stopHeroMascotTalk({ settle: true });
   }
 
+  restoreActiveNarrationBubble(token = null) {
+    const state = this.activeNarrationBubbleState;
+    if (!state || (token !== null && state.token !== token)) return;
+    const bubbleEl = state.bubbleEl;
+    if (bubbleEl instanceof Element && bubbleEl.isConnected) {
+      bubbleEl.innerHTML = state.html;
+      bubbleEl.style.minHeight = state.minHeight;
+    }
+    if (this.activeNarrationBubbleState === state) {
+      this.activeNarrationBubbleState = null;
+    }
+  }
+
   stopHeroNarration() {
+    this.restoreActiveNarrationBubble();
     this.clearReferenceLessonSpeechHighlight();
     this.clearNarrationTimer();
     this.narrationToken += 1;
@@ -3745,6 +3803,7 @@ class PageReference extends HTMLElement {
       ? linesOrText.filter((line) => line && typeof line.text === 'string' && line.text.trim())
       : this.extractNarrationLines(linesOrText);
     if (!lines.length) return false;
+    this.restoreActiveNarrationBubble();
     const normalizedLocale = this.normalizeLocale(locale) || 'en';
     const token = ++this.narrationToken;
     const bubbleEl = options && options.updateBubble === false ? null : this.getHeroBubbleEl();
@@ -3755,6 +3814,14 @@ class PageReference extends HTMLElement {
     const restLine = lines[0] || null;
     const originalBubbleHtml = bubbleEl ? bubbleEl.innerHTML : '';
     const originalBubbleMinHeight = bubbleEl ? bubbleEl.style.minHeight : '';
+    if (bubbleEl) {
+      this.activeNarrationBubbleState = {
+        token,
+        bubbleEl,
+        html: originalBubbleHtml,
+        minHeight: originalBubbleMinHeight
+      };
+    }
 
     await this.stopHeroNarrationPlayback();
     if (token !== this.narrationToken) return false;
@@ -3834,16 +3901,6 @@ class PageReference extends HTMLElement {
         setTimeout(resolve, Math.max(0, Number(ms) || 0));
       });
 
-    const restoreBubble = () => {
-      if (!bubbleEl) return;
-      if (originalBubbleHtml) {
-        bubbleEl.innerHTML = originalBubbleHtml;
-      } else if (restLine) {
-        applyLine(restLine);
-      }
-      bubbleEl.style.minHeight = originalBubbleMinHeight;
-    };
-
     let startedAny = false;
     try {
       for (let index = 0; index < lines.length; index += 1) {
@@ -3889,7 +3946,7 @@ class PageReference extends HTMLElement {
       if (token === this.narrationToken) {
         this.stopHeroMascotTalk({ settle: true });
       }
-      restoreBubble();
+      this.restoreActiveNarrationBubble(token);
     }
   }
 

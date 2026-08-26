@@ -9,8 +9,8 @@
   window.user_id = window.user_id || null;
 
   window.appMeta = window.appMeta || {
-    version: window.APP_VERSION || '5.0.2',
-    build: window.APP_BUILD || '999005035'
+    version: window.APP_VERSION || '5.0.3',
+    build: window.APP_BUILD || '999005037'
   };
 
   const requestTelemetryMetaReady = (async () => {
@@ -135,7 +135,7 @@
 
   window.realtimeConfig = window.realtimeConfig || {};
   if (window.realtimeConfig.key === undefined) {
-    window.realtimeConfig.key = window.PUSHER_APP_KEY || 'key-46c523695ec48aaf02ae4f75';
+    window.realtimeConfig.key = window.PUSHER_APP_KEY || 'b74ebb075eea8a8e3ab0';
   }
   if (window.realtimeConfig.wsHost === undefined) {
     window.realtimeConfig.wsHost = window.REALTIME_HOST || 'realtime.curso-ingles.com';

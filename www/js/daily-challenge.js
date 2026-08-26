@@ -6,6 +6,7 @@ const LAST_DATE_KEY  = 'appv5:daily-challenge-last';
 const STREAK_KEY     = 'appv5:daily-challenge-streak';
 const MAX_KEY        = 'appv5:daily-challenge-max-streak';
 const QUESTION_COUNT = 5;
+export const DAILY_CHALLENGE_ENABLED_CHANGE_EVENT = 'app:daily-challenge-enabled-change';
 
 const esc = (v) =>
   String(v ?? '')
@@ -26,7 +27,7 @@ export function setDailyChallengeEnabled(enabled) {
     if (enabled) localStorage.setItem(ENABLED_KEY, '1');
     else localStorage.removeItem(ENABLED_KEY);
   } catch {}
-  window.dispatchEvent(new CustomEvent('app:daily-challenge-enabled-change', { detail: { enabled: Boolean(enabled) } }));
+  window.dispatchEvent(new CustomEvent(DAILY_CHALLENGE_ENABLED_CHANGE_EVENT, { detail: { enabled: Boolean(enabled) } }));
 }
 
 // ── State ──────────────────────────────────────────────────────────────────

@@ -8,6 +8,8 @@
     "postinstall": "patch-package",
     "sync:app-copy": "node ../scripts/export-app-copy.js",
     "sync:app-copy-audio": "node ./scripts/build-app-copy-audio-bundle.js",
+    "sync:reference-lesson-segments": "node ./scripts/build-reference-lesson-segments.js",
+    "sync:reference-lesson-audio": "node ./scripts/build-reference-lesson-audio.js",
     "sync:speak-session-audio": "node ./scripts/build-speak-session-audio-bundle.js",
     "sync:speak-videos": "node ./scripts/build-speak-videos-bundle.js",
     "sync:training-data": "bash ./scripts/sync-training-data-from-content.sh",

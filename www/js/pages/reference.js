@@ -283,6 +283,8 @@ class PageReference extends HTMLElement {
     this.referenceLessonAudioControl = null;
     this.referenceLessonPlayback = null;
     this.referenceLessonSpeechCatalog = null;
+    this.referenceLessonSegments = null;
+    this.referenceLessonSegmentsPromise = null;
     this.referenceLessonHighlightBlock = null;
     this.referenceLessonHighlightMark = null;
     this.activeNarrationBubbleState = null;
@@ -918,20 +920,105 @@ class PageReference extends HTMLElement {
     const selector = normalizedDocumentLocale === 'en'
       ? 'h1, h2, h3, h4, p, li, td'
       : 'h1, h2, h3, h4, p, li';
-    return Array.from(root.querySelectorAll(selector))
+    const blocks = Array.from(root.querySelectorAll(selector))
       .filter((block) => {
         if (block.closest('button, [aria-hidden="true"]')) return false;
         if (block.matches('p') && block.closest('li, td')) return false;
         if (block.matches('li') && block.querySelector(':scope > p')) return false;
         return true;
-      })
+      });
+    const speeches = blocks
       .map((block) => this.getReferenceLessonSpeechBlock(block, normalizedDocumentLocale))
-      .filter(Boolean)
-      .flatMap((speech) => this.splitReferenceLessonSpeech(speech));
+      .map((speech, blockIndex) => ({ speech, block: blocks[blockIndex] }))
+      .filter((entry) => entry.speech);
+    const lessonCode = String(root.dataset.referenceLessonCode || '').trim();
+    const manifestLines = this.getReferenceLessonManifestLines(
+      lessonCode,
+      normalizedDocumentLocale,
+      speeches.length
+    );
+    if (manifestLines) {
+      return speeches.flatMap(({ speech, block }, blockIndex) =>
+        manifestLines[blockIndex].map((line) => ({
+          ...speech,
+          ...line,
+          sourceBlock: block
+        }))
+      );
+    }
+    return speeches.flatMap(({ speech }) => this.splitReferenceLessonSpeech(speech));
+  }
+
+  getReferenceLessonManifestLines(lessonCode, locale, blockCount) {
+    // The EN DOM order currently matches the offline extractor. ES keeps a
+    // different DOM selection because only its English examples are audible.
+    if (locale !== 'en' || !this.referenceLessonSegments || !lessonCode) return null;
+    const records = this.referenceLessonSegments.segments.filter(
+      (segment) => String(segment.lesson_code) === lessonCode && segment.locale === locale
+    );
+    if (!records.length) return null;
+    const grouped = Array.from({ length: blockCount }, () => []);
+    records.forEach((segment) => {
+      const blockIndex = Number(segment.block_index);
+      if (!Number.isInteger(blockIndex) || blockIndex < 0 || blockIndex >= grouped.length) return;
+      grouped[blockIndex].push({
+        text: String(segment.text || '').trim(),
+        spokenText: String(segment.text || '').trim(),
+        audio: segment.audio && typeof segment.audio === 'object' ? segment.audio : null,
+        segmentId: segment.id,
+        manifestBlockIndex: blockIndex,
+        manifestSegmentIndex: Number(segment.segment_index) || 0
+      });
+    });
+    // If the renderer and extractor ever diverge, keep the old runtime
+    // fallback instead of silently dropping blocks from the lesson.
+    return grouped.length && grouped.every((lines) => lines.length) ? grouped : null;
+  }
+
+  getReferenceLessonManifestAudio(root, text) {
+    if (!(root instanceof Element) || !this.referenceLessonSegments) return null;
+    const lessonCode = String(root.dataset.referenceLessonCode || '').trim();
+    const normalizedText = String(text || '').replace(/\s+/g, ' ').trim();
+    if (!lessonCode || !normalizedText) return null;
+    const match = this.referenceLessonSegments.segments.find(
+      (segment) => String(segment.lesson_code) === lessonCode &&
+        String(segment.text || '').replace(/\s+/g, ' ').trim() === normalizedText &&
+        segment.audio && String(segment.audio.audio_url || '').trim()
+    );
+    return match ? match.audio : null;
+  }
+
+  async loadReferenceLessonSegments() {
+    if (this.referenceLessonSegments) return this.referenceLessonSegments;
+    if (!this.referenceLessonSegmentsPromise) {
+      this.referenceLessonSegmentsPromise = fetch('data/reference-lesson-segments.json', {
+        cache: 'no-cache'
+      })
+        .then((response) => {
+          if (!response.ok) throw new Error(`reference lesson segments: HTTP ${response.status}`);
+          return response.json();
+        })
+        .then((manifest) => {
+          if (!manifest || !Array.isArray(manifest.segments)) throw new Error('invalid segment manifest');
+          this.referenceLessonSegments = manifest;
+          return manifest;
+        })
+        .catch((error) => {
+          this.referenceLessonSegmentsPromise = null;
+          console.warn('[reference] precomputed lesson segments unavailable', error);
+          return null;
+        });
+    }
+    return this.referenceLessonSegmentsPromise;
   }
 
   prepareReferenceLessonSpeechLines(lines, documentLocale = 'en') {
-    return this.fitReferenceLessonSpeechToBubble(lines).map((line) => ({
+    const sourceLines = Array.isArray(lines) && lines.some(
+      (line) => line.segmentId || line.audio?.audio_url
+    )
+      ? lines
+      : this.fitReferenceLessonSpeechToBubble(lines);
+    return sourceLines.map((line) => ({
       ...line,
       spokenText:
         (this.normalizeLocale(line.locale) || this.normalizeLocale(documentLocale)) === 'en' &&
@@ -1078,16 +1165,40 @@ class PageReference extends HTMLElement {
     return fitted.length ? fitted : sourceLines;
   }
 
+  getReferenceLessonAudioSpeechBlock(block, documentLocale = 'en') {
+    if (!(block instanceof Element)) return null;
+    const normalizedLocale = this.normalizeLocale(documentLocale) || 'en';
+    if (normalizedLocale !== 'es' || !block.matches('td')) return block;
+    if (!block.querySelector('br')) return null;
+
+    const englishCell = block.cloneNode(true);
+    const lineBreak = englishCell.querySelector('br');
+    if (lineBreak) {
+      let sibling = lineBreak.nextSibling;
+      while (sibling) {
+        const nextSibling = sibling.nextSibling;
+        sibling.remove();
+        sibling = nextSibling;
+      }
+      lineBreak.remove();
+    }
+    return englishCell;
+  }
+
   enhanceReferenceLessonAudio(root, documentLocale = 'en') {
     if (!isReferenceLessonAudioEnabled() || !(root instanceof Element)) return;
     const normalizedDocumentLocale = this.normalizeLocale(documentLocale) || 'en';
-    const selector = normalizedDocumentLocale === 'en' ? 'blockquote > p, td' : 'blockquote > p';
+    const selector = 'blockquote > p, td';
     const ariaLabel = normalizedDocumentLocale === 'es' ? 'Escuchar este bloque' : 'Listen to this block';
 
     root.querySelectorAll(selector).forEach((block) => {
       if (block.querySelector(':scope > .reference-lesson-block-audio')) return;
-      const speech = this.getReferenceLessonSpeechBlock(block, normalizedDocumentLocale);
+      const speechBlock = this.getReferenceLessonAudioSpeechBlock(block, normalizedDocumentLocale);
+      if (!speechBlock) return;
+      const speechLocale = normalizedDocumentLocale === 'es' && block.matches('td') ? 'en' : normalizedDocumentLocale;
+      const speech = this.getReferenceLessonSpeechBlock(speechBlock, speechLocale);
       if (!speech || !speech.text) return;
+      if (normalizedDocumentLocale === 'es' && speech.locale !== 'en') return;
       const button = document.createElement('button');
       button.type = 'button';
       button.className = 'reference-lesson-block-audio';
@@ -1283,16 +1394,17 @@ class PageReference extends HTMLElement {
     });
 
     if (playButton) {
-      const label = status === 'playing' ? copy.pause : status === 'paused' ? copy.resume : copy.play;
+      const label = copy.play;
+      const accessibleLabel = status === 'playing' ? copy.pause : status === 'paused' ? copy.resume : copy.play;
       playButton.classList.toggle('is-playing', status === 'playing');
       playButton.classList.toggle('is-paused', status === 'paused');
       playButton.setAttribute('aria-pressed', status === 'playing' ? 'true' : 'false');
-      playButton.setAttribute('aria-label', label);
+      playButton.setAttribute('aria-label', accessibleLabel);
       const icon = playButton.querySelector('ion-icon');
       if (icon) {
         icon.setAttribute(
           'name',
-          status === 'playing' ? 'pause-outline' : status === 'paused' ? 'play-outline' : 'volume-high-outline'
+          'volume-high-outline'
         );
       }
       const labelEl = playButton.querySelector('[data-reference-lesson-playback-label]');
@@ -1351,6 +1463,8 @@ class PageReference extends HTMLElement {
     this.updateReferenceLessonPlaybackUi();
     const started = await this.speakHeroNarration([line], playback.documentLocale, {
       allowWebFallback: true,
+      useLocalAudio: true,
+      useReferenceAudio: true,
       showNarrationText: true,
       preserveBubbleHeight: true,
       onLineStart: () => {
@@ -1407,6 +1521,8 @@ class PageReference extends HTMLElement {
       playback.documentLocale,
       {
         allowWebFallback: true,
+        useLocalAudio: true,
+        useReferenceAudio: true,
         showNarrationText: true,
         preserveBubbleHeight: true,
         onLineStart: (line, relativeIndex) => {
@@ -1444,7 +1560,14 @@ class PageReference extends HTMLElement {
       return this.resumeReferenceLessonAudio();
     }
 
-    const speechLines = this.prepareReferenceLessonSpeechLines(lines, documentLocale);
+    const markdownRoot = this.querySelector('#reference-markdown-content');
+    const manifestLines = Array.isArray(lines)
+      ? lines.map((line) => ({
+        ...line,
+        audio: line.audio || this.getReferenceLessonManifestAudio(markdownRoot, line.text)
+      }))
+      : lines;
+    const speechLines = this.prepareReferenceLessonSpeechLines(manifestLines, documentLocale);
     if (!speechLines.length) return false;
 
     this.stopReferenceLessonAudio();
@@ -1470,6 +1593,11 @@ class PageReference extends HTMLElement {
     if (!panel || !root || panel.dataset.referenceLessonAudioBound === '1') return;
     panel.dataset.referenceLessonAudioBound = '1';
     this.refreshReferenceLessonSpeechCatalog(root, documentLocale);
+    this.loadReferenceLessonSegments().then(() => {
+      if (this.isConnected && this.querySelector('#reference-markdown-content') === root) {
+        this.refreshReferenceLessonSpeechCatalog(root, documentLocale);
+      }
+    });
     panel.addEventListener('click', (event) => {
       const target = event.target instanceof Element ? event.target : null;
       const control = target?.closest('[data-reference-lesson-block-audio]');
@@ -1477,7 +1605,9 @@ class PageReference extends HTMLElement {
         event.preventDefault();
         event.stopPropagation();
         const block = control.parentElement;
-        const speech = this.getReferenceLessonSpeechBlock(block, documentLocale);
+        const speechBlock = this.getReferenceLessonAudioSpeechBlock(block, documentLocale);
+        const speechLocale = this.normalizeLocale(documentLocale) === 'es' && block.matches('td') ? 'en' : documentLocale;
+        const speech = this.getReferenceLessonSpeechBlock(speechBlock, speechLocale);
         if (speech) {
           this.playReferenceLessonAudio(
             control,
@@ -3610,13 +3740,16 @@ class PageReference extends HTMLElement {
     return started;
   }
 
-  async playHeroNarrationAligned(text, lang, token) {
+  async playHeroNarrationAligned(text, lang, token, audioUrlOverride = '') {
     const message = String(text || '').trim();
     if (!message) return false;
     if (token !== this.narrationToken) return false;
-    const payload = getAppCopyNarrationPayload(lang, message);
-    if (!payload || token !== this.narrationToken) return false;
-    const audioUrl = String(payload.audio_url || '').trim();
+    let audioUrl = String(audioUrlOverride || '').trim();
+    if (!audioUrl) {
+      const payload = getAppCopyNarrationPayload(lang, message);
+      if (!payload || token !== this.narrationToken) return false;
+      audioUrl = String(payload.audio_url || '').trim();
+    }
     if (!audioUrl) return false;
 
     const audio = new Audio(audioUrl);
@@ -3808,6 +3941,7 @@ class PageReference extends HTMLElement {
     const token = ++this.narrationToken;
     const bubbleEl = options && options.updateBubble === false ? null : this.getHeroBubbleEl();
     const allowWebFallback = !options || options.allowWebFallback !== false;
+    const useReferenceAudio = Boolean(options && options.useReferenceAudio);
     const showNarrationText = Boolean(options && options.showNarrationText);
     const preserveBubbleHeight = Boolean(options && options.preserveBubbleHeight);
     const hasMultipleLines = lines.length > 1;
@@ -3921,7 +4055,15 @@ class PageReference extends HTMLElement {
           }
         }
 
-        let started = await this.playHeroNarrationAligned(lineText, lineLang, token);
+        let started = false;
+        const referenceAudioUrl = useReferenceAudio
+          ? String(line.audio?.audio_url || '').trim()
+          : '';
+        if (referenceAudioUrl) {
+          started = await this.playHeroNarrationAligned(lineText, lineLang, token, referenceAudioUrl);
+        } else if (!options.useLocalAudio) {
+          started = await this.playHeroNarrationAligned(lineText, lineLang, token);
+        }
         if (!started && token === this.narrationToken) {
           started = await this.speakHeroWithNativePlugin(lineText, lineLang, token);
         }
@@ -6427,7 +6569,7 @@ class PageReference extends HTMLElement {
     };
     const lessonTabItems = buildLessonTabItems();
     const isTestTab = this.isTestTab(activeLessonTab);
-    const lessonAudioEnabled = isReferenceLessonAudioEnabled();
+    const lessonAudioEnabled = isReferenceLessonAudioEnabled() && uiLocale === 'en';
     const lessonAudioLabel = uiLocale === 'es' ? 'Escuchar lección' : 'Listen to lesson';
     const lessonAudioStopLabel = uiLocale === 'es' ? 'Detener' : 'Stop';
     const lessonAudioPreviousLabel = uiLocale === 'es' ? 'Fragmento anterior' : 'Previous fragment';
@@ -6447,9 +6589,14 @@ class PageReference extends HTMLElement {
               <div class="free-ride-card-main journey-sheet-main reference-sublevel-main">
                 <div class="reference-lesson-sticky">
                   <div class="reference-lesson-topbar">
-                    <button class="reference-back-btn" type="button" id="reference-back-btn">
-                      <ion-icon name="chevron-back"></ion-icon>
-                      <span>${this.escapeHtml(copy.backToList)}</span>
+                    <button
+                      class="reference-back-btn"
+                      type="button"
+                      id="reference-back-btn"
+                      aria-label="${this.escapeHtml(copy.backToList)}"
+                      title="${this.escapeHtml(copy.backToList)}"
+                    >
+                      <ion-icon name="arrow-back" aria-hidden="true"></ion-icon>
                     </button>
                     <div class="reference-lesson-topbar-main">
                       <div class="reference-lesson-title">${this.escapeHtml(lessonDisplayTitle)}</div>
@@ -6477,7 +6624,7 @@ class PageReference extends HTMLElement {
                       <ion-icon name="stop" aria-hidden="true"></ion-icon>
                     </button>
                     <button class="reference-lesson-listen-btn" type="button" id="reference-lesson-listen-btn" aria-pressed="false">
-                      <ion-icon name="volume-high-outline" aria-hidden="true"></ion-icon>
+                      <span class="reference-lesson-listen-icon" aria-hidden="true"><ion-icon name="volume-high-outline"></ion-icon></span>
                       <span data-reference-lesson-playback-label>${this.escapeHtml(lessonAudioLabel)}</span>
                     </button>
                     <button class="reference-lesson-step-btn" type="button" id="reference-lesson-next-fragment-btn" aria-label="${this.escapeHtml(lessonAudioNextLabel)}" title="${this.escapeHtml(lessonAudioNextLabel)}" hidden disabled>
@@ -6495,7 +6642,7 @@ class PageReference extends HTMLElement {
                   >
                     ${
                       lessonContent
-                        ? `<div class="reference-markdown" id="reference-markdown-content">${this.renderMarkdownFallbackHtml(
+                        ? `<div class="reference-markdown" id="reference-markdown-content" data-reference-course-code="${this.escapeHtml(selectedCourseCode)}" data-reference-unit-code="${this.escapeHtml(selectedUnitCode)}" data-reference-lesson-code="${this.escapeHtml(selectedLessonCode)}">${this.renderMarkdownFallbackHtml(
                             lessonContent
                           )}</div>`
                         : `<div class="reference-empty">${this.escapeHtml(copy.noContent)}</div>`
@@ -6698,6 +6845,10 @@ class PageReference extends HTMLElement {
         const markdownRoot = this.querySelector('#reference-markdown-content');
         const lines = this.collectReferenceLessonSpeechLines(markdownRoot, uiLocale);
         this.playReferenceLessonAudio(control, lines, uiLocale).catch(() => {});
+      });
+      this.querySelector('#reference-lesson-audio-toolbar')?.addEventListener('click', (event) => {
+        if (event.target !== event.currentTarget) return;
+        this.querySelector('#reference-lesson-listen-btn')?.click();
       });
       this.querySelector('#reference-lesson-stop-btn')?.addEventListener('click', (event) => {
         event.preventDefault();

@@ -60,15 +60,21 @@ const isLegacyUser = (user) => {
   return Number.isFinite(id) && id > 0 && id < 2727228;
 };
 
+const isRegisteredUser = (user) =>
+  Boolean(user && typeof user === 'object' && user.id !== undefined && user.id !== null);
+
 window.applyUserPlanTabVisibility = (user) => {
   const isPremiumPlan = user && typeof user === 'object' && isPremiumPlanUser(user);
   const isLegacy = isLegacyUser(user);
+  const isRegistered = isRegisteredUser(user);
   const nextPlan = isPremiumPlan
     ? PREMIUM_PLAN_TABS
-    : isLegacy
-    ? { ...STANDARD_PLAN_TABS, reference: true }
-    : STANDARD_PLAN_TABS;
-  const nextReferenceToolsEnabled = isPremiumPlan || isLegacy
+    : {
+        ...STANDARD_PLAN_TABS,
+        reference: isRegistered,
+        chat: isLegacy
+      };
+  const nextReferenceToolsEnabled = isPremiumPlan || isRegistered
     ? PREMIUM_PLAN_REFERENCE_TOOLS
     : STANDARD_PLAN_REFERENCE_TOOLS;
   window.r34lp0w3r = window.r34lp0w3r || {};

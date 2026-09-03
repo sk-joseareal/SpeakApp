@@ -40,7 +40,6 @@ import {
   openDailyChallengeModal
 } from '../daily-challenge.js';
 import {
-  REFERENCE_LESSON_AUDIO_CHANGE_EVENT,
   isReferenceLessonAudioEnabled
 } from '../reference-lesson-audio.js';
 
@@ -365,11 +364,6 @@ class PageReference extends HTMLElement {
       this.render();
     };
     window.addEventListener(DAILY_CHALLENGE_ENABLED_CHANGE_EVENT, this._dailyChallengeEnabledHandler);
-    this._referenceLessonAudioHandler = () => {
-      this.stopReferenceLessonAudio();
-      if (this.isConnected && this.lessonView) this.render();
-    };
-    window.addEventListener(REFERENCE_LESSON_AUDIO_CHANGE_EVENT, this._referenceLessonAudioHandler);
     this._cardPaddedHandler = (event) => {
       if (!this.isConnected) return;
       const detail = event && event.detail ? event.detail : {};
@@ -438,10 +432,6 @@ class PageReference extends HTMLElement {
     if (this._dailyChallengeEnabledHandler) {
       window.removeEventListener(DAILY_CHALLENGE_ENABLED_CHANGE_EVENT, this._dailyChallengeEnabledHandler);
       this._dailyChallengeEnabledHandler = null;
-    }
-    if (this._referenceLessonAudioHandler) {
-      window.removeEventListener(REFERENCE_LESSON_AUDIO_CHANGE_EVENT, this._referenceLessonAudioHandler);
-      this._referenceLessonAudioHandler = null;
     }
     if (this._cardPaddedHandler) {
       window.removeEventListener('app:free-ride-card-padded-change', this._cardPaddedHandler);
@@ -2927,7 +2917,7 @@ class PageReference extends HTMLElement {
   }
 
   buildPlayIconHtml() {
-    return `<span class="tool-play-icon" aria-hidden="true"><ion-icon class="tool-play-speaker-icon" name="volume-medium-outline"></ion-icon><span class="tool-play-waves"><i></i><i></i><i></i></span></span>`;
+    return `<span class="tool-play-icon" aria-hidden="true"><ion-icon class="tool-play-speaker-icon" name="volume-high-outline"></ion-icon><span class="tool-play-waves"><i></i><i></i><i></i></span></span>`;
   }
 
   findToolItem(id, data) {

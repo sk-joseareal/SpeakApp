@@ -27,10 +27,6 @@ import {
 } from '../data/training-data.js';
 import { ensureReferenceData, getLocalizedMapField, getReferenceCourses } from '../data/reference-data.js';
 import { isDailyChallengeEnabled, setDailyChallengeEnabled } from '../daily-challenge.js';
-import {
-  isReferenceLessonAudioEnabled,
-  setReferenceLessonAudioEnabled
-} from '../reference-lesson-audio.js';
 
 class PageDiagnostics extends HTMLElement {
   connectedCallback() {
@@ -677,17 +673,6 @@ class PageDiagnostics extends HTMLElement {
                 <div class="diag-debug-sub" id="diag-reference-tools-sub"></div>
               </div>
               <ion-toggle id="diag-reference-tools-toggle" aria-label="Reference tools" ${getStoredReferenceToolsEnabled() ? 'checked' : ''}></ion-toggle>
-            </div>
-            <div class="diag-debug-toggle" style="margin-top: 10px;">
-              <div class="diag-debug-text">
-                <div class="diag-debug-title">Audio en las lecciones</div>
-                <div class="diag-debug-sub" id="diag-reference-lesson-audio-sub">${
-                  isReferenceLessonAudioEnabled()
-                    ? 'Activado: muestra los controles experimentales de audio en Reference.'
-                    : 'Desactivado: las lecciones se muestran como hasta ahora.'
-                }</div>
-              </div>
-              <ion-toggle id="diag-reference-lesson-audio-toggle" aria-label="Audio en las lecciones" ${isReferenceLessonAudioEnabled() ? 'checked' : ''}></ion-toggle>
             </div>
             <div class="diag-debug-toggle" style="margin-top: 10px;">
               <div class="diag-debug-text">
@@ -2091,8 +2076,6 @@ class PageDiagnostics extends HTMLElement {
     const freeRideHeaderColorSubEl = this.querySelector('#diag-free-ride-header-color-sub');
     const referenceToolsToggleEl = this.querySelector('#diag-reference-tools-toggle');
     const referenceToolsSubEl = this.querySelector('#diag-reference-tools-sub');
-    const referenceLessonAudioToggleEl = this.querySelector('#diag-reference-lesson-audio-toggle');
-    const referenceLessonAudioSubEl = this.querySelector('#diag-reference-lesson-audio-sub');
     const speakSessionPercentagesToggleEl = this.querySelector('#diag-speak-session-percentages-toggle');
     const speakSessionPercentagesSubEl = this.querySelector('#diag-speak-session-percentages-sub');
     const speakPronunciationAvatarModeEl = this.querySelector('#diag-speak-pronunciation-avatar-mode');
@@ -4620,16 +4603,6 @@ class PageDiagnostics extends HTMLElement {
     this.querySelector('#diag-daily-challenge-toggle')?.addEventListener('ionChange', (event) => {
       const checked = event && event.detail ? event.detail.checked : false;
       setDailyChallengeEnabled(checked);
-    });
-    referenceLessonAudioToggleEl?.addEventListener('ionChange', (event) => {
-      const checked = event?.detail?.checked ?? referenceLessonAudioToggleEl.checked;
-      const enabled = setReferenceLessonAudioEnabled(checked);
-      referenceLessonAudioToggleEl.checked = enabled;
-      if (referenceLessonAudioSubEl) {
-        referenceLessonAudioSubEl.textContent = enabled
-          ? 'Activado: muestra los controles experimentales de audio en Reference.'
-          : 'Desactivado: las lecciones se muestran como hasta ahora.';
-      }
     });
     displayZoomCompensationToggleEl?.addEventListener('ionChange', async (event) => {
       const checked =

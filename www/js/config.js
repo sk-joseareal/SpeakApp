@@ -9,8 +9,8 @@
   window.user_id = window.user_id || null;
 
   window.appMeta = window.appMeta || {
-    version: window.APP_VERSION || '5.0.3',
-    build: window.APP_BUILD || '999005039'
+    version: window.APP_VERSION || '5.0.4',
+    build: window.APP_BUILD || '999005041'
   };
 
   const requestTelemetryMetaReady = (async () => {

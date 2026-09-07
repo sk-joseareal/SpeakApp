@@ -27,6 +27,7 @@ import {
 } from '../data/training-data.js';
 import { ensureReferenceData, getLocalizedMapField, getReferenceCourses } from '../data/reference-data.js';
 import { isDailyChallengeEnabled, setDailyChallengeEnabled } from '../daily-challenge.js';
+import { isTrainingRoadmapEnabled, setTrainingRoadmapEnabled } from '../training-roadmap.js';
 
 class PageDiagnostics extends HTMLElement {
   connectedCallback() {
@@ -508,6 +509,155 @@ class PageDiagnostics extends HTMLElement {
       };
     };
 
+    const premiumPreviewLocale = getAppLocale() || 'en';
+    const premiumPreviewCopy = premiumPreviewLocale === 'es'
+      ? {
+          title: 'Premium',
+          subtitle: 'Desbloquea todo tu entrenamiento y sigue avanzando.',
+          routesTitle: 'Todas las rutas de sonidos',
+          routesText: 'Accede a las rutas 2 y 3.',
+          learnTitle: 'Aprender',
+          learnText: 'Curso completo con lecciones y ejercicios.',
+          chatTitle: 'Chat',
+          chatText: 'Practica y recibe feedback personalizado.',
+          newTitle: 'Nuevos contenidos Premium',
+          newText: 'Más ejercicios y herramientas para mejorar cada día.',
+          selectPlan: 'Selecciona un plan',
+          month: '1 mes',
+          cancel: 'Cancela cuando quieras',
+          quarter: '3 meses',
+          annual: '1 año',
+          save: 'Ahorra un 33 %',
+          perMonth: 'al mes',
+          perMonthQuarter: '3,33 € al mes',
+          secure: 'Pago seguro',
+          bestOption: 'MEJOR OPCIÓN',
+          notImplemented: 'Aún no implementado',
+          restoreStarted: 'Recuperación de compras lanzada.',
+          restoreUnavailable: 'Recuperar compras no está disponible.',
+          restoreError: 'Error al recuperar compras',
+          purchaseUnavailable: 'Las compras no están disponibles en web.',
+          purchaseError: 'Error al iniciar la compra',
+          pricesLoading: 'Cargando precios...',
+          purchaseAlreadyOwned: 'Ya tienes esta compra. Pulsa «Restaurar compras» para asociarla a tu cuenta.',
+          continue: 'Continuar con Premium',
+          restore: 'Restaurar compras',
+          terms: 'Términos',
+          privacy: 'Privacidad',
+          close: 'Cerrar'
+        }
+      : {
+          title: 'Premium',
+          subtitle: 'Unlock all your training and keep moving forward.',
+          routesTitle: 'All sound journeys',
+          routesText: 'Access Sound Journeys 2 and 3.',
+          learnTitle: 'Learn',
+          learnText: 'Complete course with lessons and exercises.',
+          chatTitle: 'Chat',
+          chatText: 'Practice and receive personalized feedback.',
+          newTitle: 'New Premium content',
+          newText: 'More exercises and tools to improve every day.',
+          selectPlan: 'Select a plan',
+          month: '1 month',
+          cancel: 'Cancel whenever you want',
+          quarter: '3 months',
+          annual: '1 year',
+          save: 'Save 33%',
+          perMonth: 'per month',
+          perMonthQuarter: '€3.33 per month',
+          secure: 'Secure payment',
+          bestOption: 'BEST VALUE',
+          notImplemented: 'Not implemented yet',
+          restoreStarted: 'Restore purchases started.',
+          restoreUnavailable: 'Restore purchases is not available.',
+          restoreError: 'Error restoring purchases',
+          purchaseUnavailable: 'Purchases are not available on the web.',
+          purchaseError: 'Error starting purchase',
+          pricesLoading: 'Loading prices...',
+          purchaseAlreadyOwned: 'You already own this purchase. Tap “Restore purchases” to link it to your account.',
+          continue: 'Continue with Premium',
+          restore: 'Restore purchases',
+          terms: 'Terms',
+          privacy: 'Privacy',
+          close: 'Close'
+        };
+
+    const premiumPreviewTermsUrl = premiumPreviewLocale === 'es'
+      ? 'https://www.curso-ingles.com/var/datos-legales'
+      : 'https://www.curso-ingles.com/en/support/legal-data';
+    const premiumPreviewPrivacyUrl = premiumPreviewLocale === 'es'
+      ? 'https://www.curso-ingles.com/var/politica-de-privacidad'
+      : 'https://www.curso-ingles.com/en/support/privacy-policy';
+
+    const getIapPlatform = () => {
+      const capacitor = window.Capacitor;
+      if (!capacitor) return 'web';
+      try {
+        return typeof capacitor.getPlatform === 'function'
+          ? capacitor.getPlatform()
+          : capacitor.platform || 'web';
+      } catch (_err) {
+        return 'web';
+      }
+    };
+    const getPremiumProductIds = () => {
+      const platform = getIapPlatform();
+      if (platform === 'ios') return { month: 'com.sokinternet.cursoingles.subsmonth', annual: 'com.sokinternet.cursoingles.subsyear' };
+      if (platform === 'android') return { month: 'premium_month', annual: 'premium_year' };
+      return null;
+    };
+    const getPremiumProduct = (productId) => {
+      const store = window.CdvPurchase && window.CdvPurchase.store;
+      if (!store) return null;
+      if (typeof store.get === 'function') return store.get(productId) || null;
+      return Array.isArray(store.products) ? store.products.find((item) => item && item.id === productId) || null : null;
+    };
+    const getPremiumPriceData = (productId) => {
+      const product = getPremiumProduct(productId);
+      const offer = product && Array.isArray(product.offers) ? product.offers[0] : null;
+      const phase = offer && Array.isArray(offer.pricingPhases) ? offer.pricingPhases[0] : null;
+      const price = (phase && phase.price) || (product && product.pricing && product.pricing.price) || (window.subsStorePrice && window.subsStorePrice[productId]) || '';
+      const numeric = Number(String(price).replace(/[^0-9.,-]/g, '').replace(/,(?=.*[,\.])/g, '').replace(',', '.'));
+      return {
+        price: String(price || ''),
+        numeric: Number.isFinite(numeric) ? numeric : null,
+        currency: (phase && phase.currency) || 'EUR'
+      };
+    };
+    const hasPremiumPurchaseHistory = (productId, product, store) => {
+      const transactionHasProduct = (transaction) =>
+        Boolean(
+          transaction &&
+          ((transaction.productId === productId) ||
+            (transaction.product && transaction.product.id === productId) ||
+            (Array.isArray(transaction.products) &&
+              transaction.products.some((item) => item && item.id === productId)))
+        );
+      if (product && Array.isArray(product.transactions) && product.transactions.some(transactionHasProduct)) {
+        return true;
+      }
+      const receipts = [
+        ...(store && Array.isArray(store.localReceipts) ? store.localReceipts : []),
+        ...(store && Array.isArray(store.verifiedReceipts) ? store.verifiedReceipts : [])
+      ];
+      return receipts.some(
+        (receipt) =>
+          Array.isArray(receipt && receipt.transactions) &&
+          receipt.transactions.some(transactionHasProduct)
+      );
+    };
+    const formatPremiumAmount = (amount, currency) => {
+      if (!Number.isFinite(amount)) return '';
+      try {
+        return new Intl.NumberFormat(premiumPreviewLocale === 'es' ? 'es-ES' : 'en-US', {
+          style: 'currency',
+          currency
+        }).format(amount);
+      } catch (_err) {
+        return amount.toFixed(2);
+      }
+    };
+
     this.innerHTML = `
       <ion-header translucent="true">
         <ion-toolbar>
@@ -556,6 +706,13 @@ class PageDiagnostics extends HTMLElement {
                 <div class="diag-debug-sub">Activa la card de reto diario en el tab Entrenar.</div>
               </div>
               <ion-toggle id="diag-daily-challenge-toggle" aria-label="Reto diario" ${isDailyChallengeEnabled() ? 'checked' : ''}></ion-toggle>
+            </div>
+            <div class="diag-debug-toggle" style="margin-top: 10px;">
+              <div class="diag-debug-text">
+                <div class="diag-debug-title">Timeline de Training</div>
+                <div class="diag-debug-sub">Muestra las rutas como una secuencia numerada conectada.</div>
+              </div>
+              <ion-toggle id="diag-training-roadmap-toggle" aria-label="Timeline de Training" ${isTrainingRoadmapEnabled() ? 'checked' : ''}></ion-toggle>
             </div>
             <div class="diag-debug-toggle" style="margin-top: 10px;">
               <div class="diag-debug-text">
@@ -738,6 +895,7 @@ class PageDiagnostics extends HTMLElement {
 
             <h4 style="margin-top:16px;">In-App Purchases</h4>
             <div class="diag-actions">
+              <ion-button size="small" fill="outline" id="diag-iap-test-premium">Probar activar Premium</ion-button>
               <ion-button size="small" fill="outline" id="diag-iap-refresh">Refrescar store</ion-button>
               <ion-button size="small" fill="outline" id="diag-iap-restore">Restore purchases</ion-button>
               <ion-button size="small" fill="outline" id="diag-iap-copy">Copiar estado IAP</ion-button>
@@ -1121,9 +1279,51 @@ class PageDiagnostics extends HTMLElement {
               <ion-button size="small" fill="outline" id="diag-logout" style="display:none;">Logout</ion-button>
             </div>
 
+            <h4 style="margin-top:16px;">Premium</h4>
+            <div class="diag-actions">
+              <ion-button size="small" fill="outline" id="diag-open-premium-screen">Pantalla compra</ion-button>
+            </div>
+
           </div>
         </div>
       </ion-content>
+      <div class="premium-preview-overlay" id="diag-premium-preview" hidden>
+        <div class="premium-preview-backdrop" data-premium-close="true"></div>
+        <section class="premium-preview-card" role="dialog" aria-modal="true" aria-labelledby="premium-preview-title">
+          <button class="premium-preview-close" type="button" aria-label="${premiumPreviewCopy.close}" data-premium-close="true">&times;</button>
+          <div class="premium-preview-hero">
+            <img src="assets/mascot/nena/nena-premium.png" alt="">
+            <div>
+              <div class="premium-preview-heading"><img class="premium-preview-crown premium-preview-crown--lilac" src="assets/icons/premium-crown-lilac.png" alt=""><h2 id="premium-preview-title">Premium</h2></div>
+              <p>${premiumPreviewCopy.subtitle}</p>
+            </div>
+          </div>
+          <div class="premium-preview-benefits">
+            <div class="premium-preview-benefit--routes"><ion-icon name="headset-outline"></ion-icon><span><strong>${premiumPreviewCopy.routesTitle}</strong><small>${premiumPreviewCopy.routesText}</small></span></div>
+            <div class="premium-preview-benefit--learn"><ion-icon name="book-outline"></ion-icon><span><strong>${premiumPreviewCopy.learnTitle}</strong><small>${premiumPreviewCopy.learnText}</small></span></div>
+            <div class="premium-preview-benefit--chat"><ion-icon name="chatbubble-ellipses-outline"></ion-icon><span><strong>${premiumPreviewCopy.chatTitle}</strong><small>${premiumPreviewCopy.chatText}</small></span></div>
+            <div class="premium-preview-benefit--new"><ion-icon name="sparkles-outline"></ion-icon><span><strong>${premiumPreviewCopy.newTitle}</strong><small>${premiumPreviewCopy.newText}</small></span></div>
+          </div>
+          <div class="premium-preview-plans" role="radiogroup" aria-label="${premiumPreviewCopy.selectPlan}">
+            <button class="premium-preview-plan" type="button" data-premium-plan="month" role="radio" aria-checked="false">
+              <span class="premium-preview-radio"></span><span class="premium-preview-plan-copy"><strong>${premiumPreviewCopy.month}</strong><small>${premiumPreviewCopy.cancel}</small></span><b data-premium-price="month">4,99 €<small>${premiumPreviewCopy.perMonth}</small></b>
+            </button>
+            <button class="premium-preview-plan is-selected" type="button" data-premium-plan="annual" role="radio" aria-checked="true">
+              <span class="premium-preview-plan-badge">${premiumPreviewCopy.bestOption}</span>
+              <span class="premium-preview-radio"></span><span class="premium-preview-plan-copy"><strong data-premium-plan-label="annual">${premiumPreviewCopy.quarter}</strong><small data-premium-plan-save="annual">${premiumPreviewCopy.save}</small></span><b data-premium-price="annual">9,99 €<small data-premium-plan-monthly="annual">${premiumPreviewCopy.perMonthQuarter}</small></b>
+            </button>
+          </div>
+          <div class="premium-preview-secure"><ion-icon name="lock-closed-outline"></ion-icon> ${premiumPreviewCopy.secure} <span>•</span> ${premiumPreviewCopy.cancel}</div>
+          <button class="premium-preview-cta" type="button" id="diag-premium-preview-cta"><img class="premium-preview-crown" src="assets/icons/premium-crown.png" alt=""> ${premiumPreviewCopy.continue}</button>
+          <div class="premium-preview-links">
+            <button type="button" id="diag-premium-restore-purchases">${premiumPreviewCopy.restore}</button>
+            <span>•</span>
+            <button type="button" data-premium-url="${premiumPreviewTermsUrl}">${premiumPreviewCopy.terms}</button>
+            <span>•</span>
+            <button type="button" data-premium-url="${premiumPreviewPrivacyUrl}">${premiumPreviewCopy.privacy}</button>
+          </div>
+        </section>
+      </div>
     `;
 
     /*
@@ -2092,6 +2292,7 @@ class PageDiagnostics extends HTMLElement {
     const chatCommunitySubEl = this.querySelector('#diag-chat-community-sub');
     const chatChatbotToggleEl = this.querySelector('#diag-chat-chatbot-toggle');
     const chatChatbotSubEl = this.querySelector('#diag-chat-chatbot-sub');
+    const trainingRoadmapToggleEl = this.querySelector('#diag-training-roadmap-toggle');
     const pronAdvancedUsageSectionEl = this.querySelector('#diag-pron-advanced-usage-section');
     const notifyListEl = this.querySelector('#diag-notify-list');
     const notifyEmptyEl = this.querySelector('#diag-notify-empty');
@@ -4604,6 +4805,10 @@ class PageDiagnostics extends HTMLElement {
       const checked = event && event.detail ? event.detail.checked : false;
       setDailyChallengeEnabled(checked);
     });
+    trainingRoadmapToggleEl?.addEventListener('ionChange', (event) => {
+      const checked = event?.detail?.checked ?? trainingRoadmapToggleEl.checked;
+      trainingRoadmapToggleEl.checked = setTrainingRoadmapEnabled(checked);
+    });
     displayZoomCompensationToggleEl?.addEventListener('ionChange', async (event) => {
       const checked =
         event && event.detail ? event.detail.checked : displayZoomCompensationToggleEl.checked;
@@ -4808,6 +5013,152 @@ class PageDiagnostics extends HTMLElement {
       }
     });
 
+    const premiumPreviewEl = this.querySelector('#diag-premium-preview');
+    const updatePremiumPreviewPricing = () => {
+      if (!premiumPreviewEl) return;
+      const productIds = getPremiumProductIds();
+      if (!productIds) return;
+      const monthData = getPremiumPriceData(productIds.month);
+      const annualData = getPremiumPriceData(productIds.annual);
+      const monthPriceEl = premiumPreviewEl.querySelector('[data-premium-price="month"]');
+      const annualPriceEl = premiumPreviewEl.querySelector('[data-premium-price="annual"]');
+      if (monthData.price && monthPriceEl) monthPriceEl.firstChild.textContent = monthData.price;
+      if (annualData.price && annualPriceEl) annualPriceEl.firstChild.textContent = annualData.price;
+      const annualLabelEl = premiumPreviewEl.querySelector('[data-premium-plan-label="annual"]');
+      const annualSaveEl = premiumPreviewEl.querySelector('[data-premium-plan-save="annual"]');
+      const annualMonthlyEl = premiumPreviewEl.querySelector('[data-premium-plan-monthly="annual"]');
+      const purchaseButton = premiumPreviewEl.querySelector('#diag-premium-preview-cta');
+      const pricesReady = monthData.numeric !== null && annualData.numeric !== null;
+      if (!pricesReady) {
+        if (monthPriceEl) monthPriceEl.firstChild.textContent = premiumPreviewCopy.pricesLoading;
+        if (annualPriceEl) annualPriceEl.firstChild.textContent = premiumPreviewCopy.pricesLoading;
+      }
+      if (purchaseButton) {
+        purchaseButton.disabled = !pricesReady;
+        purchaseButton.setAttribute('aria-disabled', pricesReady ? 'false' : 'true');
+      }
+      if (annualLabelEl) annualLabelEl.textContent = premiumPreviewCopy.annual;
+      if (annualData.numeric !== null && annualMonthlyEl) {
+        annualMonthlyEl.textContent = `${formatPremiumAmount(annualData.numeric / 3, annualData.currency)} ${premiumPreviewCopy.perMonth}`;
+      }
+      if (monthData.numeric !== null && annualData.numeric !== null && annualSaveEl) {
+        const saving = Math.max(0, ((monthData.numeric * 3 - annualData.numeric) / (monthData.numeric * 3)) * 100);
+        annualSaveEl.textContent = premiumPreviewLocale === 'es'
+          ? `Ahorra un ${saving.toFixed(2)} %`
+          : `Save ${saving.toFixed(2)}%`;
+      }
+    };
+    this._premiumPreviewPricingHandler = updatePremiumPreviewPricing;
+    window.addEventListener('app:iap-store-event', this._premiumPreviewPricingHandler);
+    updatePremiumPreviewPricing();
+    const closePremiumPreview = () => {
+      if (!premiumPreviewEl) return;
+      const dismissDiagnostics = premiumPreviewEl.dataset.dismissDiagnosticsOnClose === 'true';
+      const detached = premiumPreviewEl.dataset.premiumPreviewDetached === 'true';
+      premiumPreviewEl.hidden = true;
+      premiumPreviewEl.classList.remove('is-visible');
+      delete premiumPreviewEl.dataset.dismissDiagnosticsOnClose;
+      delete premiumPreviewEl.dataset.premiumPreviewDetached;
+      const modal = premiumPreviewEl.closest('ion-modal');
+      if (dismissDiagnostics) {
+        if (modal) delete modal.dataset.openPremiumPreview;
+        if (detached && premiumPreviewEl._premiumPreviewParent) {
+          premiumPreviewEl._premiumPreviewParent.appendChild(premiumPreviewEl);
+          premiumPreviewEl._premiumPreviewOwner?.disconnectedCallback?.();
+          premiumPreviewEl._premiumPreviewParent = null;
+          premiumPreviewEl._premiumPreviewOwner = null;
+        } else {
+          modal?.dismiss?.().catch(() => {});
+        }
+      }
+    };
+    this.querySelector('#diag-open-premium-screen')?.addEventListener('click', () => {
+      if (!premiumPreviewEl) return;
+      premiumPreviewEl.hidden = false;
+      requestAnimationFrame(() => premiumPreviewEl.classList.add('is-visible'));
+    });
+    premiumPreviewEl?.querySelectorAll('[data-premium-close="true"]').forEach((el) => {
+      el.addEventListener('click', closePremiumPreview);
+    });
+    premiumPreviewEl?.querySelectorAll('[data-premium-plan]').forEach((planEl) => {
+      planEl.addEventListener('click', () => {
+        premiumPreviewEl.querySelectorAll('[data-premium-plan]').forEach((candidate) => {
+          const selected = candidate === planEl;
+          candidate.classList.toggle('is-selected', selected);
+          candidate.setAttribute('aria-checked', selected ? 'true' : 'false');
+        });
+      });
+    });
+    this.querySelector('#diag-premium-preview-cta')?.addEventListener('click', (event) => {
+      event.preventDefault();
+      const productIds = getPremiumProductIds();
+      if (!productIds) {
+        window.presentAppToast?.(premiumPreviewCopy.purchaseUnavailable);
+        closePremiumPreview();
+        return;
+      }
+      const selectedPlan = premiumPreviewEl?.querySelector('[data-premium-plan].is-selected')?.dataset.premiumPlan || 'annual';
+      const productId = productIds[selectedPlan] || productIds.annual;
+      try {
+        const product = getPremiumProduct(productId);
+        const store = window.CdvPurchase && window.CdvPurchase.store;
+        const owned = Boolean(
+          product && product.owned === true
+        ) || Boolean(
+          product && store && typeof store.owned === 'function' && store.owned(product)
+        ) || hasPremiumPurchaseHistory(productId, product, store);
+        if (owned) {
+          window.presentAppToast?.(premiumPreviewCopy.purchaseAlreadyOwned);
+          closePremiumPreview();
+          return;
+        }
+        if (
+          typeof window.IAPbuyProduct !== 'function' ||
+          !window.CdvPurchase ||
+          !window.CdvPurchase.store ||
+          !product
+        ) {
+          window.presentAppToast?.(premiumPreviewCopy.purchaseUnavailable);
+        } else {
+          window.IAPbuyProduct(productId);
+        }
+      } catch (err) {
+        window.presentAppToast?.(
+          `${premiumPreviewCopy.purchaseError}: ${err && err.message ? err.message : String(err)}`
+        );
+      }
+      closePremiumPreview();
+    });
+    this.querySelector('#diag-premium-restore-purchases')?.addEventListener('click', () => {
+      try {
+        if (
+          typeof window.IAPrestorePurchases === 'function' &&
+          window.CdvPurchase &&
+          window.CdvPurchase.store &&
+          typeof window.CdvPurchase.store.restorePurchases === 'function'
+        ) {
+          window.IAPrestorePurchases();
+          window.presentAppToast?.(premiumPreviewCopy.restoreStarted);
+          closePremiumPreview();
+        } else {
+          window.presentAppToast?.(premiumPreviewCopy.restoreUnavailable);
+          closePremiumPreview();
+        }
+      } catch (err) {
+        window.presentAppToast?.(
+          `${premiumPreviewCopy.restoreError}: ${err && err.message ? err.message : String(err)}`
+        );
+        closePremiumPreview();
+      }
+    });
+    premiumPreviewEl?.querySelectorAll('[data-premium-url]').forEach((button) => {
+      button.addEventListener('click', () => {
+        const url = String(button.dataset.premiumUrl || '').trim();
+        if (!url) return;
+        window.open(url, window.Capacitor ? '_system' : '_blank');
+      });
+    });
+
     this.querySelector('#diag-speak-refresh')?.addEventListener('click', () => {
       updateSpeakPanels();
       updateContentSourcePanel();
@@ -4873,6 +5224,34 @@ class PageDiagnostics extends HTMLElement {
         renderIapState();
       }, 1200);
     });
+    this.querySelector('#diag-iap-test-premium')?.addEventListener('click', () => {
+      const testResult = {
+        register_ok: true,
+        purchase_id: `diagnostics-test-${Date.now()}`,
+        purchase_expires: new Date('2099-12-31T23:59:59Z').getTime(),
+        purchase_expires_human: '2099-12-31T23:59:59.000Z',
+        source: 'diagnostics-test'
+      };
+      if (typeof window._trigger_gotPremium === 'function') {
+        window._trigger_gotPremium(testResult);
+        setIapLastAction({
+          label: 'test trigger premium',
+          status: 'success',
+          type: 'diagnostics-test'
+        });
+        if (iapStatusEl) {
+          iapStatusEl.textContent = 'Premium activado localmente mediante _trigger_gotPremium (prueba).';
+        }
+        renderIapState();
+      } else if (iapStatusEl) {
+        setIapLastAction({
+          label: 'test trigger premium',
+          status: 'failed',
+          type: 'diagnostics-test'
+        });
+        iapStatusEl.textContent = '_trigger_gotPremium no está disponible.';
+      }
+    });
     this.querySelector('#diag-iap-restore')?.addEventListener('click', () => {
       try {
         setIapLastAction({
@@ -4880,7 +5259,12 @@ class PageDiagnostics extends HTMLElement {
           status: 'running',
           type: 'manual-restore'
         });
-        if (typeof window.IAPrestorePurchases === 'function') {
+        if (
+          typeof window.IAPrestorePurchases === 'function' &&
+          window.CdvPurchase &&
+          window.CdvPurchase.store &&
+          typeof window.CdvPurchase.store.restorePurchases === 'function'
+        ) {
           window.IAPrestorePurchases();
           if (iapStatusEl) iapStatusEl.textContent = 'Restore purchases lanzado.';
         } else if (iapStatusEl) {
@@ -4972,13 +5356,17 @@ class PageDiagnostics extends HTMLElement {
       renderIapState();
     });
     this.querySelector('#diag-iap-clear-local')?.addEventListener('click', () => {
-      try {
-        localStorage.removeItem('_purchase_expires');
-        localStorage.removeItem('_purchase_expires_human');
-        localStorage.removeItem('_purchase_user_id');
-        localStorage.removeItem('appv5:last-got-premium-result');
-      } catch (err) {
-        console.error('[diag] error limpiando premium local', err);
+      if (typeof window.clearLocalPurchaseState === 'function') {
+        window.clearLocalPurchaseState();
+      } else {
+        try {
+          localStorage.removeItem('_purchase_expires');
+          localStorage.removeItem('_purchase_expires_human');
+          localStorage.removeItem('_purchase_user_id');
+          localStorage.removeItem('appv5:last-got-premium-result');
+        } catch (err) {
+          console.error('[diag] error limpiando premium local', err);
+        }
       }
       if (iapStatusEl) iapStatusEl.textContent = 'Estado premium local eliminado.';
       renderIapState();
@@ -5589,6 +5977,10 @@ class PageDiagnostics extends HTMLElement {
   }
 
   disconnectedCallback() {
+    if (this._premiumPreviewPricingHandler) {
+      window.removeEventListener('app:iap-store-event', this._premiumPreviewPricingHandler);
+      this._premiumPreviewPricingHandler = null;
+    }
     if (this._diagUnlockTimer) {
       clearInterval(this._diagUnlockTimer);
       this._diagUnlockTimer = null;

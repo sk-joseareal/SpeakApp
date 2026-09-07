@@ -3359,7 +3359,12 @@ class PageProfile extends HTMLElement {
 
     profileRestorePurchasesBtn?.addEventListener('click', () => {
       try {
-        if (typeof window.IAPrestorePurchases === 'function') {
+        if (
+          typeof window.IAPrestorePurchases === 'function' &&
+          window.CdvPurchase &&
+          window.CdvPurchase.store &&
+          typeof window.CdvPurchase.store.restorePurchases === 'function'
+        ) {
           window.IAPrestorePurchases();
           if (typeof window.presentAppToast === 'function') {
             window.presentAppToast(

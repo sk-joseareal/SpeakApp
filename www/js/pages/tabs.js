@@ -66,6 +66,21 @@ class TabsPage extends HTMLElement {
       return enabledTabs.length ? enabledTabs : ['home'];
     };
     const isAllowedTab = (tab) => getAllowedTabs().includes(tab);
+    const isPremiumUser = () => {
+      try {
+        if (window.user && typeof window.user === 'object' && window.user.premium === true) {
+          return true;
+        }
+        const raw = localStorage.getItem('appv5:user');
+        if (!raw) return false;
+        const parsed = JSON.parse(raw);
+        return Boolean(parsed && typeof parsed === 'object' && parsed.premium === true);
+      } catch (_err) {
+        return false;
+      }
+    };
+    const isPremiumLockedTab = (tab) =>
+      ['reference', 'chat'].includes(tab) && isLoggedIn() && !isPremiumUser() && !isAllowedTab(tab);
     const getLoginTargetTab = () => {
       if (isAllowedTab('tu')) return 'tu';
       const allowedTabs = getAllowedTabs();
@@ -122,10 +137,12 @@ class TabsPage extends HTMLElement {
           <ion-tab-button tab="reference">
             <ion-icon name="book-outline"></ion-icon>
             <ion-label data-tab-label="reference">${tabsCopy.reference}</ion-label>
+            <span class="app-tab-premium-crown" aria-hidden="true" hidden><img src="assets/icons/premium-crown.png" alt=""></span>
           </ion-tab-button>
           <ion-tab-button tab="chat" class="app-tab-button-chat">
             <ion-icon name="chatbubbles-outline"></ion-icon>
             <ion-label data-tab-label="chat">${tabsCopy.chat}</ion-label>
+            <span class="app-tab-premium-crown" aria-hidden="true" hidden><img src="assets/icons/premium-crown.png" alt=""></span>
           </ion-tab-button>
           <ion-tab-button tab="tu">
             <ion-icon name="person-circle-outline"></ion-icon>
@@ -285,8 +302,12 @@ class TabsPage extends HTMLElement {
       const allowedTabs = getAllowedTabs();
       TAB_ORDER.forEach((tab) => {
         const tabButton = this.querySelector(`ion-tab-button[tab="${tab}"]`);
+        const premiumLocked = isPremiumLockedTab(tab);
         if (tabButton) {
-          tabButton.hidden = !allowedTabs.includes(tab);
+          tabButton.hidden = !allowedTabs.includes(tab) && !premiumLocked;
+          tabButton.classList.toggle('is-premium-locked', premiumLocked);
+          const crown = tabButton.querySelector('.app-tab-premium-crown');
+          if (crown) crown.hidden = !premiumLocked;
         }
         const tabPane = this.querySelector(`ion-tab[tab="${tab}"]`);
         if (tabPane) {
@@ -355,7 +376,14 @@ class TabsPage extends HTMLElement {
       const tabButton = target ? target.closest('ion-tab-button[tab]') : null;
       if (!tabButton) return;
       const tab = normalizeTab(tabButton.getAttribute('tab'));
-      if (!tab || !isAllowedTab(tab)) return;
+      if (!tab) return;
+      if (isPremiumLockedTab(tab)) {
+        event.preventDefault();
+        event.stopPropagation();
+        window.openPremiumPurchasePreview?.();
+        return;
+      }
+      if (!isAllowedTab(tab)) return;
 
       const loginTargetTab = getLoginTargetTab();
       if (isTabsLocked() && tab !== loginTargetTab) {

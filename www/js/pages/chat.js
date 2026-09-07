@@ -1379,6 +1379,7 @@ class PageChat extends HTMLElement {
     const isChatEnabledUser = (user) => {
       if (CHAT_ALWAYS_ON_FOR_TESTING) return true;
       if (!user || user.id === undefined || user.id === null) return false;
+      if (!isPremiumUser(user)) return false;
       return isStoredChatTabEnabled();
     };
 

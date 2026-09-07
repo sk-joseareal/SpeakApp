@@ -54,26 +54,15 @@ const isPremiumPlanUser = (user) => {
   return expires.getTime() > Date.now();
 };
 
-const isLegacyUser = (user) => {
-  if (!user || typeof user !== 'object') return false;
-  const id = parseInt(user.id, 10);
-  return Number.isFinite(id) && id > 0 && id < 2727228;
-};
-
 const isRegisteredUser = (user) =>
   Boolean(user && typeof user === 'object' && user.id !== undefined && user.id !== null);
 
 window.applyUserPlanTabVisibility = (user) => {
   const isPremiumPlan = user && typeof user === 'object' && isPremiumPlanUser(user);
-  const isLegacy = isLegacyUser(user);
   const isRegistered = isRegisteredUser(user);
   const nextPlan = isPremiumPlan
     ? PREMIUM_PLAN_TABS
-    : {
-        ...STANDARD_PLAN_TABS,
-        reference: isRegistered,
-        chat: isLegacy
-      };
+    : STANDARD_PLAN_TABS;
   const nextReferenceToolsEnabled = isPremiumPlan || isRegistered
     ? PREMIUM_PLAN_REFERENCE_TOOLS
     : STANDARD_PLAN_REFERENCE_TOOLS;

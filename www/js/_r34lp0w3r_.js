@@ -1941,6 +1941,7 @@ IAPPurchaseVerify = async function(body, callback) {
       }
     }
 
+    result.source = source;
     notifyIapOwnershipConflict(result, { source });
 
     if (result && (result.register_ok || result.purchase_expires) && window._trigger_gotPremium) {
@@ -2406,6 +2407,7 @@ async function validateAndroidPurchaseWithBackend(item, options) {
     }
   }
 
+  result.source = source;
   notifyIapOwnershipConflict(result, { source });
 
   if (typeof window.emitIapStoreEvent === 'function') {
@@ -3004,6 +3006,7 @@ function IAPgetProducts() {
 function IAPbuyProduct(productId) {
     Rlog()
     Rlog(">#V05#> IAPbuyProduct(): Comprar el producto: " + productId);
+    window.__iapPurchaseInitiatedAt = Date.now();
     const product = window.CdvPurchase.store.get(productId);
     Rlog(">#V05#> IAPbuyProduct(): typeof product: " + (typeof product))
     if (!product) {

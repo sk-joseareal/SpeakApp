@@ -7,6 +7,7 @@ import {
   setSelection
 } from '../data/training-data.js';
 import { getAppLocale, setAppLocale, getActiveLocale, setLocaleOverride } from '../state.js';
+import { TRAINING_ROADMAP_CHANGE_EVENT, isTrainingRoadmapEnabled } from '../training-roadmap.js';
 import { goToSpeak } from '../nav.js';
 import {
   getAppCopyNarrationPayload,
@@ -350,6 +351,10 @@ class PageHome extends HTMLElement {
       }
     };
     window.addEventListener('app:handle-hint-reset', this._handleHintResetHandler);
+    this._trainingRoadmapHandler = () => {
+      if (this.isConnected) this.render();
+    };
+    window.addEventListener(TRAINING_ROADMAP_CHANGE_EVENT, this._trainingRoadmapHandler);
     this._layoutViewportHandler = () => {
       if (!this.isConnected) return;
       if (document.body?.classList?.contains('app-android-legacy-webview')) return;
@@ -422,6 +427,10 @@ class PageHome extends HTMLElement {
     if (this._handleHintResetHandler) {
       window.removeEventListener('app:handle-hint-reset', this._handleHintResetHandler);
       this._handleHintResetHandler = null;
+    }
+    if (this._trainingRoadmapHandler) {
+      window.removeEventListener(TRAINING_ROADMAP_CHANGE_EVENT, this._trainingRoadmapHandler);
+      this._trainingRoadmapHandler = null;
     }
     if (this._layoutViewportHandler) {
       if (window.visualViewport && typeof window.visualViewport.removeEventListener === 'function') {
@@ -1798,6 +1807,7 @@ class PageHome extends HTMLElement {
 
     const routeProgressList = routes.map((route) => getRoutePercent(route));
     const isDebug = Boolean(window.r34lp0w3r && window.r34lp0w3r.speakDebug);
+    const roadmapEnabled = isTrainingRoadmapEnabled();
     const routeUnlockList = routes.map((route, idx) => {
       if (isDebug) return true;
       if (route.disponible === false && !premiumPlanUser) return false;
@@ -1848,14 +1858,7 @@ class PageHome extends HTMLElement {
     const showLockedRouteToast = (routeIndex) => {
       const route = routes[routeIndex];
       if (route && route.disponible === false && !premiumPlanUser) {
-        const message = copy.comingSoon || (uiLocale === 'es' ? 'Contenido disponible próximamente' : 'Content coming soon');
-        const toast = document.createElement('ion-toast');
-        toast.message = message;
-        toast.duration = 2200;
-        toast.position = 'top';
-        document.body.appendChild(toast);
-        toast.present().catch(() => {});
-        toast.addEventListener('didDismiss', () => { toast.remove(); });
+        window.openPremiumPurchasePreview?.();
         return;
       }
       const prevRoute = routeIndex > 0 ? routes[routeIndex - 1] : null;
@@ -1907,7 +1910,9 @@ class PageHome extends HTMLElement {
             }).length;
             const showChevron = true;
             const moduleLeadIcon =
-              toneCls === 'good'
+              roadmapEnabled
+                ? ''
+                : toneCls === 'good'
                 ? `<div class="module-circle module-circle-good"><ion-icon name="checkmark"></ion-icon></div>`
                 : MODULE_AUDIO_ICON;
             const sessionsMarkup =
@@ -1987,9 +1992,12 @@ class PageHome extends HTMLElement {
 
         const routeNote = getRouteNote(route);
         const prevRouteTitle = !routeUnlocked && routeIndex > 0 ? getRouteTitle(routes[routeIndex - 1]) : '';
-        const routeUnlockText = !routeUnlocked ? `${copy.unlockAfter} ${prevRouteTitle}` : '';
+        const isPremiumLockedRoute = route.disponible === false && !premiumPlanUser;
+        const routeUnlockText = !routeUnlocked && !isPremiumLockedRoute
+          ? `${copy.unlockAfter} ${prevRouteTitle}`
+          : '';
 
-        return `
+        const routeMarkup = `
           <div class="route-item ${isRouteOpen ? 'is-open' : ''}">
             <button
               class="route-header"
@@ -2008,7 +2016,9 @@ class PageHome extends HTMLElement {
               <div class="route-header-meta">
                 ${routeUnlocked
                   ? `${routePercentMarkup}<ion-icon name="chevron-down"></ion-icon>`
-                  : `<span class="route-lock-pill"><ion-icon name="lock-closed-outline"></ion-icon></span>`
+                  : isPremiumLockedRoute
+                    ? `<span class="route-premium-pill" aria-label="Premium"><img src="assets/icons/premium-crown.png" alt=""></span>`
+                    : `<span class="route-lock-pill"><ion-icon name="lock-closed-outline"></ion-icon></span>`
                 }
               </div>
             </button>
@@ -2017,6 +2027,12 @@ class PageHome extends HTMLElement {
             </div>
           </div>
         `;
+        return roadmapEnabled
+          ? `<div class="training-roadmap-item${route.id === activeRoute.id ? ' is-current' : ''}">
+              <div class="training-roadmap-marker" aria-hidden="true"><span>${routeIndex + 1}</span></div>
+              <div class="training-roadmap-content">${routeMarkup}</div>
+            </div>`
+          : routeMarkup;
         })
         .join('');
 
@@ -2193,7 +2209,7 @@ class PageHome extends HTMLElement {
               <span class="handle-hint${isHandleHintSeen() ? ' handle-hint-out' : ''}" aria-hidden="true"><ion-icon name="chevron-up-outline"></ion-icon><span class="handle-hint-label">${this.getJourneySheetHintLabel(this.journeySheetExpanded, uiLocale)}</span></span>
             </button>
             <div class="free-ride-card-main journey-sheet-main">
-              <div class="journey-accordion">
+              <div class="journey-accordion${roadmapEnabled ? ' training-roadmap' : ''}">
                 ${accordionMarkup}
               </div>
             </div>

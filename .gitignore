@@ -33,6 +33,7 @@ build/
 coverage/
 tmp/
 temp/
+phrase_images/
 
 .vscode/
 .idea/

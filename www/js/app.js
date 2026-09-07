@@ -33,6 +33,7 @@ const PURCHASE_EXPIRES_STORAGE_KEY = '_purchase_expires';
 const PURCHASE_EXPIRES_HUMAN_STORAGE_KEY = '_purchase_expires_human';
 const PURCHASE_USER_ID_STORAGE_KEY = '_purchase_user_id';
 const LAST_IAP_RESULT_STORAGE_KEY = 'appv5:last-got-premium-result';
+const IAP_SUCCESS_MODAL_INITIATED_WINDOW_MS = 120000;
 
 let currentTabsActiveTab = '';
 let lastNativeStatusBarInfo = { height: 0, platform: '', osVersion: '' };
@@ -1159,6 +1160,107 @@ window._trigger_gotPremium = (result) => {
       }
     })
   );
+
+  const source = String(safeResult.source || '').trim();
+  const now = Date.now();
+  const purchaseWasInitiated =
+    Number.isFinite(window.__iapPurchaseInitiatedAt) &&
+    now - window.__iapPurchaseInitiatedAt < IAP_SUCCESS_MODAL_INITIATED_WINDOW_MS;
+  const restoreWasInitiated =
+    source === 'restore' ||
+    (Number.isFinite(window.__iapRestoreRequestedAt) &&
+      now - window.__iapRestoreRequestedAt < IAP_SUCCESS_MODAL_INITIATED_WINDOW_MS);
+  const restoreModalRecentlyShown =
+    restoreWasInitiated &&
+    Number.isFinite(window.__premiumSuccessModalShownAt) &&
+    now - window.__premiumSuccessModalShownAt < IAP_SUCCESS_MODAL_INITIATED_WINDOW_MS;
+
+  if (
+    safeResult.register_ok === true &&
+    (source === 'diagnostics-test' || purchaseWasInitiated || restoreWasInitiated) &&
+    !restoreModalRecentlyShown
+  ) {
+    window.__premiumSuccessModalShownAt = now;
+    window.showPremiumSuccessModal?.({ restored: restoreWasInitiated && !purchaseWasInitiated });
+    window.__iapPurchaseInitiatedAt = 0;
+  }
+};
+
+window.showPremiumSuccessModal = ({ restored = false } = {}) => {
+  document.getElementById('premium-success-overlay')?.remove();
+
+  const locale = resolveChromeLocale();
+  const copy = locale === 'es'
+    ? {
+        title: restored ? '¡Premium restaurado!' : '¡Felicidades!',
+        heading: restored ? 'Tu acceso Premium está activo' : '¡Ya eres Premium!',
+        body: restored
+          ? 'Hemos recuperado tu acceso Premium. Ya puedes seguir disfrutando de todo el contenido.'
+          : 'Ya puedes disfrutar de todo el contenido Premium, sin publicidad y con acceso completo.',
+        continue: 'Continuar'
+      }
+    : {
+        title: restored ? 'Premium restored!' : 'Congratulations!',
+        heading: restored ? 'Your Premium access is active' : 'You are now Premium!',
+        body: restored
+          ? 'Your Premium access has been restored. You can continue enjoying all the content.'
+          : 'You can now enjoy all Premium content, without ads and with full access.',
+        continue: 'Continue'
+      };
+
+  const overlay = document.createElement('div');
+  overlay.id = 'premium-success-overlay';
+  overlay.className = 'premium-success-overlay';
+  overlay.innerHTML = `
+    <div class="premium-success-backdrop" data-premium-success-close="true"></div>
+    <section class="premium-success-card" role="dialog" aria-modal="true" aria-labelledby="premium-success-title">
+      <div class="premium-success-badge"><img src="assets/icons/premium-crown-lilac.png" alt=""></div>
+      <img class="premium-success-mascot" src="assets/mascot/nena/nena-premium.png" alt="">
+      <h2 id="premium-success-title">${copy.title}</h2>
+      <h3>${copy.heading}</h3>
+      <p>${copy.body}</p>
+      <button type="button" class="premium-success-continue" data-premium-success-close="true">${copy.continue}</button>
+    </section>`;
+
+  const close = () => {
+    overlay.classList.remove('is-visible');
+    setTimeout(() => overlay.remove(), 260);
+  };
+  overlay.addEventListener('click', (event) => {
+    if (event.target.closest('[data-premium-success-close]')) close();
+  });
+  document.body.appendChild(overlay);
+  requestAnimationFrame(() => overlay.classList.add('is-visible'));
+};
+
+window.clearLocalPurchaseState = () => {
+  try {
+    localStorage.removeItem(PURCHASE_EXPIRES_STORAGE_KEY);
+    localStorage.removeItem(PURCHASE_EXPIRES_HUMAN_STORAGE_KEY);
+    localStorage.removeItem(PURCHASE_USER_ID_STORAGE_KEY);
+    localStorage.removeItem(LAST_IAP_RESULT_STORAGE_KEY);
+  } catch (err) {
+    console.error('[iap] error limpiando estado local de compra', err);
+  }
+
+  window.__lastGotPremiumResult = null;
+  if (window.user && typeof window.user === 'object') {
+    const nextUser = { ...window.user };
+    delete nextUser.expires_date;
+    delete nextUser.expiresDate;
+    delete nextUser.purchase_id;
+    nextUser.premium = false;
+    if (typeof window.setUser === 'function') {
+      window.setUser(nextUser);
+    } else {
+      window.user = nextUser;
+      window.dispatchEvent(new CustomEvent('app:user-change', { detail: nextUser }));
+    }
+  }
+
+  window.dispatchEvent(new CustomEvent('app:iap-premium-change', {
+    detail: { result: null, user: window.user || null, source: 'clear-local' }
+  }));
 };
 
 window.getLastIapPremiumResult = () => {
@@ -2208,6 +2310,24 @@ function setupDiagnosticsModal() {
   };
 
   window.openDiagnosticsModal = openDiagnosticsModal;
+  window.openPremiumPurchasePreview = async () => {
+    const diagnosticsPage = document.createElement('page-diagnostics');
+    if (typeof diagnosticsPage.connectedCallback === 'function') {
+      diagnosticsPage.connectedCallback();
+    }
+    const preview = diagnosticsPage?.querySelector('#diag-premium-preview');
+    if (!preview) {
+      diagnosticsPage.disconnectedCallback?.();
+      return;
+    }
+    preview._premiumPreviewParent = preview.parentNode;
+    preview._premiumPreviewOwner = diagnosticsPage;
+    preview.dataset.dismissDiagnosticsOnClose = 'true';
+    preview.dataset.premiumPreviewDetached = 'true';
+    document.body.appendChild(preview);
+    preview.hidden = false;
+    requestAnimationFrame(() => preview.classList.add('is-visible'));
+  };
 }
 
 function setupNotificationsModal() {

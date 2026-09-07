@@ -15,6 +15,7 @@
     "sync:training-data": "bash ./scripts/sync-training-data-from-content.sh",
     "sync:training-data-meta": "node ./scripts/generate-training-data-meta.js",
     "upload:speak-sentence-images": "bash ./scripts/upload-speak-sentence-images.sh",
+    "download:speak-sentence-images": "bash ./scripts/download-speak-phrase-images.sh",
     "translate:training-data-es": "node ./scripts/fill-training-data-es.js",
     "fix:ios-codesign": "bash ./scripts/fix-ios-codesign-junk.sh"
   },

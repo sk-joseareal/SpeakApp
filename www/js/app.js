@@ -1375,6 +1375,15 @@ window.buildIapSupportPayload = (context = {}) => {
       ? window.__iapDiagnosticsState.lastBackend
       : null;
   const lastEvent = window.__lastIapStoreEvent || null;
+  const lastConflict = window.__lastIapOwnershipConflict && typeof window.__lastIapOwnershipConflict === 'object'
+    ? window.__lastIapOwnershipConflict
+    : null;
+  const lastConflictEvent = lastEvent && lastEvent.type === 'ownership-conflict' ? lastEvent : null;
+  const conflictExtra = lastConflictEvent && lastConflictEvent.extra && typeof lastConflictEvent.extra === 'object'
+    ? lastConflictEvent.extra
+    : {};
+  const conflictError = conflictExtra.error && typeof conflictExtra.error === 'object' ? conflictExtra.error : {};
+  const hasConflictEvent = Boolean(lastConflictEvent);
   const platform =
     context.platform ||
     (lastDiagnosticsBackend && lastDiagnosticsBackend.platform) ||
@@ -1391,7 +1400,9 @@ window.buildIapSupportPayload = (context = {}) => {
     issue: context.issue || 'iap_support_request',
     ownership_conflict: Boolean(
       context.ownership_conflict ||
+      lastConflict ||
       window.isIapOwnershipConflict(context.error) ||
+      window.isIapOwnershipConflict(conflictExtra.error) ||
       window.isIapOwnershipConflict(lastDiagnosticsBackend && lastDiagnosticsBackend.error) ||
       window.isIapOwnershipConflict(lastResult && lastResult.error)
     ),
@@ -1400,35 +1411,59 @@ window.buildIapSupportPayload = (context = {}) => {
     user_email: context.user_email || user.email || '',
     platform: String(platform || '').trim(),
     product_id:
+      (lastConflict && (lastConflict.productId || lastConflict.error?.productId)) ||
       context.product_id ||
       context.productId ||
+      conflictExtra.productId ||
+      conflictExtra.product_id ||
+      conflictError.productId ||
+      conflictError.product_id ||
       (lastDiagnosticsBackend && lastDiagnosticsBackend.productId) ||
       (lastEvent && lastEvent.productId) ||
       '',
     transaction_id:
+      (lastConflict && (lastConflict.transactionId || lastConflict.error?.transactionId)) ||
       context.transaction_id ||
       context.transactionId ||
+      conflictExtra.transactionId ||
+      conflictExtra.transaction_id ||
+      conflictError.transactionId ||
+      conflictError.transaction_id ||
       (lastDiagnosticsBackend && lastDiagnosticsBackend.transactionId) ||
       (lastEvent && lastEvent.transactionId) ||
       '',
     purchase_id:
+      (lastConflict && (lastConflict.purchaseId || lastConflict.error?.purchaseId || lastConflict.error?.originalTransactionId)) ||
       context.purchase_id ||
       context.purchaseId ||
-      (lastDiagnosticsBackend && lastDiagnosticsBackend.purchase_id) ||
-      (lastResult && lastResult.purchase_id) ||
+      conflictExtra.purchase_id ||
+      conflictExtra.purchaseId ||
+      (hasConflictEvent
+        ? ''
+        : (lastDiagnosticsBackend && lastDiagnosticsBackend.purchase_id) ||
+          (lastResult && lastResult.purchase_id) ||
+          '') ||
       '',
     purchase_expires:
+      (lastConflict && (lastConflict.purchaseExpires || lastConflict.error?.expiryTimeMillis || lastConflict.error?.expiresDateMs)) ||
       context.purchase_expires ||
-      (lastDiagnosticsBackend && lastDiagnosticsBackend.purchase_expires) ||
-      (lastResult && lastResult.purchase_expires) ||
-      user.expires_date ||
+      conflictExtra.purchase_expires ||
+      (hasConflictEvent
+        ? ''
+        : (lastDiagnosticsBackend && lastDiagnosticsBackend.purchase_expires) ||
+          (lastResult && lastResult.purchase_expires) ||
+          user.expires_date ||
+          '') ||
       '',
     error:
+      normalizeIapSupportError(lastConflict && lastConflict.error) ||
       normalizeIapSupportError(context.error) ||
       normalizeIapSupportError(lastDiagnosticsBackend && lastDiagnosticsBackend.error) ||
       normalizeIapSupportError(lastResult && lastResult.error),
     source:
+      (lastConflict && lastConflict.source) ||
       context.source ||
+      conflictExtra.source ||
       (lastDiagnosticsBackend && lastDiagnosticsBackend.source) ||
       (lastEvent && lastEvent.extra && lastEvent.extra.source) ||
       '',
@@ -1443,25 +1478,37 @@ window.buildIapSupportPayload = (context = {}) => {
 
 window.formatIapSupportPayload = (payload) => {
   const data = payload && typeof payload === 'object' ? payload : window.buildIapSupportPayload();
+  const lineBreak = '\r\n';
+  const value = (field) => field === undefined || field === null || field === '' ? 'N/A' : field;
   return [
-    `issue: ${data.issue || 'iap_support_request'}`,
-    `ownership_conflict: ${data.ownership_conflict ? 'yes' : 'no'}`,
-    `timestamp: ${data.timestamp || ''}`,
-    `user_id: ${data.user_id || ''}`,
-    `user_email: ${data.user_email || ''}`,
-    `platform: ${data.platform || ''}`,
-    `product_id: ${data.product_id || ''}`,
-    `transaction_id: ${data.transaction_id || ''}`,
-    `purchase_id: ${data.purchase_id || ''}`,
-    `purchase_expires: ${data.purchase_expires || ''}`,
-    `source: ${data.source || ''}`,
-    `user_premium: ${data.user_premium ? 'true' : 'false'}`,
-    `user_expires_date: ${data.user_expires_date || ''}`,
-    `app_version: ${data.app_version || ''}`,
-    `app_build: ${data.app_build || ''}`,
-    `uuid: ${data.uuid || ''}`,
-    `error: ${data.error || ''}`
-  ].join('\n');
+    [
+      `issue: ${data.issue || 'iap_support_request'}`,
+      `ownership_conflict: ${data.ownership_conflict ? 'yes' : 'no'}`,
+      `timestamp: ${value(data.timestamp)}`
+    ].join(lineBreak),
+    [
+      `user_id: ${value(data.user_id)}`,
+      `user_email: ${value(data.user_email)}`,
+      `platform: ${value(data.platform)}`
+    ].join(lineBreak),
+    [
+      `product_id: ${value(data.product_id)}`,
+      `transaction_id: ${value(data.transaction_id)}`,
+      `purchase_id: ${value(data.purchase_id)}`,
+      `purchase_expires: ${value(data.purchase_expires)}`,
+      `source: ${value(data.source)}`
+    ].join(lineBreak),
+    [
+      `user_premium: ${data.user_premium ? 'true' : 'false'}`,
+      `user_expires_date: ${value(data.user_expires_date)}`
+    ].join(lineBreak),
+    [
+      `app_version: ${value(data.app_version)}`,
+      `app_build: ${value(data.app_build)}`,
+      `uuid: ${value(data.uuid)}`
+    ].join(lineBreak),
+    `error: ${value(data.error)}`
+  ].join(`${lineBreak}${lineBreak}`);
 };
 
 window.copyIapSupportPayload = async (context = {}) => {

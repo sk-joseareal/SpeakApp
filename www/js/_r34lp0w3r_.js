@@ -1923,11 +1923,18 @@ IAPPurchaseVerify = async function(body, callback) {
         register_ok: false,
         error: response.error || 'iOS backend validation failed'
       };
+      const errorPurchaseId = response && response.error && (
+        response.error.purchaseId ||
+        response.error.purchase_id ||
+        response.error.originalTransactionId ||
+        response.error.transactionId
+      );
+      if (errorPurchaseId) result.purchase_id = errorPurchaseId;
       if (Number.isFinite(errorExpiryMs) && errorExpiryMs > 0) {
         result.purchase_id =
-          response.error && response.error.raw && response.error.raw.original_transaction_id
-            ? response.error.raw.original_transaction_id
-            : productId;
+          errorPurchaseId ||
+          (response.error && response.error.raw && response.error.raw.original_transaction_id) ||
+          productId;
         result.purchase_expires = errorExpiryMs;
         result.purchase_expires_human = new Date(errorExpiryMs).toISOString();
       }
@@ -2170,6 +2177,16 @@ const notifyIapOwnershipConflict = (result, options = {}) => {
   if (!result || typeof window === 'undefined') return;
   if (typeof window.isIapOwnershipConflict !== 'function') return;
   if (!window.isIapOwnershipConflict(result.error)) return;
+  const conflict = result.error && typeof result.error === 'object' ? result.error : {};
+  window.__lastIapOwnershipConflict = {
+    at: new Date().toISOString(),
+    source: options && options.source ? options.source : 'iap',
+    error: result.error,
+    productId: conflict.productId || conflict.product_id || undefined,
+    transactionId: conflict.transactionId || conflict.transaction_id || undefined,
+    purchaseId: conflict.purchaseId || conflict.purchase_id || undefined,
+    purchaseExpires: conflict.expiryTimeMillis || conflict.expiresDateMs || undefined
+  };
   if (hasIapOwnershipConflictAck()) return;
 
   const activeLocaleRaw =
@@ -2222,6 +2239,8 @@ const notifyIapOwnershipConflict = (result, options = {}) => {
   if (typeof window.emitIapStoreEvent === 'function') {
     window.emitIapStoreEvent('ownership-conflict', null, {
       source: options && options.source ? options.source : 'iap',
+      productId: conflict.productId || conflict.product_id || undefined,
+      transactionId: conflict.transactionId || conflict.transaction_id || undefined,
       purchase_id: purchaseId || undefined,
       error: result.error
     });

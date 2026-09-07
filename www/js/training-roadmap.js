@@ -40,11 +40,17 @@ const normalizeMarkerSize = (value) => ['small', 'tiny'].includes(value) ? value
 const normalizeSpacing = (value) => ['compact', 'tight'].includes(value) ? value : 'wide';
 
 export const getTrainingRoadmapMarkerSize = () => {
-  try { return normalizeMarkerSize(localStorage.getItem(MARKER_SIZE_STORAGE_KEY)); } catch (_err) { return 'large'; }
+  try {
+    const stored = localStorage.getItem(MARKER_SIZE_STORAGE_KEY);
+    return stored === null ? 'small' : normalizeMarkerSize(stored);
+  } catch (_err) { return 'small'; }
 };
 
 export const getTrainingRoadmapSpacing = () => {
-  try { return normalizeSpacing(localStorage.getItem(SPACING_STORAGE_KEY)); } catch (_err) { return 'wide'; }
+  try {
+    const stored = localStorage.getItem(SPACING_STORAGE_KEY);
+    return stored === null ? 'compact' : normalizeSpacing(stored);
+  } catch (_err) { return 'compact'; }
 };
 
 const dispatchRoadmapChange = () => {

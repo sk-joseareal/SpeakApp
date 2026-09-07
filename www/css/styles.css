@@ -11331,13 +11331,16 @@ ion-select.training-pill.active::part(icon) {
 }
 
 .training-roadmap {
+  --training-roadmap-marker-size: 28px;
+  --training-roadmap-column-width: 34px;
+  --training-roadmap-content-gap: 12px;
   gap: 14px;
 }
 
 .training-roadmap-item {
   display: grid;
-  grid-template-columns: 34px minmax(0, 1fr);
-  gap: 12px;
+  grid-template-columns: var(--training-roadmap-column-width) minmax(0, 1fr);
+  gap: var(--training-roadmap-content-gap);
   align-items: stretch;
 }
 
@@ -11355,9 +11358,9 @@ ion-select.training-pill.active::part(icon) {
 .training-roadmap-marker span {
   position: relative;
   z-index: 1;
-  width: 28px;
-  height: 28px;
-  line-height: 28px;
+  width: var(--training-roadmap-marker-size);
+  height: var(--training-roadmap-marker-size);
+  line-height: var(--training-roadmap-marker-size);
   text-align: center;
 }
 
@@ -11366,8 +11369,8 @@ ion-select.training-pill.active::part(icon) {
   position: absolute;
   top: 14px;
   left: 50%;
-  width: 28px;
-  height: 28px;
+  width: var(--training-roadmap-marker-size);
+  height: var(--training-roadmap-marker-size);
   border: 2px solid #cbd5e1;
   border-radius: 50%;
   background: #ffffff;
@@ -11377,7 +11380,7 @@ ion-select.training-pill.active::part(icon) {
 .training-roadmap-marker::after {
   content: '';
   position: absolute;
-  top: 44px;
+  top: calc(14px + var(--training-roadmap-marker-size) + 2px);
   bottom: -14px;
   left: 50%;
   border-left: 2px dashed #cbd5e1;
@@ -14540,6 +14543,10 @@ body.app-platform-ios.app-display-zoom-compensation .reference-sublevel-main .re
 
 .module-sessions {
   margin: 8px 8px 0;
+}
+
+.module-sessions.training-list {
+  gap: 7px;
 }
 
 .reference-accordion .route-item {

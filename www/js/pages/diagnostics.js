@@ -27,7 +27,14 @@ import {
 } from '../data/training-data.js';
 import { ensureReferenceData, getLocalizedMapField, getReferenceCourses } from '../data/reference-data.js';
 import { isDailyChallengeEnabled, setDailyChallengeEnabled } from '../daily-challenge.js';
-import { isTrainingRoadmapEnabled, setTrainingRoadmapEnabled } from '../training-roadmap.js';
+import {
+  getTrainingRoadmapMarkerSize,
+  getTrainingRoadmapSpacing,
+  isTrainingRoadmapEnabled,
+  setTrainingRoadmapEnabled,
+  setTrainingRoadmapMarkerSize,
+  setTrainingRoadmapSpacing
+} from '../training-roadmap.js';
 
 class PageDiagnostics extends HTMLElement {
   connectedCallback() {
@@ -713,6 +720,22 @@ class PageDiagnostics extends HTMLElement {
                 <div class="diag-debug-sub">Muestra las rutas como una secuencia numerada conectada.</div>
               </div>
               <ion-toggle id="diag-training-roadmap-toggle" aria-label="Timeline de Training" ${isTrainingRoadmapEnabled() ? 'checked' : ''}></ion-toggle>
+            </div>
+            <div class="diag-speak-block" style="margin-top: 8px;">
+              <div class="diag-debug-title">Tamaño de los círculos</div>
+              <ion-segment id="diag-training-roadmap-marker-size" value="${getTrainingRoadmapMarkerSize()}">
+                <ion-segment-button value="large"><ion-label>Grande</ion-label></ion-segment-button>
+                <ion-segment-button value="small"><ion-label>Pequeño</ion-label></ion-segment-button>
+                <ion-segment-button value="tiny"><ion-label>Muy pequeño</ion-label></ion-segment-button>
+              </ion-segment>
+            </div>
+            <div class="diag-speak-block" style="margin-top: 8px;">
+              <div class="diag-debug-title">Separación lateral</div>
+              <ion-segment id="diag-training-roadmap-spacing" value="${getTrainingRoadmapSpacing()}">
+                <ion-segment-button value="wide"><ion-label>Amplia</ion-label></ion-segment-button>
+                <ion-segment-button value="compact"><ion-label>Estrecha</ion-label></ion-segment-button>
+                <ion-segment-button value="tight"><ion-label>Muy estrecha</ion-label></ion-segment-button>
+              </ion-segment>
             </div>
             <div class="diag-debug-toggle" style="margin-top: 10px;">
               <div class="diag-debug-text">
@@ -2293,6 +2316,8 @@ class PageDiagnostics extends HTMLElement {
     const chatChatbotToggleEl = this.querySelector('#diag-chat-chatbot-toggle');
     const chatChatbotSubEl = this.querySelector('#diag-chat-chatbot-sub');
     const trainingRoadmapToggleEl = this.querySelector('#diag-training-roadmap-toggle');
+    const trainingRoadmapMarkerSizeEl = this.querySelector('#diag-training-roadmap-marker-size');
+    const trainingRoadmapSpacingEl = this.querySelector('#diag-training-roadmap-spacing');
     const pronAdvancedUsageSectionEl = this.querySelector('#diag-pron-advanced-usage-section');
     const notifyListEl = this.querySelector('#diag-notify-list');
     const notifyEmptyEl = this.querySelector('#diag-notify-empty');
@@ -4808,6 +4833,12 @@ class PageDiagnostics extends HTMLElement {
     trainingRoadmapToggleEl?.addEventListener('ionChange', (event) => {
       const checked = event?.detail?.checked ?? trainingRoadmapToggleEl.checked;
       trainingRoadmapToggleEl.checked = setTrainingRoadmapEnabled(checked);
+    });
+    trainingRoadmapMarkerSizeEl?.addEventListener('ionChange', (event) => {
+      trainingRoadmapMarkerSizeEl.value = setTrainingRoadmapMarkerSize(event?.detail?.value || trainingRoadmapMarkerSizeEl.value);
+    });
+    trainingRoadmapSpacingEl?.addEventListener('ionChange', (event) => {
+      trainingRoadmapSpacingEl.value = setTrainingRoadmapSpacing(event?.detail?.value || trainingRoadmapSpacingEl.value);
     });
     displayZoomCompensationToggleEl?.addEventListener('ionChange', async (event) => {
       const checked =

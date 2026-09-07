@@ -7,7 +7,12 @@ import {
   setSelection
 } from '../data/training-data.js';
 import { getAppLocale, setAppLocale, getActiveLocale, setLocaleOverride } from '../state.js';
-import { TRAINING_ROADMAP_CHANGE_EVENT, isTrainingRoadmapEnabled } from '../training-roadmap.js';
+import {
+  TRAINING_ROADMAP_CHANGE_EVENT,
+  getTrainingRoadmapMarkerSize,
+  getTrainingRoadmapSpacing,
+  isTrainingRoadmapEnabled
+} from '../training-roadmap.js';
 import { goToSpeak } from '../nav.js';
 import {
   getAppCopyNarrationPayload,
@@ -1808,6 +1813,8 @@ class PageHome extends HTMLElement {
     const routeProgressList = routes.map((route) => getRoutePercent(route));
     const isDebug = Boolean(window.r34lp0w3r && window.r34lp0w3r.speakDebug);
     const roadmapEnabled = isTrainingRoadmapEnabled();
+    const roadmapMarkerSize = getTrainingRoadmapMarkerSize();
+    const roadmapSpacing = getTrainingRoadmapSpacing();
     const routeUnlockList = routes.map((route, idx) => {
       if (isDebug) return true;
       if (route.disponible === false && !premiumPlanUser) return false;
@@ -2209,7 +2216,7 @@ class PageHome extends HTMLElement {
               <span class="handle-hint${isHandleHintSeen() ? ' handle-hint-out' : ''}" aria-hidden="true"><ion-icon name="chevron-up-outline"></ion-icon><span class="handle-hint-label">${this.getJourneySheetHintLabel(this.journeySheetExpanded, uiLocale)}</span></span>
             </button>
             <div class="free-ride-card-main journey-sheet-main">
-              <div class="journey-accordion${roadmapEnabled ? ' training-roadmap' : ''}">
+              <div class="journey-accordion${roadmapEnabled ? ' training-roadmap' : ''}"${roadmapEnabled ? ` style="--training-roadmap-marker-size:${roadmapMarkerSize === 'tiny' ? 20 : roadmapMarkerSize === 'small' ? 24 : 28}px;--training-roadmap-column-width:${roadmapSpacing === 'tight' ? 26 : roadmapSpacing === 'compact' ? 30 : 34}px;--training-roadmap-content-gap:${roadmapSpacing === 'tight' ? 4 : roadmapSpacing === 'compact' ? 8 : 12}px;"` : ''}>
                 ${accordionMarkup}
               </div>
             </div>

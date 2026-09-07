@@ -7,7 +7,7 @@ android {
         applicationId "com.sokinternet.cursoingles"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 999005041
+        versionCode 999005042
         versionName "5.0.4"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {

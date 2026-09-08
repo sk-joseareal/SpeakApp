@@ -1410,6 +1410,10 @@ window.buildIapSupportPayload = (context = {}) => {
     user_id: context.user_id || user.user_id || '',
     user_email: context.user_email || user.email || '',
     platform: String(platform || '').trim(),
+    requested_product_id:
+      (lastConflict && lastConflict.error?.requestedProductId) ||
+      context.requested_product_id ||
+      '',
     product_id:
       (lastConflict && (lastConflict.productId || lastConflict.error?.productId)) ||
       context.product_id ||
@@ -1421,6 +1425,14 @@ window.buildIapSupportPayload = (context = {}) => {
       (lastDiagnosticsBackend && lastDiagnosticsBackend.productId) ||
       (lastEvent && lastEvent.productId) ||
       '',
+    owned_products:
+      (lastConflict && Array.isArray(lastConflict.error?.ownedProducts)
+        ? lastConflict.error.ownedProducts.join(', ')
+        : ''),
+    conflicting_products:
+      (lastConflict && Array.isArray(lastConflict.error?.conflictingProducts)
+        ? lastConflict.error.conflictingProducts.map((item) => item && item.productId).filter(Boolean).join(', ')
+        : ''),
     transaction_id:
       (lastConflict && (lastConflict.transactionId || lastConflict.error?.transactionId)) ||
       context.transaction_id ||
@@ -1493,6 +1505,9 @@ window.formatIapSupportPayload = (payload) => {
     ].join(lineBreak),
     [
       `product_id: ${value(data.product_id)}`,
+      `requested_product_id: ${value(data.requested_product_id)}`,
+      `owned_products: ${value(data.owned_products)}`,
+      `conflicting_products: ${value(data.conflicting_products)}`,
       `transaction_id: ${value(data.transaction_id)}`,
       `purchase_id: ${value(data.purchase_id)}`,
       `purchase_expires: ${value(data.purchase_expires)}`,

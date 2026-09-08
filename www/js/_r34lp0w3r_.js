@@ -2196,11 +2196,26 @@ const notifyIapOwnershipConflict = (result, options = {}) => {
   const activeLocale = String(activeLocaleRaw || '').trim().toLowerCase();
   const isEnglish = activeLocale.startsWith('en');
   const purchaseId = result.purchase_id ? String(result.purchase_id) : '';
+  const ownedProducts = result.error && Array.isArray(result.error.ownedProducts)
+    ? result.error.ownedProducts
+    : [];
+  const productLabels = {
+    'com.sokinternet.cursoingles.subsmonth': isEnglish ? 'monthly' : 'mensual',
+    'com.sokinternet.cursoingles.subsyear': isEnglish ? 'annual' : 'anual',
+    'com.sokinternet.cursoingles.forever': isEnglish ? 'lifetime' : 'vitalicia'
+  };
+  const ownedProductsText = ownedProducts
+    .map((productId) => productLabels[productId] || productId)
+    .join(isEnglish ? ', ' : ', ');
   const message = isEnglish
-    ? (purchaseId
+    ? (ownedProductsText
+        ? `This Apple account already has these purchases: ${ownedProductsText}. They are linked to another account.`
+        : purchaseId
         ? `This subscription is already linked to another account. ID: ${purchaseId}.`
         : 'This subscription is already linked to another account.')
-    : (purchaseId
+    : (ownedProductsText
+        ? `Esta cuenta de Apple ya tiene estas compras: ${ownedProductsText}. Están vinculadas a otra cuenta.`
+        : purchaseId
         ? `Esta suscripción ya está vinculada a otra cuenta. ID: ${purchaseId}.`
         : 'Esta suscripción ya está vinculada a otra cuenta.');
 

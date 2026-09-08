@@ -627,6 +627,7 @@ class PageReference extends HTMLElement {
       'li',
       'strong',
       'em',
+      'span',
       'code',
       'pre',
       'blockquote',
@@ -648,6 +649,7 @@ class PageReference extends HTMLElement {
 
     const allowedAttrsByTag = {
       a: new Set(['href', 'title', 'target', 'rel']),
+      span: new Set(['class']),
       code: new Set(['class']),
       pre: new Set(['class'])
     };
@@ -788,7 +790,7 @@ class PageReference extends HTMLElement {
           j += 1;
         }
         const thead = `<thead><tr>${headerCells
-          .map((cell) => `<th>${this.parseInlineMarkdown(cell)}</th>`)
+          .map((cell) => `<th><span class="reference-table-header-text">${this.parseInlineMarkdown(cell)}</span></th>`)
           .join('')}</tr></thead>`;
         const tbody =
           rows.length > 0
@@ -862,6 +864,13 @@ class PageReference extends HTMLElement {
       });
       if (this._markdownRenderToken !== renderToken) return;
       target.innerHTML = this.sanitizeMarkedHtml(rawHtml);
+      target.querySelectorAll('table thead th').forEach((th) => {
+        if (th.querySelector('.reference-table-header-text')) return;
+        const text = document.createElement('span');
+        text.className = 'reference-table-header-text';
+        text.innerHTML = th.innerHTML;
+        th.replaceChildren(text);
+      });
       this.enhanceReferenceLessonAudio(target, locale);
       this.refreshReferenceLessonSpeechCatalog(target, locale);
     } catch (err) {

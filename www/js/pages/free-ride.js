@@ -7258,6 +7258,7 @@ class PageFreeRide extends HTMLElement {
     const translateBtn = this.querySelector('#free-ride-translate-btn');
     const translateStatusEl = this.querySelector('#free-ride-translate-status');
     const inputEl = this.querySelector('#free-ride-input');
+    const clearInputBtn = this.querySelector('#free-ride-clear-input');
     const inputLanguageStatusEl = this.querySelector('#free-ride-input-language-status');
     const inputWordCountEl = this.querySelector('#free-ride-input-word-count');
     const scoreLineEl = this.querySelector('#free-ride-score-line');
@@ -7414,6 +7415,14 @@ class PageFreeRide extends HTMLElement {
     }
     if (inputEl) {
       inputEl.disabled = this.state.isRecording || this.state.isTranscribing;
+    }
+    if (clearInputBtn) {
+      const clearLabel = this.getUiLocale() === 'es' ? 'Borrar texto' : 'Clear text';
+      const canClear = hasInputText && !libraryActionsDisabled;
+      clearInputBtn.classList.toggle('is-visible', canClear);
+      clearInputBtn.disabled = !canClear;
+      clearInputBtn.setAttribute('aria-label', clearLabel);
+      clearInputBtn.title = clearLabel;
     }
     if (inputLanguageStatusEl) {
       const showStatus =
@@ -7650,6 +7659,7 @@ class PageFreeRide extends HTMLElement {
 
   bindUi(copy) {
     const inputEl = this.querySelector('#free-ride-input');
+    const clearInputBtn = this.querySelector('#free-ride-clear-input');
     const playBtn = this.querySelector('#free-ride-play');
     const recordBtn = this.querySelector('#free-ride-record');
     const voiceBtn = this.querySelector('#free-ride-voice');
@@ -7684,6 +7694,10 @@ class PageFreeRide extends HTMLElement {
         this.scheduleLayoutSync(0);
       });
     }
+    clearInputBtn?.addEventListener('click', () => {
+      this.onInputText('');
+      inputEl?.focus();
+    });
 
     savePhraseBtn?.addEventListener('click', () => {
       this.saveCurrentPhraseToLibrary().catch(() => {});
@@ -7956,12 +7970,23 @@ class PageFreeRide extends HTMLElement {
                   })}</span>
                   <span class="free-ride-label-status" id="free-ride-input-language-status" hidden></span>
                 </label>
-                <textarea
-                  id="free-ride-input"
-                  class="free-ride-input"
-                  rows="3"
-                  placeholder="${this.escapeHtml(bilingualPlaceholder || copy.inputPlaceholder || '')}"
-                ></textarea>
+                <div class="free-ride-input-textarea-shell">
+                  <textarea
+                    id="free-ride-input"
+                    class="free-ride-input"
+                    rows="3"
+                    placeholder="${this.escapeHtml(bilingualPlaceholder || copy.inputPlaceholder || '')}"
+                  ></textarea>
+                  <button
+                    id="free-ride-clear-input"
+                    class="free-ride-clear-input"
+                    type="button"
+                    aria-label="${this.getUiLocale() === 'es' ? 'Borrar texto' : 'Clear text'}"
+                    title="${this.getUiLocale() === 'es' ? 'Borrar texto' : 'Clear text'}"
+                  >
+                    <ion-icon name="close-circle-outline" aria-hidden="true"></ion-icon>
+                  </button>
+                </div>
                 <div class="free-ride-input-meta">
                   <div class="free-ride-input-word-count" id="free-ride-input-word-count" aria-live="polite">0/10</div>
                   <div class="free-ride-input-inline-message" id="free-ride-translate-status" aria-live="polite"></div>

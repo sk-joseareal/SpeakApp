@@ -3037,15 +3037,30 @@ function IAPgetProducts() {
 };
 
 // Lanzar compra
-function IAPbuyProduct(productId) {
+async function IAPbuyProduct(productId) {
     Rlog()
     Rlog(">#V05#> IAPbuyProduct(): Comprar el producto: " + productId);
     window.__iapPurchaseInitiatedAt = Date.now();
-    const product = window.CdvPurchase.store.get(productId);
+    const store = window.CdvPurchase.store;
+    let product = store.get(productId);
     Rlog(">#V05#> IAPbuyProduct(): typeof product: " + (typeof product))
     if (!product) {
         Rlog('>#V05#> IAPbuyProduct(): !product: El producto no se ha encontrado.');
         return;
+    }
+    if (product.platform === 'android-playstore' && typeof store.update === 'function') {
+        Rlog(">#V05#> IAPbuyProduct(): Refrescando detalles de Google Play antes de comprar.");
+        try {
+            await Promise.resolve(store.update());
+            product = store.get(productId);
+            if (!product) {
+                Rlog('>#V05#> IAPbuyProduct(): El producto ha desaparecido tras refrescar los detalles.');
+                return;
+            }
+        } catch (err) {
+            Rlog(">#V05#> IAPbuyProduct(): No se pudieron refrescar los detalles: " + (err && err.message ? err.message : String(err)));
+            return;
+        }
     }
     if (!product.canPurchase) {
         Rlog('>#V05#> IAPbuyProduct(): !product.canPurchase: Este producto no está disponible para la compra en este momento.');

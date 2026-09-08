@@ -2,7 +2,7 @@
   "es": {
     "tabs": {
       "training": "Entrenar",
-      "lab": "Lab",
+      "lab": "Practicar",
       "reference": "Aprender",
       "you": "Perfil",
       "chat": "Chat"
@@ -249,7 +249,7 @@
       "sessionsCompleted": "sesiones completadas"
     },
     "freeRide": {
-      "title": "Lab",
+      "title": "Practicar",
       "subtitle": "Traduce, escucha y practica la pronunciación de tus frases.",
       "inputLabel": "Tu frase",
       "inputPlaceholder": "Escribe una frase aquí…",
@@ -553,7 +553,7 @@
   "en": {
     "tabs": {
       "training": "Training",
-      "lab": "Lab",
+      "lab": "Practice",
       "reference": "Learn",
       "you": "Profile",
       "chat": "Chat"
@@ -800,7 +800,7 @@
       "sessionsCompleted": "sessions completed"
     },
     "freeRide": {
-      "title": "Lab",
+      "title": "Practice",
       "subtitle": "Translate, listen, and practice pronouncing your phrases.",
       "inputLabel": "Your phrase",
       "inputPlaceholder": "Write a phrase here…",

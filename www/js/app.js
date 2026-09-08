@@ -6,7 +6,7 @@ import { isAppTitlebarEnabled } from './components/app-header.js';
 import { refreshTranslationCapabilities } from './translation-capabilities.js';
 import './pages/onboarding.js';
 import './pages/home.js';
-import './pages/reference.js';
+import './pages/reference.js?v=14';
 import './pages/speak.js';
 import './pages/profile.js';
 import './pages/chat.js';

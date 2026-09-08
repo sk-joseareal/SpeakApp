@@ -9366,6 +9366,54 @@ page-profile.is-card-padded .free-ride-card {
   box-shadow: none;
 }
 
+.free-ride-input-textarea-shell {
+  position: relative;
+  width: 100%;
+}
+
+.free-ride-input-textarea-shell .free-ride-input {
+  padding-right: 42px;
+}
+
+.free-ride-clear-input {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 25px;
+  height: 25px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #94a3b8;
+  opacity: 0;
+  pointer-events: none;
+  cursor: pointer;
+  transition: color 140ms ease, opacity 140ms ease, transform 140ms ease;
+}
+
+.free-ride-clear-input.is-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.free-ride-clear-input:hover {
+  color: #475569;
+  transform: scale(1.06);
+}
+
+.free-ride-clear-input:focus-visible {
+  outline: 2px solid rgba(59, 130, 246, 0.45);
+  outline-offset: 2px;
+}
+
+.free-ride-clear-input ion-icon {
+  font-size: 1.2rem;
+}
+
 .free-ride-input:focus {
   outline: none;
   border-color: #d4dbe6;
@@ -12874,6 +12922,7 @@ body.app-platform-ios.app-display-zoom-compensation .reference-sublevel-main .re
 
 .reference-markdown table {
   width: 100%;
+  table-layout: fixed;
   overflow: hidden;
   border-collapse: separate;
   border-spacing: 0;
@@ -12889,6 +12938,23 @@ body.app-platform-ios.app-display-zoom-compensation .reference-sublevel-main .re
   border: 0;
   color: #245ad4;
   background: #dfe7fc;
+  max-width: 0;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  word-break: normal !important;
+  overflow-wrap: normal !important;
+}
+
+.reference-markdown table thead tr th .reference-table-header-text {
+  display: block !important;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  word-break: normal !important;
+  overflow-wrap: normal !important;
 }
 
 .reference-markdown table thead tr th:first-child {

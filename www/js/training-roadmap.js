@@ -42,8 +42,8 @@ const normalizeSpacing = (value) => ['compact', 'tight'].includes(value) ? value
 export const getTrainingRoadmapMarkerSize = () => {
   try {
     const stored = localStorage.getItem(MARKER_SIZE_STORAGE_KEY);
-    return stored === null ? 'small' : normalizeMarkerSize(stored);
-  } catch (_err) { return 'small'; }
+    return stored === null ? 'large' : normalizeMarkerSize(stored);
+  } catch (_err) { return 'large'; }
 };
 
 export const getTrainingRoadmapSpacing = () => {

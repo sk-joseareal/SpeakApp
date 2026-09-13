@@ -245,6 +245,7 @@ class PageReference extends HTMLElement {
     this.toolView = false;
     this.activeTool = '';
     this.toolsDataCache = {};
+    this.toolsAudioManifestPromise = null;
     this.expandedToolItemId = null;
     this.toolFilter = 'featured';
     this.vocabImageCache = new Set();
@@ -342,6 +343,16 @@ class PageReference extends HTMLElement {
         .toLowerCase();
       if (!activeTab) return;
       if (activeTab !== 'reference') {
+        if (window.r34lp0w3r && window.r34lp0w3r.referenceReturnToReview) {
+          window.r34lp0w3r.referenceReturnToReview = false;
+          window.r34lp0w3r.referenceDeepLink = null;
+          this.lessonView = false;
+          this.referenceLessonTab = 'content';
+          this.referenceTestSelectionKey = '';
+          setTimeout(() => {
+            if (this.isConnected) this.render();
+          }, 0);
+        }
         this.stopHeroNarration();
         return;
       }
@@ -359,6 +370,25 @@ class PageReference extends HTMLElement {
       this.render();
     };
     window.addEventListener('app:reference-tools-enabled-change', this._referenceToolsHandler);
+    this._tabUserClickHandler = (event) => {
+      const tab = String(event && event.detail ? event.detail.tab || '' : '')
+        .trim()
+        .toLowerCase();
+      if (tab !== 'reference') return;
+      const runtime = window.r34lp0w3r;
+      if (!this.lessonView) return;
+      if (runtime) {
+        runtime.referenceReturnToReview = false;
+        runtime.referenceDeepLink = null;
+      }
+      this.lessonView = false;
+      this.referenceLessonTab = 'content';
+      this.referenceTestSelectionKey = '';
+      setTimeout(() => {
+        if (this.isConnected) this.render();
+      }, 0);
+    };
+    window.addEventListener('app:tab-user-click', this._tabUserClickHandler);
     this._dailyChallengeEnabledHandler = () => {
       if (!this.isConnected || this.lessonView || this.toolView) return;
       this.render();
@@ -1892,8 +1922,13 @@ class PageReference extends HTMLElement {
     this.expandedCourseCode = resolvedSelection.courseCode;
     this.expandedUnitCode = resolvedSelection.unitCode;
     this.lessonView = true;
-    this.referenceLessonTab = targetTab;
+    // The lesson view uses the concrete test key as the tab id. The generic
+    // "tests" deep-link value is only a navigation hint.
+    this.referenceLessonTab = targetTab === 'tests' && testKey ? testKey : targetTab;
     if (testKey) {
+      // Load the persisted state first; loading it afterwards would overwrite
+      // the test selected by the Profile > Review deep link.
+      this.ensureReferenceTestsPersistenceLoaded();
       this.referenceTestSelectionKey = testKey;
       this.persistReferenceTestsState();
     }
@@ -2635,6 +2670,42 @@ class PageReference extends HTMLElement {
       });
   }
 
+  loadToolsAudioManifest() {
+    if (this.toolsAudioManifestPromise) return this.toolsAudioManifestPromise;
+    this.toolsAudioManifestPromise = fetch('data/tools-audio.json')
+      .then((response) => {
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return response.json();
+      })
+      .then((manifest) => {
+        const entries = new Map();
+        (Array.isArray(manifest?.items) ? manifest.items : []).forEach((item) => {
+          const text = String(item?.text || '').replace(/\s+/g, ' ').trim();
+          const audioUrl = String(item?.audio?.audio_url || '').trim();
+          if (text && audioUrl) entries.set(`${manifest.locale || 'en-US'}:${text}`, audioUrl);
+        });
+        return { locale: String(manifest?.locale || 'en-US'), entries };
+      })
+      .catch((error) => {
+        this.toolsAudioManifestPromise = null;
+        throw error;
+      });
+    return this.toolsAudioManifestPromise;
+  }
+
+  async getToolAudioUrl(text, locale) {
+    const normalizedText = String(text || '').replace(/\s+/g, ' ').trim();
+    const localeCode = this.normalizeLocale(locale) || 'en';
+    const normalizedLocale = TTS_LANG_BY_LOCALE[localeCode] || localeCode;
+    if (!normalizedText || normalizedLocale !== 'en-US') return '';
+    try {
+      const manifest = await this.loadToolsAudioManifest();
+      return manifest.entries.get(`${manifest.locale}:${normalizedText}`) || '';
+    } catch (_error) {
+      return '';
+    }
+  }
+
   resolveTranslatorEndpoint() {
     const cfg = window.referenceToolsConfig || {};
     const endpoint = typeof cfg.translatorEndpoint === 'string' ? cfg.translatorEndpoint.trim() : '';
@@ -3060,7 +3131,7 @@ class PageReference extends HTMLElement {
         if (text) {
           overlayEl.querySelectorAll('.tool-expr-play-zone.is-playing').forEach((el) => el.classList.remove('is-playing'));
           playZone.classList.add('is-playing');
-          this.speakHeroNarration(text, 'en').catch(() => {}).finally(() => playZone.classList.remove('is-playing'));
+          this.speakHeroNarration(text, 'en', { useToolAudio: false }).catch(() => {}).finally(() => playZone.classList.remove('is-playing'));
         }
         return;
       }
@@ -4055,11 +4126,16 @@ class PageReference extends HTMLElement {
         }
 
         let started = false;
+        const toolAudioUrl = options && options.useToolAudio
+          ? await this.getToolAudioUrl(lineText, lineLang)
+          : '';
         const referenceAudioUrl = useReferenceAudio
           ? String(line.audio?.audio_url || '').trim()
           : '';
         if (referenceAudioUrl) {
           started = await this.playHeroNarrationAligned(lineText, lineLang, token, referenceAudioUrl);
+        } else if (toolAudioUrl) {
+          started = await this.playHeroNarrationAligned(lineText, lineLang, token, toolAudioUrl);
         } else if (!options.useLocalAudio) {
           started = await this.playHeroNarrationAligned(lineText, lineLang, token);
         }
@@ -5810,6 +5886,10 @@ class PageReference extends HTMLElement {
     const uiLocale = this.getUiLocale(baseLocale);
     const tabsCopy = getTabsCopy(uiLocale);
     const copy = getReferenceCopy(uiLocale);
+    const returnToProfileReview = Boolean(
+      window.r34lp0w3r && window.r34lp0w3r.referenceReturnToReview
+    );
+    const reviewBackLabel = uiLocale === 'es' ? 'Revisión' : 'Review';
     const heroMascotSrc = this.getHeroMascotSrc();
     this.ensureReferenceTestsPersistenceLoaded();
 
@@ -5974,7 +6054,7 @@ class PageReference extends HTMLElement {
               if (text) {
                 contentListEl.querySelectorAll('.tool-expr-play-zone.is-playing').forEach((el) => el.classList.remove('is-playing'));
                 playZone.classList.add('is-playing');
-                this.speakHeroNarration(text, playLang)
+                this.speakHeroNarration(text, playLang, { useToolAudio: true })
                   .catch(() => {})
                   .finally(() => playZone.classList.remove('is-playing'));
               }
@@ -6232,7 +6312,7 @@ class PageReference extends HTMLElement {
             if (text) {
               contentListEl.querySelectorAll('.tool-expr-play-zone.is-playing').forEach((el) => el.classList.remove('is-playing'));
               playZone.classList.add('is-playing');
-              this.speakHeroNarration(text, playLang)
+              this.speakHeroNarration(text, playLang, { useToolAudio: true })
                 .catch(() => {})
                 .finally(() => playZone.classList.remove('is-playing'));
             }
@@ -6568,6 +6648,14 @@ class PageReference extends HTMLElement {
     };
     const lessonTabItems = buildLessonTabItems();
     const isTestTab = this.isTestTab(activeLessonTab);
+    const lessonDisplayTitle = this.getText(selectedLesson, 'display', uiLocale) || `Lesson ${selectedLessonCode}`;
+    const selectedTestContext = returnToProfileReview ? this.getReferenceTestsContext(uiLocale) : null;
+    const selectedTestTitle = selectedTestContext && selectedTestContext.activeItem
+      ? this.getLocalizedTestText(selectedTestContext.activeItem.test.display, uiLocale)
+      : '';
+    const displayTitle = returnToProfileReview && selectedTestTitle
+      ? selectedTestTitle
+      : lessonDisplayTitle;
     const lessonAudioEnabled = isReferenceLessonAudioEnabled() && uiLocale === 'en';
     const lessonAudioLabel = uiLocale === 'es' ? 'Escuchar lección' : 'Listen to lesson';
     const lessonAudioStopLabel = uiLocale === 'es' ? 'Detener' : 'Stop';
@@ -6575,7 +6663,6 @@ class PageReference extends HTMLElement {
     const lessonAudioNextLabel = uiLocale === 'es' ? 'Fragmento siguiente' : 'Next fragment';
 
     if (this.lessonView) {
-      const lessonDisplayTitle = this.getText(selectedLesson, 'display', uiLocale) || `Lesson ${selectedLessonCode}`;
       this.innerHTML = `
         ${this.renderHeaderHtml()}
         <ion-content fullscreen class="home-journey free-ride-content secret-content">
@@ -6592,17 +6679,18 @@ class PageReference extends HTMLElement {
                       class="reference-back-btn"
                       type="button"
                       id="reference-back-btn"
-                      aria-label="${this.escapeHtml(copy.backToList)}"
-                      title="${this.escapeHtml(copy.backToList)}"
+                      aria-label="${this.escapeHtml(returnToProfileReview ? reviewBackLabel : copy.backToList)}"
+                      title="${this.escapeHtml(returnToProfileReview ? reviewBackLabel : copy.backToList)}"
                     >
                       <ion-icon name="arrow-back" aria-hidden="true"></ion-icon>
+                      ${returnToProfileReview ? `<span>${this.escapeHtml(reviewBackLabel)}</span>` : ''}
                     </button>
                     <div class="reference-lesson-topbar-main">
-                      <div class="reference-lesson-title">${this.escapeHtml(lessonDisplayTitle)}</div>
+                      <div class="reference-lesson-title">${this.escapeHtml(displayTitle)}</div>
                       <div class="reference-lesson-breadcrumb">${selectedPath}</div>
                     </div>
                   </div>
-                  <div class="reference-lesson-tabs-scroll" role="tablist" aria-label="${this.escapeHtml(copy.selectedLesson)}">
+                  ${returnToProfileReview ? '' : `<div class="reference-lesson-tabs-scroll" role="tablist" aria-label="${this.escapeHtml(copy.selectedLesson)}">
                     ${lessonTabItems.map((item) => `
                       <button
                         type="button"
@@ -6613,7 +6701,7 @@ class PageReference extends HTMLElement {
                         tabindex="${activeLessonTab === item.key ? '0' : '-1'}"
                       >${this.escapeHtml(item.label)}</button>
                     `).join('')}
-                  </div>
+                  </div>`}
                   ${lessonAudioEnabled ? `<div class="reference-lesson-audio-toolbar" id="reference-lesson-audio-toolbar" ${activeLessonTab === 'content' ? '' : 'hidden'}>
                     <span class="reference-lesson-audio-progress" id="reference-lesson-audio-progress" aria-live="polite" hidden></span>
                     <button class="reference-lesson-step-btn" type="button" id="reference-lesson-previous-fragment-btn" aria-label="${this.escapeHtml(lessonAudioPreviousLabel)}" title="${this.escapeHtml(lessonAudioPreviousLabel)}" hidden disabled>
@@ -6657,7 +6745,7 @@ class PageReference extends HTMLElement {
                   </section>
                 </div>
 
-                <div class="reference-lesson-nav">
+                <div class="reference-lesson-nav"${returnToProfileReview ? ' hidden' : ''}>
                   <button class="reference-nav-btn reference-nav-btn--prev ${prevLessonRef ? '' : 'is-hidden'}" type="button" id="reference-prev-btn">
                     <ion-icon name="chevron-back"></ion-icon>
                     <span>${prevLessonRef ? this.escapeHtml(this.getText(
@@ -6821,6 +6909,16 @@ class PageReference extends HTMLElement {
       });
 
       this.querySelector('#reference-back-btn')?.addEventListener('click', () => {
+        if (returnToProfileReview) {
+          if (window.r34lp0w3r) {
+            window.r34lp0w3r.referenceReturnToReview = false;
+            window.r34lp0w3r.profileForceTab = 'review';
+          }
+          const tabs = document.querySelector('ion-tabs');
+          if (tabs && typeof tabs.select === 'function') tabs.select('tu').catch(() => {});
+          window.dispatchEvent(new CustomEvent('app:profile-review-return'));
+          return;
+        }
         this.lessonView = false;
         this.render();
       });

@@ -104,6 +104,8 @@ class PageSpeak extends HTMLElement {
     applyHeaderColor(getStoredHeaderColor());
     preloadHeroMascotFrames();
     const appLocale = resolveCopyLocale(getAppLocale() || 'en');
+    const returnToReview = Boolean(window.r34lp0w3r && window.r34lp0w3r.speakReturnToReview);
+    const reviewBackLabel = appLocale === 'es' ? 'Revisión' : 'Review';
     this.innerHTML = `
       ${renderAppHeader({ title: '', showTitleSlot: true })}
       <ion-content fullscreen class="speak-content secret-content">
@@ -153,7 +155,12 @@ class PageSpeak extends HTMLElement {
             </button>
             <div class="speak-sheet-main">
               <div class="speak-top-row">
-                <div class="speak-route-banner" id="speak-route-banner" aria-hidden="true"></div>
+                ${returnToReview
+                  ? `<button class="speak-review-back" id="speak-review-back" type="button">
+                      <ion-icon name="arrow-back-outline" aria-hidden="true"></ion-icon>
+                      <span>${reviewBackLabel}</span>
+                    </button>`
+                  : '<div class="speak-route-banner" id="speak-route-banner" aria-hidden="true"></div>'}
                 <span class="speak-step-heading-compact" id="speak-step-heading-compact" aria-hidden="true"></span>
               </div>
               <div class="speak-swipe-stage">
@@ -175,6 +182,7 @@ class PageSpeak extends HTMLElement {
     const heroHintTextEl = this.querySelector('#speak-hero-hint-text');
     const heroCardEl = this.querySelector('#speak-hero-card');
     const routeBannerEl = this.querySelector('#speak-route-banner');
+    const reviewBackBtn = this.querySelector('#speak-review-back');
     const compactHeadingEl = this.querySelector('#speak-step-heading-compact');
     const heroStepTitleEl = this.querySelector('#speak-hero-step-title');
     const heroHintEl = this.querySelector('#speak-hero-hint');
@@ -219,6 +227,7 @@ class PageSpeak extends HTMLElement {
     let currentSessionData = null;
     let showSummary = false;
     let summaryState = null;
+    let reviewInitialSessionPercent = null;
     let lastSummaryAudioCue = '';
     let progressUpdatedThisRun = false;
     let debugPanelOpen = false;
@@ -2728,6 +2737,7 @@ class PageSpeak extends HTMLElement {
       const locale = activeHintLocale || getHintUiLocale();
       const speakCopy = getSpeakCopyBundle(locale) || {};
       const listenLabel = speakCopy.listen || 'Listen';
+      const returnToReview = Boolean(window.r34lp0w3r && window.r34lp0w3r.speakReturnToReview);
       const yourVoiceLabel =
         speakCopy.yourVoiceLabel || (locale === 'es' ? 'Tu voz' : 'Your voice');
       if (isSpeakDebugEnabled() && debugPanelOpen) {
@@ -2785,15 +2795,17 @@ class PageSpeak extends HTMLElement {
             </div>
           </div>
           ${scoreHtml}
-          <div class="speak-voice-nav">
-            <button class="speak-step-arrow-btn" id="speak-prev-inline" type="button" aria-label="Previous step">
-              <ion-icon name="chevron-back"></ion-icon>
-            </button>
-            <div class="speak-step-dots">${dotsHtml}</div>
-            <button class="speak-step-arrow-btn" id="speak-next-inline" type="button" aria-label="Next step">
-              <ion-icon name="chevron-forward"></ion-icon>
-            </button>
-          </div>
+          ${returnToReview ? '' : `
+            <div class="speak-voice-nav">
+              <button class="speak-step-arrow-btn" id="speak-prev-inline" type="button" aria-label="Previous step">
+                <ion-icon name="chevron-back"></ion-icon>
+              </button>
+              <div class="speak-step-dots">${dotsHtml}</div>
+              <button class="speak-step-arrow-btn" id="speak-next-inline" type="button" aria-label="Next step">
+                <ion-icon name="chevron-forward"></ion-icon>
+              </button>
+            </div>
+          `}
         </div>
       `;
     };
@@ -4093,6 +4105,7 @@ class PageSpeak extends HTMLElement {
       heroFirstRenderAt = Date.now();
       currentSessionId = session.id;
       currentSessionData = session;
+      reviewInitialSessionPercent = returnToReview ? getSessionPercent() : null;
       sessionTitle = getLocalizedSessionTitle(session, getHintUiLocale(getBaseHintLocale()));
       if (sessionTitleEl) sessionTitleEl.textContent = sessionTitle;
       if (headerTitleEl) headerTitleEl.textContent = sessionTitle;
@@ -5349,6 +5362,14 @@ class PageSpeak extends HTMLElement {
         renderStep();
         return;
       }
+      if (
+        returnToReview &&
+        reviewInitialSessionPercent !== null &&
+        getSessionPercent() === reviewInitialSessionPercent
+      ) {
+        goBackToReviewIfNeeded();
+        return;
+      }
       showSummary = true;
       summaryState = rollSummaryOutcome(activeHintLocale || getHintUiLocale());
       lastSummaryAudioCue = '';
@@ -5395,6 +5416,10 @@ class PageSpeak extends HTMLElement {
       }
       goToHome('back');
     };
+
+    reviewBackBtn?.addEventListener('click', () => {
+      goBackToReviewIfNeeded();
+    });
 
     const toggleDebugPanel = () => {
       if (!isSpeakDebugEnabled() || showSummary) return;

@@ -28,6 +28,7 @@ const FREE_RIDE_CARD_PADDED_KEY = 'appv5:free-ride-card-padded';
 const FREE_RIDE_HEADER_COLOR_VALUES = ['white', 'dark', 'blue'];
 const PROFILE_SHEET_EXPANDED_KEY = 'appv5:profile-sheet-expanded';
 const PROFILE_SHEET_OFFSET_KEY = 'appv5:profile-sheet-expanded-offset';
+const PROFILE_REVIEW_SCROLL_KEY = 'appv5:profile-review-scroll-top';
 const PROFILE_AUTH_ALIGNED_CACHE_MAX_ITEMS = 12;
 const TTS_LANG_BY_LOCALE = {
   es: 'es-ES',
@@ -980,6 +981,50 @@ class PageProfile extends HTMLElement {
     }
   }
 
+  async captureProfileReviewScrollTop() {
+    const contentEl = this.querySelector('ion-content.profile-content');
+    if (!contentEl) return 0;
+    let scrollTop = Number(contentEl.scrollTop) || 0;
+    try {
+      if (typeof contentEl.getScrollElement === 'function') {
+        const scrollEl = await contentEl.getScrollElement();
+        scrollTop = Number(scrollEl?.scrollTop) || scrollTop;
+      }
+    } catch (_err) {
+      // Keep the host value as a fallback.
+    }
+    return Math.max(0, Math.round(scrollTop));
+  }
+
+  async restoreProfileReviewScroll() {
+    let raw = null;
+    try {
+      raw = sessionStorage.getItem(PROFILE_REVIEW_SCROLL_KEY);
+      sessionStorage.removeItem(PROFILE_REVIEW_SCROLL_KEY);
+    } catch (_err) {
+      return;
+    }
+    const targetTop = Number(raw);
+    if (!Number.isFinite(targetTop) || targetTop < 0) return;
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    if (!this.isConnected) return;
+    const contentEl = this.querySelector('ion-content.profile-content');
+    if (!contentEl) return;
+    try {
+      if (typeof contentEl.getScrollElement === 'function') {
+        const scrollEl = await contentEl.getScrollElement();
+        if (scrollEl) scrollEl.scrollTop = targetTop;
+      }
+      if (typeof contentEl.scrollToPoint === 'function') {
+        await contentEl.scrollToPoint(0, targetTop, 0);
+      } else {
+        contentEl.scrollTop = targetTop;
+      }
+    } catch (_err) {
+      contentEl.scrollTop = targetTop;
+    }
+  }
+
   notifyChromeState() {
     const user = window.user;
     const loggedIn = Boolean(user && user.id !== undefined && user.id !== null);
@@ -1128,7 +1173,9 @@ class PageProfile extends HTMLElement {
       if (to === '/tabs') return;
     };
     this._routerEl?.addEventListener('ionRouteDidChange', this._routeDidChangeHandler);
-    this._reviewReturnHandler = () => {};
+    this._reviewReturnHandler = () => {
+      this.restoreProfileReviewScroll();
+    };
     this._headerColorHandler = (event) => {
       if (!this.isConnected) return;
       const color = event && event.detail ? event.detail.color : '';
@@ -2617,6 +2664,7 @@ class PageProfile extends HTMLElement {
         label: tabsCopy.training || 'Training',
         value: `${globalPercent}%`,
         tone: globalTone,
+        targetTab: 'home',
         iconSrc: 'assets/profile/training.png',
         iconAlt: tabsCopy.training || 'Training'
       },
@@ -2626,6 +2674,7 @@ class PageProfile extends HTMLElement {
               label: tabsCopy.reference || 'Reference',
               value: `${referenceGlobalPercent}%`,
               tone: referenceGlobalTone,
+              targetTab: 'reference',
               iconSrc: 'assets/profile/reference.png',
               iconAlt: tabsCopy.reference || 'Reference'
             }
@@ -2634,7 +2683,7 @@ class PageProfile extends HTMLElement {
     ]
       .map(
         (item) => `
-          <div class="profile-stat-card profile-stat-card--reward">
+          <button class="profile-stat-card profile-stat-card--reward profile-stat-card--link" type="button" data-profile-target-tab="${escapeHtml(item.targetTab)}" aria-label="${escapeHtml(`${item.label}: ${item.value}`)}">
             <div class="profile-stat-copy">
               <div class="profile-stat-value profile-stat-value--${escapeHtml(item.tone)}">${escapeHtml(
                 item.value
@@ -2646,33 +2695,35 @@ class PageProfile extends HTMLElement {
                 item.iconAlt
               )}">
             </div>
-          </div>
+          </button>
         `
       )
       .join('');
     const rewardCardsMarkup = [
       {
-        label: profileCopy.trainingTrophies || 'Copas training',
+        label: profileCopy.trainingTrophies || 'Copas entrenar',
         value: String(trainingTrophyQty),
         tone: 'neutral',
+        targetTab: 'home',
         iconSrc: 'assets/profile/copa.png',
-        iconAlt: profileCopy.trainingTrophies || 'Copas training'
+        iconAlt: profileCopy.trainingTrophies || 'Copas entrenar'
       },
       ...(showReferenceProgress
         ? [
             {
-              label: profileCopy.referenceMedals || 'Medallas reference',
+              label: profileCopy.referenceMedals || 'Medallas aprender',
               value: String(referenceMedalQty),
               tone: 'neutral',
+              targetTab: 'reference',
               iconSrc: 'assets/profile/medalla.png',
-              iconAlt: profileCopy.referenceMedals || 'Medallas reference'
+              iconAlt: profileCopy.referenceMedals || 'Medallas aprender'
             }
           ]
         : [])
     ]
       .map(
         (item) => `
-          <div class="profile-stat-card profile-stat-card--reward">
+          <button class="profile-stat-card profile-stat-card--reward profile-stat-card--link" type="button" data-profile-target-tab="${escapeHtml(item.targetTab)}" aria-label="${escapeHtml(`${item.label}: ${item.value}`)}">
             <div class="profile-stat-copy">
               <div class="profile-stat-value profile-stat-value--${escapeHtml(item.tone)}">${escapeHtml(
                 item.value
@@ -2684,7 +2735,7 @@ class PageProfile extends HTMLElement {
                 item.iconAlt
               )}">
             </div>
-          </div>
+          </button>
         `
       )
       .join('');
@@ -2723,9 +2774,11 @@ class PageProfile extends HTMLElement {
             )}">
               <ion-icon name="${settingsOpen ? 'arrow-back' : 'settings-outline'}"></ion-icon>
             </button>
-            <div class="profile-hero-avatar-wrap">
+            <button class="profile-hero-avatar-wrap profile-hero-avatar-button" type="button" id="profile-hero-avatar" aria-label="${escapeHtml(
+              profileCopy.tabPrefs || 'Profile'
+            )}">
               <img class="profile-hero-avatar" src="${avatarSrc}" alt="">
-            </div>
+            </button>
             <div class="profile-hero-name">${userDisplayName}</div>
             ${premiumBadgeMarkup}
           </section>
@@ -3682,8 +3735,20 @@ class PageProfile extends HTMLElement {
         this.render();
       });
     });
+    this.querySelectorAll('[data-profile-target-tab]').forEach((button) => {
+      button.addEventListener('click', () => {
+        const targetTab = String(button.getAttribute('data-profile-target-tab') || '').trim();
+        const tabs = document.querySelector('ion-tabs');
+        if (!targetTab || !tabs || typeof tabs.select !== 'function') return;
+        tabs.select(targetTab).catch(() => {});
+      });
+    });
     this.querySelector('#profile-settings-toggle')?.addEventListener('click', () => {
       this.settingsOpen = !(this.settingsOpen === true);
+      this.render();
+    });
+    this.querySelector('#profile-hero-avatar')?.addEventListener('click', () => {
+      this.settingsOpen = true;
       this.render();
     });
     profileSettingsBackBtn?.addEventListener('click', () => {
@@ -3769,7 +3834,7 @@ class PageProfile extends HTMLElement {
 
     const reviewButtons = Array.from(this.querySelectorAll('.review-entry'));
     reviewButtons.forEach((button) => {
-      button.addEventListener('click', () => {
+      button.addEventListener('click', async () => {
         const type = button.dataset.type;
         if (type === 'reference-test') {
           const courseCode = String(button.dataset.courseCode || '').trim();
@@ -3794,6 +3859,20 @@ class PageProfile extends HTMLElement {
             testKey,
             tab: 'tests'
           };
+          window.r34lp0w3r.referenceReturnToReview = true;
+          this.captureProfileReviewScrollTop()
+            .then((scrollTop) => {
+              try {
+                sessionStorage.setItem(PROFILE_REVIEW_SCROLL_KEY, String(scrollTop));
+              } catch (_err) {
+                // no-op
+              }
+            })
+            .catch(() => {});
+          const tabs = document.querySelector('ion-tabs');
+          if (tabs && typeof tabs.select === 'function') {
+            tabs.select('reference').catch(() => {});
+          }
           const referencePage = document.querySelector('page-reference');
           if (referencePage && typeof referencePage.render === 'function') {
             try {
@@ -3801,10 +3880,6 @@ class PageProfile extends HTMLElement {
             } catch (err) {
               console.error('[profile] error abriendo test de reference', err);
             }
-          }
-          const tabs = document.querySelector('ion-tabs');
-          if (tabs && typeof tabs.select === 'function') {
-            tabs.select('reference').catch(() => {});
           }
           return;
         }
@@ -3834,6 +3909,14 @@ class PageProfile extends HTMLElement {
         window.r34lp0w3r.speakReturnSessionId = sessionId;
         window.r34lp0w3r.profileForceTab = 'review';
         window.r34lp0w3r.profileReviewTone = this.reviewTone;
+        try {
+          sessionStorage.setItem(
+            PROFILE_REVIEW_SCROLL_KEY,
+            String(await this.captureProfileReviewScrollTop())
+          );
+        } catch (_err) {
+          // no-op
+        }
         setSelection(location);
         goToSpeak('forward');
       });

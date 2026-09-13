@@ -104,7 +104,7 @@ class PageLogin extends HTMLElement {
       const registerTitle = this.querySelector('[data-panel="register"] h3');
       if (registerTitle) registerTitle.textContent = copy.registerTitle || '';
       const registerBack = this.querySelector('#register-back');
-      if (registerBack) registerBack.textContent = copy.recoverBack || '';
+      if (registerBack) registerBack.querySelector('span').textContent = copy.recoverBack || '';
       const registerUser = this.querySelector('#register-username');
       if (registerUser) {
         registerUser.setAttribute('placeholder', copy.registerUserLabel || '');
@@ -146,12 +146,12 @@ class PageLogin extends HTMLElement {
       const registerSubmit = this.querySelector('#register-submit');
       if (registerSubmit) registerSubmit.textContent = copy.registerSubmit || '';
       const registerBackBottom = this.querySelector('#register-back');
-      if (registerBackBottom) registerBackBottom.textContent = copy.registerBack || '';
+      if (registerBackBottom) registerBackBottom.querySelector('span').textContent = copy.registerBack || '';
 
       const magicTitle = this.querySelector('[data-panel="magic"] h3');
       if (magicTitle) magicTitle.textContent = copy.continueWithEmail || '';
       const magicBack = this.querySelector('#magic-back');
-      if (magicBack) magicBack.textContent = copy.magicBack || '';
+      if (magicBack) magicBack.querySelector('span').textContent = copy.magicBack || '';
       const magicEmail = this.querySelector('#email-access-email');
       if (magicEmail) {
         magicEmail.setAttribute('placeholder', copy.magicEmailLabel || '');
@@ -175,7 +175,7 @@ class PageLogin extends HTMLElement {
       const magicSentTitle = this.querySelector('#magic-sent h3');
       if (magicSentTitle) magicSentTitle.textContent = copy.magicSentTitle || '';
       const magicSentBack = this.querySelector('#magic-back-from-sent');
-      if (magicSentBack) magicSentBack.textContent = copy.magicBack || '';
+      if (magicSentBack) magicSentBack.querySelector('span').textContent = copy.magicBack || '';
       const magicSentEmailText = this.querySelector('#magic-sent-email')?.textContent || '';
       const magicSentMsg = this.querySelector('#magic-sent .muted');
       if (magicSentMsg) {
@@ -191,7 +191,7 @@ class PageLogin extends HTMLElement {
       const recoverTitle = this.querySelector('[data-panel="recover"] h3');
       if (recoverTitle) recoverTitle.textContent = copy.recoverTitle || '';
       const recoverBack = this.querySelector('#recover-back');
-      if (recoverBack) recoverBack.textContent = copy.recoverBack || '';
+      if (recoverBack) recoverBack.querySelector('span').textContent = copy.recoverBack || '';
       const recoverSubtitle = this.querySelector('[data-panel="recover"] .muted');
       if (recoverSubtitle) recoverSubtitle.textContent = copy.recoverSubtitle || '';
       const recoverEmail = this.querySelector('#recover-email');
@@ -231,7 +231,10 @@ class PageLogin extends HTMLElement {
                   ? `
                     <div class="login-panel-header">
                       <h3>${copy.registerTitle}</h3>
-                      <button class="login-back-top" type="button" id="register-back">${copy.recoverBack}</button>
+                      <button class="login-back-top" type="button" id="register-back">
+                        <ion-icon name="arrow-back" aria-hidden="true"></ion-icon>
+                        <span>${copy.recoverBack}</span>
+                      </button>
                     </div>
                     <div class="login-inputs login-inputs--flat">
                       <label class="login-input-shell" for="register-username">
@@ -344,7 +347,10 @@ class PageLogin extends HTMLElement {
               <div id="magic-form">
                 <div class="login-panel-header">
                   <h3>${copy.continueWithEmail}</h3>
-                  <button class="login-back-top" type="button" id="magic-back">${copy.magicBack}</button>
+                  <button class="login-back-top" type="button" id="magic-back">
+                    <ion-icon name="arrow-back" aria-hidden="true"></ion-icon>
+                    <span>${copy.magicBack}</span>
+                  </button>
                 </div>
                 ${
                   flat
@@ -418,7 +424,10 @@ class PageLogin extends HTMLElement {
               <div id="magic-sent" hidden>
                 <div class="login-panel-header">
                   <h3>${copy.magicSentTitle}</h3>
-                  <button class="login-back-top" type="button" id="magic-back-from-sent">${copy.magicBack}</button>
+                  <button class="login-back-top" type="button" id="magic-back-from-sent">
+                    <ion-icon name="arrow-back" aria-hidden="true"></ion-icon>
+                    <span>${copy.magicBack}</span>
+                  </button>
                 </div>
                 <p class="muted">${copy.magicSentMessage}<br><strong id="magic-sent-email"></strong></p>
                 <div style="margin-top:14px">
@@ -441,7 +450,10 @@ class PageLogin extends HTMLElement {
             <div class="login-panel" data-panel="recover" hidden>
               <div class="login-panel-header">
                 <h3>${copy.recoverTitle}</h3>
-                <button class="login-back-top" type="button" id="recover-back">${copy.recoverBack}</button>
+                <button class="login-back-top" type="button" id="recover-back">
+                  <ion-icon name="arrow-back" aria-hidden="true"></ion-icon>
+                  <span>${copy.recoverBack}</span>
+                </button>
               </div>
               <p class="muted">${copy.recoverSubtitle}</p>
               ${

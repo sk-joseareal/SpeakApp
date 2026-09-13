@@ -2024,7 +2024,7 @@ class PageHome extends HTMLElement {
                 ${routeUnlocked
                   ? `${routePercentMarkup}<ion-icon name="chevron-down"></ion-icon>`
                   : isPremiumLockedRoute
-                    ? `<span class="route-premium-pill" aria-label="Premium"><img src="assets/icons/premium-crown.png" alt=""></span>`
+                    ? `<span class="route-premium-pill" aria-label="Premium"><img src="assets/icons/premium-crown-lilac.png" alt=""></span>`
                     : `<span class="route-lock-pill"><ion-icon name="lock-closed-outline"></ion-icon></span>`
                 }
               </div>

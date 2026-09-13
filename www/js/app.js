@@ -6,7 +6,7 @@ import { isAppTitlebarEnabled } from './components/app-header.js';
 import { refreshTranslationCapabilities } from './translation-capabilities.js';
 import './pages/onboarding.js';
 import './pages/home.js';
-import './pages/reference.js?v=14';
+import './pages/reference.js?v=15';
 import './pages/speak.js';
 import './pages/profile.js';
 import './pages/chat.js';
@@ -1196,7 +1196,7 @@ window.showPremiumSuccessModal = ({ restored = false } = {}) => {
         heading: restored ? 'Tu acceso Premium está activo' : '¡Ya eres Premium!',
         body: restored
           ? 'Hemos recuperado tu acceso Premium. Ya puedes seguir disfrutando de todo el contenido.'
-          : 'Ya puedes disfrutar de todo el contenido Premium, sin publicidad y con acceso completo.',
+          : 'Disfruta de todo el contenido y funciones Premium.',
         continue: 'Continuar'
       }
     : {
@@ -1204,7 +1204,7 @@ window.showPremiumSuccessModal = ({ restored = false } = {}) => {
         heading: restored ? 'Your Premium access is active' : 'You are now Premium!',
         body: restored
           ? 'Your Premium access has been restored. You can continue enjoying all the content.'
-          : 'You can now enjoy all Premium content, without ads and with full access.',
+          : 'Enjoy all Premium content and features.',
         continue: 'Continue'
       };
 
@@ -1215,7 +1215,16 @@ window.showPremiumSuccessModal = ({ restored = false } = {}) => {
     <div class="premium-success-backdrop" data-premium-success-close="true"></div>
     <section class="premium-success-card" role="dialog" aria-modal="true" aria-labelledby="premium-success-title">
       <div class="premium-success-badge"><img src="assets/icons/premium-crown-lilac.png" alt=""></div>
-      <img class="premium-success-mascot" src="assets/mascot/nena/nena-premium.png" alt="">
+      <div class="premium-success-mascot-wrap" aria-hidden="true">
+        <ion-icon class="premium-success-star premium-success-star--1" name="star"></ion-icon>
+        <ion-icon class="premium-success-star premium-success-star--2" name="star"></ion-icon>
+        <ion-icon class="premium-success-star premium-success-star--3" name="star"></ion-icon>
+        <ion-icon class="premium-success-star premium-success-star--4" name="star"></ion-icon>
+        <ion-icon class="premium-success-star premium-success-star--5" name="star"></ion-icon>
+        <ion-icon class="premium-success-star premium-success-star--6" name="star"></ion-icon>
+        <ion-icon class="premium-success-star premium-success-star--7" name="star"></ion-icon>
+        <img class="premium-success-mascot" src="assets/mascot/nena/nena-premium.png" alt="">
+      </div>
       <h2 id="premium-success-title">${copy.title}</h2>
       <h3>${copy.heading}</h3>
       <p>${copy.body}</p>

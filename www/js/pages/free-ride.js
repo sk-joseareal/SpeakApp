@@ -3538,12 +3538,9 @@ class PageFreeRide extends HTMLElement {
     return `
       <div class="free-ride-library-list">
         ${items
-          .map((item, index) => {
+          .map((item) => {
             const id = this.escapeHtml(item.id);
             const preview = this.escapeHtml(this.formatSavedPhrasePreview(item.text, 220));
-            const savedAt = this.escapeHtml(this.formatSavedPhraseDate(item.created_at));
-            const lastUsedAt = item.last_practiced_at ? this.escapeHtml(this.formatSavedPhraseDate(item.last_practiced_at)) : '—';
-            const uses = Number.isFinite(Number(item.use_count)) ? Math.max(0, Math.round(Number(item.use_count))) : 0;
             return `
               <div class="free-ride-library-row">
                 <button
@@ -3553,30 +3550,18 @@ class PageFreeRide extends HTMLElement {
                   aria-label="${this.escapeHtml(this.getFreeRideUiLabelText('usePhrase'))}: ${preview}"
                   ${disabledAttr}
                 >
-                  <div class="free-ride-library-row-top">
-                    <span class="free-ride-library-row-index">${index + 1}</span>
-                    <span class="free-ride-library-row-text">${preview}</span>
-                  </div>
-                  <div class="free-ride-library-row-meta">
-                    <span><b>${this.renderFreeRideUiLabelHtml('savedAt', { altClass: 'is-mini' })}</b>: ${savedAt}</span>
-                    <span><b>${this.renderFreeRideUiLabelHtml('lastUsed', { altClass: 'is-mini' })}</b>: ${lastUsedAt}</span>
-                    <span><b>${this.renderFreeRideUiLabelHtml('usesCount', { altClass: 'is-mini' })}</b>: ${uses}</span>
-                  </div>
+                  <span class="free-ride-library-row-use-icon" aria-hidden="true">
+                    <ion-icon name="arrow-forward-outline"></ion-icon>
+                  </span>
+                  <span class="free-ride-library-row-text">${preview}</span>
                 </button>
-                <div class="free-ride-library-row-actions">
-                  <button
-                    class="free-ride-library-row-btn is-use"
-                    type="button"
-                    data-load-saved-phrase-id="${id}"
-                    ${disabledAttr}
-                  >${this.renderFreeRideUiLabelLocalizedHtml('usePhrase')}</button>
-                  <button
-                    class="free-ride-library-row-btn is-delete"
-                    type="button"
-                    data-delete-saved-phrase-id="${id}"
-                    ${disabledAttr}
-                  >${this.renderFreeRideUiLabelLocalizedHtml('deletePhrase')}</button>
-                </div>
+                <button
+                  class="free-ride-library-row-btn is-delete"
+                  type="button"
+                  data-delete-saved-phrase-id="${id}"
+                  aria-label="${this.escapeHtml(this.getFreeRideUiLabelText('deletePhrase'))}: ${preview}"
+                  ${disabledAttr}
+                ><ion-icon name="close" aria-hidden="true"></ion-icon></button>
               </div>
             `;
           })
@@ -4940,12 +4925,6 @@ class PageFreeRide extends HTMLElement {
     const normalized = hasValue ? Math.max(0, Math.min(100, Math.round(percent))) : null;
     this.state.percent = normalized;
     this.state.recentReward = null;
-    if (normalized !== null) {
-      const tone = this.getScoreTone(normalized);
-      if (tone === 'good') {
-        this.state.recentReward = this.awardRewardForGoodResult();
-      }
-    }
     if (!options.skipRender) {
       this.render();
     }
@@ -7222,7 +7201,7 @@ class PageFreeRide extends HTMLElement {
           <div class="free-ride-bottom-actions">
             <button
               id="free-ride-save-phrase"
-              class="free-ride-input-action-btn free-ride-input-action-btn--card"
+              class="free-ride-input-action-btn free-ride-input-action-btn--card free-ride-input-action-btn--save"
               type="button"
               ${!this.hasExpectedText() || this.state.isRecording || this.state.isTranscribing ? 'disabled' : ''}
             >

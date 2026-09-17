@@ -11,6 +11,7 @@ import {
   getNextLocaleCode,
   getAppCopyNarrationPayload,
   getSpeakCopy as getSpeakCopyBundle,
+  getProfileCopy,
   getSpeakFeedbackLabelScale,
   getSpeakFeedbackPhrases,
   getSpeakSummaryLabelPrefix,
@@ -103,9 +104,9 @@ class PageSpeak extends HTMLElement {
     };
     applyHeaderColor(getStoredHeaderColor());
     preloadHeroMascotFrames();
-    const appLocale = resolveCopyLocale(getAppLocale() || 'en');
+    const appLocale = resolveCopyLocale(getActiveLocale() || getAppLocale() || 'en');
     const returnToReview = Boolean(window.r34lp0w3r && window.r34lp0w3r.speakReturnToReview);
-    const reviewBackLabel = appLocale === 'es' ? 'Revisión' : 'Review';
+    const reviewBackLabel = getProfileCopy(appLocale).tabReview || 'Review';
     this.innerHTML = `
       ${renderAppHeader({ title: '', showTitleSlot: true })}
       <ion-content fullscreen class="speak-content secret-content">
@@ -252,6 +253,9 @@ class PageSpeak extends HTMLElement {
     let recordingWaveFrame = null;
     let recordingWaveData = null;
     let recordingWaveValues = new Array(5).fill(0);
+    let nativeRecordingActive = false;
+    let nativeRecordingStopPromise = null;
+    let recordingStartPending = false;
     let speechRecognizer = null;
     let speechTranscript = '';
     let speechInterim = '';
@@ -306,9 +310,9 @@ class PageSpeak extends HTMLElement {
     let speakSheetLastPointerUpTs = 0;
 
     const stepState = {
-      sound: { recordingUrl: '', recordingBlob: null, transcript: '', percent: null },
-      spelling: { recordingUrl: '', recordingBlob: null, transcript: '', percent: null },
-      sentence: { recordingUrl: '', recordingBlob: null, transcript: '', percent: null }
+      sound: { recordingUrl: '', recordingBlob: null, transcript: '', percent: null, recordingError: '' },
+      spelling: { recordingUrl: '', recordingBlob: null, transcript: '', percent: null, recordingError: '' },
+      sentence: { recordingUrl: '', recordingBlob: null, transcript: '', percent: null, recordingError: '' }
     };
 
     const getSpeechRecognition = () => window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -445,6 +449,7 @@ class PageSpeak extends HTMLElement {
     };
     const getNativeTranscribePlugin = () =>
       window.Capacitor && window.Capacitor.Plugins ? window.Capacitor.Plugins.P4w4Plugin : null;
+    const getNativeAudioRecorderPlugin = () => getNativeTranscribePlugin();
     const getVoskSampleRate = () => {
       const config = window.r34lp0w3r && window.r34lp0w3r.voskSampleRate;
       const rate = Number(config);
@@ -1602,6 +1607,29 @@ class PageSpeak extends HTMLElement {
           // no-op
         }
       }
+    };
+
+    const transcribeNativeAudioPath = async (path, sampleRate = VOSK_SAMPLE_RATE_DEFAULT) => {
+      const plugin = getNativeTranscribePlugin();
+      if (!plugin || typeof plugin.transcribeAudio !== 'function' || !path) return '';
+      const modelPath = getVoskModelPath();
+      const payload = { path, language: 'en-US', sampleRate };
+      if (modelPath) payload.modelPath = modelPath;
+      const result = await plugin.transcribeAudio(payload);
+      return result && typeof result.text === 'string' ? result.text : '';
+    };
+
+    const readNativeRecordingBlob = async (path) => {
+      const fs = getFilesystemPlugin();
+      if (!fs || typeof fs.readFile !== 'function' || !path) return null;
+      const relativePath = String(path).split('/').pop();
+      const result = await fs.readFile({ path: relativePath, directory: 'CACHE' });
+      const base64 = result && typeof result.data === 'string' ? result.data : '';
+      if (!base64) return null;
+      const binary = atob(base64);
+      const bytes = new Uint8Array(binary.length);
+      for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
+      return new Blob([bytes], { type: 'audio/wav' });
     };
 
     const resolveToneListMap = (source, fallback) => {
@@ -3201,23 +3229,50 @@ class PageSpeak extends HTMLElement {
       if (state) {
         state.transcript = '';
         state.percent = null;
+        state.recordingError = '';
+      }
+    };
+
+    const startNativeAudioRecording = async () => {
+      const plugin = getNativeAudioRecorderPlugin();
+      if (!plugin || typeof plugin.startAudioRecording !== 'function') return false;
+      try {
+        await plugin.startAudioRecording();
+        nativeRecordingActive = true;
+        return true;
+      } catch (error) {
+        // Trigger Android's normal permission prompt, then retry natively.
+        if (error && error.code === 'MICROPHONE_PERMISSION_REQUIRED' && canRecord()) {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          stream.getTracks().forEach((track) => track.stop());
+          await plugin.startAudioRecording();
+          nativeRecordingActive = true;
+          return true;
+        }
+        return false;
       }
     };
 
     const startRecording = async () => {
-      if (isTranscribing) {
-        setTranscribingState(false, transcribingStepKey);
+      if (isTranscribing || nativeRecordingStopPromise) return;
+      stopPlayback();
+      stopAvatarPlayback();
+      resetSpeechState();
+      recordedChunks = [];
+      recordingStepKey = getStepKey();
+      if (isAndroidPlatform()) {
+        const started = await startNativeAudioRecording();
+        if (started) {
+          recordingStopPending = false;
+          setRecordingState(true);
+          return;
+        }
       }
       if (!canRecord()) {
         setRecordingState(false);
         finalizeRecording('', getStepKey());
         return;
       }
-      stopPlayback();
-      stopAvatarPlayback();
-      resetSpeechState();
-      recordedChunks = [];
-      recordingStepKey = getStepKey();
       try {
         recordingStream = await navigator.mediaDevices.getUserMedia({ audio: true });
       } catch (err) {
@@ -3301,6 +3356,35 @@ class PageSpeak extends HTMLElement {
         pendingRecordingStopTimer = null;
       }
       recordingStopPending = false;
+      if (nativeRecordingActive) {
+        const stepKey = recordingStepKey || getStepKey();
+        nativeRecordingActive = false;
+        setRecordingState(false);
+        setTranscribingState(true, stepKey);
+        const plugin = getNativeAudioRecorderPlugin();
+        nativeRecordingStopPromise = Promise.resolve()
+          .then(() => plugin.stopAudioRecording())
+          .then(async (result) => {
+            const path = result && result.path ? String(result.path) : '';
+            const text = await transcribeNativeAudioPath(path, Number(result?.sampleRate) || VOSK_SAMPLE_RATE_DEFAULT);
+            const blob = await readNativeRecordingBlob(path).catch(() => null);
+            setTranscribingState(false, stepKey);
+            finalizeRecording(blob ? URL.createObjectURL(blob) : '', stepKey, text, blob);
+            if (path) {
+              const fs = getFilesystemPlugin();
+              fs?.deleteFile?.({ path: path.split('/').pop(), directory: 'CACHE' }).catch?.(() => {});
+            }
+          })
+          .catch(() => {
+            setTranscribingState(false, stepKey);
+            finalizeRecording('', stepKey, '', null);
+          })
+          .finally(() => {
+            nativeRecordingStopPromise = null;
+          });
+        recordingStepKey = null;
+        return;
+      }
       if (!mediaRecorder) {
         recordingStepKey = null;
         stopRecordingWaveMonitor();
@@ -3332,17 +3416,25 @@ class PageSpeak extends HTMLElement {
       let percent;
       if (finalTranscript) {
         percent = scoreSimilarity(expected, finalTranscript);
-      } else if (key === 'spelling' || key === 'sentence') {
-        percent = 0;
       } else {
-        percent = DEFAULT_SCORES[key] || 0;
+        percent = null;
       }
+      const recordingError = finalTranscript
+        ? ''
+        : getSpeakUiText(
+            'recordingError',
+            getHintUiLocale(),
+            getHintUiLocale() === 'es'
+              ? 'No hemos podido reconocer tu voz. Inténtalo de nuevo.'
+              : "We couldn't recognize your voice. Please try again."
+          );
 
       clearRecordingForStep(key);
       stepState[key].recordingUrl = audioUrl || '';
       stepState[key].recordingBlob = recordedBlob instanceof Blob ? recordedBlob : null;
       stepState[key].transcript = finalTranscript;
       stepState[key].percent = percent;
+      stepState[key].recordingError = recordingError;
       if (key === 'spelling' && selectedWord) {
         setStoredWordResult(currentSessionId, selectedWord, {
           percent,
@@ -4176,12 +4268,15 @@ class PageSpeak extends HTMLElement {
       const locale = activeHintLocale || getHintUiLocale();
       const score = getScoreForStep('sound', locale);
       const hasRecording = Boolean(stepState.sound.recordingUrl);
+      const recordingError = stepState.sound.recordingError || '';
       const transcribing = isTranscribingStep('sound');
       const percent = transcribing ? '' : score && hasRecording ? score.percent : '';
       const tone = transcribing ? 'hint' : score && hasRecording ? score.tone : 'hint';
       const voiceTone = !transcribing && score && hasRecording ? tone : '';
       const label = transcribing
         ? getSpeakUiText('transcribing', locale, 'Transcribing...')
+        : recordingError
+        ? recordingError
         : score && hasRecording
         ? score.label
         : getSpeakUiText('practiceSound', locale, 'Practice the sound');
@@ -4228,7 +4323,7 @@ class PageSpeak extends HTMLElement {
             scoreHtml: renderMatchResultCard({
               locale,
               tone,
-              hasScore: Boolean(score && hasRecording) && !transcribing,
+              hasScore: Boolean(score && hasRecording) && !transcribing && !recordingError,
               percent,
               label
             })
@@ -4240,7 +4335,8 @@ class PageSpeak extends HTMLElement {
     const renderSpellingStep = () => {
       const locale = activeHintLocale || getHintUiLocale();
       const stored = getStoredWordResult(currentSessionId, selectedWord);
-      const hasScore = stored && typeof stored.percent === 'number';
+      const recordingError = stepState.spelling.recordingError || '';
+      const hasScore = !recordingError && stored && typeof stored.percent === 'number';
       const transcribing = isTranscribingStep('spelling');
       const hasRecording = Boolean(stepState.spelling.recordingUrl);
       const percent = transcribing ? null : hasScore ? stored.percent : null;
@@ -4248,6 +4344,8 @@ class PageSpeak extends HTMLElement {
       const voiceTone = !transcribing && hasRecording && hasScore ? tone : '';
       const label = transcribing
         ? getSpeakUiText('transcribing', locale, 'Transcribing...')
+        : recordingError
+        ? recordingError
         : hasScore
         ? getScoreLabel(percent, locale, `spelling:${selectedWord}:${percent}`)
         : getSpeakUiText('practiceWords', locale, 'Practice the words');
@@ -4312,11 +4410,14 @@ class PageSpeak extends HTMLElement {
       const hasScore = score && typeof score.percent === 'number';
       const transcribing = isTranscribingStep('sentence');
       const hasRecordingUrl = Boolean(stepState.sentence.recordingUrl);
+      const recordingError = stepState.sentence.recordingError || '';
       const percent = transcribing ? '' : hasScore ? score.percent : '';
       const tone = transcribing ? 'hint' : hasScore ? score.tone : 'hint';
       const voiceTone = !transcribing && hasRecordingUrl && hasScore ? tone : '';
       const label = transcribing
         ? getSpeakUiText('transcribing', locale, 'Transcribing...')
+        : recordingError
+        ? recordingError
         : hasScore
         ? score.label
         : getSpeakUiText('practicePhrase', locale, 'Practice the phrase');
@@ -4349,7 +4450,7 @@ class PageSpeak extends HTMLElement {
             scoreHtml: renderMatchResultCard({
               locale,
               tone,
-              hasScore: hasScore && !transcribing,
+              hasScore: hasScore && !transcribing && !recordingError,
               percent,
               label
             })
@@ -4997,6 +5098,10 @@ class PageSpeak extends HTMLElement {
       });
 
       recordBtn?.addEventListener('click', () => {
+        if (nativeRecordingActive) {
+          stopRecording();
+          return;
+        }
         if (mediaRecorder && mediaRecorder.state !== 'inactive') {
           const delayMs = typeof window.getRecordingStopDelayMs === 'function' ? window.getRecordingStopDelayMs() : 1400;
           if (delayMs > 0) {
@@ -5016,7 +5121,13 @@ class PageSpeak extends HTMLElement {
           return;
         }
         if (pendingRecordingStopTimer) { clearTimeout(pendingRecordingStopTimer); pendingRecordingStopTimer = null; }
-        startRecording();
+        if (recordingStartPending || isTranscribing) return;
+        recordingStartPending = true;
+        Promise.resolve(startRecording())
+          .catch(() => {})
+          .finally(() => {
+            recordingStartPending = false;
+          });
       });
 
       voiceBtn?.addEventListener('click', () => {
@@ -5523,6 +5634,12 @@ class PageSpeak extends HTMLElement {
       activeHintLocale = nextLocale;
       if (showSummary && summaryState) {
         summaryState = localizeExistingSummaryState(summaryState, nextLocale);
+      }
+      if (reviewBackBtn) {
+        const nextReviewBackLabel = getProfileCopy(nextLocale).tabReview || 'Review';
+        const reviewBackTextEl = reviewBackBtn.querySelector('span');
+        if (reviewBackTextEl) reviewBackTextEl.textContent = nextReviewBackLabel;
+        reviewBackBtn.setAttribute('aria-label', nextReviewBackLabel);
       }
       renderStep();
       clearHeroNarrationTimer();

@@ -4516,13 +4516,14 @@ async function doPost( endpoint, userInfo, data ) {
 
 }
 
-async function syncDeviceSeen(source = 'startup', userInfo = null) {
+async function syncDeviceSeen(source = 'startup', userInfo = null, eventMetadata = {}) {
   try {
-    const context = buildAppDeviceContext({ source });
+    const metadata = eventMetadata && typeof eventMetadata === 'object' ? eventMetadata : {};
+    const context = buildAppDeviceContext({ source, ...metadata });
     if (!context.uuid) return { ok: false, skipped: 'missing_uuid' };
     const data = {
       uuid: context.uuid,
-      device_context: context,
+      device_context: { ...context, ...metadata, source },
       device_event: source,
       timestamp: Math.round(+new Date() / 1000)
     };

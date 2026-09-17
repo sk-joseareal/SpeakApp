@@ -2357,6 +2357,19 @@ function setupSecretDiagnostics(router) {
   window.requestDiagnosticsUnlockPrompt = promptDiagnosticsUnlock;
 }
 
+function recordPaywallEvent(eventType, metadata = {}) {
+  if (typeof window.syncDeviceSeen !== 'function') return;
+  const user = window.user && typeof window.user === 'object' ? window.user : null;
+  window.syncDeviceSeen(eventType, user, {
+    screen: 'premium_paywall',
+    ...metadata
+  }).catch((error) => {
+    console.warn('[paywall] analytics event failed:', error);
+  });
+}
+
+window.recordPaywallEvent = recordPaywallEvent;
+
 function setupDiagnosticsModal() {
   let modal = null;
 
@@ -2397,6 +2410,7 @@ function setupDiagnosticsModal() {
     preview.dataset.premiumPreviewDetached = 'true';
     document.body.appendChild(preview);
     preview.hidden = false;
+    recordPaywallEvent('paywall_view', { source: 'paywall_open' });
     requestAnimationFrame(() => preview.classList.add('is-visible'));
   };
 }

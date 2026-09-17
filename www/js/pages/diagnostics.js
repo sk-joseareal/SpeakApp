@@ -5,7 +5,7 @@ import {
   generateDemoNotifications,
   getNotifications
 } from '../notifications-store.js';
-import { clearOnboardingDone, getAppLocale } from '../state.js';
+import { clearOnboardingDone, getActiveLocale, getAppLocale } from '../state.js';
 import { translationWorkerClient } from '../translation-worker-client.js';
 import {
   TRANSLATION_CAPABILITIES_EVENT,
@@ -516,7 +516,7 @@ class PageDiagnostics extends HTMLElement {
       };
     };
 
-    const premiumPreviewLocale = getAppLocale() || 'en';
+    const premiumPreviewLocale = getActiveLocale() || getAppLocale() || 'en';
     const premiumPreviewCopy = premiumPreviewLocale === 'es'
       ? {
           title: 'Premium',
@@ -526,17 +526,16 @@ class PageDiagnostics extends HTMLElement {
           learnTitle: 'Aprender',
           learnText: 'Curso completo con lecciones y ejercicios.',
           chatTitle: 'Chat',
-          chatText: 'Practica y recibe feedback personalizado.',
+          chatText: 'Practica Inglés con otros compañeros.',
           newTitle: 'Nuevos contenidos Premium',
           newText: 'Más ejercicios y herramientas para mejorar cada día.',
           selectPlan: 'Selecciona un plan',
-          month: '1 mes',
+          month: 'Mensual',
+          monthPeriod: 'al mes',
           cancel: 'Cancela cuando quieras',
-          quarter: '3 meses',
-          annual: '1 año',
-          save: 'Ahorra un 33 %',
-          perMonth: 'al mes',
-          perMonthQuarter: '3,33 € al mes',
+          annual: 'Anual',
+          annualPeriod: 'al año',
+          save: 'Ahorra un 58 %',
           secure: 'Pago seguro',
           bestOption: 'MEJOR OPCIÓN',
           notImplemented: 'Aún no implementado',
@@ -561,17 +560,16 @@ class PageDiagnostics extends HTMLElement {
           learnTitle: 'Learn',
           learnText: 'Complete course with lessons and exercises.',
           chatTitle: 'Chat',
-          chatText: 'Practice and receive personalized feedback.',
+          chatText: 'Practice English with other learners.',
           newTitle: 'New Premium content',
           newText: 'More exercises and tools to improve every day.',
           selectPlan: 'Select a plan',
-          month: '1 month',
+          month: 'Monthly',
+          monthPeriod: 'per month',
           cancel: 'Cancel whenever you want',
-          quarter: '3 months',
-          annual: '1 year',
-          save: 'Save 33%',
-          perMonth: 'per month',
-          perMonthQuarter: '€3.33 per month',
+          annual: 'Annual',
+          annualPeriod: 'per year',
+          save: 'Save 58%',
           secure: 'Secure payment',
           bestOption: 'BEST VALUE',
           notImplemented: 'Not implemented yet',
@@ -1329,11 +1327,11 @@ class PageDiagnostics extends HTMLElement {
           </div>
           <div class="premium-preview-plans" role="radiogroup" aria-label="${premiumPreviewCopy.selectPlan}">
             <button class="premium-preview-plan" type="button" data-premium-plan="month" role="radio" aria-checked="false">
-              <span class="premium-preview-radio"></span><span class="premium-preview-plan-copy"><strong>${premiumPreviewCopy.month}</strong><small>${premiumPreviewCopy.cancel}</small></span><b data-premium-price="month">4,99 €<small>${premiumPreviewCopy.perMonth}</small></b>
+              <span class="premium-preview-radio"></span><span class="premium-preview-plan-copy"><strong>${premiumPreviewCopy.month}</strong><small data-premium-plan-period="month">3,99 € ${premiumPreviewCopy.monthPeriod}</small></span><b data-premium-price="month">3,99 €<small>${premiumPreviewCopy.monthPeriod}</small></b>
             </button>
             <button class="premium-preview-plan is-selected" type="button" data-premium-plan="annual" role="radio" aria-checked="true">
               <span class="premium-preview-plan-badge">${premiumPreviewCopy.bestOption}</span>
-              <span class="premium-preview-radio"></span><span class="premium-preview-plan-copy"><strong data-premium-plan-label="annual">${premiumPreviewCopy.quarter}</strong><small data-premium-plan-save="annual">${premiumPreviewCopy.save}</small></span><b data-premium-price="annual">9,99 €<small data-premium-plan-monthly="annual">${premiumPreviewCopy.perMonthQuarter}</small></b>
+              <span class="premium-preview-radio"></span><span class="premium-preview-plan-copy"><strong data-premium-plan-label="annual">${premiumPreviewCopy.annual}</strong><small data-premium-plan-save="annual">${premiumPreviewCopy.save}</small></span><b data-premium-price="annual">19,99 €<small data-premium-plan-period="annual">${premiumPreviewCopy.annualPeriod}</small></b>
             </button>
           </div>
           <div class="premium-preview-secure"><ion-icon name="lock-closed-outline"></ion-icon> ${premiumPreviewCopy.secure} <span>•</span> ${premiumPreviewCopy.cancel}</div>
@@ -5053,11 +5051,15 @@ class PageDiagnostics extends HTMLElement {
       const annualData = getPremiumPriceData(productIds.annual);
       const monthPriceEl = premiumPreviewEl.querySelector('[data-premium-price="month"]');
       const annualPriceEl = premiumPreviewEl.querySelector('[data-premium-price="annual"]');
+      const monthPeriodEl = premiumPreviewEl.querySelector('[data-premium-plan-period="month"]');
       if (monthData.price && monthPriceEl) monthPriceEl.firstChild.textContent = monthData.price;
       if (annualData.price && annualPriceEl) annualPriceEl.firstChild.textContent = annualData.price;
+      if (monthData.price && monthPeriodEl) {
+        monthPeriodEl.textContent = `${monthData.price} ${premiumPreviewCopy.monthPeriod}`;
+      }
       const annualLabelEl = premiumPreviewEl.querySelector('[data-premium-plan-label="annual"]');
       const annualSaveEl = premiumPreviewEl.querySelector('[data-premium-plan-save="annual"]');
-      const annualMonthlyEl = premiumPreviewEl.querySelector('[data-premium-plan-monthly="annual"]');
+      const annualPeriodEl = premiumPreviewEl.querySelector('[data-premium-plan-period="annual"]');
       const purchaseButton = premiumPreviewEl.querySelector('#diag-premium-preview-cta');
       const pricesReady = monthData.numeric !== null && annualData.numeric !== null;
       if (!pricesReady) {
@@ -5069,11 +5071,11 @@ class PageDiagnostics extends HTMLElement {
         purchaseButton.setAttribute('aria-disabled', pricesReady ? 'false' : 'true');
       }
       if (annualLabelEl) annualLabelEl.textContent = premiumPreviewCopy.annual;
-      if (annualData.numeric !== null && annualMonthlyEl) {
-        annualMonthlyEl.textContent = `${formatPremiumAmount(annualData.numeric / 3, annualData.currency)} ${premiumPreviewCopy.perMonth}`;
+      if (annualPeriodEl) {
+        annualPeriodEl.textContent = premiumPreviewCopy.annualPeriod;
       }
       if (monthData.numeric !== null && annualData.numeric !== null && annualSaveEl) {
-        const saving = Math.max(0, ((monthData.numeric * 3 - annualData.numeric) / (monthData.numeric * 3)) * 100);
+        const saving = Math.max(0, ((monthData.numeric * 12 - annualData.numeric) / (monthData.numeric * 12)) * 100);
         annualSaveEl.textContent = premiumPreviewLocale === 'es'
           ? `Ahorra un ${saving.toFixed(2)} %`
           : `Save ${saving.toFixed(2)}%`;
@@ -5123,13 +5125,21 @@ class PageDiagnostics extends HTMLElement {
     this.querySelector('#diag-premium-preview-cta')?.addEventListener('click', (event) => {
       event.preventDefault();
       const productIds = getPremiumProductIds();
+      const selectedPlan = premiumPreviewEl?.querySelector('[data-premium-plan].is-selected')?.dataset.premiumPlan || 'annual';
+      const productId = productIds ? (productIds[selectedPlan] || productIds.annual || '') : '';
+      const isProductionPaywall = premiumPreviewEl?.dataset.dismissDiagnosticsOnClose === 'true';
+      if (isProductionPaywall) {
+        window.recordPaywallEvent?.('paywall_purchase_intent', {
+          source: 'paywall_cta',
+          selected_plan: selectedPlan,
+          product_id: productId
+        });
+      }
       if (!productIds) {
         window.presentAppToast?.(premiumPreviewCopy.purchaseUnavailable);
         closePremiumPreview();
         return;
       }
-      const selectedPlan = premiumPreviewEl?.querySelector('[data-premium-plan].is-selected')?.dataset.premiumPlan || 'annual';
-      const productId = productIds[selectedPlan] || productIds.annual;
       try {
         const product = getPremiumProduct(productId);
         const store = window.CdvPurchase && window.CdvPurchase.store;

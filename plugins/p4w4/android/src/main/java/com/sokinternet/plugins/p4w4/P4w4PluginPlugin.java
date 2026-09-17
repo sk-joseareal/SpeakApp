@@ -14,6 +14,9 @@ import android.graphics.drawable.GradientDrawable;
 
 import android.content.Context;
 import android.media.AudioManager;
+import android.media.AudioRecord;
+import android.media.AudioFormat;
+import android.media.MediaRecorder;
 import android.media.ToneGenerator;
 import android.media.AudioAttributes;
 import android.media.Ringtone;
@@ -55,7 +58,9 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.RandomAccessFile;
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.google.mlkit.nl.languageid.IdentifiedLanguage;
 import com.google.mlkit.nl.languageid.LanguageIdentification;
@@ -88,6 +93,13 @@ public class P4w4PluginPlugin extends Plugin {
     private static final Object TRANSLATION_LOCK = new Object();
     private static Model voskModel = null;
     private static String voskModelPath = null;
+    private static final int NATIVE_RECORD_SAMPLE_RATE = 16000;
+    private final Object nativeRecordingLock = new Object();
+    private AudioRecord nativeAudioRecord;
+    private Thread nativeRecordingThread;
+    private File nativeRecordingFile;
+    private long nativeRecordingStartedAt;
+    private final AtomicBoolean nativeRecordingStopRequested = new AtomicBoolean(false);
     private static Translator spanishToEnglishTranslator = null;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private static final int LEGACY_ANDROID_MAX_SDK = 31;
@@ -995,6 +1007,136 @@ public class P4w4PluginPlugin extends Plugin {
             voskModelPath = resolvedPath;
         }
         return model;
+    }
+
+    private void writeWavHeader(RandomAccessFile file, int dataLength) throws IOException {
+        int byteRate = NATIVE_RECORD_SAMPLE_RATE * 2;
+        file.seek(0);
+        file.writeBytes("RIFF");
+        file.writeInt(Integer.reverseBytes(36 + dataLength));
+        file.writeBytes("WAVEfmt ");
+        file.writeInt(Integer.reverseBytes(16));
+        file.writeShort(Short.reverseBytes((short) 1));
+        file.writeShort(Short.reverseBytes((short) 1));
+        file.writeInt(Integer.reverseBytes(NATIVE_RECORD_SAMPLE_RATE));
+        file.writeInt(Integer.reverseBytes(byteRate));
+        file.writeShort(Short.reverseBytes((short) 2));
+        file.writeShort(Short.reverseBytes((short) 16));
+        file.writeBytes("data");
+        file.writeInt(Integer.reverseBytes(dataLength));
+    }
+
+    @PluginMethod
+    public void startAudioRecording(PluginCall call) {
+        if (androidx.core.content.ContextCompat.checkSelfPermission(getContext(), android.Manifest.permission.RECORD_AUDIO)
+            != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            call.reject("Permiso de micrófono no concedido.", "MICROPHONE_PERMISSION_REQUIRED");
+            return;
+        }
+        synchronized (nativeRecordingLock) {
+            if (nativeRecordingThread != null) {
+                call.reject("Ya hay una grabación en curso.", "RECORDING_IN_PROGRESS");
+                return;
+            }
+            int minBuffer = AudioRecord.getMinBufferSize(
+                NATIVE_RECORD_SAMPLE_RATE,
+                AudioFormat.CHANNEL_IN_MONO,
+                AudioFormat.ENCODING_PCM_16BIT
+            );
+            if (minBuffer <= 0) {
+                call.reject("El micrófono no admite la configuración de grabación.", "RECORDING_UNAVAILABLE");
+                return;
+            }
+            try {
+                int bufferSize = Math.max(minBuffer * 2, 4096);
+                nativeAudioRecord = new AudioRecord(
+                    MediaRecorder.AudioSource.VOICE_RECOGNITION,
+                    NATIVE_RECORD_SAMPLE_RATE,
+                    AudioFormat.CHANNEL_IN_MONO,
+                    AudioFormat.ENCODING_PCM_16BIT,
+                    bufferSize
+                );
+                if (nativeAudioRecord.getState() != AudioRecord.STATE_INITIALIZED) {
+                    nativeAudioRecord.release();
+                    nativeAudioRecord = null;
+                    call.reject("No se pudo inicializar el micrófono.", "RECORDING_UNAVAILABLE");
+                    return;
+                }
+                nativeRecordingFile = new File(getContext().getCacheDir(), "speak-native-" + System.currentTimeMillis() + ".wav");
+                nativeRecordingStartedAt = System.currentTimeMillis();
+                nativeRecordingStopRequested.set(false);
+                nativeAudioRecord.startRecording();
+                nativeRecordingThread = new Thread(() -> {
+                    int dataLength = 0;
+                    byte[] buffer = new byte[4096];
+                    try (RandomAccessFile output = new RandomAccessFile(nativeRecordingFile, "rw")) {
+                        output.setLength(0);
+                        output.write(new byte[44]);
+                        while (!nativeRecordingStopRequested.get()) {
+                            int read = nativeAudioRecord.read(buffer, 0, buffer.length);
+                            if (read > 0) {
+                                output.write(buffer, 0, read);
+                                dataLength += read;
+                            } else if (read == AudioRecord.ERROR_INVALID_OPERATION || read == AudioRecord.ERROR_BAD_VALUE) {
+                                break;
+                            }
+                        }
+                        writeWavHeader(output, dataLength);
+                    } catch (Exception error) {
+                        Log.e("P4w4Plugin", "Error grabando audio nativo", error);
+                    }
+                }, "p4w4-audio-record");
+                nativeRecordingThread.start();
+                call.resolve(new JSObject().put("started", true).put("sampleRate", NATIVE_RECORD_SAMPLE_RATE));
+            } catch (Exception error) {
+                nativeAudioRecord = null;
+                nativeRecordingThread = null;
+                call.reject("Error iniciando grabación: " + error.getMessage(), "RECORDING_UNAVAILABLE");
+            }
+        }
+    }
+
+    @PluginMethod
+    public void stopAudioRecording(PluginCall call) {
+        Thread recordingThread;
+        AudioRecord recorder;
+        File outputFile;
+        synchronized (nativeRecordingLock) {
+            recordingThread = nativeRecordingThread;
+            recorder = nativeAudioRecord;
+            outputFile = nativeRecordingFile;
+            if (recordingThread == null || recorder == null || outputFile == null) {
+                call.reject("No hay una grabación nativa en curso.", "NO_RECORDING");
+                return;
+            }
+            nativeRecordingStopRequested.set(true);
+        }
+        try {
+            recorder.stop();
+        } catch (Exception ignored) {
+            // The recording thread will still finalize the WAV header.
+        }
+        try {
+            recordingThread.join(3000);
+        } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+        }
+        synchronized (nativeRecordingLock) {
+            try { recorder.release(); } catch (Exception ignored) { }
+            nativeAudioRecord = null;
+            nativeRecordingThread = null;
+            nativeRecordingFile = null;
+        }
+        if (!outputFile.exists() || outputFile.length() <= 44) {
+            call.reject("La grabación no contiene audio.", "EMPTY_RECORDING");
+            return;
+        }
+        JSObject result = new JSObject();
+        result.put("path", outputFile.getAbsolutePath());
+        result.put("sampleRate", NATIVE_RECORD_SAMPLE_RATE);
+        result.put("durationMs", Math.max(0, System.currentTimeMillis() - nativeRecordingStartedAt));
+        result.put("bytes", outputFile.length());
+        call.resolve(result);
     }
 
     @PluginMethod

@@ -207,6 +207,7 @@ class PageFreeRide extends HTMLElement {
       detectedInputLanguage: '',
       transcript: '',
       percent: null,
+      recordingError: '',
       recentReward: null,
       recordingUrl: '',
       isRecording: false,
@@ -227,6 +228,8 @@ class PageFreeRide extends HTMLElement {
     this.mediaRecorder = null;
     this.recordingStream = null;
     this.recordedChunks = [];
+    this.nativeRecordingActive = false;
+    this.recordingStartPending = false;
     this.recordedBlob = null;
     this.speechRecognizer = null;
     this.speechTranscript = '';
@@ -3039,7 +3042,8 @@ class PageFreeRide extends HTMLElement {
       close: ['Cerrar', 'Close'],
       ok: ['OK', 'OK'],
       incorrecta: ['Incorrecta', 'Incorrect'],
-      issue: ['Incidencia', 'Issue']
+      issue: ['Incidencia', 'Issue'],
+      recordingError: ['No hemos podido reconocer tu voz. Inténtalo de nuevo.', "We couldn't recognize your voice. Please try again."]
     };
     return labels[key] || [String(key || ''), String(key || '')];
   }
@@ -5094,6 +5098,9 @@ class PageFreeRide extends HTMLElement {
     if (this.state.isTranscribing) {
       return { tone: 'hint', label: copy.transcribing || 'Transcribing...', labelKey: 'transcribing', hasScore: false };
     }
+    if (this.state.recordingError) {
+      return { tone: 'hint', label: this.state.recordingError, labelKey: 'recordingError', hasScore: false };
+    }
     if (typeof this.state.percent !== 'number') {
       return { tone: 'hint', label: copy.feedbackHint || 'Practice the phrase', labelKey: 'feedbackHint', hasScore: false };
     }
@@ -5672,6 +5679,58 @@ class PageFreeRide extends HTMLElement {
     }
   }
 
+  async transcribeNativeAudioPath(path, sampleRate) {
+    const plugin = this.getNativeTranscribePlugin();
+    if (!plugin || !path || typeof plugin.transcribeAudio !== 'function') return '';
+    const payload = {
+      path,
+      language: this.getPracticeSpeechLocale(),
+      sampleRate: Number(sampleRate) || this.getVoskSampleRate()
+    };
+    const modelPath = this.getVoskModelPath();
+    if (modelPath) payload.modelPath = modelPath;
+    const result = await plugin.transcribeAudio(payload);
+    return result && typeof result.text === 'string' ? result.text : '';
+  }
+
+  async readNativeRecordingBlob(path) {
+    const fs = this.getFilesystemPlugin();
+    if (!fs || !path || typeof fs.readFile !== 'function') return null;
+    const result = await fs.readFile({
+      path: String(path).split('/').pop(),
+      directory: 'CACHE'
+    });
+    const base64 = result && typeof result.data === 'string' ? result.data : '';
+    if (!base64) return null;
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let index = 0; index < binary.length; index += 1) {
+      bytes[index] = binary.charCodeAt(index);
+    }
+    return new Blob([bytes], { type: 'audio/wav' });
+  }
+
+  async startNativeAudioRecording() {
+    const plugin = this.getNativeTranscribePlugin();
+    if (!this.isAndroidPlatform() || !plugin || typeof plugin.startAudioRecording !== 'function') {
+      return false;
+    }
+    try {
+      await plugin.startAudioRecording();
+      this.nativeRecordingActive = true;
+      return true;
+    } catch (error) {
+      if (error && error.code === 'MICROPHONE_PERMISSION_REQUIRED' && this.canRecord()) {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        stream.getTracks().forEach((track) => track.stop());
+        await plugin.startAudioRecording();
+        this.nativeRecordingActive = true;
+        return true;
+      }
+      return false;
+    }
+  }
+
   extractSpeechText(value) {
     const container = document.createElement('div');
     container.innerHTML = String(value || '');
@@ -6179,6 +6238,7 @@ class PageFreeRide extends HTMLElement {
     }
     this.state.transcript = '';
     this.state.percent = null;
+    this.state.recordingError = '';
     this.state.recentReward = null;
     this.state.isTranscribing = false;
     this.advancedAssessRequestToken += 1;
@@ -6721,6 +6781,21 @@ class PageFreeRide extends HTMLElement {
     this.clearAdvancedAssessmentState({ skipRender: true });
     this.recordedChunks = [];
 
+    if (this.isAndroidPlatform()) {
+      let startedNatively = false;
+      try {
+        startedNatively = await this.startNativeAudioRecording();
+      } catch (err) {
+        startedNatively = false;
+      }
+      if (startedNatively) {
+        this.state.recordingStopPending = false;
+        this.state.isRecording = true;
+        this.render();
+        return;
+      }
+    }
+
     try {
       this.recordingStream = await navigator.mediaDevices.getUserMedia({ audio: true });
     } catch (err) {
@@ -6847,6 +6922,33 @@ class PageFreeRide extends HTMLElement {
   stopRecording() {
     this._cancelPendingRecordingStop();
     this.state.recordingStopPending = false;
+    if (this.nativeRecordingActive) {
+      this.nativeRecordingActive = false;
+      this.state.isRecording = false;
+      this.state.isTranscribing = true;
+      this.render();
+      const plugin = this.getNativeTranscribePlugin();
+      Promise.resolve()
+        .then(() => plugin.stopAudioRecording())
+        .then(async (result) => {
+          const path = result && result.path ? String(result.path) : '';
+          const text = await this.transcribeNativeAudioPath(path, result && result.sampleRate);
+          const blob = await this.readNativeRecordingBlob(path).catch(() => null);
+          this.state.isTranscribing = false;
+          this.finalizeRecording(blob ? URL.createObjectURL(blob) : '', text, blob);
+          if (path) {
+            this.getFilesystemPlugin()?.deleteFile?.({
+              path: path.split('/').pop(),
+              directory: 'CACHE'
+            })?.catch?.(() => {});
+          }
+        })
+        .catch(() => {
+          this.state.isTranscribing = false;
+          this.finalizeRecording('', '', null);
+        });
+      return;
+    }
     if (!this.mediaRecorder) {
       this.state.isRecording = false;
       this.render();
@@ -6874,12 +6976,16 @@ class PageFreeRide extends HTMLElement {
         ? forcedTranscript.trim()
         : (this.speechTranscript || this.speechInterim || '').trim();
     const expected = this.getExpectedTextTrimmed();
-    const percent = expected ? this.scoreSimilarity(expected, transcript) : null;
+    const recordingError = transcript
+      ? ''
+      : this.getFreeRideUiLabelLocalizedText('recordingError');
+    const percent = expected && transcript ? this.scoreSimilarity(expected, transcript) : null;
 
     this.clearRecordingUrl();
     this.state.recordingUrl = audioUrl || '';
     this.recordedBlob = recordedBlob instanceof Blob ? recordedBlob : null;
     this.state.transcript = transcript;
+    this.state.recordingError = recordingError;
     this.state.isTranscribing = false;
     this.state.recordingStopPending = false;
     this.state.isRecording = false;
@@ -7815,7 +7921,13 @@ class PageFreeRide extends HTMLElement {
         this._triggerStopRecordingWithDelay();
       } else {
         this._cancelPendingRecordingStop();
-        this.startRecording().catch(() => {});
+        if (this.recordingStartPending || this.state.isTranscribing) return;
+        this.recordingStartPending = true;
+        this.startRecording()
+          .catch(() => {})
+          .finally(() => {
+            this.recordingStartPending = false;
+          });
       }
     });
 
@@ -7824,7 +7936,13 @@ class PageFreeRide extends HTMLElement {
         this._triggerStopRecordingWithDelay();
       } else {
         this._cancelPendingRecordingStop();
-        this.startRecording().catch(() => {});
+        if (this.recordingStartPending || this.state.isTranscribing) return;
+        this.recordingStartPending = true;
+        this.startRecording()
+          .catch(() => {})
+          .finally(() => {
+            this.recordingStartPending = false;
+          });
       }
     });
 

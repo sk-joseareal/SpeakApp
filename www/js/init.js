@@ -26,6 +26,7 @@ const PLAN_TAB_VISIBILITY_KEYS = {
   tu: 'appv5:tab-you-enabled'
 };
 const REFERENCE_TOOLS_ENABLED_KEY = 'appv5:reference-tools-enabled';
+const LEARN_ACCESS_MAX_USER_ID = 464600;
 
 const PREMIUM_PLAN_TABS = {
   home: true,
@@ -57,12 +58,21 @@ const isPremiumPlanUser = (user) => {
 const isRegisteredUser = (user) =>
   Boolean(user && typeof user === 'object' && user.id !== undefined && user.id !== null);
 
+window.isLearnTabUnlockedForUser = (user) => {
+  if (!isRegisteredUser(user)) return false;
+  const userId = Number(String(user.id).trim());
+  return Number.isInteger(userId) && userId <= LEARN_ACCESS_MAX_USER_ID;
+};
+
 window.applyUserPlanTabVisibility = (user) => {
   const isPremiumPlan = user && typeof user === 'object' && isPremiumPlanUser(user);
   const isRegistered = isRegisteredUser(user);
+  const learnTabUnlocked = isPremiumPlan || window.isLearnTabUnlockedForUser(user);
   const nextPlan = isPremiumPlan
     ? PREMIUM_PLAN_TABS
-    : STANDARD_PLAN_TABS;
+    : learnTabUnlocked
+      ? { ...STANDARD_PLAN_TABS, reference: true }
+      : STANDARD_PLAN_TABS;
   const nextReferenceToolsEnabled = isPremiumPlan || isRegistered
     ? PREMIUM_PLAN_REFERENCE_TOOLS
     : STANDARD_PLAN_REFERENCE_TOOLS;

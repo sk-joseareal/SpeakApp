@@ -517,6 +517,9 @@ class PageDiagnostics extends HTMLElement {
     };
 
     const premiumPreviewLocale = getActiveLocale() || getAppLocale() || 'en';
+    const learnTabUnlockedForCurrentUser = Boolean(
+      window.isLearnTabUnlockedForUser?.(window.user)
+    );
     const premiumPreviewCopy = premiumPreviewLocale === 'es'
       ? {
           title: 'Premium',
@@ -1321,7 +1324,7 @@ class PageDiagnostics extends HTMLElement {
           </div>
           <div class="premium-preview-benefits">
             <div class="premium-preview-benefit--routes"><ion-icon name="headset-outline"></ion-icon><span><strong>${premiumPreviewCopy.routesTitle}</strong><small>${premiumPreviewCopy.routesText}</small></span></div>
-            <div class="premium-preview-benefit--learn"><ion-icon name="book-outline"></ion-icon><span><strong>${premiumPreviewCopy.learnTitle}</strong><small>${premiumPreviewCopy.learnText}</small></span></div>
+            ${learnTabUnlockedForCurrentUser ? '' : `<div class="premium-preview-benefit--learn"><ion-icon name="book-outline"></ion-icon><span><strong>${premiumPreviewCopy.learnTitle}</strong><small>${premiumPreviewCopy.learnText}</small></span></div>`}
             <div class="premium-preview-benefit--chat"><ion-icon name="chatbubble-ellipses-outline"></ion-icon><span><strong>${premiumPreviewCopy.chatTitle}</strong><small>${premiumPreviewCopy.chatText}</small></span></div>
             <div class="premium-preview-benefit--new"><ion-icon name="sparkles-outline"></ion-icon><span><strong>${premiumPreviewCopy.newTitle}</strong><small>${premiumPreviewCopy.newText}</small></span></div>
           </div>

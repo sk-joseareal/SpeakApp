@@ -101,3 +101,372 @@ index ac8aa6d..2a7b1e9 100644
        }
      });
    }
+diff --git a/node_modules/cordova-plugin-purchase/src/ios/InAppPurchase.m b/node_modules/cordova-plugin-purchase/src/ios/InAppPurchase.m
+index a0ae211..be6c3ad 100644
+--- a/node_modules/cordova-plugin-purchase/src/ios/InAppPurchase.m
++++ b/node_modules/cordova-plugin-purchase/src/ios/InAppPurchase.m
+@@ -406,6 +406,13 @@ - (void) purchase: (CDVInvokedUrlCommand*)command {
+         [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+         return;
+     }
++    SKStorefront *storefront = [SKPaymentQueue defaultQueue].storefront;
++    DLog(@"[IAP-PRICE-DIAG] purchase: product=%@ productPrice=%@ productCurrency=%@ queueStorefrontIdentifier=%@ queueStorefrontCountryCode=%@",
++         identifier,
++         product.localizedPrice,
++         priceLocaleCurrencyCode(product.priceLocale),
++         storefront.identifier,
++         storefront.countryCode);
+     SKMutablePayment *payment = [SKMutablePayment paymentWithProduct:product];
+     if ([quantity respondsToSelector:@selector(integerValue)]) {
+         payment.quantity = [quantity integerValue];
+@@ -458,6 +465,15 @@ - (void) restoreCompletedTransactions: (CDVInvokedUrlCommand*)command {
+ // SKPaymentTransactionObserver methods
+ // called when the transaction status is updated
+ //
++- (void)paymentQueueDidChangeStorefront:(SKPaymentQueue *)queue {
++    SKStorefront *storefront = queue.storefront;
++    DLog(@"[IAP-PRICE-DIAG] storefront-changed: queueStorefront=%@ queueStorefrontIdentifier=%@ queueStorefrontCountryCode=%@",
++         storefront,
++         storefront.identifier,
++         storefront.countryCode);
++    [self.commandDelegate evalJs:@"if (window.storekit && window.storekit.storefrontChanged) { window.storekit.storefrontChanged(); }"];
++}
++
+ - (void) paymentQueue:(SKPaymentQueue*)queue updatedTransactions:(NSArray*)transactions {
+ 
+     NSString *state, *error, *transactionIdentifier, *originalTransactionIdentifier, *transactionReceipt, *productId, *transactionDate, *discountId;
+@@ -872,10 +888,25 @@ - (void)productsRequest:(SKProductsRequest*)request didReceiveResponse:(SKProduc
+     DLog(@"BatchProductsRequestDelegate.productsRequest:didReceiveResponse:");
+     NSMutableArray *validProducts = [NSMutableArray array];
+     DLog(@"BatchProductsRequestDelegate.productsRequest:didReceiveResponse: Has %li validProducts", (unsigned long)[response.products count]);
++    SKStorefront *storefront = [SKPaymentQueue defaultQueue].storefront;
++    DLog(@"[IAP-PRICE-DIAG] products: queueStorefront=%@ queueStorefrontIdentifier=%@ queueStorefrontCountryCode=%@",
++         storefront,
++         storefront.identifier,
++         storefront.countryCode);
+     for (SKProduct *product in response.products) {
+         NSString *currencyCode = priceLocaleCurrencyCode(product.priceLocale);
+         NSString *countryCode = [product.priceLocale objectForKey: NSLocaleCountryCode];
+         NSDecimalNumber *priceMicros = [product.price decimalNumberByMultiplyingByPowerOf10:6];
++        DLog(@"[IAP-PRICE-DIAG] product: id=%@ rawPrice=%@ priceMicros=%@ priceLocale=%@ localeIdentifier=%@ currencyCode=%@ currencySymbol=%@ countryCode=%@ localizedPrice=%@",
++             product.productIdentifier,
++             product.price,
++             priceMicros,
++             product.priceLocale,
++             product.priceLocale.localeIdentifier,
++             currencyCode,
++             [product.priceLocale objectForKey:NSLocaleCurrencySymbol],
++             countryCode,
++             product.localizedPrice);
+ 
+         // Introductory price fields
+         NSDecimalNumber *introPriceMicros = nil;
+@@ -996,4 +1027,3 @@ - (void) dealloc {
+ #endif
+ 
+ @end
+-
+diff --git a/node_modules/cordova-plugin-purchase/src/ts/platforms/apple-appstore/appstore-adapter.ts b/node_modules/cordova-plugin-purchase/src/ts/platforms/apple-appstore/appstore-adapter.ts
+index ed9f8ab..42e49a9 100644
+--- a/node_modules/cordova-plugin-purchase/src/ts/platforms/apple-appstore/appstore-adapter.ts
++++ b/node_modules/cordova-plugin-purchase/src/ts/platforms/apple-appstore/appstore-adapter.ts
+@@ -114,6 +114,10 @@ namespace CdvPurchase {
+             }
+ 
+             private validProducts: { [id: string]: Bridge.ValidProduct & IRegisterProduct; } = {};
++            private registeredProducts: IRegisterProduct[] = [];
++            private productLoadsInProgress = 0;
++            private storefrontReloadPending = false;
++            private storefrontReloadTimer?: number;
+             addValidProducts(registerProducts: IRegisterProduct[], validProducts: Bridge.ValidProduct[]) {
+                 validProducts.forEach(vp => {
+                     const rp = registerProducts.find(p => p.id === vp.id);
+@@ -329,6 +333,10 @@ namespace CdvPurchase {
+                             if (this._receipt) this._receipt.refresh(receipt, this.needAppReceipt, this.context.apiDecorators);
+                         },
+ 
++                        storefrontChanged: () => {
++                            this.scheduleStorefrontReload();
++                        },
++
+                         restoreFailed: (errorCode: ErrorCode) => {
+                             this.log.info('restoreFailed: ' + errorCode);
+                             if (this.onRestoreCompleted) {
+@@ -521,8 +529,54 @@ namespace CdvPurchase {
+                 });
+             }
+ 
++            private rememberRegisteredProducts(products: IRegisterProduct[]) {
++                products.forEach(product => {
++                    const index = this.registeredProducts.findIndex(registered => registered.id === product.id);
++                    if (index >= 0) this.registeredProducts[index] = product;
++                    else this.registeredProducts.push(product);
++                });
++            }
++
++            private scheduleStorefrontReload() {
++                if (this.registeredProducts.length === 0) {
++                    this.log.info('[IAP-PRICE-DIAG] storefront changed before products were registered; initial load will use the new storefront');
++                    return;
++                }
++                this.storefrontReloadPending = true;
++                if (this.storefrontReloadTimer !== undefined) window.clearTimeout(this.storefrontReloadTimer);
++                this.storefrontReloadTimer = window.setTimeout(() => this.reloadProductsAfterStorefrontChange(), 500);
++            }
++
++            private async reloadProductsAfterStorefrontChange() {
++                this.storefrontReloadTimer = undefined;
++                if (!this.storefrontReloadPending) return;
++                if (this.productLoadsInProgress > 0) {
++                    this.scheduleStorefrontReload();
++                    return;
++                }
++
++                this.storefrontReloadPending = false;
++                this.log.info('[IAP-PRICE-DIAG] reloading products after storefront change');
++                const result = await this.loadProducts([...this.registeredProducts]);
++                const updatedProducts = result.filter(product => product instanceof Product) as Product[];
++                if (updatedProducts.length > 0) {
++                    this.context.listener.productsUpdated(Platform.APPLE_APPSTORE, updatedProducts);
++                    this.log.info(`[IAP-PRICE-DIAG] storefront reload updated ${updatedProducts.length} products`);
++                }
++            }
++
+             loadProducts(products: IRegisterProduct[]): Promise<(Product | IError)[]> {
++                this.rememberRegisteredProducts(products);
++                this.productLoadsInProgress += 1;
+                 return new Promise(resolve => {
++                    let completed = false;
++                    const complete = (result: (Product | IError)[]) => {
++                        if (completed) return;
++                        completed = true;
++                        this.productLoadsInProgress = Math.max(0, this.productLoadsInProgress - 1);
++                        resolve(result);
++                        if (this.storefrontReloadPending) this.scheduleStorefrontReload();
++                    };
+                     this.log.info('bridge.load');
+                     this.bridge.load(
+                         products.map(p => p.id),
+@@ -556,10 +610,10 @@ namespace CdvPurchase {
+                                 }
+                             });
+                             this.log.debug(`Products loaded: ${JSON.stringify(ret)}`);
+-                            resolve(ret);
++                            complete(ret);
+                         },
+                         (code: ErrorCode, message: string) => {
+-                            return products.map(p => appStoreError(code, message, null));
++                            complete(products.map(p => appStoreError(code, message, p.id)));
+                         });
+                 });
+             }
+diff --git a/node_modules/cordova-plugin-purchase/src/ts/platforms/apple-appstore/appstore-bridge.ts b/node_modules/cordova-plugin-purchase/src/ts/platforms/apple-appstore/appstore-bridge.ts
+index bbb55b5..82a702e 100644
+--- a/node_modules/cordova-plugin-purchase/src/ts/platforms/apple-appstore/appstore-bridge.ts
++++ b/node_modules/cordova-plugin-purchase/src/ts/platforms/apple-appstore/appstore-bridge.ts
+@@ -204,6 +204,9 @@ namespace CdvPurchase {
+                 /** Called when the application receipt is refreshed */
+                 receiptsRefreshed: (receipt: ApplicationReceipt) => void;
+ 
++                /** Called when StoreKit reports a storefront change */
++                storefrontChanged: () => void;
++
+                 /** Called when a call to "restore" failed */
+                 restoreFailed: (errorCode: ErrorCode) => void;
+ 
+@@ -289,6 +292,7 @@ namespace CdvPurchase {
+                         finished: noop,
+                         restored: noop,
+                         receiptsRefreshed: noop,
++                        storefrontChanged: noop,
+                         restoreFailed: noop,
+                         restoreCompleted: noop,
+                     }
+@@ -322,6 +326,7 @@ namespace CdvPurchase {
+                         finished: options.finished || noop,
+                         restored: options.restored || noop,
+                         receiptsRefreshed: options.receiptsRefreshed || noop,
++                        storefrontChanged: options.storefrontChanged || noop,
+                         restoreFailed: options.restoreFailed || noop,
+                         restoreCompleted: options.restoreCompleted || noop,
+                     };
+@@ -361,6 +366,16 @@ namespace CdvPurchase {
+                     }, undefined);
+                 }
+ 
++                /** Called from native when the App Store storefront changes. */
++                storefrontChanged() {
++                    log('storefront changed');
++                    if (!this.initialized) {
++                        log('storefront change ignored before initialization');
++                        return;
++                    }
++                    protectCall(this.options.storefrontChanged, 'options.storefrontChanged');
++                }
++
+                 /**
+                  * Makes an in-app purchase.
+                  *
+diff --git a/node_modules/cordova-plugin-purchase/www/store.d.ts b/node_modules/cordova-plugin-purchase/www/store.d.ts
+index 832aca6..49875c1 100644
+--- a/node_modules/cordova-plugin-purchase/www/store.d.ts
++++ b/node_modules/cordova-plugin-purchase/www/store.d.ts
+@@ -2477,6 +2477,13 @@ declare namespace CdvPurchase {
+             private loadAppStoreReceipt;
+             private loadEligibility;
+             private callDiscountEligibilityDeterminer;
++            private registeredProducts;
++            private productLoadsInProgress;
++            private storefrontReloadPending;
++            private storefrontReloadTimer?;
++            private rememberRegisteredProducts;
++            private scheduleStorefrontReload;
++            private reloadProductsAfterStorefrontChange;
+             loadProducts(products: IRegisterProduct[]): Promise<(Product | IError)[]>;
+             order(offer: Offer, additionalData: CdvPurchase.AdditionalData): Promise<undefined | IError>;
+             finish(transaction: Transaction): Promise<undefined | IError>;
+@@ -2625,6 +2632,8 @@ declare namespace CdvPurchase {
+                 restored: (transactionIdentifier: string, productId: string) => void;
+                 /** Called when the application receipt is refreshed */
+                 receiptsRefreshed: (receipt: ApplicationReceipt) => void;
++                /** Called when StoreKit reports a storefront change */
++                storefrontChanged: () => void;
+                 /** Called when a call to "restore" failed */
+                 restoreFailed: (errorCode: ErrorCode) => void;
+                 /** Called when a call to "restore" is complete */
+@@ -2656,6 +2665,8 @@ declare namespace CdvPurchase {
+                 /** List of transaction updates to process */
+                 private pendingUpdates;
+                 constructor();
++                /** Called from native when the App Store storefront changes. */
++                storefrontChanged(): void;
+                 /**
+                  * Initialize the AppStore bridge.
+                  *
+diff --git a/node_modules/cordova-plugin-purchase/www/store.js b/node_modules/cordova-plugin-purchase/www/store.js
+index f13aa93..f817388 100644
+--- a/node_modules/cordova-plugin-purchase/www/store.js
++++ b/node_modules/cordova-plugin-purchase/www/store.js
+@@ -2663,6 +2663,9 @@ var CdvPurchase;
+                 /** List of products loaded from AppStore */
+                 this._products = [];
+                 this.validProducts = {};
++                this.registeredProducts = [];
++                this.productLoadsInProgress = 0;
++                this.storefrontReloadPending = false;
+                 this._paymentMonitor = () => { };
+                 this.supportsParallelLoading = true;
+                 /** True iff the appStoreReceipt is already being initialized */
+@@ -2854,6 +2857,9 @@ var CdvPurchase;
+                             if (this._receipt)
+                                 this._receipt.refresh(receipt, this.needAppReceipt, this.context.apiDecorators);
+                         },
++                        storefrontChanged: () => {
++                            this.scheduleStorefrontReload();
++                        },
+                         restoreFailed: (errorCode) => {
+                             this.log.info('restoreFailed: ' + errorCode);
+                             if (this.onRestoreCompleted) {
+@@ -3041,8 +3047,58 @@ var CdvPurchase;
+                     this.discountEligibilityDeterminer(applicationReceipt, eligibilityRequests, resolve);
+                 });
+             }
++            rememberRegisteredProducts(products) {
++                products.forEach(product => {
++                    const index = this.registeredProducts.findIndex(registered => registered.id === product.id);
++                    if (index >= 0)
++                        this.registeredProducts[index] = product;
++                    else
++                        this.registeredProducts.push(product);
++                });
++            }
++            scheduleStorefrontReload() {
++                if (this.registeredProducts.length === 0) {
++                    this.log.info('[IAP-PRICE-DIAG] storefront changed before products were registered; initial load will use the new storefront');
++                    return;
++                }
++                this.storefrontReloadPending = true;
++                if (this.storefrontReloadTimer !== undefined)
++                    window.clearTimeout(this.storefrontReloadTimer);
++                this.storefrontReloadTimer = window.setTimeout(() => this.reloadProductsAfterStorefrontChange(), 500);
++            }
++            reloadProductsAfterStorefrontChange() {
++                return __awaiter(this, void 0, void 0, function* () {
++                    this.storefrontReloadTimer = undefined;
++                    if (!this.storefrontReloadPending)
++                        return;
++                    if (this.productLoadsInProgress > 0) {
++                        this.scheduleStorefrontReload();
++                        return;
++                    }
++                    this.storefrontReloadPending = false;
++                    this.log.info('[IAP-PRICE-DIAG] reloading products after storefront change');
++                    const result = yield this.loadProducts([...this.registeredProducts]);
++                    const updatedProducts = result.filter(product => product instanceof CdvPurchase.Product);
++                    if (updatedProducts.length > 0) {
++                        this.context.listener.productsUpdated(CdvPurchase.Platform.APPLE_APPSTORE, updatedProducts);
++                        this.log.info(`[IAP-PRICE-DIAG] storefront reload updated ${updatedProducts.length} products`);
++                    }
++                });
++            }
+             loadProducts(products) {
++                this.rememberRegisteredProducts(products);
++                this.productLoadsInProgress += 1;
+                 return new Promise(resolve => {
++                    let completed = false;
++                    const complete = (result) => {
++                        if (completed)
++                            return;
++                        completed = true;
++                        this.productLoadsInProgress = Math.max(0, this.productLoadsInProgress - 1);
++                        resolve(result);
++                        if (this.storefrontReloadPending)
++                            this.scheduleStorefrontReload();
++                    };
+                     this.log.info('bridge.load');
+                     this.bridge.load(products.map(p => p.id), (validProducts, invalidProducts) => __awaiter(this, void 0, void 0, function* () {
+                         this.log.info('bridge.loaded: ' + JSON.stringify({ validProducts, invalidProducts }));
+@@ -3074,9 +3130,9 @@ var CdvPurchase;
+                             }
+                         });
+                         this.log.debug(`Products loaded: ${JSON.stringify(ret)}`);
+-                        resolve(ret);
++                        complete(ret);
+                     }), (code, message) => {
+-                        return products.map(p => appStoreError(code, message, null));
++                        complete(products.map(p => appStoreError(code, message, p.id)));
+                     });
+                 });
+             }
+@@ -3366,6 +3422,7 @@ var CdvPurchase;
+                         finished: noop,
+                         restored: noop,
+                         receiptsRefreshed: noop,
++                        storefrontChanged: noop,
+                         restoreFailed: noop,
+                         restoreCompleted: noop,
+                     };
+@@ -3397,6 +3454,7 @@ var CdvPurchase;
+                         finished: options.finished || noop,
+                         restored: options.restored || noop,
+                         receiptsRefreshed: options.receiptsRefreshed || noop,
++                        storefrontChanged: options.storefrontChanged || noop,
+                         restoreFailed: options.restoreFailed || noop,
+                         restoreCompleted: options.restoreCompleted || noop,
+                     };
+@@ -3429,6 +3487,15 @@ var CdvPurchase;
+                         this.finalizeTransactionUpdates();
+                     }, undefined);
+                 }
++                /** Called from native when the App Store storefront changes. */
++                storefrontChanged() {
++                    log('storefront changed');
++                    if (!this.initialized) {
++                        log('storefront change ignored before initialization');
++                        return;
++                    }
++                    protectCall(this.options.storefrontChanged, 'options.storefrontChanged');
++                }
+                 /**
+                  * Makes an in-app purchase.
+                  *

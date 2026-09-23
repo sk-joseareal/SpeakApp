@@ -26,7 +26,7 @@ const PLAN_TAB_VISIBILITY_KEYS = {
   tu: 'appv5:tab-you-enabled'
 };
 const REFERENCE_TOOLS_ENABLED_KEY = 'appv5:reference-tools-enabled';
-const LEARN_ACCESS_MAX_USER_ID = 464600;
+const LEARN_ACCESS_MAX_USER_ID = 274600;
 
 const PREMIUM_PLAN_TABS = {
   home: true,
